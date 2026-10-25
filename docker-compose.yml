@@ -1,0 +1,24 @@
+# Prayer Tower app processes on one machine. Supabase (Postgres, Auth, Storage)
+# runs alongside: `npm run db:start` for development, or self-hosted Supabase
+# (https://supabase.com/docs/guides/self-hosting/docker) / Supabase Cloud for the pilot.
+# Both processes are stateless; scale with `docker compose up --scale worker=2`.
+services:
+  api:
+    build: .
+    command: ["node", "dist/src/server.js"]
+    env_file: .env
+    environment:
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ["node", "dist/src/worker.js"]
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
