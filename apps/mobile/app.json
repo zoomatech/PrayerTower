@@ -3,11 +3,13 @@
     "name": "Prayer Tower",
     "slug": "prayer-tower",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "prayertower",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zoomatech.prayertower",
       "icon": "./assets/expo.icon"
     },
     "android": {
@@ -32,7 +34,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "./plugins/with-mac-designed-for-ipad"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -26,6 +26,14 @@ npm run dev:mobile    # Expo dev server: press i / a / w, or scan the QR code wi
 
 On a phone, set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_SUPABASE_URL` to your computer's LAN address, not localhost. For a browser build, list its origin in the server's `CORS_ORIGINS`.
 
+The iOS build targets iPhone, iPad and Mac (Designed for iPad, Apple silicon). Expo generates the Xcode project, so these live in `apps/mobile/app.json` (`ios.supportsTablet`) and `apps/mobile/plugins/with-mac-designed-for-ipad.js`, not in `ios/`. On a Mac with Xcode:
+
+```bash
+cd apps/mobile
+npx expo prebuild -p ios   # writes ios/ (git-ignored)
+xed ios                    # open in Xcode; pick an iPhone, iPad or "My Mac (Designed for iPad)"
+```
+
 Make yourself the first admin after signing up: `npm run grant-role -- you@example.com admin`.
 
 `npm run db:reset` rebuilds the database from migrations. Add a migration with `npx supabase migration new <name>`.
