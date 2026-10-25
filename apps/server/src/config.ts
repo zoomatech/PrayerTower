@@ -8,6 +8,8 @@ const Env = z.object({
   OPENAI_API_KEY: z.string().optional(),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
+  /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */
+  CORS_ORIGINS: z.string().default(''),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
 });
 

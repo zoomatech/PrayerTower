@@ -16,7 +16,13 @@ const storage = config.SUPABASE_SECRET_KEY
   ? createClient(config.SUPABASE_URL, config.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
   : null;
 
-const app = buildApp({ db, verifyToken: supabaseJwksVerifier(config.SUPABASE_URL), storage, logger: true });
+const app = buildApp({
+  db,
+  verifyToken: supabaseJwksVerifier(config.SUPABASE_URL),
+  storage,
+  logger: true,
+  corsOrigins: config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
+});
 
 const shutdown = async () => {
   await app.close();

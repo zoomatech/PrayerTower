@@ -1,6 +1,6 @@
 # Prayer Tower
 
-Prayer-first social platform. This repo is the V1 backend: a **modular monolith** (one TypeScript codebase, one Postgres database) on **Supabase** (Postgres, Auth, Storage), with a stateless API and a Postgres-backed job worker. It runs on one machine and scales out by adding API/worker copies.
+Prayer-first social platform. One repo (npm workspaces) holds the V1 backend and the mobile app. The backend is a **modular monolith** (one TypeScript codebase, one Postgres database) on **Supabase** (Postgres, Auth, Storage), with a stateless API and a Postgres-backed job worker. It runs on one machine and scales out by adding API/worker copies.
 
 Design docs: `Prayer_Tower_V1_Architecture.md` and `Prayer_Tower_Product_Roadmap.md` (project files).
 
@@ -11,11 +11,20 @@ Needs Node 22+ and Docker.
 ```bash
 npm install
 npm run db:start      # local Supabase in Docker; applies supabase/migrations
-cp .env.example .env  # add SUPABASE_SECRET_KEY from `npx supabase status` for media uploads
+cp apps/server/.env.example apps/server/.env  # add SUPABASE_SECRET_KEY from `npx supabase status` for media uploads
 npm run dev:api       # http://localhost:3000
 npm run dev:worker    # background jobs + reminder cron
 npm test              # integration tests against the local database
 ```
+
+### Mobile app (Expo)
+
+```bash
+cp apps/mobile/.env.example apps/mobile/.env  # add the publishable key from `npx supabase status`
+npm run dev:mobile    # Expo dev server: press i / a / w, or scan the QR code with Expo Go
+```
+
+On a phone, set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_SUPABASE_URL` to your computer's LAN address, not localhost. For a browser build, list its origin in the server's `CORS_ORIGINS`.
 
 Make yourself the first admin after signing up: `npm run grant-role -- you@example.com admin`.
 
@@ -24,7 +33,7 @@ Make yourself the first admin after signing up: `npm run grant-role -- you@examp
 ### One machine with Docker Compose
 
 ```bash
-docker compose up --build    # api on :3000 + worker, using .env
+docker compose up --build    # api on :3000 + worker, using apps/server/.env
 docker compose up --scale worker=2
 ```
 
@@ -33,12 +42,15 @@ Point `DATABASE_URL` and `SUPABASE_URL` at self-hosted Supabase on the same mach
 ## Layout
 
 ```
-supabase/migrations/   schema, one file per area (foundation, posts, prayer, ledger, notifications/moderation, lockdown)
-src/app.ts             Fastify app: auth hook, error mapping, module routes
-src/server.ts          API process
-src/worker.ts          Graphile Worker process (tasks in src/tasks.ts, cron in crontab)
-src/modules/<name>/    index.ts = the module's public functions; routes.ts = its HTTP routes
-test/                  vitest integration + unit tests
+supabase/migrations/               schema, one file per area (foundation, posts, prayer, ledger, notifications/moderation, lockdown, tiers, communities)
+apps/server/src/app.ts             Fastify app: auth hook, CORS, error mapping, module routes
+apps/server/src/server.ts          API process
+apps/server/src/worker.ts          Graphile Worker process (tasks in src/tasks.ts, cron in crontab)
+apps/server/src/modules/<name>/    index.ts = the module's public functions; routes.ts = its HTTP routes
+apps/server/test/                  vitest integration + unit tests
+apps/mobile/src/app/               Expo Router screens (sign-in, onboarding, tabs, compose, post detail)
+apps/mobile/src/layouts/           feed layouts, chosen by the feed theme (V1: column)
+packages/shared/                   types and constants shared by server and app
 ```
 
 Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `prompts`, `tiers`, `tokens`, `notifications`, `moderation`, plus `admin` routes. Modules call each other only through `index.ts` exports.
@@ -54,7 +66,10 @@ Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `prompts`
 - **Moderation.** AI (OpenAI `omni-moderation-latest`, optional) only flags; it auto-hides only severe categories pending review. Removal, token forfeiture, clawback and suspension happen only by a moderator decision and are logged in `moderation_actions`.
 - **Tiers.** Prayer Scout → Prayerful Helper → Prayer Warrior by lifetime prayer events, thresholds set by an admin. Anonymous posts and anonymous members show a tier only to themselves. A weekly cron credits each tier's allotment, once per ISO week.
 - **Prompts.** "When was the last time you prayed for ___?" points at the commitment gone longest without prayer, else an unprayed request from someone followed. Capped at one per 12 hours (members can lengthen or turn off) and two per day, no repeat post within 3 days.
-- **Feed.** Fan-out on read. All ranking weights live in `src/modules/feed/index.ts` (`weights`, `score`). Commitments outrank taps; tokens can raise a request but ranking never removes one. The first post is the newest prayer request or thanksgiving. Posts marked sensitive are hidden from members who opted out of trauma content.
+- **Feed.** Fan-out on read. All ranking weights live in `apps/server/src/modules/feed/index.ts` (`weights`, `score`). Commitments outrank taps; tokens can raise a request but ranking never removes one. The first post is the newest prayer request or thanksgiving. Posts marked sensitive are hidden from members who opted out of trauma content.
+
+- **Communities.** Every post and its children carry a `community_id` (copied by trigger from the post). V1 seeds one community, `christian-ecumenical`, and every new member joins it. Feeds only show the viewer's communities. Roles and tier settings can be scoped to one community (null = platform-wide).
+- **Feed themes.** The feed returns a `theme` with a `layout` (`column`, `vine`, `carousel`, `flip`) and cards that carry no layout data, so a layout can be added in the app (`apps/mobile/src/layouts/index.tsx`) without server changes. Unknown layouts fall back to `column`.
 
 ## API (all routes need `Authorization: Bearer <supabase access token>` except `/health`)
 
@@ -73,7 +88,7 @@ Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `prompts`
 
 ## Open product values (placeholders in code)
 
-- Preview length before "more": 200 characters (`src/config.ts`; 200 vs 220 undecided).
+- Preview length before "more": 200 characters (`apps/server/src/config.ts`; 200 vs 220 undecided).
 - Tokens per Praying Now / check-in: 1, at most once per post (or commitment) per UTC day.
 - Tier thresholds and weekly allotments: `tier_settings` rows ship with nulls until decided (set with `PATCH /admin/tiers/:tier`). "Maintain status by using credits" is not built until the rule is defined.
-- Prompt caps: 12 hours apart, 2 per day (`src/config.ts`).
+- Prompt caps: 12 hours apart, 2 per day (`apps/server/src/config.ts`).

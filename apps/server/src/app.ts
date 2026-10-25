@@ -1,3 +1,4 @@
+import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ZodError } from 'zod';
@@ -21,10 +22,16 @@ export interface AppDeps {
   verifyToken: TokenVerifier;
   storage?: SupabaseClient | null;
   logger?: boolean;
+  /** Allowed browser origins for the web app; empty = any (development). */
+  corsOrigins?: string[];
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [] }: AppDeps) {
   const app = Fastify({ logger });
+  app.register(cors, {
+    origin: corsOrigins.length ? corsOrigins : true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
 
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof AppError) return reply.code(err.statusCode).send({ error: err.code, message: err.message });

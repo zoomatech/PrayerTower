@@ -19,6 +19,7 @@
     "vitest": "^5.0.5"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.1",
     "@supabase/supabase-js": "^2.118.0",
     "fastify": "^5.12.7",
     "graphile-worker": "^0.18.0",

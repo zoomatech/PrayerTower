@@ -153,7 +153,8 @@ create unique index tier_settings_rank_scope on public.tier_settings
 -- theme's layout decides structure and animation (column now, vine later).
 -- No position, tilt or animation is ever stored on posts.
 
-create type public.feed_layout as enum ('column', 'vine', 'carousel');
+-- flip: Flipboard-style page turn that follows the finger, one card per page.
+create type public.feed_layout as enum ('column', 'vine', 'carousel', 'flip');
 
 create table public.feed_themes (
   id uuid primary key default public.uuid_v7(),
