@@ -21,6 +21,8 @@ export const ProfileUpdate = z
     traumaContentOptOut: z.boolean(),
     anonymousByDefault: z.boolean(),
     updatesInFirstComment: z.boolean(),
+    promptsEnabled: z.boolean(),
+    promptMinHours: z.number().int().min(1).max(168).nullable(),
     completeOnboarding: z.boolean(),
   })
   .partial();
@@ -36,6 +38,8 @@ const columns: Record<string, string> = {
   traumaContentOptOut: 'trauma_content_opt_out',
   anonymousByDefault: 'anonymous_by_default',
   updatesInFirstComment: 'updates_in_first_comment',
+  promptsEnabled: 'prompts_enabled',
+  promptMinHours: 'prompt_min_hours',
 };
 
 export interface Profile {
@@ -50,6 +54,8 @@ export interface Profile {
   trauma_content_opt_out: boolean;
   anonymous_by_default: boolean;
   updates_in_first_comment: boolean;
+  prompts_enabled: boolean;
+  prompt_min_hours: number | null;
   onboarded_at: Date | null;
   suspended_until: Date | null;
   created_at: Date;
@@ -79,6 +85,32 @@ export async function updateProfile(q: Queryable, userId: string, input: z.infer
     if ((err as { code?: string }).code === '23505') throw conflict('That handle is taken');
     throw err;
   }
+}
+
+export async function revokeRole(q: Queryable, userId: string, role: Role) {
+  await q.query('delete from public.user_roles where user_id = $1 and role = $2', [userId, role]);
+}
+
+export async function roles(q: Queryable, userId: string): Promise<Role[]> {
+  const { rows } = await q.query<{ role: Role }>('select role from public.user_roles where user_id = $1 order by role', [userId]);
+  return rows.map((r) => r.role);
+}
+
+/** Every member id, for system-wide jobs such as the weekly resupply. */
+export async function allMemberIds(q: Queryable): Promise<string[]> {
+  const { rows } = await q.query<{ id: string }>('select id from public.profiles order by id');
+  return rows.map((r) => r.id);
+}
+
+export async function metrics(q: Queryable, since: Date) {
+  const { rows } = await q.query(
+    `select count(*)::int as members,
+            count(*) filter (where created_at >= $1)::int as new_members,
+            count(*) filter (where onboarded_at is not null)::int as onboarded
+       from public.profiles`,
+    [since],
+  );
+  return rows[0];
 }
 
 export async function hasRole(q: Queryable, userId: string, ...roles: Role[]): Promise<boolean> {

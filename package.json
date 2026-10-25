@@ -11,7 +11,8 @@
     "start:api": "node dist/src/server.js",
     "start:worker": "node dist/src/worker.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "grant-role": "tsx src/scripts/grant-role.ts"
   },
   "repository": {
     "type": "git",

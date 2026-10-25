@@ -6,6 +6,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { presentIdentity, getProfile } from '../accounts/index.js';
 import * as moderation from '../moderation/index.js';
+import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
 export const POST_TYPES = ['prayer_request', 'praise', 'open_prayer', 'testimony', 'confessional'] as const;
@@ -296,9 +297,9 @@ export interface CardCounts {
 export async function cards(q: Queryable, postIds: string[], viewerId: string | null) {
   if (postIds.length === 0) return [];
   const { rows } = await q.query<
-    PostRow & { display_name: string; handle: string | null; counts: CardCounts; media: { kind: string; storagePath: string }[] }
+    PostRow & { display_name: string; handle: string | null; private_tier: boolean; counts: CardCounts; media: { kind: string; storagePath: string }[] }
   >(
-    `select po.*, pr.display_name, pr.handle,
+    `select po.*, pr.display_name, pr.handle, pr.anonymous_by_default as private_tier,
             json_build_object(
               'prayingNow', (select count(*) from public.prayer_events e where e.post_id = po.id and e.kind = 'praying_now'),
               'prayers', (select count(distinct e.user_id) from public.prayer_events e where e.post_id = po.id),
@@ -334,6 +335,11 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   const reach = await Promise.all(postIds.map((id) => tokens.reachOf(q, id)));
   const reachByPost = new Map(postIds.map((id, i) => [id, reach[i]!]));
 
+  const tiers = await tiersOf(q, [...new Set(rows.map((r) => r.user_id))]);
+  // Tier icons: anonymous posts and anonymous members (private track) show a tier only to the author.
+  const tierShown = (r: (typeof rows)[number]) =>
+    (!r.is_anonymous && !r.private_tier) || r.user_id === viewerId ? (tiers.get(r.user_id)?.tier ?? null) : null;
+
   const byId = new Map(rows.map((r) => [r.id, r]));
   return postIds.flatMap((id) => {
     const r = byId.get(id);
@@ -342,7 +348,10 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
     return [
       {
         id: r.id,
-        author: presentIdentity({ id: r.user_id, display_name: r.display_name, handle: r.handle }, r.is_anonymous, viewerId),
+        author: {
+          ...presentIdentity({ id: r.user_id, display_name: r.display_name, handle: r.handle }, r.is_anonymous, viewerId),
+          tier: tierShown(r),
+        },
         isMine: r.user_id === viewerId,
         postType: r.post_type,
         kind: r.kind,
@@ -365,3 +374,41 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
 }
 
 export type Card = Awaited<ReturnType<typeof cards>>[number];
+
+export async function metrics(q: Queryable, since: Date) {
+  const { rows } = await q.query(
+    `select count(*)::int as posts,
+            count(*) filter (where post_type = 'prayer_request')::int as requests,
+            count(*) filter (where state = 'answered')::int as answered,
+            (select count(*)::int from public.comments where created_at >= $1) as comments,
+            (select count(*)::int from public.reactions where created_at >= $1 and kind = 'encouragement') as encouragements
+       from public.posts where created_at >= $1`,
+    [since],
+  );
+  return rows[0];
+}
+
+/** Open requests from the given people that the member has not prayed for yet, newest first. */
+export async function unprayedRequestsFrom(q: Queryable, userId: string, authorIds: string[], excludePostIds: string[]) {
+  const { rows } = await q.query<{ id: string }>(
+    `select p.id from public.posts p
+      where p.user_id = any($2::uuid[]) and p.post_type = 'prayer_request' and p.moderation_status = 'visible'
+        and p.state in ('open', 'actively_prayed') and not (p.id = any($3::uuid[]))
+        and p.created_at > now() - interval '30 days'
+        and not exists (select 1 from public.prayer_events e where e.post_id = p.id and e.user_id = $1)
+      order by p.id desc limit 1`,
+    [userId, authorIds, excludePostIds],
+  );
+  return rows[0] ?? null;
+}
+
+/** How a prompt names the person behind a post: their first name, or "this request" when anonymous. */
+export async function promptSubject(q: Queryable, postId: string, viewerId: string) {
+  const { rows } = await q.query<{ display_name: string; is_anonymous: boolean; user_id: string }>(
+    'select pr.display_name, p.is_anonymous, p.user_id from public.posts p join public.profiles pr on pr.id = p.user_id where p.id = $1',
+    [postId],
+  );
+  const r = rows[0];
+  if (!r || (r.is_anonymous && r.user_id !== viewerId) || !r.display_name) return 'this request';
+  return r.display_name;
+}

@@ -17,6 +17,8 @@ npm run dev:worker    # background jobs + reminder cron
 npm test              # integration tests against the local database
 ```
 
+Make yourself the first admin after signing up: `npm run grant-role -- you@example.com admin`.
+
 `npm run db:reset` rebuilds the database from migrations. Add a migration with `npx supabase migration new <name>`.
 
 ### One machine with Docker Compose
@@ -39,7 +41,7 @@ src/modules/<name>/    index.ts = the module's public functions; routes.ts = its
 test/                  vitest integration + unit tests
 ```
 
-Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `tokens`, `notifications`, `moderation`. Modules call each other only through `index.ts` exports.
+Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `prompts`, `tiers`, `tokens`, `notifications`, `moderation`, plus `admin` routes. Modules call each other only through `index.ts` exports.
 
 ## Rules the code enforces
 
@@ -50,6 +52,8 @@ Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `tokens`,
 - **Anonymity.** The author is always stored; "Anonymous" is applied when presenting to anyone but that person.
 - **Slow work goes on the queue,** in the same transaction as the triggering write: token credit and "praying right now" alerts, push, AI moderation scans, reminders.
 - **Moderation.** AI (OpenAI `omni-moderation-latest`, optional) only flags; it auto-hides only severe categories pending review. Removal, token forfeiture, clawback and suspension happen only by a moderator decision and are logged in `moderation_actions`.
+- **Tiers.** Prayer Scout → Prayerful Helper → Prayer Warrior by lifetime prayer events, thresholds set by an admin. Anonymous posts and anonymous members show a tier only to themselves. A weekly cron credits each tier's allotment, once per ISO week.
+- **Prompts.** "When was the last time you prayed for ___?" points at the commitment gone longest without prayer, else an unprayed request from someone followed. Capped at one per 12 hours (members can lengthen or turn off) and two per day, no repeat post within 3 days.
 - **Feed.** Fan-out on read. All ranking weights live in `src/modules/feed/index.ts` (`weights`, `score`). Commitments outrank taps; tokens can raise a request but ranking never removes one. The first post is the newest prayer request or thanksgiving. Posts marked sensitive are hidden from members who opted out of trauma content.
 
 ## API (all routes need `Authorization: Bearer <supabase access token>` except `/health`)
@@ -59,7 +63,10 @@ Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `tokens`,
 | Accounts | `GET/PATCH /me`, `GET /people/:id`, `PUT/DELETE /people/:id/follow`, `GET /me/followers`, `GET /me/following` |
 | Posts | `POST /posts`, `GET /posts/:id`, `POST /posts/:id/answered`, `GET/POST /posts/:id/comments`, `POST /posts/:id/reactions`, `GET /posts/:id/prayers`, `POST /posts/:id/thanks`, `POST /media/upload-url` |
 | Feed | `GET /feed?page=&pageSize=` |
-| Prayer | `POST /posts/:id/praying-now`, `POST /posts/:id/commitments`, `GET /me/commitments`, `POST /commitments/:id/check-in`, `POST /commitments/:id/snooze`, `PATCH /commitments/:id` |
+| Prayer | `POST /posts/:id/praying-now`, `POST /posts/:id/commitments`, `GET /me/commitments`, `GET /me/commitments/review`, `POST /commitments/:id/check-in`, `POST /commitments/:id/snooze`, `PATCH /commitments/:id` |
+| Prompts | `GET /me/prompt`, `POST /me/prompts/:id/response` |
+| Tiers | `GET /me/tier` |
+| Admin | `GET/PUT/DELETE /admin/people/:id/roles/:role`, `GET /admin/tiers`, `PATCH /admin/tiers/:tier`, `GET /admin/metrics?days=` |
 | Tokens | `GET /me/tokens`, `POST /tokens/gift`, `POST /posts/:id/boost` |
 | Notifications | `GET /me/notifications`, `POST /me/notifications/read`, `POST /me/push-tokens` |
 | Moderation | `POST /reports`, `GET /moderation/queue`, `POST /moderation/items/:id/decision` |
@@ -68,4 +75,5 @@ Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `tokens`,
 
 - Preview length before "more": 200 characters (`src/config.ts`; 200 vs 220 undecided).
 - Tokens per Praying Now / check-in: 1, at most once per post (or commitment) per UTC day.
-- Tier thresholds and weekly allotments: `tier_settings` rows ship with nulls until decided.
+- Tier thresholds and weekly allotments: `tier_settings` rows ship with nulls until decided (set with `PATCH /admin/tiers/:tier`). "Maintain status by using credits" is not built until the rule is defined.
+- Prompt caps: 12 hours apart, 2 per day (`src/config.ts`).

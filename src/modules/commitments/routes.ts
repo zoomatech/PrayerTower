@@ -19,6 +19,8 @@ export function commitmentRoutes(app: FastifyInstance, db: Db) {
     note: 'This data helps us measure whether we are helping. WE DO NOT JUDGE.',
   }));
 
+  app.get('/me/commitments/review', async (req) => commitments.weeklyReview(db, requireUser(req)));
+
   app.post<{ Params: { id: string } }>('/commitments/:id/check-in', async (req) => {
     const userId = requireUser(req);
     const { durationSeconds } = z.object({ durationSeconds: z.number().int().min(0).max(86_400).optional() }).parse(req.body ?? {});

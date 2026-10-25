@@ -192,3 +192,74 @@ export function sendDueRemindersTask(q: Queryable): Task {
     });
   };
 }
+
+export async function metrics(q: Queryable, since: Date) {
+  const { rows } = await q.query(
+    `select count(*) filter (where created_at >= $1)::int as made,
+            count(*) filter (where status = 'active')::int as active,
+            coalesce(sum(committed_count), 0)::int as prayers_committed,
+            coalesce(sum(completed_count), 0)::int as prayers_completed
+       from public.commitments`,
+    [since],
+  );
+  return rows[0];
+}
+
+/** The member's active commitment they have gone longest without checking in on (at least `olderThanHours`). */
+export async function leastRecentlyPrayed(q: Queryable, userId: string, olderThanHours: number, excludePostIds: string[]) {
+  const { rows } = await q.query<{ id: string; post_id: string; last_prayed_at: Date | null }>(
+    `select c.id, c.post_id,
+            (select max(e.created_at) from public.prayer_events e where e.commitment_id = c.id) as last_prayed_at
+       from public.commitments c
+      where c.user_id = $1 and c.status = 'active' and not (c.post_id = any($3::uuid[]))
+        and coalesce((select max(e.created_at) from public.prayer_events e where e.commitment_id = c.id), c.created_at)
+            < now() - make_interval(hours => $2)
+      order by last_prayed_at nulls first, c.created_at
+      limit 1`,
+    [userId, olderThanHours, excludePostIds],
+  );
+  return rows[0] ?? null;
+}
+
+/** A positively framed summary of the last seven days. */
+export async function weeklyReview(q: Queryable, userId: string) {
+  const { rows } = await q.query<{ prayers: number; checkins: number; people: number; active: number; kept: number }>(
+    `select (select count(*)::int from public.prayer_events where user_id = $1 and created_at > now() - interval '7 days') as prayers,
+            (select count(*)::int from public.prayer_events where user_id = $1 and kind = 'commitment_checkin'
+               and created_at > now() - interval '7 days') as checkins,
+            (select count(distinct post_id)::int from public.prayer_events where user_id = $1
+               and created_at > now() - interval '7 days') as people,
+            (select count(*)::int from public.commitments where user_id = $1 and status = 'active') as active,
+            (select count(distinct commitment_id)::int from public.prayer_events where user_id = $1
+               and kind = 'commitment_checkin' and created_at > now() - interval '7 days') as kept`,
+    [userId],
+  );
+  const r = rows[0]!;
+  const message =
+    r.prayers > 0
+      ? `This week you prayed ${r.prayers} ${r.prayers === 1 ? 'time' : 'times'} for ${r.people} ${r.people === 1 ? 'request' : 'requests'}. Thank you for standing with them.`
+      : r.active > 0
+        ? 'Your commitments are here whenever you are ready. WE DO NOT JUDGE.'
+        : 'When you are ready, there are people waiting for prayer.';
+  return { ...r, message };
+}
+
+/** Weekly cron: send each member with commitments their review. */
+export function weeklyReviewTask(q: Queryable): Task {
+  return async () => {
+    const { rows } = await q.query<{ user_id: string }>(
+      `select distinct user_id from public.commitments where status = 'active' or updated_at > now() - interval '7 days'`,
+    );
+    const week = new Date().toISOString().slice(0, 10);
+    for (const { user_id } of rows) {
+      const review = await weeklyReview(q, user_id);
+      await notifications.notify(q, user_id, {
+        kind: 'weekly_review',
+        title: 'Your week in prayer',
+        body: review.message,
+        data: { prayers: review.prayers, people: review.people },
+        dedupeKey: `weekly_review:${week}`,
+      });
+    }
+  };
+}

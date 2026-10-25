@@ -121,3 +121,16 @@ export async function history(q: Queryable, userId: string, limit = 50) {
   );
   return rows;
 }
+
+export async function metrics(q: Queryable, since: Date) {
+  const { rows } = await q.query(
+    `select coalesce(sum(amount) filter (where kind = 'earn'), 0)::int as earned,
+            coalesce(sum(amount) filter (where kind = 'resupply'), 0)::int as resupplied,
+            coalesce(sum(amount) filter (where kind = 'gift'), 0)::int as gifted,
+            coalesce(sum(amount) filter (where kind = 'spend_reach'), 0)::int as spent_on_reach,
+            coalesce(sum(amount) filter (where kind in ('forfeit', 'clawback')), 0)::int as forfeited_or_clawed_back
+       from public.token_transfers where created_at >= $1`,
+    [since],
+  );
+  return rows[0];
+}

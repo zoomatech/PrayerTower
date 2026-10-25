@@ -156,3 +156,17 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
     moderatorId,
   ]);
 }
+
+export async function metrics(q: Queryable, since: Date) {
+  const { rows } = await q.query(
+    `select count(*)::int as items,
+            count(*) filter (where source = 'ai')::int as ai_flags,
+            count(*) filter (where source = 'report')::int as reports,
+            count(*) filter (where auto_hidden)::int as auto_hidden,
+            count(*) filter (where status = 'pending')::int as pending,
+            count(*) filter (where status = 'actioned')::int as actioned
+       from public.moderation_items where created_at >= $1`,
+    [since],
+  );
+  return rows[0];
+}

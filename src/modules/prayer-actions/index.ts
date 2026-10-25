@@ -65,3 +65,24 @@ export function afterPrayingNowTask(q: Queryable): Task {
     });
   };
 }
+
+/** Lifetime prayer events (Praying Now taps + commitment check-ins) per member. */
+export async function prayerCounts(q: Queryable, userIds: string[]): Promise<Map<string, number>> {
+  const { rows } = await q.query<{ user_id: string; n: number }>(
+    'select user_id, count(*)::int as n from public.prayer_events where user_id = any($1::uuid[]) group by user_id',
+    [userIds],
+  );
+  return new Map(userIds.map((id) => [id, rows.find((r) => r.user_id === id)?.n ?? 0]));
+}
+
+export async function metrics(q: Queryable, since: Date) {
+  const { rows } = await q.query(
+    `select count(*) filter (where kind = 'praying_now')::int as praying_now_taps,
+            count(*) filter (where kind = 'commitment_checkin')::int as checkins,
+            count(distinct user_id)::int as active_pray_ers,
+            coalesce(sum(duration_seconds), 0)::int as seconds_in_prayer
+       from public.prayer_events where created_at >= $1`,
+    [since],
+  );
+  return rows[0];
+}

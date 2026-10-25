@@ -27,4 +27,7 @@ export const product = {
   maxPostWords: 1000,
   /** Tokens earned per Praying Now, at most once per post per UTC day. */
   prayingNowTokens: 1,
+  /** Prayer prompts: minimum hours between prompts (members can lengthen it) and max per day. */
+  promptMinHours: 12,
+  promptsPerDay: 2,
 } as const;

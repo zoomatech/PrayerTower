@@ -4,12 +4,15 @@ import { ZodError } from 'zod';
 import { makeAuthHook, type TokenVerifier } from './auth.js';
 import type { Db } from './db.js';
 import { AppError } from './errors.js';
+import { adminRoutes } from './modules/admin/routes.js';
 import { accountRoutes } from './modules/accounts/routes.js';
 import { commitmentRoutes } from './modules/commitments/routes.js';
 import { feedRoutes } from './modules/feed/routes.js';
 import { moderationRoutes } from './modules/moderation/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { postRoutes } from './modules/posts/routes.js';
+import { promptRoutes } from './modules/prompts/routes.js';
+import { tierRoutes } from './modules/tiers/routes.js';
 import { prayerActionRoutes } from './modules/prayer-actions/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
@@ -52,6 +55,9 @@ export function buildApp({ db, verifyToken, storage = null, logger = false }: Ap
     tokenRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db);
+    promptRoutes(authed, db);
+    tierRoutes(authed, db);
+    adminRoutes(authed, db);
   });
 
   return app;
