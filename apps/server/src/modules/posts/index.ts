@@ -1,10 +1,11 @@
 // Posts module: prayer posts, media, comments, reactions (encouragement, well
 // wishes, shares), thanks, the request state machine, and the post card.
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { product } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
-import { presentIdentity, getProfile } from '../accounts/index.js';
+import { getProfile, presentIdentity, primaryCommunityId } from '../accounts/index.js';
 import * as moderation from '../moderation/index.js';
 import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
@@ -50,6 +51,7 @@ export interface PostRow {
   state: PostState;
   answered_at: Date | null;
   moderation_status: ModerationStatus;
+  community_id: string;
   created_at: Date;
 }
 
@@ -60,9 +62,20 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     if (!m.storagePath.startsWith(`${userId}/`)) throw badRequest('Media must be uploaded through /media/upload-url');
   }
   const { rows } = await q.query<PostRow>(
-    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`,
-    [userId, input.postType, input.kind ?? null, input.realm ?? null, input.urgency, input.body, input.background ?? null, isAnonymous, input.isSensitive],
+    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,
+    [
+      userId,
+      input.postType,
+      input.kind ?? null,
+      input.realm ?? null,
+      input.urgency,
+      input.body,
+      input.background ?? null,
+      isAnonymous,
+      input.isSensitive,
+      await primaryCommunityId(q, userId),
+    ],
   );
   const post = rows[0]!;
   for (const [i, m] of input.media.entries()) {
@@ -125,11 +138,11 @@ export async function setModerationStatus(q: Queryable, target: moderation.Targe
 /** The author and text of any moderatable item. */
 export async function moderationSubject(q: Queryable, target: moderation.Target, id: string) {
   const sql = {
-    post: 'select user_id, body as text from public.posts where id = $1',
-    comment: 'select user_id, body as text from public.comments where id = $1',
-    reaction: 'select user_id, note as text from public.reactions where id = $1',
+    post: 'select user_id, community_id, body as text from public.posts where id = $1',
+    comment: 'select user_id, community_id, body as text from public.comments where id = $1',
+    reaction: 'select user_id, community_id, note as text from public.reactions where id = $1',
   }[target];
-  const { rows } = await q.query<{ user_id: string; text: string | null }>(sql, [id]);
+  const { rows } = await q.query<{ user_id: string; community_id: string; text: string | null }>(sql, [id]);
   return rows[0] ?? null;
 }
 
@@ -335,6 +348,22 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   const reach = await Promise.all(postIds.map((id) => tokens.reachOf(q, id)));
   const reachByPost = new Map(postIds.map((id, i) => [id, reach[i]!]));
 
+  // The viewer's own active commitment on each post (vine tendrils, "Committed" state).
+  const { rows: mine } = await q.query<{ post_id: string; id: string; frequency: string }>(
+    `select post_id, id, frequency from public.commitments
+      where user_id = $1 and status = 'active' and post_id = any($2::uuid[])`,
+    [viewerId, postIds],
+  );
+  const myCommitment = new Map(mine.map((c) => [c.post_id, { id: c.id, frequency: c.frequency }]));
+
+  // Each community's enabled reactions decide which actions its cards offer.
+  const { rows: enabled } = await q.query<{ id: string; enabled_reactions: string[] }>(
+    `select id, enabled_reactions::text[] as enabled_reactions from public.communities
+      where id in (select community_id from public.posts where id = any($1::uuid[]))`,
+    [postIds],
+  );
+  const actionsByCommunity = new Map(enabled.map((c) => [c.id, cardActions(c.enabled_reactions)]));
+
   const tiers = await tiersOf(q, [...new Set(rows.map((r) => r.user_id))]);
   // Tier icons: anonymous posts and anonymous members (private track) show a tier only to the author.
   const tierShown = (r: (typeof rows)[number]) =>
@@ -352,7 +381,12 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
           ...presentIdentity({ id: r.user_id, display_name: r.display_name, handle: r.handle }, r.is_anonymous, viewerId),
           tier: tierShown(r),
         },
+        cardType: r.post_type as CardType,
+        // Groups one person's posts (e.g. a personal vine branch) without exposing who; null when anonymous.
+        branchKey: r.is_anonymous ? null : branchKey(r.user_id),
         isMine: r.user_id === viewerId,
+        myCommitment: myCommitment.get(id) ?? null,
+        actions: actionsByCommunity.get(r.community_id) ?? cardActions([]),
         postType: r.post_type,
         kind: r.kind,
         realm: r.realm,
@@ -374,6 +408,25 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
 }
 
 export type Card = Awaited<ReturnType<typeof cards>>[number];
+
+/** Layout-neutral card kinds. Layouts (column, vine, ...) pick a template per kind. */
+export type CardType = PostType | 'scripture_leaf' | 'feed_end';
+
+/**
+ * The labeled action row, in the same order on every card in every layout.
+ * Prayer Cast stays out until the broadcast ships.
+ */
+export const ACTION_ORDER = ['praying_now', 'commit', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
+export type CardAction = (typeof ACTION_ORDER)[number];
+
+function cardActions(enabledReactions: string[]): CardAction[] {
+  const reactions = new Set(['encouragement', 'well_wishes', 'share']);
+  return ACTION_ORDER.filter((a) => !reactions.has(a) || enabledReactions.includes(a));
+}
+
+export function branchKey(userId: string) {
+  return createHash('sha256').update(`branch:${userId}`).digest('hex').slice(0, 16);
+}
 
 export async function metrics(q: Queryable, since: Date) {
   const { rows } = await q.query(

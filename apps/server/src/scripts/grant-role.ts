@@ -1,6 +1,6 @@
 // Bootstrap roles from the command line (e.g. the first admin):
 //   npm run grant-role -- steve@example.com admin
-import { loadConfig } from '../config.js';
+import { loadConfig, loadDotEnv } from '../config.js';
 import { createPool } from '../db.js';
 import { grantRole, type Role } from '../modules/accounts/index.js';
 
@@ -11,6 +11,7 @@ if (!email || !role || !ROLES.includes(role as Role)) {
   process.exit(1);
 }
 
+loadDotEnv();
 const db = createPool(loadConfig().DATABASE_URL);
 const { rows } = await db.query<{ id: string }>('select id from auth.users where lower(email) = lower($1)', [email]);
 if (!rows[0]) {

@@ -1,0 +1,35 @@
+{
+  "name": "@prayer-tower/server",
+  "version": "0.1.0",
+  "scripts": {
+    "dev:api": "tsx watch src/server.ts",
+    "dev:worker": "tsx watch src/worker.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start:api": "node dist/src/server.js",
+    "start:worker": "node dist/src/worker.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "grant-role": "tsx src/scripts/grant-role.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "fastify": "^5.12.7",
+    "graphile-worker": "^0.18.0",
+    "jose": "^6.2.13",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "private": true,
+  "type": "module",
+  "description": "Prayer Tower V1 API and worker",
+  "engines": {
+    "node": ">=22"
+  }
+}

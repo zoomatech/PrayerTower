@@ -1,8 +1,9 @@
 import { run } from 'graphile-worker';
-import { loadConfig } from './config.js';
+import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
 import { buildTaskList, crontab } from './tasks.js';
 
+loadDotEnv();
 const config = loadConfig();
 const db = createPool(config.DATABASE_URL);
 

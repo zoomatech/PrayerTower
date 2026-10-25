@@ -13,6 +13,15 @@ const Env = z.object({
 
 export type Config = z.infer<typeof Env>;
 
+/** Load apps/server/.env in development if present (production sets real env vars). */
+export function loadDotEnv() {
+  try {
+    process.loadEnvFile('.env');
+  } catch {
+    // No .env file: use the environment as is.
+  }
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   // Treat empty strings from .env files as unset.
   const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== ''));

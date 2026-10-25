@@ -1,6 +1,7 @@
 // Tiers module: Prayer Scout → Prayerful Helper → Prayer Warrior, earned by
 // praying, plus the weekly token resupply by tier. Thresholds and allotments
-// are configurable in tier_settings and stay unset (null) until decided.
+// are configurable in tier_settings and stay unset (null) until decided. V1
+// uses the platform ladder (community_id null); sandboxes may rename tiers later.
 // Anonymous members are on a private track: their tier counts but is shown
 // only to them.
 import type { Task } from 'graphile-worker';
@@ -20,7 +21,7 @@ export interface TierSetting {
 }
 
 export async function settings(q: Queryable): Promise<TierSetting[]> {
-  const { rows } = await q.query<TierSetting>('select * from public.tier_settings order by rank');
+  const { rows } = await q.query<TierSetting>('select * from public.tier_settings where community_id is null order by rank');
   return rows;
 }
 
@@ -34,7 +35,7 @@ export async function updateSetting(q: Queryable, tier: string, input: z.infer<t
     `update public.tier_settings set
         min_prayer_events = case when $2 then $3::int else min_prayer_events end,
         weekly_allotment = case when $4 then $5::int else weekly_allotment end
-      where tier = $1 returning *`,
+      where tier = $1 and community_id is null returning *`,
     [tier, input.minPrayerEvents !== undefined, input.minPrayerEvents ?? null, input.weeklyAllotment !== undefined, input.weeklyAllotment ?? null],
   );
   if (!rows[0]) throw notFound('Tier');

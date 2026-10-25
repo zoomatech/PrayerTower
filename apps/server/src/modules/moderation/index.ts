@@ -59,9 +59,9 @@ export function scanTask(q: Queryable, classify: Classifier): Task {
     const flagged = Object.entries(result.categories).filter(([, v]) => v).map(([k]) => k);
     const autoHide = flagged.some((c) => AUTO_HIDE_CATEGORIES.includes(c));
     await q.query(
-      `insert into public.moderation_items (target_type, target_id, user_id, source, ai_categories, auto_hidden)
-       values ($1, $2, $3, 'ai', $4, $5)`,
-      [target, id, subject.user_id, { flagged, scores: result.category_scores }, autoHide],
+      `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, ai_categories, auto_hidden)
+       values ($1, $2, $3, $4, 'ai', $5, $6)`,
+      [target, id, subject.user_id, subject.community_id, { flagged, scores: result.category_scores }, autoHide],
     );
     if (autoHide) await posts.setModerationStatus(q, target, id, 'hidden_pending_review');
   };
@@ -77,11 +77,11 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
   const subject = await posts.moderationSubject(q, input.targetType, input.targetId);
   if (!subject) throw notFound('Content');
   const { rows } = await q.query<{ id: string }>(
-    `insert into public.moderation_items (target_type, target_id, user_id, source, reporter_id, reason)
-     values ($1, $2, $3, 'report', $4, $5)
+    `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, reporter_id, reason)
+     values ($1, $2, $3, $4, 'report', $5, $6)
      on conflict (target_type, target_id, reporter_id) where source = 'report' do update set reason = excluded.reason
      returning id`,
-    [input.targetType, input.targetId, subject.user_id, reporterId, input.reason],
+    [input.targetType, input.targetId, subject.user_id, subject.community_id, reporterId, input.reason],
   );
   return rows[0]!;
 }

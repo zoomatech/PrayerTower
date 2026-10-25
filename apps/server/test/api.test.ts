@@ -262,3 +262,39 @@ describe('moderation', () => {
     expect(res.statusCode).toBe(201);
   });
 });
+
+describe('communities', () => {
+  it('puts every member and post in the default community and scopes the feed by membership', async () => {
+    const a = await createUser('InDefault');
+    const outsider = await createUser('Elsewhere');
+    const { rows } = await db.query(
+      `insert into public.communities (slug, name, tradition) values ('test-' || substr(md5(random()::text), 1, 8), 'Test', 'test') returning id`,
+    );
+    await db.query('update public.community_memberships set community_id = $2 where user_id = $1', [outsider, rows[0].id]);
+
+    const post = await newRequest(a, 'Default community request.');
+    const { rows: p } = await db.query('select community_id = public.default_community_id() as is_default from public.posts where id = $1', [post.id]);
+    expect(p[0].is_default).toBe(true);
+
+    const ids = (u: string) => as(u).get('/feed?pageSize=50').then((r) => r.json().posts.map((x: { id: string }) => x.id));
+    expect(await ids(a)).toContain(post.id);
+    expect(await ids(outsider)).not.toContain(post.id);
+  });
+});
+
+describe('themed feed cards', () => {
+  it('returns the community default theme and layout-neutral cards', async () => {
+    const poster = await createUser('Card');
+    const viewer = await createUser('Looker');
+    const post = await newRequest(poster);
+    await as(viewer).post(`/posts/${post.id}/commitments`, { frequency: 'daily', vowText: 'Daily' });
+    const feed = (await as(viewer).get('/feed?pageSize=50')).json();
+    expect(feed.theme).toMatchObject({ slug: 'column', layout: 'column' });
+    const card = feed.posts.find((p: { id: string }) => p.id === post.id);
+    expect(card).toMatchObject({ cardType: 'prayer_request', myCommitment: { frequency: 'daily' } });
+    expect(card.branchKey).toMatch(/^[0-9a-f]{16}$/);
+    expect(card.actions).toEqual(['praying_now', 'commit', 'encouragement', 'well_wishes', 'share', 'gift_tokens']);
+    const anon = await newRequest(poster, 'Anonymous one.', { isAnonymous: true });
+    expect((await as(viewer).get(`/posts/${anon.id}`)).json().post.branchKey).toBeNull();
+  });
+});

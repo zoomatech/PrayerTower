@@ -1,47 +1,26 @@
 {
   "name": "prayer-tower",
-  "version": "0.1.0",
+  "private": true,
+  "description": "Prayer Tower: server, app and shared code in one repo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "db:start": "supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "dev:api": "tsx watch src/server.ts",
-    "dev:worker": "tsx watch src/worker.ts",
-    "build": "tsc -p tsconfig.build.json",
-    "start:api": "node dist/src/server.js",
-    "start:worker": "node dist/src/worker.js",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "grant-role": "tsx src/scripts/grant-role.ts"
+    "dev:api": "npm run dev:api -w @prayer-tower/server",
+    "dev:worker": "npm run dev:worker -w @prayer-tower/server",
+    "dev:mobile": "npm run start -w @prayer-tower/mobile",
+    "grant-role": "npm run grant-role -w @prayer-tower/server --",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test -w @prayer-tower/server"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/zoomatech/prayertower.git"
-  },
-  "bugs": {
-    "url": "https://github.com/zoomatech/prayertower/issues"
-  },
-  "homepage": "https://github.com/zoomatech/prayertower#readme",
   "devDependencies": {
-    "@types/node": "^22.20.5",
-    "@types/pg": "^8.23.1",
-    "supabase": "^2.122.0",
-    "tsx": "^4.23.15",
-    "typescript": "^5.9.3",
-    "vitest": "^5.0.5"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.118.0",
-    "fastify": "^5.12.7",
-    "graphile-worker": "^0.18.0",
-    "jose": "^6.2.13",
-    "pg": "^8.23.1",
-    "zod": "^4.6.7"
-  },
-  "private": true,
-  "type": "module",
-  "description": "Prayer Tower V1 API and worker",
-  "engines": {
-    "node": ">=22"
+    "supabase": "^2.122.0"
   }
 }

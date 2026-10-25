@@ -1,8 +1,9 @@
 // Feed module: V1 single-column feed, fan-out on read. Posts are stored once
 // and ranked at read time. All ranking weights live in rankFeed() so they
-// change in one place.
+// change in one place. A member sees posts from the communities they belong
+// to (V1: one Christian ecumenical community).
 import type { Queryable } from '../../db.js';
-import { getProfile } from '../accounts/index.js';
+import { communityIds, getProfile } from '../accounts/index.js';
 import * as posts from '../posts/index.js';
 
 export interface Candidate {
@@ -63,6 +64,7 @@ const CANDIDATE_LIMIT = 500;
 
 async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> {
   const viewer = await getProfile(q, viewerId);
+  const communities = await communityIds(q, viewerId);
   const { rows } = await q.query<{
     id: string;
     post_type: posts.PostType;
@@ -82,9 +84,10 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
       where p.moderation_status = 'visible'
         and p.created_at > now() - make_interval(days => $2)
         and (not $3 or not p.is_sensitive)
+        and p.community_id = any($5::uuid[])
       order by p.created_at desc
       limit $4`,
-    [viewerId, CANDIDATE_WINDOW_DAYS, viewer?.trauma_content_opt_out ?? false, CANDIDATE_LIMIT],
+    [viewerId, CANDIDATE_WINDOW_DAYS, viewer?.trauma_content_opt_out ?? false, CANDIDATE_LIMIT, communities],
   );
   return rows.map((r) => ({
     id: r.id,
@@ -98,6 +101,31 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
   }));
 }
 
+export interface FeedTheme {
+  slug: string;
+  name: string;
+  layout: 'column' | 'vine' | 'carousel';
+  cardTemplates: Record<string, unknown>;
+  animations: Record<string, unknown>;
+  tokens: Record<string, unknown>;
+}
+
+/** The viewer's chosen theme in their primary community, else that community's default. */
+export async function theme(q: Queryable, viewerId: string): Promise<FeedTheme | null> {
+  const { rows } = await q.query<FeedTheme>(
+    `select t.slug, t.name, t.layout, t.card_templates as "cardTemplates", t.animations, t.tokens
+       from public.community_memberships m
+       join public.feed_themes t on t.id = coalesce(
+         m.feed_theme_id,
+         (select theme_id from public.community_feed_themes d where d.community_id = m.community_id and d.is_default))
+      where m.user_id = $1 and t.status <> 'retired'
+      order by m.is_primary desc
+      limit 1`,
+    [viewerId],
+  );
+  return rows[0] ?? null;
+}
+
 export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize = 20) {
   const all = await candidates(q, viewerId);
   const pinned = pickPinned(all);
@@ -105,6 +133,8 @@ export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize
   const ordered = pinned ? [pinned, ...ranked] : ranked;
   const slice = ordered.slice(page * pageSize, (page + 1) * pageSize);
   return {
+    // Cards carry no layout; the client renders them with the theme's layout.
+    theme: page === 0 ? await theme(q, viewerId) : undefined,
     posts: await posts.cards(q, slice.map((c) => c.id), viewerId),
     pinnedId: page === 0 ? (pinned?.id ?? null) : null,
     nextPage: (page + 1) * pageSize < ordered.length ? page + 1 : null,

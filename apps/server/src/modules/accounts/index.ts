@@ -113,6 +113,26 @@ export async function metrics(q: Queryable, since: Date) {
   return rows[0];
 }
 
+/** Communities the member sees in their feed. V1 has one: the default Christian ecumenical community. */
+export async function communityIds(q: Queryable, userId: string): Promise<string[]> {
+  const { rows } = await q.query<{ community_id: string }>(
+    'select community_id from public.community_memberships where user_id = $1',
+    [userId],
+  );
+  return rows.map((r) => r.community_id);
+}
+
+/** Where the member's new posts go. */
+export async function primaryCommunityId(q: Queryable, userId: string): Promise<string> {
+  const { rows } = await q.query<{ id: string }>(
+    `select coalesce(
+       (select community_id from public.community_memberships where user_id = $1 and is_primary),
+       public.default_community_id()) as id`,
+    [userId],
+  );
+  return rows[0]!.id;
+}
+
 export async function hasRole(q: Queryable, userId: string, ...roles: Role[]): Promise<boolean> {
   const { rows } = await q.query('select 1 from public.user_roles where user_id = $1 and role = any($2::public.app_role[])', [
     userId,

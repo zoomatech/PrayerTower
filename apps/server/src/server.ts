@@ -2,9 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import { runMigrations } from 'graphile-worker';
 import { buildApp } from './app.js';
 import { supabaseJwksVerifier } from './auth.js';
-import { loadConfig } from './config.js';
+import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
 
+loadDotEnv();
 const config = loadConfig();
 const db = createPool(config.DATABASE_URL);
 
