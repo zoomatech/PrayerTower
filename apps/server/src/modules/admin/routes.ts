@@ -1,4 +1,4 @@
-// Admin routes: roles, tier settings, and pilot metrics. Admin-only; each
+// Admin routes: roles, tier settings, token settings, and pilot metrics. Admin-only; each
 // area's data comes from that module's public functions.
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -51,6 +51,28 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     await requireAdmin(req);
     const input = tiers.SettingUpdate.parse(req.body);
     return { tier: await withTx(db, (tx) => tiers.updateSetting(tx, req.params.tier, input)) };
+  });
+
+  // Priestly token rate and the minimum gap that makes a prayer count as verified.
+  app.get('/admin/token-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await tokens.settings(db) };
+  });
+
+  app.patch('/admin/token-settings', async (req) => {
+    await requireAdmin(req);
+    const input = z
+      .object({
+        priestlyPrayersPerToken: z.number().int().min(1).max(10_000).optional(),
+        verifiedPrayerMinGapSeconds: z.number().int().min(0).max(86_400).optional(),
+      })
+      .parse(req.body);
+    return {
+      settings: await tokens.updateSettings(db, {
+        priestly_prayers_per_token: input.priestlyPrayersPerToken,
+        verified_prayer_min_gap_seconds: input.verifiedPrayerMinGapSeconds,
+      }),
+    };
   });
 
   // Pilot metrics: requests posted, Praying Now taps, commitments made vs kept,

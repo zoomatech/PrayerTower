@@ -5,7 +5,9 @@ import type { DatabaseError } from 'pg';
 import type { Queryable } from '../../db.js';
 import { AppError, badRequest } from '../../errors.js';
 
-export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback';
+export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus';
+/** Regular tokens are earned per prayer; Priestly tokens per N verified prayers and fund the infrastructure. */
+export type Currency = 'regular' | 'priestly';
 
 export interface Transfer {
   id: string;
@@ -25,6 +27,7 @@ function mapLedgerError(err: unknown): never {
   if (code === 'P0003') throw new AppError(404, 'not_found', 'Transfer not found');
   if (code === 'P0004') throw badRequest('A clawback cannot be clawed back');
   if (code === '23505') throw new AppError(409, 'already_reversed', 'Transfer was already clawed back');
+  if (code === 'P0005') throw badRequest('A transfer cannot mix token kinds');
   throw err;
 }
 
@@ -50,17 +53,17 @@ async function transfer(
   }
 }
 
-const userAccount = async (q: Queryable, userId: string) =>
-  (await q.query<{ id: string }>('select public.token_user_account($1) as id', [userId])).rows[0]!.id;
+const userAccount = async (q: Queryable, userId: string, currency: Currency = 'regular') =>
+  (await q.query<{ id: string }>('select public.token_user_account($1, $2) as id', [userId, currency])).rows[0]!.id;
 const postReachAccount = async (q: Queryable, postId: string) =>
   (await q.query<{ id: string }>('select public.token_post_reach_account($1) as id', [postId])).rows[0]!.id;
-const systemAccount = async (q: Queryable, kind: 'mint' | 'forfeit') =>
-  (await q.query<{ id: string }>('select public.token_system_account($1) as id', [kind])).rows[0]!.id;
+const systemAccount = async (q: Queryable, kind: 'mint' | 'forfeit' | 'infrastructure', currency: Currency = 'regular') =>
+  (await q.query<{ id: string }>('select public.token_system_account($1, $2) as id', [kind, currency])).rows[0]!.id;
 
-export async function balanceOf(q: Queryable, userId: string): Promise<number> {
+export async function balanceOf(q: Queryable, userId: string, currency: Currency = 'regular'): Promise<number> {
   const { rows } = await q.query<{ balance: string }>(
-    `select balance from public.token_accounts where kind = 'user' and user_id = $1`,
-    [userId],
+    `select balance from public.token_accounts where kind = 'user' and user_id = $1 and currency = $2`,
+    [userId, currency],
   );
   return Number(rows[0]?.balance ?? 0);
 }
@@ -81,9 +84,78 @@ export async function resupply(q: Queryable, userId: string, amount: number, key
   return transfer(q, key, 'resupply', await systemAccount(q, 'mint'), await userAccount(q, userId), amount, null, 'weekly resupply');
 }
 
-export async function gift(q: Queryable, fromUserId: string, toUserId: string, amount: number, key: string) {
+export async function gift(q: Queryable, fromUserId: string, toUserId: string, amount: number, key: string, currency: Currency = 'regular') {
   if (fromUserId === toUserId) throw badRequest('You cannot gift tokens to yourself');
-  return transfer(q, `gift:${fromUserId}:${key}`, 'gift', await userAccount(q, fromUserId), await userAccount(q, toUserId), amount, fromUserId, null);
+  return transfer(
+    q, `gift:${fromUserId}:${key}`, 'gift',
+    await userAccount(q, fromUserId, currency), await userAccount(q, toUserId, currency), amount, fromUserId, null,
+  );
+}
+
+/** Donate Priestly tokens to the fund that runs the intercessory infrastructure. */
+export async function donatePriestly(q: Queryable, userId: string, amount: number, key: string) {
+  return transfer(
+    q, `donate:${userId}:${key}`, 'donate',
+    await userAccount(q, userId, 'priestly'), await systemAccount(q, 'infrastructure', 'priestly'), amount, userId, null,
+  );
+}
+
+/** Count a verified prayer toward Priestly tokens; returns tokens credited (usually 0). Idempotent per event. */
+export async function creditPriestlyProgress(q: Queryable, eventId: string): Promise<number> {
+  const { rows } = await q.query<{ n: number }>('select public.credit_priestly_progress($1) as n', [eventId]);
+  return rows[0]!.n;
+}
+
+/**
+ * Milestone bonuses (not decided yet). The hook: credit `amount` of `currency`
+ * once per member per milestone key, e.g. 'first_100_prayers'.
+ */
+export async function awardBonus(q: Queryable, userId: string, milestone: string, amount: number, currency: Currency = 'regular') {
+  return transfer(
+    q, `bonus:${milestone}:${userId}`, 'bonus',
+    await systemAccount(q, 'mint', currency), await userAccount(q, userId, currency), amount, null, `Milestone: ${milestone}`,
+  );
+}
+
+export interface TokenSettings {
+  priestly_prayers_per_token: number;
+  verified_prayer_min_gap_seconds: number;
+}
+
+export async function settings(q: Queryable): Promise<TokenSettings> {
+  const { rows } = await q.query<TokenSettings>(
+    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds from public.token_settings',
+  );
+  return rows[0]!;
+}
+
+export async function updateSettings(q: Queryable, patch: Partial<TokenSettings>): Promise<TokenSettings> {
+  const { rows } = await q.query<TokenSettings>(
+    `update public.token_settings
+        set priestly_prayers_per_token = coalesce($1, priestly_prayers_per_token),
+            verified_prayer_min_gap_seconds = coalesce($2, verified_prayer_min_gap_seconds)
+      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds`,
+    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null],
+  );
+  return rows[0]!;
+}
+
+/** A member's Priestly balance and progress toward the next one. */
+export async function priestlyStatus(q: Queryable, userId: string) {
+  const [balance, s, { rows }] = await Promise.all([
+    balanceOf(q, userId, 'priestly'),
+    settings(q),
+    q.query<{ verified_pending: number; verified_total: number }>(
+      'select verified_pending, verified_total from public.priestly_progress where user_id = $1',
+      [userId],
+    ),
+  ]);
+  return {
+    balance,
+    verifiedPrayers: rows[0]?.verified_total ?? 0,
+    towardNext: rows[0]?.verified_pending ?? 0,
+    prayersPerToken: s.priestly_prayers_per_token,
+  };
 }
 
 export async function spendOnReach(q: Queryable, userId: string, postId: string, amount: number, key: string) {
@@ -110,7 +182,7 @@ export async function clawback(q: Queryable, transferId: string, moderatorId: st
 
 export async function history(q: Queryable, userId: string, limit = 50) {
   const { rows } = await q.query(
-    `select t.id, t.kind, t.amount::int as amount, t.created_at,
+    `select t.id, t.kind, a.currency, t.amount::int as amount, t.created_at,
             case when t.credit_account_id = a.id then 'in' else 'out' end as direction
        from public.token_accounts a
        join public.token_transfers t on a.id in (t.credit_account_id, t.debit_account_id)
@@ -124,12 +196,15 @@ export async function history(q: Queryable, userId: string, limit = 50) {
 
 export async function metrics(q: Queryable, since: Date) {
   const { rows } = await q.query(
-    `select coalesce(sum(amount) filter (where kind = 'earn'), 0)::int as earned,
-            coalesce(sum(amount) filter (where kind = 'resupply'), 0)::int as resupplied,
-            coalesce(sum(amount) filter (where kind = 'gift'), 0)::int as gifted,
-            coalesce(sum(amount) filter (where kind = 'spend_reach'), 0)::int as spent_on_reach,
-            coalesce(sum(amount) filter (where kind in ('forfeit', 'clawback')), 0)::int as forfeited_or_clawed_back
-       from public.token_transfers where created_at >= $1`,
+    `select coalesce(sum(t.amount) filter (where t.kind = 'earn' and a.currency = 'regular'), 0)::int as earned,
+            coalesce(sum(t.amount) filter (where t.kind = 'earn' and a.currency = 'priestly'), 0)::int as priestly_earned,
+            coalesce(sum(t.amount) filter (where t.kind = 'donate'), 0)::int as priestly_donated,
+            coalesce(sum(t.amount) filter (where t.kind = 'resupply'), 0)::int as resupplied,
+            coalesce(sum(t.amount) filter (where t.kind = 'gift'), 0)::int as gifted,
+            coalesce(sum(t.amount) filter (where t.kind = 'spend_reach'), 0)::int as spent_on_reach,
+            coalesce(sum(t.amount) filter (where t.kind in ('forfeit', 'clawback')), 0)::int as forfeited_or_clawed_back
+       from public.token_transfers t join public.token_accounts a on a.id = t.credit_account_id
+      where t.created_at >= $1`,
     [since],
   );
   return rows[0];

@@ -52,7 +52,9 @@ export function afterPrayingNowTask(q: Queryable): Task {
       [eventId],
     );
     const e = rows[0];
-    if (!e || e.user_id === e.poster_id) return;
+    if (!e) return;
+    await tokens.creditPriestlyProgress(q, eventId);
+    if (e.user_id === e.poster_id) return;
     await tokens.earn(q, e.user_id, product.prayingNowTokens, `earn:praying_now:${e.user_id}:${e.post_id}:${e.day}`, 'Praying Now');
     const who = e.is_anonymous ? 'Someone' : e.display_name || 'Someone';
     const poster = await getProfile(q, e.poster_id);

@@ -10,6 +10,7 @@ import type {
   Profile,
   Prompt,
   TierStatus,
+  TokenSummary,
   WeeklyReview,
 } from '@prayer-tower/shared';
 
@@ -85,5 +86,7 @@ export const api = {
   answerPrompt: (id: string, response: 'prayed' | 'dismissed' | 'snoozed') =>
     post<{ recorded: boolean }>(`/me/prompts/${id}/response`, { response }),
   tier: () => get<TierStatus>('/me/tier'),
-  tokens: () => get<{ balance: number }>('/me/tokens'),
+  tokens: () => get<TokenSummary>('/me/tokens'),
+  donatePriestly: (amount: number) =>
+    post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

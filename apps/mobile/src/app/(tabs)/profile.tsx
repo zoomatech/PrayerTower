@@ -1,4 +1,4 @@
-import { WHY_HERE_LABELS, type TierStatus } from '@prayer-tower/shared';
+import { WHY_HERE_LABELS, type TierStatus, type TokenSummary } from '@prayer-tower/shared';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,13 +11,13 @@ import { colors, radius, space, type } from '@/lib/theme';
 export default function Profile() {
   const { profile, refreshProfile, signOut } = useAuth();
   const [tier, setTier] = useState<TierStatus | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       api.tier().then(setTier).catch(() => undefined);
-      api.tokens().then((t) => setBalance(t.balance)).catch(() => undefined);
+      api.tokens().then(setTokens).catch(() => undefined);
     }, []),
   );
 
@@ -49,14 +49,32 @@ export default function Profile() {
             <Text style={type.small}>Prayers</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{balance ?? 0}</Text>
+            <Text style={styles.statValue}>{tokens?.balance ?? 0}</Text>
             <Text style={type.small}>Tokens</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={[styles.statValue, { color: colors.gold }]}>{tokens?.priestly.balance ?? 0}</Text>
+            <Text style={type.small}>Priestly</Text>
           </View>
         </View>
         {tier?.next ? (
           <Text style={type.small}>
             {tier.next.prayersNeeded} more prayers to become a {tier.next.label}.
           </Text>
+        ) : null}
+        {tokens ? (
+          <Text style={type.small}>
+            {tokens.priestly.towardNext} of {tokens.priestly.prayersPerToken} prayers toward your next Priestly token. Priestly
+            tokens keep the prayer infrastructure running; you can give them to others or donate them.
+          </Text>
+        ) : null}
+        {tokens && tokens.priestly.balance > 0 ? (
+          <Button
+            small
+            variant="secondary"
+            label="Donate 1 Priestly token"
+            onPress={() => api.donatePriestly(1).then(() => api.tokens().then(setTokens)).catch((e) => setError((e as Error).message))}
+          />
         ) : null}
         <Text style={type.small}>Tokens help requests reach more people. A lack of tokens never stops a request from being seen.</Text>
 

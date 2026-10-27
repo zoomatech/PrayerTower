@@ -99,6 +99,7 @@ export async function checkIn(q: Queryable, userId: string, commitmentId: string
     [c.id],
   );
   await tokens.earn(q, userId, product.prayingNowTokens, `earn:checkin:${c.id}:${rows[0]!.day}`, 'Commitment check-in');
+  await tokens.creditPriestlyProgress(q, rows[0]!.id);
   return updated[0]!;
 }
 

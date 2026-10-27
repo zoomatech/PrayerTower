@@ -99,6 +99,19 @@ export interface Card {
   createdAt: string;
 }
 
+/** Priestly tokens: earned per N verified prayers for others; fund the intercessory infrastructure. */
+export interface PriestlyStatus {
+  balance: number;
+  verifiedPrayers: number;
+  towardNext: number;
+  prayersPerToken: number;
+}
+
+export interface TokenSummary {
+  balance: number;
+  priestly: PriestlyStatus;
+}
+
 export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip';
 
 export interface FeedTheme {

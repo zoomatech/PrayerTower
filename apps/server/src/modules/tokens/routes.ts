@@ -15,14 +15,27 @@ const Amount = z.object({
 export function tokenRoutes(app: FastifyInstance, db: Db) {
   app.get('/me/tokens', async (req) => {
     const userId = requireUser(req);
-    return { balance: await tokens.balanceOf(db, userId), history: await tokens.history(db, userId) };
+    const [balance, priestly, history] = await Promise.all([
+      tokens.balanceOf(db, userId),
+      tokens.priestlyStatus(db, userId),
+      tokens.history(db, userId),
+    ]);
+    return { balance, priestly, history };
   });
 
   app.post('/tokens/gift', async (req) => {
     const userId = requireUser(req);
-    const body = Amount.extend({ toUserId: z.uuid() }).parse(req.body);
-    const t = await withTx(db, (tx) => tokens.gift(tx, userId, body.toUserId, body.amount, body.idempotencyKey));
-    return { transferId: t.id, balance: await tokens.balanceOf(db, userId) };
+    const body = Amount.extend({ toUserId: z.uuid(), currency: z.enum(['regular', 'priestly']).default('regular') }).parse(req.body);
+    const t = await withTx(db, (tx) => tokens.gift(tx, userId, body.toUserId, body.amount, body.idempotencyKey, body.currency));
+    return { transferId: t.id, balance: await tokens.balanceOf(db, userId, body.currency) };
+  });
+
+  // Give Priestly tokens to the fund that runs the intercessory infrastructure.
+  app.post('/tokens/priestly/donate', async (req) => {
+    const userId = requireUser(req);
+    const body = Amount.parse(req.body);
+    const t = await withTx(db, (tx) => tokens.donatePriestly(tx, userId, body.amount, body.idempotencyKey));
+    return { transferId: t.id, priestly: await tokens.priestlyStatus(db, userId) };
   });
 
   // Spend tokens to extend a request's reach. Never required for baseline visibility.
