@@ -32,6 +32,47 @@ describe('public website', () => {
     expect(terms.body).not.toContain('Questions for counsel');
   });
 
+  it('serves every page in Spanish under /es, with the draft warnings kept', async () => {
+    const home = await app.inject({ method: 'GET', url: '/es' });
+    expect(home.statusCode).toBe(200);
+    expect(home.body).toContain('<html lang="es">');
+    expect(home.body).toContain('Oren unos por otros.');
+    expect(home.body).toContain('href="/es/privacy"');
+    expect(home.body).toContain('<a href="/" hreflang="en" lang="en">English</a>');
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/es" hreflang="es" lang="es">Español</a>');
+    expect((await app.inject({ method: 'GET', url: '/es/' })).headers.location).toBe('/es');
+
+    const support = (await app.inject({ method: 'GET', url: '/es/support' })).body;
+    expect(support).toContain('llama o envía un mensaje de texto al 988');
+    expect(support).toContain('mailto:help@example.com');
+    expect(support).toContain('href="/es/account-deletion"');
+
+    const privacy = (await app.inject({ method: 'GET', url: '/es/privacy' })).body;
+    expect(privacy).toContain('Política de privacidad de Prayer Tower (BORRADOR)');
+    expect(privacy).toContain('NO PUBLICAR HASTA QUE SE REVISE');
+    expect(privacy).not.toContain('Notas para la revisión');
+    const terms = (await app.inject({ method: 'GET', url: '/es/terms' })).body;
+    expect(terms).toContain('Términos de uso de Prayer Tower (BORRADOR)');
+    expect(terms).toContain('BORRADOR PARA REVISIÓN');
+
+    const deletion = await app.inject({ method: 'GET', url: '/es/account-deletion' });
+    expect(deletion.statusCode).toBe(200);
+    expect(deletion.body).toContain('Eliminar tu cuenta de Prayer Tower');
+    expect(deletion.body).toContain('const BASE = "../"');
+    expect((await app.inject({ method: 'GET', url: '/account-deletion' })).body).toContain('const BASE = ""');
+  });
+
+  it('never shows a Spanish draft over a reviewed English policy', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'legal-es-'));
+    writeFileSync(path.join(dir, 'PRIVACY_POLICY.md'), '# Final policy\n');
+    writeFileSync(path.join(dir, 'PRIVACY_POLICY_DRAFT.es.md'), '# Borrador\n');
+    expect(legalDoc(dir, 'PRIVACY_POLICY', 'es')).toEqual({ html: '<h1>Final policy</h1>\n', draft: false, english: true });
+    writeFileSync(path.join(dir, 'PRIVACY_POLICY.es.md'), '# Política final\n');
+    expect(legalDoc(dir, 'PRIVACY_POLICY', 'es')).toEqual({ html: '<h1>Política final</h1>\n', draft: false });
+    writeFileSync(path.join(dir, 'TERMS_OF_USE_DRAFT.md'), '# Draft terms\n');
+    expect(legalDoc(dir, 'TERMS_OF_USE', 'es')).toEqual({ html: '<h1>Draft terms</h1>\n', draft: true, english: true });
+  });
+
   it('prefers the reviewed policy over the draft, and shows store links once listed', async () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'legal-'));
     writeFileSync(path.join(dir, 'PRIVACY_POLICY_DRAFT.md'), '# Draft\n');

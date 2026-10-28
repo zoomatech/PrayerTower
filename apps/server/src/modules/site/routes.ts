@@ -4,14 +4,18 @@ import * as site from './index.js';
 /** Public pages: no sign-in. Built once at start-up; restart to pick up a new policy file. */
 export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions) {
   const html = 'text/html; charset=utf-8';
-  const landing = site.landing(opts);
-  const support = site.support(opts);
-  const privacy = site.legalPage(opts, 'privacy');
-  const terms = site.legalPage(opts, 'terms');
-  app.get('/', async (_req, reply) => reply.type(html).send(landing));
-  app.get('/support', async (_req, reply) => reply.type(html).send(support));
-  app.get('/privacy', async (_req, reply) => reply.code(privacy.status).type(html).send(privacy.html));
-  app.get('/terms', async (_req, reply) => reply.code(terms.status).type(html).send(terms.html));
+  // English at /, Spanish at /es (see site.pathFor).
+  for (const lang of ['en', 'es'] as const) {
+    const landing = site.landing(opts, lang);
+    const support = site.support(opts, lang);
+    const privacy = site.legalPage(opts, 'privacy', lang);
+    const terms = site.legalPage(opts, 'terms', lang);
+    app.get(site.pathFor(lang, '/'), async (_req, reply) => reply.type(html).send(landing));
+    app.get(site.pathFor(lang, '/support'), async (_req, reply) => reply.type(html).send(support));
+    app.get(site.pathFor(lang, '/privacy'), async (_req, reply) => reply.code(privacy.status).type(html).send(privacy.html));
+    app.get(site.pathFor(lang, '/terms'), async (_req, reply) => reply.code(terms.status).type(html).send(terms.html));
+  }
+  app.get('/es/', async (_req, reply) => reply.redirect('/es', 301));
 
   // Shared links: the apps open https://<host>/post/:id themselves once these files verify the domain.
   if (opts.appLinks?.appleAppIds.length) {
