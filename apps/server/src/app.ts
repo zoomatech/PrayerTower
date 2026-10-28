@@ -20,6 +20,7 @@ import { promptRoutes } from './modules/prompts/routes.js';
 import { tierRoutes } from './modules/tiers/routes.js';
 import { prayerActionRoutes } from './modules/prayer-actions/routes.js';
 import { radioRoutes } from './modules/radio/routes.js';
+import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
@@ -203,6 +204,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     notebookRoutes(authed, db);
     futureRoutes(authed, db);
     communityRoutes(authed, db);
+    spokenPrayerRoutes(authed, db, storage);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);

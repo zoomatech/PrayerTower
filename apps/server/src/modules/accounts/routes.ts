@@ -9,6 +9,7 @@ import { badgesOf } from '../churches/index.js';
 import * as posts from '../posts/index.js';
 import { prayerStats } from '../prayer-stats/index.js';
 import { MEDIA_BUCKET } from '../posts/media.js';
+import { SPOKEN_BUCKET } from '../spoken-prayers/index.js';
 import { exportData } from './export.js';
 import * as accounts from './index.js';
 import * as communities from '../communities/index.js';
@@ -49,8 +50,14 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
   app.delete('/me', async (req) => {
     const userId = requireUser(req);
     z.object({ confirm: z.literal('DELETE') }).parse(req.body ?? {});
+    // Voice recordings the member sent or received go with the account (the rows cascade).
+    const { rows: audio } = await db.query<{ storage_path: string }>(
+      'select storage_path from public.spoken_prayers where user_id = $1 or recipient_id = $1',
+      [userId],
+    );
     const paths = await withTx(db, (tx) => accounts.deleteAccount(tx, userId));
     if (storage && paths.length) await storage.storage.from(MEDIA_BUCKET).remove(paths);
+    if (storage && audio.length) await storage.storage.from(SPOKEN_BUCKET).remove(audio.map((a) => a.storage_path));
     return { deleted: true };
   });
 

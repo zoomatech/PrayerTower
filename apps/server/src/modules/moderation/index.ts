@@ -12,9 +12,10 @@ import * as adFines from '../ad-fines/index.js';
 import * as messages from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
+import * as spoken from '../spoken-prayers/index.js';
 import * as tokens from '../tokens/index.js';
 
-export type Target = 'post' | 'comment' | 'reaction' | 'message' | 'event';
+export type Target = 'post' | 'comment' | 'reaction' | 'message' | 'event' | 'spoken_prayer';
 
 export const CRISIS_REASON = 'Someone may be in danger';
 
@@ -30,7 +31,7 @@ export const RULES = {
 export type Rule = keyof typeof RULES;
 const RULE_KEYS = Object.keys(RULES) as [Rule, ...Rule[]];
 
-const NOUN = { post: 'request', comment: 'comment', reaction: 'encouragement', message: 'message', event: 'event' } as const;
+const NOUN = { post: 'request', comment: 'comment', reaction: 'encouragement', message: 'message', event: 'event', spoken_prayer: 'spoken prayer' } as const;
 
 /**
  * A post or comment that mentions suicide or self-harm stays up, is marked so
@@ -132,7 +133,7 @@ export function scanTask(q: Queryable, classify: Classifier): Task {
     const result = await classify(subject.text);
     if (!result?.flagged) return;
     const flagged = Object.entries(result.categories).filter(([, v]) => v).map(([k]) => k);
-    if (target !== 'reaction' && target !== 'event' && flagged.some((c) => c.startsWith('self-harm'))) await flagCrisis(q, target, id);
+    if (target !== 'reaction' && target !== 'event' && target !== 'spoken_prayer' && flagged.some((c) => c.startsWith('self-harm'))) await flagCrisis(q, target, id);
     const autoHide = flagged.some((c) => AUTO_HIDE_CATEGORIES.includes(c));
     await q.query(
       `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, ai_categories, auto_hidden)
@@ -144,7 +145,7 @@ export function scanTask(q: Queryable, classify: Classifier): Task {
 }
 
 export const Report = z.object({
-  targetType: z.enum(['post', 'comment', 'reaction', 'message', 'event']),
+  targetType: z.enum(['post', 'comment', 'reaction', 'message', 'event', 'spoken_prayer']),
   targetId: z.uuid(),
   reason: z.string().trim().min(1).max(1000),
 });
@@ -154,6 +155,8 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
   if (!subject) throw notFound('Content');
   // Private messages can only be reported by someone in the conversation.
   if (input.targetType === 'message' && !(await messages.canSee(q, reporterId, input.targetId))) throw notFound('Content');
+  // A spoken prayer can only be reported by the person who received it (or sent it).
+  if (input.targetType === 'spoken_prayer' && !(await spoken.canSee(q, reporterId, input.targetId))) throw notFound('Content');
   // A group's event can only be reported by the group's members.
   if (input.targetType === 'event') {
     const { rowCount } = await q.query(
@@ -176,13 +179,14 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
 /** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. Optionally only one target's items. */
 export async function pending(q: Queryable, limit = 100, targetId?: string) {
   const { rows } = await q.query(
-    `select m.*, coalesce(po.body, c.body, r.note, x.body, ev.title || E'\n' || ev.description) as content
+    `select m.*, coalesce(po.body, c.body, r.note, x.body, ev.title || E'\n' || ev.description, '[Spoken prayer, ' || sp.duration_seconds || ' seconds of audio]') as content
        from public.moderation_items m
        left join public.posts po on m.target_type = 'post' and po.id = m.target_id
        left join public.comments c on m.target_type = 'comment' and c.id = m.target_id
        left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
        left join public.messages x on m.target_type = 'message' and x.id = m.target_id
        left join public.events ev on m.target_type = 'event' and ev.id = m.target_id
+       left join public.spoken_prayers sp on m.target_type = 'spoken_prayer' and sp.id = m.target_id
       where m.status = 'pending' and ($2::uuid is null or m.target_id = $2)
       order by (m.source = 'crisis') desc, m.auto_hidden desc, m.id
       limit $1`,
@@ -333,7 +337,7 @@ export async function appeal(q: Queryable, userId: string, itemId: string, input
 export async function pendingAppeals(q: Queryable, limit = 50) {
   const { rows } = await q.query(
     `select a.id, a.moderation_item_id, m.target_type, m.rule, a.message, a.created_at,
-            coalesce(po.body, c.body, r.note, msg.body, ev.title || E'\n' || ev.description) as content,
+            coalesce(po.body, c.body, r.note, msg.body, ev.title || E'\n' || ev.description, '[Spoken prayer, ' || sp.duration_seconds || ' seconds of audio]') as content,
             (select max(suspended_until) from public.moderation_actions x where x.moderation_item_id = m.id) as suspended_until
        from public.moderation_appeals a
        join public.moderation_items m on m.id = a.moderation_item_id
@@ -342,6 +346,7 @@ export async function pendingAppeals(q: Queryable, limit = 50) {
        left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
        left join public.messages msg on m.target_type = 'message' and msg.id = m.target_id
        left join public.events ev on m.target_type = 'event' and ev.id = m.target_id
+       left join public.spoken_prayers sp on m.target_type = 'spoken_prayer' and sp.id = m.target_id
       where a.status = 'pending' order by a.id limit $1`,
     [limit],
   );

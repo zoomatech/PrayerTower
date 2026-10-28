@@ -565,7 +565,7 @@ export interface PrayerEvent {
 export const NOTIFICATION_CATEGORIES = ['prayers', 'promises', 'encouragement', 'messages', 'community', 'tokens'] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
-  prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer'],
+  prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'spoken_prayer'],
   promises: ['commitment_made', 'commitment_reminder'],
   encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered'],
   messages: ['message', 'meetup', 'care_request'],
