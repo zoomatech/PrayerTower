@@ -19,6 +19,8 @@ jobs:
       # Local Supabase stack (Postgres, Auth, Storage) in Docker; applies migrations.
       - run: npm run db:start
       - run: npm test
+      # Back up the test database, restore it into a throwaway stack, compare.
+      - run: scripts/restore-drill.sh
 
   # Checks that app.json and the config plugins still generate both native
   # projects, and that the JS bundles for iOS and Android build. No signing or

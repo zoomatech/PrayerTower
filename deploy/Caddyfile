@@ -1,5 +1,10 @@
 # HTTPS in front of the API. Replace the domain; point its DNS at this server
 # and open ports 80 and 443. Caddy fetches and renews the certificate itself.
-api.example.com
+api.example.com {
+	reverse_proxy :3000
+}
 
-reverse_proxy :3000
+# Staging (docs/STAGING.md) on the same server: uncomment and set its domain.
+# staging-api.example.com {
+# 	reverse_proxy :3100
+# }
