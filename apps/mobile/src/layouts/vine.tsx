@@ -20,6 +20,9 @@ import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
 import { vinePlacement } from './placement';
 
+// The branch color as text: darker, for 4.5:1 contrast on the card (WCAG AA).
+const BRANCH_TEXT = '#6B5435';
+
 const DEFAULTS = {
   stem: '#6E8B4E',
   leaf: '#A9C08A',
@@ -100,8 +103,8 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
         <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }, left ? { right: -7 } : { left: -7 }]} />
         <View style={styles.tags}>
           {pinned ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
-          {card.state === 'answered' ? <Text style={[styles.tag, { color: colors.gold }]}>{t('vine.bloom')}</Text> : null}
-          {card.isMine ? <Text style={[styles.tag, { color: tokens.branch }]}>{t('vine.yourBranch')}</Text> : null}
+          {card.state === 'answered' ? <Text style={[styles.tag, { color: colors.goldText }]}>{t('vine.bloom')}</Text> : null}
+          {card.isMine ? <Text style={[styles.tag, { color: BRANCH_TEXT }]}>{t('vine.yourBranch')}</Text> : null}
           {card.myCommitment ? <Text style={[styles.tag, { color: tokens.tendril }]}>{t('vine.yourTendril')}</Text> : null}
         </View>
         {card.counts.commitments > 0 ? (
