@@ -12,6 +12,8 @@ primary_region = "iad"
 [env]
   PORT = "3000"
   NODE_ENV = "production"
+  # Fly Proxy puts the visitor's address here (docs.fly.io/docs/networking/request-headers).
+  CLIENT_IP_HEADER = "fly-client-ip"
 
 # Same image, two commands (as in docker-compose.yml).
 [processes]

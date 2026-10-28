@@ -135,7 +135,7 @@ export function growthPublicRoutes(app: FastifyInstance, db: Db, opts: site.Site
       return reply.code(400).type(HTML).send(prayPage(opts, req.params.token, v, false, parsed.error.issues[0]?.message ?? 'Please check the form'));
     }
     if (v.answered) return reply.type(HTML).send(prayPage(opts, req.params.token, v, false));
-    await withTx(db, (tx) => growth.guestPray(tx, req.params.token, req.ip, parsed.data));
+    await withTx(db, (tx) => growth.guestPray(tx, req.params.token, req.clientIp, parsed.data));
     const after = (await growth.guestView(db, req.params.token)) ?? v;
     return reply.type(HTML).header('cache-control', 'no-store').header('x-robots-tag', 'noindex').send(prayPage(opts, req.params.token, after, true));
   };

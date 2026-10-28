@@ -80,7 +80,8 @@ async function finish(q: Queryable, s: Schedule & { user_id: string }, status: '
 
 /** Run one due schedule. Exported for tests; the task calls it for each due row. */
 export async function runOne(q: Queryable, s: Schedule & { user_id: string }) {
-  const post = await posts.getVisible(q, s.post_id);
+  // Checked again at run time: a block or a community change since scheduling stops the gift.
+  const post = await posts.getActionable(q, s.user_id, s.post_id);
   if (!post) return finish(q, s, 'cancelled', 'The request is no longer available.');
   if (await moderation.awaitingCrisisReview(q, post.id)) return; // try again next minute
   try {

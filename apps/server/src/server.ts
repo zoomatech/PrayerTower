@@ -49,6 +49,7 @@ const app = buildApp({
   converse: createConverser(config),
   stationKey: config.STATION_API_KEY ?? null,
   rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
+  clientIpHeader: config.CLIENT_IP_HEADER ?? null,
   metricsToken: config.METRICS_TOKEN ?? null,
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,

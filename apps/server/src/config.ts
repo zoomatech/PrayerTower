@@ -72,6 +72,8 @@ const Env = z.object({
   CORS_ORIGINS: z.string().default(''),
   /** API requests allowed per signed-in member per minute; 0 turns the limit off. */
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).default(300),
+  // The proxy header holding the visitor's address, for per-address limits (Fly: fly-client-ip).
+  CLIENT_IP_HEADER: z.string().optional(),
   /** Error reporting (see src/instrument.ts); unset = off. Read straight from the environment there. */
   SENTRY_DSN: z.string().optional(),
   /** Bearer token for GET /metrics; unset = no metrics endpoint. */
