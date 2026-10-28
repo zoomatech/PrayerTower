@@ -1,0 +1,15 @@
+{{ if eq .Data.locale "es" }}<!doctype html>
+<html lang="es"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
+<h2>Confirma tu correo</h2>
+<p>Gracias por unirte a Prayer Tower. Toca el enlace para confirmar tu correo y empezar a orar con otros:</p>
+<p><a href="{{ .ConfirmationURL }}">Confirmar mi correo</a></p>
+<p>O escribe este código en la aplicación: <strong>{{ .Token }}</strong></p>
+<p style="font-size:13px;color:#6b6478">Si no creaste una cuenta en Prayer Tower, puedes ignorar este correo.</p>
+</body></html>{{ else }}<!doctype html>
+<html lang="en"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
+<h2>Confirm your email</h2>
+<p>Thank you for joining Prayer Tower. Tap the link to confirm your email and start praying with others:</p>
+<p><a href="{{ .ConfirmationURL }}">Confirm my email</a></p>
+<p>Or enter this code in the app: <strong>{{ .Token }}</strong></p>
+<p style="font-size:13px;color:#6b6478">If you didn't create a Prayer Tower account, you can ignore this email.</p>
+</body></html>{{ end }}

@@ -720,6 +720,14 @@ const en = {
     revokeCode: 'Revoke %{code}',
     revoked: 'Code revoked.',
     shareMessage: 'You are invited to Prayer Tower. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
+    email: 'Email',
+    emailCode: 'Email %{code}',
+    emailTo: 'Their email address',
+    emailLanguage: 'Email language',
+    emailMessage: 'A personal note (optional)',
+    send: 'Send invite',
+    sent: 'Invite sent to %{email}.',
+    emailOff: 'Email isn’t set up on the server yet (SMTP).',
   },
   auditLog: {
     action: {
@@ -760,6 +768,7 @@ const en = {
       "POST_admin_announcements_id_end": "Ended an announcement",
       "POST_admin_invites": "Created invite codes",
       "POST_admin_invites_code_revoke": "Revoked an invite code",
+      "POST_admin_invites_code_email": "Emailed an invite code",
       "PATCH_admin_invite-settings": "Changed invite-only mode",
     },
     title: "Audit log",

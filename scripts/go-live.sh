@@ -76,10 +76,29 @@ if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
     | grep -q "\"hook_before_user_created_uri\":\"$hook_uri\"" || die "the hook did not save; check Dashboard → Authentication → Hooks"
   echo "Invite-code hook is on."
+  # The sign-up and password emails, in English or Spanish by the member's
+  # language (supabase/templates, the same files local development uses).
+  # https://supabase.com/docs/guides/auth/auth-email-templates
+  log "Uploading the bilingual sign-up and password emails"
+  node -e '
+    const fs = require("fs");
+    const toml = fs.readFileSync("supabase/config.toml", "utf8");
+    const subject = (k) => toml.match(new RegExp("\\[auth\\.email\\.template\\." + k + "\\]\\s*subject = \"([^\"]+)\""))[1];
+    const body = {};
+    for (const k of ["confirmation", "recovery"]) {
+      body["mailer_subjects_" + k] = subject(k);
+      body["mailer_templates_" + k + "_content"] = fs.readFileSync("supabase/templates/" + k + ".html", "utf8");
+    }
+    process.stdout.write(JSON.stringify(body));
+  ' | curl -fsS -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @- >/dev/null \
+    || die "could not upload the email templates; paste supabase/templates/*.html into Dashboard → Authentication → Email Templates"
+  echo "Sign-up and password emails are bilingual."
 else
   printf '\nACTION NEEDED: in the Supabase Dashboard, Authentication → Hooks → Before User Created,\n'
   printf 'choose Postgres function public.hook_before_user_created (or set SUPABASE_ACCESS_TOKEN and re-run).\n'
   printf 'Until then anyone can sign up without an invite code.\n'
+  printf 'Also paste supabase/templates/confirmation.html and recovery.html into Authentication → Email Templates.\n'
 fi
 [ "$mode" = --migrate-only ] && exit 0
 

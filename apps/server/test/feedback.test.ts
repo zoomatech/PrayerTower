@@ -44,7 +44,8 @@ describe('pilot feedback', () => {
     expect((await as(admin).patch(`/admin/feedback/${crash}`, { note: 'Repro on iOS 26, fixed in next build' })).statusCode).toBe(200);
 
     const crashes = (await as(admin).get('/admin/feedback?tag=crash')).json().feedback as { id: string; tags: string[]; severity: string; note: string }[];
-    expect(crashes[0]).toMatchObject({ id: crash, tags: ['crash', 'notifications'], severity: 'blocker', note: 'Repro on iOS 26, fixed in next build' });
+    // Earlier runs on the same database leave older items; find this run's.
+    expect(crashes.find((f) => f.id === crash)).toMatchObject({ id: crash, tags: ['crash', 'notifications'], severity: 'blocker', note: 'Repro on iOS 26, fixed in next build' });
     expect(crashes.every((f) => f.tags.includes('crash'))).toBe(true);
 
     await as(admin).post(`/admin/feedback/${praise}/close`);

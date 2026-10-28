@@ -74,9 +74,9 @@ Fill these in now; Play blocks any wider release until they're done.
 
 Android push goes through Firebase Cloud Messaging. Without this, the app still works but won't get notifications (the app logs a warning and carries on).
 1. In the [Firebase Console](https://console.firebase.google.com) create a project, add an Android app with package `com.zoomatech.prayertower`, and download **google-services.json** into `apps/mobile/`.
-2. Add to `apps/mobile/app.json` under `android`: `"googleServicesFile": "./google-services.json"`. This file is safe to commit.
+2. Nothing to edit: `app.config.js` turns Android push on by itself once the file is there, or once the EAS file variable `GOOGLE_SERVICES_JSON` is set. The file is safe to commit.
 3. Firebase → Project settings → **Service accounts → Generate new private key**. Upload it with `eas credentials` → Android → production → Google Service Account → **Push Notifications (FCM V1)** → Upload. Don't commit it.
-4. Build again (step 2).
+4. Build again (step 2), then run `npm run push-test -w @prayer-tower/server -- <your email> android`. Full steps: [ANDROID_PUSH.md](ANDROID_PUSH.md).
 
 ([Expo: FCM credentials](https://docs.expo.dev/push-notifications/fcm-credentials/))
 

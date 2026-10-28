@@ -722,6 +722,14 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     revokeCode: 'Anular %{code}',
     revoked: 'Código anulado.',
     shareMessage: 'Te invitamos a Prayer Tower. Tu código de invitación es %{code}. Abre %{url} en la aplicación, o escribe el código al crear tu cuenta.',
+    email: 'Correo',
+    emailCode: 'Enviar %{code} por correo',
+    emailTo: 'Su correo electrónico',
+    emailLanguage: 'Idioma del correo',
+    emailMessage: 'Una nota personal (opcional)',
+    send: 'Enviar invitación',
+    sent: 'Invitación enviada a %{email}.',
+    emailOff: 'El correo aún no está configurado en el servidor (SMTP).',
   },
   auditLog: {
     action: {
@@ -762,6 +770,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
       "POST_admin_announcements_id_end": "Terminó un anuncio",
       "POST_admin_invites": "Creó códigos de invitación",
       "POST_admin_invites_code_revoke": "Anuló un código de invitación",
+      "POST_admin_invites_code_email": "Envió un código de invitación por correo",
       "PATCH_admin_invite-settings": "Cambió el modo solo por invitación",
     },
     title: "Registro de auditoría",

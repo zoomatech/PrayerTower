@@ -39,6 +39,8 @@ import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
 import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
+import type { Mailer } from './modules/digest/mailer.js';
+import { docsRoutes, markScope, RouteCatalog } from './openapi.js';
 
 export interface AppDeps {
   db: Db;
@@ -59,20 +61,29 @@ export interface AppDeps {
   metricsToken?: string | null;
   /** The public website (landing, support, privacy, terms); null = off. */
   site?: SiteOptions | null;
+  /** Outgoing email (invites); null = no email. */
+  mailer?: Mailer | null;
+  /** The web app's address, for invite links (…/sign-in?invite=CODE); null = no link. */
+  webAppUrl?: string | null;
+  /** OpenAPI JSON and Swagger UI at /api/docs; null = off. Staff-only when restricted (production). */
+  apiDocs?: { restricted: boolean; password: string | null; version: string } | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger ? { level: process.env.LOG_LEVEL ?? 'info', redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-station-key"]'] } : false,
   });
-  if (onRoute) {
-    app.addHook('onRoute', (r) => {
-      for (const method of [r.method].flat()) if (method !== 'HEAD') onRoute({ method, url: r.url });
-    });
-  }
+  const catalog = new RouteCatalog();
+  app.addHook('onRoute', (r) => {
+    for (const method of [r.method].flat()) {
+      if (method === 'HEAD') continue;
+      catalog.add(method, r.url);
+      onRoute?.({ method, url: r.url });
+    }
+  });
   app.register(cors, {
     origin: corsOrigins.length ? corsOrigins : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -98,7 +109,18 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   });
 
   // The radio station authenticates with its own key, not a member login.
-  app.register(async (station) => stationRoutes(station, db, stationKey));
+  app.register(async (station) => {
+    markScope(station, catalog, 'station');
+    stationRoutes(station, db, stationKey);
+  });
+
+  // The API description, for developers (staff-only in production).
+  if (apiDocs) {
+    app.register(async (open) => {
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 30, timeWindow: '1 minute' });
+      docsRoutes(open, { catalog, ...apiDocs, verifyToken, db });
+    });
+  }
 
   // What the sign-up screen needs to know before anyone is signed in.
   app.register(async (open) => {
@@ -124,6 +146,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
 
   // Everything else requires a signed-in member.
   app.register(async (authed) => {
+    markScope(authed, catalog, 'member');
     authed.addHook('preHandler', makeAuthHook(verifyToken, db));
     // Every successful staff change goes to the audit log (Admin → Audit log).
     authed.addHook('onSend', auditHook(db));
@@ -159,7 +182,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);
-    inviteRoutes(authed, db);
+    inviteRoutes(authed, db, mailer, { webAppUrl, appStoreUrl: site?.appStoreUrl ?? null, playStoreUrl: site?.playStoreUrl ?? null });
     announcementRoutes(authed, db);
     adminRoutes(authed, db, storage);
   });
