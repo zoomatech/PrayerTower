@@ -7,39 +7,22 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { useT } from '@/lib/i18n';
 import { markTourSeen } from '@/lib/tour';
 import { colors, radius, space, type } from '@/lib/theme';
 
+// Keys into the tour section of src/locales/<code>.ts.
 const STEPS = [
-  {
-    icon: '🕊',
-    title: 'Ask for prayer',
-    body: 'Tap "Type your prayer here" on the Prayers tab. Share a need, a praise or a testimony in a few words, with your name or anonymously.',
-  },
-  {
-    icon: '🙏',
-    title: 'Pray now',
-    body: 'When you pray for someone, tap "Praying Now" on their request. They see that a real person is praying for them right then. Please tap it only when you truly pray.',
-  },
-  {
-    icon: '📅',
-    title: 'Keep a promise to pray',
-    body: '"Commit to Pray" lets you promise to pray daily or weekly. Prayer Tower gently reminds you, and your promises live under My Promises.',
-  },
-  {
-    icon: '✨',
-    title: 'Tokens, never money',
-    body: 'Praying for others and keeping your promises earns tokens. Use them to help a request reach more people, or give them to someone. Tokens can never be bought or cashed out.',
-  },
-  {
-    icon: '🛡',
-    title: 'A safe place',
-    body: 'Report anything that breaks the community rules, and block anyone you like. Real moderators read every report. If someone is in crisis, Prayer Tower shows a crisis line right away.',
-  },
+  { icon: '🕊', key: 'ask' },
+  { icon: '🙏', key: 'pray' },
+  { icon: '📅', key: 'promise' },
+  { icon: '✨', key: 'tokens' },
+  { icon: '🛡', key: 'safe' },
 ] as const;
 
 export default function TourScreen() {
   const { session } = useAuth();
+  const t = useT();
   const [step, setStep] = useState(0);
   const s = STEPS[step]!;
   const last = step === STEPS.length - 1;
@@ -55,27 +38,27 @@ export default function TourScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <Text style={type.small} aria-live="polite">
-            {step + 1} of {STEPS.length}
+            {t('tour.progress', { n: step + 1, total: STEPS.length })}
           </Text>
-          {!last ? <Button small variant="ghost" label="Skip" onPress={finish} /> : null}
+          {!last ? <Button small variant="ghost" label={t('tour.skip')} onPress={finish} /> : null}
         </View>
         <View style={styles.card}>
           <Text style={styles.icon} importantForAccessibility="no" accessibilityElementsHidden>
             {s.icon}
           </Text>
           <Text style={type.title} role="heading">
-            {s.title}
+            {t(`tour.${s.key}Title`)}
           </Text>
-          <Text style={[type.body, styles.body]}>{s.body}</Text>
+          <Text style={[type.body, styles.body]}>{t(`tour.${s.key}Body`)}</Text>
         </View>
         <View style={styles.dots} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           {STEPS.map((x, i) => (
-            <View key={x.title} style={[styles.dot, i === step && styles.dotOn]} />
+            <View key={x.key} style={[styles.dot, i === step && styles.dotOn]} />
           ))}
         </View>
         <View style={styles.row}>
-          {step > 0 ? <Button variant="secondary" label="Back" onPress={() => setStep(step - 1)} /> : null}
-          <Button label={last ? 'Start praying' : 'Next'} onPress={last ? finish : () => setStep(step + 1)} />
+          {step > 0 ? <Button variant="secondary" label={t('tour.back')} onPress={() => setStep(step - 1)} /> : null}
+          <Button label={last ? t('tour.start') : t('tour.next')} onPress={last ? finish : () => setStep(step + 1)} />
         </View>
       </ScrollView>
     </Screen>
