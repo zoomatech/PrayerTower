@@ -157,6 +157,7 @@ export default function Profile() {
             onChange={(v) => update({ promptTone: v ? 'firm' : 'gentle' })}
           />
         ) : null}
+        <Button variant="secondary" label={t('notifySettings.title')} onPress={() => router.push('/notification-settings')} />
         <Toggle label={t('settings.updatesFirst')} value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
         <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
         <LanguagePicker />

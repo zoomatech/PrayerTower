@@ -1,7 +1,7 @@
 // Accounts module: profiles, onboarding answers, roles, follows, and how a
 // person is presented to others (anonymity is applied here, at output time;
 // the author link is always stored).
-import { FEED_MIX_KEYS, LOCALES, type FeedMix, type FeedMixKey, type Locale } from '@prayer-tower/shared';
+import { FEED_MIX_KEYS, LOCALES, NOTIFICATION_CATEGORIES, type FeedMix, type FeedMixKey, type Locale, type NotificationPrefs } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
@@ -31,6 +31,16 @@ export const ProfileUpdate = z
     locale: z.enum(LOCALES),
     /** Weekly email digest (off by default). */
     digestEnabled: z.boolean(),
+    notificationPrefs: z.object({
+      off: z.array(z.enum(NOTIFICATION_CATEGORIES)).max(NOTIFICATION_CATEGORIES.length),
+      quietHours: z
+        .object({
+          start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+          end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+          timeZone: z.string().max(64).refine(validTimeZone, 'Unknown time zone'),
+        })
+        .nullable(),
+    }),
     completeOnboarding: z.boolean(),
   })
   .partial();
@@ -52,7 +62,17 @@ const columns: Record<string, string> = {
   feedMix: 'feed_mix',
   locale: 'locale',
   digestEnabled: 'digest_enabled',
+  notificationPrefs: 'notification_prefs',
 };
+
+function validTimeZone(tz: string) {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export interface Profile {
   id: string;
@@ -73,6 +93,7 @@ export interface Profile {
   locale: Locale;
   digest_enabled: boolean;
   digest_sent_week: string | null;
+  notification_prefs: NotificationPrefs;
   onboarded_at: Date | null;
   suspended_until: Date | null;
   deleted_at: Date | null;
