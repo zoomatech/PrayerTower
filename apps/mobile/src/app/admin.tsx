@@ -37,7 +37,7 @@ function Admin() {
   const [weeks, setWeeks] = useState<PilotWeek[]>([]);
   const [radio, setRadio] = useState<AdminRadioSettings | null>(null);
   const [tokens, setTokens] = useState<AdminTokenSettings | null>(null);
-  const [tokenDraft, setTokenDraft] = useState({ perToken: '', gap: '', cost: '', perDay: '' });
+  const [tokenDraft, setTokenDraft] = useState({ perToken: '', gap: '', cost: '', perDay: '', amplify: '' });
   const [safety, setSafety] = useState<AdminSafetySettings | null>(null);
   const [safetyDraft, setSafetyDraft] = useState({ hours: '', prayers: '', posts: '', comments: '', postsHour: '', commentsHour: '', messagesMinute: '' });
   const [tiers, setTiers] = useState<AdminTier[]>([]);
@@ -65,7 +65,7 @@ function Admin() {
 
   const showTokens = (s: AdminTokenSettings) => {
     setTokens(s);
-    setTokenDraft({ perToken: String(s.priestly_prayers_per_token), gap: String(s.verified_prayer_min_gap_seconds), cost: String(s.radio_prayer_cost), perDay: String(s.verified_prayers_per_day) });
+    setTokenDraft({ perToken: String(s.priestly_prayers_per_token), gap: String(s.verified_prayer_min_gap_seconds), cost: String(s.radio_prayer_cost), perDay: String(s.verified_prayers_per_day), amplify: s.amplify_paid_cost === null ? '' : String(s.amplify_paid_cost) });
   };
   const showSafety = (s: AdminSafetySettings) => {
     setSafety(s);
@@ -142,6 +142,7 @@ function Admin() {
         verifiedPrayerMinGapSeconds: toInt(tokenDraft.gap) ?? undefined,
         radioPrayerCost: toInt(tokenDraft.cost) ?? undefined,
         verifiedPrayersPerDay: toInt(tokenDraft.perDay) ?? undefined,
+        amplifyPaidCost: tokenDraft.amplify.trim() ? (toInt(tokenDraft.amplify) ?? undefined) : null,
       });
       showTokens(r.settings);
     }, t('admin.saved.tokens'));
@@ -272,6 +273,7 @@ function Admin() {
             <Field label={t('admin.field.gap')} keyboardType="number-pad" value={tokenDraft.gap} onChangeText={(gap) => setTokenDraft((d) => ({ ...d, gap }))} />
             <Field label={t('admin.field.cost')} keyboardType="number-pad" value={tokenDraft.cost} onChangeText={(cost) => setTokenDraft((d) => ({ ...d, cost }))} />
             <Field label={t('admin.field.verifiedPerDay')} keyboardType="number-pad" value={tokenDraft.perDay} onChangeText={(perDay) => setTokenDraft((d) => ({ ...d, perDay }))} />
+            <Field label={t('admin.field.amplifyCost')} keyboardType="number-pad" value={tokenDraft.amplify} onChangeText={(amplify) => setTokenDraft((d) => ({ ...d, amplify }))} />
             <Button label={t('admin.btn.saveTokens')} onPress={saveTokens} />
           </View>
         ) : null}
@@ -511,7 +513,8 @@ function ReminderToneSection() {
 /** Prayer partners on call, and events. Confession stays off until a lawyer reviews it. */
 function CareAndEventSettingsSection() {
   const t = useT();
-  const [care, setCare] = useState<{ care_enabled: boolean; confession_enabled: boolean } | null>(null);
+  const [care, setCare] = useState<{ care_enabled: boolean; confession_enabled: boolean; confession_retention_days: number } | null>(null);
+  const [keepDays, setKeepDays] = useState('');
   const [ev, setEv] = useState<{ events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } | null>(null);
   const [hosts, setHosts] = useState('');
   const [reminder, setReminder] = useState('');
@@ -525,13 +528,17 @@ function CareAndEventSettingsSection() {
 
   useFocusEffect(
     useCallback(() => {
-      api.admin.careSettings().then((r) => setCare(r.settings)).catch((e) => setNote((e as Error).message));
+      api.admin.careSettings().then((r) => showCare(r.settings)).catch((e) => setNote((e as Error).message));
       api.admin.eventSettings().then((r) => showEv(r.settings)).catch((e) => setNote((e as Error).message));
     }, []),
   );
 
+  const showCare = (s: NonNullable<typeof care>) => {
+    setCare(s);
+    setKeepDays(String(s.confession_retention_days));
+  };
   const saveCare = (patch: Parameters<typeof api.admin.updateCareSettings>[0]) =>
-    api.admin.updateCareSettings(patch).then((r) => setCare(r.settings)).catch((e) => setNote((e as Error).message));
+    api.admin.updateCareSettings(patch).then((r) => showCare(r.settings)).catch((e) => setNote((e as Error).message));
   const saveEv = (patch: Parameters<typeof api.admin.updateEventSettings>[0] = {}) =>
     api.admin
       .updateEventSettings({
@@ -552,6 +559,8 @@ function CareAndEventSettingsSection() {
         <>
           <Toggle label={t('admin.toggle.care')} value={care.care_enabled} onChange={(v) => saveCare({ careEnabled: v })} />
           <Toggle label={t('admin.toggle.confession')} hint={t('admin.toggle.confessionHint')} value={care.confession_enabled} onChange={(v) => saveCare({ confessionEnabled: v })} />
+          <Field label={t('admin.field.confessionDays')} keyboardType="number-pad" value={keepDays} onChangeText={setKeepDays} />
+          <Button small variant="secondary" label={t('admin.btn.saveConfession')} onPress={() => saveCare({ confessionRetentionDays: toInt(keepDays) ?? undefined })} />
         </>
       ) : null}
       {ev ? (

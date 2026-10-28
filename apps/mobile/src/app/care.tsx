@@ -20,6 +20,7 @@ export default function Care() {
   const { roles } = useAuth();
   const staff = roles.some((r) => r === 'prayer_partner' || r === 'pastor_counselor');
   const [kinds, setKinds] = useState<CareKind[]>([]);
+  const [keepDays, setKeepDays] = useState(7);
   const [enabled, setEnabled] = useState(true);
   const [kind, setKind] = useState<CareKind>('pray_with_me');
   const [body, setBody] = useState('');
@@ -35,6 +36,7 @@ export default function Care() {
       const [o, m] = await Promise.all([api.care(), api.myCareRequests()]);
       setEnabled(o.enabled);
       setKinds(o.kinds);
+      setKeepDays(o.confessionRetentionDays ?? 7);
       setMine(m.requests);
       if (staff) setQueue((await api.careQueue()).requests);
     } catch (e) {
@@ -98,6 +100,11 @@ export default function Care() {
                 <Chip key={k} label={kindLabel(k)} selected={kind === k} onPress={() => setKind(k)} />
               ))}
             </View>
+            {kind === 'confession' ? (
+              <Text style={type.small} accessibilityLiveRegion="polite">
+                {keepDays === 0 ? t('care.confessionNoteNow') : t('care.confessionNote', { count: keepDays })}
+              </Text>
+            ) : null}
             <Field placeholder={t('care.placeholder')} value={body} onChangeText={setBody} maxLength={2000} multiline />
             <Button label={t('care.ask')} onPress={ask} busy={busy} disabled={!body.trim()} />
           </View>

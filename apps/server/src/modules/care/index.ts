@@ -1,12 +1,16 @@
 // Care module: a member asks a prayer partner or pastor to pray with them
 // (notebook Page 4). Staff with the matching role see open requests, one
 // claims it, and the two talk in a private care conversation. Confession to
-// clergy (Page 2) is behind a switch that stays off until a lawyer reviews it.
+// clergy (Page 2) is behind an admin switch, off by default: only pastors and
+// counselors answer it, the notices never say what was confessed, members of a
+// non-religious community aren't offered it, and the retention job erases each
+// confession `confession_retention_days` after it is closed (docs/CONFESSION.md).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import type { Role } from '../accounts/index.js';
 import { hasRole } from '../accounts/index.js';
+import { isSecular } from '../communities/index.js';
 import * as messages from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as safety from '../safety/index.js';
@@ -25,10 +29,12 @@ export interface CareSettings {
   care_enabled: boolean;
   confession_enabled: boolean;
   max_open_per_member: number;
+  /** Days after a confession is closed before it is erased (0 = when it closes). */
+  confession_retention_days: number;
 }
 
 export async function settings(q: Queryable): Promise<CareSettings> {
-  const { rows } = await q.query<CareSettings>('select care_enabled, confession_enabled, max_open_per_member from public.care_settings');
+  const { rows } = await q.query<CareSettings>('select care_enabled, confession_enabled, max_open_per_member, confession_retention_days from public.care_settings');
   return rows[0]!;
 }
 
@@ -36,23 +42,30 @@ export const SettingsPatch = z.object({
   careEnabled: z.boolean().optional(),
   confessionEnabled: z.boolean().optional(),
   maxOpenPerMember: z.number().int().min(1).max(50).optional(),
+  confessionRetentionDays: z.number().int().min(0).max(3650).optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>): Promise<CareSettings> {
   const { rows } = await q.query<CareSettings>(
     `update public.care_settings set care_enabled = coalesce($1, care_enabled), confession_enabled = coalesce($2, confession_enabled),
-       max_open_per_member = coalesce($3, max_open_per_member)
-     returning care_enabled, confession_enabled, max_open_per_member`,
-    [p.careEnabled ?? null, p.confessionEnabled ?? null, p.maxOpenPerMember ?? null],
+       max_open_per_member = coalesce($3, max_open_per_member), confession_retention_days = coalesce($4, confession_retention_days)
+     returning care_enabled, confession_enabled, max_open_per_member, confession_retention_days`,
+    [p.careEnabled ?? null, p.confessionEnabled ?? null, p.maxOpenPerMember ?? null, p.confessionRetentionDays ?? null],
   );
   return rows[0]!;
 }
 
-/** What the app offers: the kinds that are switched on. */
-export async function options(q: Queryable) {
+/** Confession is offered when switched on, and never in a non-religious community. */
+async function confessionOffered(q: Queryable, s: CareSettings, userId: string) {
+  return s.confession_enabled && !(await isSecular(q, userId));
+}
+
+/** What the app offers this member: the kinds that are switched on, and how long a confession is kept. */
+export async function options(q: Queryable, userId: string) {
   const s = await settings(q);
-  if (!s.care_enabled) return { enabled: false, kinds: [] as CareKind[] };
-  return { enabled: true, kinds: CARE_KINDS.filter((k) => k !== 'confession' || s.confession_enabled) };
+  if (!s.care_enabled) return { enabled: false, kinds: [] as CareKind[], confessionRetentionDays: s.confession_retention_days };
+  const confession = await confessionOffered(q, s, userId);
+  return { enabled: true, kinds: CARE_KINDS.filter((k) => k !== 'confession' || confession), confessionRetentionDays: s.confession_retention_days };
 }
 
 export const NewCareRequest = z.object({ kind: z.enum(CARE_KINDS), body: z.string().trim().min(1).max(2000) });
@@ -60,7 +73,7 @@ export const NewCareRequest = z.object({ kind: z.enum(CARE_KINDS), body: z.strin
 export async function request(q: Queryable, userId: string, input: z.infer<typeof NewCareRequest>) {
   const s = await settings(q);
   if (!s.care_enabled) throw forbidden('Prayer partners are not available right now');
-  if (input.kind === 'confession' && !s.confession_enabled) throw forbidden('Confession is not available yet');
+  if (input.kind === 'confession' && !(await confessionOffered(q, s, userId))) throw forbidden('Confession is not available');
   const { rows: open } = await q.query<{ n: number }>(
     `select count(*)::int as n from public.care_requests where user_id = $1 and status in ('open', 'claimed')`,
     [userId],
@@ -83,9 +96,9 @@ export async function request(q: Queryable, userId: string, input: z.infer<typeo
   for (const r of staff) {
     await notifications.notify(q, r.user_id, {
       kind: 'care_request',
-      title: crisis ? 'Someone may be in danger and asked for prayer' : 'Someone asked for a prayer partner',
+      title: crisis ? 'Someone may be in danger and asked for prayer' : input.kind === 'confession' ? 'Someone asked to make a confession' : 'Someone asked for a prayer partner',
       body: 'Open the care queue to reach out.',
-      t: { key: 'care_request', params: { crisis } },
+      t: { key: 'care_request', params: { crisis, confession: input.kind === 'confession' } },
       data: { careRequestId: id },
       dedupeKey: `care_request:${id}`,
     });

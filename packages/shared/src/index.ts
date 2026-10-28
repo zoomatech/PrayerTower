@@ -223,8 +223,10 @@ export interface PriestlyStatus {
   prayersPerToken: number;
   /** Priestly tokens it costs to send a request out as a radio prayer. */
   radioPrayerCost: number;
-  /** How many times Amplify sends a radio prayer; null while radio prayers cost tokens (Amplify is free-only). */
+  /** How many times Amplify sends a radio prayer; null when Amplify isn't available. */
   amplifyRepeats: number | null;
+  /** Priestly tokens one Amplify costs (0 while radio prayers are free); null when paid Amplify is off. */
+  amplifyCost: number | null;
 }
 
 export interface TokenSummary {

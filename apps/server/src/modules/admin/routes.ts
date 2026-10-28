@@ -141,6 +141,8 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         radioPrayerCost: z.number().int().min(1).max(10_000).optional(),
         radioFunding: z.enum(['tokens', 'free']).optional(),
         verifiedPrayersPerDay: z.number().int().min(0).max(10_000).optional(),
+        /** Priestly tokens for one Amplify while radio prayers cost tokens; null turns paid Amplify off. */
+        amplifyPaidCost: z.number().int().min(1).max(1000).nullable().optional(),
       })
       .parse(req.body);
     return {
@@ -150,6 +152,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         radio_prayer_cost: input.radioPrayerCost,
         radio_funding: input.radioFunding,
         verified_prayers_per_day: input.verifiedPrayersPerDay,
+        amplify_paid_cost: input.amplifyPaidCost,
       }),
     };
   });
