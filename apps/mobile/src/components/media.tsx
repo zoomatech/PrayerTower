@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 function Video({ url }: { url: string }) {
@@ -13,6 +14,7 @@ function Video({ url }: { url: string }) {
 }
 
 export function CardMedia({ media, expanded }: { media: Card['media']; expanded: boolean }) {
+  const t = useT();
   const ready = media.filter((m) => m.url);
   if (ready.length === 0) return null;
   const shown = expanded ? ready : ready.slice(0, 1);
@@ -22,7 +24,7 @@ export function CardMedia({ media, expanded }: { media: Card['media']; expanded:
         m.kind === 'video' ? (
           <Video key={m.storagePath} url={m.url!} />
         ) : (
-          <Image key={m.storagePath} source={{ uri: m.url! }} style={styles.image} contentFit="cover" accessibilityLabel="Photo" />
+          <Image key={m.storagePath} source={{ uri: m.url! }} style={styles.image} contentFit="cover" accessibilityLabel={t('common.photo')} />
         ),
       )}
       {!expanded && ready.length > 1 ? <Text style={styles.more}>+{ready.length - 1} more</Text> : null}

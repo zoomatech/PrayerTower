@@ -8,11 +8,12 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 
 import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
-const KIND_LABEL = { prayer: 'Prayer note', direct: 'Message', group: 'Group', care: 'Prayer partner' } as const;
 
 export default function Messages() {
+  const { t } = useLocale();
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +45,7 @@ export default function Messages() {
         <Text style={styles.title} numberOfLines={1}>
           {c.title}
         </Text>
-        <Text style={type.script}>{KIND_LABEL[c.kind]}</Text>
+        <Text style={type.script}>{t(`messages.kinds.${c.kind}`)}</Text>
       </View>
       {c.kind === 'group' ? (
         <Text style={type.small}>
@@ -64,20 +65,20 @@ export default function Messages() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
-        <Text style={type.title}>Messages</Text>
-        <Text style={type.small}>Private notes stay between you, but a message can be reviewed by a moderator if someone reports it.</Text>
+        <Text style={type.title}>{t('tabs.messages')}</Text>
+        <Text style={type.small}>{t('messages.privacy')}</Text>
         <View style={styles.links}>
-          <Button variant="secondary" label="Prayer groups" onPress={() => router.push('/groups')} />
-          <Button variant="secondary" label="Meetings & events" onPress={() => router.push('/events')} />
-          <Button variant="secondary" label="Pray with someone now" onPress={() => router.push('/care')} />
+          <Button variant="secondary" label={t('messages.groups')} onPress={() => router.push('/groups')} />
+          <Button variant="secondary" label={t('messages.events')} onPress={() => router.push('/events')} />
+          <Button variant="secondary" label={t('messages.care')} onPress={() => router.push('/care')} />
         </View>
         <ErrorText error={error} />
-        {requests.length ? <Text style={type.heading}>Requests and invites</Text> : null}
+        {requests.length ? <Text style={type.heading}>{t('messages.requests')}</Text> : null}
         {requests.map(row)}
-        {requests.length && rest.length ? <Text style={type.heading}>Conversations</Text> : null}
+        {requests.length && rest.length ? <Text style={type.heading}>{t('messages.conversations')}</Text> : null}
         {rest.map(row)}
         {items.length === 0 ? (
-          <Empty text="After you pray for someone, you can send them a private note from their request. You can also message people who follow you back, or join a prayer group." />
+          <Empty text={t('messages.empty')} />
         ) : null}
       </ScrollView>
     </Screen>

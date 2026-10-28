@@ -9,9 +9,11 @@ import { useCardActions } from '@/components/card-actions';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 export default function PersonScreen() {
+  const { t } = useLocale();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [person, setPerson] = useState<Person | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
@@ -71,7 +73,7 @@ export default function PersonScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <ErrorText error={error} />
         {person ? (
           <View style={styles.head}>
@@ -84,27 +86,27 @@ export default function PersonScreen() {
             </Text>
             <Button
               variant={person.following ? 'secondary' : 'primary'}
-              label={person.following ? 'Following' : 'Follow'}
+              label={person.following ? t('person.following') : t('person.follow')}
               onPress={toggleFollow}
             />
             {messageOpen ? (
               <View style={styles.head}>
-                <Field placeholder={`Write to ${person.displayName}`} value={message} onChangeText={setMessage} maxLength={MESSAGE_MAX_CHARS} multiline />
+                <Field placeholder={t('person.writeTo', { name: person.displayName })} value={message} onChangeText={setMessage} maxLength={MESSAGE_MAX_CHARS} multiline />
                 <View style={styles.row}>
-                  <Button small label="Send" onPress={sendMessage} disabled={!message.trim()} />
-                  <Button small variant="ghost" label="Cancel" onPress={() => setMessageOpen(false)} />
+                  <Button small label={t('actions.send')} onPress={sendMessage} disabled={!message.trim()} />
+                  <Button small variant="ghost" label={t('common.cancel')} onPress={() => setMessageOpen(false)} />
                 </View>
               </View>
             ) : (
-              <Button variant="secondary" label="Message" onPress={() => setMessageOpen(true)} />
+              <Button variant="secondary" label={t('person.message')} onPress={() => setMessageOpen(true)} />
             )}
             <Text style={styles.block} onPress={toggleBlock} accessibilityRole="button">
-              {blocked ? `Unblock ${person.displayName}` : `Block ${person.displayName}`}
+              {blocked ? t('person.unblock', { name: person.displayName }) : t('person.block', { name: person.displayName })}
             </Text>
-            {blocked ? <Text style={type.small}>You won't see their requests, comments or messages, and they can't message you.</Text> : null}
+            {blocked ? <Text style={type.small}>{t('person.blockedNote')}</Text> : null}
           </View>
         ) : null}
-        {person && cards.length === 0 ? <Empty text={`${person.displayName} has not posted under their name yet.`} /> : null}
+        {person && cards.length === 0 ? <Empty text={t('person.noPosts', { name: person.displayName })} /> : null}
         {cards.map((c) => (
           <PostCard key={c.id} card={c} onAction={onAction} />
         ))}

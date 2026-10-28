@@ -88,6 +88,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
           kind: 'encouragement',
           title: `${sender?.display_name || 'Someone'} sent you encouragement`,
           body: input.note,
+          t: { key: 'encouragement', params: { who: sender?.display_name, body: input.note } },
           data: { postId: r.post.id },
         });
       }
@@ -113,6 +114,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
           kind: 'thanks',
           title: 'Thank you for praying',
           body: input.message ?? 'Someone you prayed for sent thanks.',
+          t: { key: 'thanks', params: { body: input.message } },
           data: { postId: req.params.id, icon: input.icon },
         });
       }
@@ -132,6 +134,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
           kind: 'pray_request',
           title: `${senderName} would like you to pray for this`,
           body: input.note || preview,
+          t: { key: 'pray_request', params: { who: senderName, body: input.note || preview } },
           data: { postId: req.params.id },
           dedupeKey: `ask:${req.params.id}:${userId}`,
         });

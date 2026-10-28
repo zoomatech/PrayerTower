@@ -113,6 +113,7 @@ async function tellPoster(q: Queryable, r: { id: string; post_id: string; poster
     kind: 'radio_prayer',
     title: 'Your request went out as a radio prayer',
     body: 'Someone sent it out so more people could pray with you.',
+    t: { key: 'radio_prayer' },
     data: { postId: r.post_id },
     dedupeKey: `radio_prayer:${r.id}`,
   });

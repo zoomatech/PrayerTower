@@ -146,6 +146,10 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   three_daily: 'Three times a day',
 };
 
+/** App languages; English is the default and the fallback. */
+export const LOCALES = ['en', 'es'] as const;
+export type Locale = (typeof LOCALES)[number];
+
 export const MAX_POST_WORDS = 1000;
 export const ENCOURAGEMENT_MAX_CHARS = 77;
 
@@ -295,6 +299,8 @@ export interface Profile {
   prompt_tone: 'gentle' | 'firm' | null;
   prompt_min_hours: number | null;
   feed_mix: FeedMix;
+  /** App language; notifications are sent in it. */
+  locale?: Locale;
   onboarded_at: string | null;
   suspended_until: string | null;
 }

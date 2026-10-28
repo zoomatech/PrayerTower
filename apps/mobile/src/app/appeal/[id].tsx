@@ -6,9 +6,11 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
 
 export default function AppealScreen() {
+  const { t } = useLocale();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,19 +33,19 @@ export default function AppealScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Appeal</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Text style={type.title}>{t('appeal.title')}</Text>
         {sent ? (
-          <Text style={type.body}>Thank you. A moderator will look at this again and you will get a notice with the outcome.</Text>
+          <Text style={type.body}>{t('appeal.sent')}</Text>
         ) : (
           <>
-            <Text style={type.body}>Tell us why you think this decision was wrong. A moderator will look at it again.</Text>
-            <Field placeholder="Your reason" value={message} onChangeText={setMessage} multiline maxLength={1000} />
+            <Text style={type.body}>{t('appeal.intro')}</Text>
+            <Field placeholder={t('appeal.reason')} value={message} onChangeText={setMessage} multiline maxLength={1000} />
             <ErrorText error={error} />
-            <Button label="Send appeal" busy={busy} disabled={!message.trim()} onPress={send} />
+            <Button label={t('appeal.send')} busy={busy} disabled={!message.trim()} onPress={send} />
           </>
         )}
-        <Button small variant="ghost" label="Read the community rules" onPress={() => router.push('/rules')} />
+        <Button small variant="ghost" label={t('appeal.rules')} onPress={() => router.push('/rules')} />
       </ScrollView>
     </Screen>
   );

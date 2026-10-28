@@ -3,6 +3,7 @@ import type { Task } from 'graphile-worker';
 import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { enqueue } from '../../jobs.js';
+import { localize, type Params } from './i18n.js';
 
 export interface NewNotification {
   kind: string;
@@ -11,10 +12,17 @@ export interface NewNotification {
   data?: Record<string, unknown>;
   /** A repeat with the same key for the same user is dropped. */
   dedupeKey?: string;
+  /** Template in notifications/i18n.ts, used when the recipient reads another language. */
+  t?: { key: string; params?: Params };
 }
 
 /** Write the in-app notification and queue its push, in the caller's transaction. */
 export async function notify(q: Queryable, userId: string, n: NewNotification): Promise<string | null> {
+  if (n.t) {
+    const { rows: who } = await q.query<{ locale: string }>('select locale from public.profiles where id = $1', [userId]);
+    const local = localize(who[0]?.locale, n.t.key, n.t.params);
+    if (local) n = { ...n, ...local };
+  }
   const { rows } = await q.query<{ id: string }>(
     `insert into public.notifications (user_id, kind, title, body, data, dedupe_key)
      values ($1, $2, $3, $4, $5, $6)

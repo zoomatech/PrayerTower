@@ -245,7 +245,16 @@ export function removalNotice(target: Target, rule: Rule, itemId: string, suspen
       : `We removed your ${noun} because it broke a community rule: ${RULES[rule]}.` +
         (suspendedUntil ? ` Your account can't post until ${suspendedUntil.toDateString()}.` : '') +
         ' If you think we got this wrong, you can appeal.';
-  return { kind: 'moderation_notice', title: `Your ${noun} was removed`, body, data: { itemId, rule, appealable: true } };
+  return {
+    kind: 'moderation_notice',
+    title: `Your ${noun} was removed`,
+    body,
+    data: { itemId, rule, appealable: true },
+    t: {
+      key: 'moderation_removed',
+      params: { target, rule, until: suspendedUntil?.toLocaleDateString('es', { dateStyle: 'long' }), reach: crisisLine(process.env.CRISIS_COUNTRY).reach },
+    },
+  };
 }
 
 // Appeals ------------------------------------------------------------------------
@@ -327,6 +336,7 @@ export async function decideAppeal(q: Queryable, moderatorId: string, appealId: 
         ? `A moderator looked again and restored your ${noun}. Thank you for your patience.`
         : `A moderator looked again and the decision stands.${d.note ? ` ${d.note}` : ''}`,
     data: { itemId: a.item_id },
+    t: { key: 'appeal_decision', params: { target: a.target_type, overturned: d.action === 'overturn', note: d.note } },
   });
 }
 

@@ -5,6 +5,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { useT } from '@/lib/i18n';
+
 const PARTICLES = 18;
 const DURATION_MS = 1600;
 const GLYPHS = ['🕊️', '💜', '🤍', '✨', '💛'];
@@ -23,6 +25,7 @@ export function useCelebration() {
 }
 
 function Burst() {
+  const t = useT();
   const { width, height } = useWindowDimensions();
   const progress = useRef(new Animated.Value(0)).current;
   const [done, setDone] = useState(false);
@@ -68,7 +71,7 @@ function Burst() {
           </Animated.Text>
         ))}
         <Animated.View style={{ opacity: progress.interpolate({ inputRange: [0, 0.1, 0.7, 1], outputRange: [0, 1, 1, 0] }) }}>
-          <Text style={styles.word}>Praise God!</Text>
+          <Text style={styles.word}>{t('common.praiseGod')}</Text>
         </Animated.View>
       </View>
     </View>

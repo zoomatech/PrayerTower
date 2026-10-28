@@ -5,9 +5,11 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-n
 
 import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Notifications() {
+  const { t } = useLocale();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +38,9 @@ export default function Notifications() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
-        <Text style={type.title}>Notices</Text>
+        <Text style={type.title}>{t('tabs.notices')}</Text>
         <ErrorText error={error} />
-        {items.length === 0 ? <Empty text="When someone prays for you, you will see it here." /> : null}
+        {items.length === 0 ? <Empty text={t('notices.empty')} /> : null}
         {items.map((n) => {
           const postId = typeof n.data.postId === 'string' ? n.data.postId : null;
           const conversationId = typeof n.data.conversationId === 'string' ? n.data.conversationId : null;
@@ -55,7 +57,7 @@ export default function Notifications() {
               <Text style={type.body}>{n.body}</Text>
               <Text style={type.small}>{new Date(n.created_at).toLocaleString()}</Text>
               {n.kind === 'moderation_notice' && typeof n.data.itemId === 'string' ? (
-                <Button small variant="secondary" label="Appeal this decision" onPress={() => router.push(`/appeal/${n.data.itemId}`)} />
+                <Button small variant="secondary" label={t('notices.appeal')} onPress={() => router.push(`/appeal/${n.data.itemId}`)} />
               ) : null}
             </Pressable>
           );

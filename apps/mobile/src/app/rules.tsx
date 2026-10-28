@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LegalLinks } from '@/components/legal-links';
 import { Button, Screen } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const RULES: { title: string; body: string }[] = [
@@ -47,21 +48,22 @@ const RULES: { title: string; body: string }[] = [
 ];
 
 export default function Rules() {
+  const { t } = useLocale();
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Community rules</Text>
-        {RULES.map((r) => (
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Text style={type.title}>{t('profile.rules')}</Text>
+        {RULES.map((r, i) => (
           <View key={r.title} style={styles.rule}>
-            <Text style={type.heading}>{r.title}</Text>
-            <Text style={type.body}>{r.body}</Text>
+            <Text style={type.heading}>{t(`rulesPage.items.${i}.title`, { defaultValue: r.title })}</Text>
+            <Text style={type.body}>{t(`rulesPage.items.${i}.body`, { defaultValue: r.body })}</Text>
           </View>
         ))}
         <Text style={type.body}>
-          To report something, tap Report on the request, comment, message or event. To stop someone reaching you, open their profile and tap Block.
+          {t('rulesPage.howTo')}
         </Text>
-        <LegalLinks prefix="These rules are part of our" contact />
+        <LegalLinks prefix={t('rulesPage.partOf')} contact />
       </ScrollView>
     </Screen>
   );

@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { api, type TokenPool } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { parseLocal, REPEAT_OPTIONS, WHEN_OPTIONS } from '@/lib/schedule';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
@@ -19,11 +20,12 @@ type Sheet = {
   target?: ReportTarget;
 } | null;
 
+// Sent to moderators in English; shown in the member's language.
 const REPORT_REASONS = ['Harmful or abusive', 'Spam or selling', 'Not a prayer or praise', 'Someone may be in danger', 'Something else'];
 
-const INTEGRITY_TEXT = 'Tapping means you are bringing this request before the Lord right now.';
-
 export function useCardActions(onChanged: () => void) {
+  const { t, label } = useLocale();
+  const freq = (f: Frequency) => label('frequency', f, FREQUENCY_LABELS[f]);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function useCardActions(onChanged: () => void) {
     try {
       const result = await fn();
       const queued = !!result && typeof result === 'object' && 'queued' in result;
-      setSheet({ kind: 'done', card: sheet.card, message: queued ? "Thank you. You're offline, so this will be sent as soon as you're back online." : done });
+      setSheet({ kind: 'done', card: sheet.card, message: queued ? t('actions.queued') : done });
       onChanged();
     } catch (e) {
       setError((e as Error).message);
@@ -78,7 +80,7 @@ export function useCardActions(onChanged: () => void) {
     }
     const kind = ({ praying_now: 'praying', commit: 'commit', encouragement: 'encourage', share: 'share', gift_tokens: 'gift' } as const)[action];
     if (kind === 'commit' && card.myCommitment) {
-      setSheet({ kind: 'done', card, message: `You are already praying ${FREQUENCY_LABELS[card.myCommitment.frequency].toLowerCase()} for this request.` });
+      setSheet({ kind: 'done', card, message: t('actions.alreadyCommitted', { frequency: freq(card.myCommitment.frequency).toLowerCase() }) });
       return;
     }
     if (kind === 'share') {
@@ -89,7 +91,7 @@ export function useCardActions(onChanged: () => void) {
       setPools([]);
       api.tokenPools(card.id).then((r) => setPools(r.pools.filter((p) => !p.blockedReason).sort((x, y) => y.balance - x.balance).slice(0, 3)), () => undefined);
     }
-    if (kind === 'commit') setText(`I will pray for ${card.author.anonymous ? 'you' : card.author.displayName}.`);
+    if (kind === 'commit') setText(card.author.anonymous ? t('actions.promiseYou') : t('actions.promiseName', { name: card.author.displayName }));
     setSheet({ kind, card });
   };
 
@@ -97,31 +99,31 @@ export function useCardActions(onChanged: () => void) {
   if (sheet?.kind === 'praying') {
     body = (
       <>
-        <Text style={type.heading}>Praying Now</Text>
-        <Text style={type.body}>{INTEGRITY_TEXT}</Text>
-        <Button label="I'm praying now" busy={busy} onPress={() => run(() => api.prayingNow(sheet.card.id), 'Thank you. They will know someone is praying for them right now.')} />
+        <Text style={type.heading}>{label('action', 'praying_now', 'Praying Now')}</Text>
+        <Text style={type.body}>{t('actions.integrity')}</Text>
+        <Button label={t('actions.prayingNow')} busy={busy} onPress={() => run(() => api.prayingNow(sheet.card.id), t('actions.prayingDone'))} />
       </>
     );
   } else if (sheet?.kind === 'commit') {
     body = (
       <>
-        <Text style={type.heading}>Commit to Regular Prayer</Text>
-        <Field label="Your promise" value={text} onChangeText={setText} multiline maxLength={500} />
-        <Text style={styles.label}>How often</Text>
+        <Text style={type.heading}>{t('actions.commitTitle')}</Text>
+        <Field label={t('actions.promise')} value={text} onChangeText={setText} multiline maxLength={500} />
+        <Text style={styles.label}>{t('actions.howOften')}</Text>
         <View style={styles.row}>
           {FREQUENCIES.map((f) => (
-            <Chip key={f} label={FREQUENCY_LABELS[f]} selected={frequency === f} onPress={() => setFrequency(f)} />
+            <Chip key={f} label={freq(f)} selected={frequency === f} onPress={() => setFrequency(f)} />
           ))}
         </View>
-        <Field label="For how many days" value={days} onChangeText={setDays} keyboardType="number-pad" maxLength={3} />
+        <Field label={t('actions.days')} value={days} onChangeText={setDays} keyboardType="number-pad" maxLength={3} />
         <Button
-          label="Make this commitment"
+          label={t('actions.commit')}
           busy={busy}
           disabled={!text.trim()}
           onPress={() =>
             run(
               () => api.commit(sheet.card.id, { frequency, vowText: text.trim(), durationDays: Number(days) || undefined }),
-              'Your commitment is saved. We will remind you when it is time to pray.',
+              t('actions.commitDone'),
             )
           }
         />
@@ -130,9 +132,9 @@ export function useCardActions(onChanged: () => void) {
   } else if (sheet?.kind === 'encourage') {
     body = (
       <>
-        <Text style={type.heading}>Send Encouragement</Text>
+        <Text style={type.heading}>{t('actions.encourageTitle')}</Text>
         <Field
-          placeholder="A few words of hope"
+          placeholder={t('actions.encouragePlaceholder')}
           value={text}
           onChangeText={setText}
           maxLength={ENCOURAGEMENT_MAX_CHARS}
@@ -142,15 +144,15 @@ export function useCardActions(onChanged: () => void) {
           {text.length}/{ENCOURAGEMENT_MAX_CHARS}
         </Text>
         {warnedFor === text ? (
-          <RulesWarning busy={busy} onPostAnyway={() => run(() => api.encourage(sheet.card.id, text.trim()), 'Your encouragement was sent.')} />
+          <RulesWarning busy={busy} onPostAnyway={() => run(() => api.encourage(sheet.card.id, text.trim()), t('actions.encourageDone'))} />
         ) : null}
         <Button
-          label="Send"
+          label={t('actions.send')}
           busy={busy}
           disabled={!text.trim()}
           onPress={async () => {
             if ((await api.precheck(text.trim())).warn) return setWarnedFor(text);
-            run(() => api.encourage(sheet.card.id, text.trim()), 'Your encouragement was sent.');
+            run(() => api.encourage(sheet.card.id, text.trim()), t('actions.encourageDone'));
           }}
         />
       </>
@@ -158,12 +160,12 @@ export function useCardActions(onChanged: () => void) {
   } else if (sheet?.kind === 'share') {
     body = (
       <>
-        <Text style={type.heading}>Share to your feed</Text>
-        <Field placeholder="Add a one-line intro (optional)" value={text} onChangeText={(t) => setText(t.replace(/\n/g, ' '))} maxLength={140} />
-        <Button label="Share" busy={busy} onPress={() => run(() => api.share(sheet.card.id, text.trim() || undefined), 'Shared. Thank you for spreading the word.')} />
-        <Text style={type.heading}>Ask people to pray</Text>
-        {people === null ? <Text style={type.small}>Loading…</Text> : null}
-        {people?.length === 0 ? <Text style={type.small}>Follow people to ask them to pray for requests.</Text> : null}
+        <Text style={type.heading}>{t('actions.shareTitle')}</Text>
+        <Field placeholder={t('actions.shareIntro')} value={text} onChangeText={(v) => setText(v.replace(/\n/g, ' '))} maxLength={140} />
+        <Button label={label('action', 'share', 'Share')} busy={busy} onPress={() => run(() => api.share(sheet.card.id, text.trim() || undefined), t('actions.shareDone'))} />
+        <Text style={type.heading}>{t('actions.askTitle')}</Text>
+        {people === null ? <Text style={type.small}>{t('common.loading')}</Text> : null}
+        {people?.length === 0 ? <Text style={type.small}>{t('actions.followToAsk')}</Text> : null}
         {people?.length ? (
           <>
             <ScrollView style={{ maxHeight: 160 }} contentContainerStyle={styles.chips}>
@@ -178,23 +180,23 @@ export function useCardActions(onChanged: () => void) {
             </ScrollView>
             <Button
               variant="secondary"
-              label={picked.length ? `Ask ${picked.length} to pray` : 'Choose people to ask'}
+              label={picked.length ? t('actions.askCount', { count: picked.length }) : t('actions.choosePeople')}
               busy={busy}
               disabled={!picked.length}
               onPress={() =>
                 run(async () => {
                   const r = await api.askToPray(sheet.card.id, picked, text.trim());
-                  if (r.sent === 0) throw new Error('You have already asked them to pray for this.');
-                }, 'Sent. They will see that you asked them to pray.')
+                  if (r.sent === 0) throw new Error(t('actions.alreadyAsked'));
+                }, t('actions.askDone'))
               }
             />
           </>
         ) : null}
         <Button
           variant="ghost"
-          label="Share outside Prayer Tower"
+          label={t('actions.shareOutside')}
           onPress={() =>
-            Share.share({ message: `Please pray: “${sheet.card.preview}” ${Linking.createURL(`/post/${sheet.card.id}`)}` }).catch(() => undefined)
+            Share.share({ message: t('actions.shareMessage', { preview: sheet.card.preview, url: Linking.createURL(`/post/${sheet.card.id}`) }) }).catch(() => undefined)
           }
         />
       </>
@@ -202,57 +204,57 @@ export function useCardActions(onChanged: () => void) {
   } else if (sheet?.kind === 'gift') {
     body = (
       <>
-        <Text style={type.heading}>Gift Tokens</Text>
-        <Text style={type.body}>Tokens help more people see this request. No one is ever hidden for lacking tokens.</Text>
-        <Field label="How many tokens" value={text} onChangeText={setText} keyboardType="number-pad" maxLength={5} />
-        <Text style={styles.label}>When</Text>
+        <Text style={type.heading}>{label('action', 'gift_tokens', 'Gift Tokens')}</Text>
+        <Text style={type.body}>{t('actions.giftNote')}</Text>
+        <Field label={t('actions.howMany')} value={text} onChangeText={setText} keyboardType="number-pad" maxLength={5} />
+        <Text style={styles.label}>{t('actions.when')}</Text>
         <View style={styles.chips}>
-          <Chip label="Now" selected={when === 'now'} onPress={() => setWhen('now')} />
+          <Chip label={t('actions.now')} selected={when === 'now'} onPress={() => setWhen('now')} />
           {WHEN_OPTIONS.map((o) => (
-            <Chip key={o.key} label={o.label} selected={when === o.key} onPress={() => setWhen(o.key)} />
+            <Chip key={o.key} label={t(`actions.whenOptions.${o.key}`, { defaultValue: o.label })} selected={when === o.key} onPress={() => setWhen(o.key)} />
           ))}
-          <Chip label="Pick a time" selected={when === 'custom'} onPress={() => setWhen('custom')} />
+          <Chip label={t('actions.pickTime')} selected={when === 'custom'} onPress={() => setWhen('custom')} />
         </View>
         {when === 'custom' ? (
-          <Field placeholder="YYYY-MM-DD HH:MM, e.g. game start" value={customWhen} onChangeText={setCustomWhen} maxLength={16} />
+          <Field placeholder={t('actions.timeFormat')} value={customWhen} onChangeText={setCustomWhen} maxLength={16} />
         ) : null}
         {when !== 'now' ? (
           <View style={styles.chips}>
             {REPEAT_OPTIONS.map((o) => (
-              <Chip key={o.weeks} label={o.label} selected={repeatWeeks === o.weeks} onPress={() => setRepeatWeeks(o.weeks)} />
+              <Chip key={o.weeks} label={o.weeks === 1 ? t('actions.once') : t('actions.weeklyFor', { count: o.weeks })} selected={repeatWeeks === o.weeks} onPress={() => setRepeatWeeks(o.weeks)} />
             ))}
           </View>
         ) : null}
         {when === 'now' ? (
           <Button
-            label="Give tokens"
+            label={t('actions.give')}
             busy={busy}
             disabled={!(Number(text) > 0)}
-            onPress={() => run(() => api.boost(sheet.card.id, Number(text), `${sheet.card.id}:${Date.now()}`), 'Thank you. More people will see this request.')}
+            onPress={() => run(() => api.boost(sheet.card.id, Number(text), `${sheet.card.id}:${Date.now()}`), t('actions.giveDone'))}
           />
         ) : (
           <Button
-            label="Schedule gift"
+            label={t('actions.schedule')}
             busy={busy}
             disabled={!(Number(text) > 0) || (when === 'custom' && !parseLocal(customWhen))}
             onPress={() => {
               const at = when === 'custom' ? parseLocal(customWhen)! : WHEN_OPTIONS.find((o) => o.key === when)!.at();
-              const label = at.toLocaleString(undefined, { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+              const whenText = at.toLocaleString(undefined, { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
               run(
                 () => api.scheduleSpend(sheet.card.id, { amount: Number(text), runAt: at.toISOString(), repeatWeeks }),
-                `Scheduled. ${text} tokens will go to this request on ${label}${repeatWeeks > 1 ? `, then weekly for ${repeatWeeks} weeks in all` : ''}. Tokens are taken then; see Scheduled gifts in your profile.`,
+                repeatWeeks > 1 ? t('actions.scheduledRepeat', { count: Number(text), when: whenText, weeks: repeatWeeks }) : t('actions.scheduledOnce', { count: Number(text), when: whenText }),
               );
             }}
           />
         )}
-        {pools.length > 0 ? <Text style={styles.label}>Or use a donated pool</Text> : null}
+        {pools.length > 0 ? <Text style={styles.label}>{t('actions.orPool')}</Text> : null}
         {pools.map((p) => (
           <Button
             key={p.id}
             variant="secondary"
-            label={`${p.name}: give ${p.drawAmount} tokens`}
+            label={t('actions.poolGive', { name: p.name, count: p.drawAmount })}
             busy={busy}
-            onPress={() => run(() => api.drawFromPool(p.id, sheet.card.id), `Thank you. ${p.drawAmount} tokens from “${p.name}” will help more people see this request.`)}
+            onPress={() => run(() => api.drawFromPool(p.id, sheet.card.id), t('actions.poolDone', { name: p.name, count: p.drawAmount }))}
           />
         ))}
       </>
@@ -261,22 +263,22 @@ export function useCardActions(onChanged: () => void) {
     const target = sheet.target;
     body = (
       <>
-        <Text style={type.heading}>Report this {target.type === 'post' ? 'request' : 'comment'}</Text>
-        <Text style={type.body}>A moderator will look at it. The person is not told who reported it.</Text>
+        <Text style={type.heading}>{target.type === 'post' ? t('actions.reportPost') : t('actions.reportComment')}</Text>
+        <Text style={type.body}>{t('actions.reportNote')}</Text>
         <View style={styles.row}>
           {REPORT_REASONS.map((r) => (
-            <Chip key={r} label={r} selected={reason === r} onPress={() => setReason(r)} />
+            <Chip key={r} label={t(`actions.reasons.${REPORT_REASONS.indexOf(r)}`)} selected={reason === r} onPress={() => setReason(r)} />
           ))}
         </View>
-        <Field placeholder="Anything the moderator should know (optional)" value={text} onChangeText={setText} multiline maxLength={800} />
+        <Field placeholder={t('actions.reportDetails')} value={text} onChangeText={setText} multiline maxLength={800} />
         <Button
-          label="Send report"
+          label={t('actions.sendReport')}
           busy={busy}
           disabled={!reason}
           onPress={() =>
             run(
               () => api.report(target.type, target.id, [reason, text.trim()].filter(Boolean).join(': ')),
-              'Thank you. A moderator will review this.',
+              t('actions.reportDone'),
             )
           }
         />
@@ -286,7 +288,7 @@ export function useCardActions(onChanged: () => void) {
     body = (
       <>
         <Text style={type.body}>{sheet.message}</Text>
-        <Button label="Close" variant="secondary" onPress={close} />
+        <Button label={t('common.close')} variant="secondary" onPress={close} />
       </>
     );
   }
@@ -297,7 +299,7 @@ export function useCardActions(onChanged: () => void) {
         <Pressable style={styles.sheet} onPress={() => undefined} accessible={false} accessibilityViewIsModal>
           {body}
           <ErrorText error={error} />
-          {sheet?.kind !== 'done' ? <Button label="Cancel" variant="ghost" onPress={close} /> : null}
+          {sheet?.kind !== 'done' ? <Button label={t('common.cancel')} variant="ghost" onPress={close} /> : null}
         </Pressable>
       </Pressable>
     </Modal>

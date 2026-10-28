@@ -86,6 +86,7 @@ export async function awardDue(q: Queryable, limit = 1000): Promise<number> {
         kind: 'milestone',
         title: `Milestone: ${label}`,
         body: `You received ${rule.amount} bonus ${rule.currency === 'priestly' ? 'Priestly ' : ''}token${rule.amount === 1 ? '' : 's'}. Thank you for praying.`,
+        t: { key: 'milestone', params: { label, amount: rule.amount, priestly: rule.currency === 'priestly' } },
         data: { ruleId: rule.id },
         dedupeKey: `milestone:${rule.id}:${user_id}`,
       });
