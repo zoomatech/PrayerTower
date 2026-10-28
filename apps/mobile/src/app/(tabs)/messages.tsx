@@ -7,7 +7,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { ConversationPane } from '@/components/conversation-pane';
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { breakpoints, colors, radius, space, type } from '@/lib/theme';
@@ -21,6 +21,7 @@ export default function Messages() {
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const split = useWindowDimensions().width >= breakpoints.split;
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -28,6 +29,7 @@ export default function Messages() {
     setRefreshing(true);
     try {
       setItems((await api.conversations()).conversations);
+      setLoaded(true);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -88,12 +90,13 @@ export default function Messages() {
         <Button variant="secondary" label={t('messages.events')} onPress={() => router.push('/events')} />
         <Button variant="secondary" label={t('messages.care')} onPress={() => router.push('/care')} />
       </View>
-      <ErrorText error={error} />
+      <ErrorText error={error} onRetry={load} />
+      {!loaded && !error ? <Loading /> : null}
       {requests.length ? <Text style={type.heading}>{t('messages.requests')}</Text> : null}
       {requests.map(row)}
       {requests.length && rest.length ? <Text style={type.heading}>{t('messages.conversations')}</Text> : null}
       {rest.map(row)}
-      {items.length === 0 ? (
+      {loaded && items.length === 0 ? (
         <Empty text={t('messages.empty')} />
       ) : null}
     </ScrollView>

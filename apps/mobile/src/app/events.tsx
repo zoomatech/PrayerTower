@@ -7,7 +7,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EventRow, whenText } from '@/components/events';
-import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
+import { Button, Chip, Empty, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { nextWeekday, parseLocal, WHEN_OPTIONS } from '@/lib/schedule';
@@ -26,6 +26,7 @@ export default function Events() {
   const staff = roles.some((r) => r === 'admin' || r === 'moderator' || r === 'pastor_counselor');
   const [events, setEvents] = useState<PrayerEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [creating, setCreating] = useState(false);
   const [kind, setKind] = useState<EventKind>('prayer_meeting');
   const [title, setTitle] = useState('');
@@ -40,6 +41,8 @@ export default function Events() {
   const load = useCallback(async () => {
     try {
       setEvents((await api.events(groupId)).events);
+      setLoaded(true);
+      setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -82,7 +85,8 @@ export default function Events() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
         <Text style={type.title}>{groupId ? t('events.groupTitle') : t('messages.events')}</Text>
         <Text style={type.body}>{t('events.intro')}</Text>
-        <ErrorText error={error} />
+        <ErrorText error={error} onRetry={loaded ? undefined : load} />
+        {!loaded && !error ? <Loading /> : null}
 
         {creating ? (
           <View style={styles.card}>
@@ -122,7 +126,7 @@ export default function Events() {
           <Button label={t('events.hostAn')} onPress={() => setCreating(true)} />
         )}
 
-        {events.length === 0 ? <Empty text={t('events.empty')} /> : null}
+        {loaded && events.length === 0 ? <Empty text={t('events.empty')} /> : null}
         {events.map((e) => (
           <EventRow key={e.id} e={e} />
         ))}

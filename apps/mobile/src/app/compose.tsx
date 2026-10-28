@@ -126,7 +126,7 @@ export default function Compose() {
         <Text style={styles.greeting}>{t('compose.greeting', { name: profile?.display_name || t('common.friend') })}</Text>
         <View style={styles.chips}>
           {POST_TYPES.map((p) => (
-            <Chip key={p} label={label('postType', p, POST_TYPE_LABELS[p])} selected={postType === p} onPress={() => setPostType(p)} />
+            <Chip radio key={p} label={label('postType', p, POST_TYPE_LABELS[p])} selected={postType === p} onPress={() => setPostType(p)} />
           ))}
         </View>
         <TextInput
@@ -204,7 +204,7 @@ export default function Compose() {
             <Text style={type.heading}>{t('compose.urgency')}</Text>
             <View style={styles.chips}>
               {URGENCY.map((i) => (
-                <Chip key={i} label={t(`compose.urgencies.${i}`)} selected={urgency === i} onPress={() => setUrgency(i)} />
+                <Chip radio key={i} label={t(`compose.urgencies.${i}`)} selected={urgency === i} onPress={() => setUrgency(i)} />
               ))}
             </View>
           </View>

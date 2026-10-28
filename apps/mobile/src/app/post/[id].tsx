@@ -7,7 +7,7 @@ import { useCardActions } from '@/components/card-actions';
 import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
-import { Button, Empty, ErrorText, Field, RulesWarning, Screen, Toggle } from '@/components/ui';
+import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useLocale } from '@/lib/i18n';
@@ -151,7 +151,8 @@ export default function PostScreen() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
-        <ErrorText error={error} />
+        <ErrorText error={error} onRetry={card ? undefined : load} />
+        {!card && !error ? <Loading /> : null}
 
         {card && !card.isMine ? (
           <Text style={styles.report} onPress={() => openReport(card)} accessibilityRole="button">
@@ -320,76 +321,81 @@ export default function PostScreen() {
           </View>
         ) : null}
 
-        <View style={styles.section}>
-          <Text style={type.heading}>{t('post.comments')}</Text>
-          {comments.length === 0 ? <Empty text={t('post.noComments')} /> : null}
-          {comments.map((c) => (
-            <View
-              key={c.id}
-              style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }, c.id === sharedCommentId && styles.sharedComment]}
-            >
-              <Text style={styles.commentAuthor}>
-                {c.isUpdate ? t('card.update') : ''}
-                {c.author.displayName}
-              </Text>
-              <Text style={type.body}>{c.body}</Text>
-              <View style={styles.row}>
-                <Text style={styles.reply} onPress={() => setReplyTo(c)}>
-                  {t('post.reply')}
-                </Text>
-                <Text
-                  style={styles.reply}
-                  onPress={() =>
-                    // Shareable comments: the words plus a link that opens this request at the comment.
-                    Share.share({
-                      message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
-                    }).catch(() => undefined)
-                  }
-                  accessibilityRole="button"
+        {/* Comments and the reply box only once the request itself has loaded. */}
+        {card ? (
+          <>
+            <View style={styles.section}>
+              <Text style={type.heading}>{t('post.comments')}</Text>
+              {comments.length === 0 ? <Empty text={t('post.noComments')} /> : null}
+              {comments.map((c) => (
+                <View
+                  key={c.id}
+                  style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }, c.id === sharedCommentId && styles.sharedComment]}
                 >
-                  {t('post.share')}
+                  <Text style={styles.commentAuthor}>
+                    {c.isUpdate ? t('card.update') : ''}
+                    {c.author.displayName}
+                  </Text>
+                  <Text style={type.body}>{c.body}</Text>
+                  <View style={styles.row}>
+                    <Text style={styles.reply} onPress={() => setReplyTo(c)}>
+                      {t('post.reply')}
+                    </Text>
+                    <Text
+                      style={styles.reply}
+                      onPress={() =>
+                        // Shareable comments: the words plus a link that opens this request at the comment.
+                        Share.share({
+                          message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
+                        }).catch(() => undefined)
+                      }
+                      accessibilityRole="button"
+                    >
+                      {t('post.share')}
+                    </Text>
+                    {card && !c.isMine && c.author.id !== profile?.id ? (
+                      <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
+                        {t('post.report')}
+                      </Text>
+                    ) : null}
+                    {c.isMine ? (
+                      <Text
+                        style={styles.report}
+                        accessibilityRole="button"
+                        onPress={() =>
+                          confirmDelete === c.id
+                            ? api
+                                .deleteComment(c.id)
+                                .then(() => {
+                                  setConfirmDelete(null);
+                                  load();
+                                })
+                                .catch((e) => setError((e as Error).message))
+                            : setConfirmDelete(c.id)
+                        }>
+                        {confirmDelete === c.id ? t('post.tapAgain') : t('post.deleteShort')}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.section}>
+              {replyTo ? (
+                <Text style={type.small} onPress={() => setReplyTo(null)}>
+                  {t('post.replyingTo', { name: replyTo.author.displayName })}
                 </Text>
-                {card && !c.isMine && c.author.id !== profile?.id ? (
-                  <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
-                    {t('post.report')}
-                  </Text>
-                ) : null}
-                {c.isMine ? (
-                  <Text
-                    style={styles.report}
-                    accessibilityRole="button"
-                    onPress={() =>
-                      confirmDelete === c.id
-                        ? api
-                            .deleteComment(c.id)
-                            .then(() => {
-                              setConfirmDelete(null);
-                              load();
-                            })
-                            .catch((e) => setError((e as Error).message))
-                        : setConfirmDelete(c.id)
-                    }>
-                    {confirmDelete === c.id ? t('post.tapAgain') : t('post.deleteShort')}
-                  </Text>
-                ) : null}
+              ) : null}
+              <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
+              {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
+              <View style={styles.row}>
+                <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
+                {card?.isMine ? <Button small variant="secondary" label={t('post.postUpdate')} onPress={() => send(true)} disabled={!text.trim()} /> : null}
               </View>
             </View>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          {replyTo ? (
-            <Text style={type.small} onPress={() => setReplyTo(null)}>
-              {t('post.replyingTo', { name: replyTo.author.displayName })}
-            </Text>
-          ) : null}
-          <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
-          {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
-          <View style={styles.row}>
-            <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
-            {card?.isMine ? <Button small variant="secondary" label={t('post.postUpdate')} onPress={() => send(true)} disabled={!text.trim()} /> : null}
-          </View>
-        </View>
+          </>
+        ) : null}
       </ScrollView>
       {sheets}
       {overlay}

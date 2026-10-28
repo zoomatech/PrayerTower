@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, type PrayerCast } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -20,7 +20,7 @@ export default function PrayerCastScreen() {
     setRefreshing(true);
     api
       .prayerCast()
-      .then(setData, (e) => setError((e as Error).message))
+      .then((d) => (setData(d), setError(null)), (e) => setError((e as Error).message))
       .finally(() => setRefreshing(false));
   }, []);
   useEffect(load, [load]);
@@ -33,7 +33,8 @@ export default function PrayerCastScreen() {
         <Text style={type.body}>
           {t('cast.intro')}
         </Text>
-        <ErrorText error={error} />
+        <ErrorText error={error} onRetry={data ? undefined : load} />
+        {!data && !error ? <Loading /> : null}
         {data ? (
           <View style={styles.totals}>
             <Text style={styles.total}>{data.totals.prayers}</Text>

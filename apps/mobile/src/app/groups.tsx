@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
+import { Button, Empty, ErrorText, Field, Loading, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -13,6 +13,7 @@ export default function Groups() {
   const { t } = useLocale();
   const [groups, setGroups] = useState<PublicGroup[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [topic, setTopic] = useState('');
@@ -22,6 +23,8 @@ export default function Groups() {
   const load = useCallback(async () => {
     try {
       setGroups((await api.groups()).groups);
+      setLoaded(true);
+      setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -61,7 +64,8 @@ export default function Groups() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
         <Text style={type.title}>{t('messages.groups')}</Text>
         <Text style={type.body}>{t('groups.intro')}</Text>
-        <ErrorText error={error} />
+        <ErrorText error={error} onRetry={loaded ? undefined : load} />
+        {!loaded && !error ? <Loading /> : null}
 
         {creating ? (
           <View style={styles.card}>
@@ -77,7 +81,7 @@ export default function Groups() {
           <Button label={t('groups.start')} onPress={() => setCreating(true)} />
         )}
 
-        {groups.length === 0 ? <Empty text={t('groups.empty')} /> : null}
+        {loaded && groups.length === 0 ? <Empty text={t('groups.empty')} /> : null}
         {groups.map((g) => (
           <Pressable key={g.id} style={styles.card} onPress={() => open(g)} accessibilityRole="button">
             <Text style={type.heading}>{g.title}</Text>

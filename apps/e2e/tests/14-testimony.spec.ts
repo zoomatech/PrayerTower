@@ -22,7 +22,7 @@ test('a member shares a testimony and it shows under Testimonies', async ({ page
   await expect(page.getByRole('button', { name: 'Edit testimony' })).toBeVisible();
 
   await page.getByRole('button', { name: '‹ Back' }).click();
-  await page.getByRole('checkbox', { name: 'Testimonies' }).click();
+  await page.getByRole('radio', { name: 'Testimonies' }).click();
   await expect(page.getByText('Answered prayers, in the words of the people who asked.')).toBeVisible();
   await expect(page.getByText(testimony)).toBeVisible();
 });

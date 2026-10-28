@@ -21,6 +21,8 @@ import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
+// What a screen reader says instead of the tier emoji.
+const TIER_NAMES: Record<string, string> = { prayer_scout: 'Prayer Scout', prayerful_helper: 'Prayerful Helper', prayer_warrior: 'Prayer Warrior' };
 const ACTION_ICONS: Record<CardAction, string> = {
   praying_now: '💜',
   commit: '🙏',
@@ -57,7 +59,8 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         <View style={[styles.urgency, { backgroundColor: colors.urgency[card.urgency] ?? colors.urgency[0] }]} />
         <Text
           style={styles.author}
-          numberOfLines={1}
+          numberOfLines={2}
+          accessibilityLabel={card.author.tier && TIER_NAMES[card.author.tier] ? `${card.author.displayName}, ${TIER_NAMES[card.author.tier]}` : card.author.displayName}
           onPress={!card.author.anonymous && card.author.id && !card.isMine ? () => router.push(`/people/${card.author.id}`) : undefined}>
           {card.author.displayName}
           {card.author.tier ? ` ${TIER_ICONS[card.author.tier] ?? ''}` : ''}
@@ -118,7 +121,8 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
               onPress={() => onAction(card, action)}
               style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
               <Text style={styles.actionIcon}>{ACTION_ICONS[action]}</Text>
-              <Text style={[styles.actionLabel, active && { color: colors.primary }]} numberOfLines={1}>
+              {/* Two lines, so labels aren't cut off at large text sizes. */}
+              <Text style={[styles.actionLabel, active && { color: colors.primary }]} numberOfLines={2}>
                 {active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
               </Text>
             </Pressable>
@@ -176,7 +180,7 @@ const styles = StyleSheet.create({
   },
   actionActive: { backgroundColor: colors.primarySoft },
   actionIcon: { fontSize: 18 },
-  actionLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  actionLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2, textAlign: 'center' },
   comment: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: 2 },
   commentAuthor: { fontWeight: '700', color: colors.text, fontSize: 14 },
 });

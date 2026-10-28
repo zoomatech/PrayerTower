@@ -150,8 +150,8 @@ export default function Feed() {
         <Text style={styles.placeholder}>{t("feed.composer")}</Text>
       </Pressable>
       <View style={styles.filters}>
-        <Chip label={t("feed.filterAll")} selected={filter === "all"} onPress={() => setFilter("all")} />
-        <Chip label={t("feed.filterTestimonies")} selected={filter === "testimonies"} onPress={() => setFilter("testimonies")} />
+        <Chip radio label={t("feed.filterAll")} selected={filter === "all"} onPress={() => setFilter("all")} />
+        <Chip radio label={t("feed.filterTestimonies")} selected={filter === "testimonies"} onPress={() => setFilter("testimonies")} />
       </View>
       {filter === "testimonies" ? <Text style={type.small}>{t("feed.testimoniesHint")}</Text> : null}
       <WorldwideCount />

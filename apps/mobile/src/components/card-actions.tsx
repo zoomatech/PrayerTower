@@ -1,6 +1,6 @@
 // What each card action does. Shared by every feed layout and the post screen,
 // so the action row behaves the same everywhere.
-import { ENCOURAGEMENT_MAX_CHARS, FREQUENCIES, FREQUENCY_LABELS, type Card, type CardAction, type Frequency } from '@prayer-tower/shared';
+import { ACTION_LABELS, ENCOURAGEMENT_MAX_CHARS, FREQUENCIES, FREQUENCY_LABELS, type Card, type CardAction, type Frequency } from '@prayer-tower/shared';
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
@@ -112,7 +112,7 @@ export function useCardActions(onChanged: () => void) {
         <Text style={styles.label}>{t('actions.howOften')}</Text>
         <View style={styles.row}>
           {FREQUENCIES.map((f) => (
-            <Chip key={f} label={freq(f)} selected={frequency === f} onPress={() => setFrequency(f)} />
+            <Chip radio key={f} label={freq(f)} selected={frequency === f} onPress={() => setFrequency(f)} />
           ))}
         </View>
         <Field label={t('actions.days')} value={days} onChangeText={setDays} keyboardType="number-pad" maxLength={3} />
@@ -209,11 +209,11 @@ export function useCardActions(onChanged: () => void) {
         <Field label={t('actions.howMany')} value={text} onChangeText={setText} keyboardType="number-pad" maxLength={5} />
         <Text style={styles.label}>{t('actions.when')}</Text>
         <View style={styles.chips}>
-          <Chip label={t('actions.now')} selected={when === 'now'} onPress={() => setWhen('now')} />
+          <Chip radio label={t('actions.now')} selected={when === 'now'} onPress={() => setWhen('now')} />
           {WHEN_OPTIONS.map((o) => (
-            <Chip key={o.key} label={t(`actions.whenOptions.${o.key}`, { defaultValue: o.label })} selected={when === o.key} onPress={() => setWhen(o.key)} />
+            <Chip radio key={o.key} label={t(`actions.whenOptions.${o.key}`, { defaultValue: o.label })} selected={when === o.key} onPress={() => setWhen(o.key)} />
           ))}
-          <Chip label={t('actions.pickTime')} selected={when === 'custom'} onPress={() => setWhen('custom')} />
+          <Chip radio label={t('actions.pickTime')} selected={when === 'custom'} onPress={() => setWhen('custom')} />
         </View>
         {when === 'custom' ? (
           <Field placeholder={t('actions.timeFormat')} value={customWhen} onChangeText={setCustomWhen} maxLength={16} />
@@ -221,7 +221,7 @@ export function useCardActions(onChanged: () => void) {
         {when !== 'now' ? (
           <View style={styles.chips}>
             {REPEAT_OPTIONS.map((o) => (
-              <Chip key={o.weeks} label={o.weeks === 1 ? t('actions.once') : t('actions.weeklyFor', { count: o.weeks })} selected={repeatWeeks === o.weeks} onPress={() => setRepeatWeeks(o.weeks)} />
+              <Chip radio key={o.weeks} label={o.weeks === 1 ? t('actions.once') : t('actions.weeklyFor', { count: o.weeks })} selected={repeatWeeks === o.weeks} onPress={() => setRepeatWeeks(o.weeks)} />
             ))}
           </View>
         ) : null}
@@ -267,7 +267,7 @@ export function useCardActions(onChanged: () => void) {
         <Text style={type.body}>{t('actions.reportNote')}</Text>
         <View style={styles.row}>
           {REPORT_REASONS.map((r) => (
-            <Chip key={r} label={t(`actions.reasons.${REPORT_REASONS.indexOf(r)}`)} selected={reason === r} onPress={() => setReason(r)} />
+            <Chip radio key={r} label={t(`actions.reasons.${REPORT_REASONS.indexOf(r)}`)} selected={reason === r} onPress={() => setReason(r)} />
           ))}
         </View>
         <Field placeholder={t('actions.reportDetails')} value={text} onChangeText={setText} multiline maxLength={800} />
@@ -293,10 +293,23 @@ export function useCardActions(onChanged: () => void) {
     );
   }
 
+  // Screen readers announce the open sheet by this name.
+  const sheetTitle = sheet
+    ? {
+        praying: label('action', 'praying_now', ACTION_LABELS.praying_now),
+        commit: t('actions.commitTitle'),
+        encourage: label('action', 'encouragement', ACTION_LABELS.encouragement),
+        share: label('action', 'share', ACTION_LABELS.share),
+        gift: label('action', 'gift_tokens', ACTION_LABELS.gift_tokens),
+        report: 'Report',
+        done: 'Done',
+      }[sheet.kind]
+    : undefined;
+
   const sheets = (
     <Modal visible={!!sheet} transparent animationType="fade" onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close} accessible={false}>
-        <Pressable style={styles.sheet} onPress={() => undefined} accessible={false} accessibilityViewIsModal>
+        <Pressable style={styles.sheet} onPress={() => undefined} accessible={false} accessibilityViewIsModal role="dialog" aria-label={sheetTitle}>
           {body}
           <ErrorText error={error} />
           {sheet?.kind !== 'done' ? <Button label={t('common.cancel')} variant="ghost" onPress={close} /> : null}

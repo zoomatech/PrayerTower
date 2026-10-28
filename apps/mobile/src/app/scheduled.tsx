@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, type ScheduledSpend } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -15,7 +15,7 @@ export default function ScheduledScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    api.scheduledSpends().then((r) => setItems(r.schedules), (e) => setError((e as Error).message));
+    api.scheduledSpends().then((r) => (setItems(r.schedules), setError(null)), (e) => setError((e as Error).message));
   }, []);
 
   useEffect(load, [load]);
@@ -26,7 +26,8 @@ export default function ScheduledScreen() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <Text style={type.title}>{t('profile.scheduled')}</Text>
         <Text style={type.body}>{t('scheduled.intro')}</Text>
-        <ErrorText error={error} />
+        <ErrorText error={error} onRetry={items ? undefined : load} />
+        {!items && !error ? <Loading /> : null}
         {items?.length === 0 ? <Empty text={t('scheduled.empty')} /> : null}
         {items?.map((s) => (
           <View key={s.id} style={styles.card}>

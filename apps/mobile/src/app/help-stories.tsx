@@ -6,7 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -22,7 +22,7 @@ export default function HelpStories() {
 
   const load = useCallback(() => {
     api.myWitnessStories().then((r) => setMine(r.stories), (e) => setError((e as Error).message));
-    api.helpStories().then(setShown, (e) => setError((e as Error).message));
+    api.helpStories().then((r) => (setShown(r), setError(null)), (e) => setError((e as Error).message));
   }, []);
   useFocusEffect(load);
 
@@ -33,7 +33,8 @@ export default function HelpStories() {
       <ScrollView contentContainerStyle={styles.content}>
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <Text style={type.title}>{t('helpStories.title')}</Text>
-        <ErrorText error={error} />
+        <ErrorText error={error} onRetry={shown ? undefined : load} />
+        {!shown && !error ? <Loading /> : null}
 
         {mine.length ? (
           <View style={styles.card}>
