@@ -12,7 +12,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const SOURCE_LABEL = { ai: 'Flagged automatically', report: 'Reported by a member', crisis: 'May need support' } as const;
 const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter((r) => r !== 'safe_messaging');
-const TARGET_LABEL = { post: 'Request', comment: 'Comment', reaction: 'Encouragement' } as const;
+const TARGET_LABEL = { post: 'Request', comment: 'Comment', reaction: 'Encouragement', message: 'Private message' } as const;
 
 export default function Moderation() {
   const [items, setItems] = useState<ModerationItem[]>([]);

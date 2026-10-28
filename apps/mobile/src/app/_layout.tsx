@@ -41,6 +41,8 @@ function RootStack() {
         <Stack.Screen name="macro-needs" />
         <Stack.Screen name="prayer-cast" />
         <Stack.Screen name="highlights" />
+        <Stack.Screen name="messages/index" />
+        <Stack.Screen name="messages/[id]" />
       </Stack.Protected>
     </Stack>
   );

@@ -11,7 +11,7 @@ import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from '../tokens/index.js';
 
-export type Target = 'post' | 'comment' | 'reaction';
+export type Target = 'post' | 'comment' | 'reaction' | 'message';
 
 export const CRISIS_REASON = 'Someone may be in danger';
 
@@ -27,15 +27,15 @@ export const RULES = {
 export type Rule = keyof typeof RULES;
 const RULE_KEYS = Object.keys(RULES) as [Rule, ...Rule[]];
 
-const NOUN = { post: 'request', comment: 'comment', reaction: 'encouragement' } as const;
+const NOUN = { post: 'request', comment: 'comment', reaction: 'encouragement', message: 'message' } as const;
 
 /**
  * A post or comment that mentions suicide or self-harm stays up, is marked so
  * readers see crisis support, and goes to a person for review (once).
  */
-export async function flagCrisis(q: Queryable, target: 'post' | 'comment', id: string) {
+export async function flagCrisis(q: Queryable, target: 'post' | 'comment' | 'message', id: string) {
   const { rows } = await q.query<{ user_id: string; community_id: string }>(
-    `update public.${target === 'post' ? 'posts' : 'comments'} set crisis = true where id = $1 returning user_id, community_id`,
+    `update public.${{ post: 'posts', comment: 'comments', message: 'messages' }[target]} set crisis = true where id = $1 returning user_id, community_id`,
     [id],
   );
   if (!rows[0]) return;
@@ -101,7 +101,7 @@ export function scanTask(q: Queryable, classify: Classifier): Task {
     const result = await classify(subject.text);
     if (!result?.flagged) return;
     const flagged = Object.entries(result.categories).filter(([, v]) => v).map(([k]) => k);
-    if ((target === 'post' || target === 'comment') && flagged.some((c) => c.startsWith('self-harm'))) await flagCrisis(q, target, id);
+    if (target !== 'reaction' && flagged.some((c) => c.startsWith('self-harm'))) await flagCrisis(q, target, id);
     const autoHide = flagged.some((c) => AUTO_HIDE_CATEGORIES.includes(c));
     await q.query(
       `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, ai_categories, auto_hidden)
@@ -113,7 +113,7 @@ export function scanTask(q: Queryable, classify: Classifier): Task {
 }
 
 export const Report = z.object({
-  targetType: z.enum(['post', 'comment', 'reaction']),
+  targetType: z.enum(['post', 'comment', 'reaction', 'message']),
   targetId: z.uuid(),
   reason: z.string().trim().min(1).max(1000),
 });
@@ -121,6 +121,15 @@ export const Report = z.object({
 export async function report(q: Queryable, reporterId: string, input: z.infer<typeof Report>) {
   const subject = await posts.moderationSubject(q, input.targetType, input.targetId);
   if (!subject) throw notFound('Content');
+  // Only someone in a private conversation can report a message from it.
+  if (input.targetType === 'message') {
+    const { rowCount } = await q.query(
+      `select 1 from public.messages m join public.conversations c on c.id = m.conversation_id
+        where m.id = $1 and $2 in (c.user_low, c.user_high)`,
+      [input.targetId, reporterId],
+    );
+    if (!rowCount) throw notFound('Content');
+  }
   const { rows } = await q.query<{ id: string }>(
     `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, reporter_id, reason)
      values ($1, $2, $3, $4, 'report', $5, $6)
@@ -134,11 +143,12 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
 /** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. */
 export async function pending(q: Queryable, limit = 100) {
   const { rows } = await q.query(
-    `select m.*, coalesce(po.body, c.body, r.note) as content
+    `select m.*, coalesce(po.body, c.body, r.note, dm.body) as content
        from public.moderation_items m
        left join public.posts po on m.target_type = 'post' and po.id = m.target_id
        left join public.comments c on m.target_type = 'comment' and c.id = m.target_id
        left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
+       left join public.messages dm on m.target_type = 'message' and dm.id = m.target_id
       where m.status = 'pending'
       order by (m.source = 'crisis') desc, m.auto_hidden desc, m.id
       limit $1`,
@@ -246,13 +256,14 @@ export async function appeal(q: Queryable, userId: string, itemId: string, input
 export async function pendingAppeals(q: Queryable, limit = 50) {
   const { rows } = await q.query(
     `select a.id, a.moderation_item_id, m.target_type, m.rule, a.message, a.created_at,
-            coalesce(po.body, c.body, r.note) as content,
+            coalesce(po.body, c.body, r.note, dm.body) as content,
             (select max(suspended_until) from public.moderation_actions x where x.moderation_item_id = m.id) as suspended_until
        from public.moderation_appeals a
        join public.moderation_items m on m.id = a.moderation_item_id
        left join public.posts po on m.target_type = 'post' and po.id = m.target_id
        left join public.comments c on m.target_type = 'comment' and c.id = m.target_id
        left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
+       left join public.messages dm on m.target_type = 'message' and dm.id = m.target_id
       where a.status = 'pending' order by a.id limit $1`,
     [limit],
   );

@@ -98,6 +98,16 @@ export default function PostScreen() {
     }
   };
 
+  // Prayer-to-prayee messages: a pray-er writes to the poster; the poster picks someone who prayed.
+  const openMessage = async (withUserId?: string) => {
+    try {
+      const r = await api.startConversation(id, withUserId);
+      router.push(`/messages/${r.id}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   const markAnswered = async () => {
     try {
       await api.markAnswered(id);
@@ -115,6 +125,10 @@ export default function PostScreen() {
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} />
+
+        {card && !card.isMine ? (
+          <Button small variant="secondary" label={`Message ${card.author.anonymous ? 'the person who asked' : card.author.displayName}`} onPress={() => openMessage()} />
+        ) : null}
 
         {card && !card.isMine ? (
           <Text style={styles.report} onPress={() => openReport(card)} accessibilityRole="button">
@@ -166,6 +180,17 @@ export default function PostScreen() {
             </Text>
             {prayers.people.length > 0 ? (
               <Text style={type.body}>{prayers.people.map((p) => p.displayName).join(', ')}</Text>
+            ) : null}
+            {card?.isMine && prayers.people.some((p) => p.id && p.id !== profile?.id) ? (
+              <View style={styles.row}>
+                {prayers.people
+                  .filter((p) => p.id && p.id !== profile?.id)
+                  .map((p) => (
+                    <Text key={p.id} style={styles.reply} onPress={() => openMessage(p.id!)} accessibilityRole="button">
+                      Message {p.displayName}
+                    </Text>
+                  ))}
+              </View>
             ) : null}
             {card?.isMine && prayers.count > 0 ? (
               thanked !== null ? (
