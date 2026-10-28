@@ -28,6 +28,7 @@ import type {
   PrayerRealm,
   Profile,
   Prompt,
+  PrayerStats,
   PrayerEvent,
   EventKind,
   PublicGroup,
@@ -353,8 +354,12 @@ export const api = {
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
   exportMyData: () => request<{ exportedAt: string } & Record<string, unknown>>('GET', '/me/export'),
   /** Page 0 is saved for offline reading; when offline it comes back with `savedAt`. */
-  feed: (page = 0): Promise<FeedPage & { savedAt?: number }> =>
-    page === 0 ? cachedGet<FeedPage>('feed', '/feed?page=0') : get<FeedPage>(`/feed?page=${page}`),
+  feed: (page = 0, filter: 'all' | 'testimonies' = 'all'): Promise<FeedPage & { savedAt?: number }> =>
+    filter === 'testimonies'
+      ? get<FeedPage>(`/feed?page=${page}&filter=testimonies`)
+      : page === 0
+        ? cachedGet<FeedPage>('feed', '/feed?page=0')
+        : get<FeedPage>(`/feed?page=${page}`),
   post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
   createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
   /** Text-only posts made offline wait in the queue. */
@@ -363,7 +368,9 @@ export const api = {
   deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
   hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
   unhidePost: (id: string) => request<{ hidden: boolean }>('DELETE', `/posts/${id}/hide`),
-  markAnswered: (id: string) => post<{ post: Card }>(`/posts/${id}/answered`),
+  markAnswered: (id: string, testimony?: string) => post<{ post: Card; crisis: boolean }>(`/posts/${id}/answered`, testimony ? { testimony } : {}),
+  setTestimony: (id: string, body: string) => put<{ post: Card; crisis: boolean }>(`/posts/${id}/testimony`, { body }),
+  removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
     post<{ comment: { id: string; crisis: boolean } }>(`/posts/${id}/comments`, { body, ...opts }),
@@ -579,6 +586,7 @@ export const api = {
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
+  prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),
   editChurch: (input: ChurchApplicationInput) => put<{ church: Church }>('/me/church', input),

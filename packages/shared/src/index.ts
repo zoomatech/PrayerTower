@@ -186,6 +186,9 @@ export interface Card {
   urgency: number;
   state: PostState;
   answeredAt: string | null;
+  /** The poster's testimony of how the prayer was answered. */
+  testimony: string | null;
+  testimonyAt: string | null;
   preview: string;
   truncated: boolean;
   body: string;
@@ -345,6 +348,8 @@ export interface Profile {
   locale?: Locale;
   /** Weekly email digest; off by default. */
   digest_enabled?: boolean;
+  /** Gentle prayer stats on Me (on by default). */
+  show_prayer_stats?: boolean;
   /** Missing on profiles fetched before the setting existed. */
   notification_prefs?: NotificationPrefs;
   onboarded_at: string | null;
@@ -559,7 +564,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer'],
   promises: ['commitment_made', 'commitment_reminder'],
-  encouragement: ['encouragement', 'thanks', 'weekly_review'],
+  encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite'],
   tokens: ['mint', 'milestone', 'scheduled_spend'],
@@ -573,4 +578,17 @@ export interface NotificationPrefs {
   off: NotificationCategory[];
   /** Pushes due inside this window wait until it ends. Times are HH:MM in timeZone (IANA). */
   quietHours: { start: string; end: string; timeZone: string } | null;
+}
+
+/** Gentle prayer stats, shown only to the member on Me. No leaderboard. */
+export interface PrayerStats {
+  enabled: boolean;
+  daysPrayed: number;
+  peoplePrayedFor: number;
+  requestsPrayedFor: number;
+  /** Days in a row, counting today or, if not yet today, yesterday. */
+  currentStreak: number;
+  longestStreak: number;
+  /** The last seven days, oldest first. */
+  week: { date: string; prayed: boolean }[];
 }

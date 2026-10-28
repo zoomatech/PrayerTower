@@ -60,7 +60,7 @@ export async function purge(q: Queryable, p: RetentionPeriods): Promise<PurgeRes
       [p.removedDays],
     );
     r.mediaPaths = media.map((m) => m.storage_path);
-    r.posts = await n(`update public.posts p set body = '${REMOVED_TEXT}', background = null, updated_at = now() where p.body not in ('${REMOVED_TEXT}', '(deleted)') and ${due('post', 'p')}`, p.removedDays);
+    r.posts = await n(`update public.posts p set body = '${REMOVED_TEXT}', background = null, testimony = null, updated_at = now() where p.body not in ('${REMOVED_TEXT}', '(deleted)') and ${due('post', 'p')}`, p.removedDays);
     r.comments = await n(`update public.comments c set body = '${REMOVED_TEXT}' where c.body not in ('${REMOVED_TEXT}', '(deleted)') and ${due('comment', 'c')}`, p.removedDays);
     // A note is required on encouragements, so the whole reaction goes.
     r.reactions = await n(`delete from public.reactions x where ${due('reaction', 'x')}`, p.removedDays);

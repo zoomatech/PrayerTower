@@ -1,0 +1,69 @@
+// Gentle prayer stats for the member's own Me page: days prayed, people and
+// requests prayed for, and a streak. Only the member sees them, they can be
+// turned off, and nothing here ranks members against each other.
+import type { Queryable } from '../../db.js';
+
+export interface PrayerStats {
+  enabled: boolean;
+  daysPrayed: number;
+  peoplePrayedFor: number;
+  requestsPrayedFor: number;
+  /** Days in a row, counting today or, if not yet today, yesterday. */
+  currentStreak: number;
+  longestStreak: number;
+  /** The last seven days, oldest first, in the member's time zone. */
+  week: { date: string; prayed: boolean }[];
+}
+
+const DAY = 86_400_000;
+const dayNumber = (iso: string) => Math.round(Date.parse(`${iso}T00:00:00Z`) / DAY);
+const isoOf = (n: number) => new Date(n * DAY).toISOString().slice(0, 10);
+
+/** Streaks from distinct prayer dates (YYYY-MM-DD, ascending) and today's date. */
+export function streaks(dates: string[], today: string) {
+  const days = dates.map(dayNumber);
+  let longest = 0;
+  let run = 0;
+  for (let i = 0; i < days.length; i++) {
+    run = i > 0 && days[i] === days[i - 1]! + 1 ? run + 1 : 1;
+    longest = Math.max(longest, run);
+  }
+  const t = dayNumber(today);
+  const set = new Set(days);
+  let current = 0;
+  for (let d = set.has(t) ? t : t - 1; set.has(d); d--) current++;
+  return { currentStreak: current, longestStreak: longest };
+}
+
+export async function prayerStats(q: Queryable, userId: string, timeZone: string): Promise<PrayerStats> {
+  const { rows: p } = await q.query<{ show_prayer_stats: boolean }>('select show_prayer_stats from public.profiles where id = $1', [userId]);
+  const enabled = p[0]?.show_prayer_stats ?? true;
+  const empty = { daysPrayed: 0, peoplePrayedFor: 0, requestsPrayedFor: 0, currentStreak: 0, longestStreak: 0, week: [] };
+  if (!enabled) return { enabled, ...empty };
+
+  const { rows: days } = await q.query<{ day: string }>(
+    `select distinct to_char(e.created_at at time zone $2, 'YYYY-MM-DD') as day
+       from public.prayer_events e where e.user_id = $1 order by day`,
+    [userId, timeZone],
+  );
+  const { rows: counts } = await q.query<{ people: number; requests: number; today: string }>(
+    `select count(distinct po.user_id) filter (where po.user_id <> $1)::int as people,
+            count(distinct e.post_id)::int as requests,
+            to_char(now() at time zone $2, 'YYYY-MM-DD') as today
+       from public.prayer_events e join public.posts po on po.id = e.post_id
+      where e.user_id = $1`,
+    [userId, timeZone],
+  );
+  const today = counts[0]!.today;
+  const dates = days.map((d) => d.day);
+  const set = new Set(dates);
+  const t = dayNumber(today);
+  return {
+    enabled,
+    daysPrayed: dates.length,
+    peoplePrayedFor: counts[0]!.people,
+    requestsPrayedFor: counts[0]!.requests,
+    ...streaks(dates, today),
+    week: Array.from({ length: 7 }, (_, i) => isoOf(t - 6 + i)).map((date) => ({ date, prayed: set.has(date) })),
+  };
+}

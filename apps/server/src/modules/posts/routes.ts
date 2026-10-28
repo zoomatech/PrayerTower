@@ -57,9 +57,27 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     return { hidden: false };
   });
 
+  // Answered, optionally with a testimony in the same step.
   app.post<{ Params: { id: string } }>('/posts/:id/answered', async (req) => {
     const userId = requireUser(req);
-    await posts.markAnswered(db, userId, req.params.id);
+    const { testimony } = z.object({ testimony: z.string().trim().min(1).max(2000).optional() }).parse(req.body ?? {});
+    const crisis = await withTx(db, async (tx) => {
+      await posts.markAnswered(tx, userId, req.params.id);
+      return testimony ? shareTestimony(tx, userId, req.params.id, testimony) : false;
+    });
+    return { post: (await posts.cards(db, [req.params.id], userId))[0], crisis };
+  });
+
+  app.put<{ Params: { id: string } }>('/posts/:id/testimony', async (req) => {
+    const userId = requireUser(req);
+    const { body } = posts.Testimony.parse(req.body);
+    const crisis = await withTx(db, (tx) => shareTestimony(tx, userId, req.params.id, body));
+    return { post: (await posts.cards(db, [req.params.id], userId))[0], crisis };
+  });
+
+  app.delete<{ Params: { id: string } }>('/posts/:id/testimony', async (req) => {
+    const userId = requireUser(req);
+    await posts.removeTestimony(db, userId, req.params.id);
     return { post: (await posts.cards(db, [req.params.id], userId))[0] };
   });
 
@@ -156,4 +174,23 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     if (error) throw new AppError(502, 'storage_error', error.message);
     return { path: data.path, token: data.token, signedUrl: data.signedUrl };
   });
+}
+
+/** Save the testimony; the first time, tell everyone who prayed. Returns whether it mentions crisis. */
+async function shareTestimony(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, body: string) {
+  const r = await posts.setTestimony(tx, userId, postId, { body });
+  if (r.first && r.post.moderation_status === 'visible') {
+    const who = r.post.is_anonymous ? null : ((await getProfile(tx, userId))?.display_name || null);
+    for (const recipientId of await posts.prayedBy(tx, postId, userId)) {
+      await notifications.notify(tx, recipientId, {
+        kind: 'testimony',
+        title: `A prayer you prayed was answered`,
+        body: `${who ?? 'Someone'} shared what God did: "${body.slice(0, 120)}${body.length > 120 ? '…' : ''}"`,
+        data: { postId },
+        dedupeKey: `testimony:${postId}`,
+        t: { key: 'testimony', params: { who, excerpt: body.slice(0, 120) + (body.length > 120 ? '…' : '') } },
+      });
+    }
+  }
+  return r.crisis;
 }

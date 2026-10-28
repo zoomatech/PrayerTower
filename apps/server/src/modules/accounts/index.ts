@@ -31,6 +31,8 @@ export const ProfileUpdate = z
     locale: z.enum(LOCALES),
     /** Weekly email digest (off by default). */
     digestEnabled: z.boolean(),
+    /** Gentle prayer stats on Me (on by default). */
+    showPrayerStats: z.boolean(),
     notificationPrefs: z.object({
       off: z.array(z.enum(NOTIFICATION_CATEGORIES)).max(NOTIFICATION_CATEGORIES.length),
       quietHours: z
@@ -62,10 +64,11 @@ const columns: Record<string, string> = {
   feedMix: 'feed_mix',
   locale: 'locale',
   digestEnabled: 'digest_enabled',
+  showPrayerStats: 'show_prayer_stats',
   notificationPrefs: 'notification_prefs',
 };
 
-function validTimeZone(tz: string) {
+export function validTimeZone(tz: string) {
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: tz });
     return true;
@@ -92,6 +95,7 @@ export interface Profile {
   feed_mix: FeedMix;
   locale: Locale;
   digest_enabled: boolean;
+  show_prayer_stats: boolean;
   digest_sent_week: string | null;
   notification_prefs: NotificationPrefs;
   onboarded_at: Date | null;
@@ -303,7 +307,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     [userId],
   );
   await q.query(
-    `update public.posts set body = '(deleted)', is_anonymous = true, moderation_status = 'removed' where user_id = $1`,
+    `update public.posts set body = '(deleted)', testimony = null, is_anonymous = true, moderation_status = 'removed' where user_id = $1`,
     [userId],
   );
   for (const sql of [
