@@ -427,6 +427,7 @@ export const api = {
       '/moderation/activity-flags',
     ),
   decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  scriptureLeaves: () => get<{ leaves: { id: string; reference: string; text: string; translation: string | null }[] }>('/scripture-leaves'),
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),

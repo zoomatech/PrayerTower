@@ -175,6 +175,34 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     return { settings: await future.updateSettings(db, future.SettingsPatch.parse(req.body)) };
   });
 
+  // Scripture leaves on the Vine feed.
+  app.get('/admin/scripture-leaves', async (req) => {
+    await requireAdmin(req);
+    const { rows } = await db.query('select id, reference, text, translation, active from public.scripture_leaves order by id');
+    return { leaves: rows };
+  });
+
+  app.post('/admin/scripture-leaves', async (req, reply) => {
+    await requireAdmin(req);
+    const input = z
+      .object({ reference: z.string().trim().min(1).max(80), text: z.string().trim().min(1).max(1000), translation: z.string().trim().max(40).optional() })
+      .parse(req.body);
+    const { rows } = await db.query(
+      `insert into public.scripture_leaves (community_id, reference, text, translation) values (public.default_community_id(), $1, $2, $3) returning id`,
+      [input.reference, input.text, input.translation ?? null],
+    );
+    reply.code(201);
+    return rows[0];
+  });
+
+  app.patch<{ Params: { id: string } }>('/admin/scripture-leaves/:id', async (req) => {
+    await requireAdmin(req);
+    const { active } = z.object({ active: z.boolean() }).parse(req.body);
+    const { rowCount } = await db.query('update public.scripture_leaves set active = $2 where id = $1', [req.params.id, active]);
+    if (!rowCount) throw notFound('Leaf');
+    return { ok: true };
+  });
+
   // Bot signals on prayer taps.
   app.get('/admin/activity-settings', async (req) => {
     await requireAdmin(req);
