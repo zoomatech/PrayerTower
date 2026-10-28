@@ -7,7 +7,7 @@ import { useCardActions } from '@/components/card-actions';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
-import { api } from '@/lib/api';
+import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
 
@@ -23,6 +23,8 @@ export default function PostScreen() {
   const [busy, setBusy] = useState(false);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
+  const [power, setPower] = useState<PowerPrayerStatus | null>(null);
+  const [powerSent, setPowerSent] = useState<number | null>(null);
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
@@ -30,7 +32,8 @@ export default function PostScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [p, c, pr, t] = await Promise.all([api.post(id), api.comments(id), api.prayers(id), api.tokens()]);
+      const [p, c, pr, t, pw] = await Promise.all([api.post(id), api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
+      setPower(pw);
       setTokens(t);
       setCard(p.post);
       setComments(c.comments);
@@ -77,6 +80,17 @@ export default function PostScreen() {
     }
   };
 
+  // Power Prayer: ask live pray-ers who don't know the poster.
+  const sendPower = async () => {
+    try {
+      const r = await api.powerPrayer(id);
+      setPowerSent(r.powerPrayer.reached);
+      setPower(r.next);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   const markAnswered = async () => {
     await api.markAnswered(id).catch((e) => setError((e as Error).message));
     load();
@@ -111,6 +125,22 @@ export default function PostScreen() {
                 : `Send as a radio prayer (${tokens.priestly.radioPrayerCost} Priestly token${tokens.priestly.radioPrayerCost === 1 ? '' : 's'})`
             }
             onPress={sendRadio}
+          />
+        ) : null}
+
+        {powerSent !== null ? (
+          <Text style={type.small}>
+            {powerSent === 0
+              ? 'Thank you. Everyone we could ask has already been asked or has prayed; your tokens still extend its reach.'
+              : `Thank you. We asked ${powerSent} ${powerSent === 1 ? 'person' : 'people'} who don't know ${card?.isMine ? 'you' : 'them'} yet to pray.`}
+          </Text>
+        ) : power?.blockedReason && card && !card.isMine ? (
+          <Text style={type.small}>Power Prayer: {power.blockedReason}</Text>
+        ) : power && card && !power.blockedReason && (power.cost === 0 || (tokens?.balance ?? 0) >= power.cost) ? (
+          <Button
+            variant="secondary"
+            label={`Power Prayer: ask ${power.reach} more people to pray (${power.cost === 0 ? 'free this week' : `${power.cost} tokens`})`}
+            onPress={sendPower}
           />
         ) : null}
 

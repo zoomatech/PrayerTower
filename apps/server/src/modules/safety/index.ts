@@ -60,6 +60,13 @@ export async function isNewMember(q: Queryable, userId: string, s: SafetySetting
 
 const LIFT = 'This limit lifts once you have been here a day and prayed for a few requests.';
 
+/** Why this member can't ask others to pray yet, or null if they can. */
+export async function askBlockedReason(q: Queryable, userId: string): Promise<string | null> {
+  const s = await settings(q);
+  if (!s.new_member_limits_enabled || !(await isNewMember(q, userId, s))) return null;
+  return `New members can't ask others to pray yet. ${LIFT}`;
+}
+
 /** Throws when a new member's post, comment or ask is over a limit. */
 export async function checkNewMember(q: Queryable, userId: string, action: 'post' | 'comment' | 'ask', text = '') {
   const s = await settings(q);

@@ -80,6 +80,14 @@ export interface AdminRadioSettings {
   radio_max_chars: number;
 }
 
+export interface PowerPrayerStatus {
+  reach: number;
+  freeLeft: number;
+  cost: number;
+  /** Set when the member can't use it yet (e.g. new members). */
+  blockedReason: string | null;
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -217,6 +225,11 @@ export const api = {
     grant: (id: string, role: Role) => put<{ roles: Role[] }>(`/admin/people/${id}/roles/${role}`),
     revoke: (id: string, role: Role) => request<{ roles: Role[] }>('DELETE', `/admin/people/${id}/roles/${role}`),
   },
+  powerPrayerStatus: () => get<PowerPrayerStatus>('/me/power-prayer'),
+  powerPrayer: (postId: string) =>
+    post<{ powerPrayer: { id: string; cost: number; reached: number }; next: PowerPrayerStatus; balance: number }>(`/posts/${postId}/power-prayer`, {
+      idempotencyKey: `power-${postId}-${Date.now()}`,
+    }),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };
