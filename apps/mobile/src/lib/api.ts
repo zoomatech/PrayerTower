@@ -93,6 +93,7 @@ export const api = {
     post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
+  registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

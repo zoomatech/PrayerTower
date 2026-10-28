@@ -4,10 +4,12 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { usePush } from '@/lib/push';
 import { colors } from '@/lib/theme';
 
 function RootStack() {
   const { session, profile, loading } = useAuth();
+  usePush(!!session && !!profile?.onboarded_at);
   if (loading || (session && !profile)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
