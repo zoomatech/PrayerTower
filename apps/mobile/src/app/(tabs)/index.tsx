@@ -24,6 +24,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
+import { useOffline } from "@/lib/offline";
 import { updatePrayWidget } from "@/lib/pray-widget";
 import { colors, maxContentWidth, radius, space, type } from "@/lib/theme";
 import { tourSeen } from "@/lib/tour";
@@ -93,6 +94,15 @@ export default function Feed() {
       loadingMore.current = false;
     }
   };
+
+  // Prayers and posts made offline were just sent: reload so they show. (The
+  // reload that brought us back online may have finished before they were sent.)
+  const queuedCount = useOffline().queued.length;
+  const lastQueued = useRef(queuedCount);
+  useEffect(() => {
+    if (queuedCount < lastQueued.current) load();
+    lastQueued.current = queuedCount;
+  }, [queuedCount, load]);
 
   useFocusEffect(
     useCallback(() => {
