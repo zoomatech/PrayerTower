@@ -24,5 +24,8 @@
   "ignoreExportsUsedInFile": true,
   "ignore": [
     "deploy/fly-web/site/**"
+  ],
+  "ignoreBinaries": [
+    "openssl"
   ]
 }
