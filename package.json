@@ -21,7 +21,8 @@
     "test": "npm test -w @prayer-tower/server && npm test -w @prayer-tower/station",
     "station": "npm run dev -w @prayer-tower/station",
     "seed:demo": "npm run seed:demo -w @prayer-tower/server --",
-    "test:e2e": "npm test -w @prayer-tower/e2e"
+    "test:e2e": "npm test -w @prayer-tower/e2e",
+    "brand": "node scripts/branding/render.mjs"
   },
   "devDependencies": {
     "supabase": "^2.122.0"
