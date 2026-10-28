@@ -26,6 +26,10 @@ const en = {
     tour: 'Prayer Tower Tour',
     feedback: 'Send Feedback…',
   },
+  widget: {
+    heading: 'Pray now',
+    empty: 'Open Prayer Tower to see who needs prayer.',
+  },
   language: {
     heading: 'Language',
     system: 'Phone setting',

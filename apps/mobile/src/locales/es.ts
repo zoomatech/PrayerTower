@@ -28,6 +28,10 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     tour: 'Recorrido por Prayer Tower',
     feedback: 'Enviar comentarios…',
   },
+  widget: {
+    heading: 'Ora ahora',
+    empty: 'Abre Prayer Tower para ver quién necesita oración.',
+  },
   language: {
     heading: 'Idioma',
     system: 'Según el teléfono',
