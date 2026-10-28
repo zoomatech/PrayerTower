@@ -81,7 +81,7 @@ export default function NotificationSettings() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: space.md, paddingBottom: space.xl },
+  content: { padding: space.lg, gap: space.md, paddingBottom: space.xl },
   label: { ...type.body, fontWeight: '600' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });
