@@ -510,6 +510,7 @@ const en = {
     beFirst: "Be the first to pray this week.",
     window: "Prayers for others in the last %{count} days.",
     thisWeek: "This week",
+    anonymous: "Anonymous prayer warrior",
   },
   conversation: {
     about: "About the request",

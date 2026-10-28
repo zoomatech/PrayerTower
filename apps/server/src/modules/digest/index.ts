@@ -115,7 +115,8 @@ export async function sendDigests(q: Queryable, mailer: Mailer | null, week = is
   if (!mailer) return { sent: 0, skipped: 0 };
   const { rows } = await q.query<{ id: string; email: string; locale: Locale; secular: boolean }>(
     `select p.id, u.email, p.locale,
-            (select c.tradition = 'secular' from public.communities c where c.id = public.member_community_id(p.id)) as secular
+            (select coalesce(c.vocabulary ->> 'wording', case when c.tradition = 'secular' then 'neutral' else 'faith' end) = 'neutral'
+               from public.communities c where c.id = public.member_community_id(p.id)) as secular
        from public.profiles p join auth.users u on u.id = p.id
       where p.digest_enabled and p.deleted_at is null and u.email is not null
         and (p.digest_sent_week is distinct from $1)

@@ -512,6 +512,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     beFirst: "Sé el primero en orar esta semana.",
     window: "Oraciones por otros en los últimos %{count} días.",
     thisWeek: "Esta semana",
+    anonymous: "Anonymous prayer warrior",
   },
   conversation: {
     about: "Sobre la petición",

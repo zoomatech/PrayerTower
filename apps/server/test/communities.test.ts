@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
+import { buildDigest, renderDigest } from '../src/modules/digest/index.js';
 import { as, createUser, db, drainJobs, newRequest } from './helpers.js';
 
 afterAll(async () => {
@@ -95,6 +96,18 @@ describe('Open Circle, the non-religious community', () => {
     expect(review.message).toBe('This week you supported people 1 time on 1 request. Thank you for being there for them.');
     expect(review.message).not.toMatch(/pray/i);
     expect((await as(friend).get('/me/commitments/review')).json().message).toContain('people waiting for prayer');
+  });
+
+  it('sends Open Circle members the weekly email without religious words', async () => {
+    const circle = await createUser('Digest Dot');
+    const friend = await createUser('Digest Dan');
+    await db.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
+    await as(circle).post('/me/community', { slug: 'open-circle' });
+    const post = await newRequest(friend, 'Starting a new job.');
+    await as(circle).post(`/posts/${post.id}/praying-now`, {});
+    const mail = renderDigest(await buildDigest(db, circle), 'en', 'dot@example.com', true);
+    for (const text of [mail.subject, mail.text, mail.html]) expect(text).not.toMatch(/pray|\bgod\b|bless|faith/i);
+    expect(mail.text).toContain('You showed up 1 time for 1 request.');
   });
 
   it('uses plain, warm wording in notices to Open Circle members', async () => {

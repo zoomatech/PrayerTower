@@ -35,7 +35,7 @@ export function Highlights({ data }: { data: Data | null }) {
         {data.topWarriors.map((w, i) => (
           <View key={`${w.id ?? 'anon'}-${i}`} style={styles.warrior}>
             <Text style={[type.body, styles.name]} onPress={w.id ? () => router.push(`/people/${w.id}`) : undefined}>
-              {i + 1}. {w.displayName}
+              {i + 1}. {w.id ? w.displayName : t('highlights.anonymous')}
             </Text>
             <Text style={type.small}>{w.prayers}</Text>
           </View>

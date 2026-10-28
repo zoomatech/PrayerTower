@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
+import { highlights } from '../src/modules/highlights/index.js';
 import { as, createUser, db, newRequest } from './helpers.js';
 
 afterAll(() => db.end());
@@ -23,5 +24,34 @@ describe('highlights', () => {
     const names = h.topWarriors.map((w: { displayName: string }) => w.displayName);
     expect(names).not.toContain('Hidden Warrior');
     expect(JSON.stringify(h)).not.toContain(hidden);
+  });
+
+  it("keeps each community's highlights to itself and leaves out blocked members", async () => {
+    const poster = await createUser('Faith Highlight Poster');
+    const post = await newRequest(poster, 'Pray for the edition highlight test.');
+    const prayer = await createUser('Faith Highlight Warrior');
+    const circle = await createUser('Circle Highlight Viewer');
+    const blocker = await createUser('Highlight Blocker');
+    const neighbour = await createUser('Highlight Neighbour');
+    const c = await db.connect();
+    try {
+      // Only this test's prayers count, so the post and warrior would top the lists if they leaked.
+      await c.query('begin');
+      await c.query('delete from public.prayer_events');
+      await c.query(`insert into public.prayer_events (post_id, user_id, kind) values ($1, $2, 'praying_now')`, [post.id, prayer]);
+      await c.query('delete from public.community_memberships where user_id = $1', [circle]);
+      await c.query(
+        `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+        [circle],
+      );
+      await c.query('insert into public.user_blocks (user_id, blocked_id) values ($1, $2), ($1, $3)', [blocker, poster, prayer]);
+      const ids = (h: Awaited<ReturnType<typeof highlights>>) => [h.topPrayers.map((t) => t.card.id), h.topWarriors.map((w) => w.id)];
+      expect(ids(await highlights(c, neighbour))).toEqual([[post.id], [prayer]]);
+      expect(ids(await highlights(c, circle))).toEqual([[], []]);
+      expect(ids(await highlights(c, blocker))).toEqual([[], []]);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
   });
 });
