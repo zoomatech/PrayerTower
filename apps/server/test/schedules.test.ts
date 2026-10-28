@@ -8,7 +8,8 @@ const runDue = async () => {
   await db.query(`select graphile_worker.add_job('schedules_run_due', '{}')`);
   await drainJobs();
 };
-const soon = () => new Date(Date.now() + 1000).toISOString();
+// Far enough ahead that a slow, busy test run never reaches it before the test moves it to now.
+const soon = () => new Date(Date.now() + 10 * 60_000).toISOString();
 
 describe('scheduled token spending', () => {
   it('gives tokens at the set time, weekly for the chosen number of weeks', async () => {
