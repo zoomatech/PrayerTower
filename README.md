@@ -4,6 +4,8 @@ Prayer-first social platform. One repo (npm workspaces) holds the V1 backend and
 
 Design docs: `Prayer_Tower_V1_Architecture.md` and `Prayer_Tower_Product_Roadmap.md` (project files).
 
+**New here? Start with [docs/DEVELOPER_HANDOFF.md](docs/DEVELOPER_HANDOFF.md)**: how the parts connect, how to run it, how to add a feature, and every switch with its default.
+
 ## Run it locally
 
 Needs Node 22+ and Docker.
@@ -28,13 +30,7 @@ On a phone, set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_SUPABASE_URL` to your com
 
 Push notifications need a development or store build on a real device (not simulators, web, or Expo Go on Android) and an EAS project ID: run `npx eas init` in `apps/mobile` once, then the app registers its push token after onboarding and a tapped notice opens its request. The server sends through the Expo Push Service; set `PUSH_ENABLED=1` (and optionally `EXPO_ACCESS_TOKEN`) in `apps/server/.env`.
 
-The iOS build targets iPhone, iPad and Mac (Designed for iPad, Apple silicon). Expo generates the Xcode project, so these live in `apps/mobile/app.json` (`ios.supportsTablet`) and `apps/mobile/plugins/with-mac-designed-for-ipad.js`, not in `ios/`. On a Mac with Xcode:
-
-```bash
-cd apps/mobile
-npx expo prebuild -p ios   # writes ios/ (git-ignored)
-xed ios                    # open in Xcode; pick an iPhone, iPad or "My Mac (Designed for iPad)"
-```
+The pilot build is iPhone only (`ios.supportsTablet: false` in `apps/mobile/app.json`). Expo generates the Xcode project, so settings live in `app.json` and `apps/mobile/plugins/`, not in `ios/`. On a Mac with Xcode: `cd apps/mobile && npx expo prebuild -p ios && xed ios`.
 
 Make yourself the first admin after signing up: `npm run grant-role -- you@example.com admin`.
 
@@ -65,7 +61,7 @@ apps/mobile/src/layouts/           feed layouts, chosen by the feed theme (V1: c
 packages/shared/                   types and constants shared by server and app
 ```
 
-Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `prompts`, `tiers`, `tokens`, `notifications`, `moderation`, plus `admin` routes. Modules call each other only through `index.ts` exports.
+Modules: see the full list in [docs/DEVELOPER_HANDOFF.md](docs/DEVELOPER_HANDOFF.md#3-how-the-parts-connect). Modules call each other only through `index.ts` exports.
 
 ## Rules the code enforces
 
