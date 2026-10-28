@@ -12,6 +12,7 @@ const en = {
     friend: 'friend',
   },
   tabs: {
+    label: 'Main sections',
     prayers: 'Prayers',
     promises: 'My Promises',
     messages: 'Messages',
