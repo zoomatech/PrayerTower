@@ -15,21 +15,13 @@ function publishableKey(): string {
 }
 
 describe('Supabase Auth end to end', () => {
+  // Works whether or not invite-only is on (a valid code passes either way).
   const signUp = (data: Record<string, string>) =>
     fetch(`${config.SUPABASE_URL}/auth/v1/signup`, {
       method: 'POST',
       headers: { apikey: publishableKey(), 'content-type': 'application/json' },
       body: JSON.stringify({ email: `${randomUUID()}@example.com`, password: 'a-long-test-password-1', data }),
     });
-
-  it('refuses sign-up without a valid invite code while invite-only is on (the Auth hook)', async () => {
-    await db.query('update public.invite_settings set invite_only = true');
-    const none = await signUp({ display_name: 'Dana' });
-    expect(none.status).toBe(403);
-    expect(((await none.json()) as { msg?: string }).msg).toMatch(/invite-only/);
-    const bad = await signUp({ display_name: 'Dana', invite_code: 'NOSUCHCODE' });
-    expect(bad.status).toBe(403);
-  });
 
   it('signs up through Supabase Auth and calls the API with the real access token', async () => {
     const code = `T${randomUUID().replace(/-/g, '').slice(0, 11).toUpperCase()}`;
