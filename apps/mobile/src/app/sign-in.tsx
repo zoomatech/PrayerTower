@@ -63,11 +63,12 @@ export default function SignIn() {
           {mode === 'sign-up' && inviteOnly ? (
             <Field label={t('signIn.inviteCode')} value={invite} onChangeText={setInvite} autoCapitalize="characters" autoCorrect={false} placeholder={t('signIn.invitePlaceholder')} />
           ) : null}
-          <Field label={t('signIn.email')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-          <Field label={t('signIn.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} />
+          <Field label={t('signIn.email')} value={email} onChangeText={setEmail} testID="sign-in-email" autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+          <Field label={t('signIn.password')} value={password} onChangeText={setPassword} testID="sign-in-password" secureTextEntry autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} />
           <ErrorText error={error} />
           {notice ? <Text style={type.small}>{notice}</Text> : null}
           <Button
+            testID="sign-in-submit"
             label={mode === 'sign-in' ? t('signIn.signIn') : t('signIn.createAccount')}
             onPress={submit}
             busy={busy}

@@ -13,6 +13,7 @@ import * as feedback from './modules/feedback/index.js';
 import * as future from './modules/future/index.js';
 import * as invites from './modules/invites/index.js';
 import * as inviteEmail from './modules/invites/email.js';
+import * as inviteImport from './modules/invites/import.js';
 import * as macroNeeds from './modules/macro-needs/index.js';
 import * as messages from './modules/messages/index.js';
 import * as milestones from './modules/milestones/index.js';
@@ -72,4 +73,5 @@ export const REQUEST_SCHEMAS: Record<string, { body?: z.ZodType; query?: z.ZodTy
   'POST /witness/cases/:id/notes': { body: witness.NewNote },
   'PATCH /witness/cases/:id': { body: witness.CaseUpdate },
   'POST /admin/invites/:code/email': { body: inviteEmail.EmailInvite },
+  'POST /admin/import': { body: inviteImport.ImportInput },
 };

@@ -191,6 +191,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       {c && !c.isRequest && !c.awaitingReply ? (
         <View style={styles.compose}>
           <Field
+            testID="message-input"
             placeholder={c.kind === 'group' ? t('conversation.writeGroup') : t('conversation.write')}
             value={text}
             onChangeText={(t) => {
@@ -201,7 +202,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
             multiline
           />
           {warned ? <RulesWarning onPostAnyway={() => send(true)} busy={busy} /> : null}
-          <Button label={t('actions.send')} onPress={() => send()} busy={busy} disabled={!text.trim()} />
+          <Button testID="message-send" label={t('actions.send')} onPress={() => send()} busy={busy} disabled={!text.trim()} />
         </View>
       ) : null}
 

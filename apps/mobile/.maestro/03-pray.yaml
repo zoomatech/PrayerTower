@@ -1,0 +1,25 @@
+# Ethel taps Praying Now on a request and gets the confirmation.
+appId: ${APP_ID}
+name: Pray for a request
+tags: [smoke]
+env:
+  APP_ID: com.zoomatech.prayertower
+  EMAIL: ethel@demo.prayertower.local
+  PASSWORD: praying-demo-1
+---
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      APP_ID: ${APP_ID}
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- scrollUntilVisible:
+    element: Praying Now
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: Praying Now
+    index: 0
+- tapOn: I'm praying now
+- assertVisible: They will know someone is praying for them
+- tapOn: Close

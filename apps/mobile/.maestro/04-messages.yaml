@@ -1,0 +1,27 @@
+# Carol opens her conversation with Ethel and sends a message.
+appId: ${APP_ID}
+name: Send a message
+tags: [smoke]
+env:
+  APP_ID: com.zoomatech.prayertower
+  EMAIL: carol@demo.prayertower.local
+  PASSWORD: praying-demo-1
+---
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      APP_ID: ${APP_ID}
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+- tapOn: Messages
+- tapOn:
+    text: Demo Ethel
+    index: 0
+- evalScript: "${output.message = 'Maestro: praying with you (' + Date.now() + ')'}"
+- tapOn:
+    id: message-input
+- inputText: ${output.message}
+- hideKeyboard
+- tapOn:
+    id: message-send
+- assertVisible: ${output.message}

@@ -142,11 +142,13 @@ export interface TokenSettings {
   radio_prayer_cost: number;
   /** 'tokens': radio prayers spend Priestly tokens. 'free': they cost nothing; Priestly tokens are donations only. */
   radio_funding: 'tokens' | 'free';
+  /** Verified prayers that count toward Priestly tokens per member per UTC day (0 = no cap). */
+  verified_prayers_per_day: number;
 }
 
 export async function settings(q: Queryable): Promise<TokenSettings> {
   const { rows } = await q.query<TokenSettings>(
-    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding from public.token_settings',
+    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding, verified_prayers_per_day from public.token_settings',
   );
   return rows[0]!;
 }
@@ -157,9 +159,10 @@ export async function updateSettings(q: Queryable, patch: Partial<TokenSettings>
         set priestly_prayers_per_token = coalesce($1, priestly_prayers_per_token),
             verified_prayer_min_gap_seconds = coalesce($2, verified_prayer_min_gap_seconds),
             radio_prayer_cost = coalesce($3, radio_prayer_cost),
-            radio_funding = coalesce($4, radio_funding)
-      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding`,
-    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null, patch.radio_prayer_cost ?? null, patch.radio_funding ?? null],
+            radio_funding = coalesce($4, radio_funding),
+            verified_prayers_per_day = coalesce($5, verified_prayers_per_day)
+      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding, verified_prayers_per_day`,
+    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null, patch.radio_prayer_cost ?? null, patch.radio_funding ?? null, patch.verified_prayers_per_day ?? null],
   );
   return rows[0]!;
 }
