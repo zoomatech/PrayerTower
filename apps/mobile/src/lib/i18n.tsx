@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import { I18n, type TranslateOptions } from 'i18n-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AppState, Text, type StyleProp, type TextStyle } from 'react-native';
+import { AppState, Platform, Text, type StyleProp, type TextStyle } from 'react-native';
 
 import en from '@/locales/en';
 import es from '@/locales/es';
@@ -63,6 +63,10 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const language = choice === 'system' ? device : choice;
+  // Screen readers on the web pick their voice from <html lang> (WCAG 3.1.1).
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined' && document.documentElement.lang !== language) document.documentElement.lang = language;
+  }, [language]);
   const value = useMemo<LocaleState>(() => {
     i18n.locale = language;
     const t: T = (key, options) => i18n.t(key, { locale: language, ...options });
