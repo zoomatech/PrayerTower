@@ -574,3 +574,13 @@ export interface NotificationPrefs {
   /** Pushes due inside this window wait until it ends. Times are HH:MM in timeZone (IANA). */
   quietHours: { start: string; end: string; timeZone: string } | null;
 }
+
+/**
+ * Feedback triage: the types staff tag tester feedback with (Admin → Feedback).
+ * A new item gets suggested tags from what the member picked and a few words in
+ * the text; an admin confirms or changes them.
+ */
+export const FEEDBACK_TAGS = ['bug', 'crash', 'idea', 'confusing', 'content', 'notifications', 'account', 'accessibility', 'spanish', 'performance', 'praise', 'other'] as const;
+export type FeedbackTag = (typeof FEEDBACK_TAGS)[number];
+export const FEEDBACK_SEVERITIES = ['low', 'medium', 'high', 'blocker'] as const;
+export type FeedbackSeverity = (typeof FEEDBACK_SEVERITIES)[number];

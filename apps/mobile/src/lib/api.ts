@@ -14,6 +14,8 @@ import type {
   Comment,
   Commitment,
   FeedPage,
+  FeedbackSeverity,
+  FeedbackTag,
   FeedThemeChoices,
   ConversationSummary,
   ConversationView,
@@ -217,6 +219,22 @@ export interface Highlights {
   days: number;
   topPrayers: { prayers: number; card: Card }[];
   topWarriors: { id: string | null; displayName: string; prayers: number }[];
+}
+
+export interface FeedbackItem {
+  id: string;
+  kind: string;
+  body: string;
+  platform: string | null;
+  appVersion: string | null;
+  createdAt: string;
+  name: string;
+  status: 'open' | 'closed';
+  tags: FeedbackTag[];
+  severity: FeedbackSeverity | null;
+  note: string | null;
+  triagedAt: string | null;
+  closedAt: string | null;
 }
 
 export interface LedgerCheck {
@@ -427,10 +445,12 @@ export const api = {
       get<{ standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(
         `/admin/prayer-warriors?days=${days}`,
       ),
-    feedback: () =>
-      get<{
-        feedback: { id: string; kind: string; body: string; platform: string | null; appVersion: string | null; createdAt: string; name: string }[];
-      }>('/admin/feedback'),
+    feedback: (f: { status?: 'open' | 'closed' | 'all'; tag?: FeedbackTag } = {}) =>
+      get<{ feedback: FeedbackItem[] }>(`/admin/feedback?${new URLSearchParams({ status: f.status ?? 'open', ...(f.tag ? { tag: f.tag } : {}) })}`),
+    triageFeedback: (id: string, t: { tags?: FeedbackTag[]; severity?: FeedbackSeverity | null; note?: string | null }) =>
+      request<{ ok: true }>('PATCH', `/admin/feedback/${id}`, t),
+    feedbackCsv: (f: { status?: 'open' | 'closed' | 'all'; tag?: FeedbackTag } = {}) =>
+      getText(`/admin/feedback/export?${new URLSearchParams({ status: f.status ?? 'all', ...(f.tag ? { tag: f.tag } : {}) })}`),
     closeFeedback: (id: string) => post<{ ok: true }>(`/admin/feedback/${id}/close`),
     decideDeletionRequest: (id: string, action: 'delete' | 'dismiss') => post<{ ok: true }>(`/admin/deletion-requests/${id}`, { action }),
     milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),

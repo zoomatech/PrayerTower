@@ -26,7 +26,7 @@ While **invite-only mode** is on, a new member needs an invite code to create an
 ## Hosted project setup (one time, Steve)
 
 1. Apply the migration, with `supabase db push` or the deploy pipeline.
-2. In the Supabase Dashboard, go to **Authentication → Hooks**. Add the **Before User Created** hook, choose the type **Postgres function**, then pick `public.hook_before_user_created` ([Auth Hooks](https://supabase.com/docs/guides/auth/auth-hooks)).
+2. `scripts/go-live.sh` does this step itself when `SUPABASE_ACCESS_TOKEN` (a personal access token) is in `deploy/production.env`. It calls the Management API's [update auth config](https://supabase.com/docs/reference/api/v1-update-auth-service-config) with `hook_before_user_created_enabled` and `hook_before_user_created_uri`. By hand: in the Supabase Dashboard, go to **Authentication → Hooks**. Add the **Before User Created** hook, choose the type **Postgres function**, then pick `public.hook_before_user_created` ([Auth Hooks](https://supabase.com/docs/guides/auth/auth-hooks)).
 3. Test it. Try to sign up without a code: you should get "Prayer Tower is invite-only right now. Enter your invite code."
 
 For local development, `supabase/config.toml` turns the hook on (`[auth.hook.before_user_created]`).

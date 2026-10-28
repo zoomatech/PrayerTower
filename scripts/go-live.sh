@@ -44,6 +44,9 @@ if [ "$mode" != --migrate-only ]; then
   command -v fly >/dev/null || die "install flyctl: https://fly.io/docs/flyctl/install/"
   fly auth whoami >/dev/null 2>&1 || die "sign in first: fly auth login"
 fi
+if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+  echo "Note: SUPABASE_ACCESS_TOKEN is not set, so the invite-code hook must be turned on by hand (docs/INVITES.md)."
+fi
 echo "Settings look complete."
 [ "$mode" = --check ] && exit 0
 
@@ -58,14 +61,34 @@ if [ "${YES:-}" != 1 ]; then
   [ "$ok" = y ] || [ "$ok" = Y ] || die "stopped before migrating"
 fi
 npx supabase db push --linked --password "$SUPABASE_DB_PASSWORD"
+
+# Invite-only sign-up: point Supabase Auth's "Before User Created" hook at the
+# function the migrations made (docs/INVITES.md). Uses the Management API with a
+# personal access token; without one, say what to do by hand.
+# https://supabase.com/docs/reference/api/v1-update-auth-service-config
+hook_uri=pg-functions://postgres/public/hook_before_user_created
+if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+  log "Turning on the invite-code hook (Before User Created)"
+  curl -fsS -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
+    -d "{\"hook_before_user_created_enabled\":true,\"hook_before_user_created_uri\":\"$hook_uri\"}" >/dev/null \
+    || die "could not turn on the hook; do it by hand: Dashboard → Authentication → Hooks (docs/INVITES.md)"
+  curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+    | grep -q "\"hook_before_user_created_uri\":\"$hook_uri\"" || die "the hook did not save; check Dashboard → Authentication → Hooks"
+  echo "Invite-code hook is on."
+else
+  printf '\nACTION NEEDED: in the Supabase Dashboard, Authentication → Hooks → Before User Created,\n'
+  printf 'choose Postgres function public.hook_before_user_created (or set SUPABASE_ACCESS_TOKEN and re-run).\n'
+  printf 'Until then anyone can sign up without an invite code.\n'
+fi
 [ "$mode" = --migrate-only ] && exit 0
 
 # 3. API and worker on Fly.io (fly.toml). Secrets are every server setting in the
-# env file except the Supabase CLI password, the web build values and Fly names.
+# env file except the Supabase CLI password and access token, the web build values and Fly names.
 log "Deploying the API and worker to Fly.io app $FLY_API_APP"
 fly status -a "$FLY_API_APP" >/dev/null 2>&1 || fly apps create "$FLY_API_APP" --org "$FLY_ORG"
 grep -E '^[A-Z_][A-Z0-9_]*=.+' "$env_file" \
-  | grep -vE '^(SUPABASE_PROJECT_REF|SUPABASE_DB_PASSWORD|EXPO_PUBLIC_[A-Z_]*|FLY_[A-Z_]*)=' \
+  | grep -vE '^(SUPABASE_PROJECT_REF|SUPABASE_DB_PASSWORD|SUPABASE_ACCESS_TOKEN|EXPO_PUBLIC_[A-Z_]*|FLY_[A-Z_]*)=' \
   | fly secrets import --stage -a "$FLY_API_APP"
 # --ha=false: one machine per process for the pilot; scale later with `fly scale count`.
 fly deploy -a "$FLY_API_APP" --config "$root/fly.toml" --ha=false
