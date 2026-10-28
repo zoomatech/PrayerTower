@@ -11,6 +11,13 @@
         "buildType": "apk"
       }
     },
+    "staging": {
+      "extends": "preview",
+      "environment": "preview",
+      "env": {
+        "APP_VARIANT": "staging"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "environment": "production"

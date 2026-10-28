@@ -40,7 +40,11 @@ The API runs migrations for the job queue on start. Scale the worker with `docke
 
 - Supabase Pro: automatic (above). Still take a monthly off-site dump with `scripts/backup-db.sh`.
 - Free or self-hosted: run `scripts/backup-db.sh` daily from cron and copy the folder off the server.
-- Test a restore before the pilot starts.
+- Test a restore before the pilot starts, and monthly after: `scripts/restore-drill.sh` (see [BACKUP_RESTORE.md](BACKUP_RESTORE.md)). CI runs the same drill on every pull request.
+
+## Staging
+
+A second Supabase project plus a second API on the same server. See [STAGING.md](STAGING.md).
 
 ## 4. Monitoring
 

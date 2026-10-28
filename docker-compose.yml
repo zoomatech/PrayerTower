@@ -2,17 +2,19 @@
 # runs alongside: `npm run db:start` for development, or self-hosted Supabase
 # (https://supabase.com/docs/guides/self-hosting/docker) / Supabase Cloud for the pilot.
 # Both processes are stateless; scale with `docker compose up --scale worker=2`.
+# Staging on the same machine (docs/STAGING.md):
+#   ENV_FILE=deploy/staging.env API_PORT=3100 docker compose -p prayertower-staging up -d --build
 services:
   api:
     build:
       context: .
       dockerfile: apps/server/Dockerfile
     command: ["node", "--import", "./apps/server/dist/src/instrument.js", "apps/server/dist/src/server.js"]
-    env_file: apps/server/.env
+    env_file: ${ENV_FILE:-apps/server/.env}
     environment:
       PORT: "3000"
     ports:
-      - "3000:3000"
+      - "${API_PORT:-3000}:3000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -22,7 +24,7 @@ services:
       context: .
       dockerfile: apps/server/Dockerfile
     command: ["node", "--import", "./apps/server/dist/src/instrument.js", "apps/server/dist/src/worker.js"]
-    env_file: apps/server/.env
+    env_file: ${ENV_FILE:-apps/server/.env}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

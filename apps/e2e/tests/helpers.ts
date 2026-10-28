@@ -35,10 +35,14 @@ export function card(page: Page, text: string) {
   return page.locator('div').filter({ hasText: text }).filter({ has: page.getByText('Praying Now', { exact: true }) }).last();
 }
 
+/** The post's id, waiting up to 10 s: the app shows a new post before the API has saved it. */
 export async function postIdByText(text: string): Promise<string> {
-  const { rows } = await db.query<{ id: string }>('select id from public.posts where body like $1 order by created_at desc limit 1', [`%${text}%`]);
-  if (!rows[0]) throw new Error(`no post containing ${text}`);
-  return rows[0].id;
+  for (let i = 0; i < 40; i++) {
+    const { rows } = await db.query<{ id: string }>('select id from public.posts where body like $1 order by created_at desc limit 1', [`%${text}%`]);
+    if (rows[0]) return rows[0].id;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`no post containing ${text}`);
 }
 
 export const unique = (label: string) => `${label} ${Date.now().toString(36)}`;
