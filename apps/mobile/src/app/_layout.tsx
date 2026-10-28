@@ -43,6 +43,7 @@ function RootStack() {
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="delete-account" />
         <Stack.Screen name="feedback" />
+        <Stack.Screen name="tour" options={{ presentation: "modal" }} />
         <Stack.Screen name="moderation" />
         <Stack.Screen name="admin" />
         <Stack.Screen name="appeal/[id]" />

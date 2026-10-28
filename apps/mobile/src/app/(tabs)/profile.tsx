@@ -166,6 +166,7 @@ export default function Profile() {
         ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label="Admin" onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
+        <Button variant="ghost" label="How Prayer Tower works" onPress={() => router.push('/tour')} />
         <Button variant="ghost" label="Send feedback" onPress={() => router.push('/feedback')} />
         <Button variant="ghost" label="Sign out" onPress={signOut} />
         <Button variant="ghost" label="Delete my account" onPress={() => router.push('/delete-account')} />
