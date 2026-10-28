@@ -33,7 +33,10 @@ export function PostCard({ card, onAction, expanded: startExpanded = false }: { 
       {answered ? <Text style={styles.answeredBanner}>✨ Prayer answered</Text> : null}
       <View style={styles.header}>
         <View style={[styles.urgency, { backgroundColor: colors.urgency[card.urgency] ?? colors.urgency[0] }]} />
-        <Text style={styles.author} numberOfLines={1}>
+        <Text
+          style={styles.author}
+          numberOfLines={1}
+          onPress={!card.author.anonymous && card.author.id && !card.isMine ? () => router.push(`/people/${card.author.id}`) : undefined}>
           {card.author.displayName}
           {card.author.tier ? ` ${TIER_ICONS[card.author.tier] ?? ''}` : ''}
         </Text>

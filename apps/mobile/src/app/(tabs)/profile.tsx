@@ -106,6 +106,7 @@ export default function Profile() {
         <Toggle label="Pray and post anonymously by default" value={profile.anonymous_by_default} onChange={(v) => update({ anonymousByDefault: v })} />
         <Toggle label="Occasional prayer reminders" value={profile.prompts_enabled} onChange={(v) => update({ promptsEnabled: v })} />
         <Toggle label="Show my updates as the first comment" value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
+        <Button variant="ghost" label="Community rules" onPress={() => router.push('/rules')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
           <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
         ) : null}

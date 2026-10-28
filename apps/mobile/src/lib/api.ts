@@ -7,6 +7,7 @@ import type {
   FeedPage,
   FeedThemeChoices,
   ModerationItem,
+  Person,
   Role,
   Frequency,
   PostType,
@@ -98,6 +99,13 @@ export const api = {
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
     post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
+  person: (id: string) => get<{ person: Person; posts: Card[] }>(`/people/${id}`),
+  follow: (id: string) => put<{ ok: boolean }>(`/people/${id}/follow`),
+  unfollow: (id: string) => request<{ ok: boolean }>('DELETE', `/people/${id}/follow`),
+  editCommitment: (
+    id: string,
+    patch: Partial<{ frequency: Frequency; vowText: string; status: 'active' | 'completed' | 'cancelled'; completedCount: number }>,
+  ) => request<{ commitment: Commitment }>('PATCH', `/commitments/${id}`, patch),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
   report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>

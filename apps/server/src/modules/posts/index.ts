@@ -467,4 +467,15 @@ export async function promptSubject(q: Queryable, postId: string, viewerId: stri
   return r.display_name;
 }
 
+/** A person's recent visible posts made under their name (never their anonymous ones). */
+export async function namedPostIds(q: Queryable, authorId: string, limit = 20): Promise<string[]> {
+  const { rows } = await q.query<{ id: string }>(
+    `select id from public.posts
+      where user_id = $1 and not is_anonymous and moderation_status = 'visible'
+      order by id desc limit $2`,
+    [authorId, limit],
+  );
+  return rows.map((r) => r.id);
+}
+
 export { MEDIA_BUCKET, signMedia } from './media.js';

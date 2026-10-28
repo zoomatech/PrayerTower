@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { notFound } from '../../errors.js';
+import * as posts from '../posts/index.js';
 import * as accounts from './index.js';
 
 export function accountRoutes(app: FastifyInstance, db: Db) {
@@ -18,9 +19,14 @@ export function accountRoutes(app: FastifyInstance, db: Db) {
   });
 
   app.get<{ Params: { id: string } }>('/people/:id', async (req) => {
+    const viewerId = requireUser(req);
     const p = await accounts.getProfile(db, req.params.id);
     if (!p) throw notFound('Person');
-    return { person: { id: p.id, displayName: p.display_name, handle: p.handle, bio: p.bio, whyHere: p.why_here } };
+    const [status, ids] = await Promise.all([accounts.followStatus(db, viewerId, p.id), posts.namedPostIds(db, p.id)]);
+    return {
+      person: { id: p.id, displayName: p.display_name, handle: p.handle, bio: p.bio, whyHere: p.why_here, ...status },
+      posts: await posts.cards(db, ids, viewerId),
+    };
   });
 
   app.put<{ Params: { id: string } }>('/people/:id/follow', async (req) => {

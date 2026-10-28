@@ -1,9 +1,9 @@
-import { FREQUENCY_LABELS, type Commitment, type WeeklyReview } from '@prayer-tower/shared';
+import { FREQUENCIES, FREQUENCY_LABELS, type Commitment, type Frequency, type WeeklyReview } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -13,6 +13,7 @@ export default function Commitments() {
   const [note, setNote] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; vowText: string; frequency: Frequency; completedCount: number } | null>(null);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -66,10 +67,48 @@ export default function Commitments() {
               Prayed {c.completed_count} of {c.committed_count} reminders
               {c.next_reminder_at ? ` · next ${new Date(c.next_reminder_at).toLocaleString()}` : ''}
             </Text>
-            <View style={styles.row}>
-              <Button small label="I prayed" onPress={() => act(() => api.checkIn(c.id))} />
-              <Button small variant="secondary" label="Snooze 1 hour" onPress={() => act(() => api.snooze(c.id, 60))} />
-            </View>
+            {editing?.id === c.id ? (
+              <View style={styles.editor}>
+                <Field label="Your promise" value={editing.vowText} onChangeText={(vowText) => setEditing({ ...editing, vowText })} multiline maxLength={500} />
+                <View style={styles.row}>
+                  {FREQUENCIES.map((f) => (
+                    <Chip key={f} label={FREQUENCY_LABELS[f]} selected={editing.frequency === f} onPress={() => setEditing({ ...editing, frequency: f })} />
+                  ))}
+                </View>
+                <View style={styles.row}>
+                  <Text style={type.body}>Times I prayed: {editing.completedCount}</Text>
+                  <Button small variant="secondary" label="−" onPress={() => setEditing({ ...editing, completedCount: Math.max(0, editing.completedCount - 1) })} />
+                  <Button small variant="secondary" label="+" onPress={() => setEditing({ ...editing, completedCount: editing.completedCount + 1 })} />
+                </View>
+                <Text style={type.small}>This record helps us measure whether we are helping. We do not judge.</Text>
+                <View style={styles.row}>
+                  <Button
+                    small
+                    label="Save"
+                    disabled={!editing.vowText.trim()}
+                    onPress={() =>
+                      act(() => api.editCommitment(c.id, { vowText: editing.vowText.trim(), frequency: editing.frequency, completedCount: editing.completedCount })).then(() =>
+                        setEditing(null),
+                      )
+                    }
+                  />
+                  <Button small variant="secondary" label="Mark complete" onPress={() => act(() => api.editCommitment(c.id, { status: 'completed' })).then(() => setEditing(null))} />
+                  <Button small variant="ghost" label="End this promise" onPress={() => act(() => api.editCommitment(c.id, { status: 'cancelled' })).then(() => setEditing(null))} />
+                  <Button small variant="ghost" label="Cancel" onPress={() => setEditing(null)} />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.row}>
+                <Button small label="I prayed" onPress={() => act(() => api.checkIn(c.id))} />
+                <Button small variant="secondary" label="Snooze 1 hour" onPress={() => act(() => api.snooze(c.id, 60))} />
+                <Button
+                  small
+                  variant="ghost"
+                  label="Edit"
+                  onPress={() => setEditing({ id: c.id, vowText: c.vow_text, frequency: c.frequency, completedCount: c.completed_count })}
+                />
+              </View>
+            )}
           </View>
         ))}
         {past.length > 0 ? <Text style={type.heading}>Past promises</Text> : null}
@@ -93,5 +132,6 @@ const styles = StyleSheet.create({
   reviewTitle: { ...type.heading, color: colors.gold },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.sm },
   vow: { ...type.body, fontStyle: 'italic', color: colors.primary },
-  row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
+  row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap', alignItems: 'center' },
+  editor: { gap: space.sm },
 });

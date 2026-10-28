@@ -30,6 +30,17 @@ describe('accounts', () => {
     expect(res.json().people.map((p: { id: string }) => p.id)).toContain(a);
   });
 
+  it("shows a person's profile with follow state and only their named posts", async () => {
+    const viewer = await createUser('Visitor');
+    const person = await createUser('Profiled');
+    const named = await newRequest(person, 'Named request.');
+    await newRequest(person, 'Secret request.', { isAnonymous: true });
+    await as(viewer).put(`/people/${person}/follow`);
+    const { person: p, posts } = (await as(viewer).get(`/people/${person}`)).json();
+    expect(p).toMatchObject({ displayName: 'Profiled', following: true, followers: 1 });
+    expect(posts.map((c: { id: string }) => c.id)).toEqual([named.id]);
+  });
+
   it('rejects requests without a valid token', async () => {
     const { app } = await import('./helpers.js');
     expect((await app.inject({ method: 'GET', url: '/me' })).statusCode).toBe(401);

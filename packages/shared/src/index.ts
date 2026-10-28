@@ -126,6 +126,16 @@ export interface FeedTheme {
   tokens: Record<string, unknown>;
 }
 
+export interface Person {
+  id: string;
+  displayName: string;
+  handle: string | null;
+  bio: string | null;
+  whyHere: string[];
+  following: boolean;
+  followers: number;
+}
+
 export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner';
 
 export interface ModerationItem {

@@ -160,6 +160,16 @@ export async function unfollow(q: Queryable, userId: string, followeeId: string)
   await q.query('delete from public.follows where user_id = $1 and followee_id = $2', [userId, followeeId]);
 }
 
+/** Whether the viewer follows this person, and how many people do. */
+export async function followStatus(q: Queryable, viewerId: string, personId: string) {
+  const { rows } = await q.query<{ following: boolean; followers: number }>(
+    `select exists (select 1 from public.follows where user_id = $1 and followee_id = $2) as following,
+            (select count(*)::int from public.follows where followee_id = $2) as followers`,
+    [viewerId, personId],
+  );
+  return rows[0]!;
+}
+
 export async function followers(q: Queryable, userId: string) {
   const { rows } = await q.query(
     `select p.id, p.display_name, p.handle from public.follows f join public.profiles p on p.id = f.user_id
