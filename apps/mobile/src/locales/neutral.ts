@@ -159,6 +159,7 @@ export const keys: Tree = named({
   },
   promises: {
     week: 'Your week of kindness',
+    affirmation: 'By checking in, you are saying you truly kept this promise. We take you at your word.',
     empty: 'When you promise to check in on someone, your promise appears here.',
     progress: 'Checked in %{done} of %{total} reminders',
     times: 'Times I checked in: %{count}',

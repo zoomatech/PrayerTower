@@ -1056,6 +1056,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.postLines')} hint={t('admin.toggle.postLinesHint')} value={s.post_lines_enabled} onChange={(v) => save({ postLinesEnabled: v })} />
       <Toggle label={t('admin.toggle.tierUpkeep')} hint={t('admin.toggle.tierUpkeepHint')} value={s.tier_upkeep_enabled} onChange={(v) => save({ tierUpkeepEnabled: v })} />
       <Field label={t('admin.field.tierUpkeepDays')} keyboardType="number-pad" value={upkeepDays} onChangeText={setUpkeepDays} />
+      <Toggle label={t('admin.toggle.checkinAffirmation')} hint={t('admin.toggle.checkinAffirmationHint')} value={s.checkin_affirmation_enabled} onChange={(v) => save({ checkinAffirmationEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
