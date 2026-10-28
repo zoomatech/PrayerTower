@@ -90,3 +90,13 @@ describe('Award prize choice', () => {
     });
   });
 });
+
+describe('Post anatomy lines', () => {
+  it('are off by default and reach the app once an admin turns them on', async () => {
+    expect((await notebook.features(db)).postLines).toBe(false);
+    await inTx(async (c) => {
+      expect((await notebook.updateSettings(c, { postLinesEnabled: true })).post_lines_enabled).toBe(true);
+      expect((await notebook.features(c)).postLines).toBe(true);
+    });
+  });
+});
