@@ -15,7 +15,7 @@ import { Button } from '@/components/ui';
 import { colors, space, type } from '@/lib/theme';
 
 function RootStack() {
-  const { session, profile, loading, profileError, refreshProfile, signOut } = useAuth();
+  const { session, profile, loading, profileError, refreshProfile, signOut, recovering } = useAuth();
   const { language, t } = useLocale();
   usePush(!!session && !!profile?.onboarded_at);
   useMenuCommands(!!session && !!profile?.onboarded_at);
@@ -55,10 +55,10 @@ function RootStack() {
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
         </Stack.Protected>
-        <Stack.Protected guard={signedIn && !onboarded}>
+        <Stack.Protected guard={signedIn && !onboarded && !recovering}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
-        <Stack.Protected guard={signedIn && onboarded}>
+        <Stack.Protected guard={signedIn && onboarded && !recovering}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
           <Stack.Screen name="post/[id]" />
@@ -105,6 +105,10 @@ function RootStack() {
           <Stack.Screen name="church" />
           <Stack.Screen name="churches" />
           <Stack.Screen name="help-stories" />
+        </Stack.Protected>
+        {/* After the main screens, so signing in lands on the feed; during a password reset it's the only screen. */}
+        <Stack.Protected guard={signedIn && (onboarded || recovering)}>
+          <Stack.Screen name="account-security" />
         </Stack.Protected>
       </Stack>
     </View>

@@ -273,6 +273,7 @@ export default function Profile() {
             }
           }}
         />
+        <Button variant="ghost" label={t('accountSecurity.title')} onPress={() => router.push('/account-security')} />
         <Button variant="ghost" label={t('profile.signOut')} onPress={signOut} />
         <Button variant="ghost" label={t('profile.deleteAccount')} onPress={() => router.push('/delete-account')} />
         <LegalLinks contact />
