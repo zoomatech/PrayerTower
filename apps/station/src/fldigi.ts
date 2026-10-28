@@ -9,6 +9,8 @@ export interface Fldigi {
   transmit(text: string, timeoutMs: number): Promise<void>;
   /** Stop transmitting now. */
   rxOnly(): Promise<void>;
+  /** fldigi's transmit/receive state, e.g. "rx" or "tx" (main.get_trx_status). */
+  status(): Promise<string>;
 }
 
 export function fldigiClient(url: string, opts: { pollMs?: number; fetchImpl?: typeof fetch } = {}): Fldigi {
@@ -25,6 +27,9 @@ export function fldigiClient(url: string, opts: { pollMs?: number; fetchImpl?: t
       await rpc.call('modem.set_by_name', name);
     },
     rxOnly,
+    async status() {
+      return String((await rpc.call('main.get_trx_status')) ?? '');
+    },
     async transmit(text, timeoutMs) {
       // ^r tells fldigi to return to receive when the text has been sent.
       await rpc.call('text.add_tx', `${text} ^r`);

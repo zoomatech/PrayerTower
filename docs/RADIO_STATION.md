@@ -36,6 +36,8 @@ Two questions are still open before running unattended (see the paper):
 
 ## Station setup (Pi or laptop)
 
+For a station that runs as a service, use the installer: see [RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md). To run it by hand:
+
 ```bash
 # Node 22 and fldigi installed; fldigi's XML-RPC server is on by default at 127.0.0.1:7362
 git clone https://github.com/zoomatech/PrayerTower.git && cd PrayerTower
@@ -57,7 +59,7 @@ Optional settings:
 | `MAX_PIECE_CHARS` | `500` | Characters per piece before ` de CALL` |
 | `BLOCKLIST_FILE` | none | Extra blocked words, one per line |
 
-If a transmission fails or times out, the worker disables transmit, reports the failure and exits, so a person can check the station first. Run it under systemd with `Restart=no`. If the API is unreachable, the worker waits and tries again.
+If a transmission fails or times out, the worker disables transmit, reports the failure and exits, so a person can check the station first. It exits with code 3, which the installed service does not restart. If the API is unreachable, the worker waits and tries again.
 
 ## Bring-up (from the build paper)
 

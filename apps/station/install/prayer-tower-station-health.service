@@ -1,0 +1,16 @@
+# One health check run; the timer starts it every 5 minutes. Results go to the journal:
+#   journalctl -u prayer-tower-station-health
+[Unit]
+Description=Prayer Tower radio station health check
+
+[Service]
+Type=oneshot
+User=prayer-station
+Group=prayer-station
+Environment=STATION_ENV_FILE=/dev/null
+EnvironmentFile=/etc/prayer-tower-station.env
+ExecStart=/usr/bin/node /opt/prayer-tower-station/dist/src/health.js
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes

@@ -2,9 +2,11 @@
 //   PRAYER_TOWER_API_URL, STATION_API_KEY, CALL_SIGN (required)
 //   FLDIGI_URL (default http://127.0.0.1:7362/RPC2), MODEM (BPSK31), POLL_SECONDS (10),
 //   TX_TIMEOUT_SECONDS (180), MAX_PIECE_CHARS (500), BLOCKLIST_FILE (one word per line, added to the default list)
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { fldigiClient } from './fldigi.js';
 import { DEFAULT_BLOCKLIST } from './text.js';
+import { EXIT_TRANSMIT_FAILED } from './health.js';
 import { httpApi, runOnce, TransmitError } from './worker.js';
 
 const env = (name: string, fallback?: string) => {
@@ -38,6 +40,18 @@ const pollMs = int('POLL_SECONDS', '10', 1, 3600) * 1000;
 const api = httpApi(env('PRAYER_TOWER_API_URL'), env('STATION_API_KEY'));
 const fldigi = fldigiClient(env('FLDIGI_URL', 'http://127.0.0.1:7362/RPC2'));
 
+// Under systemd, STATE_DIRECTORY is /var/lib/prayer-tower-station; the health check reads the heartbeat there.
+const heartbeat = process.env.STATE_DIRECTORY ? path.join(process.env.STATE_DIRECTORY.split(':')[0]!, 'heartbeat') : null;
+const beat = () => {
+  if (heartbeat) {
+    try {
+      writeFileSync(heartbeat, new Date().toISOString());
+    } catch {
+      // The health check reports a stale heartbeat; the worker keeps going.
+    }
+  }
+};
+
 let stopping = false;
 process.on('SIGINT', () => (stopping = true));
 process.on('SIGTERM', () => (stopping = true));
@@ -45,6 +59,7 @@ process.on('SIGTERM', () => (stopping = true));
 await fldigi.setModem(cfg.modem);
 console.log(`[station] ${callSign} ready, ${cfg.modem}, polling every ${pollMs / 1000}s`);
 while (!stopping) {
+  beat();
   try {
     const outcome = await runOnce(api, fldigi, cfg);
     if (outcome === 'idle') await new Promise((r) => setTimeout(r, pollMs));
@@ -52,7 +67,8 @@ while (!stopping) {
     if (err instanceof TransmitError) {
       // Transmit is already disabled (rx_only); stop so a person can check the station.
       console.error(`[station] stopping: ${err.message}`);
-      process.exitCode = 1;
+      // A distinct exit code, so systemd does not restart it (RestartPreventExitStatus).
+      process.exitCode = EXIT_TRANSMIT_FAILED;
       break;
     }
     // The API is unreachable or refused (e.g. not in station mode): wait and try again.
