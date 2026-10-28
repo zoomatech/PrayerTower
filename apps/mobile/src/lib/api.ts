@@ -237,6 +237,8 @@ export interface NewPost {
 
 export const api = {
   me: () => get<{ profile: Profile; roles: Role[] }>('/me'),
+  sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
+    post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
   feed: (page = 0) => get<FeedPage>(`/feed?page=${page}`),
@@ -310,6 +312,11 @@ export const api = {
       get<{ standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(
         `/admin/prayer-warriors?days=${days}`,
       ),
+    feedback: () =>
+      get<{
+        feedback: { id: string; kind: string; body: string; platform: string | null; appVersion: string | null; createdAt: string; name: string }[];
+      }>('/admin/feedback'),
+    closeFeedback: (id: string) => post<{ ok: true }>(`/admin/feedback/${id}/close`),
     decideDeletionRequest: (id: string, action: 'delete' | 'dismiss') => post<{ ok: true }>(`/admin/deletion-requests/${id}`, { action }),
     milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),
     addMilestone: (input: Pick<MilestoneRule, 'label' | 'metric' | 'threshold' | 'amount'>) =>

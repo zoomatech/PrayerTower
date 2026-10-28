@@ -10,7 +10,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 - [x] **Members can delete their own requests and comments.** It's in the post screen, with two taps to confirm.
 - [ ] **Contact address in the app** (Apple 1.2). Set `EXPO_PUBLIC_SUPPORT_EMAIL`. It shows on the profile and with the rules.
 - [ ] **A real app icon.** A placeholder tower icon replaces Expo's default. Have a designer finalize it before App Store review.
-- [ ] **iPad screenshots.** `ios.supportsTablet` is true, so App Store Connect asks for iPad screenshots. Either provide them, or set it to false for the pilot.
+- [x] **iPad screenshots.** The pilot is iPhone-only (`ios.supportsTablet: false`, Expo's default), so App Store Connect needs only iPhone screenshots. Apple requires iPad 13-inch screenshots only "if your app supports iPadOS". ([Apple: Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/), [Expo: app config](https://docs.expo.dev/versions/latest/config/app/)) Turn it back on after the pilot once the layouts are checked on iPad.
 - [ ] **Store privacy answers and listing copy** from `docs/store/`.
 - [ ] **Crisis resources checked for the pilot's country**, both the crisis banner text and the numbers.
 
@@ -62,9 +62,9 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 ## 7. Final checks
 
 - [ ] `npm test`: all server and station tests pass, including the security checks.
-- [ ] `npm run test:e2e`: all 11 end-to-end tests pass locally.
+- [ ] `npm run test:e2e`: all 13 end-to-end tests pass locally.
 - [ ] Do one manual pass on a real phone: sign in, post, pray, commit, message, RSVP, report, and delete the account.
-- [ ] Set up a feedback channel, for example a group chat or a form, and tell members how to report bugs.
+- [x] **Feedback channel.** Members tap Me → Send feedback. Admins read and close it under Admin → Member feedback. Tell members it's there.
 - [ ] Rollback plan: keep the previous build in TestFlight, and take a database backup before each migration.
 
 ## 8. During the pilot (weekly)

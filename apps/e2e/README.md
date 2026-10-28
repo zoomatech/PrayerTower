@@ -13,6 +13,7 @@ Playwright drives the app's web build against the local API and Supabase, signed
 | `03-community` | RSVP to an event, joining a public group and posting in it, asking for a prayer partner, and the pastor reaching out |
 | `04-moderation` | A member reports a request, a moderator reviews it, and a member is kept out of the queue |
 | `05-account` | A member deletes one of their requests, then another deletes their account and can no longer sign in |
+| `06-feedback` | A member sends feedback from Me, and an admin reads it and marks it handled |
 
 ## Running it
 

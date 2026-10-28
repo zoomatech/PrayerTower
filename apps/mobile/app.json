@@ -8,7 +8,7 @@
     "scheme": "prayertower",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.zoomatech.prayertower",
       "icon": "./assets/images/icon.png"
     },

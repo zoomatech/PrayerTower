@@ -29,6 +29,7 @@ Prayer Tower is a community where people ask for prayer and pray for one another
 | Events | The title, description, place and video-meeting link you enter, and your RSVPs | To run prayer meetings and meet-ups |
 | Prayer partner and pastor requests | What you'd like prayer for | To connect you with a prayer partner or pastor |
 | Reports and appeals | What you report and why, and your appeal text | To keep the community safe |
+| Feedback | What you write in Send feedback, your phone type (iOS or Android) and the app version | To fix problems and improve the app |
 
 **Information created as you use the app**
 - **Prayer activity:** when you tap "Praying Now", the promises you make and your check-ins, the reminders you answer, who you follow and block, and the posts you hide.
