@@ -5,6 +5,7 @@ const en = {
     back: '‹ Back',
     praiseGod: 'Praise God!',
     photo: 'Photo',
+    playVideo: 'Play video',
     close: 'Close',
     loading: 'Loading…',
     cancel: 'Cancel',

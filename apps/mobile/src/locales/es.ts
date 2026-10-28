@@ -7,6 +7,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     back: '‹ Atrás',
     praiseGod: '¡Gloria a Dios!',
     photo: 'Foto',
+    playVideo: 'Reproducir video',
     close: 'Cerrar',
     loading: 'Cargando…',
     cancel: 'Cancelar',

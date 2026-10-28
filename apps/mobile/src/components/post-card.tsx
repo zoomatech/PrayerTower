@@ -11,7 +11,7 @@ import {
   type CardAction,
 } from '@prayer-tower/shared';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useLocale } from '@/lib/i18n';
@@ -35,7 +35,8 @@ export interface CardHandlers {
   onHide?: (card: Card) => void;
 }
 
-export function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
+// Memoized: a feed re-render (a prompt or highlights arriving) skips cards whose data didn't change.
+export const PostCard = memo(function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
   const { t, label } = useLocale();
   const answered = card.state === 'answered';
@@ -122,7 +123,7 @@ export function PostCard({ card, onAction, onHide, expanded: startExpanded = fal
       ) : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   hide: { fontSize: 15, color: colors.textMuted, paddingHorizontal: space.xs },

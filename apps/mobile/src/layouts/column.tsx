@@ -5,6 +5,7 @@ import { Tr } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
+import { feedListTuning } from './list-tuning';
 
 export function ColumnLayout({ cards, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   return (
@@ -19,15 +20,18 @@ export function ColumnLayout({ cards, pinnedId, renderCard, header, refreshing, 
       )}
       ListHeaderComponent={header ?? undefined}
       ListFooterComponent={atEnd && cards.length > 0 ? <Text style={styles.end}>You have seen every prayer for now. Thank you for praying.</Text> : undefined}
-      ItemSeparatorComponent={() => <View style={{ height: space.lg }} />}
+      ItemSeparatorComponent={Separator}
       contentContainerStyle={styles.content}
       refreshing={refreshing}
       onRefresh={onRefresh}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
+      {...feedListTuning}
     />
   );
 }
+
+const Separator = () => <View style={{ height: space.lg }} />;
 
 const styles = StyleSheet.create({
   content: { padding: space.lg, paddingBottom: 120 },

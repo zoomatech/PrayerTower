@@ -82,10 +82,10 @@ export default function Feed() {
     loadingMore.current = true;
     try {
       const page = await api.feed(nextPage);
-      setCards((prev) => [
-        ...prev,
-        ...page.posts.filter((p) => !prev.some((c) => c.id === p.id)),
-      ]);
+      setCards((prev) => {
+        const seen = new Set(prev.map((c) => c.id));
+        return [...prev, ...page.posts.filter((p) => !seen.has(p.id))];
+      });
       setNextPage(page.nextPage);
     } finally {
       loadingMore.current = false;
@@ -106,10 +106,11 @@ export default function Feed() {
   const Layout = layoutFor(theme);
 
   // "Not for me": the post leaves this feed and never comes back.
-  const hide = (card: Card) => {
+  const hide = useCallback((card: Card) => {
     setCards((prev) => prev.filter((c) => c.id !== card.id));
     api.hidePost(card.id).catch((e) => setError((e as Error).message));
-  };
+  }, []);
+  const renderCard = useCallback((card: Card) => <PostCard card={card} onAction={onAction} onHide={hide} />, [onAction, hide]);
 
   const answerPrompt = async (response: "prayed" | "dismissed") => {
     if (!prompt) return;
@@ -184,7 +185,7 @@ export default function Feed() {
           cards={cards}
           theme={theme}
           pinnedId={pinnedId}
-          renderCard={(card) => <PostCard card={card} onAction={onAction} onHide={hide} />}
+          renderCard={renderCard}
           header={header}
           refreshing={refreshing}
           onRefresh={load}
