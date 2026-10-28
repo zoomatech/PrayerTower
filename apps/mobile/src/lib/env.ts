@@ -25,5 +25,7 @@ export const env = {
    * Unset = Prayer Tower, where wording follows the member's community.
    */
   edition: process.env.EXPO_PUBLIC_EDITION === 'open-circle' ? ('open-circle' as const) : ('prayer-tower' as const),
+  /** The Open Circle edition's name, a placeholder until Steve picks one (also its app name, app.config.js). */
+  openCircleName: process.env.EXPO_PUBLIC_OPEN_CIRCLE_NAME || 'Open Circle',
   sentryEnvironment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'production',
 };

@@ -79,7 +79,13 @@ export default function Profile() {
         <ErrorText error={countsError} onRetry={loadCounts} />
         <View style={styles.stats}>
           <View style={styles.stat}>
-            <Text style={styles.statValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>
+            {/* Longer names (Open Circle's "Kindness Champion") start smaller: the web can't shrink text to fit. */}
+            <Text
+              style={[styles.statValue, tier?.tier?.label && n(tier.tier.label).length > 12 ? { fontSize: 13 } : null]}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
               {tier?.tier?.label ? n(tier.tier.label) : '—'}
             </Text>
             <Text style={type.small}>{profile.anonymous_by_default ? t('profile.tierPrivate') : t('profile.tier')}</Text>

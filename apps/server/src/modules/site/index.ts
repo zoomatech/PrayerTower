@@ -17,6 +17,30 @@ export interface SiteOptions {
   crisisCountry: string | null;
   /** Universal links (iOS) and App Links (Android) for shared /post URLs; unset = not served. */
   appLinks?: AppLinks;
+  /** Open Circle's own pages (./open-circle.ts); unset = not served. */
+  openCircle?: OpenCircleSite | null;
+}
+
+/** The ad-free, non-religious edition's public face (docs/OPEN_CIRCLE.md). */
+export interface OpenCircleSite {
+  /** A placeholder until Steve picks a name. */
+  name: string;
+  /** Hostnames that get Open Circle's pages at the root. The pages are always at /open-circle too. */
+  hosts: string[];
+  appStoreUrl: string | null;
+  supportEmail: string | null;
+}
+
+/** Whose pages these are, for layout(): Prayer Tower by default. */
+export interface Brand {
+  name: string;
+  /** Where the site's pages start: '' on its own domain, '/open-circle' under the Prayer Tower one. */
+  base: string;
+  footer: string;
+  /** Extra CSS: Open Circle's colors. */
+  css?: string;
+  /** Markup before the name in the header (a small logo). */
+  logo?: string;
 }
 
 export interface AppLinks {
@@ -186,16 +210,20 @@ export function legalDoc(
 
 const PAGES = ['/', '/support', '/privacy', '/terms', '/account-deletion'] as const;
 
-/** `current` is the page's English path ('' for pages outside the menu). */
-export function layout(title: string, body: string, current: string, lang: Lang = 'en') {
+/** A brand's page path: its base, then the page ('/' alone is the base itself). */
+export const brandPath = (b: Brand, page: string) => (page === '/' ? b.base || '/' : `${b.base}${page}`);
+
+/** `current` is the page's English path ('' for pages outside the menu). A brand (Open Circle) is English only. */
+export function layout(title: string, body: string, current: string, lang: Lang = 'en', brand?: Brand) {
   const t = T[lang];
   const nav = PAGES.map((p, i) => {
-    const href = pathFor(lang, p);
+    const href = brand ? brandPath(brand, p) : pathFor(lang, p);
     return `<a href="${href}"${p === current ? ' aria-current="page"' : ''}>${t.nav[i]}</a>`;
   }).join('');
   const other = t.other.lang as Lang;
-  const switcher = current && languages.spanish ? `<a href="${pathFor(other, current)}" hreflang="${other}" lang="${other}">${t.other.label}</a>` : '';
-  const alternates = current && languages.spanish
+  const spanish = languages.spanish && !brand;
+  const switcher = current && spanish ? `<a href="${pathFor(other, current)}" hreflang="${other}" lang="${other}">${t.other.label}</a>` : '';
+  const alternates = current && spanish
     ? (['en', 'es'] as const).map((l) => `<link rel="alternate" hreflang="${l}" href="${pathFor(l, current)}">`).join('')
     : '';
   return `<!doctype html>
@@ -222,15 +250,16 @@ export function layout(title: string, body: string, current: string, lang: Lang 
   th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
   blockquote { margin: 12px 0; padding: 8px 14px; border-left: 4px solid var(--gold); background: var(--card); border-radius: 8px; }
   footer { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 32px; color: var(--muted); font-size: 14px; }
+  .brand svg { width: 28px; height: 28px; border-radius: 7px; vertical-align: -7px; margin-right: 8px; }${brand?.css ?? ''}
 </style></head>
 <body>
-<header><a class="brand" href="${pathFor(lang, '/')}">Prayer Tower</a><nav aria-label="${t.navLabel}">${nav}${switcher}</nav></header>
+<header><a class="brand" href="${brand ? brandPath(brand, '/') : pathFor(lang, '/')}">${brand ? `${brand.logo ?? ''}${esc(brand.name)}` : 'Prayer Tower'}</a><nav aria-label="${t.navLabel}">${nav}${switcher}</nav></header>
 <main>${body}</main>
-<footer>${t.footer}</footer>
+<footer>${brand ? brand.footer : t.footer}</footer>
 </body></html>`;
 }
 
-function storeButtons(o: SiteOptions, lang: Lang) {
+export function storeButtons(o: Pick<SiteOptions, 'appStoreUrl' | 'playStoreUrl'>, lang: Lang) {
   return [
     o.appStoreUrl ? `<a class="button" href="${esc(o.appStoreUrl)}">${T[lang].appStore}</a>` : '',
     o.playStoreUrl ? `<a class="button" href="${esc(o.playStoreUrl)}">${T[lang].playStore}</a>` : '',

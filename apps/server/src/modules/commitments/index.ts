@@ -6,6 +6,7 @@ import { product } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
+import { isSecular } from '../communities/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from '../tokens/index.js';
@@ -241,6 +242,16 @@ export async function weeklyReview(q: Queryable, userId: string) {
     [userId],
   );
   const r = rows[0]!;
+  // Open Circle members read the same summary without religious words.
+  if (await isSecular(q, userId)) {
+    const message =
+      r.prayers > 0
+        ? `This week you supported people ${r.prayers} ${r.prayers === 1 ? 'time' : 'times'} on ${r.people} ${r.people === 1 ? 'request' : 'requests'}. Thank you for being there for them.`
+        : r.active > 0
+          ? 'Your promises are here whenever you are ready. WE DO NOT JUDGE.'
+          : 'When you are ready, there are people who could use some support.';
+    return { ...r, message };
+  }
   const message =
     r.prayers > 0
       ? `This week you prayed ${r.prayers} ${r.prayers === 1 ? 'time' : 'times'} for ${r.people} ${r.people === 1 ? 'request' : 'requests'}. Thank you for standing with them.`

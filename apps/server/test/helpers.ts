@@ -29,7 +29,14 @@ export const app = buildApp({
   classify: (text) => classifier(text),
   stationKey: STATION_KEY,
   deletionPage: { supabaseUrl: 'http://127.0.0.1:54321', publishableKey: 'sb_publishable_test', supportEmail: 'help@example.com' },
-  site: { supportEmail: 'help@example.com', legalDir: defaultLegalDir(), appStoreUrl: null, playStoreUrl: null, crisisCountry: 'US' },
+  site: {
+    supportEmail: 'help@example.com',
+    legalDir: defaultLegalDir(),
+    appStoreUrl: null,
+    playStoreUrl: null,
+    crisisCountry: 'US',
+    openCircle: { name: 'Open Circle', hosts: ['opencircle.example'], appStoreUrl: null, supportEmail: null },
+  },
 });
 
 export let classifier: Classifier = async () => null;

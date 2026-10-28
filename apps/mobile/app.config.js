@@ -15,27 +15,48 @@
 //
 // EXPO_PUBLIC_EDITION=open-circle builds the separately branded, non-religious
 // app (Steve, 2026-10-28): its own name, bundle ID and link scheme, always the
-// neutral wording, and new members join the Open Circle community. Its icon is
-// assets/images/open-circle-icon.png when that file exists, else the usual one.
-// "Open Circle" is a placeholder name until Steve picks one.
+// neutral wording, and new members join the Open Circle community. Its icon,
+// splash and favicon are assets/images/open-circle-*.png (npm run brand --
+// --edition open-circle). "Open Circle" is a placeholder name until Steve picks
+// one: EXPO_PUBLIC_OPEN_CIRCLE_NAME sets it for the build.
 const fs = require('node:fs');
 const path = require('node:path');
 
 const STAGING = process.env.APP_VARIANT === 'staging';
 const OPEN_CIRCLE = process.env.EXPO_PUBLIC_EDITION === 'open-circle';
+// Open Circle's color (scripts/branding/marks.mjs).
+const TEAL = '#1D6F6A';
 
-/** The Open Circle app's name, IDs and icon over the Prayer Tower ones. */
+/** The Open Circle app's name, IDs, icon and wording over the Prayer Tower ones. */
 function openCircle(config) {
   const id = 'com.zoomatech.opencircle';
-  const icon = fs.existsSync(path.join(__dirname, 'assets/images/open-circle-icon.png')) ? './assets/images/open-circle-icon.png' : config.icon;
+  const name = process.env.EXPO_PUBLIC_OPEN_CIRCLE_NAME || 'Open Circle';
+  const image = (file, fallback) => (fs.existsSync(path.join(__dirname, 'assets/images', file)) ? `./assets/images/${file}` : fallback);
+  const icon = image('open-circle-icon.png', config.icon);
+  // Plugin settings that carry Prayer Tower's colors or words.
+  const plugins = config.plugins.map((p) => {
+    if (!Array.isArray(p)) return p;
+    const [plugin, opts] = p;
+    if (plugin === 'expo-splash-screen') return [plugin, { ...opts, backgroundColor: TEAL, image: image('open-circle-splash-icon.png', opts.image) }];
+    if (plugin === 'expo-notifications') return [plugin, { ...opts, color: TEAL }];
+    if (plugin === 'expo-image-picker') return [plugin, { ...opts, photosPermission: `Allow ${name} to add your photos and videos to your posts.` }];
+    if (plugin === 'expo-audio') return [plugin, { ...opts, microphonePermission: 'Allow $(PRODUCT_NAME) to record the voice notes you choose to send.' }];
+    if (plugin === 'expo-widgets' || plugin === 'react-native-android-widget') {
+      const widgets = opts.widgets.map((w) => ({ ...w, displayName: w.displayName && 'Lift Someone Up', label: w.label && 'Lift someone up', description: 'The next request that could use your support.' }));
+      return [plugin, { ...opts, widgets: widgets.map((w) => Object.fromEntries(Object.entries(w).filter(([, v]) => v !== undefined))) }];
+    }
+    return p;
+  });
   return {
     ...config,
-    name: 'Open Circle',
+    name,
     slug: 'open-circle',
     scheme: 'opencircle',
     icon,
-    ios: { ...config.ios, bundleIdentifier: id },
-    android: { ...config.android, package: id },
+    plugins,
+    ios: { ...config.ios, bundleIdentifier: id, icon },
+    android: { ...config.android, package: id, adaptiveIcon: { ...config.android.adaptiveIcon, backgroundColor: TEAL } },
+    web: { ...config.web, favicon: image('open-circle-favicon.png', config.web.favicon) },
   };
 }
 

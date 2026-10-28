@@ -12,6 +12,17 @@ const Env = z.object({
   SUPPORT_EMAIL: z.string().optional(),
   /** Public website: where the privacy policy and terms (.md) live; defaults to docs/legal in the repo. */
   SITE_LEGAL_DIR: z.string().optional(),
+  /**
+   * Open Circle's website (docs/OPEN_CIRCLE.md): hostnames (comma-separated) that get its own
+   * landing, support, privacy and terms pages at the root. They are always at /open-circle too.
+   */
+  OPEN_CIRCLE_HOSTS: z.string().default(''),
+  /** Open Circle's name on its website; a placeholder until Steve picks one. */
+  OPEN_CIRCLE_NAME: z.string().trim().min(1).max(30).default('Open Circle'),
+  /** Open Circle's App Store link, once it is listed. */
+  OPEN_CIRCLE_APP_STORE_URL: z.url().optional(),
+  /** Open Circle's contact address; unset = SUPPORT_EMAIL. */
+  OPEN_CIRCLE_SUPPORT_EMAIL: z.string().optional(),
   /** Store links shown on the landing page once the app is listed. */
   APP_STORE_URL: z.url().optional(),
   // The web app (PWA) address; invite emails link to its /sign-in?invite=CODE.

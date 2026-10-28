@@ -48,6 +48,20 @@ describe('Open Circle, the non-religious community', () => {
     expect(confession.statusCode).toBe(400);
   });
 
+  it('sums up the week without religious words for Open Circle members', async () => {
+    const circle = await createUser('Weekly Wren');
+    const friend = await createUser('Weekly Will');
+    await db.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
+    await as(circle).post('/me/community', { slug: 'open-circle' });
+    expect((await as(circle).get('/me/commitments/review')).json().message).toBe('When you are ready, there are people who could use some support.');
+    const post = await newRequest(friend, 'A long week ahead.');
+    await as(circle).post(`/posts/${post.id}/praying-now`, {});
+    const review = (await as(circle).get('/me/commitments/review')).json();
+    expect(review.message).toBe('This week you supported people 1 time on 1 request. Thank you for being there for them.');
+    expect(review.message).not.toMatch(/pray/i);
+    expect((await as(friend).get('/me/commitments/review')).json().message).toContain('people waiting for prayer');
+  });
+
   it('uses plain, warm wording in notices to Open Circle members', async () => {
     const circle = await createUser('Notice Nia');
     const friend = await createUser('Friendly Fay');

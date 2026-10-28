@@ -1,12 +1,15 @@
 // Visual tokens for the V1 "Classic" theme. A feed theme's `tokens` can override these later.
+// The Open Circle build (EXPO_PUBLIC_EDITION=open-circle) has its own teal in place of the purple,
+// the same as its icon and website (scripts/branding/marks.mjs). Teal text is 5.1:1 or more on white, the background and primarySoft (WCAG AA).
+const OPEN_CIRCLE = process.env.EXPO_PUBLIC_EDITION === 'open-circle';
 export const colors = {
   background: '#FBF8F3',
   surface: '#FFFFFF',
   border: '#E8E1D6',
   text: '#2B2433',
   textMuted: '#6F6677',
-  primary: '#5B3E96',
-  primarySoft: '#EFE9F8',
+  primary: OPEN_CIRCLE ? '#1D6F6A' : '#5B3E96',
+  primarySoft: OPEN_CIRCLE ? '#E3F1EF' : '#EFE9F8',
   gold: '#C9A227',
   goldSoft: '#FBF3D9',
   /** Gold for text: at least 4.5:1 on white, the background and goldSoft (WCAG AA). Plain gold is for fills only. */

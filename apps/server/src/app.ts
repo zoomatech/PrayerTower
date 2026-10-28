@@ -164,7 +164,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   if (deletionPage) {
     app.register(async (open) => {
       if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 10, timeWindow: '1 minute' });
-      deletionPageRoutes(open, db, deletionPage);
+      deletionPageRoutes(open, db, { ...deletionPage, openCircle: site?.openCircle ?? null });
     });
   }
 

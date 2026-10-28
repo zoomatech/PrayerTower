@@ -59,7 +59,7 @@ export function ThanksCard() {
 
 /** "N people have prayed for your requests", for the Me screen. */
 export function PrayedForYou() {
-  const { t } = useLocale();
+  const { t, wording } = useLocale();
   const features = useFeatures();
   const [stats, setStats] = useState<WorldwideStats | null>(null);
   useFocusEffect(
@@ -68,7 +68,7 @@ export function PrayedForYou() {
     }, []),
   );
   if (!features.worldwideCount || !stats?.enabled || stats.peoplePrayedForYou === 0) return null;
-  return <Text style={type.body}>🙏 {t('notebook.prayedForYou', { count: stats.peoplePrayedForYou })}</Text>;
+  return <Text style={type.body}>{wording === 'neutral' ? '🤝' : '🙏'} {t('notebook.prayedForYou', { count: stats.peoplePrayedForYou })}</Text>;
 }
 
 const styles = StyleSheet.create({

@@ -2,7 +2,7 @@ import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'ex
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useT } from '@/lib/i18n';
+import { useLocale } from '@/lib/i18n';
 import { colors, space } from '@/lib/theme';
 
 function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSlotProps & { icon: string; label: string }) {
@@ -18,7 +18,7 @@ function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSl
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  const t = useT();
+  const { t, wording } = useLocale();
   return (
     <Tabs style={styles.root}>
       <TabSlot style={styles.root} />
@@ -28,7 +28,8 @@ export default function TabsLayout() {
             <TabButton icon="🕊" label={t('tabs.prayers')} />
           </TabTrigger>
           <TabTrigger name="commitments" href="/commitments" asChild>
-            <TabButton icon="🙏" label={t('tabs.promises')} />
+            {/* Open Circle (neutral wording): praying hands are a religious sign there. */}
+            <TabButton icon={wording === 'neutral' ? '🤝' : '🙏'} label={t('tabs.promises')} />
           </TabTrigger>
           <TabTrigger name="messages" href="/messages" asChild>
             <TabButton icon="💬" label={t('tabs.messages')} />

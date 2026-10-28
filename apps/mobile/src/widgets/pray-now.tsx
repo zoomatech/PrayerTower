@@ -37,9 +37,12 @@ const PrayNow = (props: PrayNowProps, environment: WidgetEnvironment) => {
   );
 };
 
-export default createWidget('PrayNow', PrayNow, {
-  heading: 'Pray now',
-  text: 'Open Prayer Tower to see who needs prayer.',
-  detail: '',
-  url: 'prayertower:///',
-});
+// Shown until the app first sends content. The Open Circle build has its own words and link scheme.
+const OPEN_CIRCLE = process.env.EXPO_PUBLIC_EDITION === 'open-circle';
+export default createWidget(
+  'PrayNow',
+  PrayNow,
+  OPEN_CIRCLE
+    ? { heading: 'Lift someone up', text: 'Open the app to see who could use some support.', detail: '', url: 'opencircle:///' }
+    : { heading: 'Pray now', text: 'Open Prayer Tower to see who needs prayer.', detail: '', url: 'prayertower:///' },
+);
