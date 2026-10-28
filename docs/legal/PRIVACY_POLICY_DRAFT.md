@@ -74,6 +74,7 @@ We use the companies below to run the app. They process information on our behal
 | Supabase | Database, sign-in and file storage | Everything stored by the app |
 | [HOSTING PROVIDER] | Runs our API server | Requests to the API |
 | OpenAI (moderation API) | Automated safety check, when switched on | The text being checked, without your name. OpenAI says API data isn't used to train its models by default. Its moderations endpoint is not covered by abuse-monitoring retention. ([OpenAI](https://developers.openai.com/api/docs/guides/your-data)) |
+| Sentry (error reporting), when switched on | Tells us when the app or server crashes | Crash details: the stack trace, device and app version, and the screen or route. It does not receive your name, account or anything you wrote. |
 | Expo push service, Apple Push Notification service, Firebase Cloud Messaging | Deliver notifications | Your push token and the notification text |
 | Video meeting services (for example Zoom or Google Meet) | Only when you choose to open an event's meeting link | Whatever you share with that service, under its own policy |
 

@@ -29,6 +29,7 @@ import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
+import { registerMetrics } from './metrics.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
@@ -50,14 +51,19 @@ export interface AppDeps {
   rateLimitPerMinute?: number;
   /** The public account-deletion page (Google Play); null = page off. */
   deletionPage?: DeletionPageOptions | null;
+  /** Bearer token for GET /metrics (Prometheus); null = no metrics endpoint. */
+  metricsToken?: string | null;
   /** The public website (landing, support, privacy, terms); null = off. */
   site?: SiteOptions | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null }: AppDeps) {
-  const app = Fastify({ logger });
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null }: AppDeps) {
+  // Logs carry method, route, status and timing; never bodies or sign-in tokens.
+  const app = Fastify({
+    logger: logger ? { level: process.env.LOG_LEVEL ?? 'info', redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-station-key"]'] } : false,
+  });
   if (onRoute) {
     app.addHook('onRoute', (r) => {
       for (const method of [r.method].flat()) if (method !== 'HEAD') onRoute({ method, url: r.url });
@@ -81,6 +87,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   });
 
   app.decorateRequest('auth', null);
+  if (metricsToken) registerMetrics(app, db, metricsToken);
   app.get('/health', async () => {
     await db.query('select 1');
     return { ok: true };

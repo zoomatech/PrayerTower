@@ -7,7 +7,7 @@ services:
     build:
       context: .
       dockerfile: apps/server/Dockerfile
-    command: ["node", "apps/server/dist/src/server.js"]
+    command: ["node", "--import", "./apps/server/dist/src/instrument.js", "apps/server/dist/src/server.js"]
     env_file: apps/server/.env
     environment:
       PORT: "3000"
@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: apps/server/Dockerfile
-    command: ["node", "apps/server/dist/src/worker.js"]
+    command: ["node", "--import", "./apps/server/dist/src/instrument.js", "apps/server/dist/src/worker.js"]
     env_file: apps/server/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -27,6 +27,10 @@ const Env = z.object({
   CORS_ORIGINS: z.string().default(''),
   /** API requests allowed per signed-in member per minute; 0 turns the limit off. */
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).default(300),
+  /** Error reporting (see src/instrument.ts); unset = off. Read straight from the environment there. */
+  SENTRY_DSN: z.string().optional(),
+  /** Bearer token for GET /metrics; unset = no metrics endpoint. */
+  METRICS_TOKEN: z.string().min(24).optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
 });
 

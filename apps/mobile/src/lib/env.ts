@@ -10,4 +10,7 @@ export const env = {
   supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? '',
   /** Which country's crisis line to show (US, CA, GB or IE). Defaults to the US. */
   crisisCountry: process.env.EXPO_PUBLIC_CRISIS_COUNTRY ?? 'US',
+  /** Crash reporting (Sentry); unset = off. The DSN is public by design. */
+  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
+  sentryEnvironment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'production',
 };
