@@ -11,7 +11,8 @@ test('iPad portrait: side column on the feed, split view in Messages', async ({ 
 
   await page.getByRole('tab', { name: 'Messages', exact: true }).click();
   // A conversation opens beside the list, with no back button, and the tab bar stays.
-  await page.getByRole('button', { name: /Demo Ethel/ }).click();
+  // Other tests add conversations with Ethel, so take the first.
+  await page.getByRole('button', { name: /Demo Ethel/ }).first().click();
   await expect(page.getByPlaceholder(/Write a message/).filter({ visible: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '‹ Messages' }).filter({ visible: true })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: 'Messages', exact: true })).toBeVisible();
