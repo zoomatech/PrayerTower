@@ -12,7 +12,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 - [ ] **A real app icon.** A placeholder tower icon replaces Expo's default. Have a designer finalize it before App Store review.
 - [x] **iPad screenshots.** The pilot is iPhone-only (`ios.supportsTablet: false`, Expo's default), so App Store Connect needs only iPhone screenshots. Apple requires iPad 13-inch screenshots only "if your app supports iPadOS". ([Apple: Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/), [Expo: app config](https://docs.expo.dev/versions/latest/config/app/)) Turn it back on after the pilot once the layouts are checked on iPad.
 - [ ] **Store privacy answers and listing copy** from `docs/store/`.
-- [ ] **Crisis resources checked for the pilot's country**, both the crisis banner text and the numbers.
+- [ ] **Crisis line for the pilot's country.** Set `EXPO_PUBLIC_CRISIS_COUNTRY` (app) and `CRISIS_COUNTRY` (server) to the same value: `US` for 988 (the default), `CA` for 9-8-8, or `GB`/`IE` for Samaritans 116 123. The numbers were checked on 2026-10-28 against [SAMHSA](https://www.samhsa.gov/mental-health/988/faqs), [988.ca](https://988.ca) and [Samaritans](https://www.samaritans.org/samaritans-ireland/about/). Check again before launch, and add a country to `CRISIS_LINES` in `packages/shared` if needed.
 
 ## 2. Hosted Supabase project
 

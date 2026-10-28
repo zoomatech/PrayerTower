@@ -2,6 +2,7 @@
 // queue. AI never penalizes anyone; it can only auto-hide the most severe
 // content until a moderator decides. Every decision is logged.
 import type { Task } from 'graphile-worker';
+import { crisisLine } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
@@ -231,7 +232,7 @@ export function removalNotice(target: Target, rule: Rule, itemId: string, suspen
   const noun = NOUN[target];
   const body =
     rule === 'safe_messaging'
-      ? `We removed your ${noun} because it described ways of self-harm, which can put others at risk. Your prayer matters, and you are welcome to post it again without those details. If you are struggling, call or text 988 any time.`
+      ? `We removed your ${noun} because it described ways of self-harm, which can put others at risk. Your prayer matters, and you are welcome to post it again without those details. If you are struggling, ${crisisLine(process.env.CRISIS_COUNTRY).reach}.`
       : `We removed your ${noun} because it broke a community rule: ${RULES[rule]}.` +
         (suspendedUntil ? ` Your account can't post until ${suspendedUntil.toDateString()}.` : '') +
         ' If you think we got this wrong, you can appeal.';

@@ -64,14 +64,53 @@ export const MODERATION_RULES = {
 } as const;
 export type ModerationRule = keyof typeof MODERATION_RULES;
 
-/** Shown when a post or comment mentions suicide or self-harm (Samaritans guidance; 988 is the US line). */
-export const CRISIS_SUPPORT = {
-  title: 'You are not alone',
-  body: 'If you or someone you love is thinking about suicide or self-harm, talk to someone now. The 988 Suicide & Crisis Lifeline is free, confidential and open 24/7.',
-  call: 'tel:988',
-  text: 'sms:988',
-  chat: 'https://988lifeline.org/chat/',
+/**
+ * Crisis lines shown when a post or comment mentions suicide or self-harm
+ * (Samaritans safe-messaging guidance). Pick the pilot's country with
+ * EXPO_PUBLIC_CRISIS_COUNTRY in the app and CRISIS_COUNTRY on the server.
+ * Sources, checked 2026-10-28: samhsa.gov/mental-health/988 (US),
+ * 988.ca (Canada), samaritans.org (UK and Ireland). Check again before adding a
+ * country or launching in one.
+ */
+export const CRISIS_LINES = {
+  US: {
+    name: 'the 988 Suicide & Crisis Lifeline',
+    body: 'If you or someone you love is thinking about suicide or self-harm, talk to someone now. The 988 Suicide & Crisis Lifeline is free, confidential and open 24/7.',
+    reach: 'call or text 988 any time',
+    actions: [
+      { label: 'Call 988', url: 'tel:988' },
+      { label: 'Text 988', url: 'sms:988' },
+      { label: 'Chat online', url: 'https://988lifeline.org/chat/' },
+    ],
+  },
+  CA: {
+    name: '9-8-8: Suicide Crisis Helpline',
+    body: 'If you or someone you love is thinking about suicide or self-harm, talk to someone now. 9-8-8 is open 24 hours a day, every day of the year.',
+    reach: 'call or text 9-8-8 any time',
+    actions: [
+      { label: 'Call 9-8-8', url: 'tel:988' },
+      { label: 'Text 9-8-8', url: 'sms:988' },
+      { label: '988.ca', url: 'https://988.ca' },
+    ],
+  },
+  GB: {
+    name: 'Samaritans',
+    body: 'If you or someone you love is thinking about suicide or self-harm, talk to someone now. Samaritans are free to call from any phone in the UK and Ireland, 24 hours a day.',
+    reach: 'call Samaritans free on 116 123 any time',
+    actions: [
+      { label: 'Call 116 123', url: 'tel:116123' },
+      { label: 'samaritans.org', url: 'https://www.samaritans.org' },
+    ],
+  },
 } as const;
+export type CrisisCountry = keyof typeof CRISIS_LINES;
+
+/** The crisis line for a country code; Ireland shares Samaritans with the UK, and anything unknown falls back to the US. */
+export function crisisLine(country?: string | null) {
+  const code = (country ?? '').trim().toUpperCase();
+  const key = (code === 'IE' || code === 'UK' ? 'GB' : code) as CrisisCountry;
+  return { title: 'You are not alone', ...(CRISIS_LINES[key] ?? CRISIS_LINES.US) };
+}
 
 export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
 export type CardType = PostType | 'scripture_leaf' | 'feed_end';
