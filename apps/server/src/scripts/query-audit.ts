@@ -274,7 +274,7 @@ const lines: string[] = [
 const details: string[] = [];
 for (const [i, r] of top.entries()) {
   const e = await explain(r);
-  const first = normalize(r.text).slice(0, 90).replace(/\|/g, '\\|');
+  const first = normalize(r.text).slice(0, 90).replace(/[\\|]/g, (c) => `\\${c}`);
   if ('error' in e) {
     lines.push(`| ${i + 1} | ${r.calls} | ${r.totalMs.toFixed(0)} | ${r.meanMs.toFixed(2)} | n/a | n/a | \`${first}…\` |`);
     details.push(`## ${i + 1}\n\n\`\`\`sql\n${r.text.trim()}\n\`\`\`\n\nEXPLAIN failed: ${e.error}\n`);
@@ -287,7 +287,7 @@ for (const [i, r] of top.entries()) {
 }
 const slowest = [...groups.values()].map((g) => ({ ...g, meanMs: g.totalMs / g.calls })).sort((a, b) => b.meanMs - a.meanMs).slice(0, 5);
 lines.push('', '## Slowest per call', '', '| Mean ms | Calls | Query |', '|---|---|---|');
-for (const r of slowest) lines.push(`| ${r.meanMs.toFixed(2)} | ${r.calls} | \`${normalize(r.text).slice(0, 90).replace(/\|/g, '\\|')}…\` |`);
+for (const r of slowest) lines.push(`| ${r.meanMs.toFixed(2)} | ${r.calls} | \`${normalize(r.text).slice(0, 90).replace(/[\\|]/g, (c) => `\\${c}`)}…\` |`);
 lines.push('', '## Routes driven', '', ...SEEN_ROUTES.map((r) => `- ${r}`), '', '# Plans', '', ...details);
 const out = fileURLToPath(new URL('../../../../docs/QUERY_AUDIT_RESULTS.md', import.meta.url));
 writeFileSync(out, lines.join('\n') + '\n');

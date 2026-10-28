@@ -44,6 +44,8 @@ if [ -z "${RESTORE_URL:-}" ]; then
   log "Starting a throwaway Supabase stack for the restore"
   drill_stack="$work/stack"
   mkdir -p "$drill_stack/supabase/migrations"
+  # config.toml points at the email templates by relative path.
+  cp -R "$root/supabase/templates" "$drill_stack/supabase/templates"
   # The main stack uses 543xx. Try 553xx, then 563xx, ...: skip a range with a
   # port already listening, and move on if Docker still can't bind one.
   in_use() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
