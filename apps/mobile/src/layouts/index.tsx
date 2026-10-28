@@ -24,6 +24,8 @@ export interface FeedLayoutProps {
   atEnd: boolean;
   /** Card actions, for layouts with their own gestures (swipe right to pray). */
   onAction?: (card: Card, action: CardAction) => void;
+  /** Cards side by side on very wide windows (iPad landscape, Mac). Layouts with their own structure may ignore it. */
+  columns?: number;
 }
 
 export type FeedLayout = (props: FeedLayoutProps) => ReactElement;

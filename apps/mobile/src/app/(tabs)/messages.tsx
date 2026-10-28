@@ -4,12 +4,16 @@
 import type { ConversationSummary } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { ConversationPane } from '@/components/conversation-pane';
 import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
-import { colors, radius, space, type } from '@/lib/theme';
+import { breakpoints, colors, radius, space, type } from '@/lib/theme';
+
+// On wide windows (iPad, Mac) the list sits on the left and the open conversation beside it.
+const LIST_WIDTH = 360;
 
 
 export default function Messages() {
@@ -17,6 +21,8 @@ export default function Messages() {
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const split = useWindowDimensions().width >= breakpoints.split;
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -39,8 +45,16 @@ export default function Messages() {
   const requests = items.filter((c) => c.isRequest);
   const rest = items.filter((c) => !c.isRequest);
 
+  // In the split view, show the first conversation until one is picked.
+  const shown = split ? (items.find((c) => c.id === openId) ?? items[0] ?? null) : null;
+
   const row = (c: ConversationSummary) => (
-    <Pressable key={c.id} style={[styles.item, c.unread > 0 && styles.unread]} onPress={() => router.push(`/conversation/${c.id}`)} accessibilityRole="link">
+    <Pressable
+      key={c.id}
+      style={[styles.item, c.unread > 0 && styles.unread, shown?.id === c.id && styles.selected]}
+      onPress={() => (split ? setOpenId(c.id) : router.push(`/conversation/${c.id}`))}
+      accessibilityRole={split ? 'button' : 'link'}
+      aria-selected={split ? shown?.id === c.id : undefined}>
       <View style={styles.rowTop}>
         <Text style={styles.title} numberOfLines={1}>
           {c.title}
@@ -62,25 +76,45 @@ export default function Messages() {
     </Pressable>
   );
 
+  const list = (
+    <ScrollView
+      style={split ? styles.list : undefined}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
+      <Text style={type.title}>{t('tabs.messages')}</Text>
+      <Text style={type.small}>{t('messages.privacy')}</Text>
+      <View style={styles.links}>
+        <Button variant="secondary" label={t('messages.groups')} onPress={() => router.push('/groups')} />
+        <Button variant="secondary" label={t('messages.events')} onPress={() => router.push('/events')} />
+        <Button variant="secondary" label={t('messages.care')} onPress={() => router.push('/care')} />
+      </View>
+      <ErrorText error={error} />
+      {requests.length ? <Text style={type.heading}>{t('messages.requests')}</Text> : null}
+      {requests.map(row)}
+      {requests.length && rest.length ? <Text style={type.heading}>{t('messages.conversations')}</Text> : null}
+      {rest.map(row)}
+      {items.length === 0 ? (
+        <Empty text={t('messages.empty')} />
+      ) : null}
+    </ScrollView>
+  );
+
+  if (!split) return <Screen>{list}</Screen>;
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
-        <Text style={type.title}>{t('tabs.messages')}</Text>
-        <Text style={type.small}>{t('messages.privacy')}</Text>
-        <View style={styles.links}>
-          <Button variant="secondary" label={t('messages.groups')} onPress={() => router.push('/groups')} />
-          <Button variant="secondary" label={t('messages.events')} onPress={() => router.push('/events')} />
-          <Button variant="secondary" label={t('messages.care')} onPress={() => router.push('/care')} />
-        </View>
-        <ErrorText error={error} />
-        {requests.length ? <Text style={type.heading}>{t('messages.requests')}</Text> : null}
-        {requests.map(row)}
-        {requests.length && rest.length ? <Text style={type.heading}>{t('messages.conversations')}</Text> : null}
-        {rest.map(row)}
-        {items.length === 0 ? (
-          <Empty text={t('messages.empty')} />
+    <Screen style={styles.splitScreen}>
+      {list}
+      <View style={styles.pane}>
+        {shown ? (
+          <ConversationPane
+            key={shown.id}
+            id={shown.id}
+            onClose={() => {
+              setOpenId(null);
+              load();
+            }}
+          />
         ) : null}
-      </ScrollView>
+      </View>
     </Screen>
   );
 }
@@ -89,6 +123,10 @@ const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.md, paddingBottom: 120 },
   item: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: 4 },
   unread: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  selected: { borderColor: colors.primary, borderWidth: 2 },
+  splitScreen: { maxWidth: 1200, flexDirection: 'row' },
+  list: { width: LIST_WIDTH, flexGrow: 0, borderRightWidth: 1, borderRightColor: colors.border },
+  pane: { flex: 1, minWidth: 0 },
   links: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   title: { flex: 1, fontWeight: '700', fontSize: 16, color: colors.text },

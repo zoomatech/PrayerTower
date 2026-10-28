@@ -19,6 +19,8 @@ export const colors = {
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
 export const radius = { sm: 8, md: 12, lg: 18, pill: 999 };
 export const maxContentWidth = 640;
+/** Window widths (points) for wider layouts on iPad, Mac and the web. 768 is the narrowest iPad held upright. */
+export const breakpoints = { split: 768, twoColumnFeed: 1280 };
 
 export const type = {
   title: { fontSize: 26, fontWeight: '700' as const, color: colors.text },

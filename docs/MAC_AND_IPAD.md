@@ -6,7 +6,11 @@ The iOS app also runs on iPad and on Apple silicon Macs ("Designed for iPad"). T
 
 - `ios.supportsTablet` is `true` in `apps/mobile/app.json`. Apple: "An app that you build to deploy only on iPhone always runs in a fixed-size window" on a Mac; supporting iPad multitasking gives resizable Mac windows [1].
 - The window can't be made smaller than 375 × 600 points (`UIWindowScene.sizeRestrictions`, set by `modules/mac-menu`) [2].
-- Layouts: every screen keeps its content to a 640-point column, centered (`maxContentWidth` in `src/lib/theme.ts`). The Prayers feed adds a side column with "Most prayed this week" and "Top prayer warriors" from 1000 points wide.
+- Layouts (`breakpoints` in `src/lib/theme.ts`). Most screens keep their content in a centered 640-point column (`maxContentWidth`).
+  - From 768 points wide (any iPad held upright, or a wide Mac window), the Prayers feed adds a side column with "Most prayed this week" and "Top prayer warriors". Messages shows the list on the left and the open conversation on the right.
+  - From 1280 points (iPad landscape, a large Mac window), feed cards sit two side by side in the column layout.
+  - In iPad Split View or Slide Over (320 points and up), the phone layout is used.
+  - Checked in `apps/e2e/tests/12-ipad.spec.ts`.
 - Turning `supportsTablet` on means App Store Connect needs an iPad 13-inch screenshot [3]. The set is in the project files under `store-screenshots/ipad-13in-2064x2752`.
 
 ## Menu bar and keyboard shortcuts
