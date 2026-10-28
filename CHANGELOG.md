@@ -4,6 +4,8 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- iPhone release pipeline: tag builds to TestFlight, over-the-air updates from Actions ([#46](https://github.com/zoomatech/PrayerTower/pull/46))
+- Mobile unit tests in CI, plus fixes from a new-member screen walk ([#44](https://github.com/zoomatech/PrayerTower/pull/44))
 - Monitoring: worker heartbeat, /health/ready, server-error log, ops alerts and Admin → Operations ([#45](https://github.com/zoomatech/PrayerTower/pull/45))
 - English only: hide Spanish everywhere members see it, behind a switch that is off ([#43](https://github.com/zoomatech/PrayerTower/pull/43))
 - Witness stories with consent, full "Will you pray for" list, one-value go-live settings, bug hunt 3 ([#42](https://github.com/zoomatech/PrayerTower/pull/42))

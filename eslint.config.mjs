@@ -8,7 +8,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  globalIgnores(['apps/mobile/**', '**/node_modules/**', '**/dist/**', '**/coverage/**', 'apps/e2e/.web-dist/**', 'apps/e2e/test-results/**', 'apps/e2e/playwright-report/**', 'apps/station/.venv/**']),
+  globalIgnores(['apps/mobile/**', '**/node_modules/**', '**/dist/**', '**/coverage/**', 'apps/e2e/.web-dist/**', 'apps/e2e/test-results/**', 'apps/e2e/playwright-report/**', 'apps/station/.venv/**', 'deploy/fly-web/site/**']),
   {
     files: ['**/*.{js,mjs,cjs,ts}'],
     extends: [js.configs.recommended, tseslint.configs.recommended],

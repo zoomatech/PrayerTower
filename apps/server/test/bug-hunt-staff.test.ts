@@ -30,6 +30,11 @@ describe('radio prayers', () => {
     expect(rows[0]).toEqual({ status: 'failed', error: 'not sent: request removed or hidden' });
     expect(await tokens.balanceOf(db, sender, 'priestly')).toBe(1);
     expect((await db.query('select count(*)::int as n from public.token_ledger_audit')).rows[0].n).toBe(0);
+    // The sender is told, without the reason (it names a moderator's decision).
+    const told = (await as(sender).get('/me/notifications')).json().notifications.filter((n: { kind: string }) => n.kind === 'radio_not_sent');
+    expect(told).toHaveLength(1);
+    expect(told[0].body).toBe('Your Priestly token is back in your balance.');
+    expect(JSON.stringify(told[0])).not.toMatch(/removed/);
   });
 
   it('cannot be sent for someone who blocked you', async () => {
