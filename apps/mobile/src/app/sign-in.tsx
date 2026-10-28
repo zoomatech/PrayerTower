@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 
+import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
+import { useT } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, space, type } from '@/lib/theme';
 
 export default function SignIn() {
+  const t = useT();
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -25,7 +28,7 @@ export default function SignIn() {
         : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { display_name: name.trim() } } });
     setBusy(false);
     if (err) setError(err.message);
-    else if (mode === 'sign-up' && !data.session) setNotice('Check your email to confirm your account, then sign in.');
+    else if (mode === 'sign-up' && !data.session) setNotice(t('signIn.checkEmail'));
   };
 
   return (
@@ -35,27 +38,28 @@ export default function SignIn() {
           <Text style={styles.logo}>🕊</Text>
           <Text style={type.title}>Prayer Tower</Text>
           <Text style={[type.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Real people praying for you, by name, right now.
+            {t('signIn.tagline')}
           </Text>
         </View>
         <View style={styles.form}>
-          {mode === 'sign-up' ? <Field label="Your name" value={name} onChangeText={setName} autoComplete="name" /> : null}
-          <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} />
+          {mode === 'sign-up' ? <Field label={t('signIn.name')} value={name} onChangeText={setName} autoComplete="name" /> : null}
+          <Field label={t('signIn.email')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+          <Field label={t('signIn.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} />
           <ErrorText error={error} />
           {notice ? <Text style={type.small}>{notice}</Text> : null}
           <Button
-            label={mode === 'sign-in' ? 'Sign in' : 'Create account'}
+            label={mode === 'sign-in' ? t('signIn.signIn') : t('signIn.createAccount')}
             onPress={submit}
             busy={busy}
             disabled={!email || password.length < 6 || (mode === 'sign-up' && !name.trim())}
           />
-          {mode === 'sign-up' ? <LegalLinks prefix="By creating an account you confirm you are 18 or older and agree to the" /> : null}
+          {mode === 'sign-up' ? <LegalLinks prefix={t('signIn.legalPrefix')} /> : null}
           <Button
             variant="ghost"
-            label={mode === 'sign-in' ? 'New here? Create an account' : 'Already have an account? Sign in'}
+            label={mode === 'sign-in' ? t('signIn.toSignUp') : t('signIn.toSignIn')}
             onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
           />
+          <LanguagePicker heading={false} />
         </View>
       </KeyboardAvoidingView>
     </Screen>

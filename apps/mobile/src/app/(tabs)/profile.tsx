@@ -13,14 +13,17 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Profile() {
   const { profile, roles, refreshProfile, signOut } = useAuth();
+  const { t, label } = useLocale();
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,67 +50,66 @@ export default function Profile() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={type.title}>{profile.display_name || 'Me'}</Text>
+        <Text style={type.title}>{profile.display_name || t('profile.me')}</Text>
         {profile.why_here.length ? (
-          <Text style={type.body}>{profile.why_here.map((w) => WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS] ?? w).join(' · ')}</Text>
+          <Text style={type.body}>{profile.why_here.map((w) => label('whyHere', w, WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS])).join(' · ')}</Text>
         ) : null}
 
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{tier?.tier?.label ?? '—'}</Text>
-            <Text style={type.small}>{profile.anonymous_by_default ? 'Your tier (private)' : 'Your tier'}</Text>
+            <Text style={type.small}>{profile.anonymous_by_default ? t('profile.tierPrivate') : t('profile.tier')}</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{tier?.prayers ?? 0}</Text>
-            <Text style={type.small}>Prayers</Text>
+            <Text style={type.small}>{t('profile.prayers')}</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{tokens?.balance ?? 0}</Text>
-            <Text style={type.small}>Tokens</Text>
+            <Text style={type.small}>{t('profile.tokens')}</Text>
           </View>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.goldText }]}>{tokens?.priestly.balance ?? 0}</Text>
-            <Text style={type.small}>Priestly</Text>
+            <Text style={type.small}>{t('profile.priestly')}</Text>
           </View>
         </View>
         {tier?.next ? (
           <Text style={type.small}>
-            {tier.next.prayersNeeded} more prayers to become a {tier.next.label}.
+            {t('profile.nextTier', { count: tier.next.prayersNeeded, tier: tier.next.label })}
           </Text>
         ) : null}
         {tokens ? (
           <Text style={type.small}>
-            {tokens.priestly.towardNext} of {tokens.priestly.prayersPerToken} prayers toward your next Priestly token. Priestly
-            tokens keep the prayer infrastructure running; you can give them to others or donate them.
+            {t('profile.priestlyProgress', { done: tokens.priestly.towardNext, per: tokens.priestly.prayersPerToken })}
           </Text>
         ) : null}
         {tokens && tokens.priestly.balance > 0 ? (
           <Button
             small
             variant="secondary"
-            label="Donate 1 Priestly token"
+            label={t('profile.donatePriestly')}
             onPress={() => api.donatePriestly(1).then(() => api.tokens().then(setTokens)).catch((e) => setError((e as Error).message))}
           />
         ) : null}
-        <Text style={type.small}>Tokens help requests reach more people. A lack of tokens never stops a request from being seen.</Text>
+        <Text style={type.small}>{t('profile.tokensNote')}</Text>
         <View style={styles.chips}>
-          <Button small variant="secondary" label="Token pools" onPress={() => router.push('/pools')} />
-          <Button small variant="secondary" label="Scheduled gifts" onPress={() => router.push('/scheduled')} />
-          <Button small variant="secondary" label="Prayer Cast" onPress={() => router.push('/prayer-cast')} />
+          <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
+          <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
+          <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} />
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (
           <View style={{ gap: space.sm }}>
-            <Text style={type.heading}>Feed style</Text>
+            <Text style={type.heading}>{t('profile.feedStyle')}</Text>
             <View style={styles.chips}>
-              {feedStyles.themes.map((t) => (
+              {feedStyles.themes.map((th) => (
                 <Chip
-                  key={t.slug}
-                  label={t.status === 'beta' ? `${t.name} (beta)` : t.name}
-                  selected={feedStyles.current === t.slug}
+                  key={th.slug}
+                  label={th.status === 'beta' ? t('profile.beta', { name: th.name }) : th.name}
+                  selected={feedStyles.current === th.slug}
                   onPress={() =>
                     api
-                      .chooseFeedTheme(t.is_default ? null : t.slug)
+                      .chooseFeedTheme(th.is_default ? null : th.slug)
                       .then(setFeedStyles)
                       .catch((e) => setError((e as Error).message))
                   }
@@ -118,8 +120,8 @@ export default function Profile() {
         ) : null}
 
         <View style={{ gap: space.sm }}>
-          <Text style={type.heading}>Pick your prayer mix</Text>
-          <Text style={type.small}>See more or less of each kind of post. Nothing is ever hidden; this only changes the order.</Text>
+          <Text style={type.heading}>{t('profile.mix')}</Text>
+          <Text style={type.small}>{t('profile.mixHint')}</Text>
           {FEED_MIX_KEYS.map((key) => {
             const level = profile.feed_mix?.[key] ?? 'normal';
             const setLevel = (next: 'less' | 'normal' | 'more') => {
@@ -130,10 +132,10 @@ export default function Profile() {
             };
             return (
               <View key={key} style={styles.mixRow}>
-                <Text style={[type.body, styles.mixLabel]}>{mixLabel(key)}</Text>
+                <Text style={[type.body, styles.mixLabel]}>{mixLabel(key, label)}</Text>
                 <View style={styles.chips}>
                   {(['less', 'normal', 'more'] as const).map((l) => (
-                    <Chip key={l} label={l === 'less' ? 'Less' : l === 'more' ? 'More' : 'Normal'} selected={level === l} onPress={() => setLevel(l)} />
+                    <Chip key={l} label={t(`profile.${l}`)} selected={level === l} onPress={() => setLevel(l)} />
                   ))}
                 </View>
               </View>
@@ -141,44 +143,47 @@ export default function Profile() {
           })}
         </View>
 
-        <Text style={type.heading}>Settings</Text>
-        <Toggle label="Hide graphic or trauma-related requests" value={profile.trauma_content_opt_out} onChange={(v) => update({ traumaContentOptOut: v })} />
-        <Toggle label="Pray and post anonymously by default" value={profile.anonymous_by_default} onChange={(v) => update({ anonymousByDefault: v })} />
-        <Toggle label="Occasional prayer reminders" value={profile.prompts_enabled} onChange={(v) => update({ promptsEnabled: v })} />
+        <Text style={type.heading}>{t('profile.settings')}</Text>
+        <Toggle label={t('settings.traumaOptOut')} value={profile.trauma_content_opt_out} onChange={(v) => update({ traumaContentOptOut: v })} />
+        <Toggle label={t('settings.anonymous')} value={profile.anonymous_by_default} onChange={(v) => update({ anonymousByDefault: v })} />
+        <Toggle label={t('settings.prompts')} value={profile.prompts_enabled} onChange={(v) => update({ promptsEnabled: v })} />
         {profile.prompts_enabled ? (
           <Toggle
-            label="Firmer reminders"
-            hint={'For example: "Remember, you made a commitment before God to pray for Billy."'}
+            label={t('settings.firm')}
+            hint={t('settings.firmHint')}
             value={profile.prompt_tone === 'firm'}
             onChange={(v) => update({ promptTone: v ? 'firm' : 'gentle' })}
           />
         ) : null}
-        <Toggle label="Show my updates as the first comment" value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
-        <Button variant="ghost" label="Community rules" onPress={() => router.push('/rules')} />
+        <Toggle label={t('settings.updatesFirst')} value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
+        <LanguagePicker />
+        <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
           <>
-            <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
-            <Button variant="secondary" label="Macro needs" onPress={() => router.push('/macro-needs')} />
+            <Button variant="secondary" label={t('profile.moderation')} onPress={() => router.push('/moderation')} />
+            <Button variant="secondary" label={t('profile.macroNeeds')} onPress={() => router.push('/macro-needs')} />
           </>
         ) : null}
         {roles.some((r) => r === 'witness' || r === 'moderator' || r === 'admin') ? (
-          <Button variant="secondary" label="Witness team" onPress={() => router.push('/witness')} />
+          <Button variant="secondary" label={t('profile.witness')} onPress={() => router.push('/witness')} />
         ) : null}
-        {roles.includes('admin') ? <Button variant="secondary" label="Admin" onPress={() => router.push('/admin')} /> : null}
+        {roles.includes('admin') ? <Button variant="secondary" label={t('profile.admin')} onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
-        <Button variant="ghost" label="How Prayer Tower works" onPress={() => router.push('/tour')} />
-        <Button variant="ghost" label="Send feedback" onPress={() => router.push('/feedback')} />
-        <Button variant="ghost" label="Sign out" onPress={signOut} />
-        <Button variant="ghost" label="Delete my account" onPress={() => router.push('/delete-account')} />
+        <Button variant="ghost" label={t('profile.tour')} onPress={() => router.push('/tour')} />
+        <Button variant="ghost" label={t('profile.feedback')} onPress={() => router.push('/feedback')} />
+        <Button variant="ghost" label={t('profile.signOut')} onPress={signOut} />
+        <Button variant="ghost" label={t('profile.deleteAccount')} onPress={() => router.push('/delete-account')} />
         <LegalLinks contact />
       </ScrollView>
     </Screen>
   );
 }
 
-function mixLabel(key: FeedMixKey) {
+function mixLabel(key: FeedMixKey, label: ReturnType<typeof useLocale>['label']) {
   const [kind, value] = key.split(':') as ['type' | 'realm', string];
-  return kind === 'type' ? POST_TYPE_LABELS[value as keyof typeof POST_TYPE_LABELS] : PRAYER_REALM_LABELS[value as keyof typeof PRAYER_REALM_LABELS];
+  return kind === 'type'
+    ? label('postType', value, POST_TYPE_LABELS[value as keyof typeof POST_TYPE_LABELS])
+    : label('prayerRealm', value, PRAYER_REALM_LABELS[value as keyof typeof PRAYER_REALM_LABELS]);
 }
 
 const styles = StyleSheet.create({

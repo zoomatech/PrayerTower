@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { sendQueued } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { LocaleProvider } from '@/lib/i18n';
 import { withMonitoring } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
 import { colors } from '@/lib/theme';
@@ -68,10 +69,12 @@ function RootStack() {
 function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <RootStack />
-      </AuthProvider>
+      <LocaleProvider>
+        <AuthProvider>
+          <StatusBar style="dark" />
+          <RootStack />
+        </AuthProvider>
+      </LocaleProvider>
     </SafeAreaProvider>
   );
 }

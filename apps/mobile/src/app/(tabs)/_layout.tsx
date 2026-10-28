@@ -2,6 +2,7 @@ import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'ex
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useT } from '@/lib/i18n';
 import { colors, space } from '@/lib/theme';
 
 function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSlotProps & { icon: string; label: string }) {
@@ -17,25 +18,26 @@ function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSl
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const t = useT();
   return (
     <Tabs style={styles.root}>
       <TabSlot style={styles.root} />
       <TabList asChild>
         <View role="tablist" style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
           <TabTrigger name="index" href="/" asChild>
-            <TabButton icon="🕊" label="Prayers" />
+            <TabButton icon="🕊" label={t('tabs.prayers')} />
           </TabTrigger>
           <TabTrigger name="commitments" href="/commitments" asChild>
-            <TabButton icon="🙏" label="My Promises" />
+            <TabButton icon="🙏" label={t('tabs.promises')} />
           </TabTrigger>
           <TabTrigger name="messages" href="/messages" asChild>
-            <TabButton icon="💬" label="Messages" />
+            <TabButton icon="💬" label={t('tabs.messages')} />
           </TabTrigger>
           <TabTrigger name="notifications" href="/notifications" asChild>
-            <TabButton icon="🔔" label="Notices" />
+            <TabButton icon="🔔" label={t('tabs.notices')} />
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
-            <TabButton icon="👤" label="Me" />
+            <TabButton icon="👤" label={t('tabs.me')} />
           </TabTrigger>
         </View>
       </TabList>

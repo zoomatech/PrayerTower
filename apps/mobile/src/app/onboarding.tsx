@@ -5,17 +5,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
 
+// Stored as these English words; only the labels are translated.
 const SUPPORT = ['Health', 'Family', 'Grief', 'Provision', 'Guidance', 'Addiction', 'Faith', 'Relationships'];
-const SCOPE_LABELS: Record<(typeof PRAY_FOR_SCOPE)[number], string> = {
-  family: 'My family',
-  friends: 'Friends',
-  church: 'My church',
-  community: 'My community',
-  nation: 'My nation',
-  world: 'The world',
-};
 
 function toggle<T>(list: T[], item: T) {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
@@ -23,6 +17,7 @@ function toggle<T>(list: T[], item: T) {
 
 export default function Onboarding() {
   const { profile, refreshProfile } = useAuth();
+  const { t, label } = useLocale();
   const [whyHere, setWhyHere] = useState<string[]>(profile?.why_here ?? []);
   const [wanted, setWanted] = useState<string[]>(profile?.support_wanted ?? []);
   const [offered, setOffered] = useState<string[]>(profile?.support_offered ?? []);
@@ -55,44 +50,44 @@ export default function Onboarding() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={type.title}>Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</Text>
-        <Text style={type.body}>A few questions so your prayers and requests fit you. You can change these any time.</Text>
+        <Text style={type.title}>{profile?.display_name ? t('onboarding.welcomeName', { name: profile.display_name }) : t('onboarding.welcome')}</Text>
+        <Text style={type.body}>{t('onboarding.intro')}</Text>
 
-        <Section title="Why are you here?">
+        <Section title={t('onboarding.whyHere')}>
           {WHY_HERE.map((w) => (
-            <Chip key={w} label={WHY_HERE_LABELS[w]} selected={whyHere.includes(w)} onPress={() => setWhyHere(toggle(whyHere, w))} />
+            <Chip key={w} label={label('whyHere', w, WHY_HERE_LABELS[w])} selected={whyHere.includes(w)} onPress={() => setWhyHere(toggle(whyHere, w))} />
           ))}
         </Section>
-        <Section title="What prayer support would you like?">
+        <Section title={t('onboarding.supportWanted')}>
           {SUPPORT.map((s) => (
-            <Chip key={s} label={s} selected={wanted.includes(s)} onPress={() => setWanted(toggle(wanted, s))} />
+            <Chip key={s} label={t(`onboarding.support.${s}`)} selected={wanted.includes(s)} onPress={() => setWanted(toggle(wanted, s))} />
           ))}
         </Section>
-        <Section title="What can you pray for others about?">
+        <Section title={t('onboarding.supportOffered')}>
           {SUPPORT.map((s) => (
-            <Chip key={s} label={s} selected={offered.includes(s)} onPress={() => setOffered(toggle(offered, s))} />
+            <Chip key={s} label={t(`onboarding.support.${s}`)} selected={offered.includes(s)} onPress={() => setOffered(toggle(offered, s))} />
           ))}
         </Section>
-        <Section title="Who will you pray for?">
+        <Section title={t('onboarding.scope')}>
           {PRAY_FOR_SCOPE.map((s) => (
-            <Chip key={s} label={SCOPE_LABELS[s]} selected={scope.includes(s)} onPress={() => setScope(toggle(scope, s))} />
+            <Chip key={s} label={t(`onboarding.scopes.${s}`)} selected={scope.includes(s)} onPress={() => setScope(toggle(scope, s))} />
           ))}
         </Section>
 
         <Toggle
-          label="Hide graphic or trauma-related requests"
-          hint="Posts marked sensitive will not appear in your feed."
+          label={t('settings.traumaOptOut')}
+          hint={t('settings.traumaOptOutHint')}
           value={traumaOptOut}
           onChange={setTraumaOptOut}
         />
         <Toggle
-          label="Pray and post anonymously by default"
-          hint="Others see “Anonymous.” Your prayers still count toward your tier, privately."
+          label={t('settings.anonymous')}
+          hint={t('settings.anonymousHint')}
           value={anonymous}
           onChange={setAnonymous}
         />
         <ErrorText error={error} />
-        <Button label="Start praying" onPress={save} busy={busy} />
+        <Button label={t('onboarding.start')} onPress={save} busy={busy} />
       </ScrollView>
     </Screen>
   );

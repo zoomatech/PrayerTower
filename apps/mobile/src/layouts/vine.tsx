@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
+import { Tr } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -96,7 +97,7 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
         />
         <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }, left ? { right: -7 } : { left: -7 }]} />
         <View style={styles.tags}>
-          {pinned ? <Text style={styles.pinned}>Pray for this first</Text> : null}
+          {pinned ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
           {card.isMine ? <Text style={[styles.tag, { color: tokens.branch }]}>Your branch</Text> : null}
           {card.myCommitment ? <Text style={[styles.tag, { color: tokens.tendril }]}>➰ Your tendril: you promised to pray</Text> : null}
         </View>

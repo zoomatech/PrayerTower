@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Prayer Tower",
+    "NSPhotoLibraryUsageDescription": "Permite que Prayer Tower agregue tus fotos y videos a tus peticiones de oración."
+  },
+  "android": {
+    "app_name": "Prayer Tower"
+  }
+}

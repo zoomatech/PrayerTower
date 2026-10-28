@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Linking, StyleSheet, Text } from 'react-native';
 
 import { env } from '@/lib/env';
+import { useT } from '@/lib/i18n';
 import { colors, type } from '@/lib/theme';
 
 function Link({ label, url }: { label: string; url: string }) {
@@ -15,13 +16,14 @@ function Link({ label, url }: { label: string; url: string }) {
 }
 
 export function LegalLinks({ prefix, contact = false }: { prefix?: string; contact?: boolean }) {
+  const t = useT();
   return (
     <Text style={[type.small, styles.center]}>
       {prefix ? `${prefix} ` : ''}
-      <Link label="Terms of Use" url={env.termsUrl} /> and <Link label="Privacy Policy" url={env.privacyUrl} />.
+      <Link label={t('legal.terms')} url={env.termsUrl} /> {t('legal.and')} <Link label={t('legal.privacy')} url={env.privacyUrl} />.
       {contact && env.supportEmail ? (
         <>
-          {' Questions or concerns? '}
+          {` ${t('legal.questions')} `}
           <Text style={styles.link} accessibilityRole="link" onPress={() => Linking.openURL(`mailto:${env.supportEmail}`)}>
             {env.supportEmail}
           </Text>

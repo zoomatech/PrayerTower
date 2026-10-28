@@ -5,6 +5,7 @@ import type { Card } from '@prayer-tower/shared';
 import { useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
+import { Tr } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -34,7 +35,7 @@ export function FlipLayout({ cards, pinnedId, renderCard, header, refreshing, on
         {item.kind === 'card' ? (
           <View style={styles.inner}>
             {index === 0 ? header : null}
-            {item.card.id === pinnedId ? <Text style={styles.pinned}>Pray for this first</Text> : null}
+            {item.card.id === pinnedId ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
             {renderCard(item.card)}
             <Text style={styles.folio}>
               {index + 1} of {cards.length}

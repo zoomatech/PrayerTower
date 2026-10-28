@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
@@ -36,18 +37,19 @@ export interface CardHandlers {
 
 export function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
+  const { t, label } = useLocale();
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
   // A background shows only on short, text-only posts.
   const bg = card.media.length === 0 && card.background && card.body.length <= 280 ? POST_BACKGROUND_STYLES[card.background as keyof typeof POST_BACKGROUND_STYLES] : undefined;
   const tags = [
-    PRAYER_REALM_LABELS[card.realm as keyof typeof PRAYER_REALM_LABELS],
-    PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS],
+    label('prayerRealm', card.realm, PRAYER_REALM_LABELS[card.realm as keyof typeof PRAYER_REALM_LABELS]),
+    label('prayerKind', card.kind, PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS]),
   ].filter(Boolean);
 
   return (
     <View style={[styles.card, answered && styles.answered]}>
-      {answered ? <Text style={styles.answeredBanner}>✨ Prayer answered</Text> : null}
+      {answered ? <Text style={styles.answeredBanner}>{t('card.answered')}</Text> : null}
       <View style={styles.header}>
         <View style={[styles.urgency, { backgroundColor: colors.urgency[card.urgency] ?? colors.urgency[0] }]} />
         <Text
@@ -57,9 +59,9 @@ export function PostCard({ card, onAction, onHide, expanded: startExpanded = fal
           {card.author.displayName}
           {card.author.tier ? ` ${TIER_ICONS[card.author.tier] ?? ''}` : ''}
         </Text>
-        <Text style={type.script}>{POST_TYPE_LABELS[card.postType]}</Text>
+        <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>
         {onHide && !card.isMine ? (
-          <Text style={styles.hide} onPress={() => onHide(card)} accessibilityRole="button" accessibilityLabel="Not for me: hide this post">
+          <Text style={styles.hide} onPress={() => onHide(card)} accessibilityRole="button" accessibilityLabel={t('card.hide')}>
             ✕
           </Text>
         ) : null}
@@ -72,7 +74,7 @@ export function PostCard({ card, onAction, onHide, expanded: startExpanded = fal
           {expanded || !card.truncated ? card.body : `${card.preview}… `}
           {card.truncated && !expanded ? (
             <Text style={styles.more} onPress={() => setExpanded(true)}>
-              more
+              {t('card.more')}
             </Text>
           ) : null}
         </Text>
@@ -82,9 +84,9 @@ export function PostCard({ card, onAction, onHide, expanded: startExpanded = fal
       <CardMedia media={card.media} expanded={expanded} />
 
       <Text style={styles.counts}>
-        {card.counts.prayers > 0 ? `${card.counts.prayers} praying` : 'Be the first to pray'}
-        {card.counts.commitments > 0 ? ` · ${card.counts.commitments} committed` : ''}
-        {card.counts.encouragements > 0 ? ` · ${card.counts.encouragements} encouragements` : ''}
+        {card.counts.prayers > 0 ? t('card.praying', { count: card.counts.prayers }) : t('card.firstToPray')}
+        {card.counts.commitments > 0 ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
+        {card.counts.encouragements > 0 ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
       </Text>
 
       <View style={styles.actions}>
@@ -94,12 +96,12 @@ export function PostCard({ card, onAction, onHide, expanded: startExpanded = fal
             <Pressable
               key={action}
               accessibilityRole="button"
-              accessibilityLabel={ACTION_LABELS[action]}
+              accessibilityLabel={label('action', action, ACTION_LABELS[action])}
               onPress={() => onAction(card, action)}
               style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
               <Text style={styles.actionIcon}>{ACTION_ICONS[action]}</Text>
               <Text style={[styles.actionLabel, active && { color: colors.primary }]} numberOfLines={1}>
-                {active ? 'Committed' : ACTION_LABELS[action]}
+                {active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
               </Text>
             </Pressable>
           );
@@ -107,15 +109,15 @@ export function PostCard({ card, onAction, onHide, expanded: startExpanded = fal
       </View>
 
       {card.topComment ? (
-        <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint="Opens the request and all comments">
+        <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
           <Text style={styles.commentAuthor}>
-            {card.topComment.isUpdate ? 'Update · ' : ''}
+            {card.topComment.isUpdate ? t('card.update') : ''}
             {card.topComment.author.displayName}
           </Text>
           <Text style={type.body} numberOfLines={3}>
             {card.topComment.body}
           </Text>
-          {card.counts.comments > 1 ? <Text style={styles.more}>View all {card.counts.comments} comments</Text> : null}
+          {card.counts.comments > 1 ? <Text style={styles.more}>{t('card.viewAll', { count: card.counts.comments })}</Text> : null}
         </Pressable>
       ) : null}
     </View>
