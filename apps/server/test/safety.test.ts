@@ -28,6 +28,11 @@ describe('safe messaging', () => {
 
     const item = (await as(moderator).get(`/moderation/queue?targetId=${post.id}`)).json().items.find((i: { target_id: string }) => i.target_id === post.id);
     expect(item).toMatchObject({ source: 'crisis', reason: 'Someone may be in danger' });
+    // Moderators hear about it at once (without what was written), and only once.
+    const { rows: alerts } = await db.query(`select body, data from public.notifications where user_id = $1 and kind = 'crisis_flag' and data->>'itemId' = $2`, [moderator, item.id]);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].body).not.toContain('die');
+    expect((await db.query(`select 1 from public.notifications where user_id = $1 and kind = 'crisis_flag' and data->>'itemId' = $2`, [poster, item.id])).rows).toHaveLength(0);
 
     expect((await as(poster).post(`/posts/${post.id}/radio`, { idempotencyKey: 'crisis-1' })).statusCode).toBe(409);
     await as(moderator).post(`/moderation/items/${item.id}/decision`, { action: 'dismiss', note: 'Reached out; safe.' });

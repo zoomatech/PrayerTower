@@ -1,0 +1,32 @@
+# Signs in a demo member from a fresh install. Pass EMAIL and PASSWORD.
+appId: ${APP_ID}
+# Defaults, so the file also works on its own.
+env:
+  APP_ID: com.zoomatech.prayertower
+  EMAIL: carol@demo.prayertower.local
+  PASSWORD: praying-demo-1
+---
+- launchApp:
+    clearState: true
+    permissions:
+      notifications: deny
+- extendedWaitUntil:
+    visible:
+      id: sign-in-email
+    timeout: 20000
+- tapOn:
+    id: sign-in-email
+- inputText: ${EMAIL}
+- tapOn:
+    id: sign-in-password
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: sign-in-submit
+# First run shows the short tour; skip it when it appears.
+- tapOn:
+    text: Skip
+    optional: true
+- extendedWaitUntil:
+    visible: Prayers
+    timeout: 20000

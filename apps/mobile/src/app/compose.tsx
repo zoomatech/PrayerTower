@@ -111,7 +111,7 @@ export default function Compose() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>
           <Button small variant="ghost" label={t('common.cancel')} onPress={() => router.back()} />
-          <Button small label={t('compose.post')} onPress={submit} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
+          <Button small testID="compose-post" label={t('compose.post')} onPress={submit} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
         </View>
         <ErrorText error={error} />
         <Text style={styles.greeting}>{t('compose.greeting', { name: profile?.display_name || t('common.friend') })}</Text>
@@ -122,6 +122,7 @@ export default function Compose() {
         </View>
         <TextInput
           style={[styles.input, bg && !assets.length && { backgroundColor: bg.color, color: bg.text, borderColor: bg.color }]}
+          testID="compose-body"
           placeholder={t('compose.placeholder')}
           placeholderTextColor={colors.textMuted}
           value={body}

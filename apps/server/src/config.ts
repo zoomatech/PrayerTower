@@ -14,6 +14,8 @@ const Env = z.object({
   SITE_LEGAL_DIR: z.string().optional(),
   /** Store links shown on the landing page once the app is listed. */
   APP_STORE_URL: z.url().optional(),
+  // The web app (PWA) address; invite emails link to its /sign-in?invite=CODE.
+  WEB_APP_URL: z.url().optional(),
   PLAY_STORE_URL: z.url().optional(),
   /** Shared-link verification (/.well-known): Apple Developer Team ID; unset = no apple-app-site-association. */
   APPLE_TEAM_ID: z.string().regex(/^[A-Z0-9]{10}$/).optional(),
@@ -42,12 +44,16 @@ const Env = z.object({
   SENTRY_DSN: z.string().optional(),
   /** Bearer token for GET /metrics; unset = no metrics endpoint. */
   METRICS_TOKEN: z.string().min(24).optional(),
+  // Staff password for /api/docs in production (HTTP Basic, any user name). Unset = staff bearer tokens only, JSON only.
+  API_DOCS_PASSWORD: z.string().min(16).optional(),
   /** Outgoing email (weekly digest), e.g. smtps://user:pass@smtp.example.com:465. Unset = no email. */
   SMTP_URL: z.string().optional(),
   /** Sender for outgoing email, e.g. "Prayer Tower <hello@example.org>". */
   MAIL_FROM: z.string().optional(),
   /** Comma-separated emails that get the pilot report every Monday (needs SMTP_URL). Unset = none. */
   SPONSOR_REPORT_TO: z.string().default(''),
+  // Language of the sponsor email for addresses that aren't members (members get their app language).
+  SPONSOR_REPORT_LANG: z.enum(['en', 'es']).default('en'),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
   /** Days after a moderator removes content before its text and photos are erased (0 = never). */
   RETENTION_REMOVED_DAYS: z.coerce.number().int().min(0).default(90),

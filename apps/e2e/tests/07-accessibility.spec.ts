@@ -38,7 +38,7 @@ test('the main screens have no WCAG A/AA violations', async ({ page }) => {
   expect(found).toEqual({ feed: [], compose: [], post: [], profile: [], feedback: [], tour: [] });
 });
 
-test('the newer screens (settings, Me, messages, events, care, admin, audit log, invites, announcements) have no violations', async ({ page, browser }) => {
+test('the newer screens (settings, Me, messages, events, care, admin, audit log, invites, CSV import, announcements, feedback) have no violations', async ({ page, browser }) => {
   const found: Record<string, string[]> = {};
   const visit = async (p: Page, name: string, url: string) => {
     await p.goto(url);
@@ -66,6 +66,8 @@ test('the newer screens (settings, Me, messages, events, care, admin, audit log,
   await visit(admin, 'auditLog', '/audit-log');
   await visit(admin, 'invites', '/invites');
   await visit(admin, 'announcements', '/announcements');
+  await visit(admin, 'feedbackTriage', '/feedback-triage');
+  await visit(admin, 'csvImport', '/import');
   // In Spanish the page language must follow (WCAG 3.1.1).
   await page.evaluate(() => window.localStorage.setItem('prayer-tower.language', 'es'));
   await visit(page, 'spanishSettings', '/notification-settings');
@@ -83,6 +85,8 @@ test('the newer screens (settings, Me, messages, events, care, admin, audit log,
     auditLog: [],
     invites: [],
     announcements: [],
+    feedbackTriage: [],
+    csvImport: [],
     spanishSettings: [],
   });
 });

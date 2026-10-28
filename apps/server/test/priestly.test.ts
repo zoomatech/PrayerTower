@@ -17,7 +17,7 @@ describe('priestly tokens', () => {
     await grantRole(db, admin, 'admin', admin);
     expect((await as(member).patch('/admin/token-settings', { priestlyPrayersPerToken: 3 })).statusCode).toBe(403);
     const res = await as(admin).patch('/admin/token-settings', { priestlyPrayersPerToken: 3, verifiedPrayerMinGapSeconds: 0 });
-    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0, radio_prayer_cost: 1, radio_funding: 'tokens' });
+    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0, radio_prayer_cost: 1, radio_funding: 'tokens', verified_prayers_per_day: 50 });
   });
 
   it('earns one Priestly token per N verified prayers for other people, then gifts and donates it', async () => {

@@ -6,7 +6,7 @@ import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
-import { useT } from '@/lib/i18n';
+import { useLocale } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, space, type } from '@/lib/theme';
 
@@ -17,7 +17,7 @@ const INVITE_ERRORS: Record<string, 'signIn.inviteNeeded' | 'signIn.inviteInvali
 };
 
 export default function SignIn() {
-  const t = useT();
+  const { t, language } = useLocale();
   // An invite link (…/sign-in?invite=CODE) opens straight to sign-up with the code filled in.
   const params = useLocalSearchParams<{ invite?: string }>();
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>(params.invite ? 'sign-up' : 'sign-in');
@@ -42,7 +42,7 @@ export default function SignIn() {
     const { data, error: err } =
       mode === 'sign-in'
         ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { display_name: name.trim(), ...(invite.trim() ? { invite_code: invite.trim() } : {}) } } });
+        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { display_name: name.trim(), locale: language, ...(invite.trim() ? { invite_code: invite.trim() } : {}) } } });
     setBusy(false);
     if (err) setError(INVITE_ERRORS[err.message] ? t(INVITE_ERRORS[err.message]) : err.message);
     else if (mode === 'sign-up' && !data.session) setNotice(t('signIn.checkEmail'));
@@ -63,11 +63,12 @@ export default function SignIn() {
           {mode === 'sign-up' && inviteOnly ? (
             <Field label={t('signIn.inviteCode')} value={invite} onChangeText={setInvite} autoCapitalize="characters" autoCorrect={false} placeholder={t('signIn.invitePlaceholder')} />
           ) : null}
-          <Field label={t('signIn.email')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-          <Field label={t('signIn.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} />
+          <Field label={t('signIn.email')} value={email} onChangeText={setEmail} testID="sign-in-email" autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+          <Field label={t('signIn.password')} value={password} onChangeText={setPassword} testID="sign-in-password" secureTextEntry autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} />
           <ErrorText error={error} />
           {notice ? <Text style={type.small}>{notice}</Text> : null}
           <Button
+            testID="sign-in-submit"
             label={mode === 'sign-in' ? t('signIn.signIn') : t('signIn.createAccount')}
             onPress={submit}
             busy={busy}

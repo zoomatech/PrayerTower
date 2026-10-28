@@ -29,6 +29,15 @@ Tabs, sign-in, onboarding, feed header, all four feed layouts' pinned label, pos
 
 The app saves the member's language on their profile (`profiles.locale`, `PATCH /me {locale}`) whenever it changes. `notify()` takes an optional `t: { key, params }`; if the recipient's language isn't English and `apps/server/src/modules/notifications/i18n.ts` has that key, the Spanish title and body are used (in-app and push). All 20 notification types have Spanish. Prayer prompts (`prompts.question`) are translated too. Text members wrote (request previews, messages, notes) is passed through as written.
 
+## Emails
+
+Every email goes out in the recipient's language (`profiles.locale`):
+
+- **Sign-up confirmation and password reset** (sent by Supabase Auth). The app sends `locale` in the sign-up metadata, and the new profile starts in that language (migration `20261029000000_signup_locale.sql`). The templates in `supabase/templates/` choose the language with `{{ if eq .Data.locale "es" }}` ([Supabase: Email templates](https://supabase.com/docs/guides/auth/auth-email-templates)). Local development reads them from `supabase/config.toml`; `scripts/go-live.sh` uploads them to the hosted project when `SUPABASE_ACCESS_TOKEN` is set. Members who signed up before this change have no `locale` in their metadata, so they get English.
+- **Weekly digest:** the member's language.
+- **Invite email** (Admin → Invite codes → Email): the language the admin picks, by default the admin's own (`POST /admin/invites/:code/email`).
+- **Sponsor report:** a sponsor who is also a member gets their app language. Anyone else gets `SPONSOR_REPORT_LANG` (default `en`), or write the address as `es:name@org`.
+
 ## Still English (follow-up)
 
 - Every screen is translated, including the staff screens (Admin, Moderation, Witness team, Macro needs) and the weekly email digest. Metric names on Admin → Pilot metrics come from the server; the known ones are translated under `admin.metric`, and new ones show prettified English until added. The offline banner is still English.

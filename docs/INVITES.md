@@ -17,7 +17,7 @@ While **invite-only mode** is on, a new member needs an invite code to create an
 - **Admin → Invite codes:**
   - Turn invite-only on or off.
   - Create codes: 1 to 50 at a time. Each code can be used by 1 to 1,000 people and expires after 1 to 365 days, or never. You can add an optional note saying who it is for.
-  - Share or revoke a code.
+  - Share or revoke a code, or email it. **Email** sends the code in English or Spanish (by default the admin's own language) with an optional personal note, the store links and, when `WEB_APP_URL` is set, a link that opens sign-up with the code filled in. It needs `SMTP_URL` on the server.
   - Every change is in the audit log.
 - **Sign-up:** shows an "Invite code" field while invite-only is on. The app reads the mode from the public `GET /signup-config` endpoint.
   - The link `prayertower://sign-in?invite=CODE` opens sign-up with the code already filled in.
@@ -26,7 +26,7 @@ While **invite-only mode** is on, a new member needs an invite code to create an
 ## Hosted project setup (one time, Steve)
 
 1. Apply the migration, with `supabase db push` or the deploy pipeline.
-2. In the Supabase Dashboard, go to **Authentication → Hooks**. Add the **Before User Created** hook, choose the type **Postgres function**, then pick `public.hook_before_user_created` ([Auth Hooks](https://supabase.com/docs/guides/auth/auth-hooks)).
+2. `scripts/go-live.sh` does this step itself when `SUPABASE_ACCESS_TOKEN` (a personal access token) is in `deploy/production.env`. It calls the Management API's [update auth config](https://supabase.com/docs/reference/api/v1-update-auth-service-config) with `hook_before_user_created_enabled` and `hook_before_user_created_uri`. By hand: in the Supabase Dashboard, go to **Authentication → Hooks**. Add the **Before User Created** hook, choose the type **Postgres function**, then pick `public.hook_before_user_created` ([Auth Hooks](https://supabase.com/docs/guides/auth/auth-hooks)).
 3. Test it. Try to sign up without a code: you should get "Prayer Tower is invite-only right now. Enter your invite code."
 
 For local development, `supabase/config.toml` turns the hook on (`[auth.hook.before_user_created]`).

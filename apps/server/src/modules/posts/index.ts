@@ -66,6 +66,7 @@ export interface PostRow {
 
 export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPost>): Promise<PostRow> {
   await safety.checkNewMember(q, userId, 'post', input.body);
+  await safety.checkFlood(q, userId, 'post', input.body);
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
   for (const m of input.media) {
@@ -273,6 +274,7 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
     if (!rowCount) throw badRequest('Reply target is not on this post');
   }
   await safety.checkNewMember(q, userId, 'comment', input.body);
+  await safety.checkFlood(q, userId, 'comment', input.body);
   const isAnonymous = input.isAnonymous ?? (input.isUpdate ? post.is_anonymous : false);
   const { rows } = await q.query<{ id: string }>(
     `insert into public.comments (post_id, user_id, parent_id, body, is_update, is_anonymous)

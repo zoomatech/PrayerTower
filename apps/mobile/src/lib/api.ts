@@ -14,6 +14,8 @@ import type {
   Comment,
   Commitment,
   FeedPage,
+  FeedbackSeverity,
+  FeedbackTag,
   FeedThemeChoices,
   ConversationSummary,
   ConversationView,
@@ -142,6 +144,7 @@ export interface AdminTokenSettings {
   verified_prayer_min_gap_seconds: number;
   radio_prayer_cost: number;
   radio_funding: 'tokens' | 'free';
+  verified_prayers_per_day: number;
 }
 export interface AdminRadioSettings {
   radio_transmitter: 'log' | 'station';
@@ -220,6 +223,48 @@ export interface Highlights {
   topWarriors: { id: string | null; displayName: string; prayers: number }[];
 }
 
+export interface FeedbackItem {
+  id: string;
+  kind: string;
+  body: string;
+  platform: string | null;
+  appVersion: string | null;
+  createdAt: string;
+  name: string;
+  status: 'open' | 'closed';
+  tags: FeedbackTag[];
+  severity: FeedbackSeverity | null;
+  note: string | null;
+  triagedAt: string | null;
+  closedAt: string | null;
+}
+
+export type ImportStatus = 'ok' | 'invited' | 'emailed' | 'posted' | 'skipped' | 'error';
+export interface ImportResult {
+  kind: 'members' | 'requests';
+  dryRun: boolean;
+  error?: string;
+  rows: { line: number; status: ImportStatus; reason?: string; email?: string; name?: string; code?: string; request?: string; postId?: string }[];
+  counts: Record<ImportStatus, number>;
+}
+
+export interface FailedJob {
+  id: string;
+  task: string;
+  attempts: number;
+  maxAttempts: number;
+  lastError: string | null;
+  key: string | null;
+  createdAt: string;
+  failedAt: string;
+}
+export interface RetryingTask {
+  task: string;
+  jobs: number;
+  attempts: number;
+  lastError: string | null;
+}
+
 export interface LedgerCheck {
   id: string;
   checkedAt: string;
@@ -287,6 +332,9 @@ export interface AdminSafetySettings {
   new_member_posts_per_day: number;
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
+  posts_per_hour: number;
+  comments_per_hour: number;
+  messages_per_minute: number;
 }
 export type WitnessStatus = 'watching' | 'reaching_out' | 'helped' | 'closed';
 
@@ -434,10 +482,12 @@ export const api = {
       get<{ standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(
         `/admin/prayer-warriors?days=${days}`,
       ),
-    feedback: () =>
-      get<{
-        feedback: { id: string; kind: string; body: string; platform: string | null; appVersion: string | null; createdAt: string; name: string }[];
-      }>('/admin/feedback'),
+    feedback: (f: { status?: 'open' | 'closed' | 'all'; tag?: FeedbackTag } = {}) =>
+      get<{ feedback: FeedbackItem[] }>(`/admin/feedback?${new URLSearchParams({ status: f.status ?? 'open', ...(f.tag ? { tag: f.tag } : {}) })}`),
+    triageFeedback: (id: string, t: { tags?: FeedbackTag[]; severity?: FeedbackSeverity | null; note?: string | null }) =>
+      request<{ ok: true }>('PATCH', `/admin/feedback/${id}`, t),
+    feedbackCsv: (f: { status?: 'open' | 'closed' | 'all'; tag?: FeedbackTag } = {}) =>
+      getText(`/admin/feedback/export?${new URLSearchParams({ status: f.status ?? 'all', ...(f.tag ? { tag: f.tag } : {}) })}`),
     closeFeedback: (id: string) => post<{ ok: true }>(`/admin/feedback/${id}/close`),
     decideDeletionRequest: (id: string, action: 'delete' | 'dismiss') => post<{ ok: true }>(`/admin/deletion-requests/${id}`, { action }),
     milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),
@@ -448,12 +498,17 @@ export const api = {
     metrics: (days: number) => get<Record<string, Record<string, number | string | null>>>(`/admin/metrics?days=${days}`),
     tokenSettings: () => get<{ settings: AdminTokenSettings }>('/admin/token-settings'),
     updateTokenSettings: (
-      patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free' }>,
+      patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free'; verifiedPrayersPerDay: number }>,
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
     ledgerChecks: () => get<{ checks: LedgerCheck[] }>('/admin/ledger-checks'),
     runLedgerCheck: () => post<{ check: LedgerCheck }>('/admin/ledger-checks'),
+    importCsv: (input: { kind: 'members' | 'requests'; csv: string; dryRun: boolean; note?: string; sendEmails?: boolean; message?: string }) =>
+      post<ImportResult>('/admin/import', input),
+    jobs: () => get<{ failed: FailedJob[]; retrying: RetryingTask[] }>('/admin/jobs'),
+    retryJob: (id: string) => post<{ retried: boolean }>(`/admin/jobs/${id}/retry`),
+    discardJob: (id: string) => post<{ discarded: boolean }>(`/admin/jobs/${id}/discard`),
     announcements: () => get<{ announcements: (Announcement & { active: boolean; dismissals: number })[] }>('/admin/announcements'),
     createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
       post<{ announcement: Announcement }>('/admin/announcements', input),
@@ -462,6 +517,8 @@ export const api = {
     createInvites: (input: { note?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
       post<{ invites: Invite[] }>('/admin/invites', input),
     revokeInvite: (code: string) => post<{ invite: Invite }>(`/admin/invites/${encodeURIComponent(code)}/revoke`, {}),
+    emailInvite: (code: string, input: { email: string; language?: 'en' | 'es'; message?: string }) =>
+      post<{ sent: boolean; language: 'en' | 'es' }>(`/admin/invites/${encodeURIComponent(code)}/email`, input),
     setInviteOnly: (inviteOnly: boolean) => request<{ inviteOnly: boolean }>('PATCH', '/admin/invite-settings', { inviteOnly }),
     auditLog: (q: { before?: string; limit?: number } = {}) =>
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
@@ -478,6 +535,9 @@ export const api = {
         newMemberPostsPerDay: number;
         newMemberCommentsPerDay: number;
         newMemberLinksAllowed: boolean;
+        postsPerHour: number;
+        commentsPerHour: number;
+        messagesPerMinute: number;
       }>,
     ) => request<{ settings: AdminSafetySettings }>('PATCH', '/admin/safety-settings', patch),
     messagingSettings: () => get<{ settings: AdminMessagingSettings }>('/admin/messaging-settings'),

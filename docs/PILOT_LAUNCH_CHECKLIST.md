@@ -21,7 +21,8 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 - [ ] Run every migration with `supabase db push`. Run `npm test` against a local copy first.
 - [ ] Set the minimum password length to at least 8 (Authentication → Email). ([Supabase: Password security](https://supabase.com/docs/guides/auth/password-security))
 - [ ] Turn email confirmations on.
-- [ ] For an invite-only pilot, turn sign-ups off and invite the 10 members from the dashboard. ([Supabase: inviteUserByEmail](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail))
+- [ ] Invite-only sign-up: make sure the Before User Created hook is on. `scripts/go-live.sh` turns it on when `SUPABASE_ACCESS_TOKEN` is set. If not, turn it on in Dashboard → Authentication → Hooks (INVITES.md). Test it: sign-up without a code must be refused.
+- [ ] Create the pilot's invite codes in Admin → Invite codes and share one with each tester or group.
 - [ ] Confirm the `post-media` bucket is private. The security test checks this locally.
 - [ ] Confirm backups are on (DEPLOY.md §3) and do one test restore.
 - [ ] **Never run `npm run seed:demo` here.** It refuses to run against a non-local database. Pilot content comes from real people.
@@ -39,7 +40,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 - [ ] Give the first admin their role: `npm run grant-role -- <email> admin`.
 - [ ] Assign at least one **moderator** who checks the queue daily, and name a backup.
 - [ ] Assign a **pastor_counselor** and at least one **prayer_partner** if prayer partners stay on. Assign **witness** members if the Witness team is used.
-- [ ] Agree who answers crisis flags, and how quickly.
+- [ ] Agree who answers crisis flags, and how quickly. Give every moderator, pastor and prayer partner [STAFF_HANDBOOK.md](STAFF_HANDBOOK.md).
 
 ## 5. Switches to review (admin screen)
 
@@ -66,7 +67,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 - [ ] `npm test`: all server and station tests pass, including the security checks.
 - [ ] `npm run test:e2e`: all 17 end-to-end tests pass locally (including the WCAG scans). Also try VoiceOver and the largest text size on a real iPhone..
 - [ ] Do one manual pass on a real phone: sign in, post, pray, commit, message, RSVP, report, and delete the account.
-- [x] **Feedback channel.** Members tap Me → Send feedback. Admins read and close it under Admin → Member feedback. Tell members it's there.
+- [x] **Feedback channel.** Members tap Me → Send feedback. Admins triage it under Admin → Triage and export feedback: each item is tagged by type, with suggested tags already filled in, and admins set how serious it is, add a note, filter by tag and export it as CSV. Tell members it's there.
 - [ ] Rollback plan: keep the previous build in TestFlight, and take a database backup before each migration.
 
 ## 8. During the pilot (weekly)

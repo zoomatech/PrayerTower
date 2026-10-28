@@ -1,6 +1,6 @@
 # Spanish review checklist
 
-Every Spanish string in Prayer Tower, beside the English, for a native Spanish speaker to check before release. 955 items. Generated from the code by `npx tsx scripts/i18n/spanish-review.ts`; regenerate it after strings change, and don't edit the tables by hand.
+Every Spanish string in Prayer Tower, beside the English, for a native Spanish speaker to check before release. 1043 items. Generated from the code by `npx tsx scripts/i18n/spanish-review.ts`; regenerate it after strings change, and don't edit the tables by hand.
 
 ## How to review
 
@@ -775,7 +775,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `macroAdmin.stats` | %{prayers} praying · %{tokens} tokens · %{helpers} gave material help | %{prayers} orando · %{tokens} fichas · %{helpers} dieron ayuda material | |
 | ☐ | `macroAdmin.stop` | Stop featuring | Dejar de destacar | |
 
-### admin (145)
+### admin (151)
 
 | ✓ | Key | English | Español | Correction |
 | --- | --- | --- | --- | --- |
@@ -837,6 +837,10 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.field.perToken` | Verified prayers per Priestly token | Oraciones verificadas por ficha sacerdotal | |
 | ☐ | `admin.field.gap` | Minimum seconds between verified prayers | Segundos mínimos entre oraciones verificadas | |
 | ☐ | `admin.field.cost` | Priestly tokens per radio prayer | Fichas sacerdotales por oración por radio | |
+| ☐ | `admin.field.verifiedPerDay` | Verified prayers a day per member (0 = no cap) | Oraciones verificadas al día por miembro (0 = sin límite) | |
+| ☐ | `admin.field.postsHour` | Requests an hour | Peticiones por hora | |
+| ☐ | `admin.field.commentsHour` | Comments an hour | Comentarios por hora | |
+| ☐ | `admin.field.messagesMinute` | Messages a minute | Mensajes por minuto | |
 | ☐ | `admin.field.hours` | Hours as a new member | Horas como miembro nuevo | |
 | ☐ | `admin.field.prayers` | Prayers for others to lift limits | Oraciones por otros para quitar los límites | |
 | ☐ | `admin.field.posts` | Requests a day | Peticiones al día | |
@@ -878,6 +882,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.toggle.direct` | Direct messages | Mensajes directos | |
 | ☐ | `admin.toggle.groups` | Group chats | Chats de grupo | |
 | ☐ | `admin.toggle.newStart` | New members can start conversations | Los miembros nuevos pueden iniciar conversaciones | |
+| ☐ | `admin.everyoneLimits` | Limits for everyone (admins and moderators are exempt; 0 = no limit). The same request or comment can't be posted twice in a day. | Límites para todos (los administradores y moderadores están exentos; 0 = sin límite). No se puede publicar la misma petición o comentario dos veces en un día. | |
 | ☐ | `admin.newMembers` | New members | Miembros nuevos | |
 | ☐ | `admin.radio` | Radio | Radio | |
 | ☐ | `admin.logOnly` | Log only (no radio) | Solo registro (sin radio) | |
@@ -920,10 +925,47 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.standing` | %{prayers} prayers, %{checkins} promise check-ins, %{people} people | %{prayers} oraciones, %{checkins} registros de compromisos, %{people} personas | |
 | ☐ | `admin.noWarriors` | No verified prayers yet. | Aún no hay oraciones verificadas. | |
 | ☐ | `admin.feedback` | Member feedback (%{count}) | Comentarios de miembros (%{count}) | |
+| ☐ | `admin.feedbackTriage` | Triage and export feedback | Clasificar y exportar comentarios | |
 | ☐ | `admin.feedbackFrom` | %{kind} from %{name} | %{kind} de %{name} | |
 | ☐ | `admin.feedbackKind.bug` | Bug | Error | |
 | ☐ | `admin.feedbackKind.idea` | Idea | Idea | |
 | ☐ | `admin.feedbackKind.other` | Feedback | Comentario | |
+
+### feedbackTriage (31)
+
+| ✓ | Key | English | Español | Correction |
+| --- | --- | --- | --- | --- |
+| ☐ | `feedbackTriage.title` | Feedback | Comentarios | |
+| ☐ | `feedbackTriage.intro` | What testers sent from Me → Send feedback. Tag each item by type, set how serious it is, add a note, and mark it handled. Suggested tags are filled in for you. | Lo que enviaron los probadores desde Yo → Enviar comentarios. Etiqueta cada uno por tipo, indica qué tan grave es, agrega una nota y márcalo como atendido. Las etiquetas sugeridas ya vienen puestas. | |
+| ☐ | `feedbackTriage.show` | Show | Mostrar | |
+| ☐ | `feedbackTriage.status.open` | Open | Abiertos | |
+| ☐ | `feedbackTriage.status.closed` | Handled | Atendidos | |
+| ☐ | `feedbackTriage.status.all` | All | Todos | |
+| ☐ | `feedbackTriage.anyTag` | Any type | Cualquier tipo | |
+| ☐ | `feedbackTriage.export` | Export as CSV | Exportar como CSV | |
+| ☐ | `feedbackTriage.empty` | No feedback here. | No hay comentarios aquí. | |
+| ☐ | `feedbackTriage.type` | Type | Tipo | |
+| ☐ | `feedbackTriage.severity` | How serious | Qué tan grave | |
+| ☐ | `feedbackTriage.sev.low` | Low | Baja | |
+| ☐ | `feedbackTriage.sev.medium` | Medium | Media | |
+| ☐ | `feedbackTriage.sev.high` | High | Alta | |
+| ☐ | `feedbackTriage.sev.blocker` | Blocker | Bloqueante | |
+| ☐ | `feedbackTriage.note` | Staff note | Nota del personal | |
+| ☐ | `feedbackTriage.saveNote` | Save note | Guardar nota | |
+| ☐ | `feedbackTriage.saved` | Saved. | Guardado. | |
+| ☐ | `feedbackTriage.closed` | Marked handled. | Marcado como atendido. | |
+| ☐ | `feedbackTriage.tag.bug` | Bug | Error | |
+| ☐ | `feedbackTriage.tag.crash` | Crash | Cierre inesperado | |
+| ☐ | `feedbackTriage.tag.idea` | Idea | Idea | |
+| ☐ | `feedbackTriage.tag.confusing` | Confusing | Confuso | |
+| ☐ | `feedbackTriage.tag.content` | Content | Contenido | |
+| ☐ | `feedbackTriage.tag.notifications` | Notifications | Notificaciones | |
+| ☐ | `feedbackTriage.tag.account` | Account | Cuenta | |
+| ☐ | `feedbackTriage.tag.accessibility` | Accessibility | Accesibilidad | |
+| ☐ | `feedbackTriage.tag.spanish` | Spanish | Español | |
+| ☐ | `feedbackTriage.tag.performance` | Speed | Velocidad | |
+| ☐ | `feedbackTriage.tag.praise` | Praise | Elogio | |
+| ☐ | `feedbackTriage.tag.other` | Other | Otro | |
 
 ### ledgerCheck (11)
 
@@ -940,6 +982,51 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `ledgerCheck.check.negative_balance` | Negative balance | Saldo negativo | |
 | ☐ | `ledgerCheck.check.clawback_mismatch` | Clawback does not match the original | La reversión no coincide con el original | |
 | ☐ | `ledgerCheck.run` | Run the check now | Revisar ahora | |
+
+### import (24)
+
+| ✓ | Key | English | Español | Correction |
+| --- | --- | --- | --- | --- |
+| ☐ | `import.title` | Import from a spreadsheet | Importar desde una hoja de cálculo | |
+| ☐ | `import.intro` | Bring in a church's members or starter prayer requests from a CSV file (in Google Sheets or Excel: File → Download → CSV). Preview first: nothing changes until you press Import. | Trae los miembros de una iglesia o peticiones iniciales desde un archivo CSV (en Google Sheets o Excel: Archivo → Descargar → CSV). Primero revisa la vista previa: nada cambia hasta que pulses Importar. | |
+| ☐ | `import.members` | Members | Miembros | |
+| ☐ | `import.requests` | Prayer requests | Peticiones de oración | |
+| ☐ | `import.membersHint` | Columns: email (needed), name, language (en or es). Each person gets their own single-use invite code. People who already have an account are skipped. | Columnas: email o correo (obligatoria), nombre, idioma (en o es). Cada persona recibe su propio código de invitación de un solo uso. Se omite a quien ya tiene cuenta. | |
+| ☐ | `import.requestsHint` | Columns: request (needed), anonymous (yes or no). Each request is posted by you. | Columnas: petición (obligatoria), anónimo (sí o no). Cada petición se publica a tu nombre. | |
+| ☐ | `import.pickFile` | Choose a CSV file | Elegir un archivo CSV | |
+| ☐ | `import.paste` | Or paste the CSV here | O pega el CSV aquí | |
+| ☐ | `import.note` | Who the codes are for (optional) | Para quién son los códigos (opcional) | |
+| ☐ | `import.notePlaceholder` | For example, Grace Church | Por ejemplo, Iglesia Gracia | |
+| ☐ | `import.sendEmails` | Email each person their code | Enviar a cada persona su código por correo | |
+| ☐ | `import.sendEmailsHint` | In their language. Needs email set up on the server. | En su idioma. Requiere que el correo esté configurado en el servidor. | |
+| ☐ | `import.preview` | Preview | Vista previa | |
+| ☐ | `import.run.one` | Import 1 row | Importar 1 fila | |
+| ☐ | `import.run.other` | Import %{count} rows | Importar %{count} filas | |
+| ☐ | `import.previewSummary` | %{ok} ready, %{skipped} skipped, %{errors} with problems. | %{ok} listas, %{skipped} omitidas, %{errors} con problemas. | |
+| ☐ | `import.doneSummary` | Done: %{done} imported, %{skipped} skipped, %{errors} with problems. | Listo: %{done} importadas, %{skipped} omitidas, %{errors} con problemas. | |
+| ☐ | `import.line` | Row %{line} | Fila %{line} | |
+| ☐ | `import.status.ok` | Ready | Lista | |
+| ☐ | `import.status.invited` | Invite code made | Código creado | |
+| ☐ | `import.status.emailed` | Code emailed | Código enviado | |
+| ☐ | `import.status.posted` | Posted | Publicada | |
+| ☐ | `import.status.skipped` | Skipped | Omitida | |
+| ☐ | `import.status.error` | Problem | Problema | |
+
+### jobs (11)
+
+| ✓ | Key | English | Español | Correction |
+| --- | --- | --- | --- | --- |
+| ☐ | `jobs.title` | Background jobs | Tareas en segundo plano | |
+| ☐ | `jobs.intro` | Pushes, emails, moderation scans and radio prayers run in the background and are retried by themselves. Jobs that ran out of tries are listed here, and admins get an alert. | Los avisos, los correos, las revisiones de moderación y las oraciones por radio se hacen en segundo plano y se reintentan solos. Aquí aparecen las tareas que agotaron sus intentos, y los administradores reciben un aviso. | |
+| ☐ | `jobs.healthy` | Nothing has failed. | No ha fallado nada. | |
+| ☐ | `jobs.retrying.one` | %{task}: 1 job retrying (tried %{attempts} times) | %{task}: 1 tarea reintentándose (%{attempts} intentos) | |
+| ☐ | `jobs.retrying.other` | %{task}: %{count} jobs retrying (tried up to %{attempts} times) | %{task}: %{count} tareas reintentándose (hasta %{attempts} intentos) | |
+| ☐ | `jobs.failed` | Failed jobs | Tareas fallidas | |
+| ☐ | `jobs.tries` | Tried %{attempts} of %{max} times · %{date} | %{attempts} de %{max} intentos · %{date} | |
+| ☐ | `jobs.retry` | Retry %{task} | Reintentar %{task} | |
+| ☐ | `jobs.discard` | Discard %{task} | Descartar %{task} | |
+| ☐ | `jobs.retried` | Queued to run again. | Se volverá a ejecutar. | |
+| ☐ | `jobs.discarded` | Discarded. | Descartada. | |
 
 ### announcements (2)
 
@@ -980,7 +1067,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `announcementsAdmin.end` | End: %{title} | Terminar: %{title} | |
 | ☐ | `announcementsAdmin.endedNotice` | Ended. Members no longer see it. | Terminado. Los miembros ya no lo ven. | |
 
-### invites (29)
+### invites (38)
 
 | ✓ | Key | English | Español | Correction |
 | --- | --- | --- | --- | --- |
@@ -1013,8 +1100,17 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `invites.revokeCode` | Revoke %{code} | Anular %{code} | |
 | ☐ | `invites.revoked` | Code revoked. | Código anulado. | |
 | ☐ | `invites.shareMessage` | You are invited to Prayer Tower. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account. | Te invitamos a Prayer Tower. Tu código de invitación es %{code}. Abre %{url} en la aplicación, o escribe el código al crear tu cuenta. | |
+| ☐ | `invites.email` | Email | Correo | |
+| ☐ | `invites.import` | Import from a spreadsheet (CSV) | Importar desde una hoja de cálculo (CSV) | |
+| ☐ | `invites.emailCode` | Email %{code} | Enviar %{code} por correo | |
+| ☐ | `invites.emailTo` | Their email address | Su correo electrónico | |
+| ☐ | `invites.emailLanguage` | Email language | Idioma del correo | |
+| ☐ | `invites.emailMessage` | A personal note (optional) | Una nota personal (opcional) | |
+| ☐ | `invites.send` | Send invite | Enviar invitación | |
+| ☐ | `invites.sent` | Invite sent to %{email}. | Invitación enviada a %{email}. | |
+| ☐ | `invites.emailOff` | Email isn’t set up on the server yet (SMTP). | El correo aún no está configurado en el servidor (SMTP). | |
 
-### auditLog (43)
+### auditLog (48)
 
 | ✓ | Key | English | Español | Correction |
 | --- | --- | --- | --- | --- |
@@ -1049,11 +1145,16 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `auditLog.action.POST_macro-needs` | Posted a macro need | Publicó una gran necesidad | |
 | ☐ | `auditLog.action.POST_macro-needs_id_end` | Ended a macro need | Terminó una gran necesidad | |
 | ☐ | `auditLog.action.POST_macro-needs_id_helped` | Marked helpers on a macro need | Marcó ayudantes en una gran necesidad | |
+| ☐ | `auditLog.action.PATCH_admin_feedback_id` | Triaged feedback | Clasificó comentarios | |
 | ☐ | `auditLog.action.POST_admin_ledger-checks` | Ran the ledger check | Ejecutó la revisión del registro | |
 | ☐ | `auditLog.action.POST_admin_announcements` | Posted an announcement | Publicó un anuncio | |
 | ☐ | `auditLog.action.POST_admin_announcements_id_end` | Ended an announcement | Terminó un anuncio | |
 | ☐ | `auditLog.action.POST_admin_invites` | Created invite codes | Creó códigos de invitación | |
 | ☐ | `auditLog.action.POST_admin_invites_code_revoke` | Revoked an invite code | Anuló un código de invitación | |
+| ☐ | `auditLog.action.POST_admin_invites_code_email` | Emailed an invite code | Envió un código de invitación por correo | |
+| ☐ | `auditLog.action.POST_admin_jobs_id_retry` | Retried a failed background job | Reintentó una tarea en segundo plano fallida | |
+| ☐ | `auditLog.action.POST_admin_jobs_id_discard` | Discarded a failed background job | Descartó una tarea en segundo plano fallida | |
+| ☐ | `auditLog.action.POST_admin_import` | Imported a CSV file | Importó un archivo CSV | |
 | ☐ | `auditLog.action.PATCH_admin_invite-settings` | Changed invite-only mode | Cambió el modo solo por invitación | |
 | ☐ | `auditLog.title` | Audit log | Registro de auditoría | |
 | ☐ | `auditLog.intro` | Every change staff made, newest first: roles, settings, moderation decisions, witness and care actions. Witness notes are logged without their text. | Cada cambio que hizo el personal, del más reciente al más antiguo: roles, ajustes, decisiones de moderación y acciones de testigos y cuidado. Las notas de testigos se registran sin su texto. | |
@@ -1440,6 +1541,24 @@ Push notices and the Notices tab, for members whose app is in Spanish. Values in
 
   ```ts
   church_revoked: (p) => ({ title: `${s(p.church, 'Tu iglesia')} ya no está verificada`, body: s(p.note) })
+  ```
+
+- [ ] **crisis_flag**
+
+  ```ts
+  crisis_flag: () => ({
+      title: 'Alguien podría estar en peligro',
+      body: 'Una publicación o un mensaje menciona el suicidio o la autolesión. Abre la cola de moderación; está arriba de todo.',
+    })
+  ```
+
+- [ ] **job_alert**
+
+  ```ts
+  job_alert: (p) => ({
+      title: 'Hay tareas en segundo plano que fallan',
+      body: `${p.count ? `${s(p.count, '1')} ${p.count === 1 ? 'tarea agotó' : 'tareas agotaron'} sus intentos. ` : ''}Fallan: ${s(p.tasks)}. Abre Administración → Tareas en segundo plano para reintentar o descartar.`,
+    })
   ```
 
 - [ ] **ledger_alert**

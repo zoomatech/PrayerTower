@@ -75,6 +75,8 @@ function RootStack() {
           <Stack.Screen name="audit-log" />
           <Stack.Screen name="invites" />
           <Stack.Screen name="announcements" />
+          <Stack.Screen name="feedback-triage" />
+          <Stack.Screen name="import" />
           <Stack.Screen name="appeal/[id]" />
           <Stack.Screen name="people/[id]" />
           <Stack.Screen name="rules" />

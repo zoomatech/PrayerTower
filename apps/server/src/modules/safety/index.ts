@@ -21,6 +21,10 @@ export interface SafetySettings {
   new_member_posts_per_day: number;
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
+  /** Everyone but staff; 0 = no cap. */
+  posts_per_hour: number;
+  comments_per_hour: number;
+  messages_per_minute: number;
 }
 
 const COLUMNS = Object.keys({
@@ -30,6 +34,9 @@ const COLUMNS = Object.keys({
   new_member_posts_per_day: 0,
   new_member_comments_per_day: 0,
   new_member_links_allowed: 0,
+  posts_per_hour: 0,
+  comments_per_hour: 0,
+  messages_per_minute: 0,
 } satisfies Record<keyof SafetySettings, 0>) as (keyof SafetySettings)[];
 
 export async function settings(q: Queryable): Promise<SafetySettings> {
@@ -84,4 +91,32 @@ export async function checkNewMember(q: Queryable, userId: string, action: 'post
     [userId],
   );
   if (rows[0]!.n >= cap) throw new AppError(429, 'new_member_limit', `New members can post ${cap} ${noun} a day. ${LIFT}`);
+}
+
+const FLOOD = {
+  post: { table: 'posts', cap: 'posts_per_hour', window: '1 hour', noun: 'requests', per: 'an hour' },
+  comment: { table: 'comments', cap: 'comments_per_hour', window: '1 hour', noun: 'comments', per: 'an hour' },
+  message: { table: 'messages', cap: 'messages_per_minute', window: '1 minute', noun: 'messages', per: 'a minute' },
+} as const;
+
+/**
+ * Limits for everyone (not only new members), from the abuse tests: at most
+ * so many requests, comments or messages per hour or minute, and the same text
+ * not posted twice within a day. Admins and moderators are exempt.
+ */
+export async function checkFlood(q: Queryable, userId: string, action: keyof typeof FLOOD, text = '') {
+  const f = FLOOD[action];
+  const s = await settings(q);
+  const { rows } = await q.query<{ n: number; dup: boolean; staff: boolean }>(
+    `select (select count(*)::int from public.${f.table} where user_id = $1 and created_at > now() - interval '${f.window}') as n,
+            $2 <> '' and exists (select 1 from public.${f.table} where user_id = $1 and created_at > now() - interval '1 day'
+                                  and lower(btrim(body)) = lower(btrim($2))) as dup,
+            exists (select 1 from public.user_roles r where r.user_id = $1 and r.role in ('admin', 'moderator')) as staff`,
+    [userId, action === 'message' ? '' : text],
+  );
+  const r = rows[0]!;
+  if (r.staff) return;
+  const cap = s[f.cap];
+  if (cap > 0 && r.n >= cap) throw new AppError(429, 'slow_down', `You can post ${cap} ${f.noun} ${f.per}. Please wait a little and try again.`);
+  if (r.dup) throw new AppError(409, 'duplicate', 'You already posted this. Edit or share the earlier one instead.');
 }

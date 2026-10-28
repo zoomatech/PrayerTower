@@ -4,6 +4,11 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- API docs, Spanish emails, Android push scaffolding, query audit indexes ([#38](https://github.com/zoomatech/PrayerTower/pull/38))
+- Staff handbook, instant crisis alerts, feedback triage, go-live turns on the invite hook ([#36](https://github.com/zoomatech/PrayerTower/pull/36))
+- Church partners: pastors apply, admins verify, verified pastors get a badge ([#34](https://github.com/zoomatech/PrayerTower/pull/34))
+- Android "Pray now" home-screen widget ([#35](https://github.com/zoomatech/PrayerTower/pull/35))
+- In-app announcements, nightly token ledger check, changelog and release script ([#33](https://github.com/zoomatech/PrayerTower/pull/33))
 - Invite-only pilot sign-up, store review notes and review account ([#32](https://github.com/zoomatech/PrayerTower/pull/32))
 - iPad layouts: Messages split view, two-column feed; What's New store text ([#31](https://github.com/zoomatech/PrayerTower/pull/31))
 - Accessibility scan of the newer screens and the public site ([#29](https://github.com/zoomatech/PrayerTower/pull/29))

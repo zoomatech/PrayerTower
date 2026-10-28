@@ -6,7 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
+import { Button, Chip, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
 import { api, type Invite } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -24,6 +24,11 @@ export default function Invites() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // The code being emailed, and the form for it.
+  const [emailing, setEmailing] = useState<string | null>(null);
+  const [to, setTo] = useState('');
+  const [emailLang, setEmailLang] = useState<'en' | 'es'>(language === 'es' ? 'es' : 'en');
+  const [message, setMessage] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +76,22 @@ export default function Invites() {
   const share = (code: string) =>
     Share.share({ message: t('invites.shareMessage', { code, url: Linking.createURL('/sign-in', { queryParams: { invite: code } }) }) }).catch(() => undefined);
 
+  const sendEmail = (code: string) => {
+    const email = to.trim();
+    return run(async () => {
+      try {
+        await api.admin.emailInvite(code, { email, language: emailLang, ...(message.trim() ? { message: message.trim() } : {}) });
+      } catch (e) {
+        throw /email_off|503/.test((e as Error).message) ? new Error(t('invites.emailOff')) : e;
+      }
+    }, t('invites.sent', { email })).then(() => {
+      setEmailing(null);
+      setTo('');
+      setMessage('');
+    });
+  };
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim());
+
   const date = (iso: string) => new Date(iso).toLocaleDateString(language === 'es' ? 'es' : 'en-US', { dateStyle: 'medium' });
 
   return (
@@ -90,6 +111,8 @@ export default function Invites() {
             onChange={(v) => run(() => api.admin.setInviteOnly(v), v ? t('invites.nowOn') : t('invites.nowOff'))}
           />
         ) : null}
+
+        <Button variant="secondary" label={t('invites.import')} onPress={() => router.push('/import')} />
 
         <View style={styles.section}>
           <Text style={type.heading}>{t('invites.new')}</Text>
@@ -116,12 +139,25 @@ export default function Invites() {
             {i.status === 'active' ? (
               <View style={styles.row}>
                 <Button small variant="secondary" label={t('invites.share')} onPress={() => share(i.code)} />
+                <Button small variant="secondary" label={t('invites.emailCode', { code: i.code })} onPress={() => setEmailing(emailing === i.code ? null : i.code)} />
                 <Button
                   small
                   variant="ghost"
                   label={t('invites.revokeCode', { code: i.code })}
                   onPress={() => run(() => api.admin.revokeInvite(i.code), t('invites.revoked'))}
                 />
+              </View>
+            ) : null}
+            {i.status === 'active' && emailing === i.code ? (
+              <View style={styles.section}>
+                <Field label={t('invites.emailTo')} value={to} onChangeText={setTo} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
+                <Text style={type.small}>{t('invites.emailLanguage')}</Text>
+                <View style={styles.row}>
+                  <Chip label="English" selected={emailLang === 'en'} onPress={() => setEmailLang('en')} />
+                  <Chip label="Español" selected={emailLang === 'es'} onPress={() => setEmailLang('es')} />
+                </View>
+                <Field label={t('invites.emailMessage')} value={message} onChangeText={setMessage} maxLength={500} multiline />
+                <Button label={t('invites.send')} onPress={() => sendEmail(i.code)} busy={busy} disabled={!emailValid} />
               </View>
             ) : null}
           </View>

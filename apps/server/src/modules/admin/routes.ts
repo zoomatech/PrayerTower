@@ -34,6 +34,7 @@ import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
 import * as ledgerCheck from '../tokens/ledger-check.js';
+import * as jobs from '../jobs/index.js';
 
 const ROLES = ['admin', 'moderator', 'pastor', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
@@ -97,6 +98,26 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return { check: await ledgerCheck.runCheck(db, userId) };
   });
 
+  // Background jobs: the ones that ran out of tries (retry or discard) and the ones still retrying.
+  app.get('/admin/jobs', async (req) => {
+    await requireAdmin(req);
+    return { failed: await jobs.failed(db), retrying: await jobs.retrying(db) };
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/jobs/:id/retry', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().regex(/^\d{1,18}$/) }).parse(req.params);
+    if (!(await jobs.retry(db, id))) throw notFound('Failed job');
+    return { retried: true };
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/jobs/:id/discard', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().regex(/^\d{1,18}$/) }).parse(req.params);
+    if (!(await jobs.discard(db, id))) throw notFound('Failed job');
+    return { discarded: true };
+  });
+
   app.get('/admin/token-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await tokens.settings(db) };
@@ -110,6 +131,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         verifiedPrayerMinGapSeconds: z.number().int().min(0).max(86_400).optional(),
         radioPrayerCost: z.number().int().min(1).max(10_000).optional(),
         radioFunding: z.enum(['tokens', 'free']).optional(),
+        verifiedPrayersPerDay: z.number().int().min(0).max(10_000).optional(),
       })
       .parse(req.body);
     return {
@@ -118,6 +140,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         verified_prayer_min_gap_seconds: input.verifiedPrayerMinGapSeconds,
         radio_prayer_cost: input.radioPrayerCost,
         radio_funding: input.radioFunding,
+        verified_prayers_per_day: input.verifiedPrayersPerDay,
       }),
     };
   });
@@ -175,6 +198,9 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         newMemberPostsPerDay: z.number().int().min(0).max(1000).optional(),
         newMemberCommentsPerDay: z.number().int().min(0).max(1000).optional(),
         newMemberLinksAllowed: z.boolean().optional(),
+        postsPerHour: z.number().int().min(0).max(1000).optional(),
+        commentsPerHour: z.number().int().min(0).max(10_000).optional(),
+        messagesPerMinute: z.number().int().min(0).max(1000).optional(),
       })
       .parse(req.body);
     return {
@@ -185,6 +211,9 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         new_member_posts_per_day: input.newMemberPostsPerDay,
         new_member_comments_per_day: input.newMemberCommentsPerDay,
         new_member_links_allowed: input.newMemberLinksAllowed,
+        posts_per_hour: input.postsPerHour,
+        comments_per_hour: input.commentsPerHour,
+        messages_per_minute: input.messagesPerMinute,
       }),
     };
   });
@@ -201,9 +230,23 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   });
 
   // Pilot feedback from members.
+  // ?status=open|closed|all&tag=bug filters; /admin/feedback/export downloads the same as CSV.
   app.get('/admin/feedback', async (req) => {
     await requireAdmin(req);
-    return { feedback: await feedback.open(db) };
+    return { feedback: await feedback.list(db, feedback.Filter.parse(req.query)) };
+  });
+
+  app.get('/admin/feedback/export', async (req, reply) => {
+    await requireAdmin(req);
+    const items = await feedback.list(db, { ...feedback.ExportFilter.parse(req.query), limit: 5000 });
+    reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-feedback.csv"');
+    return feedback.toCsv(items);
+  });
+
+  app.patch<{ Params: { id: string } }>('/admin/feedback/:id', async (req) => {
+    const adminId = await requireAdmin(req);
+    await feedback.triage(db, adminId, z.uuid().parse(req.params.id), feedback.Triage.parse(req.body));
+    return { ok: true };
   });
 
   app.post<{ Params: { id: string } }>('/admin/feedback/:id/close', async (req) => {

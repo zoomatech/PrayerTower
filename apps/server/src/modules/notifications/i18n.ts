@@ -83,6 +83,14 @@ const es: Record<string, Template> = {
   }),
   church_declined: (p) => ({ title: `Aún no pudimos verificar ${s(p.church, 'tu iglesia')}`, body: s(p.note) }),
   church_revoked: (p) => ({ title: `${s(p.church, 'Tu iglesia')} ya no está verificada`, body: s(p.note) }),
+  crisis_flag: () => ({
+    title: 'Alguien podría estar en peligro',
+    body: 'Una publicación o un mensaje menciona el suicidio o la autolesión. Abre la cola de moderación; está arriba de todo.',
+  }),
+  job_alert: (p) => ({
+    title: 'Hay tareas en segundo plano que fallan',
+    body: `${p.count ? `${s(p.count, '1')} ${p.count === 1 ? 'tarea agotó' : 'tareas agotaron'} sus intentos. ` : ''}Fallan: ${s(p.tasks)}. Abre Administración → Tareas en segundo plano para reintentar o descartar.`,
+  }),
   ledger_alert: (p) => ({
     title: 'La revisión del registro de fichas encontró un problema',
     body: `${s(p.count, '1')} ${p.count === 1 ? 'problema' : 'problemas'} en el registro de fichas. Abre Administración → Fichas para ver los detalles.`,
