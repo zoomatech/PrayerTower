@@ -13,6 +13,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { LegalLinks } from '@/components/legal-links';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -167,6 +168,7 @@ export default function Profile() {
         <ErrorText error={error} />
         <Button variant="ghost" label="Sign out" onPress={signOut} />
         <Button variant="ghost" label="Delete my account" onPress={() => router.push('/delete-account')} />
+        <LegalLinks />
       </ScrollView>
     </Screen>
   );

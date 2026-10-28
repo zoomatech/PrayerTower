@@ -5,7 +5,9 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 ## 1. Must be done first
 
 - [x] **In-app account deletion** (Me → Delete my account; `DELETE /me`). Apple requires apps that let people create accounts to "also let people initiate deletion of their account within the app". Deleting the account has to remove the user's content too, including "text posts". ([App Review: 5.1.1(v)](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion)) External TestFlight builds go through Beta App Review first. ([TestFlight](https://developer.apple.com/testflight/)) The feature erases the sign-in, profile, content and activity at once. It keeps only the append-only token ledger and moderators' decisions, under "Deleted member". Check that the privacy policy says this.
-- [ ] **Privacy policy and terms**, with links in the app and in App Store Connect.
+- [ ] **Privacy policy and terms.** Drafts are in `docs/legal/` and need a lawyer's review. Publish them, then set `EXPO_PUBLIC_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_URL`. The app links to them at sign-up and on the profile. Add the privacy URL in App Store Connect and Play Console.
+- [ ] **A web page for deletion requests.** Google Play requires one. Use the hosted web app's `/delete-account`, or a request form. See `docs/store/APP_PRIVACY_ANSWERS.md`.
+- [ ] **Store privacy answers and listing copy** from `docs/store/`.
 - [ ] **Crisis resources checked for the pilot's country**, both the crisis banner text and the numbers.
 
 ## 2. Hosted Supabase project
@@ -49,7 +51,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 ## 6. App builds
 
 - [ ] Point the iOS build at the hosted API and Supabase (`EXPO_PUBLIC_*`). Use bundle ID `com.zoomatech.prayertower`.
-- [ ] Upload to TestFlight. Internal testers (up to 100 team members) need no review. External testers need a build approved by Beta App Review, a beta description and review notes. Give the reviewer a demo login on the hosted project, created by hand and not with the seed. ([TestFlight](https://developer.apple.com/testflight/))
+- [ ] Upload to TestFlight. Step by step: [TESTFLIGHT_EAS_GUIDE.md](TESTFLIGHT_EAS_GUIDE.md). Internal testers (up to 100 team members) need no review. External testers need a build approved by Beta App Review, a beta description and review notes. Give the reviewer a demo login on the hosted project, created by hand and not with the seed. ([TestFlight](https://developer.apple.com/testflight/))
 - [ ] Put the Android build on a Play internal testing track, if Android members are included.
 - [ ] Make sure push notifications arrive on a real device for a prayer, a message and an event reminder.
 

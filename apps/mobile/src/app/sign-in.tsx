@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 
+import { LegalLinks } from '@/components/legal-links';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { colors, space, type } from '@/lib/theme';
@@ -49,6 +50,7 @@ export default function SignIn() {
             busy={busy}
             disabled={!email || password.length < 6 || (mode === 'sign-up' && !name.trim())}
           />
+          {mode === 'sign-up' ? <LegalLinks prefix="By creating an account you confirm you are 18 or older and agree to the" /> : null}
           <Button
             variant="ghost"
             label={mode === 'sign-in' ? 'New here? Create an account' : 'Already have an account? Sign in'}

@@ -1,5 +1,5 @@
 // Community rules, from Steve's policy notes (Donor Influence page, chat 10).
-// Pilot draft: the terms of service and privacy policy still need a lawyer.
+// Pilot draft; the full terms and privacy policy drafts are in docs/legal/ (lawyer review pending).
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
