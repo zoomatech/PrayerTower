@@ -1,0 +1,26 @@
+# Carol posts a prayer request and sees it in the feed.
+appId: ${APP_ID}
+name: Post a prayer request
+tags: [smoke]
+env:
+  APP_ID: com.zoomatech.prayertower
+  EMAIL: carol@demo.prayertower.local
+  PASSWORD: praying-demo-1
+---
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      APP_ID: ${APP_ID}
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+# Each run posts different words: the server refuses the same request twice in a day.
+- evalScript: "${output.request = 'Maestro: please pray for my family this week (' + Date.now() + ')'}"
+- tapOn: Type your prayer here
+- tapOn:
+    id: compose-body
+- inputText: ${output.request}
+- tapOn:
+    id: compose-post
+- extendedWaitUntil:
+    visible: ${output.request}
+    timeout: 15000

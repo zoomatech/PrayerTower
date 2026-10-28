@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
@@ -34,9 +35,9 @@ export default function Admin() {
   const [weeks, setWeeks] = useState<PilotWeek[]>([]);
   const [radio, setRadio] = useState<AdminRadioSettings | null>(null);
   const [tokens, setTokens] = useState<AdminTokenSettings | null>(null);
-  const [tokenDraft, setTokenDraft] = useState({ perToken: '', gap: '', cost: '' });
+  const [tokenDraft, setTokenDraft] = useState({ perToken: '', gap: '', cost: '', perDay: '' });
   const [safety, setSafety] = useState<AdminSafetySettings | null>(null);
-  const [safetyDraft, setSafetyDraft] = useState({ hours: '', prayers: '', posts: '', comments: '' });
+  const [safetyDraft, setSafetyDraft] = useState({ hours: '', prayers: '', posts: '', comments: '', postsHour: '', commentsHour: '', messagesMinute: '' });
   const [tiers, setTiers] = useState<AdminTier[]>([]);
   const [tierDraft, setTierDraft] = useState<Record<string, { min: string; weekly: string }>>({});
   const [rules, setRules] = useState<MilestoneRule[]>([]);
@@ -62,7 +63,7 @@ export default function Admin() {
 
   const showTokens = (s: AdminTokenSettings) => {
     setTokens(s);
-    setTokenDraft({ perToken: String(s.priestly_prayers_per_token), gap: String(s.verified_prayer_min_gap_seconds), cost: String(s.radio_prayer_cost) });
+    setTokenDraft({ perToken: String(s.priestly_prayers_per_token), gap: String(s.verified_prayer_min_gap_seconds), cost: String(s.radio_prayer_cost), perDay: String(s.verified_prayers_per_day) });
   };
   const showSafety = (s: AdminSafetySettings) => {
     setSafety(s);
@@ -71,6 +72,9 @@ export default function Admin() {
       prayers: String(s.new_member_min_prayers),
       posts: String(s.new_member_posts_per_day),
       comments: String(s.new_member_comments_per_day),
+      postsHour: String(s.posts_per_hour),
+      commentsHour: String(s.comments_per_hour),
+      messagesMinute: String(s.messages_per_minute),
     });
   };
   const showTiers = (list: AdminTier[]) => {
@@ -135,6 +139,7 @@ export default function Admin() {
         priestlyPrayersPerToken: toInt(tokenDraft.perToken) ?? undefined,
         verifiedPrayerMinGapSeconds: toInt(tokenDraft.gap) ?? undefined,
         radioPrayerCost: toInt(tokenDraft.cost) ?? undefined,
+        verifiedPrayersPerDay: toInt(tokenDraft.perDay) ?? undefined,
       });
       showTokens(r.settings);
     }, t('admin.saved.tokens'));
@@ -149,6 +154,9 @@ export default function Admin() {
         newMemberMinPrayers: toInt(safetyDraft.prayers) ?? undefined,
         newMemberPostsPerDay: toInt(safetyDraft.posts) ?? undefined,
         newMemberCommentsPerDay: toInt(safetyDraft.comments) ?? undefined,
+        postsPerHour: toInt(safetyDraft.postsHour) ?? undefined,
+        commentsPerHour: toInt(safetyDraft.commentsHour) ?? undefined,
+        messagesPerMinute: toInt(safetyDraft.messagesMinute) ?? undefined,
         ...patch,
       });
       showSafety(r.settings);
@@ -243,6 +251,12 @@ export default function Admin() {
 
         {tokens ? (
           <View style={styles.section}>
+            <JobsPanel />
+          </View>
+        ) : null}
+
+        {tokens ? (
+          <View style={styles.section}>
             <Text style={type.heading}>{t('admin.tokens')}</Text>
             <LedgerCheckPanel />
             <Toggle
@@ -254,6 +268,7 @@ export default function Admin() {
             <Field label={t('admin.field.perToken')} keyboardType="number-pad" value={tokenDraft.perToken} onChangeText={(perToken) => setTokenDraft((d) => ({ ...d, perToken }))} />
             <Field label={t('admin.field.gap')} keyboardType="number-pad" value={tokenDraft.gap} onChangeText={(gap) => setTokenDraft((d) => ({ ...d, gap }))} />
             <Field label={t('admin.field.cost')} keyboardType="number-pad" value={tokenDraft.cost} onChangeText={(cost) => setTokenDraft((d) => ({ ...d, cost }))} />
+            <Field label={t('admin.field.verifiedPerDay')} keyboardType="number-pad" value={tokenDraft.perDay} onChangeText={(perDay) => setTokenDraft((d) => ({ ...d, perDay }))} />
             <Button label={t('admin.btn.saveTokens')} onPress={saveTokens} />
           </View>
         ) : null}
@@ -272,6 +287,10 @@ export default function Admin() {
             <Field label={t('admin.field.prayers')} keyboardType="number-pad" value={safetyDraft.prayers} onChangeText={(prayers) => setSafetyDraft((d) => ({ ...d, prayers }))} />
             <Field label={t('admin.field.posts')} keyboardType="number-pad" value={safetyDraft.posts} onChangeText={(posts) => setSafetyDraft((d) => ({ ...d, posts }))} />
             <Field label={t('admin.field.comments')} keyboardType="number-pad" value={safetyDraft.comments} onChangeText={(comments) => setSafetyDraft((d) => ({ ...d, comments }))} />
+            <Text style={type.small}>{t('admin.everyoneLimits')}</Text>
+            <Field label={t('admin.field.postsHour')} keyboardType="number-pad" value={safetyDraft.postsHour} onChangeText={(postsHour) => setSafetyDraft((d) => ({ ...d, postsHour }))} />
+            <Field label={t('admin.field.commentsHour')} keyboardType="number-pad" value={safetyDraft.commentsHour} onChangeText={(commentsHour) => setSafetyDraft((d) => ({ ...d, commentsHour }))} />
+            <Field label={t('admin.field.messagesMinute')} keyboardType="number-pad" value={safetyDraft.messagesMinute} onChangeText={(messagesMinute) => setSafetyDraft((d) => ({ ...d, messagesMinute }))} />
             <Button label={t('admin.btn.saveSafety')} onPress={() => saveSafety()} />
           </View>
         ) : null}

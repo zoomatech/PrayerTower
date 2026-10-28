@@ -406,8 +406,9 @@ export async function send(q: Queryable, userId: string, conversationId: string,
   return { id: message.id, createdAt: message.created_at, crisis };
 }
 
-/** New members: no links (per safety settings) and a daily message cap. */
+/** Everyone: the flood limit (safety.checkFlood). New members also: no links (per safety settings) and a daily message cap. */
 async function checkNewMemberMessage(q: Queryable, userId: string, body: string) {
+  await safety.checkFlood(q, userId, 'message');
   const s = await safety.settings(q);
   if (!s.new_member_limits_enabled || !(await safety.isNewMember(q, userId, s))) return;
   const lift = 'This limit lifts once you have been here a day and prayed for a few requests.';

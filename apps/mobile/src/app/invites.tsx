@@ -112,6 +112,8 @@ export default function Invites() {
           />
         ) : null}
 
+        <Button variant="secondary" label={t('invites.import')} onPress={() => router.push('/import')} />
+
         <View style={styles.section}>
           <Text style={type.heading}>{t('invites.new')}</Text>
           <Field label={t('invites.note')} value={note} onChangeText={setNote} maxLength={200} placeholder={t('invites.notePlaceholder')} />

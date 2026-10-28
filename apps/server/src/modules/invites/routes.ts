@@ -6,6 +6,7 @@ import { conflict, forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import type { Mailer } from '../digest/mailer.js';
 import { EmailInvite, renderInviteEmail, type InviteLinks } from './email.js';
+import { importCsv, ImportInput } from './import.js';
 import * as invites from './index.js';
 
 /** Public: the sign-up screen asks whether to show the invite code field. */
@@ -54,6 +55,18 @@ export function inviteRoutes(app: FastifyInstance, db: Db, mailer: Mailer | null
     const lang = body.language ?? rows[0]?.locale ?? 'en';
     await mailer(renderInviteEmail({ to: body.email, code: invite.code, lang, from: rows[0]?.name ?? 'Prayer Tower', message: body.message, links }));
     return { sent: true, language: lang };
+  });
+
+  // CSV import for a church: members as single-use invites, or starter prayer requests.
+  app.post('/admin/import', async (req) => {
+    const userId = requireUser(req);
+    await requireAdmin(userId);
+    const input = ImportInput.parse(req.body);
+    const { rows } = await db.query<{ name: string; locale: 'en' | 'es' }>(
+      `select coalesce(nullif(display_name, ''), 'Prayer Tower') as name, locale from public.profiles where id = $1`,
+      [userId],
+    );
+    return importCsv(db, userId, input, { mailer, links, from: rows[0]?.name ?? 'Prayer Tower', adminLocale: rows[0]?.locale ?? 'en' });
   });
 
   app.patch('/admin/invite-settings', async (req) => {

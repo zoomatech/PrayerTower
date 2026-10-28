@@ -143,6 +143,7 @@ export interface AdminTokenSettings {
   verified_prayer_min_gap_seconds: number;
   radio_prayer_cost: number;
   radio_funding: 'tokens' | 'free';
+  verified_prayers_per_day: number;
 }
 export interface AdminRadioSettings {
   radio_transmitter: 'log' | 'station';
@@ -237,6 +238,32 @@ export interface FeedbackItem {
   closedAt: string | null;
 }
 
+export type ImportStatus = 'ok' | 'invited' | 'emailed' | 'posted' | 'skipped' | 'error';
+export interface ImportResult {
+  kind: 'members' | 'requests';
+  dryRun: boolean;
+  error?: string;
+  rows: { line: number; status: ImportStatus; reason?: string; email?: string; name?: string; code?: string; request?: string; postId?: string }[];
+  counts: Record<ImportStatus, number>;
+}
+
+export interface FailedJob {
+  id: string;
+  task: string;
+  attempts: number;
+  maxAttempts: number;
+  lastError: string | null;
+  key: string | null;
+  createdAt: string;
+  failedAt: string;
+}
+export interface RetryingTask {
+  task: string;
+  jobs: number;
+  attempts: number;
+  lastError: string | null;
+}
+
 export interface LedgerCheck {
   id: string;
   checkedAt: string;
@@ -304,6 +331,9 @@ export interface AdminSafetySettings {
   new_member_posts_per_day: number;
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
+  posts_per_hour: number;
+  comments_per_hour: number;
+  messages_per_minute: number;
 }
 export type WitnessStatus = 'watching' | 'reaching_out' | 'helped' | 'closed';
 
@@ -461,12 +491,17 @@ export const api = {
     metrics: (days: number) => get<Record<string, Record<string, number | string | null>>>(`/admin/metrics?days=${days}`),
     tokenSettings: () => get<{ settings: AdminTokenSettings }>('/admin/token-settings'),
     updateTokenSettings: (
-      patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free' }>,
+      patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free'; verifiedPrayersPerDay: number }>,
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
     ledgerChecks: () => get<{ checks: LedgerCheck[] }>('/admin/ledger-checks'),
     runLedgerCheck: () => post<{ check: LedgerCheck }>('/admin/ledger-checks'),
+    importCsv: (input: { kind: 'members' | 'requests'; csv: string; dryRun: boolean; note?: string; sendEmails?: boolean; message?: string }) =>
+      post<ImportResult>('/admin/import', input),
+    jobs: () => get<{ failed: FailedJob[]; retrying: RetryingTask[] }>('/admin/jobs'),
+    retryJob: (id: string) => post<{ retried: boolean }>(`/admin/jobs/${id}/retry`),
+    discardJob: (id: string) => post<{ discarded: boolean }>(`/admin/jobs/${id}/discard`),
     announcements: () => get<{ announcements: (Announcement & { active: boolean; dismissals: number })[] }>('/admin/announcements'),
     createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
       post<{ announcement: Announcement }>('/admin/announcements', input),
@@ -493,6 +528,9 @@ export const api = {
         newMemberPostsPerDay: number;
         newMemberCommentsPerDay: number;
         newMemberLinksAllowed: boolean;
+        postsPerHour: number;
+        commentsPerHour: number;
+        messagesPerMinute: number;
       }>,
     ) => request<{ settings: AdminSafetySettings }>('PATCH', '/admin/safety-settings', patch),
     messagingSettings: () => get<{ settings: AdminMessagingSettings }>('/admin/messaging-settings'),
