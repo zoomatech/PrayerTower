@@ -11,6 +11,7 @@ import * as activity from '../activity/index.js';
 import * as care from '../care/index.js';
 import * as commitments from '../commitments/index.js';
 import * as events from '../events/index.js';
+import * as future from '../future/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
@@ -161,6 +162,17 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_links_allowed: input.newMemberLinksAllowed,
       }),
     };
+  });
+
+  // Blocked features' switches (all off): token purchase, Common Prayer Fund page, AI conversation.
+  app.get('/admin/future-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await future.settings(db) };
+  });
+
+  app.patch('/admin/future-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await future.updateSettings(db, future.SettingsPatch.parse(req.body)) };
   });
 
   // Bot signals on prayer taps.

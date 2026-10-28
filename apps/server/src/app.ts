@@ -18,6 +18,7 @@ import { promptRoutes } from './modules/prompts/routes.js';
 import { tierRoutes } from './modules/tiers/routes.js';
 import { prayerActionRoutes } from './modules/prayer-actions/routes.js';
 import { radioRoutes } from './modules/radio/routes.js';
+import { futureRoutes } from './modules/future/routes.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
 import { messageRoutes } from './modules/messages/routes.js';
@@ -89,6 +90,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     eventRoutes(authed, db);
     careRoutes(authed, db);
     witnessRoutes(authed, db);
+    futureRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);
