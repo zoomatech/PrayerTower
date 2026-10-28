@@ -76,6 +76,10 @@ const es: Record<string, Template> = {
   }),
   scheduled_spend_failed: (p) => ({ title: 'Un regalo programado no se envió', body: s(p.body) }),
   weekly_review: (p) => ({ title: 'Tu semana en oración', body: s(p.body) }),
+  ledger_alert: (p) => ({
+    title: 'La revisión del registro de fichas encontró un problema',
+    body: `${s(p.count, '1')} ${p.count === 1 ? 'problema' : 'problemas'} en el registro de fichas. Abre Administración → Fichas para ver los detalles.`,
+  }),
 };
 
 const catalogs: Record<string, Record<string, Template>> = { es };

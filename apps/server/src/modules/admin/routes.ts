@@ -32,6 +32,7 @@ import * as audit from '../audit/index.js';
 import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
+import * as ledgerCheck from '../tokens/ledger-check.js';
 
 const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
@@ -81,6 +82,17 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   });
 
   // Priestly token rate and the minimum gap that makes a prayer count as verified.
+  // Token ledger integrity: recent runs (nightly, or by hand) and run one now.
+  app.get('/admin/ledger-checks', async (req) => {
+    await requireAdmin(req);
+    return { checks: await ledgerCheck.recent(db) };
+  });
+
+  app.post('/admin/ledger-checks', async (req) => {
+    const userId = await requireAdmin(req);
+    return { check: await ledgerCheck.runCheck(db, userId) };
+  });
+
   app.get('/admin/token-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await tokens.settings(db) };
