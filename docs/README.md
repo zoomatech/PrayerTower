@@ -11,6 +11,7 @@ Every doc, grouped by who it's for. The same files are in the repo under `docs/`
 | [PILOT_DAY_ONE_RUNBOOK.md](PILOT_DAY_ONE_RUNBOOK.md) | Launch day hour by hour, when and how to roll back, and who to call |
 | [GO_LIVE.md](GO_LIVE.md) | Deploying to Fly.io or Render with Supabase Cloud, with one script |
 | [TESTFLIGHT_EAS_GUIDE.md](TESTFLIGHT_EAS_GUIDE.md) | Getting the iPhone app onto TestFlight from your Mac |
+| [RELEASING_APPS.md](RELEASING_APPS.md) | After the first build: automatic TestFlight builds and over-the-air updates |
 | [ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md) | Getting the Android app onto Google Play internal testing |
 | [ANDROID_PUSH.md](ANDROID_PUSH.md) | Setting up Firebase so Android phones get push notifications |
 | [MAC_AND_IPAD.md](MAC_AND_IPAD.md) | The iPad and Mac versions of the iOS app |
@@ -75,6 +76,7 @@ The product plans are in the project files under `roadmap/`: the product roadmap
 | [DEPLOY.md](DEPLOY.md) | Running the server on a machine you manage yourself |
 | [STAGING.md](STAGING.md) | The staging copy used to try releases |
 | [RELEASING.md](RELEASING.md) | The changelog and release notes |
+| [RELEASING_APPS.md](RELEASING_APPS.md) | iPhone builds to TestFlight and over-the-air updates from GitHub Actions |
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | Backups and the restore drill |
 | [MONITORING.md](MONITORING.md) | Health checks, uptime alerts and Admin → Operations |
 | [BACKGROUND_JOBS.md](BACKGROUND_JOBS.md) | Job retries, the failed-jobs list and alerts |

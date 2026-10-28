@@ -96,6 +96,15 @@ jobs:
         run: |
           grep -q "applicationId 'com.zoomatech.prayertower'" android/app/build.gradle
           grep -q 'PRODUCT_BUNDLE_IDENTIFIER = "com.zoomatech.prayertower";' ios/*.xcodeproj/project.pbxproj
+      - name: Check over-the-air update settings (docs/RELEASING_APPS.md)
+        working-directory: apps/mobile
+        env:
+          EAS_PROJECT_ID: 00000000-0000-0000-0000-000000000000
+        run: |
+          npx expo prebuild --no-install --platform ios
+          grep -q 'https://u.expo.dev/00000000-0000-0000-0000-000000000000' ios/*/Supporting/Expo.plist
+          grep -q 'file:fingerprint' ios/*/Supporting/Expo.plist
+          jq -e '.build.production.channel == "production"' eas.json
       - name: Bundle iOS and Android
         working-directory: apps/mobile
         run: npx expo export --platform ios --platform android --output-dir /tmp/native-dist
