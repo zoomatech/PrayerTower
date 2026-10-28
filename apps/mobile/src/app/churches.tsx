@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -13,7 +14,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const STATUSES: ChurchStatus[] = ['pending', 'verified', 'declined'];
 
-export default function ChurchReview() {
+function ChurchReview() {
   const { t } = useLocale();
   const [status, setStatus] = useState<ChurchStatus>('pending');
   const [churches, setChurches] = useState<ChurchForReview[]>([]);
@@ -103,3 +104,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   link: { color: colors.primary },
 });
+
+export default staffOnly(ChurchReview, ['admin']);

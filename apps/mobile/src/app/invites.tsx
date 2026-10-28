@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
 import { api, type Invite } from '@/lib/api';
 import { env } from '@/lib/env';
@@ -14,7 +15,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const whole = (s: string) => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : NaN);
 
-export default function Invites() {
+function Invites() {
   const { t, language } = useLocale();
   const [inviteOnly, setInviteOnly] = useState<boolean | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -179,3 +180,5 @@ const styles = StyleSheet.create({
   code: { ...type.heading, fontFamily: 'monospace', letterSpacing: 2 },
   row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
 });
+
+export default staffOnly(Invites, ['admin']);

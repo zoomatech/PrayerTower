@@ -17,6 +17,7 @@ cp apps/server/.env.example apps/server/.env  # add SUPABASE_SECRET_KEY from `np
 npm run dev:api       # http://localhost:3000
 npm run dev:worker    # background jobs + reminder cron
 npm test              # integration tests against the local database
+npm test -w @prayer-tower/mobile  # app unit tests (no database needed)
 ```
 
 ### Mobile app (Expo)

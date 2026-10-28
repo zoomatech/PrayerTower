@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { localized } from '@/components/announcements';
 import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type Announcement } from '@/lib/api';
@@ -14,7 +15,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 type Listed = Announcement & { active: boolean; dismissals: number };
 
-export default function Announcements() {
+function Announcements() {
   const { t, language } = useLocale();
   const [items, setItems] = useState<Listed[]>([]);
   const [kind, setKind] = useState<'banner' | 'notice'>('banner');
@@ -144,3 +145,5 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.md, gap: 4 },
   cardTitle: { ...type.body, fontWeight: '700' },
 });
+
+export default staffOnly(Announcements, ['admin']);

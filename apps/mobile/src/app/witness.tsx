@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type WitnessCase, type WitnessStatus } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -14,7 +15,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const STATUSES: WitnessStatus[] = ['watching', 'reaching_out', 'helped', 'closed'];
 
-export default function Witness() {
+function Witness() {
   const { t } = useLocale();
   const statusLabel = (s: WitnessStatus) => t(`witness.status.${s}`);
   const [filter, setFilter] = useState<WitnessStatus | null>(null);
@@ -151,3 +152,5 @@ const styles = StyleSheet.create({
   noteAuthor: { fontWeight: '700' },
   help: { color: colors.primary, fontWeight: '700' },
 });
+
+export default staffOnly(Witness, ['witness', 'moderator', 'admin']);

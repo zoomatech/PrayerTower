@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
@@ -27,7 +28,7 @@ const label = (t: T, key: string) =>
   t(`admin.metric.${key}`, { defaultValue: LABELS[key] ?? key.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()) });
 const toInt = (s: string) => (s.trim() === '' ? null : Number.parseInt(s, 10));
 
-export default function Admin() {
+function Admin() {
   const { t, language } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
@@ -733,3 +734,5 @@ function FeedbackSection() {
     </View>
   );
 }
+
+export default staffOnly(Admin, ['admin']);

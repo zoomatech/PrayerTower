@@ -22,5 +22,6 @@ test('a report reaches the moderation queue and the moderator keeps the post', a
 test('a member cannot open the moderation queue', async ({ page }) => {
   await signIn(page, 'ethel');
   await page.goto('/moderation');
-  await expect(page.getByText(/moderators only/i).first()).toBeVisible();
+  await expect(page.getByText('This page is for the Prayer Tower team.')).toBeVisible();
+  await expect(page.getByText('Nothing waiting for review.')).toHaveCount(0);
 });

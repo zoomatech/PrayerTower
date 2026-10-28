@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, ErrorText, Field, Screen, Toggle } from '@/components/ui';
 import { api, type ImportResult } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -28,7 +29,7 @@ function pickCsvFile(): Promise<string | null> {
   });
 }
 
-export default function Import() {
+function Import() {
   const { t } = useLocale();
   const [kind, setKind] = useState<Kind>('members');
   const [csv, setCsv] = useState('');
@@ -139,3 +140,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   card: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: space.sm, gap: 2 },
 });
+
+export default staffOnly(Import, ['admin']);

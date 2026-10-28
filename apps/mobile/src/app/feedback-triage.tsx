@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type FeedbackItem } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -13,7 +14,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 type Status = 'open' | 'closed' | 'all';
 
-export default function FeedbackTriage() {
+function FeedbackTriage() {
   const { t, language } = useLocale();
   const [status, setStatus] = useState<Status>('open');
   const [tag, setTag] = useState<FeedbackTag | undefined>();
@@ -162,3 +163,5 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.md, gap: space.xs },
   from: { ...type.body, fontWeight: '700' },
 });
+
+export default staffOnly(FeedbackTriage, ['admin']);
