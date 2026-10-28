@@ -83,8 +83,8 @@ export default function Profile() {
 
         <ErrorText error={countsError} onRetry={loadCounts} />
         <View style={styles.stats}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>
+          <View style={[styles.stat, styles.tierStat]}>
+            <Text style={[styles.statValue, styles.tierValue]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>
               {tier?.tier?.label ? n(tier.tier.label) : '—'}
             </Text>
             <Text style={type.small}>{profile.anonymous_by_default ? t('profile.tierPrivate') : t('profile.tier')}</Text>
@@ -168,7 +168,7 @@ export default function Profile() {
               {feedStyles.themes.map((th) => (
                 <Chip
                   key={th.slug}
-                  label={th.status === 'beta' ? t('profile.beta', { name: th.name }) : th.name}
+                  label={th.status === 'beta' ? t('profile.beta', { name: n(th.name) }) : n(th.name)}
                   selected={feedStyles.current === th.slug}
                   onPress={() =>
                     api
@@ -289,4 +289,7 @@ const styles = StyleSheet.create({
   mixLabel: { fontWeight: '600' },
   stat: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.md, alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '700', color: colors.primary, textAlign: 'center' },
+  // Tier names are long (Kindness Champion): a wider tile and smaller text, so no word breaks mid-way.
+  tierValue: { fontSize: 14 },
+  tierStat: { flex: 1.6 },
 });

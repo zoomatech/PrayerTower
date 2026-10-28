@@ -308,6 +308,18 @@ const en = {
     sensitive: 'Contains graphic or trauma-related details',
     sensitiveHint: 'Hidden from people who asked not to see such posts.',
   },
+  layout: {
+    allSeen: 'You have seen every prayer for now. Thank you for praying.',
+    lastPage: 'The last page',
+    allSeenTitle: 'You have seen every request for now',
+    thanks: 'Thank you for praying.',
+    pray: 'Pray 💜',
+    prayButton: 'Pray ›',
+    next: 'Next',
+    nextButton: '‹ Next',
+    again: 'Start again',
+    loadingMore: 'Loading more requests…',
+  },
   feed: {
     composer: 'Type your prayer here…',
     filterAll: 'All prayers',

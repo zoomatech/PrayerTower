@@ -310,6 +310,18 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     sensitive: 'Contiene detalles gráficos o sobre traumas',
     sensitiveHint: 'Se oculta a quienes pidieron no ver este tipo de publicaciones.',
   },
+  layout: {
+    allSeen: 'Ya viste todas las oraciones por ahora. Gracias por orar.',
+    lastPage: 'La última página',
+    allSeenTitle: 'Ya viste todas las peticiones por ahora',
+    thanks: 'Gracias por orar.',
+    pray: 'Orar 💜',
+    prayButton: 'Orar ›',
+    next: 'Siguiente',
+    nextButton: '‹ Siguiente',
+    again: 'Empezar de nuevo',
+    loadingMore: 'Cargando más peticiones…',
+  },
   feed: {
     composer: 'Escribe tu oración aquí…',
     filterAll: 'Todas las oraciones',

@@ -72,6 +72,12 @@ export const keys: Tree = {
     bodyLabel: 'Your request',
     kind: 'What kind of support?',
   },
+  layout: {
+    allSeen: 'You have seen every request for now. Thank you for showing up.',
+    thanks: 'Thank you for showing up.',
+    pray: 'Support 💜',
+    prayButton: 'Support ›',
+  },
   feed: {
     composer: "What's on your mind?…",
     filterAll: 'Everything',
@@ -227,6 +233,7 @@ export const keys: Tree = {
   notebook: {
     worldwide: '%{formatted} acts of support worldwide in the last day, by %{people} people',
     prayedForYou: '%{count} people have supported your requests.',
+    thanksPost: 'Share good news',
     thanksBody: 'Has something good happened lately? A little good news lifts everyone here.',
     thanksAnswered: 'Requests you supported worked out this week: %{count}. Is there something you are thankful for too?',
     supportToggle: 'Kind thoughts welcome from everyone',
@@ -283,5 +290,6 @@ export const literals: Record<string, string> = {
   'Commit to Pray': 'Promise to Check In',
   'Prayer Tower': 'Open Circle',
   'Prayer Cast': 'Goodwill Cast',
+  'Swipe to pray': 'Swipe through',
   'Go to Prayers': 'Go to Support',
 };

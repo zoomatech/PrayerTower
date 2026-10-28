@@ -6,6 +6,7 @@ import { product } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
+import { isSecular } from '../communities/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from '../tokens/index.js';
@@ -241,8 +242,14 @@ export async function weeklyReview(q: Queryable, userId: string) {
     [userId],
   );
   const r = rows[0]!;
-  const message =
-    r.prayers > 0
+  const secular = await isSecular(q, userId);
+  const message = secular
+    ? r.prayers > 0
+      ? `This week you supported people ${r.prayers} ${r.prayers === 1 ? 'time' : 'times'} on ${r.people} ${r.people === 1 ? 'request' : 'requests'}. Thank you for standing with them.`
+      : r.active > 0
+        ? 'Your promises are here whenever you are ready. WE DO NOT JUDGE.'
+        : 'When you are ready, there are people waiting for some support.'
+    : r.prayers > 0
       ? `This week you prayed ${r.prayers} ${r.prayers === 1 ? 'time' : 'times'} for ${r.people} ${r.people === 1 ? 'request' : 'requests'}. Thank you for standing with them.`
       : r.active > 0
         ? 'Your commitments are here whenever you are ready. WE DO NOT JUDGE.'

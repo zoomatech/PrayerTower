@@ -44,8 +44,8 @@ export function FlipLayout({ cards, pinnedId, renderCard, header, refreshing, on
           </View>
         ) : (
           <View style={[styles.inner, { alignItems: 'center' }]}>
-            <Text style={type.heading}>The last page</Text>
-            <Text style={styles.hint}>You have seen every prayer for now. Thank you for praying.</Text>
+            <Tr k="layout.lastPage" style={type.heading} />
+            <Tr k="layout.allSeen" style={styles.hint} />
           </View>
         )}
       </Animated.View>
