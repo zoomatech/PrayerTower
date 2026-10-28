@@ -49,7 +49,7 @@ async function member(i: number): Promise<{ id: string; token: string }> {
   await fetch(`${auth}/admin/users`, {
     method: 'POST',
     headers: admin,
-    body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { display_name: `Load ${i}` } }),
+    body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { display_name: `Load ${i}` }, app_metadata: { invite_exempt: true } }),
   }); // 422 when the member already exists from an earlier run
   const r = await fetch(`${auth}/token?grant_type=password`, {
     method: 'POST',

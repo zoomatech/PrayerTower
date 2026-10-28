@@ -32,6 +32,7 @@ import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { registerMetrics } from './metrics.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
+import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
 import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
@@ -97,6 +98,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   // The radio station authenticates with its own key, not a member login.
   app.register(async (station) => stationRoutes(station, db, stationKey));
 
+  // What the sign-up screen needs to know before anyone is signed in.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
+    signupConfigRoutes(open, db);
+  });
+
   // The public account-deletion page, limited per IP address.
   if (deletionPage) {
     app.register(async (open) => {
@@ -149,6 +156,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);
+    inviteRoutes(authed, db);
     adminRoutes(authed, db, storage);
   });
 

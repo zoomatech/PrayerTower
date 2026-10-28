@@ -53,6 +53,7 @@ describe('endpoint auth', () => {
       'GET /.well-known/apple-app-site-association',
       'GET /.well-known/assetlinks.json',
       'GET /terms',
+      'GET /signup-config',
       // The same public pages in Spanish.
       'GET /es',
       'GET /es/',

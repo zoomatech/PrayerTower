@@ -66,7 +66,7 @@ async function member(key: string, name: string) {
   const r = await fetch(authUrl, {
     method: 'POST',
     headers: authHeaders,
-    body: JSON.stringify({ email: `${key}@${DEMO_DOMAIN}`, password, email_confirm: true, user_metadata: { display_name: name } }),
+    body: JSON.stringify({ email: `${key}@${DEMO_DOMAIN}`, password, email_confirm: true, user_metadata: { display_name: name }, app_metadata: { invite_exempt: true } }),
   });
   const u = (await r.json()) as { id?: string; msg?: string };
   if (!u.id) throw new Error(`could not create ${key}: ${JSON.stringify(u)}`);
