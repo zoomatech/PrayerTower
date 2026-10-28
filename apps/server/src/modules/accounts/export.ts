@@ -47,6 +47,7 @@ const SECTIONS: Record<string, Section> = {
   macroNeedHelp: { table: 'macro_need_helpers', where: 'user_id = $1' },
   moderationActions: { table: 'moderation_actions', where: 'user_id = $1', omit: ['moderator_id'] },
   appeals: { table: 'moderation_appeals', where: 'user_id = $1', omit: ['decided_by'] },
+  adFines: { table: 'ad_fines', where: 'user_id = $1', omit: ['decided_by'] },
   devices: { table: 'push_tokens', where: 'user_id = $1', omit: ['token'] },
 };
 

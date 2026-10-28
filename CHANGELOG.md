@@ -4,6 +4,7 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Safety check on your own Mac: MODERATION_PROVIDER=local (Ollama) ([#55](https://github.com/zoomatech/PrayerTower/pull/55))
 - Dependency updates, pilot cost estimate, regression fixes ([#54](https://github.com/zoomatech/PrayerTower/pull/54))
 - Batch 12: store listing defaults to the Sample content screenshots ([#53](https://github.com/zoomatech/PrayerTower/pull/53))
 - Batch 11: App Store listing and review notes match the current app ([#52](https://github.com/zoomatech/PrayerTower/pull/52))
