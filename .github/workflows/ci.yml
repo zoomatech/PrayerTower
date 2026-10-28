@@ -19,3 +19,66 @@ jobs:
       # Local Supabase stack (Postgres, Auth, Storage) in Docker; applies migrations.
       - run: npm run db:start
       - run: npm test
+
+  # Checks that app.json and the config plugins still generate both native
+  # projects, and that the JS bundles for iOS and Android build. No signing or
+  # compiling, so it runs on Linux in about two minutes.
+  native:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_NO_GIT_STATUS: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Prebuild iOS and Android
+        working-directory: apps/mobile
+        run: npx expo prebuild --clean --no-install --platform all
+      - name: Check app identifiers
+        working-directory: apps/mobile
+        run: |
+          grep -q "applicationId 'com.zoomatech.prayertower'" android/app/build.gradle
+          grep -q 'PRODUCT_BUNDLE_IDENTIFIER = "com.zoomatech.prayertower";' ios/*.xcodeproj/project.pbxproj
+      - name: Bundle iOS and Android
+        working-directory: apps/mobile
+        run: npx expo export --platform ios --platform android --output-dir /tmp/native-dist
+
+  # Playwright flows against the web build, the API and a local Supabase.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:start
+      - name: Point the app and API at the local stack
+        run: |
+          eval "$(npx supabase status -o env 2>/dev/null | grep -E '^[A-Z_0-9]+=' | sed 's/^/SB_/')"
+          {
+            echo "EXPO_PUBLIC_API_URL=http://127.0.0.1:3000"
+            echo "EXPO_PUBLIC_SUPABASE_URL=$SB_API_URL"
+            echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$SB_PUBLISHABLE_KEY"
+          } > apps/mobile/.env
+          {
+            echo "SUPABASE_SECRET_KEY=$SB_SECRET_KEY"
+            echo "SUPABASE_PUBLISHABLE_KEY=$SB_PUBLISHABLE_KEY"
+            echo "PUSH_ENABLED=0"
+          } > apps/server/.env
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/e2e
+      - run: npm run build:web -w @prayer-tower/e2e
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: |
+            apps/e2e/playwright-report/
+            apps/e2e/test-results/
+          retention-days: 14

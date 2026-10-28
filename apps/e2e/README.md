@@ -31,3 +31,7 @@ npm run test:e2e                        # starts the API and a static server if 
 `@playwright/test` is pinned to 1.63.0 to match the Chromium already installed in the cloud dev container. Elsewhere, run `npx playwright install chromium` once.
 
 You can override the targets with `E2E_WEB_URL`, `E2E_API_URL`, `DATABASE_URL` and `DEMO_PASSWORD`. Reports go to `playwright-report/`, and the traces of failed tests go to `test-results/`.
+
+## In CI
+
+The `e2e` job in `.github/workflows/ci.yml` runs this suite on every pull request. It starts the local Supabase stack, writes both `.env` files from `supabase status`, installs Chromium with `npx playwright install --with-deps chromium`, and uploads `playwright-report/` and `test-results/` as the `playwright-report` artifact. In CI each failed test is retried once.
