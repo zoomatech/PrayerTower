@@ -40,6 +40,8 @@ Make yourself the first admin after signing up: `npm run grant-role -- you@examp
 
 `npm run db:reset` rebuilds the database from migrations. Add a migration with `npx supabase migration new <name>`.
 
+For production (Supabase choice, HTTPS, backups, monitoring) see [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ### One machine with Docker Compose
 
 ```bash
