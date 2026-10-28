@@ -78,6 +78,10 @@ describe('endpoint auth', () => {
       // The ad-free promise (404 while switched off).
       'GET /promise',
       'GET /open-circle/promise',
+      // The waitlist page and joining it (404 while switched off; joining is rate limited).
+      'GET /waitlist',
+      'GET /open-circle/waitlist',
+      'POST /waitlist/join',
       // Public podcast feeds for podcast apps (404 while switched off).
       'GET /podcasts/:slug/feed.xml',
       // Guest prayer and prayer-chain pages: an unguessable link each, 404 while switched off.
