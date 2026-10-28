@@ -2,9 +2,9 @@
 
 App Store only: the pilot is iPhone only. The Google Play text is archived in [archive/GOOGLE_PLAY_DRAFTS.md](../archive/GOOGLE_PLAY_DRAFTS.md).
 
-> Drafted 2026-10-28 for the pilot, for Steve to edit. Character counts are checked against each field's limit. App Store limits: Promotional Text 170 characters, Description 4,000, Keywords 100 bytes ([Apple](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)). App name and subtitle are 30 characters each; check these in App Store Connect. Google Play limits: title 30, short description 80, full description 4,000. Google also bans ranking claims, prices or promotions, unattributed testimonials and keyword lists in these fields ([Google Play](https://support.google.com/googleplay/android-developer/answer/13393723?hl=en)).
+> Drafted 2026-10-28 for the pilot, for Steve to edit. Character counts are checked against each field's limit. App Store limits: Promotional Text 170 characters, Description 4,000, Keywords 100 bytes ([Apple](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)). App name and subtitle are 30 characters each; check these in App Store Connect.
 >
-> Keep both listings honest about the pilot. Don't promise radio prayers or features that are switched off when the build goes in for review.
+> Keep the listing honest about the pilot. Don't promise radio prayers or features that are switched off when the build goes in for review.
 
 ## Apple App Store
 
@@ -47,7 +47,7 @@ Clear community rules, reporting and blocking, and real moderators. If someone i
 NO ADS, NO SELLING YOUR DATA
 There are no ads, and we never sell your information. Delete your account at any time from inside the app.
 
-Prayer Tower is in a small pilot. Features may change as we learn together. Prayer Tower is not an emergency service. If you are in danger, call 911 or 988.
+Prayer Tower is in a small, invite-only pilot. Features may change as we learn together. Prayer Tower is not an emergency service. If you are in danger, call 911 or 988.
 ```
 
 **Support URL:** `https://<API host>/support`. The server serves it, and Apple requires published contact information for apps with user content.
@@ -56,7 +56,7 @@ Prayer Tower is in a small pilot. Features may change as we learn together. Pray
 **Category:** Lifestyle (primary), Social Networking (secondary). Steve to confirm.
 **Copyright:** `2026 [LEGAL NAME OF OPERATOR]`
 
-**App Review notes.** Use the fuller version in [REVIEW_NOTES.md](REVIEW_NOTES.md), which also has the review account plan, Play's App access text and answers to likely questions. Short version:
+**App Review notes.** Use the fuller version in [REVIEW_NOTES.md](REVIEW_NOTES.md), which also has the review account plan and answers to likely questions. Short version:
 ```
 Prayer Tower is a prayer-request community for adults (18+). To review:
 Sign in with the review account below (it has sample requests from staff test accounts).
@@ -79,14 +79,8 @@ Thank you for testing Prayer Tower! Please try: posting a request, praying for o
 Prayer Tower is a small community for asking for prayer and praying for one another. This pilot tests posting requests, praying, prayer promises, private notes, groups, events and safety tools.
 ```
 
-## Screenshots to capture (both stores)
+## Screenshots
 
-The browser screenshots in `build/screenshots/` show the flows. Take store screenshots on a real device or simulator at the required sizes:
-1. The feed: "Welcome, … Let's talk to the Lord" and requests.
-2. Posting a request.
-3. Praying Now and Commit to Pray.
-4. A private note and its reply.
-5. Groups and events.
-6. Safety: report, block and the 988 banner.
+The current set is in the project files at `store-screenshots/` (and `store-screenshots.zip`), recaptured 2026-10-28 from the English-only build: iPhone 6.3" (1206 × 2622, required), iPhone 6.9" (1320 × 2868) and iPad 13" (2064 × 2752, required because the app runs on iPad). Sizes follow Apple's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications). The eight screens are: feed, Praying Now, Commit to Pray, a request with comments, My Promises, a private message, tokens and profile, and events.
 
-Use staff test accounts with content written by staff, not the demo seed. The 2026-09-19 decision says no fabricated member content is shown publicly. Label sample screenshots "Sample content" if counsel advises.
+They use the local demo members (Carol, Ruth, James, Ethel) with the "Demo" labels removed. The 2026-09-19 decision says no fabricated member content is shown publicly, so before you upload them either recapture with staff test accounts and staff-written requests (`capture.mjs` in that folder does it), or label them "Sample content" if counsel advises.
