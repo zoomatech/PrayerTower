@@ -1,12 +1,12 @@
 // What each card action does. Shared by every feed layout and the post screen,
 // so the action row behaves the same everywhere.
 import { ENCOURAGEMENT_MAX_CHARS, FREQUENCIES, FREQUENCY_LABELS, type Card, type CardAction, type Frequency } from '@prayer-tower/shared';
-import * as Linking from 'expo-linking';
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { api, type TokenPool } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
+import { shareLink } from '@/lib/links';
 import { parseLocal, REPEAT_OPTIONS, WHEN_OPTIONS } from '@/lib/schedule';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
@@ -196,7 +196,7 @@ export function useCardActions(onChanged: () => void) {
           variant="ghost"
           label={t('actions.shareOutside')}
           onPress={() =>
-            Share.share({ message: t('actions.shareMessage', { preview: sheet.card.preview, url: Linking.createURL(`/post/${sheet.card.id}`) }) }).catch(() => undefined)
+            Share.share({ message: t('actions.shareMessage', { preview: sheet.card.preview, url: shareLink(`/post/${sheet.card.id}`) }) }).catch(() => undefined)
           }
         />
       </>

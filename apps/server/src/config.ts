@@ -15,6 +15,12 @@ const Env = z.object({
   /** Store links shown on the landing page once the app is listed. */
   APP_STORE_URL: z.url().optional(),
   PLAY_STORE_URL: z.url().optional(),
+  /** Shared-link verification (/.well-known): Apple Developer Team ID; unset = no apple-app-site-association. */
+  APPLE_TEAM_ID: z.string().regex(/^[A-Z0-9]{10}$/).optional(),
+  /** Bundle IDs (iOS) and package names (Android) that open shared links: the store app and the staging build. */
+  APP_LINK_APP_IDS: z.string().default('com.zoomatech.prayertower,com.zoomatech.prayertower.staging'),
+  /** Comma-separated SHA-256 signing-certificate fingerprints for Android App Links; unset = no assetlinks.json. */
+  ANDROID_CERT_SHA256: z.string().default(''),
   /** Crisis line on the support page and in removal notices: US (default), CA, GB or IE. */
   CRISIS_COUNTRY: z.string().default('US'),
   PORT: z.coerce.number().int().default(3000),

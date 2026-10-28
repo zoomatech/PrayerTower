@@ -1,5 +1,4 @@
 import { ENCOURAGEMENT_MAX_CHARS, MESSAGE_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
-import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -12,6 +11,7 @@ import { Button, Empty, ErrorText, Field, RulesWarning, Screen, Toggle } from '@
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useLocale } from '@/lib/i18n';
+import { shareLink } from '@/lib/links';
 import { colors, space, type } from '@/lib/theme';
 
 export default function PostScreen() {
@@ -296,7 +296,7 @@ export default function PostScreen() {
                   onPress={() =>
                     // Shareable comments: the words plus a link that opens this request at the comment.
                     Share.share({
-                      message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: Linking.createURL(`/post/${id}`, { queryParams: { comment: c.id } }) }),
+                      message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
                     }).catch(() => undefined)
                   }
                   accessibilityRole="button"
