@@ -96,9 +96,6 @@ export async function list(q: Queryable, f: Partial<z.infer<typeof Filter>> = {}
   }));
 }
 
-/** Kept for the admin screen's open list. */
-export const open = (q: Queryable, limit = 100) => list(q, { status: 'open', limit });
-
 export const Triage = z
   .object({
     tags: z.array(z.enum(FEEDBACK_TAGS)).min(1).max(6).optional(),

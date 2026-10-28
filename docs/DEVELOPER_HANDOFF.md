@@ -1,6 +1,6 @@
 # Prayer Tower developer handoff
 
-This is for anyone picking up the code, whether a person or another AI assistant: Steve, ChatGPT or Claude. It covers what the system is, how the parts connect, how to run it, how to add a feature, and every switch and its default. It is current as of 2026-10-28, with main at PR #12.
+This is for anyone picking up the code, whether a person or another AI assistant: Steve, ChatGPT or Claude. It covers what the system is, how the parts connect, how to run it, how to add a feature, and every switch and its default. It was refreshed on 2026-10-28, with main at PR #39. Every doc is listed by audience in [README.md](README.md), and the API is described in [API.md](API.md).
 
 **Ground rules**
 - Read the current files before you change them, because several people and assistants edit this repo.
@@ -154,6 +154,12 @@ The feedback feature is a small, complete example to copy. It came in with PR #5
 | `SITE_LEGAL_DIR` | docs/legal | Where /privacy and /terms are read from |
 | `APP_STORE_URL`, `PLAY_STORE_URL` | unset | Store buttons on the home page |
 | `SENTRY_DSN` | unset | Crash reporting; unset = off |
+| `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE` | `NODE_ENV`, unset, 0 | Sentry labels and tracing (0 = no traces) |
+| `SMTP_URL`, `MAIL_FROM` | unset | Email for invites, the weekly digest and the sponsor report; unset = no email |
+| `SPONSOR_REPORT_TO`, `SPONSOR_REPORT_LANG` | unset, en | Who gets the Monday pilot report, and its language |
+| `WEB_APP_URL` | unset | Web app address; invite emails link to sign-up with the code filled in |
+| `APPLE_TEAM_ID`, `APP_LINK_APP_IDS`, `ANDROID_CERT_SHA256` | unset, both bundle IDs, unset | Shared links that open the app (APP_LINKS.md) |
+| `API_DOCS_PASSWORD` | unset | Basic-auth password (16+ chars) for `/api/docs` in production; staff tokens also work (API.md) |
 | `METRICS_TOKEN` | unset | Enables `GET /metrics` (Prometheus) |
 | `LOG_LEVEL` | info | Server log level |
 | `WORKER_CONCURRENCY` | 5 | Jobs the worker runs at once |
@@ -245,10 +251,17 @@ All times are UTC (`apps/server/src/tasks.ts`).
 | Scheduled token gifts | every minute |
 | Event reminders | every 5 minutes |
 | Milestone bonuses (enabled rules only) | every 5 minutes |
+| Failed-job check and admin alert | every 10 minutes |
 | Automated-tap scan (flags only) | every 15 minutes |
+| Retention purge | daily 03:30 |
+| Token ledger check | daily 04:15 |
 | Weekly token resupply by tier | Monday 00:05 |
+| Pilot report to the sponsor | Monday 08:00 |
 | Weekly commitment review | Sunday 18:00 |
+| Weekly digest email | Sunday 19:00 |
 | On demand | push, AI moderation scan, token credit after Praying Now, radio transmit |
+
+Failed jobs retry with backoff and then show in Admin → Background jobs, with Retry and Discard ([BACKGROUND_JOBS.md](BACKGROUND_JOBS.md)).
 
 ## 8. Things to know before changing code
 

@@ -29,7 +29,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 
 ## 3. API and worker
 
-- [ ] Set the secrets only on the server: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and optionally `STATION_API_KEY`, `EXPO_ACCESS_TOKEN` and `OPENAI_API_KEY`. None of them may go in the mobile app.
+- [ ] Set the secrets only on the server: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and optionally `STATION_API_KEY`, `EXPO_ACCESS_TOKEN`, `SMTP_URL` and `MAIL_FROM` (invite emails, digest, sponsor report), and `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` with `MODERATION_PROVIDER`. None of them may go in the mobile app.
 - [ ] Set `RATE_LIMIT_PER_MINUTE` (default 300 per member).
 - [ ] Set `CORS_ORIGINS` if a web build is hosted. Native apps don't need it.
 - [ ] Make sure the worker is running. Reminders, prompts, moderation scans, activity flags and push notifications depend on it.
@@ -65,10 +65,10 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 ## 7. Final checks
 
 - [ ] `npm test`: all server and station tests pass, including the security checks.
-- [ ] `npm run test:e2e`: all 17 end-to-end tests pass locally (including the WCAG scans). Also try VoiceOver and the largest text size on a real iPhone..
+- [ ] `npm run test:e2e`: all 26 end-to-end tests pass locally (including the WCAG scans). Also try VoiceOver and the largest text size on a real iPhone.
 - [ ] Do one manual pass on a real phone: sign in, post, pray, commit, message, RSVP, report, and delete the account.
 - [x] **Feedback channel.** Members tap Me → Send feedback. Admins triage it under Admin → Triage and export feedback: each item is tagged by type, with suggested tags already filled in, and admins set how serious it is, add a note, filter by tag and export it as CSV. Tell members it's there.
-- [ ] Rollback plan: keep the previous build in TestFlight, and take a database backup before each migration.
+- [ ] Rollback plan: keep the previous build in TestFlight, and take a database backup before each migration. Launch day itself, with rollback steps and who to call: [PILOT_DAY_ONE_RUNBOOK.md](PILOT_DAY_ONE_RUNBOOK.md).
 
 ## 8. During the pilot (weekly)
 

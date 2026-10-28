@@ -6,10 +6,15 @@
   "description": "End-to-end tests: the web build of the app against the local API and Supabase",
   "scripts": {
     "test": "playwright test",
-    "build:web": "cd ../mobile && EXPO_OFFLINE=1 npx expo export --platform web --output-dir ../e2e/.web-dist"
+    "build:web": "cd ../mobile && EXPO_OFFLINE=1 npx expo export --platform web --output-dir ../e2e/.web-dist",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
-    "@playwright/test": "1.63.0"
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "typescript": "^5.9.3"
   }
 }

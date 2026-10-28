@@ -158,7 +158,7 @@ export async function list(q: Queryable, userId: string) {
  * Cron task (every minute): send each due reminder, count it as a committed
  * prayer, and schedule the next one. SKIP LOCKED lets several workers share the load.
  */
-export function sendDueRemindersTask(q: Queryable): Task {
+export function sendDueRemindersTask(): Task {
   return async (_payload, helpers) => {
     await helpers.withPgClient(async (client) => {
       await client.query('begin');

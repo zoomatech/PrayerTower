@@ -13,7 +13,7 @@ export const MAX_ROWS = 500;
 
 /** RFC 4180 CSV: quoted fields, "" inside quotes, commas, CRLF or LF. Also accepts semicolons (Excel in Spanish). */
 export function parseCsv(text: string): string[][] {
-  const src = text.replace(/^﻿/, '');
+  const src = text.replace(/^\uFEFF/, '');
   const firstLine = src.split(/\r?\n/, 1)[0] ?? '';
   const sep = !firstLine.includes(',') && firstLine.includes(';') ? ';' : ',';
   const rows: string[][] = [];

@@ -529,8 +529,6 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   });
 }
 
-export type Card = Awaited<ReturnType<typeof cards>>[number];
-
 /** Layout-neutral card kinds. Layouts (column, vine, ...) pick a template per kind. */
 export type CardType = PostType | 'scripture_leaf' | 'feed_end';
 
@@ -599,4 +597,4 @@ export async function namedPostIds(q: Queryable, authorId: string, limit = 20): 
   return rows.map((r) => r.id);
 }
 
-export { MEDIA_BUCKET, signMedia } from './media.js';
+export { signMedia } from './media.js';

@@ -24,7 +24,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
-    commitments_send_due_reminders: sendDueRemindersTask(db),
+    commitments_send_due_reminders: sendDueRemindersTask(),
     commitments_weekly_review: weeklyReviewTask(db),
     tiers_weekly_resupply: weeklyResupplyTask(db),
     radio_transmit: transmitTask(db, overrides.transmit),

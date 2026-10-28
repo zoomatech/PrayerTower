@@ -44,7 +44,8 @@ export default function SignIn() {
         ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
         : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { display_name: name.trim(), locale: language, ...(invite.trim() ? { invite_code: invite.trim() } : {}) } } });
     setBusy(false);
-    if (err) setError(INVITE_ERRORS[err.message] ? t(INVITE_ERRORS[err.message]) : err.message);
+    const inviteError = err && INVITE_ERRORS[err.message];
+    if (err) setError(inviteError ? t(inviteError) : err.message);
     else if (mode === 'sign-up' && !data.session) setNotice(t('signIn.checkEmail'));
   };
 

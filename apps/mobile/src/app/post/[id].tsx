@@ -178,7 +178,7 @@ export default function PostScreen() {
 
         {isWitness && card && !card.isMine ? (
           witnessed ? (
-            <Text style={type.small}>Added to the Witness team's list.</Text>
+            <Text style={type.small}>Added to the Witness team&apos;s list.</Text>
           ) : (
             <View style={styles.section}>
               <Text style={type.small}>Witness team (staff only)</Text>

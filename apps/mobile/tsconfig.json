@@ -9,7 +9,11 @@
       "@/assets/*": [
         "./assets/*"
       ]
-    }
+    },
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true
   },
   "include": [
     "**/*.ts",

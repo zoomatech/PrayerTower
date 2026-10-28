@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "apps/mobile": {
+      "entry": ["workbox-config.js", "src/widgets/*.tsx"],
+      "ignoreDependencies": ["expo-glass-effect"]
+    },
+    "apps/server": {
+      "entry": ["src/scripts/*.ts"]
+    }
+  },
+  "ignoreExportsUsedInFile": true
+}
