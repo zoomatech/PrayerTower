@@ -10,7 +10,10 @@ import type {
   Person,
   Role,
   Frequency,
+  PostBackground,
   PostType,
+  PrayerKind,
+  PrayerRealm,
   Profile,
   Prompt,
   TierStatus,
@@ -78,6 +81,9 @@ export interface NewPost {
   postType: PostType;
   body: string;
   urgency?: number;
+  kind?: PrayerKind;
+  realm?: PrayerRealm;
+  background?: PostBackground;
   isAnonymous?: boolean;
   isSensitive?: boolean;
   media?: { kind: 'image' | 'video'; storagePath: string }[];

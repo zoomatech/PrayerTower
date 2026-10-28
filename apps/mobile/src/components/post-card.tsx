@@ -1,7 +1,15 @@
 // The post card: identity line, script post-type label, urgency light, body
 // with "more", tier icon, first/top comment, and the labeled action row.
 // Layouts decide where a card goes; the card's content and action order never change.
-import { ACTION_LABELS, POST_TYPE_LABELS, type Card, type CardAction } from '@prayer-tower/shared';
+import {
+  ACTION_LABELS,
+  POST_BACKGROUND_STYLES,
+  POST_TYPE_LABELS,
+  PRAYER_KIND_LABELS,
+  PRAYER_REALM_LABELS,
+  type Card,
+  type CardAction,
+} from '@prayer-tower/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -27,6 +35,12 @@ export function PostCard({ card, onAction, expanded: startExpanded = false }: { 
   const [expanded, setExpanded] = useState(startExpanded);
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
+  // A background shows only on short, text-only posts.
+  const bg = card.media.length === 0 && card.background && card.body.length <= 280 ? POST_BACKGROUND_STYLES[card.background as keyof typeof POST_BACKGROUND_STYLES] : undefined;
+  const tags = [
+    PRAYER_REALM_LABELS[card.realm as keyof typeof PRAYER_REALM_LABELS],
+    PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS],
+  ].filter(Boolean);
 
   return (
     <View style={[styles.card, answered && styles.answered]}>
@@ -43,8 +57,10 @@ export function PostCard({ card, onAction, expanded: startExpanded = false }: { 
         <Text style={type.script}>{POST_TYPE_LABELS[card.postType]}</Text>
       </View>
 
-      <Pressable onPress={open} accessibilityRole="link">
-        <Text style={type.body}>
+      {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+
+      <Pressable onPress={open} accessibilityRole="link" style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
+        <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
           {expanded || !card.truncated ? card.body : `${card.preview}… `}
           {card.truncated && !expanded ? (
             <Text style={styles.more} onPress={() => setExpanded(true)}>
@@ -110,6 +126,9 @@ const styles = StyleSheet.create({
   answeredBanner: { color: colors.gold, fontWeight: '700' },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   urgency: { width: 10, height: 10, borderRadius: 5 },
+  tags: { ...type.small, marginTop: -space.sm },
+  backdrop: { borderRadius: radius.md, minHeight: 160, padding: space.xl, justifyContent: 'center' },
+  backdropText: { fontSize: 22, lineHeight: 30, fontWeight: '600', textAlign: 'center' },
   author: { flex: 1, fontWeight: '700', fontSize: 16, color: colors.text },
   more: { color: colors.primary, fontWeight: '600' },
   counts: type.small,

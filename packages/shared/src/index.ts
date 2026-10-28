@@ -11,6 +11,38 @@ export const POST_TYPE_LABELS: Record<PostType, string> = {
   confessional: 'Confession',
 };
 
+// Kinds and realms of prayer, from Steve's notebook (Page 10). Optional on every post.
+export const PRAYER_KINDS = ['supplication', 'intercessory', 'praise_thanks'] as const;
+export type PrayerKind = (typeof PRAYER_KINDS)[number];
+export const PRAYER_KIND_LABELS: Record<PrayerKind, string> = {
+  supplication: 'Supplication',
+  intercessory: 'Intercession',
+  praise_thanks: 'Praise & thanks',
+};
+
+export const PRAYER_REALMS = ['personal', 'family', 'church_community', 'general_welfare', 'national', 'world'] as const;
+export type PrayerRealm = (typeof PRAYER_REALMS)[number];
+export const PRAYER_REALM_LABELS: Record<PrayerRealm, string> = {
+  personal: 'Personal & relationships',
+  family: 'Family',
+  church_community: 'Church & community',
+  general_welfare: 'Welfare of all',
+  national: 'Nation',
+  world: 'World',
+};
+
+/** Backgrounds for text-only posts. */
+export const POST_BACKGROUNDS = ['dawn', 'sky', 'meadow', 'lavender', 'gold', 'night'] as const;
+export type PostBackground = (typeof POST_BACKGROUNDS)[number];
+export const POST_BACKGROUND_STYLES: Record<PostBackground, { label: string; color: string; text: string }> = {
+  dawn: { label: 'Dawn', color: '#F6D5C3', text: '#4A2C2A' },
+  sky: { label: 'Sky', color: '#CFE3F5', text: '#1F3A56' },
+  meadow: { label: 'Meadow', color: '#D4EAD0', text: '#24452A' },
+  lavender: { label: 'Lavender', color: '#E3D9F4', text: '#3B2A63' },
+  gold: { label: 'Gold', color: '#F7E7B4', text: '#4D3B06' },
+  night: { label: 'Night', color: '#2E2A4F', text: '#F4EFFF' },
+};
+
 export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
 export type CardType = PostType | 'scripture_leaf' | 'feed_end';
 

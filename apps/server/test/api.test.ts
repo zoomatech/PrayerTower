@@ -60,6 +60,16 @@ describe('posts', () => {
     expect(post.preview.length).toBeLessThanOrEqual(200);
   });
 
+  it('accepts the listed kinds, realms and backgrounds only', async () => {
+    const u = await createUser('Composer');
+    const ok = await as(u).post('/posts', { postType: 'prayer_request', body: 'Peace for our town.', kind: 'intercessory', realm: 'church_community', background: 'dawn' });
+    expect(ok.statusCode).toBe(201);
+    expect(ok.json().post).toMatchObject({ kind: 'intercessory', realm: 'church_community', background: 'dawn' });
+    for (const bad of [{ kind: 'curse' }, { realm: 'mars' }, { background: 'neon' }]) {
+      expect((await as(u).post('/posts', { postType: 'prayer_request', body: 'x', ...bad })).statusCode).toBe(400);
+    }
+  });
+
   it('hides an anonymous author from everyone but the author', async () => {
     const author = await createUser('Secret');
     const reader = await createUser('Reader');

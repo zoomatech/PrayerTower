@@ -11,6 +11,10 @@ import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
 export const POST_TYPES = ['prayer_request', 'praise', 'open_prayer', 'testimony', 'confessional'] as const;
+// Kinds and realms of prayer (notebook Page 10) and text-post backgrounds; labels live in packages/shared.
+export const PRAYER_KINDS = ['supplication', 'intercessory', 'praise_thanks'] as const;
+export const PRAYER_REALMS = ['personal', 'family', 'church_community', 'general_welfare', 'national', 'world'] as const;
+export const POST_BACKGROUNDS = ['dawn', 'sky', 'meadow', 'lavender', 'gold', 'night'] as const;
 export type PostType = (typeof POST_TYPES)[number];
 export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
 export type ModerationStatus = 'visible' | 'hidden_pending_review' | 'removed';
@@ -25,10 +29,10 @@ export const NewPost = z.object({
     .min(1)
     .max(10_000)
     .refine((s) => wordCount(s) <= product.maxPostWords, `Posts are limited to ${product.maxPostWords} words`),
-  kind: z.string().max(60).optional(),
-  realm: z.string().max(60).optional(),
+  kind: z.enum(PRAYER_KINDS).optional(),
+  realm: z.enum(PRAYER_REALMS).optional(),
   urgency: z.number().int().min(0).max(3).default(0),
-  background: z.string().max(60).optional(),
+  background: z.enum(POST_BACKGROUNDS).optional(),
   isAnonymous: z.boolean().optional(),
   isSensitive: z.boolean().default(false),
   media: z
