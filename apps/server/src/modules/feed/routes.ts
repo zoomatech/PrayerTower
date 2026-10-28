@@ -4,14 +4,18 @@ import { requireUser } from '../../auth.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Db } from '../../db.js';
 import { signMedia } from '../posts/index.js';
-import { chooseTheme, getFeed, themeChoices } from './index.js';
+import { chooseTheme, FEED_FILTERS, getFeed, themeChoices } from './index.js';
 
 export function feedRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   app.get('/feed', async (req) => {
-    const { page, pageSize } = z
-      .object({ page: z.coerce.number().int().min(0).default(0), pageSize: z.coerce.number().int().min(1).max(50).default(20) })
+    const { page, pageSize, filter } = z
+      .object({
+        page: z.coerce.number().int().min(0).default(0),
+        pageSize: z.coerce.number().int().min(1).max(50).default(20),
+        filter: z.enum(FEED_FILTERS).default('all'),
+      })
       .parse(req.query);
-    const feed = await getFeed(db, requireUser(req), page, pageSize);
+    const feed = await getFeed(db, requireUser(req), page, pageSize, filter);
     return { ...feed, posts: await signMedia(storage, feed.posts) };
   });
 

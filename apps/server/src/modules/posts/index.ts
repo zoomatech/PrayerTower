@@ -57,6 +57,8 @@ export interface PostRow {
   crisis: boolean;
   state: PostState;
   answered_at: Date | null;
+  testimony: string | null;
+  testimony_at: Date | null;
   moderation_status: ModerationStatus;
   community_id: string;
   created_at: Date;
@@ -160,6 +162,45 @@ export async function markAnswered(q: Queryable, userId: string, postId: string)
   return rows[0]!;
 }
 
+// Testimonies ------------------------------------------------------------------
+
+export const Testimony = z.object({ body: z.string().trim().min(1).max(2000) });
+
+/**
+ * The poster tells what God did, on an answered request. Editing keeps the
+ * first testimony time. It is scanned like any post text. Returns whether this
+ * is the first testimony (so pray-ers are told once) and whether it mentions crisis.
+ */
+export async function setTestimony(q: Queryable, userId: string, postId: string, input: z.infer<typeof Testimony>) {
+  const post = await get(q, postId);
+  if (!post || post.moderation_status === 'removed') throw notFound('Post');
+  if (post.user_id !== userId) throw forbidden('Only the poster can add a testimony');
+  if (post.state !== 'answered') throw badRequest('Mark the request answered first');
+  await safety.checkNewMember(q, userId, 'post', input.body);
+  await q.query(`update public.posts set testimony = $2, testimony_at = coalesce(testimony_at, now()) where id = $1`, [postId, input.body]);
+  await moderation.queueScan(q, 'post', postId);
+  const crisis = safety.mentionsCrisis(input.body);
+  if (crisis) await moderation.flagCrisis(q, 'post', postId);
+  return { post, first: post.testimony === null, crisis };
+}
+
+export async function removeTestimony(q: Queryable, userId: string, postId: string) {
+  const { rowCount } = await q.query(`update public.posts set testimony = null, testimony_at = null where id = $1 and user_id = $2`, [postId, userId]);
+  if (!rowCount) throw notFound('Post');
+}
+
+/** Everyone who prayed for or committed to a request, except its poster. */
+export async function prayedBy(q: Queryable, postId: string, posterId: string): Promise<string[]> {
+  const { rows } = await q.query<{ user_id: string }>(
+    `select distinct user_id from (
+       select user_id from public.prayer_events where post_id = $1
+       union select user_id from public.commitments where post_id = $1
+     ) s where user_id <> $2`,
+    [postId, posterId],
+  );
+  return rows.map((r) => r.user_id);
+}
+
 /**
  * The poster deletes their own request. It's erased with its comments, prayers
  * and media, unless the token ledger points at it (tokens were given to it);
@@ -174,7 +215,7 @@ export async function remove(q: Queryable, userId: string, postId: string): Prom
     [postId],
   );
   if (!rowCount) {
-    await q.query(`update public.posts set body = '(deleted)', moderation_status = 'removed' where id = $1`, [postId]);
+    await q.query(`update public.posts set body = '(deleted)', testimony = null, moderation_status = 'removed' where id = $1`, [postId]);
     await q.query('delete from public.post_media where post_id = $1', [postId]);
   }
   return media.map((m) => m.storage_path);
@@ -205,7 +246,7 @@ export async function unhide(q: Queryable, target: moderation.Target, id: string
 /** The author and text of any moderatable item. */
 export async function moderationSubject(q: Queryable, target: moderation.Target, id: string) {
   const sql = {
-    post: 'select user_id, community_id, body as text from public.posts where id = $1',
+    post: `select user_id, community_id, body || coalesce(E'\n' || testimony, '') as text from public.posts where id = $1`,
     comment: 'select user_id, community_id, body as text from public.comments where id = $1',
     reaction: 'select user_id, community_id, note as text from public.reactions where id = $1',
     message: 'select user_id, community_id, body as text from public.messages where id = $1',
@@ -514,6 +555,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         urgency: r.urgency,
         state: r.state,
         answeredAt: r.answered_at,
+        testimony: r.testimony,
+        testimonyAt: r.testimony_at,
         ...preview(r.body),
         body: r.body,
         background: r.background,

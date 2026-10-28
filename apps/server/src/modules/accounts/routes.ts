@@ -6,6 +6,7 @@ import { withTx, type Db } from '../../db.js';
 import { notFound } from '../../errors.js';
 import { badgesOf } from '../churches/index.js';
 import * as posts from '../posts/index.js';
+import { prayerStats } from '../prayer-stats/index.js';
 import { MEDIA_BUCKET } from '../posts/media.js';
 import { exportData } from './export.js';
 import * as accounts from './index.js';
@@ -16,6 +17,12 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
     const profile = await accounts.getProfile(db, userId);
     if (!profile) throw notFound('Profile');
     return { profile, roles: await accounts.roles(db, userId) };
+  });
+
+  // Gentle prayer stats for Me, counted by days in the member's time zone.
+  app.get('/me/prayer-stats', async (req) => {
+    const { tz } = z.object({ tz: z.string().max(64).refine(accounts.validTimeZone, 'Unknown time zone').default('UTC') }).parse(req.query);
+    return { stats: await prayerStats(db, requireUser(req), tz) };
   });
 
   app.patch('/me', async (req) => {

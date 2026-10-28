@@ -89,6 +89,15 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
 
       <CardMedia media={card.media} expanded={expanded} />
 
+      {card.testimony ? (
+        <View style={styles.testimony}>
+          <Text style={styles.testimonyLabel}>{t('card.testimony')}</Text>
+          <Text style={type.body} numberOfLines={expanded ? undefined : 4} onPress={open}>
+            {card.testimony}
+          </Text>
+        </View>
+      ) : null}
+
       <Text style={styles.counts}>
         {card.counts.prayers > 0 ? t('card.praying', { count: card.counts.prayers }) : t('card.firstToPray')}
         {card.counts.commitments > 0 ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
@@ -142,6 +151,8 @@ const styles = StyleSheet.create({
   },
   answered: { borderColor: colors.gold, backgroundColor: colors.goldSoft },
   answeredBanner: { color: colors.goldText, fontWeight: '700' },
+  testimony: { borderLeftWidth: 3, borderLeftColor: colors.gold, paddingLeft: space.md, gap: 2 },
+  testimonyLabel: { color: colors.goldText, fontWeight: '700', fontSize: 13 },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   urgency: { width: 10, height: 10, borderRadius: 5 },
   tags: { ...type.small, marginTop: -space.sm },

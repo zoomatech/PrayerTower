@@ -175,7 +175,43 @@ export async function chooseTheme(q: Queryable, viewerId: string, slug: string |
   return themeChoices(q, viewerId);
 }
 
-export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize = 20) {
+export const FEED_FILTERS = ['all', 'testimonies'] as const;
+export type FeedFilter = (typeof FEED_FILTERS)[number];
+
+/**
+ * Testimonies: answered requests with the poster's testimony, and testimony
+ * posts, newest first, from the past year. Same visibility rules as the feed.
+ */
+async function testimonyIds(q: Queryable, viewerId: string): Promise<string[]> {
+  const viewer = await getProfile(q, viewerId);
+  const communities = await communityIds(q, viewerId);
+  const { rows } = await q.query<{ id: string }>(
+    `select p.id from public.posts p
+      where p.moderation_status = 'visible'
+        and (p.testimony is not null or p.post_type = 'testimony')
+        and coalesce(p.testimony_at, p.created_at) > now() - interval '365 days'
+        and (not $2 or not p.is_sensitive)
+        and p.community_id = any($3::uuid[])
+        and not exists (select 1 from public.user_blocks b
+                         where (b.user_id = $1 and b.blocked_id = p.user_id) or (b.user_id = p.user_id and b.blocked_id = $1))
+        and not exists (select 1 from public.hidden_posts h where h.user_id = $1 and h.post_id = p.id)
+      order by coalesce(p.testimony_at, p.created_at) desc
+      limit $4`,
+    [viewerId, viewer?.trauma_content_opt_out ?? false, communities, CANDIDATE_LIMIT],
+  );
+  return rows.map((r) => r.id);
+}
+
+export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize = 20, filter: FeedFilter = 'all') {
+  if (filter === 'testimonies') {
+    const ids = await testimonyIds(q, viewerId);
+    return {
+      theme: page === 0 ? await theme(q, viewerId) : undefined,
+      posts: await posts.cards(q, ids.slice(page * pageSize, (page + 1) * pageSize), viewerId),
+      pinnedId: null,
+      nextPage: (page + 1) * pageSize < ids.length ? page + 1 : null,
+    };
+  }
   // Featured Macro Needs show above the feed, so they aren't repeated in it.
   const featured = new Set(await macroNeeds.featuredPostIds(q));
   const all = (await candidates(q, viewerId)).filter((c) => !featured.has(c.id));

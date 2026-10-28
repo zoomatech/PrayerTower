@@ -6,6 +6,7 @@ import {
   type FeedMix,
   type FeedMixKey,
   type FeedThemeChoices,
+  type PrayerStats,
   type TierStatus,
   type TokenSummary,
 } from '@prayer-tower/shared';
@@ -30,14 +31,22 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [feedStyles, setFeedStyles] = useState<FeedThemeChoices | null>(null);
+  const [stats, setStats] = useState<PrayerStats | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       api.tier().then(setTier).catch(() => undefined);
       api.tokens().then(setTokens).catch(() => undefined);
       api.feedThemes().then(setFeedStyles).catch(() => undefined);
+      loadStats();
     }, []),
   );
+
+  const loadStats = () =>
+    api
+      .prayerStats(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC')
+      .then((r) => setStats(r.stats))
+      .catch(() => undefined);
 
   const update = async (patch: Record<string, unknown>) => {
     try {
@@ -94,6 +103,34 @@ export default function Profile() {
           />
         ) : null}
         <Text style={type.small}>{t('profile.tokensNote')}</Text>
+
+        {stats?.enabled ? (
+          <View style={styles.prayerLife} accessibilityLabel={t('stats.summary', { days: stats.daysPrayed, people: stats.peoplePrayedFor, streak: stats.currentStreak })}>
+            <Text style={type.heading}>{t('stats.title')}</Text>
+            <View style={styles.stats}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{stats.daysPrayed}</Text>
+                <Text style={type.small}>{t('stats.days')}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{stats.peoplePrayedFor}</Text>
+                <Text style={type.small}>{t('stats.people')}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{stats.currentStreak}</Text>
+                <Text style={type.small}>{t('stats.streak')}</Text>
+              </View>
+            </View>
+            <View style={styles.week} accessible={false}>
+              {stats.week.map((d) => (
+                <View key={d.date} style={[styles.dot, d.prayed && styles.dotOn]} />
+              ))}
+            </View>
+            <Text style={type.small}>
+              {stats.currentStreak > 1 ? t('stats.streakNote', { count: stats.currentStreak }) : t('stats.gentle')} {t('stats.private')}
+            </Text>
+          </View>
+        ) : null}
         <View style={styles.chips}>
           <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
@@ -159,6 +196,12 @@ export default function Profile() {
         ) : null}
         <Button variant="secondary" label={t('notifySettings.title')} onPress={() => router.push('/notification-settings')} />
         <Toggle label={t('settings.updatesFirst')} value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
+        <Toggle
+          label={t('stats.toggle')}
+          hint={t('stats.toggleHint')}
+          value={profile.show_prayer_stats !== false}
+          onChange={(v) => update({ showPrayerStats: v }).then(loadStats)}
+        />
         <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
@@ -210,6 +253,10 @@ function mixLabel(key: FeedMixKey, label: ReturnType<typeof useLocale>['label'])
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 120 },
   stats: { flexDirection: 'row', gap: space.sm },
+  prayerLife: { gap: space.sm },
+  week: { flexDirection: 'row', gap: space.sm, justifyContent: 'center' },
+  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  dotOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   mixRow: { gap: space.xs },
   mixLabel: { fontWeight: '600' },

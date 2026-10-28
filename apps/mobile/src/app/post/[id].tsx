@@ -35,6 +35,8 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
+  // The answered / testimony panel: closed, or open with the draft text.
+  const [testimony, setTestimony] = useState<string | null>(null);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [witnessNote, setWitnessNote] = useState('');
@@ -122,8 +124,21 @@ export default function PostScreen() {
 
   const markAnswered = async () => {
     try {
-      await api.markAnswered(id);
+      const r = await api.markAnswered(id, testimony?.trim() || undefined);
+      if (r.crisis) setSupport(true);
+      setTestimony(null);
       celebrate();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+    load();
+  };
+
+  const saveTestimony = async () => {
+    try {
+      const r = await api.setTestimony(id, testimony!.trim());
+      if (r.crisis) setSupport(true);
+      setTestimony(null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -199,8 +214,39 @@ export default function PostScreen() {
           )
         ) : null}
 
-        {card?.isMine && card.state !== 'answered' ? (
-          <Button variant="secondary" label={t('post.markAnswered')} onPress={markAnswered} />
+        {card?.isMine && testimony !== null ? (
+          <View style={{ gap: space.sm }}>
+            <Field
+              label={card.state === 'answered' ? t('post.testimonyLabel') : t('post.testimonyOptional')}
+              placeholder={t('post.testimonyPlaceholder')}
+              value={testimony}
+              onChangeText={setTestimony}
+              maxLength={2000}
+              multiline
+            />
+            <View style={styles.row}>
+              {card.state === 'answered' ? (
+                <Button small label={t('post.testimonySave')} disabled={!testimony.trim()} onPress={saveTestimony} />
+              ) : (
+                <Button small label={t('post.markAnswered')} onPress={markAnswered} />
+              )}
+              <Button small variant="ghost" label={t('common.cancel')} onPress={() => setTestimony(null)} />
+            </View>
+          </View>
+        ) : card?.isMine && card.state !== 'answered' ? (
+          <Button variant="secondary" label={t('post.markAnswered')} onPress={() => setTestimony('')} />
+        ) : card?.isMine && card.state === 'answered' ? (
+          <View style={styles.row}>
+            <Button
+              small
+              variant="secondary"
+              label={card.testimony ? t('post.testimonyEdit') : t('post.testimonyShare')}
+              onPress={() => setTestimony(card.testimony ?? '')}
+            />
+            {card.testimony ? (
+              <Button small variant="ghost" label={t('post.testimonyRemove')} onPress={() => api.removeTestimony(id).then(load, (e) => setError((e as Error).message))} />
+            ) : null}
+          </View>
         ) : null}
 
         {radioSent ? (

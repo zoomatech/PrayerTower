@@ -16,7 +16,7 @@ import { MacroNeeds } from "@/components/macro-needs";
 import { PostCard } from "@/components/post-card";
 import { Announcements } from "@/components/announcements";
 import { OfflineBanner } from "@/components/offline-banner";
-import { Button, ErrorText, Screen } from "@/components/ui";
+import { Button, Chip, ErrorText, Screen } from "@/components/ui";
 import { layoutFor } from "@/layouts";
 import {
   api,
@@ -43,6 +43,7 @@ export default function Feed() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [filter, setFilter] = useState<"all" | "testimonies">("all");
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [needs, setNeeds] = useState<MacroNeed[]>([]);
   const [highlights, setHighlights] = useState<HighlightsData | null>(null);
@@ -63,7 +64,7 @@ export default function Feed() {
     setRefreshing(true);
     try {
       const [page, mn] = await Promise.all([
-        api.feed(0),
+        api.feed(0, filter),
         api.macroNeeds().catch(() => ({ needs: [] })),
       ]);
       setNeeds(mn.needs);
@@ -71,7 +72,7 @@ export default function Feed() {
       setCards(page.posts);
       setTheme(page.theme ?? null);
       setPinnedId(page.pinnedId);
-      updatePrayWidget(page, t);
+      if (filter === "all") updatePrayWidget(page, t);
       setNextPage(page.savedAt ? null : page.nextPage);
       setSavedAt(page.savedAt ?? null);
       setError(null);
@@ -80,13 +81,13 @@ export default function Feed() {
     } finally {
       setRefreshing(false);
     }
-  }, [t]);
+  }, [t, filter]);
 
   const loadMore = async () => {
     if (nextPage === null || loadingMore.current) return;
     loadingMore.current = true;
     try {
-      const page = await api.feed(nextPage);
+      const page = await api.feed(nextPage, filter);
       setCards((prev) => {
         const seen = new Set(prev.map((c) => c.id));
         return [...prev, ...page.posts.filter((p) => !seen.has(p.id))];
@@ -147,6 +148,11 @@ export default function Feed() {
         </Text>
         <Text style={styles.placeholder}>{t("feed.composer")}</Text>
       </Pressable>
+      <View style={styles.filters}>
+        <Chip label={t("feed.filterAll")} selected={filter === "all"} onPress={() => setFilter("all")} />
+        <Chip label={t("feed.filterTestimonies")} selected={filter === "testimonies"} onPress={() => setFilter("testimonies")} />
+      </View>
+      {filter === "testimonies" ? <Text style={type.small}>{t("feed.testimoniesHint")}</Text> : null}
       {!wide ? (
         <Text
           style={styles.weekLink}
@@ -224,6 +230,7 @@ export default function Feed() {
 }
 
 const styles = StyleSheet.create({
+  filters: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   composer: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
