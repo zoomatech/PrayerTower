@@ -44,4 +44,21 @@ describe('macro needs', () => {
     expect((await as(mod).post(`/macro-needs/${id}/end`)).statusCode).toBe(200);
     expect((await as(member).get('/macro-needs')).json().needs.some((n: { id: string }) => n.id === id)).toBe(false);
   });
+
+  it("shows a need only in the community it was posted in", async () => {
+    const mod = await createUser('Faith Relief Moderator');
+    await grantRole(db, mod, 'moderator', null);
+    const { id } = (await as(mod).post('/macro-needs', { title: 'Flood relief', body: 'Pray for the flooded towns.' })).json();
+    made.push(id);
+    const circle = await createUser('Circle Neighbor');
+    await db.query('delete from public.community_memberships where user_id = $1', [circle]);
+    await db.query(
+      `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+      [circle],
+    );
+    expect((await as(circle).get('/macro-needs')).json().needs.some((n: { id: string }) => n.id === id)).toBe(false);
+    expect((await as(circle).post(`/macro-needs/${id}/helped`)).statusCode).toBe(404);
+    const neighbor = await createUser('Faith Neighbor');
+    expect((await as(neighbor).get('/macro-needs')).json().needs.some((n: { id: string }) => n.id === id)).toBe(true);
+  });
 });

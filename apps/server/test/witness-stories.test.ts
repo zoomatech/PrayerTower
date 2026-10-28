@@ -43,6 +43,14 @@ describe('witness stories', () => {
     const s = shown.stories.find((x: { id: string }) => x.id === mine[0].id);
     expect(s.body).toBe(story);
     expect(JSON.stringify(s)).not.toContain('Hannah');
+    // Other communities (such as Open Circle) don't see it.
+    const circle = await createUser('Circle Story Reader');
+    await db.query('delete from public.community_memberships where user_id = $1', [circle]);
+    await db.query(
+      `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+      [circle],
+    );
+    expect((await as(circle).get('/help-stories')).json().stories.some((x: { id: string }) => x.id === mine[0].id)).toBe(false);
 
     // She can take it back at any time.
     await as(helped).post(`/me/witness-stories/${mine[0].id}/decision`, { approve: false });
