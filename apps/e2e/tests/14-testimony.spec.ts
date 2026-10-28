@@ -1,12 +1,13 @@
 // Answered prayer with a testimony: the poster marks the request answered and
-// tells what God did; it then shows under the Testimonies filter.
+// tells what God did; it then shows under the Testimonies filter. (Demo Pastor posts here:
+// Ruth already reaches the new-member limit of 3 requests a day in 08-offline.)
 import { expect, test } from '@playwright/test';
 import { postIdByText, signIn, unique } from './helpers';
 
 test('a member shares a testimony and it shows under Testimonies', async ({ page }) => {
   const text = unique('[Demo] Pray that my sister finds a job.');
   const testimony = unique('She was hired on Monday. Thank you all for praying!');
-  await signIn(page, 'ruth');
+  await signIn(page, 'pastor');
   await page.getByText('Type your prayer here').first().click();
   await page.getByPlaceholder('Type your prayer here').fill(text);
   await page.getByRole('button', { name: 'Post', exact: true }).click();
