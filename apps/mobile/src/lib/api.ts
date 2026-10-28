@@ -116,6 +116,17 @@ export interface ScheduledSpend {
   excerpt: string;
 }
 
+export interface MilestoneRule {
+  id: string;
+  label: string;
+  metric: 'prayers_for_others' | 'commitment_checkins' | 'answered_requests';
+  threshold: number;
+  amount: number;
+  currency: 'regular' | 'priestly';
+  enabled: boolean;
+  awarded: number;
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -225,6 +236,11 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
+    milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),
+    addMilestone: (input: Pick<MilestoneRule, 'label' | 'metric' | 'threshold' | 'amount'>) =>
+      post<{ rule: MilestoneRule }>('/admin/milestones', input),
+    updateMilestone: (id: string, patch: Partial<Pick<MilestoneRule, 'label' | 'threshold' | 'amount' | 'enabled'>>) =>
+      request<{ rule: MilestoneRule }>('PATCH', `/admin/milestones/${id}`, patch),
     metrics: (days: number) => get<Record<string, Record<string, number | string | null>>>(`/admin/metrics?days=${days}`),
     tokenSettings: () => get<{ settings: AdminTokenSettings }>('/admin/token-settings'),
     updateTokenSettings: (

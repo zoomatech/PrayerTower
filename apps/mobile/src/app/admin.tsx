@@ -8,7 +8,7 @@ import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type PilotWeek } from '@/lib/api';
+import { api, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
@@ -43,6 +43,13 @@ export default function Admin() {
   const [safetyDraft, setSafetyDraft] = useState({ hours: '', prayers: '', posts: '', comments: '' });
   const [tiers, setTiers] = useState<AdminTier[]>([]);
   const [tierDraft, setTierDraft] = useState<Record<string, { min: string; weekly: string }>>({});
+  const [rules, setRules] = useState<MilestoneRule[]>([]);
+  const [ruleDraft, setRuleDraft] = useState<{ label: string; metric: MilestoneRule['metric']; threshold: string; amount: string }>({
+    label: '',
+    metric: 'prayers_for_others',
+    threshold: '',
+    amount: '',
+  });
   const [query, setQuery] = useState('');
   const [people, setPeople] = useState<AdminPerson[] | null>(null);
 
@@ -78,14 +85,16 @@ export default function Admin() {
   const load = useCallback(
     () =>
       run(async () => {
-        const [m, s, t, sf, w, rs] = await Promise.all([
+        const [m, s, t, sf, w, rs, ms] = await Promise.all([
           api.admin.metrics(days),
           api.admin.tokenSettings(),
           api.admin.tiers(),
           api.admin.safetySettings(),
           api.admin.pilotReport(REPORT_WEEKS),
           api.admin.radioSettings(),
+          api.admin.milestones(),
         ]);
+        setRules(ms.rules);
         setMetrics(m);
         setWeeks(w.weeks);
         setRadio(rs.settings);
@@ -303,6 +312,53 @@ export default function Admin() {
         ) : null}
 
         <View style={styles.section}>
+          <Text style={type.heading}>Milestone bonuses</Text>
+          <Text style={type.small}>Bonus tokens for reaching a milestone, given once per member. Every rule is off until you turn it on.</Text>
+          {rules.map((r) => (
+            <View key={r.id} style={styles.group}>
+              <Toggle
+                label={r.label}
+                hint={`${METRIC_LABELS[r.metric]}: ${r.threshold} → ${r.amount} ${r.currency === 'priestly' ? 'Priestly ' : ''}token${r.amount === 1 ? '' : 's'} · given ${r.awarded} time${r.awarded === 1 ? '' : 's'}`}
+                value={r.enabled}
+                onChange={(enabled) =>
+                  run(async () => {
+                    const { rule } = await api.admin.updateMilestone(r.id, { enabled });
+                    setRules((all) => all.map((x) => (x.id === r.id ? { ...x, ...rule } : x)));
+                  }, enabled ? 'Milestone on.' : 'Milestone off.')
+                }
+              />
+            </View>
+          ))}
+          <View style={styles.group}>
+            <Text style={styles.groupTitle}>Add a milestone (starts off)</Text>
+            <View style={styles.row}>
+              {(Object.keys(METRIC_LABELS) as MilestoneRule['metric'][]).map((m) => (
+                <Chip key={m} label={METRIC_LABELS[m]} selected={ruleDraft.metric === m} onPress={() => setRuleDraft((d) => ({ ...d, metric: m }))} />
+              ))}
+            </View>
+            <Field label="Name" value={ruleDraft.label} onChangeText={(label) => setRuleDraft((d) => ({ ...d, label }))} maxLength={80} />
+            <Field label="Reached at" keyboardType="number-pad" value={ruleDraft.threshold} onChangeText={(threshold) => setRuleDraft((d) => ({ ...d, threshold }))} />
+            <Field label="Bonus tokens" keyboardType="number-pad" value={ruleDraft.amount} onChangeText={(amount) => setRuleDraft((d) => ({ ...d, amount }))} />
+            <Button
+              label="Add milestone"
+              disabled={!ruleDraft.label.trim() || !(Number(ruleDraft.threshold) > 0) || !(Number(ruleDraft.amount) > 0)}
+              onPress={() =>
+                run(async () => {
+                  const { rule } = await api.admin.addMilestone({
+                    label: ruleDraft.label.trim(),
+                    metric: ruleDraft.metric,
+                    threshold: Number(ruleDraft.threshold),
+                    amount: Number(ruleDraft.amount),
+                  });
+                  setRules((all) => [...all, { ...rule, awarded: 0 }]);
+                  setRuleDraft((d) => ({ ...d, label: '', threshold: '', amount: '' }));
+                }, 'Milestone added. Turn it on when ready.')
+              }
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={type.heading}>People and roles</Text>
           <Field placeholder="Name or email" value={query} onChangeText={setQuery} onSubmitEditing={search} autoCapitalize="none" />
           <Button variant="secondary" label="Find" disabled={!query.trim()} onPress={search} />
@@ -323,6 +379,12 @@ export default function Admin() {
     </Screen>
   );
 }
+
+const METRIC_LABELS: Record<MilestoneRule['metric'], string> = {
+  prayers_for_others: 'Prayers for others',
+  commitment_checkins: 'Commitment check-ins',
+  answered_requests: 'Answered requests',
+};
 
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },

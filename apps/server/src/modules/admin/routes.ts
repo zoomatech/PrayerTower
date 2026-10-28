@@ -8,6 +8,7 @@ import { withTx } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import * as commitments from '../commitments/index.js';
+import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
 import * as prayerActions from '../prayer-actions/index.js';
@@ -165,6 +166,23 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     if (format === 'json') return { weeks: rows };
     reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-pilot.csv"');
     return report.toCsv(rows);
+  });
+
+  // Milestone bonus tokens: rules are placeholders (all off) until Steve sets them.
+  app.get('/admin/milestones', async (req) => {
+    await requireAdmin(req);
+    return { rules: await milestones.rules(db), metrics: milestones.METRICS };
+  });
+  app.post('/admin/milestones', async (req, reply) => {
+    await requireAdmin(req);
+    const rule = await milestones.createRule(db, milestones.RuleInput.parse(req.body));
+    reply.code(201);
+    return { rule };
+  });
+  app.patch<{ Params: { id: string } }>('/admin/milestones/:id', async (req) => {
+    await requireAdmin(req);
+    const patch = milestones.RuleInput.pick({ label: true, threshold: true, amount: true, enabled: true }).partial().parse(req.body);
+    return { rule: await milestones.updateRule(db, req.params.id, patch) };
   });
 
   // Pilot metrics: requests posted, Praying Now taps, commitments made vs kept,
