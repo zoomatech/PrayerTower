@@ -24,7 +24,7 @@ afterAll(async () => {
 
 describe('radio station', () => {
   it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
-    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000 });
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3 });
     expect((await station('/station/claim')).statusCode).toBe(409); // log mode
     const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
     expect(s.json().settings.radio_transmitter).toBe('station');
@@ -85,5 +85,40 @@ describe('radio station', () => {
     await station(`/station/radio-prayers/${again.id}/result`, { ok: false, callSign: 'N0CALL', error: 'transmit timed out' });
     const after = await db.query('select status, error from public.radio_prayers where id = $1', [again.id]);
     expect(after.rows[0]).toEqual({ status: 'failed', error: 'transmit timed out' });
+  });
+
+  it('amplifies: free only, sent several times, and the request becomes amplified', async () => {
+    const poster = await createUser('Amplify Poster');
+    const sender = await createUser('Amplify Sender');
+    const post = await newRequest(poster, 'Pray for peace in our city.');
+    await as(sender).post(`/posts/${post.id}/praying-now`);
+    await tokens.updateSettings(db, { radio_funding: 'tokens' });
+    const paid = await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'amp-1', amplify: true });
+    expect(paid.statusCode).toBe(409);
+    expect(paid.json().message).toMatch(/only available while radio prayers are free/);
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    expect((await as(sender).get('/me/tokens')).json().priestly.amplifyRepeats).toBe(3);
+    const res = await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'amp-2', amplify: true });
+    expect(res.json().radioPrayer).toMatchObject({ cost: 0, repeats: 3 });
+    const claim = (await station('/station/claim')).json().radioPrayer;
+    expect(claim).toMatchObject({ text: 'Pray for peace in our city.', repeats: 3 });
+    await station(`/station/radio-prayers/${claim.id}/result`, { ok: true, callSign: 'N0CALL', pieces: 3 });
+    const { rows } = await db.query('select state from public.posts where id = $1', [post.id]);
+    expect(rows[0].state).toBe('amplified');
+    // Prayer Cast lists what went out: the text and the call sign, never names.
+    const cast = (await as(poster).get('/prayer-cast')).json();
+    const entry = cast.cast.find((c: { id: string }) => c.id === claim.id);
+    expect(entry).toMatchObject({ text: 'Pray for peace in our city.', repeats: 3, call_sign: 'N0CALL' });
+    expect(JSON.stringify(entry)).not.toMatch(/Amplify (Poster|Sender)/);
+    expect(cast.totals.sends).toBeGreaterThanOrEqual(3);
+    // A request that mentioned self-harm never appears in the public log.
+    const crisis = await newRequest(poster, 'Some nights I want to die.');
+    const sent = (await as(sender).post(`/posts/${crisis.id}/radio`, { idempotencyKey: 'amp-3' })).statusCode;
+    expect(sent).toBe(409); // waits for a moderator
+    await db.query(
+      `insert into public.radio_prayers (post_id, user_id, cost, idempotency_key, status, transmitted_at) values ($1, $2, 0, 'forced', 'transmitted', now())`,
+      [crisis.id, sender],
+    );
+    expect((await as(poster).get('/prayer-cast')).json().cast.some((c: { post_id: string }) => c.post_id === crisis.id)).toBe(false);
   });
 });

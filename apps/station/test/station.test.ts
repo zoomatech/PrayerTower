@@ -9,7 +9,7 @@ import { startMockFldigi, type MockFldigi } from './mock-fldigi.js';
 const cfg = { callSign: 'N0CALL', modem: 'BPSK31', maxPieceChars: 60, txTimeoutMs: 2000, blocklist: DEFAULT_BLOCKLIST };
 const quiet = () => undefined;
 
-function fakeApi(queue: { id: string; text: string }[]) {
+function fakeApi(queue: { id: string; text: string; repeats?: number }[]) {
   const reports: { id: string; ok: boolean; pieces?: number; error?: string }[] = [];
   const api: StationApi = {
     claim: async () => queue.shift() ?? null,
@@ -52,6 +52,13 @@ describe('station worker (build paper acceptance tests)', () => {
     expect(Date.now() - started).toBeLessThan(2000);
     expect(mock.calls.some((c) => c.method === 'main.rx_only')).toBe(true);
     expect(reports[0]).toMatchObject({ id: 'c', ok: false, error: 'transmit timed out' });
+  });
+
+  it('sends an amplified prayer the requested number of times, each with the call sign', async () => {
+    const { api, reports } = fakeApi([{ id: 'amp', text: 'Pray for peace.', repeats: 3 }]);
+    expect(await runOnce(api, fldigi(), cfg, quiet)).toBe('sent');
+    expect(added()).toEqual(Array(3).fill('Pray for peace. de N0CALL ^r'));
+    expect(reports).toEqual([{ id: 'amp', ok: true, callSign: 'N0CALL', pieces: 3 }]);
   });
 
   it('splits a message over the length cap, and every piece ends with the call sign', async () => {

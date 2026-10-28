@@ -35,7 +35,7 @@ describe('priestly tokens', () => {
 
     const me = (await as(pray).get('/me/tokens')).json();
     expect(me.balance).toBe(4); // one regular token per prayer for someone else
-    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3, radioPrayerCost: 1 });
+    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3, radioPrayerCost: 1, amplifyRepeats: null });
 
     // Re-running the follow-up job does not double count.
     const { rows } = await db.query<{ id: string }>('select id from public.prayer_events where user_id = $1', [pray]);
@@ -119,13 +119,15 @@ describe('priestly tokens', () => {
 });
 
 describe('feed styles', () => {
-  it('offers Classic by default and lets a member switch to Vine or Flip and back', async () => {
+  it('offers Classic by default and lets a member switch to Vine, Flip or Swipe to pray and back', async () => {
     const u = await createUser('Styler');
     const choices = (await as(u).get('/me/feed-themes')).json();
     expect(choices.current).toBe('column');
-    expect(choices.themes.map((t: { slug: string }) => t.slug).sort()).toEqual(['column', 'flip', 'vine']);
+    expect(choices.themes.map((t: { slug: string }) => t.slug).sort()).toEqual(['column', 'flip', 'swipe', 'vine']);
     expect((await as(u).put('/me/feed-theme', { slug: 'vine' })).json().current).toBe('vine');
     expect((await as(u).get('/feed')).json().theme.layout).toBe('vine');
+    expect((await as(u).put('/me/feed-theme', { slug: 'swipe' })).json().current).toBe('swipe');
+    expect((await as(u).get('/feed')).json().theme.layout).toBe('carousel');
     expect((await as(u).put('/me/feed-theme', { slug: 'nope' })).statusCode).toBe(404);
     expect((await as(u).put('/me/feed-theme', { slug: null })).json().current).toBe('column');
   });

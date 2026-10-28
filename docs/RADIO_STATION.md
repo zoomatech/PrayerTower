@@ -77,3 +77,7 @@ If a transmission fails or times out, the worker disables transmit, reports the 
 - If fldigi never returns to receive, the worker calls `rx_only` within the timeout.
 - Long messages are split, and every piece ends with the call sign.
 - Nothing is sent when the queue is empty.
+
+## Amplify
+
+Amplify sends one prayer several times (admin setting **Radio → Amplify**, placeholder 3, range 2-50). The claim response carries `repeats`, and the worker sends the same call-signed pieces that many times. Amplify is offered only while radio prayers are free (`radio_funding = free`), because 47 CFR 97.113 bars tying an amateur transmission to payment. The notebook's "1,000x a second" is not possible on PSK31, which sends about one 280-character prayer a minute; it needs Steve's decision (roadmap open question 1).

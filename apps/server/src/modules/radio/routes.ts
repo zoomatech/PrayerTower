@@ -9,10 +9,18 @@ export function radioRoutes(app: FastifyInstance, db: Db) {
   // Spend Priestly tokens (token_settings.radio_prayer_cost) to send this request out by radio.
   app.post<{ Params: { id: string } }>('/posts/:id/radio', async (req, reply) => {
     const userId = requireUser(req);
-    const { idempotencyKey } = z.object({ idempotencyKey: z.string().min(1).max(100) }).parse(req.body);
-    const radioPrayer = await withTx(db, (tx) => radio.queue(tx, userId, req.params.id, idempotencyKey));
+    const { idempotencyKey, amplify } = z
+      .object({ idempotencyKey: z.string().min(1).max(100), amplify: z.boolean().default(false) })
+      .parse(req.body);
+    const radioPrayer = await withTx(db, (tx) => radio.queue(tx, userId, req.params.id, idempotencyKey, amplify));
     reply.code(201);
     return { radioPrayer };
+  });
+
+  // Prayer Cast: the public log of prayers that went out.
+  app.get('/prayer-cast', async (req) => {
+    requireUser(req);
+    return radio.castLog(db);
   });
 
   app.get('/me/radio-prayers', async (req) => {

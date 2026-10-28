@@ -2,14 +2,17 @@
 // and ranked at read time. All ranking weights live in rankFeed() so they
 // change in one place. A member sees posts from the communities they belong
 // to (V1: one Christian ecumenical community).
+import { FEED_MIX_MULTIPLIER, type FeedMix, type FeedMixKey } from '@prayer-tower/shared';
 import type { Queryable } from '../../db.js';
 import { notFound } from '../../errors.js';
 import { communityIds, getProfile } from '../accounts/index.js';
+import * as macroNeeds from '../macro-needs/index.js';
 import * as posts from '../posts/index.js';
 
 export interface Candidate {
   id: string;
   postType: posts.PostType;
+  realm: string | null;
   createdAt: Date;
   urgency: number;
   followed: boolean;
@@ -43,12 +46,20 @@ export function score(c: Candidate, now: Date): number {
   );
 }
 
+/** The member's "Pick Your Prayer Mix" multiplier for a post: type and realm levels multiply. */
+export function mixMultiplier(c: Pick<Candidate, 'postType' | 'realm'>, mix: FeedMix): number {
+  const level = (key: string) => FEED_MIX_MULTIPLIER[mix[key as FeedMixKey] ?? 'normal'];
+  return level(`type:${c.postType}`) * (c.realm ? level(`realm:${c.realm}`) : 1);
+}
+
 /**
  * Order candidates. Ranking never removes a post: every visible request keeps
- * baseline visibility no matter how many tokens anyone spent.
+ * baseline visibility no matter how many tokens anyone spent or how a member
+ * sets their mix.
  */
-export function rankFeed(candidates: Candidate[], now = new Date()): Candidate[] {
-  return [...candidates].sort((a, b) => score(b, now) - score(a, now) || (a.id < b.id ? 1 : -1));
+export function rankFeed(candidates: Candidate[], now = new Date(), mix: FeedMix = {}): Candidate[] {
+  const s = new Map(candidates.map((c) => [c.id, score(c, now) * mixMultiplier(c, mix)]));
+  return [...candidates].sort((a, b) => s.get(b.id)! - s.get(a.id)! || (a.id < b.id ? 1 : -1));
 }
 
 /** The first post on open: the most recent prayer request or thanksgiving. */
@@ -69,6 +80,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
   const { rows } = await q.query<{
     id: string;
     post_type: posts.PostType;
+    realm: string | null;
     created_at: Date;
     urgency: number;
     followed: boolean;
@@ -76,7 +88,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
     taps: number;
     reach: string | null;
   }>(
-    `select p.id, p.post_type, p.created_at, p.urgency,
+    `select p.id, p.post_type, p.realm, p.created_at, p.urgency,
             exists (select 1 from public.follows f where f.user_id = $1 and f.followee_id = p.user_id) as followed,
             (select count(*)::int from public.commitments c where c.post_id = p.id and c.status <> 'cancelled') as commitments,
             (select count(*)::int from public.prayer_events e where e.post_id = p.id and e.kind = 'praying_now') as taps,
@@ -93,6 +105,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
   return rows.map((r) => ({
     id: r.id,
     postType: r.post_type,
+    realm: r.realm,
     createdAt: r.created_at,
     urgency: r.urgency,
     followed: r.followed,
@@ -160,9 +173,12 @@ export async function chooseTheme(q: Queryable, viewerId: string, slug: string |
 }
 
 export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize = 20) {
-  const all = await candidates(q, viewerId);
+  // Featured Macro Needs show above the feed, so they aren't repeated in it.
+  const featured = new Set(await macroNeeds.featuredPostIds(q));
+  const all = (await candidates(q, viewerId)).filter((c) => !featured.has(c.id));
   const pinned = pickPinned(all);
-  const ranked = rankFeed(all.filter((c) => c.id !== pinned?.id));
+  const mix = (await getProfile(q, viewerId))?.feed_mix ?? {};
+  const ranked = rankFeed(all.filter((c) => c.id !== pinned?.id), new Date(), mix);
   const ordered = pinned ? [pinned, ...ranked] : ranked;
   const slice = ordered.slice(page * pageSize, (page + 1) * pageSize);
   return {

@@ -31,6 +31,16 @@ export const PRAYER_REALM_LABELS: Record<PrayerRealm, string> = {
   world: 'World',
 };
 
+/** "Pick Your Prayer Mix": see more or less of a post type or realm. Only reorders; never hides. */
+export type FeedMixLevel = 'less' | 'more';
+export type FeedMixKey = `type:${PostType}` | `realm:${PrayerRealm}`;
+export type FeedMix = Partial<Record<FeedMixKey, FeedMixLevel>>;
+export const FEED_MIX_MULTIPLIER: Record<FeedMixLevel | 'normal', number> = { less: 0.5, normal: 1, more: 2 };
+export const FEED_MIX_KEYS: FeedMixKey[] = [
+  ...POST_TYPES.map((t) => `type:${t}` as const),
+  ...PRAYER_REALMS.map((r) => `realm:${r}` as const),
+];
+
 /** Backgrounds for text-only posts. */
 export const POST_BACKGROUNDS = ['dawn', 'sky', 'meadow', 'lavender', 'gold', 'night'] as const;
 export type PostBackground = (typeof POST_BACKGROUNDS)[number];
@@ -162,6 +172,8 @@ export interface PriestlyStatus {
   prayersPerToken: number;
   /** Priestly tokens it costs to send a request out as a radio prayer. */
   radioPrayerCost: number;
+  /** How many times Amplify sends a radio prayer; null while radio prayers cost tokens (Amplify is free-only). */
+  amplifyRepeats: number | null;
 }
 
 export interface TokenSummary {
@@ -240,6 +252,7 @@ export interface Profile {
   updates_in_first_comment: boolean;
   prompts_enabled: boolean;
   prompt_min_hours: number | null;
+  feed_mix: FeedMix;
   onboarded_at: string | null;
   suspended_until: string | null;
 }
@@ -287,4 +300,35 @@ export interface WeeklyReview {
   active: number;
   kept: number;
   message: string;
+}
+
+// Long-post preview: the few words that carry a long request, shown under the
+// preview as a sparkling reveal. A simple keyword heuristic (frequency, length,
+// names), placeholder until a better extractor is chosen.
+const STOP_WORDS = new Set(
+  ('about above after again against all also and any are because been before being below between both but can could did does doing down during each ' +
+    'even ever every few for from further had has have having her here hers herself him himself his how into its itself just know like made make many ' +
+    'more most much must myself need never now off once only other our ours ourselves out over own please pray prayer prayers praying really same she ' +
+    'should some still such than that the their theirs them themselves then there these they thing things this those through too under until upon very ' +
+    'want was were what when where which while who whom why will with would you your yours yourself yourselves lord god jesus amen thank thanks today ' +
+    'going been another little that’s it’s i’m don’t can’t')
+    .split(/\s+/),
+);
+
+/** Up to `n` important words from a post, most important first. */
+export function importantWords(body: string, n = 4): string[] {
+  const scores = new Map<string, { word: string; score: number }>();
+  const sentenceStart = new Set<number>();
+  const tokens = [...body.matchAll(/[A-Za-z][A-Za-z’'-]{3,}/g)];
+  for (const m of body.matchAll(/(^|[.!?]\s+)([A-Za-z])/g)) sentenceStart.add((m.index ?? 0) + m[1]!.length);
+  for (const t of tokens) {
+    const word = t[0].replace(/[’'-]+$/, '');
+    const key = word.toLowerCase();
+    if (word.length < 4 || STOP_WORDS.has(key)) continue;
+    const isName = /^[A-Z]/.test(word) && !sentenceStart.has(t.index ?? -1);
+    const prev = scores.get(key);
+    const score = (prev?.score ?? 0) + 2 + word.length / 4 + (isName ? 2 : 0);
+    scores.set(key, { word: prev?.word ?? word, score });
+  }
+  return [...scores.values()].sort((a, b) => b.score - a.score).slice(0, n).map((s) => s.word);
 }

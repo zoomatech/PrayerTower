@@ -1,4 +1,14 @@
-import { WHY_HERE_LABELS, type FeedThemeChoices, type TierStatus, type TokenSummary } from '@prayer-tower/shared';
+import {
+  FEED_MIX_KEYS,
+  POST_TYPE_LABELS,
+  PRAYER_REALM_LABELS,
+  WHY_HERE_LABELS,
+  type FeedMix,
+  type FeedMixKey,
+  type FeedThemeChoices,
+  type TierStatus,
+  type TokenSummary,
+} from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -82,6 +92,7 @@ export default function Profile() {
         <View style={styles.chips}>
           <Button small variant="secondary" label="Token pools" onPress={() => router.push('/pools')} />
           <Button small variant="secondary" label="Scheduled gifts" onPress={() => router.push('/scheduled')} />
+          <Button small variant="secondary" label="Prayer Cast" onPress={() => router.push('/prayer-cast')} />
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (
@@ -105,6 +116,30 @@ export default function Profile() {
           </View>
         ) : null}
 
+        <View style={{ gap: space.sm }}>
+          <Text style={type.heading}>Pick your prayer mix</Text>
+          <Text style={type.small}>See more or less of each kind of post. Nothing is ever hidden; this only changes the order.</Text>
+          {FEED_MIX_KEYS.map((key) => {
+            const level = profile.feed_mix?.[key] ?? 'normal';
+            const setLevel = (next: 'less' | 'normal' | 'more') => {
+              const mix: FeedMix = { ...profile.feed_mix };
+              if (next === 'normal') delete mix[key];
+              else mix[key] = next;
+              update({ feedMix: mix });
+            };
+            return (
+              <View key={key} style={styles.mixRow}>
+                <Text style={[type.body, styles.mixLabel]}>{mixLabel(key)}</Text>
+                <View style={styles.chips}>
+                  {(['less', 'normal', 'more'] as const).map((l) => (
+                    <Chip key={l} label={l === 'less' ? 'Less' : l === 'more' ? 'More' : 'Normal'} selected={level === l} onPress={() => setLevel(l)} />
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
         <Text style={type.heading}>Settings</Text>
         <Toggle label="Hide graphic or trauma-related requests" value={profile.trauma_content_opt_out} onChange={(v) => update({ traumaContentOptOut: v })} />
         <Toggle label="Pray and post anonymously by default" value={profile.anonymous_by_default} onChange={(v) => update({ anonymousByDefault: v })} />
@@ -112,7 +147,10 @@ export default function Profile() {
         <Toggle label="Show my updates as the first comment" value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
         <Button variant="ghost" label="Community rules" onPress={() => router.push('/rules')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
-          <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
+          <>
+            <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
+            <Button variant="secondary" label="Macro needs" onPress={() => router.push('/macro-needs')} />
+          </>
         ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label="Admin" onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
@@ -122,10 +160,17 @@ export default function Profile() {
   );
 }
 
+function mixLabel(key: FeedMixKey) {
+  const [kind, value] = key.split(':') as ['type' | 'realm', string];
+  return kind === 'type' ? POST_TYPE_LABELS[value as keyof typeof POST_TYPE_LABELS] : PRAYER_REALM_LABELS[value as keyof typeof PRAYER_REALM_LABELS];
+}
+
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 120 },
   stats: { flexDirection: 'row', gap: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  mixRow: { gap: space.xs },
+  mixLabel: { fontWeight: '600' },
   stat: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.md, alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '700', color: colors.primary, textAlign: 'center' },
 });

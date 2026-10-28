@@ -6,7 +6,7 @@ import type { Fldigi } from './fldigi.js';
 import { foldAscii, passesFilter, splitPieces } from './text.js';
 
 export interface StationApi {
-  claim(): Promise<{ id: string; text: string } | null>;
+  claim(): Promise<{ id: string; text: string; repeats?: number } | null>;
   report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string }): Promise<void>;
 }
 
@@ -32,7 +32,9 @@ export async function runOnce(api: StationApi, fldigi: Fldigi, cfg: StationConfi
     await api.report(prayer.id, { ok: false, callSign: cfg.callSign, error: 'rejected by station content filter' });
     return 'rejected';
   }
-  const pieces = splitPieces(foldAscii(prayer.text), cfg.maxPieceChars, cfg.callSign);
+  // Amplify: the same call-signed pieces, sent `repeats` times.
+  const once = splitPieces(foldAscii(prayer.text), cfg.maxPieceChars, cfg.callSign);
+  const pieces = Array.from({ length: Math.max(1, Math.min(prayer.repeats ?? 1, 50)) }, () => once).flat();
   try {
     for (const piece of pieces) await fldigi.transmit(piece, cfg.txTimeoutMs);
   } catch (err) {
@@ -58,7 +60,7 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
     async claim() {
       const res = await post('/station/claim');
       if (res.status === 204) return null;
-      const json = (await res.json().catch(() => ({}))) as { radioPrayer?: { id: string; text: string }; message?: string };
+      const json = (await res.json().catch(() => ({}))) as { radioPrayer?: { id: string; text: string; repeats?: number }; message?: string };
       if (!res.ok) throw new Error(`claim failed (${res.status}): ${json.message ?? ''}`);
       return json.radioPrayer ?? null;
     },

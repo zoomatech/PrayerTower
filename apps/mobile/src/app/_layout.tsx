@@ -38,6 +38,9 @@ function RootStack() {
         <Stack.Screen name="rules" />
         <Stack.Screen name="pools" />
         <Stack.Screen name="scheduled" />
+        <Stack.Screen name="macro-needs" />
+        <Stack.Screen name="prayer-cast" />
+        <Stack.Screen name="highlights" />
       </Stack.Protected>
     </Stack>
   );

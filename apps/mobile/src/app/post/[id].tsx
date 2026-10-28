@@ -1,9 +1,11 @@
 import { ENCOURAGEMENT_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
+import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
@@ -12,7 +14,8 @@ import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
 
 export default function PostScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
+  const { celebrate, overlay } = useCelebration();
   const { profile } = useAuth();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -47,6 +50,10 @@ export default function PostScreen() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (celebrateParam) celebrate();
+  }, [celebrateParam, celebrate]);
+
   const { onAction, openReport, sheets } = useCardActions(load);
 
   const send = async (isUpdate = false, confirmed = false) => {
@@ -70,9 +77,9 @@ export default function PostScreen() {
     }
   };
 
-  const sendRadio = async () => {
+  const sendRadio = async (amplify = false) => {
     try {
-      await api.sendRadioPrayer(id);
+      await api.sendRadioPrayer(id, amplify);
       setRadioSent(true);
       setTokens(await api.tokens());
     } catch (e) {
@@ -92,7 +99,12 @@ export default function PostScreen() {
   };
 
   const markAnswered = async () => {
-    await api.markAnswered(id).catch((e) => setError((e as Error).message));
+    try {
+      await api.markAnswered(id);
+      celebrate();
+    } catch (e) {
+      setError((e as Error).message);
+    }
     load();
   };
 
@@ -124,8 +136,11 @@ export default function PostScreen() {
                 ? 'Send as a radio prayer'
                 : `Send as a radio prayer (${tokens.priestly.radioPrayerCost} Priestly token${tokens.priestly.radioPrayerCost === 1 ? '' : 's'})`
             }
-            onPress={sendRadio}
+            onPress={() => sendRadio()}
           />
+        ) : null}
+        {!radioSent && tokens?.priestly.amplifyRepeats ? (
+          <Button variant="secondary" label={`Amplify: send it out by radio ${tokens.priestly.amplifyRepeats} times (free)`} onPress={() => sendRadio(true)} />
         ) : null}
 
         {powerSent !== null ? (
@@ -186,7 +201,10 @@ export default function PostScreen() {
           <Text style={type.heading}>Comments</Text>
           {comments.length === 0 ? <Empty text="No comments yet." /> : null}
           {comments.map((c) => (
-            <View key={c.id} style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }]}>
+            <View
+              key={c.id}
+              style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }, c.id === sharedCommentId && styles.sharedComment]}
+            >
               <Text style={styles.commentAuthor}>
                 {c.isUpdate ? 'Update · ' : ''}
                 {c.author.displayName}
@@ -195,6 +213,18 @@ export default function PostScreen() {
               <View style={styles.row}>
                 <Text style={styles.reply} onPress={() => setReplyTo(c)}>
                   Reply
+                </Text>
+                <Text
+                  style={styles.reply}
+                  onPress={() =>
+                    // Shareable comments: the words plus a link that opens this request at the comment.
+                    Share.share({
+                      message: `“${c.body}” (${c.author.displayName}, on a Prayer Tower request) ${Linking.createURL(`/post/${id}`, { queryParams: { comment: c.id } })}`,
+                    }).catch(() => undefined)
+                  }
+                  accessibilityRole="button"
+                >
+                  Share
                 </Text>
                 {card && c.author.id !== profile?.id ? (
                   <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
@@ -221,6 +251,7 @@ export default function PostScreen() {
         </View>
       </ScrollView>
       {sheets}
+      {overlay}
     </Screen>
   );
 }
@@ -229,6 +260,7 @@ const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   section: { gap: space.sm },
   comment: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, gap: 2 },
+  sharedComment: { borderLeftColor: colors.primary, backgroundColor: colors.primarySoft, paddingVertical: space.xs },
   commentAuthor: { fontWeight: '700', color: colors.text },
   reply: { color: colors.primary, fontSize: 13 },
   report: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },

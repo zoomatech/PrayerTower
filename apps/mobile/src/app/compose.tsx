@@ -65,6 +65,8 @@ export default function Compose() {
       });
       // A request that mentions suicide or self-harm opens with crisis support showing.
       if (created.post.crisis) router.replace(`/post/${created.post.id}`);
+      // Praise opens with the thanksgiving celebration.
+      else if (postType === 'praise') router.replace(`/post/${created.post.id}?celebrate=1`);
       else router.back();
     } catch (e) {
       setError((e as Error).message);

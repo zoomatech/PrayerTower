@@ -78,6 +78,7 @@ export interface AdminRadioSettings {
   radio_transmitter: 'log' | 'station';
   radio_station_requires_free: boolean;
   radio_max_chars: number;
+  radio_amplify_repeats: number;
 }
 
 export interface PowerPrayerStatus {
@@ -114,6 +115,40 @@ export interface ScheduledSpend {
   status: 'active' | 'done' | 'cancelled' | 'failed';
   error: string | null;
   excerpt: string;
+}
+
+export interface MilestoneRule {
+  id: string;
+  label: string;
+  metric: 'prayers_for_others' | 'commitment_checkins' | 'answered_requests';
+  threshold: number;
+  amount: number;
+  currency: 'regular' | 'priestly';
+  enabled: boolean;
+  awarded: number;
+}
+
+export interface MacroNeed {
+  id: string;
+  title: string;
+  helpOptions: { label: string; url: string }[];
+  endsAt: string | null;
+  card: Card | null;
+  prayers: number;
+  tokens: number;
+  helpers: number;
+  helped: boolean;
+}
+
+export interface PrayerCast {
+  totals: { prayers: number; sends: number };
+  cast: { id: string; post_id: string; text: string; repeats: number; transmitter: string | null; call_sign: string | null; transmitted_at: string }[];
+}
+
+export interface Highlights {
+  days: number;
+  topPrayers: { prayers: number; card: Card }[];
+  topWarriors: { id: string | null; displayName: string; prayers: number }[];
 }
 
 export interface PilotWeek {
@@ -194,8 +229,11 @@ export const api = {
     post<{ recorded: boolean }>(`/me/prompts/${id}/response`, { response }),
   tier: () => get<TierStatus>('/me/tier'),
   tokens: () => get<TokenSummary>('/me/tokens'),
-  sendRadioPrayer: (postId: string) =>
-    post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
+  sendRadioPrayer: (postId: string, amplify = false) =>
+    post<{ radioPrayer: { id: string; status: string; repeats: number } }>(`/posts/${postId}/radio`, {
+      idempotencyKey: `radio-${postId}-${Date.now()}`,
+      amplify,
+    }),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
@@ -225,6 +263,11 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
+    milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),
+    addMilestone: (input: Pick<MilestoneRule, 'label' | 'metric' | 'threshold' | 'amount'>) =>
+      post<{ rule: MilestoneRule }>('/admin/milestones', input),
+    updateMilestone: (id: string, patch: Partial<Pick<MilestoneRule, 'label' | 'threshold' | 'amount' | 'enabled'>>) =>
+      request<{ rule: MilestoneRule }>('PATCH', `/admin/milestones/${id}`, patch),
     metrics: (days: number) => get<Record<string, Record<string, number | string | null>>>(`/admin/metrics?days=${days}`),
     tokenSettings: () => get<{ settings: AdminTokenSettings }>('/admin/token-settings'),
     updateTokenSettings: (
@@ -233,7 +276,7 @@ export const api = {
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
@@ -269,6 +312,13 @@ export const api = {
     post<{ schedule: ScheduledSpend }>(`/posts/${postId}/scheduled-spends`, input),
   scheduledSpends: () => get<{ schedules: ScheduledSpend[] }>('/me/scheduled-spends'),
   cancelScheduledSpend: (id: string) => request<{ ok: true }>('DELETE', `/scheduled-spends/${id}`),
+  macroNeeds: () => get<{ needs: MacroNeed[] }>('/macro-needs'),
+  createMacroNeed: (input: { title: string; body: string; helpOptions: { label: string; url: string }[] }) =>
+    post<{ id: string; postId: string }>('/macro-needs', input),
+  endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
+  helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
+  prayerCast: () => get<PrayerCast>('/prayer-cast'),
+  highlights: () => get<Highlights>('/highlights'),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

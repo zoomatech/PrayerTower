@@ -2,9 +2,10 @@
 // a layout decides structure and motion. To add one (vine, Flipboard-style
 // flip, carousel), implement FeedLayout and register it below: cards, actions
 // and data stay the same.
-import type { Card, FeedLayoutKind, FeedTheme } from '@prayer-tower/shared';
+import type { Card, CardAction, FeedLayoutKind, FeedTheme } from '@prayer-tower/shared';
 import type { ReactElement } from 'react';
 
+import { CarouselLayout } from './carousel';
 import { ColumnLayout } from './column';
 import { FlipLayout } from './flip';
 import { VineLayout } from './vine';
@@ -21,16 +22,19 @@ export interface FeedLayoutProps {
   onEndReached: () => void;
   /** True when the server has no more pages: show a resting end, not an endless scroll. */
   atEnd: boolean;
+  /** Card actions, for layouts with their own gestures (swipe right to pray). */
+  onAction?: (card: Card, action: CardAction) => void;
 }
 
 export type FeedLayout = (props: FeedLayoutProps) => ReactElement;
 
-// Column is the V1 default; vine and flip are beta styles members can opt into.
-// Kinds without a layout (carousel) fall back to the column.
+// Column is the V1 default; vine, flip and swipe-to-pray (carousel) are beta
+// styles members can opt into.
 const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   column: ColumnLayout,
   vine: VineLayout,
   flip: FlipLayout,
+  carousel: CarouselLayout,
 };
 
 export function layoutFor(theme: FeedTheme | null): FeedLayout {
