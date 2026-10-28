@@ -16,6 +16,7 @@ import { MacroNeeds } from "@/components/macro-needs";
 import { ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
 import { Announcements } from "@/components/announcements";
+import { LiveNow } from "@/components/live-now";
 import { OfflineBanner } from "@/components/offline-banner";
 import { Button, Chip, ErrorText, Screen } from "@/components/ui";
 import { layoutFor } from "@/layouts";
@@ -139,6 +140,7 @@ export default function Feed() {
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
       <OfflineBanner savedAt={savedAt} />
       <Announcements />
+      <LiveNow />
       <Pressable
         style={styles.composer}
         onPress={() => router.push("/compose")}

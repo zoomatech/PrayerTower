@@ -25,6 +25,7 @@ import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { aiRoutes } from './modules/ai/routes.js';
+import { liveRoutes } from './modules/live/routes.js';
 import type { Converse } from './modules/ai/provider.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
@@ -209,6 +210,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     notebookRoutes(authed, db);
     futureRoutes(authed, db);
     aiRoutes(authed, db, converse);
+    liveRoutes(authed, db);
     communityRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);

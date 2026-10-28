@@ -18,6 +18,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AiLinks } from '@/components/ai-links';
 import { AwardCard } from '@/components/award-card';
+import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
@@ -148,6 +149,7 @@ export default function Profile() {
           <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
           <Button small variant="secondary" label={t('vine.branchLink')} onPress={() => router.push('/branch')} />
           <AiLinks />
+          <LiveHostLink />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} />
         </View>

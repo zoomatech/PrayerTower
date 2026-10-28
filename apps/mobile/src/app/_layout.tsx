@@ -86,6 +86,7 @@ function RootStack() {
           <Stack.Screen name="branch" />
           <Stack.Screen name="ai-chat" />
           <Stack.Screen name="circle-prep" />
+          <Stack.Screen name="live" />
           <Stack.Screen name="conversation/[id]" />
           <Stack.Screen name="groups" />
           <Stack.Screen name="events" />

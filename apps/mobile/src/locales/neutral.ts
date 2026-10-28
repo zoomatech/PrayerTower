@@ -201,6 +201,10 @@ export const keys: Tree = {
     anonymous: 'A Kindness Champion',
     line: '%{count} acts of support for %{people} people',
   },
+  live: {
+    intro: 'Start a live room for a talk, a seminar or a circle. Members of your community see it under "Live now" until you end it. Nothing is recorded.',
+    roomTitlePlaceholder: 'Evening check-in',
+  },
   vine: {
     yourTendril: '➰ Your tendril: you promised to check in',
     tendrils: { one: '1 person promised to check in on this', other: '%{count} people promised to check in on this' },

@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek, type AiSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek, type AiSettings, type LiveSettings } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -307,6 +307,7 @@ function Admin() {
         <SpokenPrayerSection />
         <AwardSection />
         <AiSection />
+        <LiveSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -574,6 +575,42 @@ function CareAndEventSettingsSection() {
           <Button label={t('admin.btn.saveEvents')} onPress={() => saveEv()} />
         </>
       ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Live video rooms: off by default; the Jitsi Meet server address, or hosts paste links. */
+function LiveSection() {
+  const t = useT();
+  const [s, setS] = useState<LiveSettings | null>(null);
+  const [draft, setDraft] = useState({ url: '', minutes: '' });
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: LiveSettings) => {
+    setS(x);
+    setDraft({ url: x.jitsi_url ?? '', minutes: String(x.max_minutes) });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.liveSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateLiveSettings({ jitsiUrl: draft.url.trim(), maxMinutes: toInt(draft.minutes) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        setNote(t('admin.saved.live'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.liveSection')}</Text>
+      <Toggle label={t('admin.toggle.live')} hint={t('admin.toggle.liveHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('admin.field.jitsiUrl')} value={draft.url} onChangeText={(url) => setDraft((d) => ({ ...d, url }))} autoCapitalize="none" keyboardType="url" />
+      <Field label={t('admin.field.liveMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
+      <Button label={t('admin.btn.saveLive')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

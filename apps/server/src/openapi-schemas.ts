@@ -15,6 +15,7 @@ import * as future from './modules/future/index.js';
 import * as invites from './modules/invites/index.js';
 import * as inviteEmail from './modules/invites/email.js';
 import * as inviteImport from './modules/invites/import.js';
+import * as live from './modules/live/index.js';
 import * as macroNeeds from './modules/macro-needs/index.js';
 import * as messages from './modules/messages/index.js';
 import * as milestones from './modules/milestones/index.js';
@@ -53,6 +54,8 @@ export const REQUEST_SCHEMAS: Record<string, { body?: z.ZodType; query?: z.ZodTy
   'POST /ai-facilitator': { body: ai.FacilitateInput },
   'POST /circle-requests': { body: ai.CircleRequest },
   'PATCH /admin/ai-settings': { body: ai.SettingsPatch },
+  'POST /live': { body: live.Start },
+  'PATCH /admin/live-settings': { body: live.SettingsPatch },
   'POST /admin/invites': { body: invites.NewInvites },
   'POST /macro-needs': { body: macroNeeds.NewMacroNeed },
   'POST /posts/:id/messages': { body: messages.NewPrayerThread },
