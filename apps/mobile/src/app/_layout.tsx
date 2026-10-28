@@ -76,6 +76,7 @@ function RootStack() {
           <Stack.Screen name="legal" />
           <Stack.Screen name="podcasts" />
           <Stack.Screen name="podcasts-admin" />
+          <Stack.Screen name="waitlist" />
           <Stack.Screen name="crosspost" />
           <Stack.Screen name="survey/[id]" />
           <Stack.Screen name="feedback-triage" />
@@ -85,6 +86,8 @@ function RootStack() {
           <Stack.Screen name="rules" />
           <Stack.Screen name="pools" />
           <Stack.Screen name="scheduled" />
+          <Stack.Screen name="prayer-chain" />
+          <Stack.Screen name="prayer-minute" />
           <Stack.Screen name="token-store" />
           <Stack.Screen name="macro-needs" />
           <Stack.Screen name="prayer-cast" />

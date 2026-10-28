@@ -4,6 +4,8 @@
   "private": true,
   "description": "Browser extension (Chrome; Safari via Apple's converter): copies the member's own Facebook and Threads posts to their Prayer Tower account",
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "safari": "scripts/safari.sh",
     "test": "vitest run"
   },
   "devDependencies": {

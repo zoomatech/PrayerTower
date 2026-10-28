@@ -53,12 +53,12 @@
       .join('\n\n');
   }
 
-  /** Photo previews in the composer (blob: or data: links the site made from the chosen files). */
-  function previewImagesIn(composer) {
+  /** Photo and video previews in the composer (blob: or data: links the site made from the chosen files). */
+  function previewMediaIn(composer) {
     const seen = new Set();
-    return Array.from(composer.querySelectorAll('img'))
-      .map((img) => img.getAttribute('src') || '')
-      .filter((src) => (src.startsWith('blob:') || src.startsWith('data:image/')) && !seen.has(src) && seen.add(src));
+    return Array.from(composer.querySelectorAll('img, video, video source'))
+      .map((el) => el.getAttribute('src') || '')
+      .filter((src) => (src.startsWith('blob:') || /^data:(image|video)\//.test(src)) && !seen.has(src) && seen.add(src));
   }
 
   /**
@@ -71,7 +71,7 @@
     return event.target.closest('[role="dialog"]');
   }
 
-  const api = { sourceFor, postButtonFor, composerFor, textOf, previewImagesIn, shortcutComposer, POST_WORDS };
+  const api = { sourceFor, postButtonFor, composerFor, textOf, previewMediaIn, shortcutComposer, POST_WORDS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PTCapture = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

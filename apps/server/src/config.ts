@@ -27,6 +27,8 @@ const Env = z.object({
   APP_STORE_URL: z.url().optional(),
   // The web app (PWA) address; invite emails link to its /sign-in?invite=CODE.
   WEB_APP_URL: z.url().optional(),
+  /** This API host's public address (https://api.<domain>), for links in guest and prayer-chain emails. Unset = those emails are not sent. */
+  PUBLIC_SITE_URL: z.url().optional(),
   PLAY_STORE_URL: z.url().optional(),
   /** Shared-link verification (/.well-known): Apple Developer Team ID; unset = no apple-app-site-association. */
   APPLE_TEAM_ID: z.string().regex(/^[A-Z0-9]{10}$/).optional(),

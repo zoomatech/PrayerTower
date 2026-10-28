@@ -50,7 +50,7 @@ const RULES: { title: string; body: string }[] = [
 
 export default function Rules() {
   const { t } = useLocale();
-  const { pressureRule } = useFeatures();
+  const { pressureRule, misleadingRule, automationRule } = useFeatures();
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -66,6 +66,18 @@ export default function Rules() {
           <View style={styles.rule}>
             <Text style={type.heading}>{t('rulesPage.pressure.title')}</Text>
             <Text style={type.body}>{t('rulesPage.pressure.body')}</Text>
+          </View>
+        ) : null}
+        {misleadingRule ? (
+          <View style={styles.rule}>
+            <Text style={type.heading}>{t('rulesPage.misleading.title')}</Text>
+            <Text style={type.body}>{t('rulesPage.misleading.body')}</Text>
+          </View>
+        ) : null}
+        {automationRule ? (
+          <View style={styles.rule}>
+            <Text style={type.heading}>{t('rulesPage.automation.title')}</Text>
+            <Text style={type.body}>{t('rulesPage.automation.body')}</Text>
           </View>
         ) : null}
         <Text style={type.body}>

@@ -28,9 +28,15 @@ export const RULES = {
   safe_messaging: 'No details of suicide or self-harm methods',
   /** Off until Admin → Notebook ideas turns the rule on (docs/policy/PROSELYTIZING_RULE_DRAFT.md). */
   pressure: "Share your beliefs freely. Don't pressure people.",
+  /** Off until Admin → Notebook ideas turns it on (docs/MORE_RULES.md). */
+  misleading: 'No misleading claims',
+  /** Off until Admin → Notebook ideas turns it on (docs/MORE_RULES.md). */
+  automation: 'No automated accounts',
   other: 'Community rules',
 } as const;
 export type Rule = keyof typeof RULES;
+/** Rules an admin turns on, and the notebook_settings column that holds each switch. */
+const SWITCHED_RULES = { pressure: 'pressure_rule_enabled', misleading: 'misleading_rule_enabled', automation: 'automation_rule_enabled' } as const;
 const RULE_KEYS = Object.keys(RULES) as [Rule, ...Rule[]];
 
 const NOUN = { post: 'request', comment: 'comment', reaction: 'encouragement', message: 'message', event: 'event', spoken_prayer: 'spoken prayer' } as const;
@@ -222,9 +228,11 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
   }
 
   const rule: Rule = d.rule ?? 'other';
-  if (rule === 'pressure') {
-    const { rows: on } = await q.query<{ on: boolean }>('select pressure_rule_enabled as on from public.notebook_settings');
-    if (!on[0]?.on) throw badRequest('The "don\'t pressure people" rule is switched off (Admin → Notebook ideas)');
+  // Rules with a switch can be cited only while it is on.
+  const switched = SWITCHED_RULES[rule as keyof typeof SWITCHED_RULES];
+  if (switched) {
+    const { rows: on } = await q.query<{ on: boolean }>(`select ${switched} as on from public.notebook_settings`);
+    if (!on[0]?.on) throw badRequest(`The "${RULES[rule]}" rule is switched off (Admin → Notebook ideas)`);
   }
   let suspendedUntil: Date | null = null;
   const log = (action: string, extra: { transferId?: string; suspendedUntil?: Date } = {}) =>

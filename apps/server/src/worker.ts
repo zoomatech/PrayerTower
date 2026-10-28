@@ -5,7 +5,7 @@ import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
 import { MEDIA_BUCKET } from './modules/posts/media.js';
 import { buildTaskList, crontab } from './tasks.js';
-import { storageImageStore } from './modules/crosspost/index.js';
+import { storageMediaStore } from './modules/crosspost/index.js';
 
 loadDotEnv();
 const config = loadConfig();
@@ -22,8 +22,8 @@ const removeMedia = storage
   : null;
 
 // Photos copied from connected Facebook and Threads accounts.
-const storeImage = storage
-  ? storageImageStore(async (path, bytes, contentType) => {
+const storeMedia = storage
+  ? storageMediaStore(async (path, bytes, contentType) => {
       const { error } = await storage.storage.from(MEDIA_BUCKET).upload(path, bytes, { contentType });
       if (error) throw error;
     })
@@ -33,7 +33,7 @@ const storeImage = storage
 const runner = await run({
   pgPool: db,
   concurrency: config.WORKER_CONCURRENCY,
-  taskList: buildTaskList(db, config, { removeMedia, storeImage }),
+  taskList: buildTaskList(db, config, { removeMedia, storeMedia }),
   crontab,
 });
 

@@ -23,6 +23,7 @@ import { CommunityPicker } from '@/components/community-picker';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
+import { TownField } from '@/components/town-field';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -164,6 +165,8 @@ export default function Profile() {
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
+          {features.prayerChain ? <Button small variant="secondary" label={t('growth.chainOpen')} onPress={() => router.push('/prayer-chain')} /> : null}
+          {features.prayerMinute ? <Button small variant="secondary" label={t('growth.minuteOpen')} onPress={() => router.push('/prayer-minute')} /> : null}
           {features.crosspost && crosspostOn ? <Button small variant="secondary" label={t('crosspost.link')} onPress={() => router.push('/crosspost')} /> : null}
         </View>
 
@@ -233,6 +236,10 @@ export default function Profile() {
           onChange={(v) => update({ showPrayerStats: v }).then(loadStats)}
         />
         <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
+        {features.crossCommunity && wording === 'faith' ? (
+          <Toggle label={t('across.toggle')} hint={t('across.toggleHint')} value={!!profile.open_to_other_communities} onChange={(v) => update({ openToOtherCommunities: v })} />
+        ) : null}
+        {features.memberTown ? <TownField town={profile.town} onSave={(town) => update({ town })} /> : null}
         <CommunityPicker />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />

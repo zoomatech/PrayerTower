@@ -54,14 +54,50 @@ export interface Features {
   witnessStories: boolean;
   /** The "don't pressure people" community rule. */
   pressureRule: boolean;
+  misleadingRule: boolean;
+  automationRule: boolean;
+  urgencyGlow: boolean;
+  reactionTray: boolean;
+  memberTown: boolean;
+  prizeChoice: boolean;
+  crossCommunity: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
   /** Paid radio prayers are matched with equal material help. */
   materialMatch: boolean;
+  /** Growth ideas (docs/GROWTH.md). */
+  guestPrayer: boolean;
+  prayerChain: boolean;
+  prayedForWidget: boolean;
+  prayerMinute: boolean;
   /** Members can copy their own Facebook and Threads posts here. */
   crosspost: boolean;
 }
+
+export interface GrowthSettings {
+  guest_prayer_enabled: boolean;
+  prayer_chain_enabled: boolean;
+  prayer_chain_max: number;
+  prayed_for_widget_enabled: boolean;
+  prayer_minute_enabled: boolean;
+  guest_email_days: number;
+}
+export interface GuestLink {
+  token: string;
+  /** /pray/<token> (or /circle/<token> in Open Circle), on the site host. */
+  path: string;
+  guestPrayers: number;
+}
+export interface ChainPerson {
+  id: string;
+  email: string;
+  status: 'pending' | 'confirmed' | 'left';
+  createdAt: string;
+}
+export type PrayedFor = { enabled: false } | { enabled: true; names: string[]; people: number };
+export type PrayerMinute = { enabled: false } | { enabled: true; time: string | null; timeZone: string | null; others: number };
+export type PrayerMinuteNow = { enabled: false } | { enabled: true; together: number; requests: Card[] };
 
 export type WorldwideStats =
   | { enabled: false }
@@ -83,6 +119,14 @@ export interface NotebookSettings {
   support_label_enabled: boolean;
   witness_stories_enabled: boolean;
   pressure_rule_enabled: boolean;
+  misleading_rule_enabled: boolean;
+  automation_rule_enabled: boolean;
+  urgency_glow_enabled: boolean;
+  reaction_tray_enabled: boolean;
+  member_town_enabled: boolean;
+  prize_choice_enabled: boolean;
+  waitlist_enabled: boolean;
+  cross_community_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
   crosspost_enabled: boolean;
@@ -552,8 +596,20 @@ export interface Award {
   peoplePrayedFor: number;
   status: 'offered' | 'accepted' | 'declined';
   showName: boolean;
+  prizeChoice?: PrizeChoice;
   decidedAt: string | null;
 }
+export interface WaitlistEntry {
+  id: string;
+  email: string;
+  name: string;
+  note: string;
+  edition: 'prayer-tower' | 'open-circle';
+  inviteCode: string | null;
+  invitedAt: string | null;
+  createdAt: string;
+}
+export type PrizeChoice = 'keep' | 'donate' | 'split';
 export interface AwardSettings {
   enabled: boolean;
   winners: number;
@@ -691,7 +747,11 @@ export const api = {
   closeCircleRequest: (id: string) => post<{ closed: true }>(`/moderation/circle-requests/${id}/close`),
   awardHall: () => get<AwardHall>('/awards'),
   myAwards: () => get<MyAwards>('/me/awards'),
-  acceptAward: (id: string, showName: boolean) => post<{ accepted: true; tokens: number; priestly: number }>(`/me/awards/${id}/accept`, { showName }),
+  acceptAward: (id: string, showName: boolean, prize?: PrizeChoice) =>
+    post<{ accepted: true; tokens: number; priestly: number; prizeChoice: PrizeChoice }>(`/me/awards/${id}/accept`, prize ? { showName, prize } : { showName }),
+  across: () => get<{ card: Card | null }>('/across'),
+  quickReact: (postId: string, kind: 'candle' | 'standing', on: boolean) =>
+    request<{ candles: number; standing: number; mine: ('candle' | 'standing')[] }>(on ? 'PUT' : 'DELETE', `/posts/${postId}/quick-reactions/${kind}`),
   declineAward: (id: string) => post<{ declined: true }>(`/me/awards/${id}/decline`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
@@ -845,6 +905,9 @@ export const api = {
     updateMaterialMatch: (patch: { enabled?: boolean; centsPerToken?: number }) => request<{ settings: { enabled: boolean; centsPerToken: number } }>('PATCH', '/admin/material-match', patch),
     fulfillMaterialMatch: (input: { helpKind: string; publicNote?: string }) => post<{ fulfilled: number; cents: number }>('/admin/material-match/fulfill', input),
     podcasts: () => get<{ enabled: boolean; shows: PodcastShow[] }>('/admin/podcasts'),
+    waitlist: () => get<{ enabled: boolean; entries: WaitlistEntry[] }>('/admin/waitlist'),
+    inviteFromWaitlist: (id: string) => post<{ email: string; invite: { code: string } }>(`/admin/waitlist/${id}/invite`),
+    removeFromWaitlist: (id: string) => request<{ ok: true }>('DELETE', `/admin/waitlist/${id}`),
     createPodcast: (input: { slug: string; title: string; description: string; author: string; imageUrl?: string | null; community?: string | null }) =>
       post<{ show: PodcastShow }>('/admin/podcasts', input),
     updatePodcast: (id: string, patch: { published?: boolean }) => request<{ show: PodcastShow }>('PATCH', `/admin/podcasts/${id}`, patch),
@@ -916,7 +979,10 @@ export const api = {
     updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number; confessionRetentionDays: number }>) =>
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; crosspostEnabled: boolean }>) =>
+    growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
+      request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; crosspostEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1013,6 +1079,19 @@ export const api = {
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
   features: () => get<{ features: Features }>('/features'),
+  guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
+  createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
+  revokeGuestLink: (postId: string) => request<{ revoked: true }>('DELETE', `/posts/${postId}/guest-link`),
+  prayerChain: () => get<{ people: ChainPerson[] }>('/me/prayer-chain'),
+  addToPrayerChain: (email: string) => post<{ id: string }>('/me/prayer-chain', { email }),
+  removeFromPrayerChain: (id: string) => request<{ removed: true }>('DELETE', `/me/prayer-chain/${id}`),
+  sendToPrayerChain: (postId: string) => post<{ recipients: number; path: string }>(`/posts/${postId}/prayer-chain`),
+  prayedFor: () => get<{ prayedFor: PrayedFor }>('/me/prayed-for'),
+  prayerMinute: () => get<{ minute: PrayerMinute }>('/me/prayer-minute'),
+  setPrayerMinute: (time: string, timeZone: string) => put<{ minute: PrayerMinute }>('/me/prayer-minute', { time, timeZone }),
+  clearPrayerMinute: () => request<{ cleared: true }>('DELETE', '/me/prayer-minute'),
+  prayerMinuteNow: () => get<{ now: PrayerMinuteNow }>('/prayer-minute/now'),
+  joinPrayerMinute: () => post<{ joined: true }>('/prayer-minute/join'),
   worldwide: () => get<{ stats: WorldwideStats }>('/stats/worldwide'),
   thanksCard: () => get<{ card: { show: boolean; answeredYouPrayedFor: number } }>('/me/thanks-card'),
   dismissThanksCard: () => post<{ dismissed: true }>('/me/thanks-card/dismiss'),

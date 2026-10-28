@@ -6,12 +6,14 @@
 //   * the "Prayer and positive thoughts welcome" label (note of 2026-09-19);
 //   * Witness stories, off by default (the switch lives here; the code is in witness/);
 //   * the "don't pressure people" rule and the public ad-free promise page (20261029004700);
+//   * the "no misleading claims" and "no automated accounts" rules (20261029006000).
 //   * podcasts (20261029004900) and cross-posting from Facebook and Threads (20261029007000).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
+import * as growth from '../growth/index.js';
 import * as safety from '../safety/index.js';
 
 export interface NotebookSettings {
@@ -24,13 +26,22 @@ export interface NotebookSettings {
   pressure_rule_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
+  misleading_rule_enabled: boolean;
+  automation_rule_enabled: boolean;
+  urgency_glow_enabled: boolean;
+  reaction_tray_enabled: boolean;
+  member_town_enabled: boolean;
+  prize_choice_enabled: boolean;
+  waitlist_enabled: boolean;
+  cross_community_enabled: boolean;
   crosspost_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
-            pressure_rule_enabled, promise_page_enabled, podcasts_enabled, crosspost_enabled from public.notebook_settings`,
+            pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
+            urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled, crosspost_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -45,6 +56,14 @@ export const SettingsPatch = z.object({
   pressureRuleEnabled: z.boolean().optional(),
   promisePageEnabled: z.boolean().optional(),
   podcastsEnabled: z.boolean().optional(),
+  misleadingRuleEnabled: z.boolean().optional(),
+  automationRuleEnabled: z.boolean().optional(),
+  urgencyGlowEnabled: z.boolean().optional(),
+  reactionTrayEnabled: z.boolean().optional(),
+  memberTownEnabled: z.boolean().optional(),
+  prizeChoiceEnabled: z.boolean().optional(),
+  waitlistEnabled: z.boolean().optional(),
+  crossCommunityEnabled: z.boolean().optional(),
   crosspostEnabled: z.boolean().optional(),
 });
 
@@ -55,7 +74,11 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        thanks_card_days = coalesce($3, thanks_card_days), sermon_inputs_enabled = coalesce($4, sermon_inputs_enabled),
        support_label_enabled = coalesce($5, support_label_enabled), witness_stories_enabled = coalesce($6, witness_stories_enabled),
        pressure_rule_enabled = coalesce($7, pressure_rule_enabled), promise_page_enabled = coalesce($8, promise_page_enabled),
-       podcasts_enabled = coalesce($9, podcasts_enabled), crosspost_enabled = coalesce($10, crosspost_enabled)`,
+       podcasts_enabled = coalesce($9, podcasts_enabled), misleading_rule_enabled = coalesce($10, misleading_rule_enabled),
+       automation_rule_enabled = coalesce($11, automation_rule_enabled),
+       urgency_glow_enabled = coalesce($12, urgency_glow_enabled), reaction_tray_enabled = coalesce($13, reaction_tray_enabled), member_town_enabled = coalesce($14, member_town_enabled), prize_choice_enabled = coalesce($15, prize_choice_enabled),
+       waitlist_enabled = coalesce($16, waitlist_enabled),
+       cross_community_enabled = coalesce($17, cross_community_enabled), crosspost_enabled = coalesce($18, crosspost_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -66,6 +89,14 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.pressureRuleEnabled ?? null,
       p.promisePageEnabled ?? null,
       p.podcastsEnabled ?? null,
+      p.misleadingRuleEnabled ?? null,
+      p.automationRuleEnabled ?? null,
+      p.urgencyGlowEnabled ?? null,
+      p.reactionTrayEnabled ?? null,
+      p.memberTownEnabled ?? null,
+      p.prizeChoiceEnabled ?? null,
+      p.waitlistEnabled ?? null,
+      p.crossCommunityEnabled ?? null,
       p.crosspostEnabled ?? null,
     ],
   );
@@ -84,6 +115,13 @@ export async function features(q: Queryable) {
     supportLabel: s.support_label_enabled,
     witnessStories: s.witness_stories_enabled,
     pressureRule: s.pressure_rule_enabled,
+    misleadingRule: s.misleading_rule_enabled,
+    automationRule: s.automation_rule_enabled,
+    urgencyGlow: s.urgency_glow_enabled,
+    reactionTray: s.reaction_tray_enabled,
+    memberTown: s.member_town_enabled,
+    prizeChoice: s.prize_choice_enabled,
+    crossCommunity: s.cross_community_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,
@@ -91,6 +129,8 @@ export async function features(q: Queryable) {
     crosspost: s.crosspost_enabled,
     /** Paid radio prayers are matched with equal material help (modules/material-match). */
     materialMatch: match[0]?.enabled === true,
+    /** Growth ideas (modules/growth, Admin → Growth). */
+    ...(await growth.features(q)),
   };
 }
 

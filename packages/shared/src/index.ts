@@ -79,6 +79,10 @@ export const MODERATION_RULES = {
   safe_messaging: 'No details of suicide or self-harm methods',
   /** Only while Admin → Notebook ideas has the rule on. */
   pressure: "Share your beliefs freely. Don't pressure people.",
+  /** Only while Admin → Notebook ideas has the rule on. */
+  misleading: 'No misleading claims',
+  /** Only while Admin → Notebook ideas has the rule on. */
+  automation: 'No automated accounts',
   other: 'Community rules',
 } as const;
 export type ModerationRule = keyof typeof MODERATION_RULES;
@@ -191,14 +195,20 @@ export interface Comment {
   depth?: number;
 }
 
+/** Long-press reactions: "Light a candle" and "Standing with you". */
+export type QuickReactionKind = 'candle' | 'standing';
+
 export interface Card {
   id: string;
   cardType: CardType;
   /** pastor: a verified church pastor's badge; null on anonymous posts. */
-  author: Identity & { tier: string | null; pastor: PastorBadge | null };
+  /** town: "Carol in Albuquerque", only within the post's community while switched on. */
+  author: Identity & { tier: string | null; pastor: PastorBadge | null; town?: string | null };
   branchKey: string | null;
   isMine: boolean;
   myCommitment: { id: string; frequency: Frequency } | null;
+  /** The viewer's quick reactions on this post (long-press tray). */
+  myQuickReactions?: QuickReactionKind[];
   actions: CardAction[];
   postType: PostType;
   kind: string | null;
@@ -228,6 +238,8 @@ export interface Card {
     wellWishes: number;
     shares: number;
     comments: number;
+    candles?: number;
+    standing?: number;
   };
   reach: number;
   topComment: Comment | null;
@@ -376,6 +388,8 @@ export interface Profile {
   digest_enabled?: boolean;
   /** Gentle prayer stats on Me (on by default). */
   show_prayer_stats?: boolean;
+  town?: string | null;
+  open_to_other_communities?: boolean;
   /** Missing on profiles fetched before the setting existed. */
   notification_prefs?: NotificationPrefs;
   onboarded_at: string | null;
@@ -588,7 +602,7 @@ export interface PrayerEvent {
 export const NOTIFICATION_CATEGORIES = ['prayers', 'promises', 'encouragement', 'messages', 'community', 'tokens'] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
-  prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'spoken_prayer', 'live_amplifier_read'],
+  prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'spoken_prayer', 'live_amplifier_read', 'guest_prayer', 'prayer_minute'],
   promises: ['commitment_made', 'commitment_reminder'],
   encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered', 'award'],
   messages: ['message', 'meetup', 'care_request'],

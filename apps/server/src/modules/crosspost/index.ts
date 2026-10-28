@@ -12,20 +12,32 @@ import { POST_TYPES } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { AppError, badRequest, forbidden } from '../../errors.js';
-import { featureOn } from '../communities/index.js';
+import { featureOn, isSecular } from '../communities/index.js';
+import { neutralText } from '../communities/neutral-text.js';
 import * as posts from '../posts/index.js';
 
 export const SOURCES = ['facebook', 'threads'] as const;
 export type Source = (typeof SOURCES)[number];
 export type Via = 'extension' | 'account';
 
-export const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic' } as const;
-export type ImageType = keyof typeof IMAGE_TYPES;
-export const MAX_IMAGES = 10;
+/** Photos and videos a copy can carry: the types the post-media bucket accepts. */
+export const MEDIA_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+} as const;
+export type MediaType = keyof typeof MEDIA_TYPES;
+export const MAX_MEDIA = 10;
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+export const kindOf = (t: MediaType): 'image' | 'video' => (t.startsWith('video/') ? 'video' : 'image');
+export const maxBytes = (t: MediaType) => (kindOf(t) === 'video' ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES);
 
-/** Saves one photo under the member's media folder; returns its storage path (<user id>/<uuid>.<ext>). */
-export type ImageStore = (userId: string, bytes: Buffer, contentType: ImageType) => Promise<string>;
+/** Saves one photo or video under the member's media folder; returns its storage path (<user id>/<uuid>.<ext>). */
+export type MediaStore = (userId: string, bytes: Buffer, contentType: MediaType) => Promise<string>;
 
 export async function enabled(q: Queryable): Promise<boolean> {
   const { rows } = await q.query<{ on: boolean }>('select crosspost_enabled as on from public.notebook_settings');
@@ -150,7 +162,8 @@ export async function status(q: Queryable, userId: string, connectable: Record<S
     postTypes: await communityPostTypes(q, userId),
     paused: s.paused,
     extensionKeyHint: s.extension_key_hint,
-    recent,
+    // Why a post wasn't copied repeats a posting check's message; Open Circle members read it in neutral words.
+    recent: (await isSecular(q, userId)) ? recent.map((r) => ({ ...r, reason: r.reason && neutralText(r.reason) })) : recent,
   };
 }
 
@@ -163,7 +176,7 @@ export interface Incoming {
   externalId: string;
   text: string;
   permalink?: string | null;
-  images?: { bytes: Buffer; contentType: ImageType }[];
+  media?: { bytes: Buffer; contentType: MediaType }[];
 }
 
 export type ImportResult = { status: 'posted'; postId: string } | { status: 'skipped'; reason: string } | { status: 'duplicate' };
@@ -186,13 +199,22 @@ export function fitBody(text: string): string {
  * is paused or off, when the same text came in during the last three days, when
  * there is nothing to post, or when the usual posting checks refuse it.
  */
-export async function importPost(q: Queryable, userId: string, item: Incoming, storeImage: ImageStore | null): Promise<ImportResult> {
+export async function importPost(q: Queryable, userId: string, item: Incoming, storeMedia: MediaStore | null): Promise<ImportResult> {
   const { rowCount: seen } = await q.query('select 1 from public.crosspost_imports where user_id = $1 and source = $2 and external_id = $3', [
     userId,
     item.source,
     item.externalId,
   ]);
   if (seen) return { status: 'duplicate' };
+  // The webhook, the 5-minute check and the extension can all bring in the same post at
+  // once. One import per member at a time, so the checks below see each other's copies.
+  await q.query("select pg_advisory_xact_lock(hashtextextended('crosspost:' || $1, 0))", [userId]);
+  const { rowCount: seenNow } = await q.query('select 1 from public.crosspost_imports where user_id = $1 and source = $2 and external_id = $3', [
+    userId,
+    item.source,
+    item.externalId,
+  ]);
+  if (seenNow) return { status: 'duplicate' };
   const hash = bodyHash(item.text);
   const record = (status: 'posted' | 'skipped', postId: string | null, reason: string | null) =>
     q.query(
@@ -208,9 +230,9 @@ export async function importPost(q: Queryable, userId: string, item: Incoming, s
   if (!(await available(q, userId))) return skip('Cross-posting is off');
   const s = await settingsOf(q, userId);
   if (s.paused) return skip('Paused');
-  const images = (item.images ?? []).slice(0, MAX_IMAGES);
+  const files = (item.media ?? []).filter((m) => m.bytes.length <= maxBytes(m.contentType)).slice(0, MAX_MEDIA);
   const body = fitBody(item.text);
-  if (!body && images.length === 0) return skip('Nothing to post');
+  if (!body && files.length === 0) return skip('Nothing to post');
   if (body) {
     const { rowCount: dup } = await q.query(
       `select 1 from public.crosspost_imports where user_id = $1 and body_hash = $2 and status = 'posted' and created_at > now() - interval '3 days'`,
@@ -222,10 +244,10 @@ export async function importPost(q: Queryable, userId: string, item: Incoming, s
   const postType = await postTypeFor(q, userId, s.post_type);
   await q.query('savepoint crosspost_import');
   try {
-    const media: { kind: 'image'; storagePath: string }[] = [];
-    if (storeImage) for (const img of images) media.push({ kind: 'image', storagePath: await storeImage(userId, img.bytes, img.contentType) });
-    // A post needs words; a photo-only post gets a short caption.
-    const input = posts.NewPost.parse({ postType, body: body || (media.length > 1 ? 'Photos' : 'Photo'), media });
+    const media: { kind: 'image' | 'video'; storagePath: string }[] = [];
+    if (storeMedia) for (const f of files) media.push({ kind: kindOf(f.contentType), storagePath: await storeMedia(userId, f.bytes, f.contentType) });
+    // A post needs words; a photo- or video-only post gets a short caption.
+    const input = posts.NewPost.parse({ postType, body: body || caption(media.map((m) => m.kind)), media });
     const post = await posts.create(q, userId, input);
     await q.query('release savepoint crosspost_import');
     await record('posted', post.id, null);
@@ -239,20 +261,32 @@ export async function importPost(q: Queryable, userId: string, item: Incoming, s
   }
 }
 
-/** An ImageStore that writes to Supabase Storage (the post-media bucket). */
-export function storageImageStore(upload: (path: string, bytes: Buffer, contentType: string) => Promise<void>): ImageStore {
+function caption(kinds: ('image' | 'video')[]) {
+  if (kinds.length === 0) return 'Shared from my other account';
+  if (kinds.every((k) => k === 'video')) return kinds.length > 1 ? 'Videos' : 'Video';
+  if (kinds.every((k) => k === 'image')) return kinds.length > 1 ? 'Photos' : 'Photo';
+  return 'Photos and video';
+}
+
+/** A MediaStore that writes to Supabase Storage (the post-media bucket). */
+export function storageMediaStore(upload: (path: string, bytes: Buffer, contentType: string) => Promise<void>): MediaStore {
   return async (userId, bytes, contentType) => {
-    const path = `${userId}/${randomUUID()}.${IMAGE_TYPES[contentType]}`;
+    const path = `${userId}/${randomUUID()}.${MEDIA_TYPES[contentType]}`;
     await upload(path, bytes, contentType);
     return path;
   };
 }
 
-/** The image type from a file's first bytes (never trust the declared type). */
-export function sniffImage(bytes: Buffer): ImageType | null {
+/** The photo or video type from a file's first bytes (never trust the declared type). */
+export function sniffMedia(bytes: Buffer): MediaType | null {
   if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
   if (bytes.length > 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
   if (bytes.length > 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
-  if (bytes.length > 12 && bytes.toString('ascii', 4, 8) === 'ftyp' && /^(heic|heix|mif1|msf1)$/.test(bytes.toString('ascii', 8, 12))) return 'image/heic';
+  if (bytes.length > 12 && bytes.toString('ascii', 4, 8) === 'ftyp') {
+    const brand = bytes.toString('ascii', 8, 12);
+    if (/^(heic|heix|mif1|msf1)$/.test(brand)) return 'image/heic';
+    if (brand === 'qt  ') return 'video/quicktime';
+    if (/^(isom|iso2|iso4|iso5|iso6|mp41|mp42|avc1|M4V |dash)$/.test(brand)) return 'video/mp4';
+  }
   return null;
 }

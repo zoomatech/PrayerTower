@@ -78,8 +78,19 @@ describe('endpoint auth', () => {
       // The ad-free promise (404 while switched off).
       'GET /promise',
       'GET /open-circle/promise',
+      // The waitlist page and joining it (404 while switched off; joining is rate limited).
+      'GET /waitlist',
+      'GET /open-circle/waitlist',
+      'POST /waitlist/join',
       // Public podcast feeds for podcast apps (404 while switched off).
       'GET /podcasts/:slug/feed.xml',
+      // Guest prayer and prayer-chain pages: an unguessable link each, 404 while switched off.
+      'GET /pray/:token',
+      'POST /pray/:token',
+      'GET /circle/:token',
+      'POST /circle/:token',
+      'GET /chain/:token',
+      'POST /chain/:token',
       // Cross-posting: the Meta sign-in return (one-time state) and the Threads webhook check (verify token).
       'GET /crosspost/:provider/callback',
       'GET /crosspost/threads/webhook',

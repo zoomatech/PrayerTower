@@ -1,4 +1,4 @@
-// Sends captured posts to the member's Prayer Tower server with their key
+// Sends captured posts to the member's server (Prayer Tower or Open Circle) with their key
 // (settings in options.html). A post that can't be sent (no signal, server
 // down) waits in a queue and is retried every minute for a day.
 
@@ -12,8 +12,9 @@ async function settings() {
 async function log(entry) {
   const { recent = [] } = await chrome.storage.local.get('recent');
   await chrome.storage.local.set({ recent: [{ ...entry, at: Date.now() }, ...recent].slice(0, 20) });
-  chrome.action.setBadgeText({ text: entry.ok ? '' : '!' });
-  if (!entry.ok) chrome.action.setBadgeBackgroundColor({ color: '#b45309' });
+  // Safari on iPhone has no toolbar badge.
+  chrome.action?.setBadgeText?.({ text: entry.ok ? '' : '!' });
+  if (!entry.ok) chrome.action?.setBadgeBackgroundColor?.({ color: '#b45309' });
 }
 
 /** true when sent (or refused for good), false when it should be tried again later. */
@@ -36,13 +37,14 @@ async function send(post) {
   }
   if (res.status >= 500 || res.status === 429) return false;
   const body = await res.json().catch(() => ({}));
-  if (res.ok) await log({ ok: true, source: post.source, message: body.status === 'posted' ? 'Copied to Prayer Tower' : body.status === 'duplicate' ? 'Already copied' : `Not copied: ${body.reason ?? ''}` });
-  else await log({ ok: false, source: post.source, message: body.message || `Prayer Tower answered ${res.status}` });
+  if (res.ok) await log({ ok: true, source: post.source, message: body.status === 'posted' ? 'Copied to your account' : body.status === 'duplicate' ? 'Already copied' : `Not copied: ${body.reason ?? ''}` });
+  else await log({ ok: false, source: post.source, message: body.message || `The server answered ${res.status}` });
   return true;
 }
 
 async function enqueue(post) {
   const { queue = [] } = await chrome.storage.local.get('queue');
+  // Posts with videos are large; keep at most 20 waiting.
   await chrome.storage.local.set({ queue: [...queue, { post, at: Date.now() }].slice(-20) });
   await log({ ok: false, source: post.source, message: 'Waiting to send (will retry)' });
 }

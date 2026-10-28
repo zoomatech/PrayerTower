@@ -22,7 +22,8 @@
     },
     "apps/extension": {
       "entry": [
-        "src/*.js"
+        "src/*.js",
+        "scripts/*.mjs"
       ]
     }
   },

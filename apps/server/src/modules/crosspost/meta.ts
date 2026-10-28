@@ -15,7 +15,7 @@ import type { Config } from '../../config.js';
 import { withTx, type Db, type Queryable } from '../../db.js';
 import { AppError, badRequest, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
-import { available, enabled, importPost, IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_IMAGES, sniffImage, type ImageStore, type ImageType, type Incoming, type Source } from './index.js';
+import { available, enabled, importPost, MAX_MEDIA, MAX_VIDEO_BYTES, maxBytes, sniffMedia, type MediaStore, type MediaType, type Incoming, type Source } from './index.js';
 
 export interface CrosspostOptions {
   /** The server's public https address (the sign-in return link is <publicUrl>/crosspost/<provider>/callback). */
@@ -207,40 +207,51 @@ interface FacebookPost {
   created_time?: string;
   full_picture?: string;
   from?: { id?: string };
-  attachments?: { data?: { media?: { image?: { src?: string } }; type?: string; subattachments?: { data?: { type?: string; media?: { image?: { src?: string } } }[] } }[] };
+  attachments?: { data?: FacebookAttachment[] };
+}
+interface FacebookAttachment {
+  type?: string;
+  media?: { image?: { src?: string }; source?: string };
+  subattachments?: { data?: FacebookAttachment[] };
 }
 
 const THREADS_FIELDS = 'id,text,media_type,media_url,permalink,timestamp,is_reply,children{media_type,media_url}';
 
-/** Photo links in a Threads post (single image or the images of a carousel). */
-function threadsImages(m: ThreadsMedia): string[] {
-  if (m.media_type === 'IMAGE' && m.media_url) return [m.media_url];
-  if (m.media_type === 'CAROUSEL_ALBUM') return (m.children?.data ?? []).filter((c) => c.media_type === 'IMAGE' && c.media_url).map((c) => c.media_url!);
+/** Photo and video links in a Threads post (one image or video, or the items of a carousel). */
+function threadsMedia(m: ThreadsMedia): string[] {
+  const isMedia = (t?: string) => t === 'IMAGE' || t === 'VIDEO';
+  if (isMedia(m.media_type) && m.media_url) return [m.media_url];
+  if (m.media_type === 'CAROUSEL_ALBUM') return (m.children?.data ?? []).filter((c) => isMedia(c.media_type) && c.media_url).map((c) => c.media_url!);
   return [];
 }
 
-function facebookImages(p: FacebookPost): string[] {
+/** Photo and video links in a Facebook post: its attachments (an album's items), else its picture. */
+function facebookMedia(p: FacebookPost): string[] {
   const out: string[] = [];
+  const add = (a: FacebookAttachment) => {
+    if (a.type?.startsWith('video') && a.media?.source) out.push(a.media.source);
+    else if (a.type === 'photo' && a.media?.image?.src) out.push(a.media.image.src);
+  };
   for (const a of p.attachments?.data ?? []) {
     const subs = a.subattachments?.data ?? [];
-    if (subs.length) for (const s of subs) if (s.type === 'photo' && s.media?.image?.src) out.push(s.media.image.src);
-    if (!subs.length && a.type === 'photo' && a.media?.image?.src) out.push(a.media.image.src);
+    if (subs.length) subs.forEach(add);
+    else add(a);
   }
   if (!out.length && p.full_picture) out.push(p.full_picture);
   return out;
 }
 
-/** Download photos from Meta's servers (https only, size-capped, checked by their first bytes). */
-export async function downloadImages(urls: string[], fetcher: typeof fetch): Promise<{ bytes: Buffer; contentType: ImageType }[]> {
-  const out: { bytes: Buffer; contentType: ImageType }[] = [];
-  for (const url of urls.slice(0, MAX_IMAGES)) {
+/** Download photos and videos from Meta's servers (https only, size-capped, checked by their first bytes). */
+export async function downloadMedia(urls: string[], fetcher: typeof fetch): Promise<{ bytes: Buffer; contentType: MediaType }[]> {
+  const out: { bytes: Buffer; contentType: MediaType }[] = [];
+  for (const url of urls.slice(0, MAX_MEDIA)) {
     if (!url.startsWith('https://')) continue;
     const res = await fetcher(url, { signal: AbortSignal.timeout(20_000) }).catch(() => null);
     if (!res?.ok) continue;
-    if (Number(res.headers.get('content-length') ?? 0) > MAX_IMAGE_BYTES) continue;
+    if (Number(res.headers.get('content-length') ?? 0) > MAX_VIDEO_BYTES) continue;
     const bytes = Buffer.from(await res.arrayBuffer());
-    const type = bytes.length <= MAX_IMAGE_BYTES ? sniffImage(bytes) : null;
-    if (type && type in IMAGE_TYPES) out.push({ bytes, contentType: type });
+    const type = sniffMedia(bytes);
+    if (type && bytes.length <= maxBytes(type)) out.push({ bytes, contentType: type });
   }
   return out;
 }
@@ -261,14 +272,14 @@ async function freshToken(q: Queryable, a: Account, o: CrosspostOptions, fetcher
 }
 
 /** New posts on the account since it was last checked (never before it was connected), oldest first. */
-async function newPosts(a: Account, token: string, o: CrosspostOptions, fetcher: typeof fetch): Promise<(Omit<Incoming, 'images'> & { imageUrls: string[]; at: Date })[]> {
+async function newPosts(a: Account, token: string, o: CrosspostOptions, fetcher: typeof fetch): Promise<(Omit<Incoming, 'media'> & { mediaUrls: string[]; at: Date })[]> {
   // An hour of overlap: posts already copied are skipped by their id.
   const since = Math.floor(Math.max(a.import_since.getTime(), (a.last_checked_at?.getTime() ?? 0) - 3_600_000) / 1000);
   if (a.provider === 'threads') {
     const r = await metaJson<{ data?: ThreadsMedia[] }>(fetcher, `${THREADS_GRAPH}/v1.0/me/threads?${query({ fields: THREADS_FIELDS, since, limit: 25, access_token: token })}`);
     return (r.data ?? [])
       .filter((m) => !m.is_reply && m.media_type !== 'REPOST_FACADE' && (!m.timestamp || new Date(m.timestamp) >= a.import_since))
-      .map((m) => ({ source: 'threads' as const, via: 'account' as const, externalId: m.id, text: m.text ?? '', permalink: m.permalink ?? null, imageUrls: threadsImages(m), at: new Date(m.timestamp ?? Date.now()) }))
+      .map((m) => ({ source: 'threads' as const, via: 'account' as const, externalId: m.id, text: m.text ?? '', permalink: m.permalink ?? null, mediaUrls: threadsMedia(m), at: new Date(m.timestamp ?? Date.now()) }))
       .reverse();
   }
   const r = await metaJson<{ data?: FacebookPost[] }>(
@@ -278,7 +289,7 @@ async function newPosts(a: Account, token: string, o: CrosspostOptions, fetcher:
   return (r.data ?? [])
     // /me/posts also lists posts others made on the member's timeline; copy only the member's own.
     .filter((p) => (!p.from?.id || p.from.id === a.external_user_id) && (!p.created_time || new Date(p.created_time) >= a.import_since))
-    .map((p) => ({ source: 'facebook' as const, via: 'account' as const, externalId: p.id, text: p.message ?? '', permalink: p.permalink_url ?? null, imageUrls: facebookImages(p), at: new Date(p.created_time ?? Date.now()) }))
+    .map((p) => ({ source: 'facebook' as const, via: 'account' as const, externalId: p.id, text: p.message ?? '', permalink: p.permalink_url ?? null, mediaUrls: facebookMedia(p), at: new Date(p.created_time ?? Date.now()) }))
     .reverse();
 }
 
@@ -288,7 +299,7 @@ async function markChecked(q: Queryable, accountId: string, err: unknown) {
 }
 
 /** Check one connected account and copy its new posts. */
-export async function checkAccount(db: Db, accountId: string, o: CrosspostOptions, storeImage: ImageStore | null, fetcher: typeof fetch = fetch) {
+export async function checkAccount(db: Db, accountId: string, o: CrosspostOptions, storeMedia: MediaStore | null, fetcher: typeof fetch = fetch) {
   const { rows } = await db.query<Account>("select * from public.crosspost_accounts where id = $1 and status = 'active'", [accountId]);
   const a = rows[0];
   if (!a || !o.tokenKey || !connectable(o)[a.provider] || !(await available(db, a.user_id))) return { posted: 0 };
@@ -298,8 +309,8 @@ export async function checkAccount(db: Db, accountId: string, o: CrosspostOption
     for (const p of await newPosts(a, token, o, fetcher)) {
       const { rowCount: seen } = await db.query('select 1 from public.crosspost_imports where user_id = $1 and source = $2 and external_id = $3', [a.user_id, p.source, p.externalId]);
       if (seen) continue;
-      const images = await downloadImages(p.imageUrls, fetcher);
-      const r = await withTx(db, (tx) => importPost(tx, a.user_id, { ...p, images }, storeImage));
+      const media = await downloadMedia(p.mediaUrls, fetcher);
+      const r = await withTx(db, (tx) => importPost(tx, a.user_id, { ...p, media }, storeMedia));
       if (r.status === 'posted') posted++;
     }
     await markChecked(db, a.id, null);
@@ -321,10 +332,10 @@ export function pollTask(db: Db): Task {
   };
 }
 
-export function checkAccountTask(db: Db, o: CrosspostOptions, storeImage: ImageStore | null, fetcher: typeof fetch = fetch): Task {
+export function checkAccountTask(db: Db, o: CrosspostOptions, storeMedia: MediaStore | null, fetcher: typeof fetch = fetch): Task {
   return async (payload) => {
     const { accountId } = payload as { accountId: string };
-    await checkAccount(db, accountId, o, storeImage, fetcher);
+    await checkAccount(db, accountId, o, storeMedia, fetcher);
   };
 }
 
@@ -379,7 +390,7 @@ export async function handleWebhook(q: Queryable, body: unknown) {
 }
 
 /** One post from the webhook: read it from Threads and copy it. */
-export function importThreadsTask(db: Db, o: CrosspostOptions, storeImage: ImageStore | null, fetcher: typeof fetch = fetch): Task {
+export function importThreadsTask(db: Db, o: CrosspostOptions, storeMedia: MediaStore | null, fetcher: typeof fetch = fetch): Task {
   return async (payload) => {
     const { accountId, mediaId } = payload as { accountId: string; mediaId: string };
     if (!/^\d{1,30}$/.test(mediaId)) return;
@@ -390,8 +401,8 @@ export function importThreadsTask(db: Db, o: CrosspostOptions, storeImage: Image
       const token = await freshToken(db, a, o, fetcher);
       const m = await metaJson<ThreadsMedia & { owner?: { id?: string } }>(fetcher, `${THREADS_GRAPH}/v1.0/${mediaId}?${query({ fields: `${THREADS_FIELDS},owner`, access_token: token })}`);
       if (m.is_reply || m.media_type === 'REPOST_FACADE' || (m.owner?.id && m.owner.id !== a.external_user_id)) return;
-      const images = await downloadImages(threadsImages(m), fetcher);
-      await withTx(db, (tx) => importPost(tx, a.user_id, { source: 'threads', via: 'account', externalId: m.id, text: m.text ?? '', permalink: m.permalink ?? null, images }, storeImage));
+      const media = await downloadMedia(threadsMedia(m), fetcher);
+      await withTx(db, (tx) => importPost(tx, a.user_id, { source: 'threads', via: 'account', externalId: m.id, text: m.text ?? '', permalink: m.permalink ?? null, media }, storeMedia));
     } catch (err) {
       if (err instanceof MetaError) return markChecked(db, a.id, err);
       throw err;

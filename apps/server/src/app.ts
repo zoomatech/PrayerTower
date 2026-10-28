@@ -24,9 +24,10 @@ import { awardRoutes } from './modules/admin/award-routes.js';
 import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { surveyRoutes } from './modules/surveys/routes.js';
+import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
-import { storageImageStore } from './modules/crosspost/index.js';
+import { storageMediaStore } from './modules/crosspost/index.js';
 import type { CrosspostOptions } from './modules/crosspost/meta.js';
 import { crosspostPublicRoutes, crosspostRoutes } from './modules/crosspost/routes.js';
 import { MEDIA_BUCKET } from './modules/posts/media.js';
@@ -47,12 +48,15 @@ import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
+import { growthPublicRoutes, growthRoutes } from './modules/growth/routes.js';
 import { registerMetrics } from './metrics.js';
 import { announcementRoutes } from './modules/announcements/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
+import { acrossRoutes } from './modules/across/routes.js';
+import { waitlistAdminRoutes, waitlistJoinRoutes } from './modules/waitlist/routes.js';
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
 import type { AppleVerifier } from './modules/store/index.js';
 import { storeNotificationRoutes } from './modules/store/routes.js';
@@ -188,11 +192,22 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     });
   }
 
+  // Joining the waitlist (switched off by default), limited per IP address.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 10, timeWindow: '1 minute' });
+    waitlistJoinRoutes(open, db);
+  });
+
   // The public website, limited per IP address.
   if (site) {
     app.register(async (open) => {
       if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
       siteRoutes(open, site, db);
+    });
+    // Guest prayer and prayer-chain pages (each a 404 while its switch is off), limited per IP address.
+    app.register(async (open) => {
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 20, timeWindow: '1 minute' });
+      growthPublicRoutes(open, db, site);
     });
   }
 
@@ -208,7 +223,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (open) => {
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 120, timeWindow: '1 minute' });
     const images = storage
-      ? storageImageStore(async (path, bytes, contentType) => {
+      ? storageMediaStore(async (path, bytes, contentType) => {
           const { error } = await storage.storage.from(MEDIA_BUCKET).upload(path, bytes, { contentType });
           if (error) throw new AppError(502, 'storage_error', error.message);
         })
@@ -250,11 +265,15 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     witnessRoutes(authed, db);
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
+    growthRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
     aiRoutes(authed, db, converse);
     liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
+    quickReactionRoutes(authed, db);
+    waitlistAdminRoutes(authed, db);
+    acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
     crosspostRoutes(authed, db, crosspost);

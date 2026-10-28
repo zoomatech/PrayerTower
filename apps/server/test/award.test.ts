@@ -56,8 +56,8 @@ describe('Annual Prayer Warrior Award', () => {
     expect(mine).toMatchObject({ enabled: true, prize: { tokens: 25, priestly: 2, note: 'Plus a framed certificate' } });
     const awardId = mine.awards[0].id;
     expect((await as(second).post(`/me/awards/${awardId}/accept`, { showName: true })).statusCode).toBe(404);
-    expect((await as(first).post(`/me/awards/${awardId}/accept`, { showName: true })).json()).toEqual({ accepted: true, tokens: 25, priestly: 2 });
-    expect((await as(first).post(`/me/awards/${awardId}/accept`, { showName: true })).json()).toEqual({ accepted: true, tokens: 0, priestly: 0 });
+    expect((await as(first).post(`/me/awards/${awardId}/accept`, { showName: true })).json()).toEqual({ accepted: true, prizeChoice: 'keep', tokens: 25, priestly: 2, donated: { tokens: 0, priestly: 0 } });
+    expect((await as(first).post(`/me/awards/${awardId}/accept`, { showName: true })).json()).toEqual({ accepted: true, prizeChoice: 'keep', tokens: 0, priestly: 0, donated: { tokens: 0, priestly: 0 } });
     expect(await tokens.balanceOf(db, first, 'priestly')).toBeGreaterThanOrEqual(2);
 
     // A decline frees a place for the next in line.

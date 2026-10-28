@@ -125,6 +125,14 @@ export async function donatePriestly(q: Queryable, userId: string, amount: numbe
   );
 }
 
+/** Donate tokens of either currency to the infrastructure fund (an award winner giving away their prize). */
+export async function donate(q: Queryable, userId: string, amount: number, key: string, currency: Currency) {
+  return transfer(
+    q, `donate:${userId}:${key}`, 'donate',
+    await userAccount(q, userId, currency), await systemAccount(q, 'infrastructure', currency), amount, userId, 'Award prize donated',
+  );
+}
+
 /** Spend Priestly tokens on a radio prayer; they go to the infrastructure fund. */
 export async function spendOnRadio(q: Queryable, userId: string, amount: number, key: string) {
   return transfer(

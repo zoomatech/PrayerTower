@@ -5,6 +5,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { withTx } from '../src/db.js';
 import * as crosspost from '../src/modules/crosspost/index.js';
 import * as meta from '../src/modules/crosspost/meta.js';
 import { crosspostPublicRoutes } from '../src/modules/crosspost/routes.js';
@@ -19,9 +20,11 @@ const opts: meta.CrosspostOptions = {
 };
 // The smallest JPEG header the type check accepts.
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1]);
+// And the start of an MP4 file (an "ftyp" box with the isom brand).
+const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom'), Buffer.alloc(12)]);
 const stored: string[] = [];
-const store: crosspost.ImageStore = async (userId, _bytes, type) => {
-  const path = `${userId}/${randomUUID()}.${crosspost.IMAGE_TYPES[type]}`;
+const store: crosspost.MediaStore = async (userId, _bytes, type) => {
+  const path = `${userId}/${randomUUID()}.${crosspost.MEDIA_TYPES[type]}`;
   stored.push(path);
   return path;
 };
@@ -72,17 +75,25 @@ describe('Cross-posting while on', () => {
 
     const send = (payload: object, k = key) => extensionApp.inject({ method: 'POST', url: '/crosspost/extension/posts', headers: { 'x-crosspost-key': k }, payload });
     expect((await send({ source: 'facebook', text: 'x' }, 'ptx_wrong')).statusCode).toBe(401);
-    const first = await send({ source: 'facebook', text: 'Beautiful morning at the lake with the kids!', pageUrl: 'https://www.facebook.com/', images: [{ data: JPEG.toString('base64') }, { data: Buffer.from('not an image').toString('base64') }] });
+    const first = await send({ source: 'facebook', text: 'Beautiful morning at the lake with the kids!', pageUrl: 'https://www.facebook.com/', media: [{ data: JPEG.toString('base64') }, { data: Buffer.from('not an image').toString('base64') }] });
     expect(first.statusCode).toBe(201);
     const postId = first.json().postId;
     // The same post again (a double click) is not copied twice.
-    expect((await send({ source: 'facebook', text: 'Beautiful morning at the lake with the kids!', images: [{ data: JPEG.toString('base64') }] })).json()).toEqual({ status: 'duplicate' });
+    expect((await send({ source: 'facebook', text: 'Beautiful morning at the lake with the kids!', media: [{ data: JPEG.toString('base64') }] })).json()).toEqual({ status: 'duplicate' });
 
     const card = (await as(member).get(`/posts/${postId}`)).json().post;
     expect(card).toMatchObject({ body: 'Beautiful morning at the lake with the kids!', crosspostedFrom: 'facebook', isMine: true });
     expect(card.media).toHaveLength(1);
     expect(card.media[0].storagePath).toBe(stored.at(-1));
     expect(['discussion', 'testimony']).toContain(card.postType);
+
+    // A video with no words gets a short caption.
+    const video = await send({ source: 'threads', text: '', media: [{ data: MP4.toString('base64') }] });
+    expect(video.statusCode).toBe(201);
+    const videoCard = (await as(member).get(`/posts/${video.json().postId}`)).json().post;
+    expect(videoCard).toMatchObject({ body: 'Video', crosspostedFrom: 'threads' });
+    expect(videoCard.media).toMatchObject([{ kind: 'video' }]);
+    expect(stored.at(-1)).toMatch(/\.mp4$/);
 
     // Revoking the key stops the extension.
     await as(member).delete('/crosspost/extension-key');
@@ -113,6 +124,19 @@ describe('Cross-posting while on', () => {
     const s = (await as(member).get('/crosspost')).json();
     expect(s.recent.map((r: { status: string; reason: string | null }) => r.reason ?? r.status)).toEqual(['posted', 'Paused', 'Nothing to post', 'Already copied', 'posted']);
     expect((await as(member).patch('/crosspost/settings', { postType: 'confessional_x' })).statusCode).toBe(400);
+  });
+
+  it('copies a post once even when the webhook, the check and the extension bring it in together', async () => {
+    const member = await createUser('Racing Poster');
+    const item = { source: 'threads' as const, via: 'account' as const, externalId: 'race-1', text: 'Same post, three ways at once' };
+    const results = await Promise.all([
+      withTx(db, (tx) => crosspost.importPost(tx, member, item, null)),
+      withTx(db, (tx) => crosspost.importPost(tx, member, item, null)),
+      withTx(db, (tx) => crosspost.importPost(tx, member, { ...item, via: 'extension', source: 'facebook', externalId: 'ext:race' }, null)),
+    ]);
+    expect(results.filter((r) => r.status === 'posted')).toHaveLength(1);
+    const { rows } = await db.query<{ n: number }>('select count(*)::int as n from public.posts where user_id = $1', [member]);
+    expect(rows[0]!.n).toBe(1);
   });
 
   it('keeps long posts within the post limits', () => {
@@ -195,14 +219,23 @@ describe('Cross-posting while on', () => {
       '/me/posts': {
         data: [
           { id: 'p2', message: 'Happy birthday to you!', from: { id: 'someone-else' }, created_time: now },
+          { id: 'p3', message: 'Watch the puppy', from: { id: fbUser }, created_time: now, attachments: { data: [{ type: 'video_inline', media: { source: 'https://video.example/v.mp4', image: { src: 'https://scontent.example/thumb.jpg' } } }] } },
           { id: 'p1', message: 'Our garden is blooming', from: { id: fbUser }, created_time: now, attachments: { data: [{ type: 'album', subattachments: { data: [{ type: 'photo', media: { image: { src: 'https://scontent.example/a.jpg' } } }] } }] } },
         ],
       },
       'a.jpg': JPEG,
+      'v.mp4': MP4,
     });
-    expect(await meta.checkAccount(db, rows[0]!.id, opts, store, fb)).toEqual({ posted: 1 });
-    const { rows: copied } = await db.query('select p.body from public.crosspost_imports i join public.posts p on p.id = i.post_id where i.user_id = $1', [member]);
-    expect(copied).toEqual([{ body: 'Our garden is blooming' }]);
+    expect(await meta.checkAccount(db, rows[0]!.id, opts, store, fb)).toEqual({ posted: 2 });
+    const { rows: copied } = await db.query(
+      `select p.body, (select array_agg(m.kind::text) from public.post_media m where m.post_id = p.id) as kinds
+         from public.crosspost_imports i join public.posts p on p.id = i.post_id where i.user_id = $1 order by p.body`,
+      [member],
+    );
+    expect(copied).toEqual([
+      { body: 'Our garden is blooming', kinds: ['image'] },
+      { body: 'Watch the puppy', kinds: ['video'] },
+    ]);
   });
 
   it('verifies the Threads webhook and queues new posts from connected members', async () => {
@@ -246,12 +279,14 @@ describe('Cross-posting while on', () => {
 });
 
 describe('Cross-posting helpers', () => {
-  it('recognizes photos by their first bytes', () => {
-    expect(crosspost.sniffImage(JPEG)).toBe('image/jpeg');
-    expect(crosspost.sniffImage(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]))).toBe('image/png');
-    expect(crosspost.sniffImage(Buffer.from('RIFF0000WEBPVP8 '))).toBe('image/webp');
-    expect(crosspost.sniffImage(Buffer.from('0000ftypheic0000'))).toBe('image/heic');
-    expect(crosspost.sniffImage(Buffer.from('<svg></svg>'))).toBeNull();
+  it('recognizes photos and videos by their first bytes', () => {
+    expect(crosspost.sniffMedia(JPEG)).toBe('image/jpeg');
+    expect(crosspost.sniffMedia(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]))).toBe('image/png');
+    expect(crosspost.sniffMedia(Buffer.from('RIFF0000WEBPVP8 '))).toBe('image/webp');
+    expect(crosspost.sniffMedia(Buffer.from('0000ftypheic0000'))).toBe('image/heic');
+    expect(crosspost.sniffMedia(MP4)).toBe('video/mp4');
+    expect(crosspost.sniffMedia(Buffer.from('0000ftypqt  0000'))).toBe('video/quicktime');
+    expect(crosspost.sniffMedia(Buffer.from('<svg></svg>'))).toBeNull();
   });
 
   it('reports which Connect buttons can work', () => {

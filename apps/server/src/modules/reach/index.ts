@@ -82,7 +82,7 @@ export interface PowerPrayer {
  * haven't opted out of trauma content. The sender stays unnamed.
  */
 export async function powerPrayer(q: Queryable, userId: string, postId: string, key: string): Promise<PowerPrayer> {
-  const post = await posts.getVisible(q, postId);
+  const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   posts.requirePrayable(post);
   const existing = await q.query<PowerPrayer>(
@@ -112,6 +112,9 @@ export async function powerPrayer(q: Queryable, userId: string, postId: string, 
         and p.onboarded_at is not null
         and (p.suspended_until is null or p.suspended_until < now())
         and (not $3 or not p.trauma_content_opt_out)
+        -- Only the post's own community (the editions never mix), and never across a block with the poster.
+        and exists (select 1 from public.community_memberships m where m.user_id = p.id and m.community_id = $8)
+        and not exists (select 1 from public.user_blocks b where (b.user_id = p.id and b.blocked_id = $1) or (b.user_id = $1 and b.blocked_id = p.id))
         and exists (select 1 from public.prayer_events e where e.user_id = p.id and e.created_at > now() - make_interval(days => $4))
         and not exists (select 1 from public.follows f where (f.user_id = p.id and f.followee_id = $1) or (f.user_id = $1 and f.followee_id = p.id))
         and not exists (select 1 from public.prayer_events e where e.user_id = p.id and e.post_id = $5)
@@ -119,7 +122,7 @@ export async function powerPrayer(q: Queryable, userId: string, postId: string, 
         and (select count(*) from public.power_prayer_recipients r where r.user_id = p.id and r.created_at > now() - interval '1 day') < $6
       order by random()
       limit $7`,
-    [post.user_id, userId, post.is_sensitive, s.power_prayer_active_days, post.id, s.power_prayer_max_per_recipient_day, s.power_prayer_reach],
+    [post.user_id, userId, post.is_sensitive, s.power_prayer_active_days, post.id, s.power_prayer_max_per_recipient_day, s.power_prayer_reach, post.community_id],
   );
   for (const r of recipients) {
     await q.query('insert into public.power_prayer_recipients (power_prayer_id, post_id, user_id) values ($1, $2, $3)', [pp.id, post.id, r.id]);

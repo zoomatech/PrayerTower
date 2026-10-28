@@ -1,22 +1,25 @@
 // Runs on facebook.com and threads.com. The moment the member clicks Post (or
-// presses Ctrl/Cmd+Enter), it reads the words and photos from the composer and
-// hands them to background.js, which sends them to their Prayer Tower account.
-// It never changes the page or delays the site's own posting.
+// presses Ctrl/Cmd+Enter), it reads the words, photos and videos from the
+// composer and hands them to background.js, which sends them to their Prayer
+// Tower account. It never changes the page or delays the site's own posting.
 /* global PTCapture */
 (function () {
   const source = PTCapture.sourceFor(location.hostname);
   if (!source) return;
 
-  const MAX_IMAGES = 10;
-  const MAX_BYTES = 9 * 1024 * 1024;
-  // Photos the member chose, dropped or pasted since the last post.
+  const MAX_ITEMS = 10;
+  const MAX_IMAGE_BYTES = 9 * 1024 * 1024;
+  // Extension messages are limited to 64 MB, and base64 adds a third.
+  const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
+  // Photos and videos the member chose, dropped or pasted since the last post.
   let pending = [];
-  let lastSent = { text: '', at: 0 };
+  let lastSent = { key: '', at: 0 };
 
   const isImage = (f) => f && /^image\/(jpeg|png|webp|heic)$/.test(f.type);
+  const isVideo = (f) => f && /^video\/(mp4|quicktime)$/.test(f.type);
   const remember = (files) => {
-    for (const f of Array.from(files || [])) if (isImage(f)) pending.push(f);
-    pending = pending.slice(-MAX_IMAGES);
+    for (const f of Array.from(files || [])) if (isImage(f) || isVideo(f)) pending.push(f);
+    pending = pending.slice(-MAX_ITEMS);
   };
 
   // Capture phase: these run before the site's own handlers.
@@ -32,45 +35,42 @@
     },
     true,
   );
-  document.addEventListener(
-    'keydown',
-    (e) => capture(PTCapture.shortcutComposer(e)),
-    true,
-  );
+  document.addEventListener('keydown', (e) => capture(PTCapture.shortcutComposer(e)), true);
 
   function capture(composer) {
     if (!composer) return;
     const text = PTCapture.textOf(composer);
-    // The composer shows a preview of each attached photo. Prefer the original files the
-    // member chose (full quality); otherwise read the previews themselves.
-    const shown = PTCapture.previewImagesIn(composer);
+    // The composer shows a preview of each attached photo or video. Prefer the original
+    // files the member chose (full quality); otherwise read the previews themselves.
+    const shown = PTCapture.previewMediaIn(composer);
     const files = shown.length ? pending.slice(-shown.length) : [];
     const previews = files.length ? [] : shown;
     pending = [];
     if (!text && !files.length && !previews.length) return;
     // One post, one copy, even if the button is clicked twice.
-    if (text && text === lastSent.text && Date.now() - lastSent.at < 15000) return;
-    lastSent = { text, at: Date.now() };
-    // Read the photos now, while the site still has them, then send.
+    const key = `${text}|${shown.length}`;
+    if (key === lastSent.key && Date.now() - lastSent.at < 15000) return;
+    lastSent = { key, at: Date.now() };
+    // Read the files now, while the site still has them, then send.
     Promise.all([...files.map(fileToBase64), ...previews.map(urlToBase64)])
-      .then((images) => images.filter(Boolean).slice(0, MAX_IMAGES))
-      .then((images) => chrome.runtime.sendMessage({ type: 'crosspost', post: { source, text, pageUrl: location.href, images } }))
+      .then((media) => media.filter(Boolean).slice(0, MAX_ITEMS))
+      .then((media) => chrome.runtime.sendMessage({ type: 'crosspost', post: { source, text, pageUrl: location.href, media } }))
       .catch(() => undefined);
   }
 
   async function urlToBase64(url) {
     try {
       const blob = await (await fetch(url)).blob();
-      return isImage(blob) ? fileToBase64(blob) : null;
+      return isImage(blob) || isVideo(blob) ? fileToBase64(blob) : null;
     } catch {
       return null;
     }
   }
 
-  /** Base64 for the server; photos over 9 MB are shrunk to a JPEG first. */
+  /** Base64 for the server. Photos over 9 MB are shrunk to a JPEG; videos over 40 MB are left out. */
   async function fileToBase64(file) {
-    const blob = file.size > MAX_BYTES ? await shrink(file) : file;
-    if (!blob || blob.size > MAX_BYTES) return null;
+    const blob = isImage(file) && file.size > MAX_IMAGE_BYTES ? await shrink(file) : file;
+    if (!blob || blob.size > (isVideo(blob) ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) return null;
     const buf = new Uint8Array(await blob.arrayBuffer());
     let bin = '';
     for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));

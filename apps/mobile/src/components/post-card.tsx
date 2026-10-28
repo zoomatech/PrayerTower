@@ -20,6 +20,8 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
+import { QuickReactionTray } from './quick-reactions';
+import { UrgencyLight } from './urgency-light';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
@@ -44,6 +46,8 @@ export interface CardHandlers {
 // Memoized: a feed re-render (a prompt or highlights arriving) skips cards whose data didn't change.
 export const PostCard = memo(function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
+  const [tray, setTray] = useState(false);
+  const [quick, setQuick] = useState({ candles: card.counts.candles ?? 0, standing: card.counts.standing ?? 0 });
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
@@ -60,13 +64,13 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
     <View style={[styles.card, answered && styles.answered]}>
       {answered ? <Text style={styles.answeredBanner}>{t('card.answered')}</Text> : null}
       <View style={styles.header}>
-        <View style={[styles.urgency, { backgroundColor: colors.urgency[card.urgency] ?? colors.urgency[0] }]} />
+        <UrgencyLight urgency={card.urgency} />
         <Text
           style={styles.author}
           numberOfLines={2}
           accessibilityLabel={card.author.tier && TIER_NAMES[card.author.tier] ? `${card.author.displayName}, ${n(TIER_NAMES[card.author.tier]!)}` : card.author.displayName}
           onPress={!card.author.anonymous && card.author.id && !card.isMine ? () => router.push(`/people/${card.author.id}`) : undefined}>
-          {card.author.displayName}
+          {card.author.town ? t('town.in', { name: card.author.displayName, town: card.author.town }) : card.author.displayName}
           {card.author.tier ? ` ${icon(card.author.tier, TIER_ICONS)}` : ''}
         </Text>
         <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>
@@ -86,7 +90,13 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
       {card.crosspostedFrom ? <Text style={styles.tags}>{t('card.from', { name: card.crosspostedFrom === 'threads' ? 'Threads' : 'Facebook' })}</Text> : null}
       {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
-      <Pressable onPress={open} accessibilityRole="link" style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
+      <Pressable
+        onPress={open}
+        onLongPress={features.reactionTray ? () => setTray(true) : undefined}
+        accessibilityRole="link"
+        accessibilityActions={features.reactionTray ? [{ name: 'longpress', label: t('quick.tray') }] : undefined}
+        onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && setTray(true)}
+        style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
         <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
           {expanded || !card.truncated ? card.body : `${card.preview}… `}
           {card.truncated && !expanded ? (
@@ -97,6 +107,8 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         </Text>
         {card.truncated && !expanded ? <SparkleWords body={card.body} /> : null}
       </Pressable>
+
+      {tray && features.reactionTray ? <QuickReactionTray card={card} onChange={setQuick} onClose={() => setTray(false)} /> : null}
 
       <CardMedia media={card.media} expanded={expanded} />
 
@@ -121,6 +133,8 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
                 : t('card.firstToPray')}
         {card.counts.commitments > 0 ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
         {card.counts.encouragements > 0 ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
+        {features.reactionTray && quick.candles ? ` · 🕯️ ${quick.candles}` : ''}
+        {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
       </Text>
 
       <View style={styles.actions}>
@@ -174,7 +188,6 @@ const styles = StyleSheet.create({
   testimony: { borderLeftWidth: 3, borderLeftColor: colors.gold, paddingLeft: space.md, gap: 2 },
   testimonyLabel: { color: colors.goldText, fontWeight: '700', fontSize: 13 },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  urgency: { width: 10, height: 10, borderRadius: 5 },
   tags: { ...type.small, marginTop: -space.sm },
   pastor: { color: colors.primary, fontWeight: '600', fontSize: 13, marginTop: -space.sm },
   backdrop: { borderRadius: radius.md, minHeight: 160, padding: space.xl, justifyContent: 'center' },

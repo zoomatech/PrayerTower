@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek, type AiSettings, type LiveSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -248,6 +248,7 @@ function Admin() {
             <Button variant="secondary" label={t('admin.ops')} onPress={() => router.push('/ops')} />
             <Button variant="secondary" label={t('admin.auditLog')} onPress={() => router.push('/audit-log')} />
             <Button variant="secondary" label={t('admin.invites')} onPress={() => router.push('/invites')} />
+            <Button variant="secondary" label={t('waitlist.title')} onPress={() => router.push('/waitlist')} />
             <Button variant="secondary" label={t('admin.churches')} onPress={() => router.push('/churches')} />
             <Button variant="secondary" label={t('admin.announcements')} onPress={() => router.push('/announcements')} />
             <Button variant="secondary" label={t('admin.surveys')} onPress={() => router.push('/surveys')} />
@@ -306,6 +307,7 @@ function Admin() {
         <MessagingSettingsSection />
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
+        <GrowthSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
         <MaterialMatchSection />
@@ -966,6 +968,46 @@ function NewCommunity({ onCreated, onNote }: { onCreated: (c: Community) => void
   );
 }
 
+/** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
+function GrowthSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<GrowthSettings | null>(null);
+  const [max, setMax] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: GrowthSettings) => {
+    setS(x);
+    setMax(String(x.prayer_chain_max));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.growthSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateGrowthSettings>[0] = {}) =>
+    api.admin
+      .updateGrowthSettings({ prayerChainMax: toInt(max) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('growth.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('growth.adminTitle')}</Text>
+      <Text style={type.small}>{t('growth.adminIntro')}</Text>
+      <Toggle label={t('growth.adminGuest')} hint={t('growth.adminGuestHint')} value={s.guest_prayer_enabled} onChange={(v) => save({ guestPrayerEnabled: v })} />
+      <Toggle label={t('growth.adminChain')} hint={t('growth.adminChainHint')} value={s.prayer_chain_enabled} onChange={(v) => save({ prayerChainEnabled: v })} />
+      <Field label={t('growth.adminChainMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
+      <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
+      <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
+      <Button label={t('growth.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Notebook ideas (Batch 7): each on by default, each with its own switch. */
 function NotebookSettingsSection() {
   const t = useT();
@@ -1001,6 +1043,14 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.supportLabel')} hint={t('admin.toggle.supportLabelHint')} value={s.support_label_enabled} onChange={(v) => save({ supportLabelEnabled: v })} />
       <Toggle label={t('admin.toggle.witnessStories')} hint={t('admin.toggle.witnessStoriesHint')} value={s.witness_stories_enabled} onChange={(v) => save({ witnessStoriesEnabled: v })} />
       <Toggle label={t('admin.toggle.pressureRule')} hint={t('admin.toggle.pressureRuleHint')} value={s.pressure_rule_enabled} onChange={(v) => save({ pressureRuleEnabled: v })} />
+      <Toggle label={t('admin.toggle.misleadingRule')} hint={t('admin.toggle.misleadingRuleHint')} value={s.misleading_rule_enabled} onChange={(v) => save({ misleadingRuleEnabled: v })} />
+      <Toggle label={t('admin.toggle.automationRule')} hint={t('admin.toggle.automationRuleHint')} value={s.automation_rule_enabled} onChange={(v) => save({ automationRuleEnabled: v })} />
+      <Toggle label={t('admin.toggle.urgencyGlow')} hint={t('admin.toggle.urgencyGlowHint')} value={s.urgency_glow_enabled} onChange={(v) => save({ urgencyGlowEnabled: v })} />
+      <Toggle label={t('admin.toggle.reactionTray')} hint={t('admin.toggle.reactionTrayHint')} value={s.reaction_tray_enabled} onChange={(v) => save({ reactionTrayEnabled: v })} />
+      <Toggle label={t('admin.toggle.memberTown')} hint={t('admin.toggle.memberTownHint')} value={s.member_town_enabled} onChange={(v) => save({ memberTownEnabled: v })} />
+      <Toggle label={t('admin.toggle.prizeChoice')} hint={t('admin.toggle.prizeChoiceHint')} value={s.prize_choice_enabled} onChange={(v) => save({ prizeChoiceEnabled: v })} />
+      <Toggle label={t('admin.toggle.waitlist')} hint={t('admin.toggle.waitlistHint')} value={s.waitlist_enabled} onChange={(v) => save({ waitlistEnabled: v })} />
+      <Toggle label={t('admin.toggle.crossCommunity')} hint={t('admin.toggle.crossCommunityHint')} value={s.cross_community_enabled} onChange={(v) => save({ crossCommunityEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Toggle label={t('admin.toggle.crosspost')} hint={t('admin.toggle.crosspostHint')} value={s.crosspost_enabled} onChange={(v) => save({ crosspostEnabled: v })} />

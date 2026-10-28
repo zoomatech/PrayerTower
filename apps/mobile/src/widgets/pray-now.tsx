@@ -15,6 +15,8 @@ export type PrayNowProps = {
   detail: string;
   /** Opened on tap. */
   url: string;
+  /** "💛 Ana prayed for you today", or empty (Admin → Growth; docs/GROWTH.md). */
+  prayedFor?: string;
 };
 
 const PrayNow = (props: PrayNowProps, environment: WidgetEnvironment) => {
@@ -32,6 +34,7 @@ const PrayNow = (props: PrayNowProps, environment: WidgetEnvironment) => {
       </HStack>
       <Text modifiers={[font({ size: small ? 14 : 16, weight: 'medium' }), foregroundStyle('#2B2433'), lineLimit(small ? 4 : 3)]}>{props.text}</Text>
       <Spacer />
+      {props.prayedFor ? <Text modifiers={[font({ size: 12, weight: 'semibold' }), foregroundStyle(purple), lineLimit(1)]}>{props.prayedFor}</Text> : null}
       {props.detail ? <Text modifiers={[font({ size: 12 }), foregroundStyle('#6F6677')]}>{props.detail}</Text> : null}
     </VStack>
   );

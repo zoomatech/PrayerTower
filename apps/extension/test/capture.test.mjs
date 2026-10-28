@@ -10,7 +10,7 @@ const facebookComposer = `
   <div role="dialog" aria-label="Create post">
     <form>
       <div contenteditable="true" role="textbox" aria-label="What's on your mind, Steve?"><p>Beautiful morning at the lake</p><p>with the kids!</p></div>
-      <div><img src="blob:https://www.facebook.com/1234" alt=""><img src="https://static.xx.fbcdn.net/emoji.png" alt=""></div>
+      <div><img src="blob:https://www.facebook.com/1234" alt=""><img src="https://static.xx.fbcdn.net/emoji.png" alt=""><video src="blob:https://www.facebook.com/5678"></video></div>
       <div role="button" tabindex="0" aria-label="Post"><span><span>Post</span></span></div>
     </form>
   </div>
@@ -35,7 +35,7 @@ describe('capture', () => {
     expect(capture.sourceFor('evilfacebook.com')).toBeNull();
   });
 
-  it('reads the words and photo previews from the Facebook composer when Post is clicked', () => {
+  it('reads the words and photo and video previews from the Facebook composer when Post is clicked', () => {
     document.body.innerHTML = facebookComposer;
     const inner = document.querySelector('[aria-label="Post"] span span');
     const button = capture.postButtonFor(inner);
@@ -44,7 +44,7 @@ describe('capture', () => {
     expect(capture.textOf(composer)).toContain('Beautiful morning at the lake');
     expect(capture.textOf(composer)).toContain('with the kids!');
     expect(capture.textOf(composer)).not.toContain('draft comment');
-    expect(capture.previewImagesIn(composer)).toEqual(['blob:https://www.facebook.com/1234']);
+    expect(capture.previewMediaIn(composer)).toEqual(['blob:https://www.facebook.com/1234', 'blob:https://www.facebook.com/5678']);
   });
 
   it('ignores other buttons, disabled Post buttons and comment boxes', () => {

@@ -26,8 +26,8 @@ export interface Candidate {
 export const weights = {
   recencyHalfLifeHours: 24,
   followed: 1,
-  /** Commitments are worth more than ephemeral taps. */
-  commitment: 3,
+  /** Commitments are worth more than ephemeral taps: five outrank fifty Praying Now taps (Business Plan 3.3). */
+  commitment: 12,
   prayingNowTap: 1,
   engagement: 0.15,
   reach: 0.1,

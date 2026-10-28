@@ -35,13 +35,14 @@ $('save').addEventListener('click', async () => {
     return;
   }
   // The browser asks the member once to let the extension reach their server.
-  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false);
+  // Safari asks per website on its own, and may not offer this call.
+  const granted = chrome.permissions?.request ? await chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false) : true;
   if (!granted) {
     status.textContent = 'The extension needs permission to reach your server.';
     return;
   }
   await chrome.storage.local.set({ server: origin, key, enabled: $('enabled').checked });
-  chrome.action.setBadgeText({ text: '' });
+  chrome.action?.setBadgeText?.({ text: '' });
   status.textContent = 'Saved. Your next Facebook or Threads post will be copied.';
 });
 

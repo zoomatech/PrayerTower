@@ -21,11 +21,21 @@ import { publishDueTask as seedPrayersTask } from './modules/seed-prayers/index.
 import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
-import type { ImageStore } from './modules/crosspost/index.js';
+import type { MediaStore } from './modules/crosspost/index.js';
 import { checkAccountTask, crosspostOptions, importThreadsTask, pollTask as crosspostPollTask } from './modules/crosspost/meta.js';
+import * as growth from './modules/growth/index.js';
 
-export function buildTaskList(db: Db, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; storeImage?: ImageStore | null } = {}): TaskList {
+export function buildTaskList(db: Db, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; storeMedia?: MediaStore | null } = {}): TaskList {
+  const mail: growth.MailContext = {
+    mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
+    siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
+  };
   return {
+    growth_guest_answered: growth.guestAnsweredTask(db, mail),
+    growth_chain_confirm: growth.chainConfirmTask(db, mail),
+    growth_chain_send: growth.chainSendTask(db, mail),
+    growth_prayer_minute: growth.minuteDueTask(db),
+    growth_purge: growth.purgeTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
@@ -53,8 +63,8 @@ export function buildTaskList(db: Db, config: Config, overrides: { classify?: Cl
     legal_holds_expire: legalHoldsExpireTask(db),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
     crosspost_poll: crosspostPollTask(db),
-    crosspost_check_account: checkAccountTask(db, crosspostOptions(config), overrides.storeImage ?? null, overrides.fetch),
-    crosspost_import_threads: importThreadsTask(db, crosspostOptions(config), overrides.storeImage ?? null, overrides.fetch),
+    crosspost_check_account: checkAccountTask(db, crosspostOptions(config), overrides.storeMedia ?? null, overrides.fetch),
+    crosspost_import_threads: importThreadsTask(db, crosspostOptions(config), overrides.storeMedia ?? null, overrides.fetch),
   };
 }
 
@@ -93,6 +103,10 @@ export const crontab = [
   '*/15 * * * * seed_prayers_publish ?max=3&fill=1h&jobKey=seed_prayers_publish',
   // Daily 03:10: release evidence holds past their end date, erasing the copies.
   '10 3 * * * legal_holds_expire ?max=10&fill=1d&jobKey=legal_holds_expire',
+  // Every minute: the prayer minute notice for members whose chosen minute it is (only while switched on).
+  '* * * * * growth_prayer_minute ?max=1&jobKey=growth_prayer_minute',
+  // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
+  '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',
   // Every 5 minutes: check connected Facebook and Threads accounts for new posts (only while cross-posting is on).
   '*/5 * * * * crosspost_poll ?max=3&jobKey=crosspost_poll',
 ].join('\n');

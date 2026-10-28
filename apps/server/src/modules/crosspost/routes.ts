@@ -8,14 +8,16 @@ import * as meta from './meta.js';
 
 const provider = (p: unknown) => z.enum(crosspost.SOURCES).parse(p);
 
-/** A photo the extension sends: base64 bytes, at most MAX_IMAGE_BYTES each. */
-const ExtensionImage = z.object({ data: z.string().max(Math.ceil((crosspost.MAX_IMAGE_BYTES * 4) / 3) + 4) });
+/** A photo or video the extension sends: base64 bytes (photos up to 10 MB, videos up to 50 MB). */
+const ExtensionMedia = z.object({ data: z.string().max(Math.ceil((crosspost.MAX_VIDEO_BYTES * 4) / 3) + 4) });
+/** Room for a post with several photos and a video, in base64. */
+const EXTENSION_BODY_LIMIT = 120 * 1024 * 1024;
 export const ExtensionPost = z.object({
   source: z.enum(crosspost.SOURCES),
   text: z.string().max(20_000).default(''),
   /** The page the post was written on (the extension can't know the new post's own link). */
   pageUrl: z.string().max(2000).optional(),
-  images: z.array(ExtensionImage).max(crosspost.MAX_IMAGES).default([]),
+  media: z.array(ExtensionMedia).max(crosspost.MAX_MEDIA).default([]),
 });
 
 /** The member's settings, keys and connected accounts. */
@@ -52,9 +54,9 @@ const page = (title: string, text: string) =>
  * No member sign-in: the extension uses its own key (x-crosspost-key), the sign-in
  * return carries a one-time state, and the Threads webhook is signed by Meta.
  */
-export function crosspostPublicRoutes(app: FastifyInstance, db: Db, opts: meta.CrosspostOptions | null, storeImage: crosspost.ImageStore | null) {
+export function crosspostPublicRoutes(app: FastifyInstance, db: Db, opts: meta.CrosspostOptions | null, storeMedia: crosspost.MediaStore | null) {
   // The webhook signature covers the exact bytes Meta sent, so keep them.
-  app.addContentTypeParser('application/json', { parseAs: 'buffer', bodyLimit: 30 * 1024 * 1024 }, (req, raw, done) => {
+  app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, raw, done) => {
     (req as { rawBody?: Buffer }).rawBody = raw as Buffer;
     if ((raw as Buffer).length === 0) return done(null, {});
     try {
@@ -64,27 +66,27 @@ export function crosspostPublicRoutes(app: FastifyInstance, db: Db, opts: meta.C
     }
   });
 
-  // The browser extension: one post, with its photos, sent the moment the member clicked Post.
-  app.post('/crosspost/extension/posts', { bodyLimit: 30 * 1024 * 1024 }, async (req, reply) => {
+  // The browser extension: one post, with its photos and videos, sent the moment the member clicked Post.
+  app.post('/crosspost/extension/posts', { bodyLimit: EXTENSION_BODY_LIMIT }, async (req, reply) => {
     const key = req.headers['x-crosspost-key'];
     const userId = await crosspost.userForExtensionKey(db, typeof key === 'string' ? key : undefined);
     if (!userId) return reply.code(401).send({ error: 'unauthorized', message: 'Unknown extension key. Make a new one in the app: Me → Cross-posting.' });
     const input = ExtensionPost.parse(req.body);
-    const images: { bytes: Buffer; contentType: crosspost.ImageType }[] = [];
-    for (const img of input.images) {
-      const bytes = Buffer.from(img.data, 'base64');
-      const type = bytes.length <= crosspost.MAX_IMAGE_BYTES ? crosspost.sniffImage(bytes) : null;
-      if (type) images.push({ bytes, contentType: type });
+    const media: { bytes: Buffer; contentType: crosspost.MediaType }[] = [];
+    for (const m of input.media) {
+      const bytes = Buffer.from(m.data, 'base64');
+      const type = crosspost.sniffMedia(bytes);
+      if (type && bytes.length <= crosspost.maxBytes(type)) media.push({ bytes, contentType: type });
     }
-    if (images.length && !storeImage) throw new AppError(503, 'storage_unavailable', 'Media storage is not configured');
+    if (media.length && !storeMedia) throw new AppError(503, 'storage_unavailable', 'Media storage is not configured');
     const pageUrl = input.pageUrl?.startsWith('https://') ? input.pageUrl : null;
     const result = await withTx(db, (tx) =>
       crosspost.importPost(
         tx,
         userId,
         // The extension can't know the new post's id; the text and photos stand in for it.
-        { source: input.source, via: 'extension', externalId: `ext:${crosspost.bodyHash(input.text + images.map((i) => i.bytes.length).join(','))}`, text: input.text, permalink: pageUrl, images },
-        storeImage,
+        { source: input.source, via: 'extension', externalId: `ext:${crosspost.bodyHash(input.text + media.map((m) => m.bytes.length).join(','))}`, text: input.text, permalink: pageUrl, media },
+        storeMedia,
       ),
     );
     reply.code(result.status === 'posted' ? 201 : 200);

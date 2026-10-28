@@ -149,17 +149,35 @@ export async function inCommunity(q: Queryable, userId: string, communityId: str
   return !!rowCount;
 }
 
+/**
+ * Praying across lines (switched off by default): a prayer request from another faith community
+ * whose author and the viewer both opted in. Never Open Circle or any neutral-wording community.
+ */
+export async function acrossAllowed(q: Queryable, userId: string, post: PostRow): Promise<boolean> {
+  if (post.post_type !== 'prayer_request' || post.is_sensitive || post.crisis) return false;
+  const { rowCount } = await q.query(
+    `select 1 from public.notebook_settings ns, public.communities pc, public.profiles a, public.profiles v
+      where ns.cross_community_enabled and pc.id = $2 and public.community_is_faith(pc)
+        and a.id = $3 and a.open_to_other_communities and v.id = $1 and v.open_to_other_communities and v.deleted_at is null
+        and exists (select 1 from public.community_memberships m join public.communities c on c.id = m.community_id
+                     where m.user_id = $1 and m.is_primary and c.id <> pc.id and public.community_is_faith(c))`,
+    [userId, post.community_id, post.user_id],
+  );
+  return !!rowCount;
+}
+
 /** A visible post the member may read: their own, or one in a community they belong to. */
 export async function getViewable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
   const post = await getVisible(q, postId);
-  return post && (post.user_id === userId || (await inCommunity(q, userId, post.community_id))) ? post : null;
+  if (!post) return null;
+  return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) || (await acrossAllowed(q, userId, post)) ? post : null;
 }
 
 /** A visible post the member may act on: only in their own communities, never one between people where either blocked the other. */
 export async function getActionable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
   const post = await getVisible(q, postId);
   if (!post || (await blockedBetween(q, userId, post.user_id))) return null;
-  return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) ? post : null;
+  return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) || (await acrossAllowed(q, userId, post)) ? post : null;
 }
 
 /** Request state machine. Answered is poster-only and final; amplified waits for the broadcast. */
@@ -418,17 +436,32 @@ export async function askToPray(q: Queryable, senderId: string, postId: string, 
     throw badRequest('You can ask only people you follow or who follow you');
   }
   // Sensitive requests skip anyone who opted out of trauma-related content; nobody who blocked
-  // (or was blocked by) the sender or the poster is asked.
+  // (or was blocked by) the sender or the poster is asked, and only people in the post's community.
   const { rows: recipients } = await q.query<{ id: string }>(
     `select p.id from public.profiles p
       where p.id = any($1::uuid[]) and p.deleted_at is null and not ($2 and p.trauma_content_opt_out)
+        and exists (select 1 from public.community_memberships m where m.user_id = p.id and m.community_id = $4)
         and not exists (select 1 from public.user_blocks b
                          where (b.user_id = p.id and b.blocked_id = any($3::uuid[])) or (b.blocked_id = p.id and b.user_id = any($3::uuid[])))`,
-    [rows.map((r) => r.id), post.is_sensitive, [senderId, post.user_id]],
+    [rows.map((r) => r.id), post.is_sensitive, [senderId, post.user_id], post.community_id],
   );
   const sender = await getProfile(q, senderId);
-  const senderName = post.user_id === senderId && post.is_anonymous ? 'Someone' : (sender?.display_name ?? 'Someone');
-  return { recipients: recipients.map((r) => r.id), senderName, preview: post.body.slice(0, 120) };
+  const hidden = post.user_id === senderId && post.is_anonymous;
+  const senderName = hidden ? 'Someone' : (sender?.display_name ?? 'Someone');
+  // "Carol in Albuquerque", only for recipients in the post's community (townsFor checks the switch).
+  const names = new Map<string, string>();
+  if (!hidden) {
+    for (const r of recipients) {
+      const town = (await townsFor(q, [{ postId: post.id, communityId: post.community_id, userId: senderId }], r.id)).get(post.id);
+      if (town) names.set(r.id, `${senderName} in ${town}`);
+    }
+  }
+  return {
+    recipients: recipients.map((r) => r.id),
+    senderName,
+    nameFor: (id: string) => names.get(id) ?? senderName,
+    preview: post.body.slice(0, 120),
+  };
 }
 
 export const NewThanks = z.object({
@@ -493,6 +526,9 @@ export interface CardCounts {
   wellWishes: number;
   shares: number;
   comments: number;
+  /** Quick reactions (long-press), counted whether or not the tray is switched on. */
+  candles: number;
+  standing: number;
 }
 
 /** Build post cards for a viewer, in the order given. */
@@ -509,7 +545,9 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
               'encouragements', (select count(*) from public.reactions r where r.post_id = po.id and r.kind = 'encouragement' and r.moderation_status = 'visible'),
               'wellWishes', (select count(*) from public.reactions r where r.post_id = po.id and r.kind = 'well_wishes'),
               'shares', (select count(*) from public.reactions r where r.post_id = po.id and r.kind = 'share'),
-              'comments', (select count(*) from public.comments c where c.post_id = po.id and c.moderation_status = 'visible')
+              'comments', (select count(*) from public.comments c where c.post_id = po.id and c.moderation_status = 'visible'),
+              'candles', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'candle'),
+              'standing', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'standing')
             ) as counts,
             coalesce((select json_agg(json_build_object('kind', m.kind, 'storagePath', m.storage_path) order by m.position)
                         from public.post_media m where m.post_id = po.id), '[]') as media
@@ -551,6 +589,18 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   );
   const myCommitment = new Map(mine.map((c) => [c.post_id, { id: c.id, frequency: c.frequency }]));
 
+  // The viewer's own quick reactions ("Light a candle", "Standing with you").
+  const { rows: quick } = await q.query<{ post_id: string; kinds: string[] }>(
+    `select post_id, array_agg(kind order by kind) as kinds from public.quick_reactions
+      where user_id = $1 and post_id = any($2::uuid[]) group by post_id`,
+    [viewerId, postIds],
+  );
+  const myQuick = new Map(quick.map((r) => [r.post_id, r.kinds]));
+
+  // Towns ("Carol in Albuquerque"), while switched on: only when the viewer and the
+  // author are both members of the post's community, never on an anonymous post.
+  const towns = await townsFor(q, rows.filter((r) => !r.is_anonymous).map((r) => ({ postId: r.id, communityId: r.community_id, userId: r.user_id })), viewerId);
+
   // Each community's enabled reactions decide which actions its cards offer.
   const { rows: enabled } = await q.query<{ id: string; enabled_reactions: string[] }>(
     `select id, enabled_reactions::text[] as enabled_reactions from public.communities
@@ -579,12 +629,14 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
           ...presentIdentity({ id: r.user_id, display_name: r.display_name, handle: r.handle }, r.is_anonymous, viewerId),
           tier: tierShown(r),
           pastor: r.is_anonymous ? null : (pastors.get(r.user_id) ?? null),
+          ...(towns.has(r.id) ? { town: towns.get(r.id)! } : {}),
         },
         cardType: r.post_type as CardType,
         // Groups one person's posts (e.g. a personal vine branch) without exposing who; null when anonymous.
         branchKey: r.is_anonymous ? null : branchKey(r.user_id),
         isMine: r.user_id === viewerId,
         myCommitment: myCommitment.get(id) ?? null,
+        myQuickReactions: myQuick.get(id) ?? [],
         actions: (actionsByCommunity.get(r.community_id) ?? cardActions([])).filter(
           (a) => !DISCUSSION_TYPES.includes(r.post_type) || (a !== 'praying_now' && a !== 'commit'),
         ),
@@ -611,6 +663,27 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
       },
     ];
   });
+}
+
+/**
+ * Each post's author town, keyed by post id, when the "Town on profiles" switch is on and
+ * the viewer and the author both belong to the post's community. Empty while switched off.
+ */
+export async function townsFor(q: Queryable, items: { postId: string; communityId: string; userId: string }[], viewerId: string | null) {
+  const out = new Map<string, string>();
+  if (items.length === 0 || !viewerId) return out;
+  const { rows: on } = await q.query<{ on: boolean }>('select member_town_enabled as on from public.notebook_settings');
+  if (!on[0]?.on) return out;
+  const { rows } = await q.query<{ post_id: string; town: string }>(
+    `select i.post_id, p.town
+       from unnest($1::uuid[], $2::uuid[], $3::uuid[]) as i(post_id, community_id, user_id)
+       join public.profiles p on p.id = i.user_id and p.town is not null and p.deleted_at is null
+      where exists (select 1 from public.community_memberships m where m.community_id = i.community_id and m.user_id = i.user_id)
+        and exists (select 1 from public.community_memberships m where m.community_id = i.community_id and m.user_id = $4)`,
+    [items.map((i) => i.postId), items.map((i) => i.communityId), items.map((i) => i.userId), viewerId],
+  );
+  for (const r of rows) out.set(r.post_id, r.town);
+  return out;
 }
 
 /** Layout-neutral card kinds. Layouts (column, vine, ...) pick a template per kind. */
@@ -671,12 +744,14 @@ export async function promptSubject(q: Queryable, postId: string, viewerId: stri
 }
 
 /** A person's recent visible posts made under their name (never their anonymous ones). */
-export async function namedPostIds(q: Queryable, authorId: string, limit = 20): Promise<string[]> {
+/** The author's named posts the viewer may see: only in the viewer's communities, unless it's their own page. */
+export async function namedPostIds(q: Queryable, authorId: string, viewerId: string, limit = 20): Promise<string[]> {
   const { rows } = await q.query<{ id: string }>(
     `select id from public.posts
       where user_id = $1 and not is_anonymous and moderation_status = 'visible'
+        and ($1 = $3 or community_id in (select community_id from public.community_memberships where user_id = $3))
       order by id desc limit $2`,
-    [authorId, limit],
+    [authorId, limit, viewerId],
   );
   return rows.map((r) => r.id);
 }
