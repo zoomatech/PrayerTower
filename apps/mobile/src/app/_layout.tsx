@@ -38,8 +38,8 @@ function RootStack() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xl, backgroundColor: colors.background }}>
         <Text style={[type.body, { textAlign: 'center' }]}>{profileError}</Text>
-        <Button label="Try again" onPress={() => void refreshProfile()} />
-        <Button variant="ghost" label="Sign out" onPress={() => void signOut()} />
+        <Button label={t('common.tryAgain')} onPress={() => void refreshProfile()} />
+        <Button variant="ghost" label={t('profile.signOut')} onPress={() => void signOut()} />
       </View>
     );
   }

@@ -9,6 +9,7 @@ const en = {
     playVideo: 'Play video',
     close: 'Close',
     loading: 'Loading…',
+    tryAgain: 'Try again',
     cancel: 'Cancel',
     friend: 'friend',
   },
@@ -728,6 +729,10 @@ const en = {
     source: {"ai": "Flagged automatically", "report": "Reported by a member", "crisis": "May need support"},
   },
   witness: {
+    markTitle: 'Witness team (staff only)',
+    markPlaceholder: 'Why this looks like a sincere need',
+    mark: 'Mark as a sincere need',
+    marked: "Added to the Witness team's list.",
     storyTitle: "Share the story (with their OK)",
     storyHint: "Write what happened without naming them. We'll ask the person helped; nothing is shown unless they say yes.",
     storyPlaceholder: "For example: a family behind on rent got two months covered by a partner church.",

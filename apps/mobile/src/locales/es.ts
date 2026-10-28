@@ -11,6 +11,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     playVideo: 'Reproducir video',
     close: 'Cerrar',
     loading: 'Cargando…',
+    tryAgain: 'Try again',
     cancel: 'Cancelar',
     friend: 'amigo',
   },
@@ -730,6 +731,10 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     source: {"ai": "Marcado automáticamente", "report": "Denunciado por un miembro", "crisis": "Podría necesitar apoyo"},
   },
   witness: {
+    markTitle: 'Witness team (staff only)',
+    markPlaceholder: 'Why this looks like a sincere need',
+    mark: 'Mark as a sincere need',
+    marked: "Added to the Witness team's list.",
     storyTitle: "Compartir la historia (con su permiso)",
     storyHint: "Escribe lo que pasó sin nombrar a la persona. Le preguntaremos a quien recibió ayuda; no se muestra nada si no dice que sí.",
     storyPlaceholder: "Por ejemplo: una familia atrasada con el alquiler recibió dos meses cubiertos por una iglesia aliada.",
