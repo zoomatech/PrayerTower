@@ -67,6 +67,7 @@ export async function create(q: Queryable, userId: string, postId: string, input
       kind: 'commitment_made',
       title: `${who} committed to pray for you`,
       body: `${who} will pray ${label(input.frequency)}.`,
+      t: { key: 'commitment_made', params: { who: who === 'Someone' ? null : who, frequency: input.frequency } },
       data: { postId },
     });
   }
@@ -177,6 +178,7 @@ export function sendDueRemindersTask(q: Queryable): Task {
             kind: 'commitment_reminder',
             title: 'Time to pray',
             body: `You promised to pray: "${c.excerpt}"`,
+            t: { key: 'commitment_reminder', params: { excerpt: c.excerpt } },
             data: { postId: c.post_id, commitmentId: c.id },
           });
           // Skip forward past any missed slots rather than sending a burst.
@@ -260,6 +262,7 @@ export function weeklyReviewTask(q: Queryable): Task {
         kind: 'weekly_review',
         title: 'Your week in prayer',
         body: review.message,
+        t: { key: 'weekly_review', params: { body: review.message } },
         data: { prayers: review.prayers, people: review.people },
         dedupeKey: `weekly_review:${week}`,
       });

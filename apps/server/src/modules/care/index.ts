@@ -85,6 +85,7 @@ export async function request(q: Queryable, userId: string, input: z.infer<typeo
       kind: 'care_request',
       title: crisis ? 'Someone may be in danger and asked for prayer' : 'Someone asked for a prayer partner',
       body: 'Open the care queue to reach out.',
+      t: { key: 'care_request', params: { crisis } },
       data: { careRequestId: id },
       dedupeKey: `care_request:${id}`,
     });
@@ -159,6 +160,7 @@ export async function claim(q: Queryable, staffId: string, id: string) {
     kind: 'message',
     title: `${who[0]!.name} is here to pray with you`,
     body: 'Open the conversation to talk and pray together.',
+    t: { key: 'care_claimed', params: { who: who[0]!.name === 'A prayer partner' ? null : who[0]!.name } },
     data: { conversationId },
     dedupeKey: `care_claimed:${id}`,
   });

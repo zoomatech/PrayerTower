@@ -11,6 +11,7 @@ import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { nextWeekday, parseLocal, WHEN_OPTIONS } from '@/lib/schedule';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 // Restorative circles are scheduled by moderators and pastors only.
@@ -19,6 +20,7 @@ const STAFF_KINDS: EventKind[] = [...MEMBER_KINDS, 'circle'];
 const WHEN = [{ key: 'wed', label: 'Wednesday 7 pm', at: () => nextWeekday(3, 19) }, ...WHEN_OPTIONS];
 
 export default function Events() {
+  const { t, label } = useLocale();
   const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const { roles } = useAuth();
   const staff = roles.some((r) => r === 'admin' || r === 'moderator' || r === 'pastor_counselor');
@@ -52,7 +54,7 @@ export default function Events() {
   const startsAt = when === 'custom' ? parseLocal(custom) : (WHEN.find((w) => w.key === when)?.at() ?? null);
 
   const create = async () => {
-    if (!startsAt) return setError('Enter a future date and time like 2026-11-06 19:30');
+    if (!startsAt) return setError(t('events.dateError'));
     setBusy(true);
     setError(null);
     try {
@@ -77,50 +79,50 @@ export default function Events() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
-        <Text style={type.title}>{groupId ? 'Group events' : 'Meetings & events'}</Text>
-        <Text style={type.body}>Pray together on a video call or meet in person.</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
+        <Text style={type.title}>{groupId ? t('events.groupTitle') : t('messages.events')}</Text>
+        <Text style={type.body}>{t('events.intro')}</Text>
         <ErrorText error={error} />
 
         {creating ? (
           <View style={styles.card}>
             <View style={styles.row}>
               {(staff ? STAFF_KINDS : MEMBER_KINDS).map((k) => (
-                <Chip key={k} label={EVENT_KIND_LABELS[k]} selected={kind === k} onPress={() => setKind(k)} />
+                <Chip key={k} label={label('eventKind', k, EVENT_KIND_LABELS[k])} selected={kind === k} onPress={() => setKind(k)} />
               ))}
             </View>
-            <Field label="Title" placeholder="Wednesday night prayer" value={title} onChangeText={setTitle} maxLength={120} />
-            <Field label="What it's about (optional)" value={description} onChangeText={setDescription} maxLength={2000} multiline />
-            <Text style={styles.label}>When</Text>
+            <Field label={t('events.title')} placeholder={t('events.titlePlaceholder')} value={title} onChangeText={setTitle} maxLength={120} />
+            <Field label={t('events.about')} value={description} onChangeText={setDescription} maxLength={2000} multiline />
+            <Text style={styles.label}>{t('actions.when')}</Text>
             <View style={styles.row}>
               {WHEN.map((w) => (
-                <Chip key={w.key} label={w.label} selected={when === w.key} onPress={() => setWhen(w.key)} />
+                <Chip key={w.key} label={t(`actions.whenOptions.${w.key}`, { defaultValue: w.label })} selected={when === w.key} onPress={() => setWhen(w.key)} />
               ))}
-              <Chip label="Other time" selected={when === 'custom'} onPress={() => setWhen('custom')} />
+              <Chip label={t('events.otherTime')} selected={when === 'custom'} onPress={() => setWhen('custom')} />
             </View>
             {when === 'custom' ? <Field placeholder="2026-11-06 19:30" value={custom} onChangeText={setCustom} /> : null}
             {startsAt ? <Text style={type.small}>{whenText(startsAt.toISOString())}</Text> : null}
-            <Field label="Minutes" keyboardType="number-pad" value={minutes} onChangeText={setMinutes} />
+            <Field label={t('events.minutes')} keyboardType="number-pad" value={minutes} onChangeText={setMinutes} />
             <Field
-              label="Video meeting link (Zoom, Google Meet, Teams…)"
+              label={t('events.video')}
               placeholder="https://zoom.us/j/…"
               autoCapitalize="none"
               keyboardType="url"
               value={videoUrl}
               onChangeText={setVideoUrl}
             />
-            <Field label="Or a place" placeholder="Grace Church, 12 Main St" value={location} onChangeText={setLocation} maxLength={200} />
-            {location.trim() ? <Text style={type.small}>Meet in a public place, and tell someone where you're going.</Text> : null}
+            <Field label={t('events.place')} placeholder={t('events.placePlaceholder')} value={location} onChangeText={setLocation} maxLength={200} />
+            {location.trim() ? <Text style={type.small}>{t('events.safety')}</Text> : null}
             <View style={styles.row}>
-              <Button label="Host this event" onPress={create} busy={busy} disabled={!title.trim() || (!videoUrl.trim() && !location.trim())} />
-              <Button variant="ghost" label="Cancel" onPress={() => setCreating(false)} />
+              <Button label={t('events.host')} onPress={create} busy={busy} disabled={!title.trim() || (!videoUrl.trim() && !location.trim())} />
+              <Button variant="ghost" label={t('common.cancel')} onPress={() => setCreating(false)} />
             </View>
           </View>
         ) : (
-          <Button label="Host an event" onPress={() => setCreating(true)} />
+          <Button label={t('events.hostAn')} onPress={() => setCreating(true)} />
         )}
 
-        {events.length === 0 ? <Empty text="No upcoming events yet. Host the first one." /> : null}
+        {events.length === 0 ? <Empty text={t('events.empty')} /> : null}
         {events.map((e) => (
           <EventRow key={e.id} e={e} />
         ))}

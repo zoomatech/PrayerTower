@@ -8,11 +8,13 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance 
 import { CrisisSupport } from '@/components/crisis';
 import { Button, Chip, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const POLL_MS = 5000;
 
 export default function ConversationScreen() {
+  const { t } = useLocale();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [view, setView] = useState<ConversationView | null>(null);
   const [text, setText] = useState('');
@@ -119,7 +121,7 @@ export default function ConversationScreen() {
             ) : null}
             {c.post ? (
               <Pressable onPress={() => router.push(`/post/${c.post!.id}`)} style={styles.post} accessibilityRole="link">
-                <Text style={type.small}>About the request</Text>
+                <Text style={type.small}>{t('conversation.about')}</Text>
                 <Text style={type.body}>{c.post.excerpt}</Text>
               </Pressable>
             ) : null}
@@ -132,13 +134,13 @@ export default function ConversationScreen() {
           <View style={styles.request}>
             <Text style={type.body}>
               {c.kind === 'group'
-                ? 'You were invited to this group. Join to pray and talk together.'
-                : `${c.title} would like to talk with you. They can't send more until you reply.`}
+                ? t('conversation.invited')
+                : t('conversation.wantsToTalk', { name: c.title })}
             </Text>
             <View style={styles.row}>
-              <Button small label={c.kind === 'group' ? 'Join' : 'Accept'} onPress={() => act(() => (c.kind === 'group' ? api.joinGroup(id) : api.acceptConversation(id)))} />
-              <Button small variant="secondary" label="No thanks" onPress={() => act(() => api.leaveConversation(id), 'leave')} />
-              {other?.id ? <Button small variant="ghost" label="Block" onPress={() => act(() => api.block(other.id!), 'leave')} /> : null}
+              <Button small label={c.kind === 'group' ? t('conversation.join') : t('conversation.accept')} onPress={() => act(() => (c.kind === 'group' ? api.joinGroup(id) : api.acceptConversation(id)))} />
+              <Button small variant="secondary" label={t('conversation.noThanks')} onPress={() => act(() => api.leaveConversation(id), 'leave')} />
+              {other?.id ? <Button small variant="ghost" label={t('conversation.block')} onPress={() => act(() => api.block(other.id!), 'leave')} /> : null}
             </View>
           </View>
         ) : null}
@@ -153,10 +155,10 @@ export default function ConversationScreen() {
               </Text>
               {!m.mine ? (
                 reported.includes(m.id) ? (
-                  <Text style={type.small}>Reported</Text>
+                  <Text style={type.small}>{t('conversation.reported')}</Text>
                 ) : (
                   <Text style={styles.report} onPress={() => setReporting(m.id)} accessibilityRole="button">
-                    Report
+                    {t('post.report')}
                   </Text>
                 )
               ) : null}
@@ -166,23 +168,23 @@ export default function ConversationScreen() {
 
         {reporting ? (
           <View style={styles.sheet}>
-            <Text style={type.heading}>Report this message</Text>
-            <Text style={type.small}>A moderator will read this message and decide. The sender isn't told who reported it.</Text>
-            <Field placeholder="What's wrong with it?" value={reason} onChangeText={setReason} maxLength={1000} multiline />
+            <Text style={type.heading}>{t('conversation.reportTitle')}</Text>
+            <Text style={type.small}>{t('conversation.reportNote')}</Text>
+            <Field placeholder={t('conversation.whatsWrong')} value={reason} onChangeText={setReason} maxLength={1000} multiline />
             <View style={styles.row}>
-              <Button small label="Send report" onPress={sendReport} disabled={!reason.trim()} />
-              <Button small variant="ghost" label="Cancel" onPress={() => setReporting(null)} />
+              <Button small label={t('actions.sendReport')} onPress={sendReport} disabled={!reason.trim()} />
+              <Button small variant="ghost" label={t('common.cancel')} onPress={() => setReporting(null)} />
             </View>
           </View>
         ) : null}
 
         <ErrorText error={error} />
-        {c?.awaitingReply ? <Text style={type.small}>Your message is waiting for them. You can write again once they reply.</Text> : null}
+        {c?.awaitingReply ? <Text style={type.small}>{t('conversation.waiting')}</Text> : null}
 
         {c && !c.isRequest && !c.awaitingReply ? (
           <View style={styles.compose}>
             <Field
-              placeholder={c.kind === 'group' ? 'Write to the group' : 'Write a message'}
+              placeholder={c.kind === 'group' ? t('conversation.writeGroup') : t('conversation.write')}
               value={text}
               onChangeText={(t) => {
                 setText(t);
@@ -192,28 +194,28 @@ export default function ConversationScreen() {
               multiline
             />
             {warned ? <RulesWarning onPostAnyway={() => send(true)} busy={busy} /> : null}
-            <Button label="Send" onPress={() => send()} busy={busy} disabled={!text.trim()} />
+            <Button label={t('actions.send')} onPress={() => send()} busy={busy} disabled={!text.trim()} />
           </View>
         ) : null}
 
         {c && !c.isRequest ? (
           <View style={styles.row}>
-            {c.kind === 'group' && (c.isOwner || c.isPublic) ? <Button small variant="secondary" label="Invite people" onPress={openInvite} /> : null}
+            {c.kind === 'group' && (c.isOwner || c.isPublic) ? <Button small variant="secondary" label={t('conversation.invite')} onPress={openInvite} /> : null}
             {c.kind === 'group' ? <Button small variant="secondary" label="Group events" onPress={() => router.push(`/events?groupId=${id}`)} /> : null}
-            {other?.id ? <Button small variant="ghost" label={`Block ${other.name}`} onPress={() => act(() => api.block(other.id!), 'leave')} /> : null}
-            <Button small variant="ghost" label={c.kind === 'group' ? 'Leave group' : 'Close conversation'} onPress={() => act(() => api.leaveConversation(id), 'leave')} />
+            {other?.id ? <Button small variant="ghost" label={t('person.block', { name: other.name })} onPress={() => act(() => api.block(other.id!), 'leave')} /> : null}
+            <Button small variant="ghost" label={c.kind === 'group' ? t('conversation.leave') : t('conversation.close')} onPress={() => act(() => api.leaveConversation(id), 'leave')} />
           </View>
         ) : null}
 
         {inviting ? (
           <View style={styles.sheet}>
-            <Text style={type.heading}>Invite people you know</Text>
-            {connections.length === 0 ? <Text style={type.small}>Follow people to invite them here.</Text> : null}
+            <Text style={type.heading}>{t('conversation.inviteTitle')}</Text>
+            {connections.length === 0 ? <Text style={type.small}>{t('conversation.followToInvite')}</Text> : null}
             <View style={styles.row}>
               {connections.map((p) => (
                 <Chip
                   key={p.id}
-                  label={p.display_name || 'Member'}
+                  label={p.display_name || t('conversation.member')}
                   selected={picked.includes(p.id)}
                   onPress={() => setPicked((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id]))}
                 />
@@ -222,7 +224,7 @@ export default function ConversationScreen() {
             <View style={styles.row}>
               <Button
                 small
-                label="Send invites"
+                label={t('conversation.sendInvites')}
                 disabled={!picked.length}
                 onPress={() =>
                   act(async () => {
@@ -232,7 +234,7 @@ export default function ConversationScreen() {
                   })
                 }
               />
-              <Button small variant="ghost" label="Cancel" onPress={() => setInviting(false)} />
+              <Button small variant="ghost" label={t('common.cancel')} onPress={() => setInviting(false)} />
             </View>
           </View>
         ) : null}

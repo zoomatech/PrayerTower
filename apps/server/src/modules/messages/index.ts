@@ -288,6 +288,7 @@ export async function invite(q: Queryable, userId: string, conversationId: strin
       kind: 'group_invite',
       title: 'You were invited to a group',
       body: `Join "${c.title}" to pray and talk together.`,
+    t: { key: 'group_invite', params: { title: c.title } },
       data: { conversationId },
       dedupeKey: `group_invite:${conversationId}`,
     });
@@ -398,6 +399,7 @@ export async function send(q: Queryable, userId: string, conversationId: string,
       title: c.kind === 'prayer' ? `${name} prayed for you and sent a message` : `New message from ${name}`,
       body: input.body.length > 120 ? `${input.body.slice(0, 117)}…` : input.body,
       data: { conversationId },
+      t: { key: 'message', params: { who: name, prayer: c.kind === 'prayer', body: input.body.length > 120 ? `${input.body.slice(0, 117)}…` : input.body } },
       dedupeKey: `message:${conversationId}:${Math.floor(Date.now() / 3_600_000)}`,
     });
   }

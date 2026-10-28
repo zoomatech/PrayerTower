@@ -116,6 +116,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
         kind: 'event_new',
         title: 'New event in your group',
         body: `${input.title} · ${new Date(input.startsAt).toUTCString().slice(0, 22)} UTC`,
+        t: { key: 'event_new', params: { body: `${input.title} · ${new Date(input.startsAt).toUTCString().slice(0, 22)} UTC` } },
         data: { eventId: id },
         dedupeKey: `event_new:${id}`,
       });
@@ -230,6 +231,7 @@ export async function cancel(q: Queryable, userId: string, id: string) {
       kind: 'event_cancelled',
       title: 'An event was cancelled',
       body: `${event.title} won't happen as planned.`,
+      t: { key: 'event_cancelled', params: { title: event.title } },
       data: { eventId: id },
       dedupeKey: `event_cancelled:${id}`,
     });
@@ -251,6 +253,7 @@ export async function sendReminders(q: Queryable): Promise<number> {
       kind: 'event_reminder',
       title: 'Starting soon',
       body: `${r.title} starts soon. Tap to join.`,
+      t: { key: 'event_reminder', params: { title: r.title } },
       data: { eventId: r.event_id },
       dedupeKey: `event_reminder:${r.event_id}`,
     });

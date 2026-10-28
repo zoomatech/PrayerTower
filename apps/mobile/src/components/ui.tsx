@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type T
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
+import { useT } from '@/lib/i18n';
 
 export function Screen({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   return (
@@ -94,11 +95,12 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
 
 /** Shown once before posting text the AI would flag (Instagram-style nudge). Posting anyway is allowed. */
 export function RulesWarning({ onPostAnyway, busy }: { onPostAnyway: () => void; busy?: boolean }) {
+  const t = useT();
   return (
     <View style={styles.warning}>
-      <Text style={type.body}>This may go against our community rules: pray for good, never for harm, and no harassment. It may be hidden or removed. Would you like to edit it?</Text>
+      <Text style={type.body}>{t('rulesWarning.text')}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-        <Button small variant="ghost" label="Post anyway" busy={busy} onPress={onPostAnyway} />
+        <Button small variant="ghost" label={t('rulesWarning.postAnyway')} busy={busy} onPress={onPostAnyway} />
       </View>
     </View>
   );

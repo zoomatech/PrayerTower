@@ -11,12 +11,14 @@ import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useLocale } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 export default function PostScreen() {
   const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
   const { celebrate, overlay } = useCelebration();
   const { profile, roles } = useAuth();
+  const { t } = useLocale();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -131,7 +133,7 @@ export default function PostScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} />
@@ -153,24 +155,24 @@ export default function PostScreen() {
                     .catch((e) => setError((e as Error).message))
                 : setConfirmDelete(card.id)
             }>
-            {confirmDelete === card.id ? 'Tap again to delete this request for good' : 'Delete this request'}
+            {confirmDelete === card.id ? t('post.deleteConfirm') : t('post.delete')}
           </Text>
         ) : null}
 
         {card && !card.isMine ? (
           noteOpen ? (
             <View style={styles.section}>
-              <Text style={type.heading}>Write to them privately</Text>
-              <Text style={type.small}>Only they will see it. They can reply, say no thanks, or block.</Text>
-              <Field placeholder="I prayed for you today…" value={note} onChangeText={setNote} maxLength={MESSAGE_MAX_CHARS} multiline />
-              <Toggle label="Send anonymously" value={noteAnonymous} onChange={setNoteAnonymous} />
+              <Text style={type.heading}>{t('post.writePrivately')}</Text>
+              <Text style={type.small}>{t('post.privateNote')}</Text>
+              <Field placeholder={t('post.notePlaceholder')} value={note} onChangeText={setNote} maxLength={MESSAGE_MAX_CHARS} multiline />
+              <Toggle label={t('post.sendAnonymously')} value={noteAnonymous} onChange={setNoteAnonymous} />
               <View style={styles.noteRow}>
-                <Button small label="Send" onPress={sendNote} disabled={!note.trim()} />
-                <Button small variant="ghost" label="Cancel" onPress={() => setNoteOpen(false)} />
+                <Button small label={t('actions.send')} onPress={sendNote} disabled={!note.trim()} />
+                <Button small variant="ghost" label={t('common.cancel')} onPress={() => setNoteOpen(false)} />
               </View>
             </View>
           ) : (
-            <Button variant="secondary" label="Write to them privately" onPress={() => setNoteOpen(true)} />
+            <Button variant="secondary" label={t('post.writePrivately')} onPress={() => setNoteOpen(true)} />
           )
         ) : null}
 
@@ -198,38 +200,38 @@ export default function PostScreen() {
         ) : null}
 
         {card?.isMine && card.state !== 'answered' ? (
-          <Button variant="secondary" label="Mark this prayer answered" onPress={markAnswered} />
+          <Button variant="secondary" label={t('post.markAnswered')} onPress={markAnswered} />
         ) : null}
 
         {radioSent ? (
-          <Text style={type.small}>Sent. This request is going out as a radio prayer.</Text>
+          <Text style={type.small}>{t('post.radioSent')}</Text>
         ) : tokens && tokens.priestly.balance >= tokens.priestly.radioPrayerCost ? (
           <Button
             variant="secondary"
             label={
               tokens.priestly.radioPrayerCost === 0
-                ? 'Send as a radio prayer'
-                : `Send as a radio prayer (${tokens.priestly.radioPrayerCost} Priestly token${tokens.priestly.radioPrayerCost === 1 ? '' : 's'})`
+                ? t('post.radio')
+                : t('post.radioCost', { count: tokens.priestly.radioPrayerCost })
             }
             onPress={() => sendRadio()}
           />
         ) : null}
         {!radioSent && tokens?.priestly.amplifyRepeats ? (
-          <Button variant="secondary" label={`Amplify: send it out by radio ${tokens.priestly.amplifyRepeats} times (free)`} onPress={() => sendRadio(true)} />
+          <Button variant="secondary" label={t('post.amplify', { count: tokens.priestly.amplifyRepeats })} onPress={() => sendRadio(true)} />
         ) : null}
 
         {powerSent !== null ? (
           <Text style={type.small}>
             {powerSent === 0
-              ? 'Thank you. Everyone we could ask has already been asked or has prayed; your tokens still extend its reach.'
-              : `Thank you. We asked ${powerSent} ${powerSent === 1 ? 'person' : 'people'} who don't know ${card?.isMine ? 'you' : 'them'} yet to pray.`}
+              ? t('post.powerNone')
+              : t(card?.isMine ? 'post.powerSentYou' : 'post.powerSentThem', { count: powerSent })}
           </Text>
         ) : power?.blockedReason && card && !card.isMine ? (
-          <Text style={type.small}>Power Prayer: {power.blockedReason}</Text>
+          <Text style={type.small}>{t('post.powerBlocked', { reason: power.blockedReason })}</Text>
         ) : power && card && !power.blockedReason && (power.cost === 0 || (tokens?.balance ?? 0) >= power.cost) ? (
           <Button
             variant="secondary"
-            label={`Power Prayer: ask ${power.reach} more people to pray (${power.cost === 0 ? 'free this week' : `${power.cost} tokens`})`}
+            label={power.cost === 0 ? t('post.powerFree', { count: power.reach }) : t('post.powerCost', { count: power.reach, cost: power.cost })}
             onPress={sendPower}
           />
         ) : null}
@@ -237,7 +239,7 @@ export default function PostScreen() {
         {prayers ? (
           <View style={styles.section}>
             <Text style={type.heading}>
-              {prayers.count === 0 ? 'No one has prayed yet' : `${prayers.count} ${prayers.count === 1 ? 'person has' : 'people have'} prayed`}
+              {t('post.prayed', { count: prayers.count })}
             </Text>
             {prayers.people.length > 0 ? (
               <Text style={type.body}>{prayers.people.map((p) => p.displayName).join(', ')}</Text>
@@ -245,12 +247,12 @@ export default function PostScreen() {
             {card?.isMine && prayers.count > 0 ? (
               thanked !== null ? (
                 <Text style={type.small}>
-                  Your thanks went to {thanked} {thanked === 1 ? 'person' : 'people'}.
+                  {t('post.thanked', { count: thanked })}
                 </Text>
               ) : (
                 <View style={styles.section}>
                   <Field
-                    placeholder="A short thank-you (optional)"
+                    placeholder={t('post.thanksPlaceholder')}
                     value={thanks}
                     onChangeText={setThanks}
                     maxLength={ENCOURAGEMENT_MAX_CHARS}
@@ -258,7 +260,7 @@ export default function PostScreen() {
                   <Button
                     small
                     variant="secondary"
-                    label="Thank everyone who prayed"
+                    label={t('post.thankEveryone')}
                     onPress={() =>
                       api
                         .thankEveryone(id, thanks.trim())
@@ -273,37 +275,37 @@ export default function PostScreen() {
         ) : null}
 
         <View style={styles.section}>
-          <Text style={type.heading}>Comments</Text>
-          {comments.length === 0 ? <Empty text="No comments yet." /> : null}
+          <Text style={type.heading}>{t('post.comments')}</Text>
+          {comments.length === 0 ? <Empty text={t('post.noComments')} /> : null}
           {comments.map((c) => (
             <View
               key={c.id}
               style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }, c.id === sharedCommentId && styles.sharedComment]}
             >
               <Text style={styles.commentAuthor}>
-                {c.isUpdate ? 'Update · ' : ''}
+                {c.isUpdate ? t('card.update') : ''}
                 {c.author.displayName}
               </Text>
               <Text style={type.body}>{c.body}</Text>
               <View style={styles.row}>
                 <Text style={styles.reply} onPress={() => setReplyTo(c)}>
-                  Reply
+                  {t('post.reply')}
                 </Text>
                 <Text
                   style={styles.reply}
                   onPress={() =>
                     // Shareable comments: the words plus a link that opens this request at the comment.
                     Share.share({
-                      message: `“${c.body}” (${c.author.displayName}, on a Prayer Tower request) ${Linking.createURL(`/post/${id}`, { queryParams: { comment: c.id } })}`,
+                      message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: Linking.createURL(`/post/${id}`, { queryParams: { comment: c.id } }) }),
                     }).catch(() => undefined)
                   }
                   accessibilityRole="button"
                 >
-                  Share
+                  {t('post.share')}
                 </Text>
                 {card && !c.isMine && c.author.id !== profile?.id ? (
                   <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
-                    Report
+                    {t('post.report')}
                   </Text>
                 ) : null}
                 {c.isMine ? (
@@ -321,7 +323,7 @@ export default function PostScreen() {
                             .catch((e) => setError((e as Error).message))
                         : setConfirmDelete(c.id)
                     }>
-                    {confirmDelete === c.id ? 'Tap again to delete' : 'Delete'}
+                    {confirmDelete === c.id ? t('post.tapAgain') : t('post.deleteShort')}
                   </Text>
                 ) : null}
               </View>
@@ -332,14 +334,14 @@ export default function PostScreen() {
         <View style={styles.section}>
           {replyTo ? (
             <Text style={type.small} onPress={() => setReplyTo(null)}>
-              Replying to {replyTo.author.displayName} (tap to cancel)
+              {t('post.replyingTo', { name: replyTo.author.displayName })}
             </Text>
           ) : null}
-          <Field placeholder="Write a comment" value={text} onChangeText={setText} multiline maxLength={5000} />
+          <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
           {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
           <View style={styles.row}>
-            <Button small label="Comment" onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
-            {card?.isMine ? <Button small variant="secondary" label="Post as an update" onPress={() => send(true)} disabled={!text.trim()} /> : null}
+            <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
+            {card?.isMine ? <Button small variant="secondary" label={t('post.postUpdate')} onPress={() => send(true)} disabled={!text.trim()} /> : null}
           </View>
         </View>
       </ScrollView>

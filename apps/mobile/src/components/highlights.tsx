@@ -5,29 +5,31 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { type Highlights as Data } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export function Highlights({ data }: { data: Data | null }) {
+  const { t } = useLocale();
   if (!data) return null;
   return (
     <View style={styles.wrap}>
       <View style={styles.box}>
-        <Text style={type.heading}>Most prayed this week</Text>
-        {data.topPrayers.length === 0 ? <Text style={type.small}>No prayers yet this week.</Text> : null}
-        {data.topPrayers.map((t, i) => (
-          <Text key={t.card.id} style={type.body} onPress={() => router.push(`/post/${t.card.id}`)} accessibilityRole="link">
+        <Text style={type.heading}>{t('highlights.mostPrayed')}</Text>
+        {data.topPrayers.length === 0 ? <Text style={type.small}>{t('highlights.none')}</Text> : null}
+        {data.topPrayers.map((p, i) => (
+          <Text key={p.card.id} style={type.body} onPress={() => router.push(`/post/${p.card.id}`)} accessibilityRole="link">
             <Text style={styles.rank}>{i + 1}. </Text>
-            {t.card.preview}
+            {p.card.preview}
             <Text style={type.small}>
               {'  '}
-              {t.prayers} praying
+              {t('card.praying', { count: p.prayers })}
             </Text>
           </Text>
         ))}
       </View>
       <View style={styles.box}>
-        <Text style={type.heading}>Top prayer warriors</Text>
-        {data.topWarriors.length === 0 ? <Text style={type.small}>Be the first to pray this week.</Text> : null}
+        <Text style={type.heading}>{t('highlights.warriors')}</Text>
+        {data.topWarriors.length === 0 ? <Text style={type.small}>{t('highlights.beFirst')}</Text> : null}
         {data.topWarriors.map((w, i) => (
           <View key={`${w.id ?? 'anon'}-${i}`} style={styles.warrior}>
             <Text style={[type.body, styles.name]} onPress={w.id ? () => router.push(`/people/${w.id}`) : undefined}>
@@ -36,7 +38,7 @@ export function Highlights({ data }: { data: Data | null }) {
             <Text style={type.small}>{w.prayers}</Text>
           </View>
         ))}
-        <Text style={type.small}>Prayers for others in the last {data.days} days.</Text>
+        <Text style={type.small}>{t('highlights.window', { count: data.days })}</Text>
       </View>
     </View>
   );

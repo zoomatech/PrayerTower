@@ -7,9 +7,11 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
 
 export default function DeleteAccountScreen() {
+  const { t } = useLocale();
   const { signOut } = useAuth();
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,20 +33,18 @@ export default function DeleteAccountScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Delete my account</Text>
-        <Text style={type.body}>This happens right away and can&apos;t be undone. We delete:</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Text style={type.title}>{t('profile.deleteAccount')}</Text>
+        <Text style={type.body}>{t('deleteAccount.intro')}</Text>
         <Text style={type.body}>
-          • your sign-in and profile{'\n'}• your requests, comments, encouragements and photos{'\n'}• your messages, promises, events and prayer history
-          {'\n'}• your tokens
+          {t('deleteAccount.list')}
         </Text>
         <Text style={type.small}>
-          We keep only what we must: the token ledger and moderators&apos; past decisions, under &quot;Deleted member&quot; with no name or email. A
-          request that already holds tokens others gave is emptied and taken down rather than erased.
+          {t('deleteAccount.keep')}
         </Text>
-        <Field label="Type DELETE to confirm" placeholder="DELETE" value={confirm} onChangeText={setConfirm} autoCapitalize="characters" autoCorrect={false} />
+        <Field label={t('deleteAccount.confirm')} placeholder="DELETE" value={confirm} onChangeText={setConfirm} autoCapitalize="characters" autoCorrect={false} />
         <ErrorText error={error} />
-        <Button label="Delete my account" busy={busy} disabled={confirm.trim() !== 'DELETE'} onPress={remove} />
+        <Button label={t('profile.deleteAccount')} busy={busy} disabled={confirm.trim() !== 'DELETE'} onPress={remove} />
       </ScrollView>
     </Screen>
   );

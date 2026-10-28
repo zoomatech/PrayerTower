@@ -62,6 +62,7 @@ export function afterPrayingNowTask(q: Queryable): Task {
       kind: 'praying_now',
       title: `${who} is praying for you${poster?.display_name ? `, ${poster.display_name},` : ''} right now`,
       body: 'Someone stopped to bring your request before the Lord.',
+      t: { key: 'praying_now', params: { who: e.is_anonymous ? null : e.display_name, poster: poster?.display_name } },
       data: { postId: e.post_id },
       dedupeKey: `praying_now:${e.post_id}:${e.user_id}:${e.day}`,
     });

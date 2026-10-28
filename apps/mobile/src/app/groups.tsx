@@ -6,9 +6,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Groups() {
+  const { t } = useLocale();
   const [groups, setGroups] = useState<PublicGroup[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -56,33 +58,33 @@ export default function Groups() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
-        <Text style={type.title}>Prayer groups</Text>
-        <Text style={type.body}>Pray and talk together about a need, a place, or a topic.</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
+        <Text style={type.title}>{t('messages.groups')}</Text>
+        <Text style={type.body}>{t('groups.intro')}</Text>
         <ErrorText error={error} />
 
         {creating ? (
           <View style={styles.card}>
-            <Field label="Group name" placeholder="Morning prayer circle" value={title} onChangeText={setTitle} maxLength={80} />
-            <Field label="What it's for (optional)" placeholder="We pray together at 7am" value={topic} onChangeText={setTopic} maxLength={280} multiline />
-            <Toggle label="Open to everyone" hint={isPublic ? 'Anyone can find and join it.' : 'Only people you invite can join.'} value={isPublic} onChange={setIsPublic} />
+            <Field label={t('groups.name')} placeholder={t('groups.namePlaceholder')} value={title} onChangeText={setTitle} maxLength={80} />
+            <Field label={t('groups.topic')} placeholder={t('groups.topicPlaceholder')} value={topic} onChangeText={setTopic} maxLength={280} multiline />
+            <Toggle label={t('groups.public')} hint={isPublic ? t('groups.publicHint') : t('groups.privateHint')} value={isPublic} onChange={setIsPublic} />
             <View style={styles.row}>
-              <Button label="Start the group" onPress={create} busy={busy} disabled={!title.trim()} />
-              <Button variant="ghost" label="Cancel" onPress={() => setCreating(false)} />
+              <Button label={t('groups.create')} onPress={create} busy={busy} disabled={!title.trim()} />
+              <Button variant="ghost" label={t('common.cancel')} onPress={() => setCreating(false)} />
             </View>
           </View>
         ) : (
-          <Button label="Start a group" onPress={() => setCreating(true)} />
+          <Button label={t('groups.start')} onPress={() => setCreating(true)} />
         )}
 
-        {groups.length === 0 ? <Empty text="No open groups yet. Start the first one." /> : null}
+        {groups.length === 0 ? <Empty text={t('groups.empty')} /> : null}
         {groups.map((g) => (
           <Pressable key={g.id} style={styles.card} onPress={() => open(g)} accessibilityRole="button">
             <Text style={type.heading}>{g.title}</Text>
             {g.topic ? <Text style={type.body}>{g.topic}</Text> : null}
             <Text style={type.small}>
-              {g.memberCount} {g.memberCount === 1 ? 'member' : 'members'}
-              {g.joined ? ' · you are in this group' : ' · tap to join'}
+              {t('groups.members', { count: g.memberCount })}
+              {g.joined ? ` · ${t('groups.joined')}` : ` · ${t('groups.tapToJoin')}`}
             </Text>
           </Pressable>
         ))}

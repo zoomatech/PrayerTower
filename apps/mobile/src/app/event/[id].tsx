@@ -8,9 +8,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { whenText } from '@/components/events';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function EventScreen() {
+  const { t, label } = useLocale();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<PrayerEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,67 +48,67 @@ export default function EventScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/events'))} />
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/events'))} />
         <ErrorText error={error} />
         {e ? (
           <View style={styles.card}>
-            <Text style={type.script}>{EVENT_KIND_LABELS[e.kind]}</Text>
+            <Text style={type.script}>{label('eventKind', e.kind, EVENT_KIND_LABELS[e.kind])}</Text>
             <Text style={type.title}>{e.title}</Text>
-            {e.cancelled ? <Text style={styles.cancelled}>This event was cancelled.</Text> : null}
+            {e.cancelled ? <Text style={styles.cancelled}>{t('events.cancelled')}</Text> : null}
             <Text style={styles.when}>
-              {e.live ? 'Happening now' : whenText(e.startsAt)} · {e.durationMinutes} min
+              {e.live ? t('events.happening') : whenText(e.startsAt)} · {t('events.minutesShort', { count: e.durationMinutes })}
             </Text>
             {e.description ? <Text style={type.body}>{e.description}</Text> : null}
             {e.location ? <Text style={type.body}>📍 {e.location}</Text> : null}
-            {e.groupTitle ? <Text style={type.small}>For the group {e.groupTitle}</Text> : null}
+            {e.groupTitle ? <Text style={type.small}>{t('events.forGroup', { name: e.groupTitle })}</Text> : null}
             <Text style={type.small}>
-              Hosted by {e.isHost ? 'you' : e.host.name} · {e.going} going
+              {e.isHost ? t('events.hostedYou', { count: e.going }) : t('events.hostedBy', { name: e.host.name, count: e.going })}
             </Text>
 
             {e.videoUrl ? (
-              <Button label={e.live ? 'Join the video meeting now' : 'Open the video meeting link'} onPress={() => Linking.openURL(e.videoUrl!).catch(() => undefined)} />
+              <Button label={e.live ? t('events.joinNow') : t('events.openLink')} onPress={() => Linking.openURL(e.videoUrl!).catch(() => undefined)} />
             ) : e.hasVideo ? (
-              <Text style={type.small}>Say you're coming to see the video meeting link.</Text>
+              <Text style={type.small}>{t('events.rsvpForLink')}</Text>
             ) : null}
 
             {!e.cancelled && !e.isHost ? (
               <View style={styles.row}>
-                <Button small variant={e.myRsvp === 'going' ? 'primary' : 'secondary'} label={e.myRsvp === 'going' ? "✓ I'm going" : "I'm going"} onPress={() => run(() => api.rsvp(id, 'going'))} />
-                <Button small variant={e.myRsvp === 'maybe' ? 'primary' : 'secondary'} label="Maybe" onPress={() => run(() => api.rsvp(id, 'maybe'))} />
-                {e.myRsvp ? <Button small variant="ghost" label="Can't make it" onPress={() => run(() => api.unrsvp(id))} /> : null}
+                <Button small variant={e.myRsvp === 'going' ? 'primary' : 'secondary'} label={e.myRsvp === 'going' ? t('events.goingOn') : t('events.going')} onPress={() => run(() => api.rsvp(id, 'going'))} />
+                <Button small variant={e.myRsvp === 'maybe' ? 'primary' : 'secondary'} label={t('events.maybe')} onPress={() => run(() => api.rsvp(id, 'maybe'))} />
+                {e.myRsvp ? <Button small variant="ghost" label={t('events.cantMake')} onPress={() => run(() => api.unrsvp(id))} /> : null}
               </View>
             ) : null}
-            {e.myRsvp === 'going' && !e.cancelled ? <Text style={type.small}>We'll remind you shortly before it starts.</Text> : null}
-            {e.isHost && !e.cancelled ? <Button small variant="ghost" label="Cancel this event" onPress={() => run(() => api.cancelEvent(id))} /> : null}
+            {e.myRsvp === 'going' && !e.cancelled ? <Text style={type.small}>{t('events.reminder')}</Text> : null}
+            {e.isHost && !e.cancelled ? <Button small variant="ghost" label={t('events.cancel')} onPress={() => run(() => api.cancelEvent(id))} /> : null}
           </View>
         ) : null}
 
         {e && !e.isHost ? (
           reporting ? (
             <View style={styles.card}>
-              <Text style={type.heading}>Report this event</Text>
-              <Field placeholder="What's wrong with it?" value={reason} onChangeText={setReason} maxLength={1000} multiline />
+              <Text style={type.heading}>{t('events.report')}</Text>
+              <Field placeholder={t('conversation.whatsWrong')} value={reason} onChangeText={setReason} maxLength={1000} multiline />
               <View style={styles.row}>
                 <Button
                   small
-                  label="Send report"
+                  label={t('actions.sendReport')}
                   disabled={!reason.trim()}
                   onPress={() =>
                     api
                       .report('event', id, reason.trim())
                       .then(() => {
                         setReporting(false);
-                        setNote('Thank you. A moderator will look at it.');
+                        setNote(t('events.reportDone'));
                       })
                       .catch((err) => setError((err as Error).message))
                   }
                 />
-                <Button small variant="ghost" label="Cancel" onPress={() => setReporting(false)} />
+                <Button small variant="ghost" label={t('common.cancel')} onPress={() => setReporting(false)} />
               </View>
             </View>
           ) : (
             <Text style={styles.report} onPress={() => setReporting(true)} accessibilityRole="button">
-              {note ?? 'Report this event'}
+              {note ?? t('events.report')}
             </Text>
           )
         ) : null}

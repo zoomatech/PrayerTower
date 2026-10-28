@@ -73,6 +73,7 @@ async function finish(q: Queryable, s: Schedule & { user_id: string }, status: '
     kind: 'scheduled_spend',
     title: 'A scheduled gift did not go out',
     body: error,
+    t: { key: 'scheduled_spend_failed', params: { body: error } },
     data: { postId: s.post_id, scheduleId: s.id },
   });
 }

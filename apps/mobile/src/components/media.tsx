@@ -8,6 +8,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 function VideoPlayer({ url }: { url: string }) {
@@ -17,16 +18,18 @@ function VideoPlayer({ url }: { url: string }) {
 
 /** A video player is heavy, so a card only creates one when the member taps play. */
 function Video({ url }: { url: string }) {
+  const t = useT();
   const [playing, setPlaying] = useState(false);
   if (playing) return <VideoPlayer url={url} />;
   return (
-    <Pressable style={[styles.video, styles.poster]} onPress={() => setPlaying(true)} accessibilityRole="button" accessibilityLabel="Play video">
+    <Pressable style={[styles.video, styles.poster]} onPress={() => setPlaying(true)} accessibilityRole="button" accessibilityLabel={t('common.playVideo')}>
       <Text style={styles.play}>▶</Text>
     </Pressable>
   );
 }
 
 export function CardMedia({ media, expanded }: { media: Card['media']; expanded: boolean }) {
+  const t = useT();
   const ready = media.filter((m) => m.url);
   if (ready.length === 0) return null;
   const shown = expanded ? ready : ready.slice(0, 1);
@@ -44,7 +47,7 @@ export function CardMedia({ media, expanded }: { media: Card['media']; expanded:
             transition={150}
             style={styles.image}
             contentFit="cover"
-            accessibilityLabel="Photo"
+            accessibilityLabel={t('common.photo')}
           />
         ),
       )}
