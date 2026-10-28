@@ -33,7 +33,6 @@ const set = (patch: Partial<State>) => {
   listeners.forEach((l) => l());
 };
 
-export const offlineState = () => state;
 export function useOffline() {
   return useSyncExternalStore(
     (l) => {

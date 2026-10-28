@@ -14,11 +14,13 @@
     "review-account": "tsx src/scripts/review-account.ts",
     "push-test": "tsx src/scripts/push-test.ts",
     "query-audit": "tsx src/scripts/query-audit.ts",
-    "load-test": "tsx src/scripts/load-test.ts"
+    "load-test": "tsx src/scripts/load-test.ts",
+    "coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^5.0.5",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"

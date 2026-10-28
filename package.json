@@ -24,9 +24,18 @@
     "test:e2e": "npm test -w @prayer-tower/e2e",
     "brand": "node scripts/branding/render.mjs",
     "changelog": "node scripts/release/release.mjs changelog",
-    "release": "node scripts/release/release.mjs release"
+    "release": "node scripts/release/release.mjs release",
+    "lint": "eslint . && npm run lint -w @prayer-tower/mobile",
+    "knip": "knip",
+    "coverage": "npm run coverage -w @prayer-tower/server"
   },
   "devDependencies": {
-    "supabase": "^2.122.0"
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
+    "knip": "^6.43.0",
+    "playwright": "^1.63.0",
+    "supabase": "^2.122.0",
+    "typescript-eslint": "^8.72.1"
   }
 }

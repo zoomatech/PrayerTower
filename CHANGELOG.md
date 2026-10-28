@@ -4,6 +4,7 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Job retries and failed-jobs admin, abuse limits, Maestro flows, CSV import ([#39](https://github.com/zoomatech/PrayerTower/pull/39))
 - API docs, Spanish emails, Android push scaffolding, query audit indexes ([#38](https://github.com/zoomatech/PrayerTower/pull/38))
 - Staff handbook, instant crisis alerts, feedback triage, go-live turns on the invite hook ([#36](https://github.com/zoomatech/PrayerTower/pull/36))
 - Church partners: pastors apply, admins verify, verified pastors get a badge ([#34](https://github.com/zoomatech/PrayerTower/pull/34))

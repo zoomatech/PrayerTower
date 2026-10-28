@@ -20,9 +20,40 @@ jobs:
       # No tests read email (sign-up confirmations are off), and skipping Mailpit avoids
       # the runner's port 54324 already being taken (seen 2026-10-28).
       - run: npm run db:start -- -x mailpit
-      - run: npm test
+      # Server tests with a coverage report: fails below the thresholds in
+      # apps/server/vitest.config.ts (docs/CODE_HEALTH.md).
+      - run: npm run coverage
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const t = require("./apps/server/coverage/coverage-summary.json").total;
+            const row = (k) => `| ${k} | ${t[k].pct}% | ${t[k].covered} of ${t[k].total} |`;
+            console.log(["### Server test coverage", "", "| | Covered | |", "|---|---|---|", ...["lines", "statements", "functions", "branches"].map(row)].join("\n"));
+          ' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: server-coverage
+          path: apps/server/coverage/
+          retention-days: 14
+      - run: npm test -w @prayer-tower/station
       # Back up the test database, restore it into a throwaway stack, compare.
       - run: scripts/restore-drill.sh
+
+  # ESLint (server, station, shared, e2e, scripts and the app) and Knip
+  # (unused files, dependencies and exports). docs/CODE_HEALTH.md.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run knip
 
   # Known vulnerabilities in dependencies. The server, station and shared
   # packages run in production, so any high one fails the build; the app's
