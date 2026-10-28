@@ -536,6 +536,12 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   const topByPost = new Map(tops.map((t) => [t.post_id, t]));
   // One query, not one per card: parallel per-card queries took every pool connection (load test 2026-10-28).
   const reachByPost = await tokens.reachOfMany(q, postIds);
+  // Posts copied from the author's Facebook or Threads ("From Facebook").
+  const { rows: copies } = await q.query<{ post_id: string; source: 'facebook' | 'threads' }>(
+    'select post_id, source from public.crosspost_imports where post_id = any($1::uuid[])',
+    [postIds],
+  );
+  const copiedFrom = new Map(copies.map((c) => [c.post_id, c.source]));
 
   // The viewer's own active commitment on each post (vine tendrils, "Committed" state).
   const { rows: mine } = await q.query<{ post_id: string; id: string; frequency: string }>(
@@ -600,6 +606,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         counts: r.counts,
         reach: reachByPost.get(id) ?? 0,
         topComment: top ? presentComment(top, viewerId) : null,
+        crosspostedFrom: copiedFrom.get(id) ?? null,
         createdAt: r.created_at,
       },
     ];

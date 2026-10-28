@@ -80,6 +80,9 @@ describe('endpoint auth', () => {
       'GET /open-circle/promise',
       // Public podcast feeds for podcast apps (404 while switched off).
       'GET /podcasts/:slug/feed.xml',
+      // Cross-posting: the Meta sign-in return (one-time state) and the Threads webhook check (verify token).
+      'GET /crosspost/:provider/callback',
+      'GET /crosspost/threads/webhook',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

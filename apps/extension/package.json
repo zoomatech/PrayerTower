@@ -1,0 +1,13 @@
+{
+  "name": "@prayer-tower/extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser extension (Chrome; Safari via Apple's converter): copies the member's own Facebook and Threads posts to their Prayer Tower account",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^5.0.5"
+  }
+}

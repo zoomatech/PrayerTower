@@ -83,6 +83,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         </Text>
       ) : null}
       {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+      {card.crosspostedFrom ? <Text style={styles.tags}>{t('card.from', { name: card.crosspostedFrom === 'threads' ? 'Threads' : 'Facebook' })}</Text> : null}
       {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
       <Pressable onPress={open} accessibilityRole="link" style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>

@@ -19,6 +19,11 @@
       "entry": [
         "src/scripts/*.ts"
       ]
+    },
+    "apps/extension": {
+      "entry": [
+        "src/*.js"
+      ]
     }
   },
   "ignoreExportsUsedInFile": true,

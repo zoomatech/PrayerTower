@@ -26,6 +26,10 @@ import { communityRoutes } from './modules/communities/routes.js';
 import { surveyRoutes } from './modules/surveys/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
+import { storageImageStore } from './modules/crosspost/index.js';
+import type { CrosspostOptions } from './modules/crosspost/meta.js';
+import { crosspostPublicRoutes, crosspostRoutes } from './modules/crosspost/routes.js';
+import { MEDIA_BUCKET } from './modules/posts/media.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { aiRoutes } from './modules/ai/routes.js';
 import { isSecular } from './modules/communities/index.js';
@@ -88,6 +92,8 @@ export interface AppDeps {
   apiDocs?: { restricted: boolean; password: string | null; version: string } | null;
   /** Checks App Store signed transactions (token purchase); null = purchases can't be verified. */
   appleVerifier?: AppleVerifier | null;
+  /** Cross-posting from Facebook and Threads: Meta app keys for "Connect"; null = extension only. */
+  crosspost?: CrosspostOptions | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
@@ -99,7 +105,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -198,6 +204,18 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     storeNotificationRoutes(open, db, appleVerifier);
   });
 
+  // Cross-posting: the browser extension (its own key), the Meta sign-in return and the Threads webhook.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+    const images = storage
+      ? storageImageStore(async (path, bytes, contentType) => {
+          const { error } = await storage.storage.from(MEDIA_BUCKET).upload(path, bytes, { contentType });
+          if (error) throw new AppError(502, 'storage_error', error.message);
+        })
+      : null;
+    crosspostPublicRoutes(open, db, crosspost, images);
+  });
+
   // Everything else requires a signed-in member.
   app.register(async (authed) => {
     markScope(authed, catalog, 'member');
@@ -239,6 +257,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     surveyRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
+    crosspostRoutes(authed, db, crosspost);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);
     notificationRoutes(authed, db);

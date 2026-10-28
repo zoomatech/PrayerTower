@@ -76,6 +76,7 @@ function RootStack() {
           <Stack.Screen name="legal" />
           <Stack.Screen name="podcasts" />
           <Stack.Screen name="podcasts-admin" />
+          <Stack.Screen name="crosspost" />
           <Stack.Screen name="survey/[id]" />
           <Stack.Screen name="feedback-triage" />
           <Stack.Screen name="import" />

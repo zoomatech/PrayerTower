@@ -5,7 +5,8 @@
 //   * sermon and meeting inputs on events (Notes Page 12);
 //   * the "Prayer and positive thoughts welcome" label (note of 2026-09-19);
 //   * Witness stories, off by default (the switch lives here; the code is in witness/);
-//   * the "don't pressure people" rule and the public ad-free promise page (20261029004700).
+//   * the "don't pressure people" rule and the public ad-free promise page (20261029004700);
+//   * podcasts (20261029004900) and cross-posting from Facebook and Threads (20261029007000).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
@@ -23,12 +24,13 @@ export interface NotebookSettings {
   pressure_rule_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
+  crosspost_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
-            pressure_rule_enabled, promise_page_enabled, podcasts_enabled from public.notebook_settings`,
+            pressure_rule_enabled, promise_page_enabled, podcasts_enabled, crosspost_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -43,6 +45,7 @@ export const SettingsPatch = z.object({
   pressureRuleEnabled: z.boolean().optional(),
   promisePageEnabled: z.boolean().optional(),
   podcastsEnabled: z.boolean().optional(),
+  crosspostEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -52,7 +55,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        thanks_card_days = coalesce($3, thanks_card_days), sermon_inputs_enabled = coalesce($4, sermon_inputs_enabled),
        support_label_enabled = coalesce($5, support_label_enabled), witness_stories_enabled = coalesce($6, witness_stories_enabled),
        pressure_rule_enabled = coalesce($7, pressure_rule_enabled), promise_page_enabled = coalesce($8, promise_page_enabled),
-       podcasts_enabled = coalesce($9, podcasts_enabled)`,
+       podcasts_enabled = coalesce($9, podcasts_enabled), crosspost_enabled = coalesce($10, crosspost_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -63,6 +66,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.pressureRuleEnabled ?? null,
       p.promisePageEnabled ?? null,
       p.podcastsEnabled ?? null,
+      p.crosspostEnabled ?? null,
     ],
   );
   return settings(q);
@@ -83,6 +87,8 @@ export async function features(q: Queryable) {
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,
+    /** Members can copy their Facebook and Threads posts here (modules/crosspost). */
+    crosspost: s.crosspost_enabled,
     /** Paid radio prayers are matched with equal material help (modules/material-match). */
     materialMatch: match[0]?.enabled === true,
   };

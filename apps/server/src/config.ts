@@ -85,6 +85,21 @@ const Env = z.object({
   // Language of the sponsor email for addresses that aren't members (members get their app language).
   SPONSOR_REPORT_LANG: z.enum(['en', 'es']).default('en'),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
+  // Cross-posting from Facebook and Threads (docs/CROSSPOST.md). The browser extension needs none of these;
+  // "Connect Threads" / "Connect Facebook" need their app's ID and secret, the public URL and the token key.
+  /** The server's public https address, for the sign-in return link, e.g. https://api.prayertower.app. */
+  CROSSPOST_PUBLIC_URL: z.url({ protocol: /^https$/ }).optional(),
+  /** Encrypts stored Facebook and Threads tokens (any random text, 32+ characters). */
+  CROSSPOST_TOKEN_KEY: z.string().min(32).optional(),
+  /** Threads app ID and secret (Meta App Dashboard → the Threads use case → Settings). */
+  THREADS_APP_ID: z.string().optional(),
+  THREADS_APP_SECRET: z.string().optional(),
+  /** The Verify Token typed into the Threads webhook settings. Unset = no webhook (polling only). */
+  THREADS_WEBHOOK_VERIFY_TOKEN: z.string().min(16).optional(),
+  /** Facebook app ID and secret (Meta App Dashboard → App settings → Basic). */
+  FACEBOOK_APP_ID: z.string().optional(),
+  FACEBOOK_APP_SECRET: z.string().optional(),
+  FACEBOOK_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default('v26.0'),
   /** Days after a moderator removes content before its text and photos are erased (0 = never). */
   RETENTION_REMOVED_DAYS: z.coerce.number().int().min(0).default(90),
   /** Days notifications are kept (0 = forever). */

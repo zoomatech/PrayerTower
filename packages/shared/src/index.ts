@@ -14,7 +14,7 @@ export const isPrayable = (t: PostType) => !DISCUSSION_TYPES.includes(t);
  * for Open Circle. Hidden features disappear from the app for that community's
  * members, and the server refuses them.
  */
-export const COMMUNITY_FEATURES = ['radio', 'spoken', 'care', 'events', 'groups', 'awards', 'live', 'circles', 'pools', 'highlights', 'surveys', 'podcasts'] as const;
+export const COMMUNITY_FEATURES = ['radio', 'spoken', 'care', 'events', 'groups', 'awards', 'live', 'circles', 'pools', 'highlights', 'surveys', 'podcasts', 'crosspost'] as const;
 export type CommunityFeature = (typeof COMMUNITY_FEATURES)[number];
 
 export const POST_TYPE_LABELS: Record<PostType, string> = {
@@ -231,6 +231,8 @@ export interface Card {
   };
   reach: number;
   topComment: Comment | null;
+  /** Copied from the author's own Facebook or Threads post (cross-posting). */
+  crosspostedFrom?: 'facebook' | 'threads' | null;
   createdAt: string;
 }
 

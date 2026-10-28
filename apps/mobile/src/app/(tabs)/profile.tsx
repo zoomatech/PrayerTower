@@ -38,6 +38,7 @@ export default function Profile() {
   const poolsOn = useFeature('pools');
   const radioOn = useFeature('radio');
   const podcastsOn = useFeature('podcasts');
+  const crosspostOn = useFeature('crosspost');
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,6 +164,7 @@ export default function Profile() {
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
+          {features.crosspost && crosspostOn ? <Button small variant="secondary" label={t('crosspost.link')} onPress={() => router.push('/crosspost')} /> : null}
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (
