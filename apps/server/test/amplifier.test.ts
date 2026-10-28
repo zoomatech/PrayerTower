@@ -48,17 +48,17 @@ describe('LIVE AMPLIFIER', () => {
       const rp = await radio.queue(c, sender, post.id, `amp:${post.id}`);
       await expect(amplifier.queue(c, member)).rejects.toThrow('Only licensed operators');
 
-      const q1 = await amplifier.queue(c, ham);
+      const q1 = await amplifier.queue(c, ham, 5000);
       expect(q1.find((p) => p.id === rp.id)?.text).toBe('Please pray for rain on our dry farm this month.');
       expect(JSON.stringify(q1)).not.toContain('Amp Poster');
 
       const reading = await amplifier.claim(c, ham, rp.id);
       // One read per prayer: it's gone from the other operator's queue while claimed.
-      expect((await amplifier.queue(c, ham2)).some((p) => p.id === rp.id)).toBe(false);
+      expect((await amplifier.queue(c, ham2, 5000)).some((p) => p.id === rp.id)).toBe(false);
       await expect(amplifier.claim(c, ham2, rp.id)).rejects.toThrow('no longer in the queue');
 
       await amplifier.release(c, ham, reading.id);
-      expect((await amplifier.queue(c, ham2)).some((p) => p.id === rp.id)).toBe(true);
+      expect((await amplifier.queue(c, ham2, 5000)).some((p) => p.id === rp.id)).toBe(true);
       const again = await amplifier.claim(c, ham, rp.id);
       await amplifier.markRead(c, ham, again.id, { onAirNote: '40 m net' });
       await expect(amplifier.markRead(c, ham, again.id, {})).rejects.toThrow('already read');
@@ -67,7 +67,7 @@ describe('LIVE AMPLIFIER', () => {
 
       // 97.113: nothing is read while radio prayers are paid for.
       await c.query(`update public.token_settings set radio_funding = 'tokens'`);
-      await expect(amplifier.queue(c, ham)).rejects.toThrow('97.113');
+      await expect(amplifier.queue(c, ham, 5000)).rejects.toThrow('97.113');
     } finally {
       await c.query('rollback');
       c.release();

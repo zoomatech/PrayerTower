@@ -1,5 +1,5 @@
 // The Common Prayer Fund's public report: money in, help sent out, and what's
-// left, from admin-recorded entries (migration 20261029002700_common_fund_ledger.sql).
+// left, from admin-recorded entries (migration 20261029003200_common_fund_ledger.sql).
 // Behind future_settings.common_fund_page_enabled (off by default). No money moves
 // through the app, and the report never names anyone.
 import { z } from 'zod';

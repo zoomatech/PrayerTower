@@ -4,6 +4,8 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Common Prayer Fund public report and LIVE AMPLIFIER operator queue (both off) ([#58](https://github.com/zoomatech/PrayerTower/pull/58))
+- Discussion, news and blog posts; Annual Prayer Warrior Award (both off by default) ([#61](https://github.com/zoomatech/PrayerTower/pull/61))
 - Amplify paid with Priestly tokens; confession with clergy (both off by default) ([#60](https://github.com/zoomatech/PrayerTower/pull/60))
 - Spoken prayers: voice prayers, free with an optional token offer ([#59](https://github.com/zoomatech/PrayerTower/pull/59))
 - Open Circle: ad-free, non-religious edition (community + branded build) ([#57](https://github.com/zoomatech/PrayerTower/pull/57))

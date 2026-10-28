@@ -31,6 +31,7 @@ import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
 import * as safety from '../safety/index.js';
+import * as seedPrayers from '../seed-prayers/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as audit from '../audit/index.js';
@@ -320,6 +321,45 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await withTx(db, (tx) => amplifier.deactivate(tx, z.uuid().parse(req.params.id)));
     return { ok: true };
   });
+
+  // Seed prayers (off by default): a library of prayers an admin approves before they're posted from a staff account.
+  app.get('/admin/seed-prayer-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await seedPrayers.settings(db) };
+  });
+
+  app.patch('/admin/seed-prayer-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await seedPrayers.updateSettings(db, seedPrayers.SettingsPatch.parse(req.body)) };
+  });
+
+  app.get('/admin/seed-prayers', async (req) => {
+    await requireAdmin(req);
+    return { prayers: await seedPrayers.list(db, seedPrayers.ListFilter.parse(req.query)) };
+  });
+
+  app.post('/admin/seed-prayers', async (req, reply) => {
+    const adminId = await requireAdmin(req);
+    return reply.code(201).send({ prayer: await seedPrayers.create(db, adminId, seedPrayers.NewSeed.parse(req.body)) });
+  });
+
+  app.patch<{ Params: { id: string } }>('/admin/seed-prayers/:id', async (req) => {
+    await requireAdmin(req);
+    const id = z.uuid().parse(req.params.id);
+    return { prayer: await withTx(db, (tx) => seedPrayers.update(tx, id, seedPrayers.SeedPatch.parse(req.body))) };
+  });
+
+  for (const action of ['approve', 'retire', 'publish'] as const) {
+    app.post<{ Params: { id: string } }>(`/admin/seed-prayers/:id/${action}`, async (req) => {
+      const adminId = await requireAdmin(req);
+      const id = z.uuid().parse(req.params.id);
+      return {
+        prayer: await withTx(db, (tx) =>
+          action === 'approve' ? seedPrayers.approve(tx, adminId, id) : action === 'retire' ? seedPrayers.retire(tx, id) : seedPrayers.publish(tx, id),
+        ),
+      };
+    });
+  }
 
   // Pilot feedback from members.
   // ?status=open|closed|all&tag=bug filters; /admin/feedback/export downloads the same as CSV.

@@ -17,6 +17,7 @@ import { weeklySponsorReportTask } from './modules/admin/sponsor-report.js';
 import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
+import { publishDueTask as seedPrayersTask } from './modules/seed-prayers/index.js';
 import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 
@@ -45,6 +46,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     jobs_failure_check: failureCheckTask(db),
     ops_heartbeat: heartbeatTask(db),
     ops_check: opsCheckTask(db),
+    seed_prayers_publish: seedPrayersTask(),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
   };
 }
@@ -80,4 +82,6 @@ export const crontab = [
   '* * * * * ops_heartbeat ?max=1&jobKey=ops_heartbeat',
   // Every 5 minutes: alert admins about overdue jobs, server errors or a silent radio station.
   '*/5 * * * * ops_check ?max=3&jobKey=ops_check',
+  // Every 15 minutes: post approved seed prayers that are due (only while the switch is on).
+  '*/15 * * * * seed_prayers_publish ?max=3&fill=1h&jobKey=seed_prayers_publish',
 ].join('\n');

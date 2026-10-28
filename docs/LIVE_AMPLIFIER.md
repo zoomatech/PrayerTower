@@ -28,6 +28,6 @@ There are no app screens. The operator flow is the API above, ready for an "Oper
 
 ## Files
 
-- `supabase/migrations/20261029002800_live_amplifier.sql`
+- `supabase/migrations/20261029003300_live_amplifier.sql`
 - `apps/server/src/modules/amplifier/`
 - Tests: `apps/server/test/amplifier.test.ts`

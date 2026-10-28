@@ -1,5 +1,5 @@
 // LIVE AMPLIFIER: licensed ham operators read radio prayers aloud on the air
-// (migration 20261029002800_live_amplifier.sql). Off by default. Operators see
+// (migration 20261029003300_live_amplifier.sql). Off by default. Operators see
 // only the request text, never a name, and only requests that a member chose to
 // send by radio and that are visible, not sensitive and not waiting for review.
 import { z } from 'zod';
