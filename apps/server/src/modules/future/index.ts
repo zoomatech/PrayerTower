@@ -5,7 +5,6 @@
 // takes money or calls an AI.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { forbidden } from '../../errors.js';
 
 export interface FutureSettings {
   purchases_enabled: boolean;
