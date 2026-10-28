@@ -9,7 +9,7 @@ import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
-import { api, type PowerPrayerStatus, type PrayerGroup } from '@/lib/api';
+import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
 
@@ -31,8 +31,6 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
-  const [groups, setGroups] = useState<PrayerGroup[] | null>(null);
-  const [addedTo, setAddedTo] = useState<string | null>(null);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
 
   const load = useCallback(async () => {
@@ -100,16 +98,6 @@ export default function PostScreen() {
     }
   };
 
-  // Prayer-to-prayee messages: a pray-er writes to the poster; the poster picks someone who prayed.
-  const openMessage = async (withUserId?: string) => {
-    try {
-      const r = await api.startConversation(id, withUserId);
-      router.push(`/messages/${r.id}`);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  };
-
   const markAnswered = async () => {
     try {
       await api.markAnswered(id);
@@ -127,45 +115,6 @@ export default function PostScreen() {
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} />
-
-        {card && !card.isMine ? (
-          <Button small variant="secondary" label={`Message ${card.author.anonymous ? 'the person who asked' : card.author.displayName}`} onPress={() => openMessage()} />
-        ) : null}
-
-        {addedTo ? (
-          <Text style={type.small}>Added to {addedTo}'s prayer list.</Text>
-        ) : groups ? (
-          <View style={styles.row}>
-            {groups.length === 0 ? <Text style={type.small}>Join or start a prayer group first (Me › Prayer groups).</Text> : null}
-            {groups.map((g) => (
-              <Button
-                key={g.id}
-                small
-                variant="secondary"
-                label={g.name}
-                onPress={() =>
-                  api
-                    .addToGroupList(g.id, id)
-                    .then(() => setAddedTo(g.name))
-                    .catch((e) => setError((e as Error).message))
-                }
-              />
-            ))}
-          </View>
-        ) : card && (card.isMine || !card.isSensitive) ? (
-          <Text
-            style={styles.reply}
-            accessibilityRole="button"
-            onPress={() =>
-              api
-                .groups()
-                .then((r) => setGroups(r.mine))
-                .catch((e) => setError((e as Error).message))
-            }
-          >
-            Add to a group prayer list
-          </Text>
-        ) : null}
 
         {card && !card.isMine ? (
           <Text style={styles.report} onPress={() => openReport(card)} accessibilityRole="button">
@@ -217,17 +166,6 @@ export default function PostScreen() {
             </Text>
             {prayers.people.length > 0 ? (
               <Text style={type.body}>{prayers.people.map((p) => p.displayName).join(', ')}</Text>
-            ) : null}
-            {card?.isMine && prayers.people.some((p) => p.id && p.id !== profile?.id) ? (
-              <View style={styles.row}>
-                {prayers.people
-                  .filter((p) => p.id && p.id !== profile?.id)
-                  .map((p) => (
-                    <Text key={p.id} style={styles.reply} onPress={() => openMessage(p.id!)} accessibilityRole="button">
-                      Message {p.displayName}
-                    </Text>
-                  ))}
-              </View>
             ) : null}
             {card?.isMine && prayers.count > 0 ? (
               thanked !== null ? (

@@ -142,7 +142,7 @@ export async function markAnswered(q: Queryable, userId: string, postId: string)
 }
 
 export async function setModerationStatus(q: Queryable, target: moderation.Target, id: string, status: ModerationStatus) {
-  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages' }[target];
+  const table = { post: 'posts', comment: 'comments', reaction: 'reactions' }[target];
   await q.query(`update public.${table} set moderation_status = $2 where id = $1`, [id, status]);
 }
 
@@ -152,7 +152,6 @@ export async function moderationSubject(q: Queryable, target: moderation.Target,
     post: 'select user_id, community_id, body as text from public.posts where id = $1',
     comment: 'select user_id, community_id, body as text from public.comments where id = $1',
     reaction: 'select user_id, community_id, note as text from public.reactions where id = $1',
-    message: 'select user_id, community_id, body as text from public.messages where id = $1',
   }[target];
   const { rows } = await q.query<{ user_id: string; community_id: string; text: string | null }>(sql, [id]);
   return rows[0] ?? null;

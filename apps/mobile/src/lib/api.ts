@@ -140,42 +140,6 @@ export interface MacroNeed {
   helped: boolean;
 }
 
-export interface Conversation {
-  id: string;
-  postId: string;
-  postPreview: string;
-  with: { id: string | null; displayName: string; handle: string | null; anonymous: boolean };
-  lastMessage: string | null;
-  lastMessageAt: string | null;
-  unread: boolean;
-}
-
-export interface Message {
-  id: string;
-  mine: boolean;
-  body: string;
-  crisis: boolean;
-  createdAt: string;
-}
-
-export interface PrayerGroup {
-  id: string;
-  name: string;
-  purpose: string;
-  isPrivate: boolean;
-  members: number;
-  role: 'leader' | 'member' | null;
-  inviteCode: string | null;
-  unread: boolean;
-}
-
-export interface GroupPage {
-  group: PrayerGroup;
-  members: { id: string; displayName: string; role: string }[];
-  prayerList: Card[];
-  messages: { id: string; mine: boolean; author: { displayName: string }; body: string; createdAt: string }[];
-}
-
 export interface PrayerCast {
   totals: { prayers: number; sends: number };
   cast: { id: string; post_id: string; text: string; repeats: number; transmitter: string | null; call_sign: string | null; transmitted_at: string }[];
@@ -208,7 +172,6 @@ export interface AdminSafetySettings {
   new_member_posts_per_day: number;
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
-  messages_enabled: boolean;
 }
 export interface AdminTier {
   tier: string;
@@ -287,7 +250,7 @@ export const api = {
     post<{ sent: number }>(`/posts/${postId}/ask`, { recipientIds, note: note || undefined }),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
-  report: (targetType: 'post' | 'comment' | 'message', targetId: string, reason: string) =>
+  report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
@@ -324,7 +287,6 @@ export const api = {
         newMemberPostsPerDay: number;
         newMemberCommentsPerDay: number;
         newMemberLinksAllowed: boolean;
-        messagesEnabled: boolean;
       }>,
     ) => request<{ settings: AdminSafetySettings }>('PATCH', '/admin/safety-settings', patch),
     tiers: () => get<{ tiers: AdminTier[] }>('/admin/tiers'),
@@ -357,23 +319,6 @@ export const api = {
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
   highlights: () => get<Highlights>('/highlights'),
-  startConversation: (postId: string, withUserId?: string) =>
-    post<{ id: string }>(`/posts/${postId}/conversations`, withUserId ? { withUserId } : {}),
-  groups: () => get<{ mine: PrayerGroup[]; discover: PrayerGroup[] }>('/groups'),
-  createGroup: (input: { name: string; purpose: string; isPrivate: boolean }) => post<{ id: string }>('/groups', input),
-  joinGroup: (id: string) => post(`/groups/${id}/join`, {}),
-  joinGroupByCode: (code: string) => post<{ id: string }>('/groups/join', { code }),
-  leaveGroup: (id: string) => post(`/groups/${id}/leave`, {}),
-  group: (id: string) => get<GroupPage>(`/groups/${id}`),
-  addToGroupList: (id: string, postId: string) => post(`/groups/${id}/prayer-list`, { postId }),
-  removeFromGroupList: (id: string, postId: string) => request('DELETE', `/groups/${id}/prayer-list/${postId}`),
-  sendGroupMessage: (id: string, body: string) => post<{ message: { id: string; crisis: boolean } }>(`/groups/${id}/messages`, { body }),
-  conversations: () => get<{ conversations: Conversation[]; unread: number }>('/me/conversations'),
-  conversation: (id: string) => get<{ conversation: Conversation & { blocked: boolean }; messages: Message[] }>(`/conversations/${id}`),
-  sendMessage: (id: string, body: string) => post<{ message: { id: string; crisis: boolean } }>(`/conversations/${id}/messages`, { body }),
-  markConversationRead: (id: string) => post(`/conversations/${id}/read`, {}),
-  setBlocked: (id: string, blocked: boolean) =>
-    blocked ? put<{ blocked: boolean }>(`/conversations/${id}/block`) : request<{ blocked: boolean }>('DELETE', `/conversations/${id}/block`),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

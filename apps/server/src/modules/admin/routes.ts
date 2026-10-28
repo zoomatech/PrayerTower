@@ -144,7 +144,6 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         newMemberPostsPerDay: z.number().int().min(0).max(1000).optional(),
         newMemberCommentsPerDay: z.number().int().min(0).max(1000).optional(),
         newMemberLinksAllowed: z.boolean().optional(),
-        messagesEnabled: z.boolean().optional(),
       })
       .parse(req.body);
     return {
@@ -155,7 +154,6 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_posts_per_day: input.newMemberPostsPerDay,
         new_member_comments_per_day: input.newMemberCommentsPerDay,
         new_member_links_allowed: input.newMemberLinksAllowed,
-        messages_enabled: input.messagesEnabled,
       }),
     };
   });

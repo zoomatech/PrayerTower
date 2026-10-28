@@ -206,7 +206,7 @@ export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner'
 
 export interface ModerationItem {
   id: string;
-  target_type: 'post' | 'comment' | 'reaction' | 'message';
+  target_type: 'post' | 'comment' | 'reaction';
   target_id: string;
   source: 'report' | 'ai' | 'crisis';
   reason: string | null;
@@ -218,7 +218,7 @@ export interface ModerationItem {
 export interface Appeal {
   id: string;
   moderation_item_id: string;
-  target_type: 'post' | 'comment' | 'reaction' | 'message';
+  target_type: 'post' | 'comment' | 'reaction';
   rule: ModerationRule | null;
   message: string;
   content: string | null;

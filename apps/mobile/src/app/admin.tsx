@@ -259,7 +259,6 @@ export default function Admin() {
               onChange={(v) => saveSafety({ newMemberLimitsEnabled: v })}
             />
             <Toggle label="New members can post links" value={safety.new_member_links_allowed} onChange={(v) => saveSafety({ newMemberLinksAllowed: v })} />
-            <Toggle label="Prayer messages are on" value={safety.messages_enabled} onChange={(v) => saveSafety({ messagesEnabled: v })} />
             <Field label="Hours as a new member" keyboardType="number-pad" value={safetyDraft.hours} onChangeText={(hours) => setSafetyDraft((d) => ({ ...d, hours }))} />
             <Field label="Prayers for others to lift limits" keyboardType="number-pad" value={safetyDraft.prayers} onChangeText={(prayers) => setSafetyDraft((d) => ({ ...d, prayers }))} />
             <Field label="Requests a day" keyboardType="number-pad" value={safetyDraft.posts} onChangeText={(posts) => setSafetyDraft((d) => ({ ...d, posts }))} />

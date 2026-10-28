@@ -21,8 +21,6 @@ export interface SafetySettings {
   new_member_posts_per_day: number;
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
-  messages_enabled: boolean;
-  groups_per_member: number;
 }
 
 const COLUMNS = Object.keys({
@@ -32,8 +30,6 @@ const COLUMNS = Object.keys({
   new_member_posts_per_day: 0,
   new_member_comments_per_day: 0,
   new_member_links_allowed: 0,
-  messages_enabled: 0,
-  groups_per_member: 0,
 } satisfies Record<keyof SafetySettings, 0>) as (keyof SafetySettings)[];
 
 export async function settings(q: Queryable): Promise<SafetySettings> {
