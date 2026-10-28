@@ -1,4 +1,4 @@
-// One event: details, RSVP, the meeting link once you're going, cancel (host), report.
+// One event: details, RSVP, the meeting link once you're going, notes for the host, cancel (host), report.
 import { EVENT_KIND_LABELS, type PrayerEvent } from '@prayer-tower/shared';
 import * as Linking from 'expo-linking';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { whenText } from '@/components/events';
+import { EventInputs } from '@/components/notebook';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -64,6 +65,11 @@ export default function EventScreen() {
             <Text style={type.small}>
               {e.isHost ? t('events.hostedYou', { count: e.going }) : t('events.hostedBy', { name: e.host.name, count: e.going })}
             </Text>
+            {e.host.pastor ? (
+              <Text style={type.small} accessibilityLabel={t('card.pastorBadge', { title: e.host.pastor.title, church: e.host.pastor.church })}>
+                ✝ {e.host.pastor.title} · {e.host.pastor.church}
+              </Text>
+            ) : null}
 
             {e.videoUrl ? (
               <Button label={e.live ? t('events.joinNow') : t('events.openLink')} onPress={() => Linking.openURL(e.videoUrl!).catch(() => undefined)} />
@@ -82,6 +88,8 @@ export default function EventScreen() {
             {e.isHost && !e.cancelled ? <Button small variant="ghost" label={t('events.cancel')} onPress={() => run(() => api.cancelEvent(id))} /> : null}
           </View>
         ) : null}
+
+        {e && !e.cancelled && (e.isHost || e.myRsvp) ? <EventInputs eventId={id} /> : null}
 
         {e && !e.isHost ? (
           reporting ? (

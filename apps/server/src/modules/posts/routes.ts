@@ -62,8 +62,10 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const userId = requireUser(req);
     const { testimony } = z.object({ testimony: z.string().trim().min(1).max(2000).optional() }).parse(req.body ?? {});
     const crisis = await withTx(db, async (tx) => {
-      await posts.markAnswered(tx, userId, req.params.id);
-      return testimony ? shareTestimony(tx, userId, req.params.id, testimony) : false;
+      const post = await posts.markAnswered(tx, userId, req.params.id);
+      if (testimony) return shareTestimony(tx, userId, req.params.id, testimony);
+      await tellPrayersAnswered(tx, userId, post);
+      return false;
     });
     return { post: (await posts.cards(db, [req.params.id], userId))[0], crisis };
   });
@@ -177,6 +179,22 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
 }
 
 /** Save the testimony; the first time, tell everyone who prayed. Returns whether it mentions crisis. */
+/** Answered without a testimony: the pray-ers still hear the good news once (Notes p8, Ethel 10–11). */
+async function tellPrayersAnswered(tx: Parameters<typeof posts.setTestimony>[0], userId: string, post: Awaited<ReturnType<typeof posts.markAnswered>>) {
+  if (post.moderation_status !== 'visible') return;
+  const who = post.is_anonymous ? null : ((await getProfile(tx, userId))?.display_name || null);
+  for (const recipientId of await posts.prayedBy(tx, post.id, userId)) {
+    await notifications.notify(tx, recipientId, {
+      kind: 'answered',
+      title: 'A prayer you prayed was answered',
+      body: `${who ?? 'Someone'} marked their request answered. Thank you for praying.`,
+      data: { postId: post.id },
+      dedupeKey: `answered:${post.id}`,
+      t: { key: 'answered', params: { who } },
+    });
+  }
+}
+
 async function shareTestimony(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, body: string) {
   const r = await posts.setTestimony(tx, userId, postId, { body });
   if (r.first && r.post.moderation_status === 'visible') {

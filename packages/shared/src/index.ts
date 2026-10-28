@@ -194,6 +194,8 @@ export interface Card {
   body: string;
   background: string | null;
   isSensitive: boolean;
+  /** The poster welcomes prayer and positive thoughts from people of any faith or none. */
+  allSupportWelcome: boolean;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
@@ -546,7 +548,7 @@ export interface PrayerEvent {
   location: string | null;
   groupId: string | null;
   groupTitle: string | null;
-  host: { id: string; name: string };
+  host: { id: string; name: string; pastor: PastorBadge | null };
   isHost: boolean;
   going: number;
   myRsvp: 'going' | 'maybe' | null;
@@ -564,7 +566,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer'],
   promises: ['commitment_made', 'commitment_reminder'],
-  encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony'],
+  encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite'],
   tokens: ['mint', 'milestone', 'scheduled_spend'],

@@ -10,7 +10,8 @@ A pastor can add their church from **Me → Are you a pastor? Add your church**.
    - **Verify:** the church becomes verified. The applicant gets the `pastor` role and a notice.
    - **Decline:** needs a note, which the pastor sees in their notice and on the My church screen. The pastor can then apply again.
    - **Revoke** (for a verified church): needs a note, removes the `pastor` role and the badge, and tells the pastor why.
-4. **The badge.** Cards and the pastor's profile show "✝ Senior Pastor · Grace Chapel". The badge never shows on an anonymous post.
+4. **The badge.** Cards, the pastor's profile and events they host show "✝ Senior Pastor · Grace Chapel". The badge never shows on an anonymous post.
+5. **Trusted from day one.** Because an admin checked the church, a verified pastor skips the new-member limits (posts and comments per day, links, asking others to pray, hosting events), the same as staff. Revoking the church puts the limits back if the account is still new.
 
 The `pastor` role is separate from `pastor_counselor`, which is the role for the care-request rotation. Verifying a church does not put the pastor into that rotation. If they should be in it, an admin grants `pastor_counselor` as well.
 
@@ -30,4 +31,4 @@ Every verify, decline and revoke goes to the staff audit log. The application is
 ## Open questions (defaults in use)
 
 - **What counts as verified.** The default is an admin's manual check. Steve may want a stricter rule, such as a letter from the church or a listing in a denomination directory.
-- **What pastors can do beyond the badge.** For example, running church groups or events. Today the badge is all they get.
+- **What pastors can do beyond the badge.** Default: the badge plus skipping the new-member limits. They can already host events and start groups like any member. They can't schedule restorative circles or join the care rotation unless an admin also grants `pastor_counselor`.

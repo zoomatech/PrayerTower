@@ -7,6 +7,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
+import { badgesOf } from '../churches/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as safety from '../safety/index.js';
@@ -160,7 +161,9 @@ interface Row {
   my_rsvp: 'going' | 'maybe' | null;
 }
 
-function present(r: Row, viewerId: string) {
+type Badge = { title: string; church: string };
+
+function present(r: Row, viewerId: string, badges: Map<string, Badge> = new Map()) {
   const ends = new Date(r.starts_at.getTime() + r.duration_minutes * 60_000);
   return {
     id: r.id,
@@ -175,7 +178,7 @@ function present(r: Row, viewerId: string) {
     location: r.location,
     groupId: r.conversation_id,
     groupTitle: r.group_title,
-    host: { id: r.created_by, name: r.host_name },
+    host: { id: r.created_by, name: r.host_name, pastor: badges.get(r.created_by) ?? null },
     isHost: r.created_by === viewerId,
     going: r.going,
     myRsvp: r.my_rsvp,
@@ -187,7 +190,7 @@ function present(r: Row, viewerId: string) {
 export async function get(q: Queryable, userId: string, id: string) {
   const { rows } = await q.query<Row>(`${SELECT} where e.id = $2 and ${VISIBLE}`, [userId, id]);
   if (!rows[0]) throw notFound('Event');
-  return present(rows[0], userId);
+  return present(rows[0], userId, await badgesOf(q, [rows[0].created_by]));
 }
 
 /** Upcoming and happening-now events I can see, soonest first. */
@@ -201,7 +204,8 @@ export async function upcoming(q: Queryable, userId: string, opts: { mine?: bool
       order by e.starts_at limit 100`,
     [userId, opts.mine ?? false, opts.groupId ?? null],
   );
-  return rows.map((r) => present(r, userId));
+  const badges = await badgesOf(q, [...new Set(rows.map((r) => r.created_by))]);
+  return rows.map((r) => present(r, userId, badges));
 }
 
 export async function rsvp(q: Queryable, userId: string, id: string, status: 'going' | 'maybe' | null) {

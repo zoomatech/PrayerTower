@@ -319,6 +319,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'delete from public.follows where user_id = $1 or followee_id = $1',
     'delete from public.user_blocks where user_id = $1 or blocked_id = $1',
     'delete from public.thanks where user_id = $1 or recipient_id = $1',
+    'delete from public.event_inputs where user_id = $1',
     'delete from public.events where created_by = $1',
     'delete from public.event_rsvps where user_id = $1',
     'delete from public.commitments where user_id = $1',

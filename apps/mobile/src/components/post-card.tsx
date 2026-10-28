@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 import { memo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
@@ -39,6 +40,7 @@ export interface CardHandlers {
 export const PostCard = memo(function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
   const { t, label } = useLocale();
+  const features = useFeatures();
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
   // A background shows only on short, text-only posts.
@@ -74,6 +76,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         </Text>
       ) : null}
       {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+      {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
       <Pressable onPress={open} accessibilityRole="link" style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
         <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>

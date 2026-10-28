@@ -38,6 +38,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     urgency: 3,
     isAnonymous: true,
     isSensitive: false,
+    allSupportWelcome: false,
     media: [],
   });
   const { rows } = await q.query<{ id: string }>(

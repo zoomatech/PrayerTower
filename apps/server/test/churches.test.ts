@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
+import { isNewMember, settings as safetySettings } from '../src/modules/safety/index.js';
 import { as, createUser, db, newRequest } from './helpers.js';
 
 afterAll(() => db.end());
@@ -41,6 +42,13 @@ describe('church partners', () => {
     const anonCard = (await as(reader).get(`/posts/${anon.id}`)).json();
     expect(anonCard.post.author.pastor).toBeNull();
     expect((await as(reader).get(`/people/${pastor}`)).json().person.pastor).toEqual({ title: 'Senior Pastor', church: 'Grace Chapel' });
+    // Verified pastors skip the new-member limits and carry the badge as event hosts.
+    expect(await isNewMember(db, pastor, await safetySettings(db))).toBe(false);
+    expect(await isNewMember(db, reader, await safetySettings(db))).toBe(true);
+    const startsAt = new Date(Date.now() + 86_400_000).toISOString();
+    const hosted = await as(pastor).post('/events', { title: 'Pantry prayer night', kind: 'prayer_meeting', location: 'Grace Chapel', startsAt });
+    expect(hosted.statusCode).toBe(201);
+    expect((await as(reader).get(`/events/${hosted.json().event.id}`)).json().event.host.pastor).toEqual({ title: 'Senior Pastor', church: 'Grace Chapel' });
 
     // Revoking removes the role and the badge, and tells the pastor why.
     await as(admin).post(`/admin/churches/${id}/decision`, { decision: 'revoke', note: 'The church asked us to remove the listing.' });

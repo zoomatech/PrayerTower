@@ -16,6 +16,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
+import { PrayedForYou } from '@/components/notebook';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -131,6 +132,7 @@ export default function Profile() {
             </Text>
           </View>
         ) : null}
+        <PrayedForYou />
         <View style={styles.chips}>
           <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />

@@ -13,6 +13,7 @@ import {
 import { useCardActions } from "@/components/card-actions";
 import { Highlights } from "@/components/highlights";
 import { MacroNeeds } from "@/components/macro-needs";
+import { ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
 import { Announcements } from "@/components/announcements";
 import { OfflineBanner } from "@/components/offline-banner";
@@ -153,6 +154,7 @@ export default function Feed() {
         <Chip label={t("feed.filterTestimonies")} selected={filter === "testimonies"} onPress={() => setFilter("testimonies")} />
       </View>
       {filter === "testimonies" ? <Text style={type.small}>{t("feed.testimoniesHint")}</Text> : null}
+      <WorldwideCount />
       {!wide ? (
         <Text
           style={styles.weekLink}
@@ -195,6 +197,7 @@ export default function Feed() {
           </View>
         </View>
       ) : null}
+      {filter === "all" ? <ThanksCard /> : null}
       <ErrorText error={error} />
     </View>
   );

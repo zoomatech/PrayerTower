@@ -1,6 +1,6 @@
 # Spanish review checklist
 
-Every Spanish string in Prayer Tower, beside the English, for a native Spanish speaker to check before release. 1043 items. Generated from the code by `npx tsx scripts/i18n/spanish-review.ts`; regenerate it after strings change, and don't edit the tables by hand.
+Every Spanish string in Prayer Tower, beside the English, for a native Spanish speaker to check before release. 1074 items. Generated from the code by `npx tsx scripts/i18n/spanish-review.ts`; regenerate it after strings change, and don't edit the tables by hand.
 
 ## How to review
 
@@ -775,7 +775,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `macroAdmin.stats` | %{prayers} praying · %{tokens} tokens · %{helpers} gave material help | %{prayers} orando · %{tokens} fichas · %{helpers} dieron ayuda material | |
 | ☐ | `macroAdmin.stop` | Stop featuring | Dejar de destacar | |
 
-### admin (151)
+### admin (163)
 
 | ✓ | Key | English | Español | Correction |
 | --- | --- | --- | --- | --- |
@@ -819,6 +819,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.saved.ruleAdded` | Milestone added. Turn it on when ready. | Hito agregado. Actívalo cuando esté listo. | |
 | ☐ | `admin.saved.events` | Event settings saved. | Ajustes de eventos guardados. | |
 | ☐ | `admin.saved.messages` | Message settings saved. | Ajustes de mensajes guardados. | |
+| ☐ | `admin.saved.notebook` | Notebook feature settings saved. | Ajustes de las funciones del cuaderno guardados. | |
 | ☐ | `admin.reportTitle` | Prayer Tower pilot report | Informe del piloto de Prayer Tower | |
 | ☐ | `admin.metrics` | Pilot metrics | Métricas del piloto | |
 | ☐ | `admin.days.one` | 1 day | 1 día | |
@@ -855,6 +856,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.field.ruleName` | Name | Nombre | |
 | ☐ | `admin.field.ruleAt` | Reached at | Se alcanza en | |
 | ☐ | `admin.field.ruleAmount` | Bonus tokens | Fichas de bonificación | |
+| ☐ | `admin.field.thanksDays` | Thanksgiving card: days between showings | Tarjeta de gratitud: días entre apariciones | |
 | ☐ | `admin.btn.saveTokens` | Save token settings | Guardar ajustes de fichas | |
 | ☐ | `admin.btn.saveSafety` | Save new-member limits | Guardar límites para miembros nuevos | |
 | ☐ | `admin.btn.saveTiers` | Save tiers | Guardar niveles | |
@@ -864,6 +866,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.btn.saveMessages` | Save message limits | Guardar límites de mensajes | |
 | ☐ | `admin.btn.dismiss` | Dismiss | Descartar | |
 | ☐ | `admin.btn.handled` | Mark handled | Marcar como atendido | |
+| ☐ | `admin.btn.saveNotebook` | Save notebook feature settings | Guardar ajustes de las funciones del cuaderno | |
 | ☐ | `admin.toggle.limitNew` | Limit new members | Limitar a los miembros nuevos | |
 | ☐ | `admin.toggle.limitNewHint` | New until they have been here long enough and prayed for others enough times. Admins and moderators are exempt. | Son nuevos hasta que lleven aquí suficiente tiempo y hayan orado por otros suficientes veces. Los administradores y moderadores están exentos. | |
 | ☐ | `admin.toggle.stationFree` | Station sends only while radio prayers are free | La estación solo transmite mientras las oraciones por radio son gratis | |
@@ -882,6 +885,14 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.toggle.direct` | Direct messages | Mensajes directos | |
 | ☐ | `admin.toggle.groups` | Group chats | Chats de grupo | |
 | ☐ | `admin.toggle.newStart` | New members can start conversations | Los miembros nuevos pueden iniciar conversaciones | |
+| ☐ | `admin.toggle.worldwide` | Worldwide prayer count | Conteo mundial de oraciones | |
+| ☐ | `admin.toggle.worldwideHint` | Feed shows how many prayers were offered in the last day; Me shows how many people prayed for your requests. Real counts, no names. | El feed muestra cuántas oraciones se ofrecieron en el último día; Yo muestra cuántas personas oraron por tus peticiones. Conteos reales, sin nombres. | |
+| ☐ | `admin.toggle.thanksCard` | Thanksgiving card in the feed | Tarjeta de gratitud en el feed | |
+| ☐ | `admin.toggle.thanksCardHint` | Invites members to post a praise when they haven't lately, and counts answered requests they prayed for. | Invita a publicar una alabanza a quien no lo ha hecho últimamente, y cuenta las peticiones contestadas por las que oró. | |
+| ☐ | `admin.toggle.sermonInputs` | Notes for event hosts | Notas para quien organiza un evento | |
+| ☐ | `admin.toggle.sermonInputsHint` | People coming to an event can tell the host what to pray about or preach on. Only the host and staff see them. | Quienes asistirán a un evento pueden decirle al organizador por qué orar o de qué predicar. Solo el organizador y el personal las ven. | |
+| ☐ | `admin.toggle.supportLabel` | "Prayer and positive thoughts welcome" label | Etiqueta "Oraciones y buenos deseos bienvenidos" | |
+| ☐ | `admin.toggle.supportLabelHint` | Posters can welcome support from people of any faith or none. | Quien publica puede dar la bienvenida al apoyo de personas de cualquier fe o de ninguna. | |
 | ☐ | `admin.everyoneLimits` | Limits for everyone (admins and moderators are exempt; 0 = no limit). The same request or comment can't be posted twice in a day. | Límites para todos (los administradores y moderadores están exentos; 0 = sin límite). No se puede publicar la misma petición o comentario dos veces en un día. | |
 | ☐ | `admin.newMembers` | New members | Miembros nuevos | |
 | ☐ | `admin.radio` | Radio | Radio | |
@@ -918,6 +929,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.firm` | Firm | Firme | |
 | ☐ | `admin.toneResult` | %{tone}: %{prayed} of %{shown} reminders led to a prayer (last 30 days) | %{tone}: %{prayed} de %{shown} recordatorios llevaron a una oración (últimos 30 días) | |
 | ☐ | `admin.careEvents` | Prayer partners and events | Compañeros de oración y eventos | |
+| ☐ | `admin.notebook` | Notebook features | Funciones del cuaderno | |
 | ☐ | `admin.messages` | Messages | Mensajes | |
 | ☐ | `admin.warriors` | Prayer Warrior standings | Clasificación de Guerreros de Oración | |
 | ☐ | `admin.warriorsHint` | Verified prayers for others and kept promises. Private to admins until award rules are approved. | Oraciones verificadas por otros y compromisos cumplidos. Privado para administradores hasta que se aprueben las reglas del premio. | |
@@ -1162,6 +1174,29 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `auditLog.deleted` | Deleted member | Miembro eliminado | |
 | ☐ | `auditLog.target` | Record …%{id} | Registro …%{id} | |
 | ☐ | `auditLog.more` | Show older | Mostrar anteriores | |
+
+### notebook (18)
+
+| ✓ | Key | English | Español | Correction |
+| --- | --- | --- | --- | --- |
+| ☐ | `notebook.worldwide` | %{formatted} prayers offered worldwide in the last day, by %{people} people | %{formatted} oraciones ofrecidas en el mundo en el último día, por %{people} personas | |
+| ☐ | `notebook.prayedForYou` | %{count} people have prayed for your requests. | %{count} personas han orado por tus peticiones. | |
+| ☐ | `notebook.thanksTitle` | Give thanks | Da gracias | |
+| ☐ | `notebook.thanksBody` | Has God done something for you lately? A short praise encourages everyone who prays here. | ¿Ha hecho Dios algo por ti últimamente? Una alabanza breve anima a todos los que oran aquí. | |
+| ☐ | `notebook.thanksAnswered` | Requests you prayed for were answered this week: %{count}. Is there something you're thankful for too? | Peticiones por las que oraste que fueron contestadas esta semana: %{count}. ¿Hay algo por lo que tú también estés agradecido? | |
+| ☐ | `notebook.thanksPost` | Post a praise | Publicar una alabanza | |
+| ☐ | `notebook.supportToggle` | Prayer and positive thoughts welcome | Oraciones y buenos deseos bienvenidos | |
+| ☐ | `notebook.supportHint` | Shows a label that support from people of any faith or none is welcome. | Muestra una etiqueta que indica que el apoyo de personas de cualquier fe o de ninguna es bienvenido. | |
+| ☐ | `notebook.supportLabel` | Prayer and positive thoughts welcome | Oraciones y buenos deseos bienvenidos | |
+| ☐ | `notebook.inputsTitle` | Notes for the host | Notas para el organizador | |
+| ☐ | `notebook.inputsHint` | Tell the host what you'd like prayed about or covered. Only the host and staff see your notes. | Dile al organizador por qué te gustaría que se orara o de qué se hablara. Solo el organizador y el personal ven tus notas. | |
+| ☐ | `notebook.inputsHostTitle` | Notes from people coming | Notas de quienes asistirán | |
+| ☐ | `notebook.inputsHostHint` | What people would like prayed about or covered. Only you and staff see these. | Por qué les gustaría que se orara o de qué se hablara. Solo tú y el personal las ven. | |
+| ☐ | `notebook.inputsNone` | No notes yet. | Todavía no hay notas. | |
+| ☐ | `notebook.inputsYou` | You | Tú | |
+| ☐ | `notebook.inputsRemove` | Remove | Quitar | |
+| ☐ | `notebook.inputsPlaceholder` | For example: please pray for the families affected by the flood | Por ejemplo: oren por las familias afectadas por la inundación | |
+| ☐ | `notebook.inputsSend` | Send to the host | Enviar al organizador | |
 
 ### stats (10)
 
@@ -1514,6 +1549,12 @@ Push notices and the Notices tab, for members whose app is in Spanish. Values in
 
   ```ts
   weekly_review: (p) => ({ title: 'Tu semana en oración', body: s(p.body) })
+  ```
+
+- [ ] **answered**
+
+  ```ts
+  answered: (p) => ({ title: 'Una oración que hiciste fue contestada', body: `${s(p.who, 'Alguien')} marcó su petición como contestada. Gracias por orar.` })
   ```
 
 - [ ] **testimony**
