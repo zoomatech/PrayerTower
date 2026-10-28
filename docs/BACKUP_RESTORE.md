@@ -1,6 +1,6 @@
 # Backup and restore drill
 
-`scripts/backup-db.sh` takes the backup. `scripts/restore-drill.sh` proves the backup can be restored: it backs up a database, restores the dump into an empty one, and checks that every table has the same row count and that the token ledger still balances (`token_ledger_audit` returns no rows).
+`scripts/backup-db.sh` takes the backup, and deletes its own backups older than `KEEP_DAYS` (default 30), as the privacy policy promises. After any restore of production, delete again every account that was deleted after the backup was taken, since the restore brings it back. `scripts/restore-drill.sh` proves the backup can be restored: it backs up a database, restores the dump into an empty one, and checks that every table has the same row count and that the token ledger still balances (`token_ledger_audit` returns no rows).
 
 Both use the commands from Supabase's guide, [Backup and restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore): `supabase db dump` for roles, schema and data (`--use-copy --data-only`), then one `psql --single-transaction --variable ON_ERROR_STOP=1` run with `SET session_replication_role = replica` before the data.
 

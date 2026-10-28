@@ -2,7 +2,7 @@
 
 The Google Play Data safety answers are archived in [archive/GOOGLE_PLAY_DRAFTS.md](../archive/GOOGLE_PLAY_DRAFTS.md); the pilot is iPhone only.
 
-> Drafted 2026-10-28 from the code in PR #4. **Check again before each submission** if a feature, SDK or server integration changes. Have counsel review these together with the privacy policy draft (`docs/legal/PRIVACY_POLICY_DRAFT.md`). The stores hold the developer responsible for accurate answers.
+> Drafted 2026-10-28 from the code in PR #4, and rechecked the same day in the privacy audit ([PRIVACY_AUDIT.md](../PRIVACY_AUDIT.md)). **Check again before each submission** if a feature, SDK or server integration changes. Have counsel review these together with the privacy policy draft (`docs/legal/PRIVACY_POLICY_DRAFT.md`). The stores hold the developer responsible for accurate answers.
 
 ## What the app actually does with data (from the code)
 
@@ -16,9 +16,10 @@ The Google Play Data safety answers are archived in [archive/GOOGLE_PLAY_DRAFTS.
 | Events | Title, description, place (typed), video link, RSVPs | Supabase |
 | Activity | Prayer taps, commitments, check-ins, prompt answers, token ledger | Supabase |
 | Device | Expo push token, platform | Supabase, then the Expo push service, then APNs or FCM |
-| Safety | Text of posts, comments, messages and events (no name), when `OPENAI_API_KEY` is set | OpenAI `/v1/moderations` |
+| Safety | Text of posts, comments, messages and events (no name), and text about to be posted (the pre-post check), when the safety check is on | OpenAI `/v1/moderations` (`MODERATION_PROVIDER=openai`, the default), or Anthropic's Claude API (`MODERATION_PROVIDER=claude`) |
+| Email | Email address; sign-up and password emails, invite codes, the weekly digest | The SMTP service in `SMTP_URL`. Invite emails go to people who aren't members yet. |
 | Radio | Request text (no name), when a member spends a radio token | Broadcast publicly over amateur radio |
-| Server | IP address and request logs | API host logs |
+| Server | IP address and request logs (no bodies, no database row values); error reports with the route only, when `SENTRY_DSN` is set | API host logs (Fly.io keeps 7 days); Sentry |
 
 **Not collected:** advertising IDs, precise or coarse location from the device, contacts, browsing or search history, purchases or payment details, crash data unless crash reporting is turned on (see below). There is no analytics or ad SDK.
 
@@ -75,6 +76,6 @@ The questionnaire now asks about these capabilities. ([Apple: Age ratings](https
 
 ## Before each submission
 - [ ] There are still no analytics or ad SDKs in `apps/mobile/package.json`. Sentry is the only crash SDK, and it is off without a DSN. If you set a DSN, add Crash Data and Crash logs as described above.
-- [ ] Moderation still uses only OpenAI's `/v1/moderations`, not chat or completions, which are retained for abuse monitoring by default. ([OpenAI: your data](https://developers.openai.com/api/docs/guides/your-data))
+- [ ] Moderation still uses OpenAI's `/v1/moderations`, which has no abuse-monitoring retention ([OpenAI: your data](https://developers.openai.com/api/docs/guides/your-data)). If `MODERATION_PROVIDER=claude`, Anthropic keeps API data up to 30 days, and flagged inputs up to 2 years ([Anthropic](https://privacy.claude.com/en/articles/7996866-how-long-does-anthropic-store-my-organizations-data)); the privacy policy must say so first ([PRIVACY_AUDIT.md](../PRIVACY_AUDIT.md), note 4).
 - [ ] `https://<API host>/account-deletion` loads, and a test deletion works.
 - [ ] The privacy policy is published and matches these answers.

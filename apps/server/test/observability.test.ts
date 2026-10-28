@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { buildApp } from '../src/app.js';
+import { buildApp, logSafeError } from '../src/app.js';
 import { scrub } from '../src/instrument.js';
 import { db } from './helpers.js';
 
@@ -21,6 +21,17 @@ describe('observability', () => {
     expect(res.body).toMatch(/job_queue_pending \d+/);
     expect(res.body).toContain('process_cpu_user_seconds_total');
     await app.close();
+  });
+
+  it('logs database errors without the row values in their detail', async () => {
+    // One round trip, so the temporary table and the insert share a connection.
+    const err = await db
+      .query(`create temp table t_dup (email text primary key); insert into t_dup values ('ruth@example.org'), ('ruth@example.org')`)
+      .catch((e: unknown) => e);
+    expect((err as { detail?: string }).detail).toContain('ruth@example.org');
+    const logged = logSafeError(err as Error);
+    expect(logged).toMatchObject({ code: '23505', message: expect.stringContaining('duplicate key') });
+    expect(JSON.stringify(logged)).not.toContain('ruth@example.org');
   });
 
   it('strips member content from error reports', () => {

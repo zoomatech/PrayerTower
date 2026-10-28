@@ -73,10 +73,23 @@ export interface AppDeps {
   onRoute?: (route: { method: string; url: string }) => void;
 }
 
+// Database errors carry row values in `detail` (for example "Key (email)=(…) already exists").
+// Logs keep only the kind of error, its message, code and stack (docs/PRIVACY_AUDIT.md).
+export function logSafeError(err: Error) {
+  const { code, constraint, table } = err as { code?: string; constraint?: string; table?: string };
+  return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
+}
+
 export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
-    logger: logger ? { level: process.env.LOG_LEVEL ?? 'info', redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-station-key"]'] } : false,
+    logger: logger
+      ? {
+          level: process.env.LOG_LEVEL ?? 'info',
+          redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-station-key"]'],
+          serializers: { err: logSafeError },
+        }
+      : false,
   });
   const catalog = new RouteCatalog();
   app.addHook('onRoute', (r) => {

@@ -94,6 +94,13 @@ export async function checkNewMember(q: Queryable, userId: string, action: 'post
   if (rows[0]!.n >= cap) throw new AppError(429, 'new_member_limit', `New members can post ${cap} ${noun} a day. ${LIFT}`);
 }
 
+/**
+ * Text compared for the duplicate check: lower case, letters and digits only, so
+ * changing punctuation, spacing or adding invisible characters (zero-width spaces)
+ * doesn't make it new. Text with no letters or digits (only emoji) is compared as typed.
+ */
+const SAME_TEXT = (col: string) => `coalesce(nullif(regexp_replace(lower(${col}), '[^[:alnum:]]+', '', 'g'), ''), lower(btrim(${col})))`;
+
 const FLOOD = {
   post: { table: 'posts', cap: 'posts_per_hour', window: '1 hour', noun: 'requests', per: 'an hour' },
   comment: { table: 'comments', cap: 'comments_per_hour', window: '1 hour', noun: 'comments', per: 'an hour' },
@@ -111,7 +118,7 @@ export async function checkFlood(q: Queryable, userId: string, action: keyof typ
   const { rows } = await q.query<{ n: number; dup: boolean; staff: boolean }>(
     `select (select count(*)::int from public.${f.table} where user_id = $1 and created_at > now() - interval '${f.window}') as n,
             $2 <> '' and exists (select 1 from public.${f.table} where user_id = $1 and created_at > now() - interval '1 day'
-                                  and lower(btrim(body)) = lower(btrim($2))) as dup,
+                                  and ${SAME_TEXT('body')} = ${SAME_TEXT('$2')}) as dup,
             exists (select 1 from public.user_roles r where r.user_id = $1 and r.role in ('admin', 'moderator', 'pastor')) as staff`,
     [userId, action === 'message' ? '' : text],
   );

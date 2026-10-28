@@ -39,6 +39,14 @@ describe('abuse: spam and flooding', () => {
     const again = await post(m, '  PRAY FOR REVIVAL IN OUR TOWN THIS WEEK.  ');
     expect(again.statusCode).toBe(409);
     expect(again.json().error).toBe('duplicate');
+    // Found by the staging run: other punctuation, doubled spaces or a zero-width space got through.
+    for (const variant of ['Pray for revival in our town this week!', 'Pray  for revival in our town, this week', 'Pray for revival in our\u200b town this week.'])
+      expect((await post(m, variant)).statusCode, variant).toBe(409);
+    // Emoji-only comments aren't all "the same" just because they have no letters.
+    const target = (await post(await member('Emoji Target'), 'Pray for my brother, recovering from surgery.')).json().post.id;
+    expect((await as(m).post(`/posts/${target}/comments`, { body: '🙏' })).statusCode).toBe(201);
+    expect((await as(m).post(`/posts/${target}/comments`, { body: '❤️' })).statusCode).toBe(201);
+    expect((await as(m).post(`/posts/${target}/comments`, { body: '🙏' })).statusCode).toBe(409);
     // Someone else may still post the same words.
     expect((await post(await member('Other Person'), 'Pray for revival in our town this week.')).statusCode).toBe(201);
   });
