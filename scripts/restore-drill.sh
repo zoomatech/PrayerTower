@@ -56,7 +56,7 @@ if [ -z "${RESTORE_URL:-}" ]; then
         -e "s/543\\([0-9][0-9]\\)/$p\\1/g" \
         -e "s/^inspector_port = 8083/inspector_port = 8${p:1:1}93/" \
         "$root/supabase/config.toml" > "$drill_stack/supabase/config.toml"
-    if npx supabase start --workdir "$drill_stack" -x studio,imgproxy,logflare,vector,supavisor,edge-runtime,realtime >/dev/null; then
+    if npx supabase start --workdir "$drill_stack" -x studio,imgproxy,logflare,vector,supavisor,edge-runtime,realtime,mailpit >/dev/null; then
       prefix=$p
       break
     fi

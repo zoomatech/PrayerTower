@@ -14,6 +14,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     friend: 'amigo',
   },
   tabs: {
+    label: 'Secciones principales',
     prayers: 'Oraciones',
     promises: 'Promesas',
     messages: 'Mensajes',

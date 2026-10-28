@@ -23,7 +23,7 @@ export default function TabsLayout() {
     <Tabs style={styles.root}>
       <TabSlot style={styles.root} />
       <TabList asChild>
-        <View role="tablist" style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
+        <View role="tablist" aria-label={t('tabs.label')} style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
           <TabTrigger name="index" href="/" asChild>
             <TabButton icon="🕊" label={t('tabs.prayers')} />
           </TabTrigger>
