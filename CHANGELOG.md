@@ -4,6 +4,7 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Pressure rule, ad-free promise page, legal requests and evidence holds ([#67](https://github.com/zoomatech/PrayerTower/pull/67))
 - Admin-created communities and member surveys ([#66](https://github.com/zoomatech/PrayerTower/pull/66))
 - Open Circle public face: website, icon, listing, privacy answers ([#65](https://github.com/zoomatech/PrayerTower/pull/65))
 - App Store token purchase with server-side verification (off by default) ([#64](https://github.com/zoomatech/PrayerTower/pull/64))

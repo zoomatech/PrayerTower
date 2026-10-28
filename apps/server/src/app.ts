@@ -25,6 +25,7 @@ import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { surveyRoutes } from './modules/surveys/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
+import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
@@ -182,6 +183,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (open) => {
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
     commonFundPublicRoutes(open, db);
+    podcastPublicRoutes(open, db);
     storeNotificationRoutes(open, db, appleVerifier);
   });
 
@@ -223,6 +225,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
     legalRoutes(authed, db);
+    podcastRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);
     notificationRoutes(authed, db);

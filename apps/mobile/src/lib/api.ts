@@ -55,6 +55,9 @@ export interface Features {
   pressureRule: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
+  podcasts: boolean;
+  /** Paid radio prayers are matched with equal material help. */
+  materialMatch: boolean;
 }
 
 export type WorldwideStats =
@@ -78,6 +81,7 @@ export interface NotebookSettings {
   witness_stories_enabled: boolean;
   pressure_rule_enabled: boolean;
   promise_page_enabled: boolean;
+  podcasts_enabled: boolean;
 }
 
 export class ApiError extends Error {
@@ -379,6 +383,32 @@ export interface SurveyResults {
   questions: { id: string; prompt: string; kind: SurveyQuestion['kind']; answered: number; counts?: Record<string, number>; average?: number | null; texts?: string[] }[];
 }
 
+export interface PodcastEpisode {
+  id: string;
+  guid: string;
+  title: string;
+  description: string;
+  audioUrl: string;
+  audioBytes: number;
+  audioType: string;
+  durationSeconds: number | null;
+  episodeNumber: number | null;
+  /** Null: a draft. */
+  publishedAt: string | null;
+}
+export interface PodcastShow {
+  id: string;
+  slug: string;
+  community: string | null;
+  title: string;
+  description: string;
+  author: string;
+  imageUrl: string | null;
+  category: string;
+  published: boolean;
+  episodes: PodcastEpisode[];
+}
+
 export interface LegalCase {
   id: string;
   kind: 'preservation' | 'legal_process' | 'emergency' | 'referral';
@@ -599,6 +629,7 @@ export const api = {
   announcements: () => get<{ announcements: Announcement[] }>('/announcements'),
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   surveys: () => get<{ surveys: Survey[] }>('/surveys'),
+  podcasts: () => get<{ shows: PodcastShow[] }>('/podcasts'),
   answerSurvey: (id: string, answers: SurveyAnswer[]) => post<{ ok: true }>(`/surveys/${id}/responses`, { answers }),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
   me: () => cachedGet<{ profile: Profile; roles: Role[]; community?: Community | null }>('me', '/me'),
@@ -750,6 +781,20 @@ export const api = {
     createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
       post<{ announcement: Announcement }>('/admin/announcements', input),
     endAnnouncement: (id: string) => post<{ announcement: Announcement }>(`/admin/announcements/${id}/end`),
+    materialMatch: () =>
+      get<{ settings: { enabled: boolean; centsPerToken: number }; owed: { count: number; cents: number; since: string | null }; fulfilled: { count: number; cents: number } }>(
+        '/admin/material-match',
+      ),
+    updateMaterialMatch: (patch: { enabled?: boolean; centsPerToken?: number }) => request<{ settings: { enabled: boolean; centsPerToken: number } }>('PATCH', '/admin/material-match', patch),
+    fulfillMaterialMatch: (input: { helpKind: string; publicNote?: string }) => post<{ fulfilled: number; cents: number }>('/admin/material-match/fulfill', input),
+    podcasts: () => get<{ enabled: boolean; shows: PodcastShow[] }>('/admin/podcasts'),
+    createPodcast: (input: { slug: string; title: string; description: string; author: string; imageUrl?: string | null; community?: string | null }) =>
+      post<{ show: PodcastShow }>('/admin/podcasts', input),
+    updatePodcast: (id: string, patch: { published?: boolean }) => request<{ show: PodcastShow }>('PATCH', `/admin/podcasts/${id}`, patch),
+    addEpisode: (id: string, input: { title: string; description?: string; audioUrl: string; durationSeconds?: number | null; publish?: boolean }) =>
+      post<{ show: PodcastShow }>(`/admin/podcasts/${id}/episodes`, input),
+    updateEpisode: (id: string, patch: { published?: boolean }) => request<{ show: PodcastShow }>('PATCH', `/admin/podcast-episodes/${id}`, patch),
+    removeEpisode: (id: string) => request<{ show: PodcastShow }>('DELETE', `/admin/podcast-episodes/${id}`),
     legalSettings: () => get<{ settings: { enabled: boolean; defaultHoldDays: number } }>('/admin/legal/settings'),
     updateLegalSettings: (patch: { enabled?: boolean; defaultHoldDays?: number }) =>
       request<{ settings: { enabled: boolean; defaultHoldDays: number } }>('PATCH', '/admin/legal/settings', patch),
@@ -814,7 +859,7 @@ export const api = {
     updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number; confessionRetentionDays: number }>) =>
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
