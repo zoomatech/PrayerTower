@@ -54,6 +54,12 @@ export interface Features {
   witnessStories: boolean;
   /** The "don't pressure people" community rule. */
   pressureRule: boolean;
+  misleadingRule: boolean;
+  automationRule: boolean;
+  urgencyGlow: boolean;
+  reactionTray: boolean;
+  memberTown: boolean;
+  prizeChoice: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -81,6 +87,12 @@ export interface NotebookSettings {
   support_label_enabled: boolean;
   witness_stories_enabled: boolean;
   pressure_rule_enabled: boolean;
+  misleading_rule_enabled: boolean;
+  automation_rule_enabled: boolean;
+  urgency_glow_enabled: boolean;
+  reaction_tray_enabled: boolean;
+  member_town_enabled: boolean;
+  prize_choice_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -549,8 +561,10 @@ export interface Award {
   peoplePrayedFor: number;
   status: 'offered' | 'accepted' | 'declined';
   showName: boolean;
+  prizeChoice?: PrizeChoice;
   decidedAt: string | null;
 }
+export type PrizeChoice = 'keep' | 'donate' | 'split';
 export interface AwardSettings {
   enabled: boolean;
   winners: number;
@@ -666,7 +680,10 @@ export const api = {
   closeCircleRequest: (id: string) => post<{ closed: true }>(`/moderation/circle-requests/${id}/close`),
   awardHall: () => get<AwardHall>('/awards'),
   myAwards: () => get<MyAwards>('/me/awards'),
-  acceptAward: (id: string, showName: boolean) => post<{ accepted: true; tokens: number; priestly: number }>(`/me/awards/${id}/accept`, { showName }),
+  acceptAward: (id: string, showName: boolean, prize?: PrizeChoice) =>
+    post<{ accepted: true; tokens: number; priestly: number; prizeChoice: PrizeChoice }>(`/me/awards/${id}/accept`, prize ? { showName, prize } : { showName }),
+  quickReact: (postId: string, kind: 'candle' | 'standing', on: boolean) =>
+    request<{ candles: number; standing: number; mine: ('candle' | 'standing')[] }>(on ? 'PUT' : 'DELETE', `/posts/${postId}/quick-reactions/${kind}`),
   declineAward: (id: string) => post<{ declined: true }>(`/me/awards/${id}/decline`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
@@ -891,7 +908,7 @@ export const api = {
     updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number; confessionRetentionDays: number }>) =>
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>

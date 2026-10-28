@@ -24,6 +24,7 @@ import { awardRoutes } from './modules/admin/award-routes.js';
 import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { surveyRoutes } from './modules/surveys/routes.js';
+import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
@@ -237,6 +238,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
+    quickReactionRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);

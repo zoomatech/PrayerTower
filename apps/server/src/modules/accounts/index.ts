@@ -32,6 +32,8 @@ export const ProfileUpdate = z
     digestEnabled: z.boolean(),
     /** Gentle prayer stats on Me (on by default). */
     showPrayerStats: z.boolean(),
+    /** Optional town ("Carol in Albuquerque"); shown only within the member's community, while switched on. */
+    town: z.string().trim().min(1).max(60).nullable(),
     notificationPrefs: z.object({
       off: z.array(z.enum(NOTIFICATION_CATEGORIES)).max(NOTIFICATION_CATEGORIES.length),
       quietHours: z
@@ -65,6 +67,7 @@ const columns: Record<string, string> = {
   digestEnabled: 'digest_enabled',
   showPrayerStats: 'show_prayer_stats',
   notificationPrefs: 'notification_prefs',
+  town: 'town',
 };
 
 export function validTimeZone(tz: string) {
@@ -95,6 +98,7 @@ export interface Profile {
   locale: Locale;
   digest_enabled: boolean;
   show_prayer_stats: boolean;
+  town: string | null;
   digest_sent_week: string | null;
   notification_prefs: NotificationPrefs;
   onboarded_at: Date | null;
@@ -350,6 +354,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'delete from public.post_media where user_id = $1',
     'delete from public.comments where user_id = $1',
     'delete from public.reactions where user_id = $1',
+    'delete from public.quick_reactions where user_id = $1',
     'delete from public.messages where user_id = $1',
     'delete from public.conversation_members where user_id = $1',
     'delete from public.follows where user_id = $1 or followee_id = $1',
@@ -393,7 +398,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
             trauma_content_opt_out = default, anonymous_by_default = default, updates_in_first_comment = default,
             prompts_enabled = default, prompt_min_hours = default, prompt_tone = default, locale = default,
             digest_enabled = default, digest_sent_week = default, notification_prefs = default,
-            show_prayer_stats = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
+            show_prayer_stats = default, town = null, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
       where id = $1`,
     [userId],
   );

@@ -1001,6 +1001,12 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.supportLabel')} hint={t('admin.toggle.supportLabelHint')} value={s.support_label_enabled} onChange={(v) => save({ supportLabelEnabled: v })} />
       <Toggle label={t('admin.toggle.witnessStories')} hint={t('admin.toggle.witnessStoriesHint')} value={s.witness_stories_enabled} onChange={(v) => save({ witnessStoriesEnabled: v })} />
       <Toggle label={t('admin.toggle.pressureRule')} hint={t('admin.toggle.pressureRuleHint')} value={s.pressure_rule_enabled} onChange={(v) => save({ pressureRuleEnabled: v })} />
+      <Toggle label={t('admin.toggle.misleadingRule')} hint={t('admin.toggle.misleadingRuleHint')} value={s.misleading_rule_enabled} onChange={(v) => save({ misleadingRuleEnabled: v })} />
+      <Toggle label={t('admin.toggle.automationRule')} hint={t('admin.toggle.automationRuleHint')} value={s.automation_rule_enabled} onChange={(v) => save({ automationRuleEnabled: v })} />
+      <Toggle label={t('admin.toggle.urgencyGlow')} hint={t('admin.toggle.urgencyGlowHint')} value={s.urgency_glow_enabled} onChange={(v) => save({ urgencyGlowEnabled: v })} />
+      <Toggle label={t('admin.toggle.reactionTray')} hint={t('admin.toggle.reactionTrayHint')} value={s.reaction_tray_enabled} onChange={(v) => save({ reactionTrayEnabled: v })} />
+      <Toggle label={t('admin.toggle.memberTown')} hint={t('admin.toggle.memberTownHint')} value={s.member_town_enabled} onChange={(v) => save({ memberTownEnabled: v })} />
+      <Toggle label={t('admin.toggle.prizeChoice')} hint={t('admin.toggle.prizeChoiceHint')} value={s.prize_choice_enabled} onChange={(v) => save({ prizeChoiceEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />

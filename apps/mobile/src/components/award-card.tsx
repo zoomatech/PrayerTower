@@ -4,8 +4,9 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Toggle } from '@/components/ui';
-import { api, type MyAwards } from '@/lib/api';
+import { Button, Chip, Toggle } from '@/components/ui';
+import { api, type MyAwards, type PrizeChoice } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -13,6 +14,8 @@ export function AwardCard() {
   const { t } = useLocale();
   const [data, setData] = useState<MyAwards | null>(null);
   const [showName, setShowName] = useState(true);
+  const { prizeChoice } = useFeatures();
+  const [prize, setPrize] = useState<PrizeChoice>('keep');
   const [note, setNote] = useState<string | null>(null);
   const load = useCallback(() => {
     api.myAwards().then(setData).catch(() => setData(null));
@@ -29,9 +32,20 @@ export function AwardCard() {
             <Text style={type.body}>{t('award.why', { count: a.prayers + a.checkins, people: a.peoplePrayedFor })}</Text>
             {data.prize.tokens || data.prize.priestly ? <Text style={type.small}>{t('award.prize', { tokens: data.prize.tokens, special: data.prize.priestly })}</Text> : null}
             {data.prize.note ? <Text style={type.small}>{data.prize.note}</Text> : null}
+            {prizeChoice ? (
+              <View style={styles.item} role="radiogroup" aria-label={t('award.prizeChoice')}>
+                <Text style={type.heading}>{t('award.prizeChoice')}</Text>
+                <View style={styles.row}>
+                  {(['keep', 'donate', 'split'] as const).map((c) => (
+                    <Chip key={c} radio label={t(`award.prize_${c}`)} selected={prize === c} onPress={() => setPrize(c)} />
+                  ))}
+                </View>
+                <Text style={type.small}>{t('award.prizeChoiceHint')}</Text>
+              </View>
+            ) : null}
             {data.publicHall ? <Toggle label={t('award.showName')} hint={t('award.showNameHint')} value={showName} onChange={setShowName} /> : null}
             <View style={styles.row}>
-              <Button label={t('award.accept')} onPress={() => api.acceptAward(a.id, data.publicHall && showName).then(() => { setNote(t('award.thanks')); load(); }, fail)} />
+              <Button label={t('award.accept')} onPress={() => api.acceptAward(a.id, data.publicHall && showName, prizeChoice ? prize : undefined).then(() => { setNote(t('award.thanks')); load(); }, fail)} />
               <Button variant="ghost" label={t('award.decline')} onPress={() => api.declineAward(a.id).then(load, fail)} />
             </View>
           </View>

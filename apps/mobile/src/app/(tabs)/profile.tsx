@@ -23,6 +23,7 @@ import { CommunityPicker } from '@/components/community-picker';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
+import { TownField } from '@/components/town-field';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -231,6 +232,7 @@ export default function Profile() {
           onChange={(v) => update({ showPrayerStats: v }).then(loadStats)}
         />
         <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
+        {features.memberTown ? <TownField town={profile.town} onSave={(town) => update({ town })} /> : null}
         <CommunityPicker />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
