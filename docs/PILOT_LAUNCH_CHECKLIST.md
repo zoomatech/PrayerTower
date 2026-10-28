@@ -62,7 +62,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 ## 7. Final checks
 
 - [ ] `npm test`: all server and station tests pass, including the security checks.
-- [ ] `npm run test:e2e`: all 13 end-to-end tests pass locally.
+- [ ] `npm run test:e2e`: all 15 end-to-end tests pass locally (including the WCAG scans). Also try VoiceOver and the largest text size on a real iPhone..
 - [ ] Do one manual pass on a real phone: sign in, post, pray, commit, message, RSVP, report, and delete the account.
 - [x] **Feedback channel.** Members tap Me → Send feedback. Admins read and close it under Admin → Member feedback. Tell members it's there.
 - [ ] Rollback plan: keep the previous build in TestFlight, and take a database backup before each migration.
