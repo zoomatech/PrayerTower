@@ -132,6 +132,9 @@ export const api = {
     id: string,
     patch: Partial<{ frequency: Frequency; vowText: string; status: 'active' | 'completed' | 'cancelled'; completedCount: number }>,
   ) => request<{ commitment: Commitment }>('PATCH', `/commitments/${id}`, patch),
+  connections: () => get<{ people: { id: string; display_name: string; handle: string | null }[] }>('/me/connections'),
+  askToPray: (postId: string, recipientIds: string[], note?: string) =>
+    post<{ sent: number }>(`/posts/${postId}/ask`, { recipientIds, note: note || undefined }),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
   report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>

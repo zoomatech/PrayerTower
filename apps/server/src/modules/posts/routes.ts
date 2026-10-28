@@ -93,6 +93,27 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     return { sent };
   });
 
+  app.post<{ Params: { id: string } }>('/posts/:id/ask', async (req) => {
+    const userId = requireUser(req);
+    const input = posts.AskToPray.parse(req.body);
+    const sent = await withTx(db, async (tx) => {
+      const { recipients, senderName, preview } = await posts.askToPray(tx, userId, req.params.id, input);
+      let n = 0;
+      for (const recipientId of recipients) {
+        const id = await notifications.notify(tx, recipientId, {
+          kind: 'pray_request',
+          title: `${senderName} would like you to pray for this`,
+          body: input.note || preview,
+          data: { postId: req.params.id },
+          dedupeKey: `ask:${req.params.id}:${userId}`,
+        });
+        if (id) n++;
+      }
+      return n;
+    });
+    return { sent };
+  });
+
   // Media is uploaded straight to Supabase Storage with a signed upload URL,
   // so files never pass through (or stay on) the API server.
   app.post('/media/upload-url', async (req) => {

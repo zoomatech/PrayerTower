@@ -70,6 +70,27 @@ describe('posts', () => {
     }
   });
 
+  it('asks people you follow or who follow you to pray, once, and keeps anonymous authors hidden', async () => {
+    const carol = await createUser('Carol');
+    const friend = await createUser('Friend');
+    const fan = await createUser('Fan');
+    const stranger = await createUser('Stranger');
+    await as(carol).put(`/people/${friend}/follow`);
+    await as(fan).put(`/people/${carol}/follow`);
+    const ids = (await as(carol).get('/me/connections')).json().people.map((p: { id: string }) => p.id);
+    expect(ids.sort()).toEqual([friend, fan].sort());
+
+    const post = await newRequest(carol, 'Pray for my sister’s surgery.', { isAnonymous: true });
+    expect((await as(carol).post(`/posts/${post.id}/ask`, { recipientIds: [stranger] })).statusCode).toBe(400);
+    const r = await as(carol).post(`/posts/${post.id}/ask`, { recipientIds: [friend, fan], note: 'Would mean a lot.' });
+    expect(r.json().sent).toBe(2);
+    expect((await as(carol).post(`/posts/${post.id}/ask`, { recipientIds: [friend] })).json().sent).toBe(0);
+    const note = (await as(friend).get('/me/notifications')).json().notifications.find((n: { kind: string }) => n.kind === 'pray_request');
+    expect(note.title).toBe('Someone would like you to pray for this');
+    expect(note.body).toBe('Would mean a lot.');
+    expect(note.data.postId).toBe(post.id);
+  });
+
   it('hides an anonymous author from everyone but the author', async () => {
     const author = await createUser('Secret');
     const reader = await createUser('Reader');

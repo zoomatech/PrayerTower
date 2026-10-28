@@ -41,4 +41,5 @@ export function accountRoutes(app: FastifyInstance, db: Db) {
 
   app.get('/me/followers', async (req) => ({ people: await accounts.followers(db, requireUser(req)) }));
   app.get('/me/following', async (req) => ({ people: await accounts.following(db, requireUser(req)) }));
+  app.get('/me/connections', async (req) => ({ people: await accounts.connections(db, requireUser(req)) }));
 }

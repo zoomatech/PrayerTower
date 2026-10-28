@@ -196,6 +196,19 @@ export async function followers(q: Queryable, userId: string) {
   return rows;
 }
 
+/** Everyone the member follows or is followed by: who they can ask to pray. */
+export async function connections(q: Queryable, userId: string) {
+  const { rows } = await q.query<{ id: string; display_name: string; handle: string | null }>(
+    `select p.id, p.display_name, p.handle from public.profiles p
+      where p.id <> $1 and p.id in (
+        select followee_id from public.follows where user_id = $1
+        union select user_id from public.follows where followee_id = $1)
+      order by p.display_name`,
+    [userId],
+  );
+  return rows;
+}
+
 export async function following(q: Queryable, userId: string) {
   const { rows } = await q.query(
     `select p.id, p.display_name, p.handle from public.follows f join public.profiles p on p.id = f.followee_id

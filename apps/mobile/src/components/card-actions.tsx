@@ -1,8 +1,9 @@
 // What each card action does. Shared by every feed layout and the post screen,
 // so the action row behaves the same everywhere.
 import { ENCOURAGEMENT_MAX_CHARS, FREQUENCIES, FREQUENCY_LABELS, type Card, type CardAction, type Frequency } from '@prayer-tower/shared';
+import * as Linking from 'expo-linking';
 import { useState, type ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
@@ -29,12 +30,15 @@ export function useCardActions(onChanged: () => void) {
   const [frequency, setFrequency] = useState<Frequency>('daily');
   const [days, setDays] = useState('30');
   const [reason, setReason] = useState<string | null>(null);
+  const [people, setPeople] = useState<{ id: string; display_name: string }[] | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
 
   const close = () => {
     setSheet(null);
     setError(null);
     setText('');
     setReason(null);
+    setPicked([]);
   };
 
   /** Report a request or one of its comments to the moderators. */
@@ -65,6 +69,10 @@ export function useCardActions(onChanged: () => void) {
     if (kind === 'commit' && card.myCommitment) {
       setSheet({ kind: 'done', card, message: `You are already praying ${FREQUENCY_LABELS[card.myCommitment.frequency].toLowerCase()} for this request.` });
       return;
+    }
+    if (kind === 'share') {
+      setPeople(null);
+      api.connections().then((r) => setPeople(r.people), () => setPeople([]));
     }
     if (kind === 'commit') setText(`I will pray for ${card.author.anonymous ? 'you' : card.author.displayName}.`);
     setSheet({ kind, card });
@@ -127,6 +135,42 @@ export function useCardActions(onChanged: () => void) {
         <Text style={type.heading}>Share to your feed</Text>
         <Field placeholder="Add a one-line intro (optional)" value={text} onChangeText={(t) => setText(t.replace(/\n/g, ' '))} maxLength={140} />
         <Button label="Share" busy={busy} onPress={() => run(() => api.share(sheet.card.id, text.trim() || undefined), 'Shared. Thank you for spreading the word.')} />
+        <Text style={type.heading}>Ask people to pray</Text>
+        {people === null ? <Text style={type.small}>Loading…</Text> : null}
+        {people?.length === 0 ? <Text style={type.small}>Follow people to ask them to pray for requests.</Text> : null}
+        {people?.length ? (
+          <>
+            <ScrollView style={{ maxHeight: 160 }} contentContainerStyle={styles.chips}>
+              {people.map((p) => (
+                <Chip
+                  key={p.id}
+                  label={p.display_name}
+                  selected={picked.includes(p.id)}
+                  onPress={() => setPicked((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id].slice(0, 20)))}
+                />
+              ))}
+            </ScrollView>
+            <Button
+              variant="secondary"
+              label={picked.length ? `Ask ${picked.length} to pray` : 'Choose people to ask'}
+              busy={busy}
+              disabled={!picked.length}
+              onPress={() =>
+                run(async () => {
+                  const r = await api.askToPray(sheet.card.id, picked, text.trim());
+                  if (r.sent === 0) throw new Error('You have already asked them to pray for this.');
+                }, 'Sent. They will see that you asked them to pray.')
+              }
+            />
+          </>
+        ) : null}
+        <Button
+          variant="ghost"
+          label="Share outside Prayer Tower"
+          onPress={() =>
+            Share.share({ message: `Please pray: “${sheet.card.preview}” ${Linking.createURL(`/post/${sheet.card.id}`)}` }).catch(() => undefined)
+          }
+        />
       </>
     );
   } else if (sheet?.kind === 'gift') {
@@ -203,6 +247,7 @@ const styles = StyleSheet.create({
     padding: space.xl,
     gap: space.md,
   },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   label: { ...type.small, fontWeight: '600', color: colors.text },
 });

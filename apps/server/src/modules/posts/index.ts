@@ -247,6 +247,42 @@ export async function react(q: Queryable, userId: string, postId: string, input:
   return { id: rows[0]!.id, post };
 }
 
+export const AskToPray = z.object({
+  recipientIds: z.array(z.uuid()).min(1).max(20),
+  note: z.string().trim().max(140).optional(),
+});
+
+/**
+ * "Carol would like you to pray for this": the sender asks people they follow
+ * or who follow them. Returns who to notify and the name to show; the author
+ * of an anonymous request stays anonymous.
+ */
+export async function askToPray(q: Queryable, senderId: string, postId: string, input: z.infer<typeof AskToPray>) {
+  const post = await getVisible(q, postId);
+  if (!post) throw notFound('Post');
+  const { rows } = await q.query<{ id: string }>(
+    `select distinct id from (
+       select followee_id as id from public.follows where user_id = $1
+       union select user_id from public.follows where followee_id = $1) c
+      where id = any($2::uuid[]) and id <> $1`,
+    [senderId, input.recipientIds],
+  );
+  if (rows.length !== new Set(input.recipientIds.filter((id) => id !== senderId)).size) {
+    throw badRequest('You can ask only people you follow or who follow you');
+  }
+  // Sensitive requests skip anyone who opted out of trauma-related content.
+  const recipients = post.is_sensitive
+    ? (
+        await q.query<{ id: string }>('select id from public.profiles where id = any($1::uuid[]) and not trauma_content_opt_out', [
+          rows.map((r) => r.id),
+        ])
+      ).rows
+    : rows;
+  const sender = await getProfile(q, senderId);
+  const senderName = post.user_id === senderId && post.is_anonymous ? 'Someone' : (sender?.display_name ?? 'Someone');
+  return { recipients: recipients.map((r) => r.id), senderName, preview: post.body.slice(0, 120) };
+}
+
 export const NewThanks = z.object({
   /** Omit to thank everyone who prayed or committed, anonymous pray-ers included. */
   recipientIds: z.array(z.uuid()).min(1).max(100).optional(),
