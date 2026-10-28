@@ -16,6 +16,7 @@ import { MacroNeeds } from "@/components/macro-needs";
 import { ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
 import { Announcements } from "@/components/announcements";
+import { LiveNow } from "@/components/live-now";
 import { SurveyPrompts } from "@/components/survey-prompts";
 import { OfflineBanner } from "@/components/offline-banner";
 import { Button, Chip, ErrorText, Screen } from "@/components/ui";
@@ -26,6 +27,7 @@ import {
   type MacroNeed,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useFeature } from "@/lib/community-features";
 import { useT } from "@/lib/i18n";
 import { useOffline } from "@/lib/offline";
 import { updatePrayWidget } from "@/lib/pray-widget";
@@ -38,6 +40,7 @@ const SIDE_WIDTH = 320;
 export default function Feed() {
   const t = useT();
   const { profile } = useAuth();
+  const highlightsOn = useFeature("highlights");
   const [cards, setCards] = useState<Card[]>([]);
   const [theme, setTheme] = useState<FeedTheme | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
@@ -140,6 +143,7 @@ export default function Feed() {
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
       <OfflineBanner savedAt={savedAt} />
       <Announcements />
+      <LiveNow />
       <SurveyPrompts />
       <Pressable
         style={styles.composer}
@@ -157,7 +161,7 @@ export default function Feed() {
       </View>
       {filter === "testimonies" ? <Text style={type.small}>{t("feed.testimoniesHint")}</Text> : null}
       <WorldwideCount />
-      {!wide ? (
+      {!wide && highlightsOn ? (
         <Text
           style={styles.weekLink}
           onPress={() => router.push("/highlights")}
@@ -221,7 +225,7 @@ export default function Feed() {
           columns={columns}
         />
       </View>
-      {wide ? (
+      {wide && highlightsOn ? (
         <ScrollView
           style={styles.side}
           contentContainerStyle={styles.sideContent}

@@ -18,10 +18,7 @@ export function radioRoutes(app: FastifyInstance, db: Db) {
   });
 
   // Prayer Cast: the public log of prayers that went out.
-  app.get('/prayer-cast', async (req) => {
-    requireUser(req);
-    return radio.castLog(db);
-  });
+  app.get('/prayer-cast', async (req) => radio.castLog(db, requireUser(req)));
 
   app.get('/me/radio-prayers', async (req) => {
     const userId = requireUser(req);

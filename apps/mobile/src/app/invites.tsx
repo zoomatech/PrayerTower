@@ -8,7 +8,7 @@ import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
-import { api, type Invite } from '@/lib/api';
+import { api, type Community, type Invite } from '@/lib/api';
 import { env } from '@/lib/env';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -20,6 +20,9 @@ function Invites() {
   const [inviteOnly, setInviteOnly] = useState<boolean | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [note, setNote] = useState('');
+  // Communities a code can place a new member in; '' is the default community.
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [community, setCommunity] = useState('');
   const [maxUses, setMaxUses] = useState('1');
   const [days, setDays] = useState('30');
   const [count, setCount] = useState('1');
@@ -37,6 +40,8 @@ function Invites() {
       const r = await api.admin.invites();
       setInviteOnly(r.inviteOnly);
       setInvites(r.invites);
+      const c = await api.admin.communities();
+      setCommunities(c.communities.filter((x) => !x.isDefault && x.status === 'active'));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -71,7 +76,7 @@ function Invites() {
 
   const create = () =>
     run(
-      () => api.admin.createInvites({ note: note.trim(), maxUses: uses, expiresInDays: expires, count: n }),
+      () => api.admin.createInvites({ note: note.trim(), community: community || undefined, maxUses: uses, expiresInDays: expires, count: n }),
       t('invites.created', { count: n }),
     ).then(() => setNote(''));
 
@@ -119,6 +124,17 @@ function Invites() {
         <View style={styles.section}>
           <Text style={type.heading}>{t('invites.new')}</Text>
           <Field label={t('invites.note')} value={note} onChangeText={setNote} maxLength={200} placeholder={t('invites.notePlaceholder')} />
+          {communities.length > 0 ? (
+            <>
+              <Text style={type.small}>{t('invites.community')}</Text>
+              <View style={styles.row}>
+                <Chip label={t('invites.communityDefault')} selected={community === ''} onPress={() => setCommunity('')} />
+                {communities.map((c) => (
+                  <Chip key={c.slug} label={c.name} selected={community === c.slug} onPress={() => setCommunity(c.slug)} />
+                ))}
+              </View>
+            </>
+          ) : null}
           <Field label={t('invites.maxUses')} value={maxUses} onChangeText={setMaxUses} keyboardType="number-pad" />
           <Field label={t('invites.expiresInDays')} value={days} onChangeText={setDays} keyboardType="number-pad" placeholder={t('invites.never')} />
           <Field label={t('invites.count')} value={count} onChangeText={setCount} keyboardType="number-pad" />
@@ -134,6 +150,7 @@ function Invites() {
               {i.code}
             </Text>
             {i.note ? <Text style={type.body}>{i.note}</Text> : null}
+            {i.community ? <Text style={type.small}>{t('invites.joins', { name: i.community.name })}</Text> : null}
             <Text style={type.small}>
               {t(`invites.status.${i.status}`)} · {t('invites.used', { uses: i.uses, max: i.maxUses })}
               {i.expiresAt ? ` · ${t('invites.expires', { date: date(i.expiresAt) })}` : ''}

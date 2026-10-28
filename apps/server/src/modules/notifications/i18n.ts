@@ -22,6 +22,10 @@ const ES_RULES: Record<string, string> = {
 const ES_FREQUENCY: Record<string, string> = { weekly: 'cada semana', daily: 'cada día', three_daily: 'tres veces al día' };
 
 const es: Record<string, Template> = {
+  live_amplifier_read: () => ({
+    title: 'Leyeron tu petición en voz alta por radio',
+    body: 'Un radioaficionado con licencia leyó tu petición de oración en voz alta para que más personas oraran contigo.',
+  }),
   praying_now: (p) => ({
     title: `${s(p.who, 'Alguien')} está orando por ti${p.poster ? `, ${p.poster},` : ''} ahora mismo`,
     body: 'Alguien se detuvo a presentar tu petición ante el Señor.',
@@ -132,6 +136,10 @@ const neutral: Record<string, Template> = {
   care_claimed: (p) => ({ title: `${s(p.who, 'A listening partner')} is here for you`, body: 'Open the conversation to talk.' }),
   group_invite: (p) => ({ title: 'You were invited to a group', body: `Join "${s(p.title)}" to cheer each other on.` }),
   message: (p) => ({ title: p.prayer ? `${s(p.who)} thought of you and sent a message` : `New message from ${s(p.who)}`, body: s(p.body) }),
+  live_amplifier_read: () => ({
+    title: 'Your request was read aloud on the air',
+    body: 'A licensed ham radio operator read your request aloud so more people could cheer you on.',
+  }),
   radio_prayer: () => ({ title: 'Your request went out by radio', body: 'Someone sent your words out on the air so more people could cheer you on.' }),
   radio_not_sent: (p) => ({ title: "A radio message you sent didn't go out", body: p.refunded ? 'Your Lighthouse token is back in your balance.' : 'You can still support the request.' }),
   award: (p) => ({ title: `You are a ${s(p.year)} Kindness Champion`, body: `You supported others ${s(p.count)} times this year. Open Me to accept the award.` }),

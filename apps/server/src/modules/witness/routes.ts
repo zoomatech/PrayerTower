@@ -56,8 +56,5 @@ export function witnessRoutes(app: FastifyInstance, db: Db) {
     return { ok: true };
   });
 
-  app.get('/help-stories', async (req) => {
-    requireUser(req);
-    return witness.shownStories(db);
-  });
+  app.get('/help-stories', async (req) => witness.shownStories(db, requireUser(req)));
 }

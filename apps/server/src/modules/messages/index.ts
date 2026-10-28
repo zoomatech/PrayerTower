@@ -9,6 +9,7 @@ import { AppError, badRequest, forbidden, notFound } from '../../errors.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as safety from '../safety/index.js';
+import { requireFeature } from '../communities/index.js';
 
 export interface MessagingSettings {
   prayer_messages_enabled: boolean;
@@ -225,6 +226,7 @@ export async function startDirect(q: Queryable, userId: string, input: z.infer<t
 
 /** Prayer & topical group chats. Public groups can be found and joined; private ones are invite-only. */
 export async function createGroup(q: Queryable, userId: string, input: z.infer<typeof NewGroup>) {
+  await requireFeature(q, userId, 'groups');
   const s = await settings(q);
   if (!s.groups_enabled) throw forbidden('Group chats are turned off for now');
   await checkCanStart(q, userId);
@@ -298,6 +300,7 @@ export async function invite(q: Queryable, userId: string, conversationId: strin
 }
 
 export async function joinGroup(q: Queryable, userId: string, conversationId: string) {
+  await requireFeature(q, userId, 'groups');
   const c = await getConversation(q, conversationId);
   if (!c || c.kind !== 'group' || c.closed_at) throw notFound('Group');
   const me = await membership(q, conversationId, userId);

@@ -8,7 +8,7 @@ import type { ComponentType } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
-import { useT } from '@/lib/i18n';
+import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
 
 import { Button, Screen } from './ui';
@@ -16,13 +16,13 @@ import { Button, Screen } from './ui';
 export function staffOnly<P extends object>(Inner: ComponentType<P>, allowed: Role[]) {
   function StaffOnly(props: P) {
     const { roles } = useAuth();
-    const t = useT();
+    const { t, n } = useLocale();
     if (roles.some((r) => allowed.includes(r))) return <Inner {...props} />;
     return (
       <Screen>
         <View style={styles.wrap}>
           {/* English only for now (Steve, 2026-10-28). */}
-          <Text style={type.heading}>This page is for the Prayer Tower team.</Text>
+          <Text style={type.heading}>This page is for the {n('Prayer Tower')} team.</Text>
           <Button variant="secondary" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         </View>
       </Screen>

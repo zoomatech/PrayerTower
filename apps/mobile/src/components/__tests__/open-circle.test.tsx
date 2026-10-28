@@ -10,7 +10,7 @@ import { setWording, wordingForTradition } from '@/lib/i18n';
 
 jest.mock('@/lib/api', () => ({ api: { features: jest.fn(async () => ({ features: {} })) } }));
 
-const RELIGIOUS = /\b(pray|prayer|prayers|praying|prayed|god|lord|jesus|church|amen|blessed|scripture|priestly|pastor|testimony)\b/i;
+const RELIGIOUS = /\b(pray|prayer|prayers|praying|prayed|god|lord|jesus|church|amen|blessed|scripture|priestly|pastor|testimony|praise\w*)\b/i;
 
 afterEach(() => act(() => setWording('faith')));
 

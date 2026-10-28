@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/ui';
-import { Tr } from '@/lib/i18n';
+import { Tr, useT } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -16,6 +16,7 @@ import type { FeedLayoutProps } from './index';
 const SWIPE_THRESHOLD = 0.28;
 
 export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd, onAction }: FeedLayoutProps) {
+  const t = useT();
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const x = useRef(new Animated.Value(0)).current;
@@ -71,18 +72,18 @@ export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing
           {card.id === pinnedId ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
           <View>
             <Animated.View style={[styles.hint, styles.hintPray, { opacity: prayHint }]} pointerEvents="none">
-              <Text style={styles.hintText}>Pray 💜</Text>
+              <Tr k="layout.pray" style={styles.hintText} />
             </Animated.View>
             <Animated.View style={[styles.hint, styles.hintSkip, { opacity: skipHint }]} pointerEvents="none">
-              <Text style={styles.hintText}>Next</Text>
+              <Tr k="layout.next" style={styles.hintText} />
             </Animated.View>
             <Animated.View {...pan.panHandlers} style={{ transform: [{ translateX: x }, { rotate }] }}>
               {renderCard(card)}
             </Animated.View>
           </View>
           <View style={styles.row}>
-            <Button variant="secondary" label="‹ Next" onPress={() => advance(-1, false)} />
-            <Button label="Pray ›" onPress={() => advance(1, true)} />
+            <Button variant="secondary" label={t('layout.nextButton')} onPress={() => advance(-1, false)} />
+            <Button label={t('layout.prayButton')} onPress={() => advance(1, true)} />
           </View>
           <Text style={styles.folio}>
             {index + 1} of {cards.length}
@@ -91,12 +92,12 @@ export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing
         </>
       ) : atEnd || cards.length === 0 ? (
         <View style={styles.end}>
-          <Text style={type.heading}>You have seen every request for now</Text>
-          <Text style={styles.folioText}>Thank you for praying.</Text>
-          <Button variant="secondary" label="Start again" onPress={() => (setIndex(0), onRefresh())} />
+          <Tr k="layout.allSeenTitle" style={type.heading} />
+          <Tr k="layout.thanks" style={styles.folioText} />
+          <Button variant="secondary" label={t('layout.again')} onPress={() => (setIndex(0), onRefresh())} />
         </View>
       ) : (
-        <Text style={styles.folioText}>Loading more requests…</Text>
+        <Tr k="layout.loadingMore" style={styles.folioText} />
       )}
     </ScrollView>
   );

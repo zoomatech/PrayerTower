@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
+import { featureOn, requireFeature } from '../communities/index.js';
 
 /** Fewer answers than this, and an anonymous survey's results stay hidden (one person's answers could be guessed). */
 export const MIN_RESPONSES = 5;
@@ -46,6 +47,7 @@ const OPEN = `s.status = 'open' and (s.closes_at is null or s.closes_at > now())
 
 /** Open surveys for the member's community that they haven't answered yet. */
 export async function forMember(q: Queryable, userId: string): Promise<Survey[]> {
+  if (!(await featureOn(q, userId, 'surveys'))) return [];
   const { rows } = await q.query<Survey>(
     `select ${SURVEY} ${FROM}
       where ${OPEN} and (s.community_id is null or s.community_id = public.member_community_id($1))
@@ -77,6 +79,7 @@ export async function answer(q: Queryable, userId: string, surveyId: string, inp
   );
   const survey = rows[0];
   if (!survey) throw notFound('Survey');
+  await requireFeature(q, userId, 'surveys');
   const given = new Map(input.answers.map((a) => [a.questionId, a]));
   const clean: { questionId: string; choices: string[]; value: number | null; text: string | null }[] = [];
   for (const question of survey.questions) {

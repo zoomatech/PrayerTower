@@ -11,6 +11,7 @@ import { SpokenPrayers } from '@/components/spoken-prayers';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
@@ -33,6 +34,8 @@ export default function PostScreen() {
   const [busy, setBusy] = useState(false);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
+  const radioOn = useFeature('radio');
+  const spokenOn = useFeature('spoken');
   const [power, setPower] = useState<PowerPrayerStatus | null>(null);
   const [powerSent, setPowerSent] = useState<number | null>(null);
   const [thanks, setThanks] = useState('');
@@ -256,9 +259,9 @@ export default function PostScreen() {
           </View>
         ) : null}
 
-        {card && prayable ? <SpokenPrayers postId={id} /> : null}
+        {card && prayable && spokenOn ? <SpokenPrayers postId={id} /> : null}
 
-        {!prayable ? null : radioSent ? (
+        {!prayable || !radioOn ? null : radioSent ? (
           <Text style={type.small}>{t('post.radioSent')}</Text>
         ) : tokens && tokens.priestly.balance >= tokens.priestly.radioPrayerCost ? (
           <Button
@@ -272,7 +275,7 @@ export default function PostScreen() {
           />
         ) : null}
         {prayable && !radioSent && materialMatch && (tokens?.priestly.radioPrayerCost ?? 0) > 0 ? <Text style={type.small}>{t('post.materialMatch')}</Text> : null}
-        {prayable && !radioSent && tokens?.priestly.amplifyRepeats && tokens.priestly.balance >= (tokens.priestly.amplifyCost ?? 0) ? (
+        {prayable && radioOn && !radioSent && tokens?.priestly.amplifyRepeats && tokens.priestly.balance >= (tokens.priestly.amplifyCost ?? 0) ? (
           <Button
             variant="secondary"
             label={

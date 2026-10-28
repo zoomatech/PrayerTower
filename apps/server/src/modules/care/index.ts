@@ -10,7 +10,7 @@ import type { Queryable } from '../../db.js';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import type { Role } from '../accounts/index.js';
 import { hasRole } from '../accounts/index.js';
-import { isSecular } from '../communities/index.js';
+import { featureOn, isSecular, requireFeature } from '../communities/index.js';
 import * as messages from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as safety from '../safety/index.js';
@@ -63,7 +63,7 @@ async function confessionOffered(q: Queryable, s: CareSettings, userId: string) 
 /** What the app offers this member: the kinds that are switched on, and how long a confession is kept. */
 export async function options(q: Queryable, userId: string) {
   const s = await settings(q);
-  if (!s.care_enabled) return { enabled: false, kinds: [] as CareKind[], confessionRetentionDays: s.confession_retention_days };
+  if (!s.care_enabled || !(await featureOn(q, userId, 'care'))) return { enabled: false, kinds: [] as CareKind[], confessionRetentionDays: s.confession_retention_days };
   const confession = await confessionOffered(q, s, userId);
   return { enabled: true, kinds: CARE_KINDS.filter((k) => k !== 'confession' || confession), confessionRetentionDays: s.confession_retention_days };
 }
@@ -71,6 +71,7 @@ export async function options(q: Queryable, userId: string) {
 export const NewCareRequest = z.object({ kind: z.enum(CARE_KINDS), body: z.string().trim().min(1).max(2000) });
 
 export async function request(q: Queryable, userId: string, input: z.infer<typeof NewCareRequest>) {
+  await requireFeature(q, userId, 'care');
   const s = await settings(q);
   if (!s.care_enabled) throw forbidden('Prayer partners are not available right now');
   if (input.kind === 'confession' && !(await confessionOffered(q, s, userId))) throw forbidden('Confession is not available');

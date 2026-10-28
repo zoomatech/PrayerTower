@@ -5,6 +5,7 @@ import { defaultLegalDir } from '../src/modules/site/index.js';
 import { loadConfig } from '../src/config.js';
 import { createPool } from '../src/db.js';
 import type { Classifier } from '../src/modules/moderation/index.js';
+import type { Converse } from '../src/modules/ai/provider.js';
 import { buildTaskList } from '../src/tasks.js';
 
 // Integration tests run against the local Supabase stack (`npm run db:start`).
@@ -27,6 +28,7 @@ export const app = buildApp({
     return token.slice(5);
   },
   classify: (text) => classifier(text),
+  converse: (system, turns) => converser(system, turns),
   stationKey: STATION_KEY,
   deletionPage: { supabaseUrl: 'http://127.0.0.1:54321', publishableKey: 'sb_publishable_test', supportEmail: 'help@example.com' },
   site: {
@@ -40,6 +42,9 @@ export const app = buildApp({
 });
 
 export let classifier: Classifier = async () => null;
+/** The tests' stand-in AI; ai.test.ts swaps in a scripted one. */
+export let converser: Converse = async () => ({ text: 'An imagined reply.' });
+export const setConverser = (c: Converse) => (converser = c);
 export const setClassifier = (c: Classifier) => (classifier = c);
 
 /** Run every queued job to completion. */

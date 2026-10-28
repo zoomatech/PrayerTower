@@ -2,7 +2,7 @@
 // (including whether radio prayers spend Priestly tokens or are free), tier
 // thresholds and weekly allotments, and finding people to grant or revoke
 // roles. The server checks the admin role on every call.
-import { POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
+import { COMMUNITY_FEATURES, POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek, type AiSettings, type LiveSettings } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -310,6 +310,8 @@ function Admin() {
         <SpokenPrayerSection />
         <MaterialMatchSection />
         <AwardSection />
+        <AiSection />
+        <LiveSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -582,6 +584,96 @@ function CareAndEventSettingsSection() {
   );
 }
 
+/** Live video rooms: off by default; the Jitsi Meet server address, or hosts paste links. */
+function LiveSection() {
+  const t = useT();
+  const [s, setS] = useState<LiveSettings | null>(null);
+  const [draft, setDraft] = useState({ url: '', minutes: '' });
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: LiveSettings) => {
+    setS(x);
+    setDraft({ url: x.jitsi_url ?? '', minutes: String(x.max_minutes) });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.liveSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateLiveSettings({ jitsiUrl: draft.url.trim(), maxMinutes: toInt(draft.minutes) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        setNote(t('admin.saved.live'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.liveSection')}</Text>
+      <Toggle label={t('admin.toggle.live')} hint={t('admin.toggle.liveHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('admin.field.jitsiUrl')} value={draft.url} onChangeText={(url) => setDraft((d) => ({ ...d, url }))} autoCapitalize="none" keyboardType="url" />
+      <Field label={t('admin.field.liveMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
+      <Button label={t('admin.btn.saveLive')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** AI features: the "not God" conversation and the circle facilitator, both off by default. */
+function AiSection() {
+  const t = useT();
+  const [s, setS] = useState<AiSettings | null>(null);
+  const [chat, setChat] = useState<{ ai_chat_enabled: boolean; ai_chat_warning: string } | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [draft, setDraft] = useState({ warning: '', chatLimit: '', facLimit: '' });
+  const [note, setNote] = useState<string | null>(null);
+  const fail = (e: unknown) => setNote((e as Error).message);
+  const show = (x: AiSettings, c: { ai_chat_enabled: boolean; ai_chat_warning: string }) => {
+    setS(x);
+    setChat(c);
+    setDraft({ warning: c.ai_chat_warning, chatLimit: String(x.chat_daily_limit), facLimit: String(x.facilitator_daily_limit) });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      Promise.all([api.admin.aiSettings(), api.admin.futureSettings()])
+        .then(([a, f]) => {
+          setConnected(a.aiConnected);
+          show(a.settings, f.settings);
+        })
+        .catch(fail);
+    }, []),
+  );
+  const save = async (patch: { chatEnabled?: boolean; facilitatorEnabled?: boolean } = {}) => {
+    try {
+      const f = await api.admin.updateFutureSettings({ aiChatEnabled: patch.chatEnabled, aiChatWarning: draft.warning || undefined });
+      const a = await api.admin.updateAiSettings({
+        facilitatorEnabled: patch.facilitatorEnabled,
+        chatDailyLimit: toInt(draft.chatLimit) ?? undefined,
+        facilitatorDailyLimit: toInt(draft.facLimit) ?? undefined,
+      });
+      show(a.settings, f.settings);
+      setNote(t('admin.saved.ai'));
+    } catch (e) {
+      fail(e);
+    }
+  };
+  if (!s || !chat) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.aiSection')}</Text>
+      <Text style={type.small}>{t(connected ? 'admin.aiConnected' : 'admin.aiNotConnected')}</Text>
+      <Toggle label={t('admin.toggle.aiChat')} hint={t('admin.toggle.aiChatHint')} value={chat.ai_chat_enabled} onChange={(v) => save({ chatEnabled: v })} />
+      <Field label={t('admin.field.aiWarning')} value={draft.warning} onChangeText={(warning) => setDraft((d) => ({ ...d, warning }))} multiline maxLength={1000} />
+      <Field label={t('admin.field.aiChatLimit')} keyboardType="number-pad" value={draft.chatLimit} onChangeText={(chatLimit) => setDraft((d) => ({ ...d, chatLimit }))} />
+      <Toggle label={t('admin.toggle.aiFacilitator')} hint={t('admin.toggle.aiFacilitatorHint')} value={s.facilitator_enabled} onChange={(v) => save({ facilitatorEnabled: v })} />
+      <Field label={t('admin.field.aiFacLimit')} keyboardType="number-pad" value={draft.facLimit} onChangeText={(facLimit) => setDraft((d) => ({ ...d, facLimit }))} />
+      <Button label={t('admin.btn.saveAi')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Annual Prayer Warrior Award: off by default. Offer it to a year's top pray-ers from the standings. */
 function AwardSection() {
   const t = useT();
@@ -808,6 +900,22 @@ function CommunitiesSection() {
                   label={POST_TYPE_LABELS[p]}
                   selected={on}
                   onPress={() => change(c, { enabledPostTypes: on ? c.enabledPostTypes.filter((x) => x !== p) : [...c.enabledPostTypes, p] })}
+                />
+              );
+            })}
+          </View>
+          <Text style={type.small}>{t('admin.communityFeatures')}</Text>
+          <View style={styles.row}>
+            {COMMUNITY_FEATURES.map((f) => {
+              const hidden = c.hiddenFeatures?.includes(f) ?? false;
+              return (
+                <Chip
+                  key={f}
+                  label={t(`admin.feature.${f}`)}
+                  selected={!hidden}
+                  onPress={() =>
+                    change(c, { hiddenFeatures: hidden ? (c.hiddenFeatures ?? []).filter((x) => x !== f) : [...(c.hiddenFeatures ?? []), f] })
+                  }
                 />
               );
             })}

@@ -27,6 +27,11 @@ import { surveyRoutes } from './modules/surveys/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
+import { aiRoutes } from './modules/ai/routes.js';
+import { isSecular } from './modules/communities/index.js';
+import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
+import { liveRoutes } from './modules/live/routes.js';
+import type { Converse } from './modules/ai/provider.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
 import { messageRoutes } from './modules/messages/routes.js';
@@ -63,6 +68,8 @@ export interface AppDeps {
   corsOrigins?: string[];
   /** AI classifier for the warn-before-posting check; null = no warnings. */
   classify?: Classifier | null;
+  /** The AI for the "not God" conversation and the circle facilitator; null = fixed answers. */
+  converse?: Converse | null;
   /** Radio station worker's key; null = station API off. */
   stationKey?: string | null;
   /** Requests per member per minute; 0 = no limit (tests). */
@@ -92,7 +99,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -116,8 +123,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
-  app.setErrorHandler((err, req, reply) => {
-    if (err instanceof AppError) return reply.code(err.statusCode).send({ error: err.code, message: err.message });
+  app.setErrorHandler(async (err, req, reply) => {
+    if (err instanceof AppError) {
+      // Open Circle members never read religious words, even in an error.
+      const secular = RELIGIOUS_WORDS.test(err.message) && req.auth?.userId ? await isSecular(db, req.auth.userId).catch(() => false) : false;
+      return reply.code(err.statusCode).send({ error: err.code, message: secular ? neutralText(err.message) : err.message });
+    }
     if (err instanceof ZodError) return reply.code(400).send({ error: 'invalid_request', issues: err.issues });
     const pgCode = (err as { code?: string }).code;
     if (pgCode === '22P02') return reply.code(400).send({ error: 'invalid_request', message: 'Malformed id or value' });
@@ -222,6 +233,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
+    aiRoutes(authed, db, converse);
+    liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
     legalRoutes(authed, db);

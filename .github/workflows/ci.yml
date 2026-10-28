@@ -56,6 +56,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run knip
+      - name: Migration versions are unique
+        run: scripts/check-migrations.sh
 
   # Known vulnerabilities in dependencies. The server, station and shared
   # packages run in production, so any high one fails the build; the app's

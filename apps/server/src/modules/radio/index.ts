@@ -11,6 +11,7 @@ import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from '../tokens/index.js';
+import { requireFeature } from '../communities/index.js';
 
 export interface RadioPrayer {
   id: string;
@@ -36,6 +37,7 @@ export const logTransmitter: Transmitter = async (p) => {
  * tokens, and is refused while no admin has set that price.
  */
 export async function queue(q: Queryable, userId: string, postId: string, key: string, amplify = false): Promise<RadioPrayer> {
+  await requireFeature(q, userId, 'radio');
   const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   posts.requirePrayable(post);
@@ -279,7 +281,7 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
  * text (never names), and never sensitive, removed or crisis requests. Real records
  * only: no estimated reach or distance (no-fake-functionality rule).
  */
-export async function castLog(q: Queryable, limit = 50) {
+export async function castLog(q: Queryable, viewerId: string, limit = 50) {
   const { rows } = await q.query<{
     id: string;
     post_id: string;
@@ -292,12 +294,16 @@ export async function castLog(q: Queryable, limit = 50) {
     `select r.id, r.post_id, left(regexp_replace(p.body, '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
        from public.radio_prayers r join public.posts p on p.id = r.post_id
       where r.status = 'transmitted' and p.moderation_status = 'visible' and not p.is_sensitive
+        and p.community_id = public.member_community_id($2)
         and not exists (select 1 from public.moderation_items m where m.target_type = 'post' and m.target_id = p.id and m.source = 'crisis')
       order by r.transmitted_at desc limit $1`,
-    [limit],
+    [limit, viewerId],
   );
   const { rows: totals } = await q.query<{ prayers: number; sends: number }>(
-    `select count(*)::int as prayers, coalesce(sum(repeats), 0)::int as sends from public.radio_prayers where status = 'transmitted'`,
+    `select count(*)::int as prayers, coalesce(sum(r.repeats), 0)::int as sends
+       from public.radio_prayers r join public.posts p on p.id = r.post_id
+      where r.status = 'transmitted' and p.community_id = public.member_community_id($1)`,
+    [viewerId],
   );
   return { totals: totals[0]!, cast: rows };
 }

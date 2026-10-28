@@ -3,6 +3,7 @@
 // openapi.test.ts fails when a key here no longer matches a route.
 import type { z } from 'zod';
 import * as accounts from './modules/accounts/index.js';
+import * as ai from './modules/ai/index.js';
 import * as activity from './modules/activity/index.js';
 import * as announcements from './modules/announcements/index.js';
 import * as care from './modules/care/index.js';
@@ -15,6 +16,7 @@ import * as store from './modules/store/index.js';
 import * as invites from './modules/invites/index.js';
 import * as inviteEmail from './modules/invites/email.js';
 import * as inviteImport from './modules/invites/import.js';
+import * as live from './modules/live/index.js';
 import * as macroNeeds from './modules/macro-needs/index.js';
 import * as messages from './modules/messages/index.js';
 import * as milestones from './modules/milestones/index.js';
@@ -49,7 +51,12 @@ export const REQUEST_SCHEMAS: Record<string, { body?: z.ZodType; query?: z.ZodTy
   'POST /events': { body: events.NewEvent },
   'POST /feedback': { body: feedback.NewFeedback },
   'POST /token-store/purchases': { body: store.Purchase },
-  'POST /ai-chat': { body: future.AiChat },
+  'POST /ai-chat': { body: ai.ChatInput },
+  'POST /ai-facilitator': { body: ai.FacilitateInput },
+  'POST /circle-requests': { body: ai.CircleRequest },
+  'PATCH /admin/ai-settings': { body: ai.SettingsPatch },
+  'POST /live': { body: live.Start },
+  'PATCH /admin/live-settings': { body: live.SettingsPatch },
   'POST /admin/invites': { body: invites.NewInvites },
   'POST /macro-needs': { body: macroNeeds.NewMacroNeed },
   'POST /posts/:id/messages': { body: messages.NewPrayerThread },

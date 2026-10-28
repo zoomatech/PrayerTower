@@ -9,6 +9,7 @@ import { AppError, conflict, notFound } from '../../errors.js';
 import * as notifications from '../notifications/index.js';
 import * as tokens from '../tokens/index.js';
 import { standingsBetween } from './warriors.js';
+import { featureOn, requireFeature } from '../communities/index.js';
 
 export interface AwardSettings {
   enabled: boolean;
@@ -116,7 +117,7 @@ export async function select(q: Queryable, year: number) {
 /** The member's own offers and awards, with the prizes on offer. */
 export async function mine(q: Queryable, userId: string) {
   const s = await settings(q);
-  if (!s.enabled) return { enabled: false as const, awards: [] };
+  if (!s.enabled || !(await featureOn(q, userId, 'awards'))) return { enabled: false as const, awards: [] };
   const { rows } = await q.query<AwardRow>(`${SELECT} where a.user_id = $1 order by a.year desc`, [userId]);
   return {
     enabled: true as const,
@@ -130,6 +131,7 @@ export const Accept = z.object({ showName: z.boolean().default(false) });
 
 /** Accept: pay the token prizes once, and record whether the Hall may show the name. */
 export async function accept(q: Queryable, userId: string, id: string, input: z.infer<typeof Accept>) {
+  await requireFeature(q, userId, 'awards');
   const s = await requireOn(q);
   const { rows } = await q.query<AwardRow>(`${SELECT} where a.id = $1 and a.user_id = $2 for update of a`, [id, userId]);
   const a = rows[0];

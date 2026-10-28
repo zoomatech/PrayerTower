@@ -23,7 +23,7 @@ export function ColumnLayout({ cards, pinnedId, renderCard, header, refreshing, 
         </View>
       )}
       ListHeaderComponent={header ?? undefined}
-      ListFooterComponent={atEnd && cards.length > 0 ? <Text style={styles.end}>You have seen every prayer for now. Thank you for praying.</Text> : undefined}
+      ListFooterComponent={atEnd && cards.length > 0 ? <Tr k="layout.allSeen" style={styles.end} /> : undefined}
       ItemSeparatorComponent={Separator}
       contentContainerStyle={styles.content}
       refreshing={refreshing}

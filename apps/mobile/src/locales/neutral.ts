@@ -78,6 +78,12 @@ export const keys: Tree = named({
     bodyLabel: 'Your request',
     kind: 'What kind of support?',
   },
+  layout: {
+    allSeen: 'You have seen every request for now. Thank you for showing up.',
+    thanks: 'Thank you for showing up.',
+    pray: 'Support 💜',
+    prayButton: 'Support ›',
+  },
   feed: {
     composer: "What's on your mind?…",
     filterAll: 'Everything',
@@ -211,6 +217,24 @@ export const keys: Tree = named({
     anonymous: 'A Kindness Champion',
     line: '%{count} acts of support for %{people} people',
   },
+  live: {
+    intro: 'Start a live room for a talk, a seminar or a circle. Members of your community see it under "Live now" until you end it. Nothing is recorded.',
+    roomTitlePlaceholder: 'Evening check-in',
+  },
+  vine: {
+    yourTendril: '➰ Your tendril: you promised to check in',
+    tendrils: { one: '1 person promised to check in on this', other: '%{count} people promised to check in on this' },
+    bloom: '🌸 Worked out',
+    ripeness: {
+      open: 'Request waiting for support',
+      actively_prayed: 'Request being supported',
+      amplified: 'Request sent out by radio',
+      answered: 'Request worked out',
+    },
+    bird: 'Uh-uh! No ads here. Just people and kindness.',
+    branchIntro: 'Every request you have shared, on one branch of the vine. Tendrils show the people who promised to check in.',
+  },
+  witness: { storyPlaceholder: 'For example: a family behind on rent got two months covered by a neighbor.' },
   macro: { pray: 'Support', prayingNow: 'Thinking of them', commit: 'Promise to check in' },
   helpStories: {
     aboutYouHint: 'The Helpers team would like to share this. It never shows your name. You can take back a yes at any time.',
@@ -219,6 +243,7 @@ export const keys: Tree = named({
   notebook: {
     worldwide: '%{formatted} acts of support worldwide in the last day, by %{people} people',
     prayedForYou: '%{count} people have supported your requests.',
+    thanksPost: 'Share good news',
     thanksBody: 'Has something good happened lately? A little good news lifts everyone here.',
     thanksAnswered: 'Requests you supported worked out this week: %{count}. Is there something you are thankful for too?',
     supportToggle: 'Kind thoughts welcome from everyone',
@@ -243,7 +268,7 @@ export const keys: Tree = named({
     intro: 'Tokens you buy work just like tokens you earn. %{percent}% of every purchase goes to the Common Fund, which pays for direct help to people in real need.',
     priestly: '%{count} Lighthouse tokens',
   },
-  card: { answered: '✨ Worked out', praying: '%{count} thinking of this', firstToPray: 'Be the first to lift this up', testimony: 'Story' },
+  card: { pastorBadge: '%{title}, a verified mentor', answered: '✨ Worked out', praying: '%{count} thinking of this', firstToPray: 'Be the first to lift this up', testimony: 'Story' },
   enums: {
     action: { praying_now: 'Thinking of You', commit: 'Promise to Check In' },
     postType: { prayer_request: 'Request', praise: 'Good News', open_prayer: 'Kind Thoughts', testimony: 'Story' },
@@ -275,5 +300,6 @@ export const literals = named({
   'Commit to Pray': 'Promise to Check In',
   'Prayer Tower': 'Open Circle',
   'Prayer Cast': 'Goodwill Cast',
+  'Swipe to pray': 'Swipe through',
   'Go to Prayers': 'Go to Support',
 }) as Record<string, string>;

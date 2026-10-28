@@ -1,0 +1,106 @@
+// Live video rooms, off by default (docs/LIVE_VIDEO.md). Staff start a room and
+// members of the same community see it under "Live now". A room is a Jitsi Meet
+// room on the server in live_settings.jitsi_url, or a link on one of the
+// allowed meeting sites. Nothing is recorded or stored except who opened it.
+import { randomBytes } from 'node:crypto';
+import { z } from 'zod';
+import type { Queryable } from '../../db.js';
+import { badRequest, forbidden, notFound } from '../../errors.js';
+import { hasRole } from '../accounts/index.js';
+import { allowedVideoUrl, settings as eventSettings } from '../events/index.js';
+import { featureOn, requireFeature } from '../communities/index.js';
+
+export interface LiveSettings {
+  enabled: boolean;
+  jitsi_url: string | null;
+  max_minutes: number;
+}
+
+export async function settings(q: Queryable): Promise<LiveSettings> {
+  const { rows } = await q.query<LiveSettings>('select enabled, jitsi_url, max_minutes from public.live_settings');
+  return rows[0]!;
+}
+
+export const SettingsPatch = z.object({
+  enabled: z.boolean().optional(),
+  /** Empty string clears it. */
+  jitsiUrl: z.union([z.literal(''), z.url().regex(/^https:\/\//, 'Use an https:// address')]).optional(),
+  maxMinutes: z.number().int().min(15).max(720).optional(),
+});
+
+export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
+  const url = p.jitsiUrl === undefined ? undefined : p.jitsiUrl.replace(/\/+$/, '') || null;
+  await q.query(
+    `update public.live_settings set enabled = coalesce($1, enabled), max_minutes = coalesce($2, max_minutes),
+       jitsi_url = case when $3::boolean then $4 else jitsi_url end`,
+    [p.enabled ?? null, p.maxMinutes ?? null, url !== undefined, url ?? null],
+  );
+  return settings(q);
+}
+
+/** Who may start a room: staff who already run events, circles and care. */
+const HOSTS = ['admin', 'moderator', 'pastor', 'pastor_counselor'] as const;
+
+export async function canHost(q: Queryable, userId: string) {
+  return hasRole(q, userId, ...HOSTS);
+}
+
+export interface LiveRoom {
+  id: string;
+  title: string;
+  roomUrl: string;
+  hostName: string;
+  isMine: boolean;
+  startedAt: string;
+}
+
+/** Rooms live now in the member's community, newest first. */
+export async function liveNow(q: Queryable, userId: string) {
+  const s = await settings(q);
+  if (!s.enabled || !(await featureOn(q, userId, 'live'))) return { enabled: false, canHost: false, canCreateRoom: false, rooms: [] as LiveRoom[] };
+  const { rows } = await q.query<LiveRoom>(
+    `select r.id, r.title, r.room_url as "roomUrl", p.display_name as "hostName", r.host_id = $1 as "isMine", r.started_at as "startedAt"
+       from public.live_rooms r join public.profiles p on p.id = r.host_id
+      where r.ended_at is null and r.started_at > now() - make_interval(mins => $2)
+        and r.community_id = public.member_community_id($1)
+      order by r.started_at desc limit 20`,
+    [userId, s.max_minutes],
+  );
+  return { enabled: true, canHost: await canHost(q, userId), canCreateRoom: !!s.jitsi_url, rooms: rows };
+}
+
+export const Start = z.object({
+  title: z.string().trim().min(1).max(120),
+  /** A meeting link from an allowed site; leave it out to open a new room on the Jitsi server. */
+  link: z.url().optional(),
+});
+
+export async function start(q: Queryable, userId: string, input: z.infer<typeof Start>) {
+  await requireFeature(q, userId, 'live');
+  const s = await settings(q);
+  if (!s.enabled) throw forbidden('Live video is not available');
+  if (!(await canHost(q, userId))) throw forbidden('Only staff can start a live room');
+  let roomUrl: string;
+  if (input.link) {
+    const hosts = (await eventSettings(q)).allowed_video_hosts;
+    if (!allowedVideoUrl(input.link, hosts)) throw badRequest(`Live links must be on ${hosts.slice(0, 4).join(', ')} or another allowed meeting site`);
+    roomUrl = input.link;
+  } else {
+    if (!s.jitsi_url) throw badRequest('No video server is set up. Paste a meeting link instead.');
+    // A long random name, so nobody can guess a room.
+    roomUrl = `${s.jitsi_url}/PrayerTower-${randomBytes(12).toString('base64url')}`;
+  }
+  const { rows } = await q.query<{ id: string }>(
+    `insert into public.live_rooms (host_id, community_id, title, room_url) values ($1, public.member_community_id($1), $2, $3) returning id`,
+    [userId, input.title, roomUrl],
+  );
+  return { id: rows[0]!.id, roomUrl };
+}
+
+export async function end(q: Queryable, userId: string, id: string) {
+  const { rows } = await q.query<{ host_id: string }>('select host_id from public.live_rooms where id = $1 and ended_at is null', [id]);
+  if (!rows[0]) throw notFound('Live room');
+  if (rows[0].host_id !== userId && !(await hasRole(q, userId, 'admin', 'moderator'))) throw forbidden('Only the host or a moderator can end this room');
+  await q.query('update public.live_rooms set ended_at = now() where id = $1', [id]);
+  return { ended: true };
+}

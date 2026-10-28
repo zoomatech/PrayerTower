@@ -72,6 +72,7 @@ export async function featured(q: Queryable, viewerId: string) {
             (select count(distinct e.user_id)::int from public.prayer_events e where e.post_id = n.post_id) as prayers
        from public.macro_needs n join public.posts p on p.id = n.post_id
       where n.ended_at is null and (n.ends_at is null or n.ends_at > now()) and p.moderation_status = 'visible'
+        and p.community_id = public.member_community_id($1)
       order by n.created_at desc limit $2`,
     [viewerId, MAX_FEATURED],
   );

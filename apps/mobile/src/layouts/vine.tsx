@@ -1,7 +1,8 @@
-// Vine 2.0 (beta): the community is one plant. Requests hang from a single
+// Vine 2.0: the community is one plant. Requests hang from a single
 // stem as fruit, alternating sides; ripeness follows the request's state.
-// Your own requests grow on your branch, a tendril marks requests you
-// promised to pray for, and scripture leaves ("abide in the vine") sit
+// Your own requests grow on your branch (and all of them on the Your branch
+// screen), a tendril curls toward each request for every promise to pray (yours
+// in the tendril color), answered requests bloom, and scripture leaves ("abide in the vine") sit
 // between the fruit. The stem is the scroll indicator, the feed ends at a
 // resting vine tip, and if the screen sits idle a bird snips off a would-be
 // ad bud. Colors, spacing and copy come from the theme's tokens, so the look
@@ -10,6 +11,7 @@ import type { Card, FeedTheme, PostState } from '@prayer-tower/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -45,12 +47,6 @@ const ripeness: Record<PostState, string> = {
   amplified: '#E8964A',
   answered: colors.gold,
 };
-const RIPENESS_LABEL: Record<PostState, string> = {
-  open: 'waiting for prayer',
-  actively_prayed: 'being prayed over',
-  amplified: 'sent out by radio',
-  answered: 'answered',
-};
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -71,7 +67,11 @@ interface Leaf {
 
 type Item = { kind: 'fruit'; card: Card } | { kind: 'leaf'; leaf: Leaf; key: string };
 
+/** How many tendrils a fruit shows at most; the label carries the real count. */
+const MAX_TENDRILS = 5;
+
 function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean; tokens: VineTokens; children: React.ReactNode }) {
+  const { t } = useLocale();
   const { side: hashedSide, tilt, gap } = vinePlacement(card.id);
   // Your own requests always grow on your branch, on the right.
   const side = card.isMine ? 'right' : hashedSide;
@@ -84,13 +84,14 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
   }, [grow, reduced]);
 
   return (
-    <View style={[styles.row, { paddingTop: gap }]} accessibilityLabel={`Request ${RIPENESS_LABEL[card.state]}`}>
+    <View style={[styles.row, { paddingTop: gap }]} accessibilityLabel={t(`vine.ripeness.${card.state}`)}>
       <View style={[styles.stem, { backgroundColor: tokens.stem }]} />
       {card.isMine ? <View style={[styles.branch, { backgroundColor: tokens.branch }]} /> : null}
       <Animated.View
         style={[
           styles.fruit,
           left ? styles.fruitLeft : styles.fruitRight,
+          card.state === 'answered' && { ...styles.bloom, shadowColor: colors.gold, borderColor: colors.goldSoft },
           { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
         <View
@@ -99,9 +100,18 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
         <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }, left ? { right: -7 } : { left: -7 }]} />
         <View style={styles.tags}>
           {pinned ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
-          {card.isMine ? <Text style={[styles.tag, { color: tokens.branch }]}>Your branch</Text> : null}
-          {card.myCommitment ? <Text style={[styles.tag, { color: tokens.tendril }]}>➰ Your tendril: you promised to pray</Text> : null}
+          {card.state === 'answered' ? <Text style={[styles.tag, { color: colors.gold }]}>{t('vine.bloom')}</Text> : null}
+          {card.isMine ? <Text style={[styles.tag, { color: tokens.branch }]}>{t('vine.yourBranch')}</Text> : null}
+          {card.myCommitment ? <Text style={[styles.tag, { color: tokens.tendril }]}>{t('vine.yourTendril')}</Text> : null}
         </View>
+        {card.counts.commitments > 0 ? (
+          <Text
+            style={[styles.tendrils, { color: card.myCommitment ? tokens.tendril : tokens.stem }]}
+            accessibilityLabel={t('vine.tendrils', { count: card.counts.commitments })}>
+            {'➰'.repeat(Math.min(card.counts.commitments, MAX_TENDRILS))}
+            {card.counts.commitments > MAX_TENDRILS ? ` +${card.counts.commitments - MAX_TENDRILS}` : ''}
+          </Text>
+        ) : null}
         {children}
       </Animated.View>
     </View>
@@ -128,6 +138,7 @@ function ScriptureLeaf({ leaf, tokens }: { leaf: Leaf; tokens: VineTokens }) {
  * vine, a bird flies in, snips it and leaves a speech bubble. Once per visit.
  */
 function IdleBird({ tokens, idleKey }: { tokens: VineTokens; idleKey: number }) {
+  const { wording, t } = useLocale();
   const reduced = useReducedMotion();
   const [played, setPlayed] = useState(false);
   const [showing, setShowing] = useState(false);
@@ -168,7 +179,7 @@ function IdleBird({ tokens, idleKey }: { tokens: VineTokens; idleKey: number }) 
       </Animated.View>
       <Animated.Text style={[styles.bird, { left: birdLeft }]}>🐦</Animated.Text>
       <Animated.View style={[styles.bubble, { opacity: bubble }]}>
-        <Text style={styles.bubbleText}>{tokens.birdText}</Text>
+        <Text style={styles.bubbleText}>{wording === 'neutral' ? t('vine.bird') : tokens.birdText}</Text>
       </Animated.View>
     </View>
   );
@@ -181,7 +192,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
   const lastScroll = useRef(0);
 
   // Open Circle members (neutral wording) see no scripture.
-  const { wording } = useLocale();
+  const { wording, t } = useLocale();
   useEffect(() => {
     if (wording === 'neutral') return setLeaves([]);
     api
@@ -231,7 +242,8 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
             <View style={styles.tip}>
               <View style={[styles.tipStem, { backgroundColor: tokens.stem }]} />
               <View style={styles.blossom} />
-              <Text style={styles.end}>{tokens.tipText}</Text>
+              <Text style={styles.end}>{wording === 'neutral' ? t('vine.tip') : tokens.tipText}</Text>
+              <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />
             </View>
           ) : undefined
         }
@@ -264,6 +276,9 @@ const styles = StyleSheet.create({
   ripeness: { position: 'absolute', top: 42, width: 14, height: 14, borderRadius: radius.pill, borderWidth: 2 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.xs },
   tag: { fontSize: 13, fontWeight: '700' },
+  tendrils: { fontSize: 14, letterSpacing: -2, marginBottom: space.xs },
+  // An answered request blooms: a soft gold glow around the fruit.
+  bloom: { borderRadius: radius.lg, borderWidth: 2, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
   pinned: { ...type.small, color: colors.primary, fontWeight: '700' },
   scripture: { alignSelf: 'center', width: '70%', marginVertical: space.lg, padding: space.md, borderRadius: radius.lg, borderWidth: 1, gap: 4 },
   scriptureText: { fontSize: 15, lineHeight: 21, fontStyle: 'italic', fontFamily: 'serif', color: colors.text },

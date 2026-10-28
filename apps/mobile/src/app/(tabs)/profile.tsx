@@ -16,7 +16,9 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AiLinks } from '@/components/ai-links';
 import { AwardCard } from '@/components/award-card';
+import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
@@ -24,6 +26,7 @@ import { PrayedForYou } from '@/components/notebook';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { saveJson } from '@/lib/save-file';
@@ -32,6 +35,8 @@ import { colors, radius, space, type } from '@/lib/theme';
 export default function Profile() {
   const { profile, roles, community, refreshProfile, signOut } = useAuth();
   const { t, label, n, wording } = useLocale();
+  const poolsOn = useFeature('pools');
+  const radioOn = useFeature('radio');
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,14 +85,8 @@ export default function Profile() {
 
         <ErrorText error={countsError} onRetry={loadCounts} />
         <View style={styles.stats}>
-          <View style={styles.stat}>
-            {/* Longer names (Open Circle's "Kindness Champion") start smaller: the web can't shrink text to fit. */}
-            <Text
-              style={[styles.statValue, tier?.tier?.label && n(tier.tier.label).length > 12 ? { fontSize: 13 } : null]}
-              numberOfLines={2}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-            >
+          <View style={[styles.stat, styles.tierStat]}>
+            <Text style={[styles.statValue, styles.tierValue]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>
               {tier?.tier?.label ? n(tier.tier.label) : '—'}
             </Text>
             <Text style={type.small}>{profile.anonymous_by_default ? t('profile.tierPrivate') : t('profile.tier')}</Text>
@@ -155,10 +154,13 @@ export default function Profile() {
         <AwardCard />
         <PrayedForYou />
         <View style={styles.chips}>
-          <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
+          {poolsOn ? <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} /> : null}
+          <Button small variant="secondary" label={t('vine.branchLink')} onPress={() => router.push('/branch')} />
+          <AiLinks />
+          <LiveHostLink />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
-          <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} />
+          {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
           {features.podcasts ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
         </View>
 
@@ -169,7 +171,7 @@ export default function Profile() {
               {feedStyles.themes.map((th) => (
                 <Chip
                   key={th.slug}
-                  label={th.status === 'beta' ? t('profile.beta', { name: th.name }) : th.name}
+                  label={th.status === 'beta' ? t('profile.beta', { name: n(th.name) }) : n(th.name)}
                   selected={feedStyles.current === th.slug}
                   onPress={() =>
                     api
@@ -290,4 +292,7 @@ const styles = StyleSheet.create({
   mixLabel: { fontWeight: '600' },
   stat: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.md, alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '700', color: colors.primary, textAlign: 'center' },
+  // Tier names are long (Kindness Champion): a wider tile and smaller text, so no word breaks mid-way.
+  tierValue: { fontSize: 14 },
+  tierStat: { flex: 1.6 },
 });

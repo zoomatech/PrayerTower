@@ -4,7 +4,7 @@
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { notFound } from '../../errors.js';
+import { badRequest, notFound } from '../../errors.js';
 
 // No 0/O, 1/I/L: codes are read aloud and typed from paper.
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -25,6 +25,8 @@ export const NewInvites = z.object({
   maxUses: z.number().int().min(1).max(1000).default(1),
   expiresInDays: z.number().int().min(1).max(365).nullable().default(30),
   count: z.number().int().min(1).max(50).default(1),
+  /** The community the invitees join (an active one's slug); left out = the default community. */
+  community: z.string().regex(/^[a-z0-9-]{3,40}$/).optional(),
 });
 
 export interface Invite {
@@ -37,10 +39,14 @@ export interface Invite {
   createdAt: string;
   createdBy: string | null;
   status: 'active' | 'used' | 'expired' | 'revoked';
+  /** The community invitees join, or null for the default. */
+  community: { slug: string; name: string; secular: boolean } | null;
 }
 
-const SELECT = `select c.code, c.note, c.max_uses, c.uses, c.expires_at, c.revoked_at, c.created_at, p.display_name as created_by
-                  from public.invite_codes c left join public.profiles p on p.id = c.created_by`;
+const SELECT = `select c.code, c.note, c.max_uses, c.uses, c.expires_at, c.revoked_at, c.created_at, p.display_name as created_by,
+                       m.slug as community_slug, m.name as community_name, m.tradition = 'secular' as community_secular
+                  from public.invite_codes c left join public.profiles p on p.id = c.created_by
+                  left join public.communities m on m.id = c.community_id`;
 
 interface InviteRow {
   code: string;
@@ -51,6 +57,9 @@ interface InviteRow {
   revoked_at: Date | null;
   created_at: Date;
   created_by: string | null;
+  community_slug: string | null;
+  community_name: string | null;
+  community_secular: boolean | null;
 }
 
 function toInvite(r: InviteRow, now = new Date()): Invite {
@@ -65,19 +74,26 @@ function toInvite(r: InviteRow, now = new Date()): Invite {
     createdAt: r.created_at.toISOString(),
     createdBy: r.created_by ?? null,
     status,
+    community: r.community_slug ? { slug: r.community_slug, name: r.community_name!, secular: !!r.community_secular } : null,
   };
 }
 
 export async function create(q: Queryable, staffId: string, input: z.infer<typeof NewInvites>): Promise<Invite[]> {
+  let communityId: string | null = null;
+  if (input.community) {
+    const { rows } = await q.query<{ id: string }>(`select id from public.communities where slug = $1 and status = 'active'`, [input.community]);
+    if (!rows[0]) throw badRequest('That community is not open');
+    communityId = rows[0].id;
+  }
   const out: Invite[] = [];
   for (let i = 0; i < input.count; i++) {
     // 31^8 codes: a clash is very unlikely, and the loop simply draws again.
     for (;;) {
       const { rows } = await q.query(
-        `insert into public.invite_codes (code, created_by, note, max_uses, expires_at)
-         values ($1, $2, $3, $4, case when $5::int is null then null else now() + make_interval(days => $5::int) end)
+        `insert into public.invite_codes (code, created_by, note, max_uses, expires_at, community_id)
+         values ($1, $2, $3, $4, case when $5::int is null then null else now() + make_interval(days => $5::int) end, $6)
          on conflict (code) do nothing returning code`,
-        [newCode(), staffId, input.note, input.maxUses, input.expiresInDays],
+        [newCode(), staffId, input.note, input.maxUses, input.expiresInDays, communityId],
       );
       if (rows[0]) {
         out.push(...(await list(q, { code: rows[0].code })));

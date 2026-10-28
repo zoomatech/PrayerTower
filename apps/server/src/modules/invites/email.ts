@@ -51,9 +51,25 @@ const TEXT = {
   },
 } satisfies Record<InviteLang, unknown>;
 
-export function renderInviteEmail(input: { to: string; code: string; lang: InviteLang; from: string; message?: string | null; links: InviteLinks }): Mail {
-  const lang = memberLang(input.lang);
-  const t = TEXT[lang];
+/** An invite to a secular community (Open Circle): its name, and no religious words. */
+const neutral = (name: string): (typeof TEXT)['en'] => ({
+  ...TEXT.en,
+  subject: `You are invited to ${name}`,
+  hello: (from: string) => `${from} invited you to ${name}, an ad-free place where real people cheer each other on.`,
+  footer: `${name} is invite-only during the pilot. If you did not expect this email, you can ignore it.`,
+});
+
+export function renderInviteEmail(input: {
+  to: string;
+  code: string;
+  lang: InviteLang;
+  from: string;
+  message?: string | null;
+  links: InviteLinks;
+  community?: { name: string; secular: boolean } | null;
+}): Mail {
+  const lang = input.community?.secular ? 'en' : memberLang(input.lang);
+  const t = input.community?.secular ? neutral(input.community.name) : TEXT[lang];
   const signUp = input.links.webAppUrl ? `${input.links.webAppUrl.replace(/\/$/, '')}/sign-in?invite=${encodeURIComponent(input.code)}` : null;
   const stores = [
     input.links.appStoreUrl ? { label: t.ios, url: input.links.appStoreUrl } : null,

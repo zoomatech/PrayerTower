@@ -53,6 +53,8 @@ const Env = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   /** Claude model for moderation (MODERATION_PROVIDER=claude). */
   MODERATION_CLAUDE_MODEL: z.string().default('claude-opus-5-5'),
+  /** Claude model for the "not God" conversation and the circle facilitator (both off until an admin turns them on). */
+  AI_CHAT_MODEL: z.string().default('claude-opus-5-5'),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */
   STATION_API_KEY: z.string().min(24).optional(),
   /** In-app token purchase (App Store). Off until purchases_enabled is on AND the Apple root certificate is set. */

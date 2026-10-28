@@ -1,6 +1,7 @@
 // Typed client for the Prayer Tower API. Every call sends the Supabase access token.
 import type {
   Appeal,
+  CommunityFeature,
   AppNotification,
   Card,
   CareKind,
@@ -440,6 +441,8 @@ export interface Invite {
   createdAt: string;
   createdBy: string | null;
   status: 'active' | 'used' | 'expired' | 'revoked';
+  /** The community a new member joins with this code; null means the default. */
+  community: { slug: string; name: string; secular: boolean } | null;
 }
 
 export interface AuditEntry {
@@ -556,6 +559,12 @@ export interface AwardSettings {
   prize_note: string;
   public_hall: boolean;
 }
+export type LiveRoom = { id: string; title: string; roomUrl: string; hostName: string; isMine: boolean; startedAt: string };
+export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
+export type AiTurn = { role: 'user' | 'assistant'; content: string };
+export type CircleRole = 'harmed' | 'caused' | 'unsure';
+export type CircleRequest = { id: string; userId: string; displayName: string; role: CircleRole; summary: string; status: 'open' | 'closed'; createdAt: string };
+export type AiSettings = { chat_daily_limit: number; facilitator_enabled: boolean; facilitator_daily_limit: number };
 export type MyAwards = { enabled: false; awards: [] } | { enabled: true; prize: { tokens: number; priestly: number; note: string }; publicHall: boolean; awards: Award[] };
 export type AwardHall =
   | { enabled: false; years: [] }
@@ -591,6 +600,8 @@ export interface Community {
   status: 'active' | 'hidden';
   isDefault: boolean;
   enabledPostTypes: string[];
+  /** Features an admin hid for this community (Admin → Communities). */
+  hiddenFeatures?: CommunityFeature[];
   wording?: 'faith' | 'neutral';
   description?: string | null;
   /** Who runs it, for a community run by a partner; null = Prayer Tower. */
@@ -642,6 +653,17 @@ export const api = {
     post<{ id: string; offerTokens: number }>(`/posts/${postId}/spoken-prayers`, { storagePath, durationSeconds }),
   spokenListened: (id: string) => post<{ listened: true; paid: boolean; notEnoughTokens: boolean }>(`/spoken-prayers/${id}/listened`),
   removeSpokenPrayer: (id: string) => request<{ removed: true }>('DELETE', `/spoken-prayers/${id}`),
+  liveNow: () => get<{ enabled: boolean; canHost: boolean; canCreateRoom: boolean; rooms: LiveRoom[] }>('/live'),
+  startLive: (title: string, link?: string) => post<{ id: string; roomUrl: string }>('/live', { title, ...(link ? { link } : {}) }),
+  endLive: (id: string) => post<{ ended: true }>(`/live/${id}/end`),
+  aiChatInfo: () => get<{ enabled: boolean; warning: string }>('/ai-chat'),
+  aiChat: (message: string, history: AiTurn[]) => post<{ warning: string; reply: string; crisis: boolean }>('/ai-chat', { message, history }),
+  facilitatorInfo: () => get<{ enabled: boolean; questions: Record<CircleRole, string[]> }>('/ai-facilitator'),
+  facilitate: (role: CircleRole, message: string, history: AiTurn[]) =>
+    post<{ reply: string; crisis: boolean; ai: boolean }>('/ai-facilitator', { role, message, history }),
+  askForCircle: (role: CircleRole, summary: string) => post<{ id: string }>('/circle-requests', { role, summary }),
+  circleRequests: () => get<{ requests: CircleRequest[] }>('/moderation/circle-requests'),
+  closeCircleRequest: (id: string) => post<{ closed: true }>(`/moderation/circle-requests/${id}/close`),
   awardHall: () => get<AwardHall>('/awards'),
   myAwards: () => get<MyAwards>('/me/awards'),
   acceptAward: (id: string, showName: boolean) => post<{ accepted: true; tokens: number; priestly: number }>(`/me/awards/${id}/accept`, { showName }),
@@ -699,6 +721,7 @@ export const api = {
       idempotencyKey: `radio-${postId}-${Date.now()}`,
       amplify,
     }),
+  myBranch: () => get<{ posts: Card[] }>('/me/branch'),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
@@ -736,10 +759,19 @@ export const api = {
     awardYear: (year: number) =>
       get<{ year: number; awards: Award[]; standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(`/admin/awards/${year}`),
     selectAwards: (year: number) => post<{ year: number; awards: Award[] }>(`/admin/awards/${year}/select`),
+    liveSettings: () => get<{ settings: LiveSettings }>('/admin/live-settings'),
+    updateLiveSettings: (patch: { enabled?: boolean; jitsiUrl?: string; maxMinutes?: number }) =>
+      request<{ settings: LiveSettings }>('PATCH', '/admin/live-settings', patch),
+    aiSettings: () => get<{ settings: AiSettings; aiConnected: boolean }>('/admin/ai-settings'),
+    updateAiSettings: (patch: { chatDailyLimit?: number; facilitatorEnabled?: boolean; facilitatorDailyLimit?: number }) =>
+      request<{ settings: AiSettings; aiConnected: boolean }>('PATCH', '/admin/ai-settings', patch),
+    futureSettings: () => get<{ settings: { ai_chat_enabled: boolean; ai_chat_warning: string } }>('/admin/future-settings'),
+    updateFutureSettings: (patch: { aiChatEnabled?: boolean; aiChatWarning?: string }) =>
+      request<{ settings: { ai_chat_enabled: boolean; ai_chat_warning: string } }>('PATCH', '/admin/future-settings', patch),
     spokenPrayerSettings: () => get<{ settings: SpokenPrayerSettings }>('/admin/spoken-prayers'),
     updateSpokenPrayerSettings: (patch: { enabled?: boolean; maxSeconds?: number; maxOfferTokens?: number }) =>
       request<{ settings: SpokenPrayerSettings }>('PATCH', '/admin/spoken-prayers', patch),
-    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden'; enabledPostTypes?: string[]; wording?: 'faith' | 'neutral' }) =>
+    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden'; enabledPostTypes?: string[]; wording?: 'faith' | 'neutral'; hiddenFeatures?: CommunityFeature[] }) =>
       request<{ community: Community }>('PATCH', `/admin/communities/${slug}`, patch),
     createCommunity: (c: { slug: string; name: string; tradition: string; wording: 'faith' | 'neutral'; operatorName?: string | null; operatorContact?: string | null }) =>
       post<{ community: Community }>('/admin/communities', c),
@@ -815,7 +847,7 @@ export const api = {
     deleteSurvey: (id: string) => request<{ ok: true }>('DELETE', `/admin/surveys/${id}`),
     surveyResults: (id: string) => get<SurveyResults>(`/admin/surveys/${id}/results`),
     invites: () => get<{ inviteOnly: boolean; invites: Invite[] }>('/admin/invites'),
-    createInvites: (input: { note?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
+    createInvites: (input: { note?: string; community?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
       post<{ invites: Invite[] }>('/admin/invites', input),
     revokeInvite: (code: string) => post<{ invite: Invite }>(`/admin/invites/${encodeURIComponent(code)}/revoke`, {}),
     emailInvite: (code: string, input: { email: string; language?: 'en' | 'es'; message?: string }) =>

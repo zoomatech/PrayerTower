@@ -1,10 +1,10 @@
 // Groundwork for blocked features, all switched off (see the migration
 // 20261028101100_blocked_scaffolding.sql and the Phase 3 Gap List):
-// token purchase, the Common Prayer Fund page, and the AI conversation with
-// a persistent "not God" warning. Nothing here takes money or calls an AI.
+// token purchase, the Common Prayer Fund page, and the AI conversation's switch
+// and "not God" warning (the conversation itself is in modules/ai). Nothing here
+// takes money or calls an AI.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { forbidden } from '../../errors.js';
 
 export interface FutureSettings {
   purchases_enabled: boolean;
@@ -74,23 +74,4 @@ export async function commonFund(q: Queryable) {
     peopleHelped: rows[0]!.cases_helped,
     helpSent: rows[0]!.help_sent,
   };
-}
-
-// AI conversation (not God) ----------------------------------------------------------------
-
-export const AiChat = z.object({ message: z.string().trim().min(1).max(2000) });
-
-/** Off by default. With the switch on but no AI provider wired, it answers with the warning only. */
-export async function aiChat(q: Queryable, _userId: string, _input: z.infer<typeof AiChat>) {
-  const s = await settings(q);
-  if (!s.ai_chat_enabled) throw forbidden('This feature is not available');
-  return {
-    warning: s.ai_chat_warning,
-    reply: 'This conversation is not set up yet. Please bring your prayer to God directly, or ask a prayer partner to pray with you.',
-  };
-}
-
-export async function aiChatInfo(q: Queryable) {
-  const s = await settings(q);
-  return { enabled: s.ai_chat_enabled, warning: s.ai_chat_warning };
 }

@@ -7,8 +7,8 @@
 // faith group: migration 20261029004500). New ones start hidden.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { badRequest, conflict, notFound } from '../../errors.js';
-import { POST_TYPES } from '../posts/index.js';
+import { COMMUNITY_FEATURES, POST_TYPES, type CommunityFeature } from '@prayer-tower/shared';
+import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 
 export interface Community {
   slug: string;
@@ -22,11 +22,13 @@ export interface Community {
   description: string | null;
   /** Who runs it, for a community leased to a partner; null = Prayer Tower. */
   operatorName: string | null;
+  /** Features hidden for this community's members (COMMUNITY_FEATURES). */
+  hiddenFeatures: CommunityFeature[];
 }
 
 const COLUMNS = `slug, name, tradition, status, is_default as "isDefault", enabled_post_types::text[] as "enabledPostTypes",
   coalesce(vocabulary ->> 'wording', case when tradition = 'secular' then 'neutral' else 'faith' end) as wording,
-  description, operator_name as "operatorName"`;
+  description, operator_name as "operatorName", hidden_features as "hiddenFeatures"`;
 
 /** The member's own community (their primary membership, else the default). */
 export async function mine(q: Queryable, userId: string): Promise<Community> {
@@ -116,6 +118,8 @@ export const Update = z.object({
   status: z.enum(['active', 'hidden']).optional(),
   /** The kinds of post members of this community can make (e.g. turn on discussion, news and blog posts). */
   enabledPostTypes: z.array(z.enum(POST_TYPES)).min(1).max(POST_TYPES.length).optional(),
+  /** Features to hide for this community's members, e.g. radio for Open Circle. */
+  hiddenFeatures: z.array(z.enum(COMMUNITY_FEATURES)).max(COMMUNITY_FEATURES.length).optional(),
   wording: z.enum(['faith', 'neutral']).optional(),
   ...Details,
 });
@@ -132,7 +136,8 @@ export async function update(q: Queryable, slug: string, input: z.infer<typeof U
             vocabulary = case when $5::text is null then vocabulary else vocabulary || jsonb_build_object('wording', $5::text) end,
             description = case when $6 then $7 else description end,
             operator_name = case when $8 then $9 else operator_name end,
-            operator_contact = case when $10 then $11 else operator_contact end
+            operator_contact = case when $10 then $11 else operator_contact end,
+            hidden_features = coalesce($12::text[], hidden_features)
       where slug = $1 returning ${COLUMNS}`,
     [
       slug,
@@ -146,7 +151,21 @@ export async function update(q: Queryable, slug: string, input: z.infer<typeof U
       keep(input.operatorName),
       input.operatorContact !== undefined,
       keep(input.operatorContact),
+      input.hiddenFeatures ? [...new Set(input.hiddenFeatures)] : null,
     ],
   );
   return rows[0]!;
+}
+
+/** Whether a feature is on for this member's community (Admin → Communities can hide it). */
+export async function featureOn(q: Queryable, userId: string, feature: CommunityFeature): Promise<boolean> {
+  const { rows } = await q.query<{ hidden: boolean }>(
+    'select $2 = any (hidden_features) as hidden from public.communities where id = public.member_community_id($1)',
+    [userId, feature],
+  );
+  return !rows[0]?.hidden;
+}
+
+export async function requireFeature(q: Queryable, userId: string, feature: CommunityFeature) {
+  if (!(await featureOn(q, userId, feature))) throw forbidden('This feature is not available in your community');
 }
