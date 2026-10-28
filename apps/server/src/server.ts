@@ -60,6 +60,12 @@ const app = buildApp({
     playStoreUrl: config.PLAY_STORE_URL ?? null,
     crisisCountry: config.CRISIS_COUNTRY,
     appLinks: appLinks(config),
+    openCircle: {
+      name: config.OPEN_CIRCLE_NAME,
+      hosts: config.OPEN_CIRCLE_HOSTS.split(',').map((h) => h.trim().toLowerCase()).filter(Boolean),
+      appStoreUrl: config.OPEN_CIRCLE_APP_STORE_URL ?? null,
+      supportEmail: config.OPEN_CIRCLE_SUPPORT_EMAIL ?? null,
+    },
   },
   corsOrigins: config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
 });

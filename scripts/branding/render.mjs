@@ -2,13 +2,15 @@
 // points at), or every option into a preview sheet.
 //   npm run brand -- tower            switch the app to the "tower" option
 //   npm run brand -- --preview <dir>  draw all options side by side
+//   npm run brand -- --edition open-circle   the Open Circle build's icon, splash and favicon
+//                                            (open-circle-*.png, which app.config.js uses for that build)
 // Sizes follow Expo (1024px icon, no transparency; 1024px transparent splash)
 // and Android (108dp layers, logo inside the central 66dp).
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { MARKS } from './marks.mjs';
+import { MARKS, OPEN_CIRCLE } from './marks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const out = path.join(root, 'apps/mobile/assets/images');
@@ -29,7 +31,15 @@ const [arg, previewDir] = process.argv.slice(2);
 const browser = await chromium.launch();
 const page = await browser.newPage();
 try {
-  if (arg === '--preview') {
+  if (arg === '--edition') {
+    if (previewDir !== 'open-circle') throw new Error('The only other edition is open-circle');
+    const m = OPEN_CIRCLE;
+    const mark = m.draw(m.color);
+    await shoot(page, svg(mark, 1024, { bg: m.bg, scale: 0.72 }), path.join(out, 'open-circle-icon.png'), 1024);
+    await shoot(page, svg(mark, 1024), path.join(out, 'open-circle-splash-icon.png'), 1024);
+    await shoot(page, svg(mark, 48, { bg: m.bg, scale: 0.8 }), path.join(out, 'open-circle-favicon.png'), 48);
+    console.log(`Drew the Open Circle icon, splash and favicon. Splash background ${m.bg[0]} (app.config.js).`);
+  } else if (arg === '--preview') {
     const dir = path.resolve(previewDir ?? path.join(root, 'build/icon-options'));
     await mkdir(dir, { recursive: true });
     for (const [name, m] of Object.entries(MARKS)) {

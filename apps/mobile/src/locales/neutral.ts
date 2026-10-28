@@ -11,9 +11,15 @@
 //   pray-er → supporter · praise → good news · testimony → story · prayer partner → listening partner
 //   pastor → mentor · Priestly token → Lighthouse token · prayer warriors → kindness champions
 
+import { env } from '@/lib/env';
+
 type Tree = { [key: string]: string | Tree };
 
-export const keys: Tree = {
+// "Open Circle" below is the placeholder name; EXPO_PUBLIC_OPEN_CIRCLE_NAME renames it everywhere.
+const named = (tree: Tree): Tree =>
+  Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
+
+export const keys: Tree = named({
   common: { praiseGod: 'Wonderful news!' },
   tabs: { prayers: 'Support' },
   menu: { newRequest: 'New Request', tour: 'How Open Circle Works' },
@@ -249,10 +255,10 @@ export const keys: Tree = {
     eventKind: { prayer_meeting: 'Support meetup' },
     tier: { prayer_scout: 'Kindness Scout', prayerful_helper: 'Kind Helper', prayer_warrior: 'Kindness Champion' },
   },
-};
+});
 
 /** Text the screens write out directly, mapped to its Open Circle version. */
-export const literals: Record<string, string> = {
+export const literals = named({
   'Each prayer you offer for someone else earns a token.': 'Each time you support someone else, you earn a token.',
   'Prayer Scout': 'Kindness Scout',
   'Prayerful Helper': 'Kind Helper',
@@ -266,4 +272,4 @@ export const literals: Record<string, string> = {
   'Prayer Tower': 'Open Circle',
   'Prayer Cast': 'Goodwill Cast',
   'Go to Prayers': 'Go to Support',
-};
+}) as Record<string, string>;

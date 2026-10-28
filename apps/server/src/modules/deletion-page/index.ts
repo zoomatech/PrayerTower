@@ -111,10 +111,31 @@ export type PageLang = keyof typeof TEXT;
  * The page itself, in English (/account-deletion) or Spanish (/es/account-deletion).
  * With a publishable key it offers sign-in-and-delete; the request form always works.
  */
-export function page(opts: { supabaseUrl: string; publishableKey: string | null; supportEmail: string | null }, lang: PageLang = 'en') {
-  const t = TEXT[lang];
+/** The English page in Open Circle's words: its name, and nothing religious (docs/OPEN_CIRCLE.md). */
+function neutral(name: string) {
+  const en = TEXT.en;
+  return {
+    ...en,
+    title: `Delete your ${esc(name)} account`,
+    what: [en.what[0], en.what[1], 'Your promises, events, support history and tokens'],
+    msg: { ...en.msg, deleted: 'Your account has been deleted. Take care.' },
+  };
+}
+
+/**
+ * Open Circle's copy of the page (English only), on its own domain or at
+ * /open-circle/account-deletion (nested: one level down).
+ */
+export interface PageBrand {
+  name: string;
+  nested: boolean;
+}
+
+export function page(opts: { supabaseUrl: string; publishableKey: string | null; supportEmail: string | null }, lang: PageLang = 'en', brand?: PageBrand) {
+  const t = brand ? neutral(brand.name) : TEXT[lang];
+  const spanish = languages.spanish && !brand;
   // The API paths are relative so the page works behind a path prefix; /es pages sit one level down.
-  const base = lang === 'es' ? '../' : '';
+  const base = lang === 'es' || brand?.nested ? '../' : '';
   const signIn = opts.publishableKey
     ? `<section>
   <h2>${t.nowTitle}</h2>
@@ -132,7 +153,7 @@ export function page(opts: { supabaseUrl: string; publishableKey: string | null;
   return `<!doctype html>
 <html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${t.title}</title>
-${languages.spanish ? '<link rel="alternate" hreflang="en" href="/account-deletion"><link rel="alternate" hreflang="es" href="/es/account-deletion">\n' : ''}<style>
+${spanish ? '<link rel="alternate" hreflang="en" href="/account-deletion"><link rel="alternate" hreflang="es" href="/es/account-deletion">\n' : ''}<style>
   :root { color-scheme: light dark; --fg: #2B2238; --muted: #6B6478; --bg: #FAF7F2; --card: #fff; --line: #E7E0D6; --accent: #5B3E96; }
   @media (prefers-color-scheme: dark) { :root { --fg: #EEE9F5; --muted: #ABA3B8; --bg: #17131D; --card: #221C2B; --line: #3A3245; --accent: #B9A2E6; } }
   body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
@@ -142,10 +163,11 @@ ${languages.spanish ? '<link rel="alternate" hreflang="en" href="/account-deleti
   p, li { color: var(--muted); } label { display: block; margin: 10px 0; font-weight: 600; }
   input, textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 10px; font: inherit; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--fg); }
   button { margin-top: 8px; padding: 10px 18px; font: inherit; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 999px; cursor: pointer; }
-  a { color: var(--accent); } .msg { font-weight: 600; color: var(--fg); } .lang { text-align: right; margin: 0; }
+  a { color: var(--accent); } .msg { font-weight: 600; color: var(--fg); } .lang { text-align: right; margin: 0; }${brand ? `
+  :root { --accent: #1D6F6A; } @media (prefers-color-scheme: dark) { :root { --accent: #7FD1C7; } button { color: #101B1A; } }` : ''}
 </style></head>
 <body><main>
-${languages.spanish ? `<p class="lang"><a href="${t.other.href}" hreflang="${t.other.lang}" lang="${t.other.lang}">${t.other.label}</a></p>\n` : ''}<h1>${t.title}</h1>
+${spanish ? `<p class="lang"><a href="${t.other.href}" hreflang="${t.other.lang}" lang="${t.other.lang}">${t.other.label}</a></p>\n` : ''}<h1>${t.title}</h1>
 <p>${t.intro}</p>
 <section>
   <h2>${t.whatTitle}</h2>

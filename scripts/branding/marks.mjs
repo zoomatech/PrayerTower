@@ -37,6 +37,20 @@ const offering = (c) => `
     <path d="M14 58c8 0 14 4 18 10 4 6 10 9 18 9s14-3 18-9c4-6 10-10 18-10-2 17-17 29-36 29S16 75 14 58z"/>
   </g>`;
 
+// Open Circle (the ad-free, non-religious edition, docs/OPEN_CIRCLE.md): a circle
+// of people with one open place at the top, room for one more. No religious
+// symbol. Placeholder until a designer draws the final icon.
+export const TEAL = '#1D6F6A';
+export const TEAL_DEEP = '#12464A';
+export const PEACH = '#F6C28B';
+
+const circle = (c) => `
+  <g fill="${c}"><circle cx="71.2" cy="28.8" r="8"/><circle cx="80" cy="50" r="8"/><circle cx="71.2" cy="71.2" r="8"/><circle cx="50" cy="80" r="8"/><circle cx="28.8" cy="71.2" r="8"/><circle cx="20" cy="50" r="8"/><circle cx="28.8" cy="28.8" r="8"/></g>
+  <circle cx="50" cy="20" r="6.5" fill="none" stroke="${c}" stroke-width="3"/>`;
+
+/** The Open Circle build's icon (npm run brand -- --edition open-circle). Its site logo is the same drawing. */
+export const OPEN_CIRCLE = { label: 'A circle of people with room for one more', draw: circle, bg: [TEAL, TEAL_DEEP], color: PEACH };
+
 export const MARKS = {
   tower: { label: 'Tower (prayer going out, like the radio prayers)', draw: tower, bg: [PURPLE, PURPLE_DEEP], color: GOLD },
   cross: { label: 'Cross of light', draw: cross, bg: [PURPLE, PURPLE_DEEP], color: GOLD },

@@ -48,4 +48,18 @@ describe('Open Circle wording', () => {
     texts.push(...Object.values(literals));
     expect(texts.filter((s) => RELIGIOUS.test(s))).toEqual([]);
   });
+
+  it('takes its name from EXPO_PUBLIC_OPEN_CIRCLE_NAME', () => {
+    process.env.EXPO_PUBLIC_OPEN_CIRCLE_NAME = 'Kind Corner';
+    try {
+      jest.isolateModules(() => {
+        const renamed = require('@/locales/neutral') as typeof import('@/locales/neutral');
+        expect((renamed.keys.menu as Record<string, string>).tour).toBe('How Kind Corner Works');
+        expect(renamed.literals['Prayer Tower']).toBe('Kind Corner');
+        expect(JSON.stringify(renamed)).not.toContain('Open Circle');
+      });
+    } finally {
+      delete process.env.EXPO_PUBLIC_OPEN_CIRCLE_NAME;
+    }
+  });
 });
