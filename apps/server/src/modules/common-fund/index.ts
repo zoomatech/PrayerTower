@@ -126,5 +126,7 @@ export function reportHtml(r: Report, esc: (s: string) => string): string {
 ${r.months.length ? `<h2>By month</h2><table><thead><tr><th>Month</th><th>In</th><th>Help sent</th></tr></thead><tbody>${rows(r.months, (x) => [x.month, usd(x.inCents), usd(x.outCents)])}</tbody></table>` : ''}
 ${r.helpByKind.length ? `<h2>Kinds of help</h2><table><thead><tr><th>Help</th><th>Times</th><th>Amount</th></tr></thead><tbody>${rows(r.helpByKind, (x) => [esc(x.kind), String(x.times), usd(x.cents)])}</tbody></table>` : ''}
 ${r.recent.length ? `<h2>Latest entries</h2><table><thead><tr><th>Date</th><th>What</th><th>Amount</th><th>Note</th></tr></thead><tbody>${rows(r.recent, (x) => [x.date, esc(x.label), (x.direction === 'out' ? '−' : '') + usd(x.cents), esc(x.note ?? '')])}</tbody></table>` : '<p>No entries yet.</p>'}
+<h2>Who gets help</h2>
+<p>There is no application and no means test. We will sometimes help people who don't deserve it. We consider this acceptable: the people who needed help and got it are worth more to us than the cost of the few who didn't need it and got it anyway. We would rather err toward grace.</p>
 <p class="notice">No one is named here. The Witness team keeps the details private.</p>`;
 }

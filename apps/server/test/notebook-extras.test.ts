@@ -7,6 +7,7 @@ import * as awards from '../src/modules/admin/awards.js';
 import * as notebook from '../src/modules/notebook/index.js';
 import * as posts from '../src/modules/posts/index.js';
 import * as quick from '../src/modules/quick-reactions/index.js';
+import * as tiers from '../src/modules/tiers/index.js';
 import * as tokens from '../src/modules/tokens/index.js';
 import { as, createUser, db, newRequest } from './helpers.js';
 
@@ -97,6 +98,31 @@ describe('Post anatomy lines', () => {
     await inTx(async (c) => {
       expect((await notebook.updateSettings(c, { postLinesEnabled: true })).post_lines_enabled).toBe(true);
       expect((await notebook.features(c)).postLines).toBe(true);
+    });
+  });
+});
+
+describe('Tier upkeep', () => {
+  it('holds a member one tier lower until they give or spend a token, only while on', async () => {
+    const [member, friend] = [await createUser('Upkeep Member'), await createUser('Upkeep Friend')];
+    await inTx(async (c) => {
+      // Everyone reaches Prayerful Helper (rank 2) for this test.
+      await c.query("update public.tier_settings set min_prayer_events = 0 where tier = 'prayerful_helper' and community_id is null");
+      expect((await tiers.status(c, member)).tier?.tier).toBe('prayerful_helper');
+      expect((await tiers.status(c, member)).upkeep ?? null).toBeNull(); // off
+
+      await notebook.updateSettings(c, { tierUpkeepEnabled: true, tierUpkeepDays: 14 });
+      const held = await tiers.status(c, member);
+      expect(held.tier?.tier).toBe('prayer_scout');
+      expect(held.upkeep).toEqual({ days: 14, held: { tier: 'prayerful_helper', label: expect.any(String) } });
+      expect((await tiers.tiersOf(c, [member])).get(member)?.tier).toBe('prayer_scout');
+
+      await tokens.earn(c, member, 3, `upkeep-earn:${member}`, 'test');
+      expect((await tiers.status(c, member)).tier?.tier).toBe('prayer_scout'); // earning is not giving or spending
+      await tokens.gift(c, member, friend, 1, `upkeep:${member}`);
+      const kept = await tiers.status(c, member);
+      expect(kept.tier?.tier).toBe('prayerful_helper');
+      expect(kept.upkeep).toEqual({ days: 14, held: null });
     });
   });
 });

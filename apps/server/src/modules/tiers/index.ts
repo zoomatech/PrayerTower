@@ -3,7 +3,9 @@
 // are configurable in tier_settings and stay unset (null) until decided. V1
 // uses the platform ladder (community_id null); sandboxes may rename tiers later.
 // Anonymous members are on a private track: their tier counts but is shown
-// only to them.
+// only to them. With tier upkeep on (Notes Page 3: "statuses must be maintained
+// by using credits"), a member above the first tier who has not given or spent a
+// token lately sits one tier lower until they do.
 import type { Task } from 'graphile-worker';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
@@ -60,20 +62,53 @@ export function tierFor(prayerEvents: number, all: TierSetting[]): TierSetting |
   return current;
 }
 
+/** Ways a member gives or spends their own tokens; any one of them keeps their tier up. */
+const UPKEEP_KINDS = ['gift', 'spend_reach', 'donate', 'spend_radio', 'pool_fund'];
+
+export async function upkeepSettings(q: Queryable): Promise<{ enabled: boolean; days: number }> {
+  const { rows } = await q.query<{ enabled: boolean; days: number }>('select tier_upkeep_enabled as enabled, tier_upkeep_days as days from public.notebook_settings');
+  return rows[0] ?? { enabled: false, days: 30 };
+}
+
+/** Members who gave or spent a token of their own in the last `days` days. */
+async function keptUp(q: Queryable, userIds: string[], days: number): Promise<Set<string>> {
+  if (!userIds.length) return new Set();
+  const { rows } = await q.query<{ user_id: string }>(
+    `select distinct a.user_id from public.token_transfers t
+       join public.token_accounts a on a.id = t.debit_account_id
+      where a.kind = 'user' and a.user_id = any($1::uuid[]) and t.kind::text = any($2::text[])
+        and t.created_at > now() - make_interval(days => $3::int)`,
+    [userIds, UPKEEP_KINDS, days],
+  );
+  return new Set(rows.map((r) => r.user_id));
+}
+
+/** The earned tier, one lower while upkeep is due (never below the first tier). */
+function withUpkeep(tier: TierSetting | null, all: TierSetting[], due: boolean): TierSetting | null {
+  if (!due || !tier || tier.rank <= 1) return tier;
+  return [...all].filter((s) => s.rank < tier.rank).sort((a, b) => b.rank - a.rank)[0] ?? tier;
+}
+
 export async function tiersOf(q: Queryable, userIds: string[]): Promise<Map<string, TierSetting | null>> {
-  const [all, counts] = await Promise.all([settings(q), prayerCounts(q, userIds)]);
-  return new Map(userIds.map((id) => [id, tierFor(counts.get(id) ?? 0, all)]));
+  const [all, counts, upkeep] = await Promise.all([settings(q), prayerCounts(q, userIds), upkeepSettings(q)]);
+  const kept = upkeep.enabled ? await keptUp(q, userIds, upkeep.days) : null;
+  return new Map(userIds.map((id) => [id, withUpkeep(tierFor(counts.get(id) ?? 0, all), all, !!kept && !kept.has(id))]));
 }
 
 export async function status(q: Queryable, userId: string) {
-  const [all, counts] = await Promise.all([settings(q), prayerCounts(q, [userId])]);
+  const [all, counts, upkeep] = await Promise.all([settings(q), prayerCounts(q, [userId]), upkeepSettings(q)]);
   const prayers = counts.get(userId) ?? 0;
-  const tier = tierFor(prayers, all);
-  const next = all.find((s) => s.rank > (tier?.rank ?? 0) && s.min_prayer_events !== null) ?? null;
+  const earned = tierFor(prayers, all);
+  const due = upkeep.enabled && (earned?.rank ?? 0) > 1 && !(await keptUp(q, [userId], upkeep.days)).has(userId);
+  const tier = withUpkeep(earned, all, due);
+  // The next tier to earn by praying; a tier held back by upkeep comes back with a gift or spend instead.
+  const next = all.find((s) => s.rank > (earned?.rank ?? 0) && s.min_prayer_events !== null) ?? null;
   return {
     tier: tier && { tier: tier.tier, label: tier.label, weeklyAllotment: tier.weekly_allotment },
     prayers,
     next: next && { tier: next.tier, label: next.label, prayersNeeded: Math.max(0, next.min_prayer_events! - prayers) },
+    /** While tier upkeep is on and the member is above the first tier: the days allowed between gifts or spends, and the earned tier held back until one. */
+    upkeep: upkeep.enabled && (earned?.rank ?? 0) > 1 ? { days: upkeep.days, held: due && earned ? { tier: earned.tier, label: earned.label } : null } : null,
   };
 }
 
