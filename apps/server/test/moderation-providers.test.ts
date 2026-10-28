@@ -24,7 +24,7 @@ const claudeAnswer = (verdict: object, stop_reason = 'end_turn') => () => ({
 
 describe('moderation providers', () => {
   it('is off until the chosen provider has a key, and off means nothing is sent', async () => {
-    for (const p of ['openai', 'claude', 'off'] as const) {
+    for (const p of ['openai', 'claude', 'local', 'off'] as const) {
       const { f, calls } = fakeFetch(() => ({}));
       expect(await createClassifier(config({ MODERATION_PROVIDER: p }), f)('some text')).toBeNull();
       expect(calls).toHaveLength(0);
@@ -62,5 +62,25 @@ describe('moderation providers', () => {
     const r = await createClassifier(config({ MODERATION_PROVIDER: 'claude', ANTHROPIC_API_KEY: 'k' }), no.f)('…');
     expect(r?.flagged).toBe(true);
     expect(r?.categories.refused).toBe(true);
+  });
+
+  it('local: asks the Ollama server on your Mac for a JSON verdict, and nothing goes to a cloud provider', async () => {
+    const { f, calls } = fakeFetch(() => ({ message: { role: 'assistant', content: JSON.stringify({ flagged: true, categories: ['self-harm/intent'] }) }, done: true }));
+    const classify = createClassifier(config({ MODERATION_PROVIDER: 'local', LOCAL_MODEL_URL: 'http://mac-mini.local:11434', OPENAI_API_KEY: 'k' }), f);
+    const r = await classify('I want to end it all tonight.');
+    expect(r?.flagged).toBe(true);
+    expect(r?.categories['self-harm/intent']).toBe(true);
+    expect(calls.map((c) => c.url)).toEqual(['http://mac-mini.local:11434/api/chat']);
+    expect(calls[0]!.body).toMatchObject({ model: 'gpt-oss:20b', stream: false, options: { temperature: 0 } });
+    expect(calls[0]!.body.format.properties.categories).toBeDefined();
+    expect(calls[0]!.body.messages[1].content).toContain('I want to end it all tonight.');
+  });
+
+  it('local: a clean verdict is not flagged, and an answer that is not a verdict fails so the job retries', async () => {
+    const env = config({ MODERATION_PROVIDER: 'local', LOCAL_MODEL_URL: 'http://127.0.0.1:11434' });
+    const ok = fakeFetch(() => ({ message: { content: '{"flagged":false,"categories":[]}' }, done: true }));
+    expect((await createClassifier(env, ok.f)('Please pray for my mom.'))?.flagged).toBe(false);
+    const bad = fakeFetch(() => ({ message: { content: '{"flagged":"maybe"}' }, done: true }));
+    await expect(createClassifier(env, bad.f)('Please pray for my mom.')).rejects.toThrow('did not return a verdict');
   });
 });

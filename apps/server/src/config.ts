@@ -33,8 +33,12 @@ const Env = z.object({
   CRISIS_COUNTRY: z.string().default('US'),
   PORT: z.coerce.number().int().default(3000),
   OPENAI_API_KEY: z.string().optional(),
-  /** Who checks new text for safety: openai, claude or off. Without that provider's key it is off. */
-  MODERATION_PROVIDER: z.enum(['openai', 'claude', 'off']).default('openai'),
+  /** Who checks new text for safety: openai, claude, local or off. Without that provider's key (or URL) it is off. */
+  MODERATION_PROVIDER: z.enum(['openai', 'claude', 'local', 'off']).default('openai'),
+  /** MODERATION_PROVIDER=local: an Ollama server on your own Mac, e.g. http://mac-mini.tailnet:11434. Unset = off. */
+  LOCAL_MODEL_URL: z.url().optional(),
+  /** The model Ollama runs for the safety check (any model that supports structured outputs). */
+  LOCAL_MODERATION_MODEL: z.string().default('gpt-oss:20b'),
   ANTHROPIC_API_KEY: z.string().optional(),
   /** Claude model for moderation (MODERATION_PROVIDER=claude). */
   MODERATION_CLAUDE_MODEL: z.string().default('claude-opus-5-5'),
