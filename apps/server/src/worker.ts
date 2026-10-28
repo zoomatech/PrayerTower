@@ -1,18 +1,30 @@
 import * as Sentry from '@sentry/node';
+import { createClient } from '@supabase/supabase-js';
 import { run } from 'graphile-worker';
 import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
+import { MEDIA_BUCKET } from './modules/posts/media.js';
 import { buildTaskList, crontab } from './tasks.js';
 
 loadDotEnv();
 const config = loadConfig();
 const db = createPool(config.DATABASE_URL, config.DATABASE_POOL_MAX);
+// Photos of removed requests are deleted from Storage by the retention job.
+const storage = config.SUPABASE_SECRET_KEY
+  ? createClient(config.SUPABASE_URL, config.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
+  : null;
+const removeMedia = storage
+  ? async (paths: string[]) => {
+      const { error } = await storage.storage.from(MEDIA_BUCKET).remove(paths);
+      if (error) throw error;
+    }
+  : null;
 
 // Stateless: run as many worker processes as needed against the same database.
 const runner = await run({
   pgPool: db,
   concurrency: config.WORKER_CONCURRENCY,
-  taskList: buildTaskList(db, config),
+  taskList: buildTaskList(db, config, { removeMedia }),
   crontab,
 });
 

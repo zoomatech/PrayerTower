@@ -4,7 +4,7 @@ import { buildApp } from './app.js';
 import { supabaseJwksVerifier } from './auth.js';
 import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
-import { openAiClassifier } from './modules/moderation/index.js';
+import { createClassifier } from './modules/moderation/providers.js';
 import { defaultLegalDir } from './modules/site/index.js';
 
 loadDotEnv();
@@ -33,7 +33,7 @@ const app = buildApp({
   verifyToken: supabaseJwksVerifier(config.SUPABASE_URL),
   storage,
   logger: true,
-  classify: openAiClassifier(config),
+  classify: createClassifier(config),
   stationKey: config.STATION_API_KEY ?? null,
   rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
   metricsToken: config.METRICS_TOKEN ?? null,

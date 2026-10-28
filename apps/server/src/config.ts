@@ -25,6 +25,11 @@ const Env = z.object({
   CRISIS_COUNTRY: z.string().default('US'),
   PORT: z.coerce.number().int().default(3000),
   OPENAI_API_KEY: z.string().optional(),
+  /** Who checks new text for safety: openai, claude or off. Without that provider's key it is off. */
+  MODERATION_PROVIDER: z.enum(['openai', 'claude', 'off']).default('openai'),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  /** Claude model for moderation (MODERATION_PROVIDER=claude). */
+  MODERATION_CLAUDE_MODEL: z.string().default('claude-opus-5-5'),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */
   STATION_API_KEY: z.string().min(24).optional(),
   EXPO_ACCESS_TOKEN: z.string().optional(),
@@ -42,6 +47,12 @@ const Env = z.object({
   /** Sender for outgoing email, e.g. "Prayer Tower <hello@example.org>". */
   MAIL_FROM: z.string().optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
+  /** Days after a moderator removes content before its text and photos are erased (0 = never). */
+  RETENTION_REMOVED_DAYS: z.coerce.number().int().min(0).default(90),
+  /** Days notifications are kept (0 = forever). */
+  RETENTION_NOTIFICATION_DAYS: z.coerce.number().int().min(0).default(90),
+  /** Days finished queues are kept: handled deletion requests, dead push tokens, finished scheduled gifts (0 = forever). */
+  RETENTION_QUEUE_DAYS: z.coerce.number().int().min(0).default(30),
 });
 
 export type Config = z.infer<typeof Env>;

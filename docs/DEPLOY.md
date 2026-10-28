@@ -27,7 +27,7 @@ On a small Linux server with Docker:
 git clone https://github.com/zoomatech/PrayerTower.git && cd PrayerTower
 cp apps/server/.env.example apps/server/.env
 # Set DATABASE_URL, SUPABASE_URL, SUPABASE_SECRET_KEY, CORS_ORIGINS,
-# PUSH_ENABLED=1, EXPO_ACCESS_TOKEN (optional), OPENAI_API_KEY (optional).
+# PUSH_ENABLED=1, EXPO_ACCESS_TOKEN (optional), OPENAI_API_KEY or ANTHROPIC_API_KEY with MODERATION_PROVIDER (optional).
 docker compose up -d --build
 curl -s localhost:3000/health   # {"ok":true}
 ```
@@ -41,6 +41,22 @@ The API runs migrations for the job queue on start. Scale the worker with `docke
 - Supabase Pro: automatic (above). Still take a monthly off-site dump with `scripts/backup-db.sh`.
 - Free or self-hosted: run `scripts/backup-db.sh` daily from cron and copy the folder off the server.
 - Test a restore before the pilot starts, and monthly after: `scripts/restore-drill.sh` (see [BACKUP_RESTORE.md](BACKUP_RESTORE.md)). CI runs the same drill on every pull request.
+
+## AI moderation
+
+`MODERATION_PROVIDER` picks who checks new posts, comments, encouragements, messages and events: `openai` (default; [moderation endpoint](https://developers.openai.com/api/docs/guides/moderation), `omni-moderation-latest`, needs `OPENAI_API_KEY`), `claude` (needs `ANTHROPIC_API_KEY`) or `off`. With no key for the chosen provider nothing is sent and moderation is people-only. The Claude provider asks `MODERATION_CLAUDE_MODEL` (default `claude-opus-5-5`, effort `low`) for a JSON verdict with [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) in the same category names OpenAI uses, so auto-hide and crisis routing work the same. It opts into server-side [refusal fallbacks](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) (`fallbacks: "default"`); text that every model declines goes to the moderation queue as "refused". OpenAI's endpoint is free; Claude bills per token, so for volume set `MODERATION_CLAUDE_MODEL=claude-haiku-5-5`.
+
+## Data retention
+
+The worker runs `retention_purge` every day at 03:30 UTC. Periods are in days, set on the worker; `0` turns that purge off.
+
+| Env var | Default | What goes |
+| --- | --- | --- |
+| `RETENTION_REMOVED_DAYS` | 90 | Text and photos of requests, comments, encouragements, messages and events a moderator removed, counted from the decision. The row stays as "(removed)" so moderation records still point at something. Content under a pending appeal is kept. |
+| `RETENTION_NOTIFICATION_DAYS` | 90 | In-app notifications, read or not. |
+| `RETENTION_QUEUE_DAYS` | 30 | Handled deletion requests from the website (they hold an email address), push tokens Expo reported dead, and finished, cancelled or failed scheduled gifts. |
+
+Things that are erased right away and need no job: a member's own deleted requests and comments, and deleted accounts. The app's offline queue lives only on the phone and drops actions older than 3 days (`apps/mobile/src/lib/offline.ts`). Server logs and database backups are kept by the host; set their retention there (Supabase backups follow the plan's window).
 
 ## Weekly email digest
 

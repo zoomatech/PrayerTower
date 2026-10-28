@@ -142,7 +142,11 @@ The feedback feature is a small, complete example to copy. It came in with PR #5
 | `PORT` | 3000 | API port |
 | `CORS_ORIGINS` | any | Comma-separated browser origins; **set in production** |
 | `RATE_LIMIT_PER_MINUTE` | 300 | Requests per member per minute (0 = off) |
-| `OPENAI_API_KEY` | unset | AI moderation flags; unset = people-only moderation |
+| `MODERATION_PROVIDER` | `openai` | AI moderation: `openai`, `claude` or `off`. Off until that provider's key is set. |
+| `OPENAI_API_KEY` | unset | Key for `MODERATION_PROVIDER=openai` |
+| `ANTHROPIC_API_KEY` | unset | Key for `MODERATION_PROVIDER=claude` |
+| `MODERATION_CLAUDE_MODEL` | `claude-opus-5-5` | Claude model for moderation; `claude-haiku-5-5` costs far less per post |
+| `RETENTION_REMOVED_DAYS` / `RETENTION_NOTIFICATION_DAYS` / `RETENTION_QUEUE_DAYS` | 90 / 90 / 30 | Data retention periods (see DEPLOY.md); 0 = keep |
 | `STATION_API_KEY` | unset | Radio station key (24+ chars); unset = no station API |
 | `PUSH_ENABLED` | 1 | 0 = write in-app notices but don't push |
 | `EXPO_ACCESS_TOKEN` | unset | Only if Expo enhanced push security is on |

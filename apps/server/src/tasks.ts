@@ -4,7 +4,8 @@ import type { Queryable } from './db.js';
 import { sendDueRemindersTask, weeklyReviewTask } from './modules/commitments/index.js';
 import { scanTask as activityScanTask } from './modules/activity/index.js';
 import { remindTask } from './modules/events/index.js';
-import { openAiClassifier, scanTask, type Classifier } from './modules/moderation/index.js';
+import { scanTask, type Classifier } from './modules/moderation/index.js';
+import { createClassifier } from './modules/moderation/providers.js';
 import { sendPushTask } from './modules/notifications/index.js';
 import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
 import { transmitTask, type Transmitter } from './modules/radio/index.js';
@@ -12,13 +13,14 @@ import { awardDueTask } from './modules/milestones/index.js';
 import { runDueTask } from './modules/schedules/index.js';
 import { weeklyDigestTask } from './modules/digest/index.js';
 import { createMailer, type Mailer } from './modules/digest/mailer.js';
+import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 
-export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null } = {}): TaskList {
+export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null } = {}): TaskList {
   return {
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
-    moderation_scan: scanTask(db, overrides.classify ?? openAiClassifier(config, overrides.fetch)),
+    moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
     commitments_send_due_reminders: sendDueRemindersTask(db),
     commitments_weekly_review: weeklyReviewTask(db),
     tiers_weekly_resupply: weeklyResupplyTask(db),
@@ -28,6 +30,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     events_send_reminders: remindTask(db),
     activity_scan: activityScanTask(db),
     digest_weekly: weeklyDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
+    retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
   };
 }
 
@@ -48,4 +51,6 @@ export const crontab = [
   '0 18 * * 0 commitments_weekly_review ?fill=6h',
   // Sunday 19:00: weekly email digest for members who turned it on (once per ISO week).
   '0 19 * * 0 digest_weekly ?fill=6h',
+  // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
+  '30 3 * * * retention_purge ?fill=1d&jobKey=retention_purge',
 ].join('\n');
