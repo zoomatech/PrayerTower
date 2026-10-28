@@ -3,6 +3,7 @@ import type { Profile, Role } from '@prayer-tower/shared';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { api } from './api';
+import { clearOffline } from './offline';
 import { supabase } from './supabase';
 
 interface AuthState {
@@ -49,6 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    // Saved prayers and queued actions belong to this member only.
+    await clearOffline();
   }, []);
 
   return (

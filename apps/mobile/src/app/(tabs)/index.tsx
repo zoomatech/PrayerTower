@@ -14,6 +14,7 @@ import { useCardActions } from "@/components/card-actions";
 import { Highlights } from "@/components/highlights";
 import { MacroNeeds } from "@/components/macro-needs";
 import { PostCard } from "@/components/post-card";
+import { OfflineBanner } from "@/components/offline-banner";
 import { Button, ErrorText, Screen } from "@/components/ui";
 import { layoutFor } from "@/layouts";
 import {
@@ -36,6 +37,7 @@ export default function Feed() {
   const [nextPage, setNextPage] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [needs, setNeeds] = useState<MacroNeed[]>([]);
   const [highlights, setHighlights] = useState<HighlightsData | null>(null);
@@ -54,7 +56,8 @@ export default function Feed() {
       setCards(page.posts);
       setTheme(page.theme ?? null);
       setPinnedId(page.pinnedId);
-      setNextPage(page.nextPage);
+      setNextPage(page.savedAt ? null : page.nextPage);
+      setSavedAt(page.savedAt ?? null);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -106,6 +109,7 @@ export default function Feed() {
 
   const header = (
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
+      <OfflineBanner savedAt={savedAt} />
       <Pressable
         style={styles.composer}
         onPress={() => router.push("/compose")}

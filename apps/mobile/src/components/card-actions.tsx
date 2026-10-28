@@ -59,8 +59,9 @@ export function useCardActions(onChanged: () => void) {
     setBusy(true);
     setError(null);
     try {
-      await fn();
-      setSheet({ kind: 'done', card: sheet.card, message: done });
+      const result = await fn();
+      const queued = !!result && typeof result === 'object' && 'queued' in result;
+      setSheet({ kind: 'done', card: sheet.card, message: queued ? "Thank you. You're offline, so this will be sent as soon as you're back online." : done });
       onChanged();
     } catch (e) {
       setError((e as Error).message);

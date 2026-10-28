@@ -1,8 +1,10 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { sendQueued } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { withMonitoring } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
@@ -11,6 +13,13 @@ import { colors } from '@/lib/theme';
 function RootStack() {
   const { session, profile, loading } = useAuth();
   usePush(!!session && !!profile?.onboarded_at);
+  // Send prayers and posts made offline when the app comes back to the foreground.
+  useEffect(() => {
+    if (!session) return;
+    void sendQueued();
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && void sendQueued());
+    return () => sub.remove();
+  }, [session]);
   if (loading || (session && !profile)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>

@@ -15,6 +15,7 @@ Playwright drives the app's web build against the local API and Supabase, signed
 | `05-account` | A member deletes one of their requests, then another deletes their account and can no longer sign in |
 | `06-feedback` | A member sends feedback from Me, and an admin reads it and marks it handled |
 | `07-accessibility` | axe-core WCAG 2.1 A/AA scans of sign-in, the feed, compose, a request, the profile and feedback |
+| `08-offline` | Offline: the saved feed shows with a banner; a Praying Now tap and a text post made offline are sent once back online |
 
 ## Running it
 
