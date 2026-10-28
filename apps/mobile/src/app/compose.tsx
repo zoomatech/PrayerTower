@@ -2,6 +2,7 @@ import {
   MAX_POST_WORDS,
   POST_BACKGROUNDS,
   POST_BACKGROUND_STYLES,
+  isPrayable,
   POST_TYPES,
   POST_TYPE_LABELS,
   PRAYER_KINDS,
@@ -35,7 +36,9 @@ const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
 export default function Compose() {
-  const { profile } = useAuth();
+  const { profile, community } = useAuth();
+  // Only the kinds of post the member's community has turned on (discussion, news and blog are off by default).
+  const types = POST_TYPES.filter((p) => (community ? community.enabledPostTypes.includes(p) : isPrayable(p)));
   const { t, label } = useLocale();
   // The thanksgiving card opens the composer as a praise post.
   const params = useLocalSearchParams<{ type?: string }>();
@@ -125,7 +128,7 @@ export default function Compose() {
         <ErrorText error={error} />
         <Text style={styles.greeting}>{t('compose.greeting', { name: profile?.display_name || t('common.friend') })}</Text>
         <View style={styles.chips}>
-          {POST_TYPES.map((p) => (
+          {types.map((p) => (
             <Chip radio key={p} label={label('postType', p, POST_TYPE_LABELS[p])} selected={postType === p} onPress={() => setPostType(p)} />
           ))}
         </View>

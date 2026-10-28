@@ -60,6 +60,7 @@ export async function invite(q: Queryable, userId: string, postId: string, input
   const s = await requireOn(q);
   const post = await posts.getVisible(q, postId);
   if (!post || post.user_id !== userId) throw notFound('Request');
+  posts.requirePrayable(post);
   if (input.offerTokens > s.max_offer_tokens) throw badRequest(`The most you can offer is ${s.max_offer_tokens} tokens`);
   await q.query(
     `insert into public.spoken_prayer_invites (post_id, user_id, offer_tokens) values ($1, $2, $3)

@@ -83,6 +83,7 @@ const es: Record<string, Template> = {
   scheduled_spend_failed: (p) => ({ title: 'Un regalo programado no se envió', body: s(p.body) }),
   weekly_review: (p) => ({ title: 'Tu semana en oración', body: s(p.body) }),
   answered: (p) => ({ title: 'Una oración que hiciste fue contestada', body: `${s(p.who, 'Alguien')} marcó su petición como contestada. Gracias por orar.` }),
+  award: (p) => ({ title: `Eres Guerrero de Oración ${s(p.year)}`, body: `Oraste por otros ${s(p.count)} veces este año. Abre Yo para aceptar el premio.` }),
   spoken_prayer: (p) => ({ title: `${s(p.who, 'Alguien')} grabó una oración por ti`, body: 'Abre tu petición para escucharla.' }),
   witness_story: () => ({ title: '¿Podemos contar cómo recibiste ayuda?', body: 'El equipo de Testigos escribió una breve historia sobre la ayuda que recibiste. No se comparte nada a menos que digas que sí, y nunca muestra tu nombre.' }),
   testimony: (p) => ({ title: 'Una oración que hiciste fue contestada', body: `${s(p.who, 'Alguien')} contó lo que Dios hizo: "${s(p.excerpt)}"` }),
@@ -133,6 +134,7 @@ const neutral: Record<string, Template> = {
   message: (p) => ({ title: p.prayer ? `${s(p.who)} thought of you and sent a message` : `New message from ${s(p.who)}`, body: s(p.body) }),
   radio_prayer: () => ({ title: 'Your request went out by radio', body: 'Someone sent your words out on the air so more people could cheer you on.' }),
   radio_not_sent: (p) => ({ title: "A radio message you sent didn't go out", body: p.refunded ? 'Your Lighthouse token is back in your balance.' : 'You can still support the request.' }),
+  award: (p) => ({ title: `You are a ${s(p.year)} Kindness Champion`, body: `You supported others ${s(p.count)} times this year. Open Me to accept the award.` }),
   spoken_prayer: (p) => ({ title: `${s(p.who, 'Someone')} recorded a message for you`, body: 'Open your request to listen.' }),
   witness_story: () => ({
     title: 'May we share how you were helped?',

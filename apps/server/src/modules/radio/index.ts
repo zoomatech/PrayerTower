@@ -37,6 +37,7 @@ export const logTransmitter: Transmitter = async (p) => {
 export async function queue(q: Queryable, userId: string, postId: string, key: string, amplify = false): Promise<RadioPrayer> {
   const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
+  posts.requirePrayable(post);
   const s = await tokens.settings(q);
   const existing = await q.query<RadioPrayer>(
     `select id, post_id, cost, repeats, status, created_at, transmitted_at

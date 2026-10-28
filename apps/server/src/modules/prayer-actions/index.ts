@@ -20,6 +20,7 @@ export const PrayingNow = z.object({
 export async function prayingNow(q: Queryable, userId: string, postId: string, input: z.infer<typeof PrayingNow>) {
   const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
+  posts.requirePrayable(post);
   const profile = await getProfile(q, userId);
   const { rows } = await q.query<{ id: string }>(
     `insert into public.prayer_events (post_id, user_id, kind, duration_seconds, is_anonymous)

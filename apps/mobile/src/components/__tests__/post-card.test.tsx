@@ -72,4 +72,11 @@ describe('the prayer count line', () => {
     await screen.findByText('Ruth');
     expect(screen.queryByText(/first to pray/i)).toBeNull();
   });
+
+  it('shows no prayer count on a blog post', async () => {
+    await renderApp(<PostCard card={sampleCard({ postType: 'blog', cardType: 'blog', body: 'What our pantry learned.', actions: ['encouragement', 'share'] })} onAction={jest.fn()} />);
+    expect(await screen.findByText('What our pantry learned.')).toBeTruthy();
+    expect(screen.queryByText(/first to pray/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Praying Now' })).toBeNull();
+  });
 });

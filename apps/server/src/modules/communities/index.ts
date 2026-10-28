@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, notFound } from '../../errors.js';
+import { POST_TYPES } from '../posts/index.js';
 
 export interface Community {
   slug: string;
@@ -67,6 +68,8 @@ export async function all(q: Queryable): Promise<(Community & { members: number 
 export const Update = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   status: z.enum(['active', 'hidden']).optional(),
+  /** The kinds of post members of this community can make (e.g. turn on discussion, news and blog posts). */
+  enabledPostTypes: z.array(z.enum(POST_TYPES)).min(1).max(POST_TYPES.length).optional(),
 });
 
 export async function update(q: Queryable, slug: string, input: z.infer<typeof Update>): Promise<Community> {
@@ -74,9 +77,10 @@ export async function update(q: Queryable, slug: string, input: z.infer<typeof U
   if (!found[0]) throw notFound('Community');
   if (found[0].is_default && input.status === 'hidden') throw badRequest('The default community cannot be hidden');
   const { rows } = await q.query<Community>(
-    `update public.communities set name = coalesce($2, name), status = coalesce($3::public.community_status, status)
+    `update public.communities set name = coalesce($2, name), status = coalesce($3::public.community_status, status),
+            enabled_post_types = coalesce($4::public.post_type[], enabled_post_types)
       where slug = $1 returning ${COLUMNS}`,
-    [slug, input.name ?? null, input.status ?? null],
+    [slug, input.name ?? null, input.status ?? null, input.enabledPostTypes ? [...new Set(input.enabledPostTypes)] : null],
   );
   return rows[0]!;
 }

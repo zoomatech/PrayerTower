@@ -12,12 +12,17 @@ import * as safety from '../safety/index.js';
 import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
-export const POST_TYPES = ['prayer_request', 'praise', 'open_prayer', 'testimony', 'confessional'] as const;
+export const POST_TYPES = ['prayer_request', 'praise', 'open_prayer', 'testimony', 'confessional', 'discussion', 'news', 'blog'] as const;
 // Kinds and realms of prayer (notebook Page 10) and text-post backgrounds; labels live in packages/shared.
 export const PRAYER_KINDS = ['supplication', 'intercessory', 'praise_thanks'] as const;
 export const PRAYER_REALMS = ['personal', 'family', 'church_community', 'general_welfare', 'national', 'world'] as const;
 export const POST_BACKGROUNDS = ['dawn', 'sky', 'meadow', 'lavender', 'gold', 'night'] as const;
 export type PostType = (typeof POST_TYPES)[number];
+/** Discussion, news and blog posts aren't prayer requests: no Praying Now, promises, asks, radio or Power Prayer. */
+export const DISCUSSION_TYPES: readonly PostType[] = ['discussion', 'news', 'blog'];
+export function requirePrayable(post: { post_type: PostType }) {
+  if (DISCUSSION_TYPES.includes(post.post_type)) throw badRequest('This is a discussion post, not a prayer request');
+}
 export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
 export type ModerationStatus = 'visible' | 'hidden_pending_review' | 'removed';
 
@@ -387,6 +392,7 @@ export const AskToPray = z.object({
 export async function askToPray(q: Queryable, senderId: string, postId: string, input: z.infer<typeof AskToPray>) {
   const post = await getActionable(q, senderId, postId);
   if (!post) throw notFound('Post');
+  requirePrayable(post);
   await safety.checkNewMember(q, senderId, 'ask');
   const { rows } = await q.query<{ id: string }>(
     `select distinct id from (
@@ -560,7 +566,9 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         branchKey: r.is_anonymous ? null : branchKey(r.user_id),
         isMine: r.user_id === viewerId,
         myCommitment: myCommitment.get(id) ?? null,
-        actions: actionsByCommunity.get(r.community_id) ?? cardActions([]),
+        actions: (actionsByCommunity.get(r.community_id) ?? cardActions([])).filter(
+          (a) => !DISCUSSION_TYPES.includes(r.post_type) || (a !== 'praying_now' && a !== 'commit'),
+        ),
         postType: r.post_type,
         kind: r.kind,
         realm: r.realm,

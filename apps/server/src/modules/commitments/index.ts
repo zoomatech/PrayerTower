@@ -44,6 +44,7 @@ export interface CommitmentRow {
 export async function create(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewCommitment>) {
   const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
+  posts.requirePrayable(post);
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
   const now = Date.now();

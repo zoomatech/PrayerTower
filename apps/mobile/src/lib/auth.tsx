@@ -2,7 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import type { Profile, Role } from '@prayer-tower/shared';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { api, ApiError } from './api';
+import { api, ApiError, type Community } from './api';
 import { setWording, wordingForTradition } from './i18n';
 import { clearOffline } from './offline';
 import { supabase } from './supabase';
@@ -11,6 +11,8 @@ interface AuthState {
   session: Session | null;
   profile: Profile | null;
   roles: Role[];
+  /** The member's community: decides their feed, the kinds of post they can make, and the wording. */
+  community: Community | null;
   loading: boolean;
   /** Set when signed in but the profile couldn't be loaded; the app shows a retry. */
   profileError: string | null;
@@ -24,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -32,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await api.me();
       setProfile(me.profile);
       setRoles(me.roles ?? []);
+      setCommunity(me.community ?? null);
       setWording(wordingForTradition(me.community?.tradition));
       setProfileError(null);
     } catch (e) {
@@ -58,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else {
         setProfile(null);
         setRoles([]);
+        setCommunity(null);
         setWording('faith');
         setProfileError(null);
       }
@@ -72,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, profile, roles, loading, profileError, refreshProfile, signOut }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ session, profile, roles, community, loading, profileError, refreshProfile, signOut }}>{children}</AuthContext.Provider>
   );
 }
 

@@ -1,4 +1,4 @@
-import { ENCOURAGEMENT_MAX_CHARS, MESSAGE_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
+import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -146,6 +146,9 @@ export default function PostScreen() {
     load();
   };
 
+  // Discussion, news and blog posts aren't prayed for: no answered/testimony, radio, Power Prayer or prayer list.
+  const prayable = card ? isPrayable(card.postType) : true;
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -216,7 +219,7 @@ export default function PostScreen() {
           )
         ) : null}
 
-        {card?.isMine && testimony !== null ? (
+        {!prayable ? null : card?.isMine && testimony !== null ? (
           <View style={{ gap: space.sm }}>
             <Field
               label={card.state === 'answered' ? t('post.testimonyLabel') : t('post.testimonyOptional')}
@@ -251,9 +254,9 @@ export default function PostScreen() {
           </View>
         ) : null}
 
-        {card ? <SpokenPrayers postId={id} /> : null}
+        {card && prayable ? <SpokenPrayers postId={id} /> : null}
 
-        {radioSent ? (
+        {!prayable ? null : radioSent ? (
           <Text style={type.small}>{t('post.radioSent')}</Text>
         ) : tokens && tokens.priestly.balance >= tokens.priestly.radioPrayerCost ? (
           <Button
@@ -266,7 +269,7 @@ export default function PostScreen() {
             onPress={() => sendRadio()}
           />
         ) : null}
-        {!radioSent && tokens?.priestly.amplifyRepeats && tokens.priestly.balance >= (tokens.priestly.amplifyCost ?? 0) ? (
+        {prayable && !radioSent && tokens?.priestly.amplifyRepeats && tokens.priestly.balance >= (tokens.priestly.amplifyCost ?? 0) ? (
           <Button
             variant="secondary"
             label={
@@ -278,7 +281,7 @@ export default function PostScreen() {
           />
         ) : null}
 
-        {powerSent !== null ? (
+        {!prayable ? null : powerSent !== null ? (
           <Text style={type.small}>
             {powerSent === 0
               ? t('post.powerNone')
@@ -294,7 +297,7 @@ export default function PostScreen() {
           />
         ) : null}
 
-        {prayers ? (
+        {prayable && prayers ? (
           <View style={styles.section}>
             <Text style={type.heading}>
               {t('post.prayed', { count: prayers.count })}
