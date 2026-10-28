@@ -23,6 +23,11 @@ describe('FeedRanker', () => {
     expect(rankFeed(list, now, { 'realm:world': 'more' })[0]!.id).toBe('world');
   });
 
+  it('ranks five commitments above fifty Praying Now taps (Business Plan 3.3)', () => {
+    const ranked = rankFeed([base('taps', { prayingNowTaps: 50 }), base('commits', { commitments: 5 })], now);
+    expect(ranked.map((c) => c.id)).toEqual(['commits', 'taps']);
+  });
+
   it('weights commitments above the same number of taps', () => {
     const ranked = rankFeed([base('taps', { prayingNowTaps: 3 }), base('commits', { commitments: 3 })], now);
     expect(ranked.map((c) => c.id)).toEqual(['commits', 'taps']);
