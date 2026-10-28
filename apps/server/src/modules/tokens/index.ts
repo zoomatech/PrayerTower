@@ -5,7 +5,7 @@ import type { DatabaseError } from 'pg';
 import type { Queryable } from '../../db.js';
 import { AppError, badRequest } from '../../errors.js';
 
-export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus' | 'spend_radio';
+export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus' | 'spend_radio' | 'pool_fund' | 'pool_draw' | 'pool_return';
 /** Regular tokens are earned per prayer; Priestly tokens per N verified prayers and fund the infrastructure. */
 export type Currency = 'regular' | 'priestly';
 
@@ -57,6 +57,8 @@ const userAccount = async (q: Queryable, userId: string, currency: Currency = 'r
   (await q.query<{ id: string }>('select public.token_user_account($1, $2) as id', [userId, currency])).rows[0]!.id;
 const postReachAccount = async (q: Queryable, postId: string) =>
   (await q.query<{ id: string }>('select public.token_post_reach_account($1) as id', [postId])).rows[0]!.id;
+const poolAccount = async (q: Queryable, poolId: string) =>
+  (await q.query<{ id: string }>('select public.token_pool_account($1) as id', [poolId])).rows[0]!.id;
 const systemAccount = async (q: Queryable, kind: 'mint' | 'forfeit' | 'infrastructure', currency: Currency = 'regular') =>
   (await q.query<{ id: string }>('select public.token_system_account($1, $2) as id', [kind, currency])).rows[0]!.id;
 
@@ -176,6 +178,28 @@ export async function spendOnReach(q: Queryable, userId: string, postId: string,
   return transfer(q, `reach:${userId}:${key}`, 'spend_reach', await userAccount(q, userId), await postReachAccount(q, postId), amount, userId, null);
 }
 
+export async function poolBalance(q: Queryable, poolId: string): Promise<number> {
+  const { rows } = await q.query<{ balance: string }>(`select balance from public.token_accounts where kind = 'pool' and pool_id = $1`, [poolId]);
+  return Number(rows[0]?.balance ?? 0);
+}
+
+/** A donor puts tokens into their pool. */
+export async function fundPool(q: Queryable, userId: string, poolId: string, amount: number, key: string) {
+  return transfer(q, `pool_fund:${userId}:${key}`, 'pool_fund', await userAccount(q, userId), await poolAccount(q, poolId), amount, userId, null);
+}
+
+/** A member draws from a pool to extend a request's reach. Refused (409) when the pool runs short. */
+export async function drawFromPool(q: Queryable, userId: string, poolId: string, postId: string, amount: number) {
+  return transfer(q, `pool_draw:${poolId}:${userId}:${postId}`, 'pool_draw', await poolAccount(q, poolId), await postReachAccount(q, postId), amount, userId, null);
+}
+
+/** A closed pool's remaining tokens go back to the donor. */
+export async function returnPool(q: Queryable, poolId: string, ownerId: string, actorId: string) {
+  const left = await poolBalance(q, poolId);
+  if (left <= 0) return null;
+  return transfer(q, `pool_return:${poolId}`, 'pool_return', await poolAccount(q, poolId), await userAccount(q, ownerId), left, actorId, 'Pool closed');
+}
+
 /** Moderation penalty: move up to `amount` (or everything) from a member to the forfeit sink. */
 export async function forfeit(q: Queryable, userId: string, amount: number | 'all', moderatorId: string, key: string, reason: string) {
   const account = await userAccount(q, userId);
@@ -217,6 +241,8 @@ export async function metrics(q: Queryable, since: Date) {
             coalesce(sum(t.amount) filter (where t.kind = 'resupply'), 0)::int as resupplied,
             coalesce(sum(t.amount) filter (where t.kind = 'gift'), 0)::int as gifted,
             coalesce(sum(t.amount) filter (where t.kind = 'spend_reach'), 0)::int as spent_on_reach,
+            coalesce(sum(t.amount) filter (where t.kind = 'pool_fund'), 0)::int as pooled,
+            coalesce(sum(t.amount) filter (where t.kind = 'pool_draw'), 0)::int as drawn_from_pools,
             coalesce(sum(t.amount) filter (where t.kind in ('forfeit', 'clawback')), 0)::int as forfeited_or_clawed_back
        from public.token_transfers t join public.token_accounts a on a.id = t.credit_account_id
       where t.created_at >= $1`,

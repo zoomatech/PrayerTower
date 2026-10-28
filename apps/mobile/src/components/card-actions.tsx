@@ -5,7 +5,7 @@ import * as Linking from 'expo-linking';
 import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
-import { api } from '@/lib/api';
+import { api, type TokenPool } from '@/lib/api';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
 import { Button, Chip, ErrorText, Field, RulesWarning } from './ui';
@@ -33,6 +33,7 @@ export function useCardActions(onChanged: () => void) {
   const [people, setPeople] = useState<{ id: string; display_name: string }[] | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
   const [warnedFor, setWarnedFor] = useState<string | null>(null);
+  const [pools, setPools] = useState<TokenPool[]>([]);
 
   const close = () => {
     setSheet(null);
@@ -75,6 +76,10 @@ export function useCardActions(onChanged: () => void) {
     if (kind === 'share') {
       setPeople(null);
       api.connections().then((r) => setPeople(r.people), () => setPeople([]));
+    }
+    if (kind === 'gift') {
+      setPools([]);
+      api.tokenPools(card.id).then((r) => setPools(r.pools.filter((p) => !p.blockedReason).sort((x, y) => y.balance - x.balance).slice(0, 3)), () => undefined);
     }
     if (kind === 'commit') setText(`I will pray for ${card.author.anonymous ? 'you' : card.author.displayName}.`);
     setSheet({ kind, card });
@@ -198,6 +203,16 @@ export function useCardActions(onChanged: () => void) {
           disabled={!(Number(text) > 0)}
           onPress={() => run(() => api.boost(sheet.card.id, Number(text), `${sheet.card.id}:${Date.now()}`), 'Thank you. More people will see this request.')}
         />
+        {pools.length > 0 ? <Text style={styles.label}>Or use a donated pool</Text> : null}
+        {pools.map((p) => (
+          <Button
+            key={p.id}
+            variant="secondary"
+            label={`${p.name}: give ${p.drawAmount} tokens`}
+            busy={busy}
+            onPress={() => run(() => api.drawFromPool(p.id, sheet.card.id), `Thank you. ${p.drawAmount} tokens from “${p.name}” will help more people see this request.`)}
+          />
+        ))}
       </>
     );
   } else if (sheet?.kind === 'report' && sheet.target) {

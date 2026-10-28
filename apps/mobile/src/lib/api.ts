@@ -88,6 +88,22 @@ export interface PowerPrayerStatus {
   blockedReason: string | null;
 }
 
+export interface TokenPool {
+  id: string;
+  name: string;
+  purpose: string;
+  realm: string | null;
+  drawAmount: number;
+  drawsPerMemberDay: number;
+  /** Null unless the donor chose to be named. */
+  donor: string | null;
+  isMine: boolean;
+  open: boolean;
+  balance: number;
+  /** Only when listed for a request: why the member can't draw, or null. */
+  blockedReason?: string | null;
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -230,6 +246,13 @@ export const api = {
     post<{ powerPrayer: { id: string; cost: number; reached: number }; next: PowerPrayerStatus; balance: number }>(`/posts/${postId}/power-prayer`, {
       idempotencyKey: `power-${postId}-${Date.now()}`,
     }),
+  tokenPools: (postId?: string) => get<{ pools: TokenPool[] }>(postId ? `/token-pools?postId=${postId}` : '/token-pools'),
+  myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
+  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number }) =>
+    post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
+  fundTokenPool: (id: string, amount: number) => post(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
+  closeTokenPool: (id: string) => post(`/token-pools/${id}/close`, {}),
+  drawFromPool: (id: string, postId: string) => post<{ amount: number; reach: number }>(`/token-pools/${id}/draw`, { postId }),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

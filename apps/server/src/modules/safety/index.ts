@@ -12,6 +12,8 @@ export const mentionsCrisis = (text: string) => CRISIS_PATTERN.test(text);
 
 const LINK_PATTERN = /(https?:\/\/|www\.)\S+|\b[a-z0-9-]+\.(com|net|org|io|co|app|xyz|info|biz|shop|link)\b/i;
 
+export const hasLink = (text: string) => LINK_PATTERN.test(text);
+
 export interface SafetySettings {
   new_member_limits_enabled: boolean;
   new_member_hours: number;
@@ -60,12 +62,14 @@ export async function isNewMember(q: Queryable, userId: string, s: SafetySetting
 
 const LIFT = 'This limit lifts once you have been here a day and prayed for a few requests.';
 
-/** Why this member can't ask others to pray yet, or null if they can. */
-export async function askBlockedReason(q: Queryable, userId: string): Promise<string | null> {
+/** Why a new member can't do `what` yet, or null if they can. */
+export async function newMemberBlock(q: Queryable, userId: string, what: string): Promise<string | null> {
   const s = await settings(q);
   if (!s.new_member_limits_enabled || !(await isNewMember(q, userId, s))) return null;
-  return `New members can't ask others to pray yet. ${LIFT}`;
+  return `New members can't ${what} yet. ${LIFT}`;
 }
+
+export const askBlockedReason = (q: Queryable, userId: string) => newMemberBlock(q, userId, 'ask others to pray');
 
 /** Throws when a new member's post, comment or ask is over a limit. */
 export async function checkNewMember(q: Queryable, userId: string, action: 'post' | 'comment' | 'ask', text = '') {

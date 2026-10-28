@@ -36,6 +36,7 @@ function RootStack() {
         <Stack.Screen name="appeal/[id]" />
         <Stack.Screen name="people/[id]" />
         <Stack.Screen name="rules" />
+        <Stack.Screen name="pools" />
       </Stack.Protected>
     </Stack>
   );

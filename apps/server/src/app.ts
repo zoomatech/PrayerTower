@@ -17,6 +17,7 @@ import { promptRoutes } from './modules/prompts/routes.js';
 import { tierRoutes } from './modules/tiers/routes.js';
 import { prayerActionRoutes } from './modules/prayer-actions/routes.js';
 import { radioRoutes } from './modules/radio/routes.js';
+import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
@@ -73,6 +74,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     tokenRoutes(authed, db);
     radioRoutes(authed, db);
     reachRoutes(authed, db);
+    poolRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);
