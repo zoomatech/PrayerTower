@@ -1,0 +1,99 @@
+# Render Blueprint: the API, the worker and the web app (PWA).
+# One click: https://render.com/deploy?repo=https://github.com/zoomatech/PrayerTower/tree/main
+# Render asks for every `sync: false` value when the Blueprint is first created.
+# Spec: https://render.com/docs/blueprint-spec
+envVarGroups:
+  - name: prayertower-server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUSH_ENABLED
+        value: "1"
+      - key: CRISIS_COUNTRY
+        value: US
+      - key: MODERATION_PROVIDER
+        value: openai
+
+services:
+  - type: web
+    name: prayertower-api
+    runtime: docker
+    dockerfilePath: ./apps/server/Dockerfile
+    dockerContext: .
+    plan: 0.5c-512mb
+    region: virginia
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: prayertower-server
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: EXPO_ACCESS_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+
+  - type: worker
+    name: prayertower-worker
+    runtime: docker
+    dockerfilePath: ./apps/server/Dockerfile
+    dockerContext: .
+    dockerCommand: node --import ./apps/server/dist/src/instrument.js apps/server/dist/src/worker.js
+    plan: 0.5c-512mb
+    region: virginia
+    envVars:
+      - fromGroup: prayertower-server
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: EXPO_ACCESS_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SMTP_URL
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: SPONSOR_REPORT_TO
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+
+  # The web app testers open in a browser (installable PWA).
+  - type: web
+    name: prayertower-web
+    runtime: static
+    buildCommand: npm ci && EXPO_OFFLINE=1 npm run export:web -w @prayer-tower/mobile
+    staticPublishPath: ./apps/mobile/dist
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        sync: false
+      - key: EXPO_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

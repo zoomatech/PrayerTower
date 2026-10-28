@@ -7,6 +7,7 @@ import { makeAuthHook, type TokenVerifier } from './auth.js';
 import type { Db } from './db.js';
 import { AppError } from './errors.js';
 import { adminRoutes } from './modules/admin/routes.js';
+import { auditHook } from './modules/audit/index.js';
 import { accountRoutes } from './modules/accounts/routes.js';
 import { careRoutes } from './modules/care/routes.js';
 import { commitmentRoutes } from './modules/commitments/routes.js';
@@ -115,6 +116,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   // Everything else requires a signed-in member.
   app.register(async (authed) => {
     authed.addHook('preHandler', makeAuthHook(verifyToken, db));
+    // Every successful staff change goes to the audit log (Admin → Audit log).
+    authed.addHook('onSend', auditHook(db));
     // Counted per member after sign-in, so people sharing a network don't share a limit.
     if (rateLimitPerMinute > 0) {
       await authed.register(rateLimit, {

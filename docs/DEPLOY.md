@@ -1,5 +1,7 @@
 # Deploying the pilot
 
+**Fastest path:** `scripts/go-live.sh` deploys to Fly.io (or use `render.yaml` on Render) with Supabase Cloud. See [GO_LIVE.md](GO_LIVE.md). This page covers a single server you run yourself.
+
 The pilot runs as two pieces: **Supabase** (Postgres, Auth, Storage) and **one small server** running the API and worker with Docker Compose behind Caddy for HTTPS.
 
 ## 1. Supabase

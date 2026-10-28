@@ -1,0 +1,84 @@
+// Staff audit log: after a staff route succeeds, who did what to which record.
+// Recorded by a hook on the signed-in routes (see app.ts), so a new staff route
+// is covered by adding its pattern below.
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { Queryable } from '../../db.js';
+
+/**
+ * Routes that change something on behalf of staff. Every /admin route is
+ * staff-only. The rest are logged only when the member has a staff role, since
+ * some (closing a care request, ending a macro need) members can call too.
+ */
+const STAFF_ROUTES = new Set([
+  'POST /moderation/items/:id/decision',
+  'POST /moderation/appeals/:id/decision',
+  'POST /moderation/activity-flags/:id',
+  'POST /posts/:id/witness',
+  'PATCH /witness/cases/:id',
+  'POST /witness/cases/:id/notes',
+  'POST /care-requests/:id/claim',
+  'POST /care-requests/:id/close',
+  'POST /macro-needs',
+  'POST /macro-needs/:id/end',
+  'POST /macro-needs/:id/helped',
+]);
+/** Bodies that hold pastoral or private text: the action is logged, the text is not. */
+const NO_BODY = new Set(['POST /witness/cases/:id/notes', 'PATCH /witness/cases/:id']);
+const MAX_BODY_CHARS = 4000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function auditedAction(method: string, url: string | undefined): string | null {
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS' || !url) return null;
+  const action = `${method} ${url}`;
+  return url.startsWith('/admin/') || STAFF_ROUTES.has(action) ? action : null;
+}
+
+const bodyOf = (action: string, body: unknown) => {
+  if (NO_BODY.has(action) || body === undefined || body === null) return null;
+  const json = JSON.stringify(body);
+  return json.length > MAX_BODY_CHARS ? { truncated: json.slice(0, MAX_BODY_CHARS) } : body;
+};
+
+/** onSend hook: records successful staff changes before the reply goes out. Never fails the request. */
+export function auditHook(db: Queryable) {
+  return async (req: FastifyRequest, reply: FastifyReply, payload: unknown) => {
+    const actor = req.auth?.userId;
+    const action = auditedAction(req.method, req.routeOptions?.url);
+    if (!actor || !action || reply.statusCode >= 400) return payload;
+    try {
+      const params = (req.params ?? {}) as Record<string, string>;
+      await db.query(
+        `insert into public.staff_audit_log (actor_id, action, target_id, params, body, status)
+         select $1, $2, $3, $4, $5, $6
+          where $7 or exists (select 1 from public.user_roles where user_id = $1)`,
+        [actor, action, UUID.test(params.id ?? '') ? params.id : null, params, bodyOf(action, req.body), reply.statusCode, action.includes(' /admin/')],
+      );
+    } catch (err) {
+      req.log.error({ err, action }, 'staff audit log write failed');
+    }
+    return payload;
+  };
+}
+
+export interface AuditEntry {
+  id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  target_id: string | null;
+  params: Record<string, string>;
+  body: unknown;
+  status: number;
+  created_at: string;
+}
+
+export async function list(q: Queryable, opts: { actorId?: string; targetId?: string; before?: string; limit: number }): Promise<AuditEntry[]> {
+  const { rows } = await q.query<AuditEntry>(
+    `select l.id, l.actor_id, p.display_name as actor_name, l.action, l.target_id, l.params, l.body, l.status, l.created_at
+       from public.staff_audit_log l left join public.profiles p on p.id = l.actor_id
+      where ($1::uuid is null or l.actor_id = $1) and ($2::uuid is null or l.target_id = $2) and ($3::timestamptz is null or l.created_at < $3)
+      order by l.created_at desc, l.id desc limit $4`,
+    [opts.actorId ?? null, opts.targetId ?? null, opts.before ?? null, opts.limit],
+  );
+  return rows;
+}
