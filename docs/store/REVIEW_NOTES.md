@@ -1,12 +1,10 @@
-# App Review and Play review notes
+# App Review notes
 
-> Drafted 2026-10-28 for the pilot, for Steve to edit before each submission. It covers the reviewer's account, the notes to paste into each store, how radio prayers and tokens work, and answers to the questions reviewers are likely to ask. Rules are quoted from the current [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) and Google Play Console Help, linked at each point. Check both pages again before you submit; they change.
+> Drafted 2026-10-28 for the pilot, for Steve to edit before each submission. It covers the reviewer's account, the notes to paste into App Store Connect, how radio prayers and tokens work, and answers to the questions reviewers are likely to ask. Rules are quoted from the current [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), linked at each point. Check them again before you submit; they change. The pilot is iPhone only: the Google Play text is archived in [archive/GOOGLE_PLAY_DRAFTS.md](../archive/GOOGLE_PLAY_DRAFTS.md).
 
 ## 1. The reviewer's account
 
 Apple: "include demo account info (and turn on your back-end service!) if your app includes a login", and "provide either an active demo account or fully-featured demo mode" (Guideline 2.1(a) and "Before You Submit", [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)).
-
-Google: sign-in details must be "accessible at all times, reusable, and valid regardless of user location". They must skip two-step verification and one-time codes, must not expire, and must be in English ([Play Console Help: sign-in details for review](https://support.google.com/googleplay/android-developer/answer/15748846)).
 
 **Plan**
 
@@ -23,8 +21,8 @@ Google: sign-in details must be "accessible at all times, reusable, and valid re
 
    It adds no posts. Never run `seed:demo` against the hosted project.
 2. **Real sample content from staff.** Before submitting, two or three staff accounts post a few real requests, start one conversation with the review account, and create one upcoming event. This follows the 2026-09-19 decision that no made-up member content is shown. It also gives the reviewer something to pray for, report and block.
-3. **Sign-in is email and password only**, with no one-time codes, so nothing extra is needed for Google's two-step rule. There is no third-party sign-in, so Apple 4.8 (Login Services) does not apply: "Another login service is not required if your app exclusively uses your company's own account setup and sign-in systems" ([4.8](https://developer.apple.com/app-store/review/guidelines/)).
-4. **Use the same account for both stores**, and **keep the API running** during review (`fly scale count app=1 worker=1`; see GO_LIVE.md).
+3. **Sign-in is email and password only**, with no one-time codes. There is no third-party sign-in, so Apple 4.8 (Login Services) does not apply: "Another login service is not required if your app exclusively uses your company's own account setup and sign-in systems" ([4.8](https://developer.apple.com/app-store/review/guidelines/)).
+4. **Keep the API running** during review (`fly scale count app=1 worker=1`; see GO_LIVE.md).
 5. **During review, set the radio to "Log only"** (Admin → Radio) and turn on **Radio prayers are free** (Admin → Tokens). The reviewer can then try "Send as a radio prayer" and see it in Prayer Cast as a test log, with nothing transmitted.
 6. **The reviewer may delete the account** (Apple tests deletion). Before each new submission, run the script again. It recreates the account if it is gone and resets the password if it is not.
 7. **Don't give the review account staff roles.** Moderation and admin screens are staff-only and are not part of the member experience. If a reviewer asks to see moderation, grant it for the review only: `npm run grant-role -- review@[YOUR DOMAIN] moderator`.
@@ -67,21 +65,6 @@ Radio prayers: a member can choose to have the words of a request (never a name)
 Privacy policy: [PRIVACY URL]. Terms: [TERMS URL].
 ```
 
-### Play Console → App content → App access
-
-Choose **All or some functionality is restricted**, then add one set of instructions. Google asks for login details that are reusable, don't expire, are in English, and work from any location ([Play Console Help](https://support.google.com/googleplay/android-developer/answer/15748846)).
-
-- **Name:** Review account
-- **Username:** [REVIEW EMAIL]
-- **Password:** [REVIEW PASSWORD]
-- **Any other information:**
-  ```
-  Email and password sign-in, no one-time codes. The account is ready to use. Staff accounts have posted sample requests, and one staff member has sent you a message.
-  Pray: "Praying Now" on any request. Report: open a request, tap "Report this request". Block: open a profile, tap "Block". Delete account: Me > Delete my account (type DELETE), or on the web at [API HOST]/account-deletion.
-  Tokens are earned by praying, can't be bought or cashed out, and have no money value. "Send as a radio prayer" is in test mode during review (logged, not transmitted).
-  New members can message and post links after praying for 5 other requests (anti-spam).
-  ```
-
 ## 3. How radio prayers work (for reviewers and for Steve)
 
 - **What goes out.** Only the text of a request that passed moderation is sent. It is never sent with a name. The privacy policy says so in "Who can see what".
@@ -97,24 +80,23 @@ Choose **All or some functionality is restricted**, then add one set of instruct
 | Used for | Helping a request reach more people, giving to a member or a request, scheduled gifts, token pools | Radio prayers (when they are not free), or donating to keep the prayer infrastructure running |
 | Bought or cashed out | Never. There is no purchase screen. | Never |
 
-**Why this is fine under each store's rules**
+**Why this is fine under Apple's rules**
 
 - **Apple.** Apple 3.1.1 requires In-App Purchase when you "unlock features or functionality" with "in-game currencies" that are purchased. It also says purchased credits "may not expire" ([3.1.1](https://developer.apple.com/app-store/review/guidelines/)).
   - Prayer Tower tokens are never sold, so no In-App Purchase item exists.
   - Apple also allows apps to "incentivize users to take specific actions within apps" ([3.2.2(x)](https://developer.apple.com/app-store/review/guidelines/)). Earning tokens by praying is exactly that.
   - **If tokens are ever sold**, they must use In-App Purchase, and purchased tokens must not expire. That would conflict with the current terms ("Tokens end when your account is deleted, or when the pilot ends"), so the terms would need a change first.
-- **Google.** Play's Payments policy lists virtual currencies among the items that need Google Play's billing system when they are paid for ([Payments policy](https://support.google.com/googleplay/android-developer/answer/9858738)). Prayer Tower takes no payments, so the billing rules don't apply.
-- **Abuse safeguard.** The Play UGC policy asks for "safeguards to prevent in-app monetization from encouraging objectionable user behavior" ([UGC policy](https://support.google.com/googleplay/android-developer/answer/9876937)). Tokens earned by automated praying are flagged for a moderator to review and can be reversed (Terms section 7).
+- **Abuse safeguard.** Tokens earned by automated praying are flagged for a moderator to review and can be reversed (Terms section 7).
 
 ## 5. Likely review questions, with answers
 
 | Question | Answer |
 |---|---|
-| **Where is account deletion?** (Apple 5.1.1(v): "If your app supports account creation, you must also offer account deletion within the app"; [Google: account deletion](https://support.google.com/googleplay/android-developer/answer/13327111)) | In the app: Me → Delete my account. It takes effect right away. On the web: `[API HOST]/account-deletion` (and `/es/account-deletion`), with sign-in-and-delete or a request form. Put this URL in the Play Data safety form. |
+| **Where is account deletion?** (Apple 5.1.1(v): "If your app supports account creation, you must also offer account deletion within the app") | In the app: Me → Delete my account. It takes effect right away. On the web: `[API HOST]/account-deletion`, with sign-in-and-delete or a request form. |
 | **How do you moderate user content?** (Apple 1.2) | Automated filtering of every new request, comment, message and event; a Report button on all of them; human moderators with logged decisions and appeals; blocking; and published contact details on `/support`. |
 | **Is religious content handled respectfully?** (Apple 1.1.5 forbids "inflammatory religious commentary or inaccurate or misleading quotations of religious texts") | The Community Rules forbid praying for harm and pile-ons. Scripture leaves are exact KJV text. The app is ecumenical and Christian. |
 | **Does the app give medical or crisis advice?** (Apple 1.4.1) | No. It shows crisis lines (988 in the US) and says it is not an emergency service. Prayer partners and pastors offer prayer, not professional services (Terms section 3). |
-| **What are tokens, and can users buy them?** (Apple 3.1.1, Play Payments) | See section 4. Tokens are earned only, can't be bought or cashed out, and have no money value. |
+| **What are tokens, and can users buy them?** (Apple 3.1.1) | See section 4. Tokens are earned only, can't be bought or cashed out, and have no money value. |
 | **What is a "radio prayer"?** | See section 3. It is free and has no names. It is in test mode during review. |
 | **Does the app collect donations?** (Apple 3.2.2(iv)) | No. "Help in person or with a gift" opens an outside charity's site in the browser. Priestly tokens are in-app tokens, not money. A real-money "Common Prayer Fund" would need approved-nonprofit status with Apple Pay (Apple 3.2.1(vi)) or collection outside the app. It is not built. |
 | **Why must members be 18+?** | It is a pilot choice, given private messaging and in-person events. The age rating questionnaire should declare user-generated content and messaging. See the counsel questions in TERMS_OF_USE_DRAFT.md. |
@@ -125,7 +107,7 @@ Choose **All or some functionality is restricted**, then add one set of instruct
 
 ## 6. Before each submission
 
-- [ ] Run `REVIEW_PASSWORD='…' npm run review-account -- review@[YOUR DOMAIN]` on the hosted project, and paste the password into both stores.
+- [ ] Run `REVIEW_PASSWORD='…' npm run review-account -- review@[YOUR DOMAIN]` on the hosted project, and paste the password into App Store Connect.
 - [ ] Staff sample requests, one message to the review account, and one upcoming event are in place.
 - [ ] Admin → Radio is set to **Log only**, and **Radio prayers are free** is on.
 - [ ] The reviewed privacy policy and terms are published, with no brackets and no DRAFT banner, in English.

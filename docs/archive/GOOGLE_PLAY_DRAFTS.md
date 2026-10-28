@@ -141,3 +141,18 @@ From `docs/TESTFLIGHT_EAS_GUIDE.md`:
 ### 10. Android
 
 See [ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md) for the full Google Play internal testing setup.
+
+### Play Console → App content → App access (moved from store/REVIEW_NOTES.md)
+
+Choose **All or some functionality is restricted**, then add one set of instructions. Google asks for login details that are reusable, don't expire, are in English, and work from any location ([Play Console Help](https://support.google.com/googleplay/android-developer/answer/15748846)).
+
+- **Name:** Review account
+- **Username:** [REVIEW EMAIL]
+- **Password:** [REVIEW PASSWORD]
+- **Any other information:**
+  ```
+  Email and password sign-in, no one-time codes. The account is ready to use. Staff accounts have posted sample requests, and one staff member has sent you a message.
+  Pray: "Praying Now" on any request. Report: open a request, tap "Report this request". Block: open a profile, tap "Block". Delete account: Me > Delete my account (type DELETE), or on the web at [API HOST]/account-deletion.
+  Tokens are earned by praying, can't be bought or cashed out, and have no money value. "Send as a radio prayer" is in test mode during review (logged, not transmitted).
+  New members can message and post links after praying for 5 other requests (anti-spam).
+  ```
