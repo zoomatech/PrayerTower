@@ -1,6 +1,8 @@
 // Open Circle walk: an Open Circle member visits every member screen, and no
-// screen shows a religious word (docs/OPEN_CIRCLE.md). Set OPEN_CIRCLE_SHOTS
-// to a folder to keep a screenshot of each screen.
+// screen shows a religious word (docs/OPEN_CIRCLE.md) or has a WCAG A/AA
+// violation (axe-core, as in 07-accessibility). Set OPEN_CIRCLE_SHOTS to a
+// folder to keep a screenshot of each screen.
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 import { db, DEMO_PASSWORD, postIdByText, unique } from './helpers';
@@ -9,7 +11,7 @@ const RELIGIOUS = /\b(pray\w*|god|lord|jesus|church\w*|amen|blessed|scripture|pr
 const SCREENS = [
   '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/tour', '/notification-settings', '/feedback', '/rules',
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
-  '/live', '/macro-needs', '/circle-prep', '/token-store', '/delete-account',
+  '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account',
 ];
 const shots = process.env.OPEN_CIRCLE_SHOTS;
 
@@ -31,8 +33,8 @@ async function words(page: Page, written: string[]) {
   return [...new Set(text.split('\n').filter((line) => !line.includes('[Demo]') && line.trim() !== 'Prayer Tower' && line.match(RELIGIOUS)).map((line) => line.trim().slice(0, 120)))];
 }
 
-test('an Open Circle member never sees religious wording', async ({ page }) => {
-  test.setTimeout(240_000);
+test('an Open Circle member never sees religious wording or an accessibility violation, with switches off and on', async ({ page }) => {
+  test.setTimeout(480_000);
   await db.query("update public.communities set status = 'active' where slug = 'open-circle'");
   const { rows: user } = await db.query<{ id: string }>("select id from auth.users where email = 'ruth@demo.prayertower.local'");
   const ruth = user[0]!.id;
@@ -53,14 +55,43 @@ test('an Open Circle member never sees religious wording', async ({ page }) => {
   await expect(page.getByText(body).first()).toBeVisible();
   const postId = await postIdByText(body);
 
+  const off = await walk(page, postId, [body, ...written.map((w) => w.body)], '');
+  expect(off.words, off.words.join('\n')).toEqual([]);
+  expect(off.a11y, off.a11y.join('\n')).toEqual([]);
+
+  // Again with every feature switch on, so the switched-off screens show their real content.
+  const saved = await db.query<{ t: string; c: string }>(
+    `select table_name as t, column_name as c from information_schema.columns
+      where table_schema = 'public' and data_type = 'boolean' and table_name like '%settings' and (column_name like '%enabled')`,
+  );
+  const before: { t: string; c: string; v: boolean }[] = [];
+  for (const r of saved.rows) {
+    const { rows } = await db.query<{ v: boolean }>(`select ${r.c} as v from public.${r.t} limit 1`);
+    before.push({ ...r, v: rows[0]?.v ?? false });
+    await db.query(`update public.${r.t} set ${r.c} = true`);
+  }
+  try {
+    const on = await walk(page, postId, [body, ...written.map((w) => w.body)], 'on-');
+    expect(on.words, on.words.join('\n')).toEqual([]);
+    expect(on.a11y, on.a11y.join('\n')).toEqual([]);
+  } finally {
+    for (const r of before) await db.query(`update public.${r.t} set ${r.c} = $1`, [r.v]);
+  }
+});
+
+/** Visits every screen; returns lines with religious words and accessibility violations. */
+async function walk(page: Page, postId: string, written: string[], prefix: string) {
   const found: string[] = [];
+  const a11y: string[] = [];
   for (const path of [...SCREENS, `/post/${postId}`]) {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
-    const hits = await words(page, [body, ...written.map((w) => w.body)]);
+    const hits = await words(page, written);
     if (hits.length) found.push(`${path}: ${hits.join(' | ')}`);
-    if (shots) await page.screenshot({ path: `${shots}/${path === '/' ? 'feed' : path.slice(1).replace(/\//g, '-').replace(/-[0-9a-f-]{36}$/, '')}.png`, fullPage: true });
+    const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+    for (const v of violations) a11y.push(`${path}: ${v.id} (${v.impact}) ${v.help} → ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`);
+    if (shots) await page.screenshot({ path: `${shots}/${prefix}${path === '/' ? 'feed' : path.slice(1).replace(/\//g, '-').replace(/-[0-9a-f-]{36}$/, '')}.png`, fullPage: true });
   }
-  expect(found, found.join('\n')).toEqual([]);
-});
+  return { words: found, a11y };
+}
