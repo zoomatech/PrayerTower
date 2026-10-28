@@ -75,8 +75,15 @@ await app.listen({ port: config.PORT, host: '0.0.0.0' });
 // First admins from ADMIN_EMAILS, once they've signed up and confirmed their address.
 const adminEmails = config.ADMIN_EMAILS.split(',');
 const makeAdmins = () =>
-  bootstrapAdmins(db, adminEmails).then(
-    (n) => n && app.log.info({ admins: n }, 'made admin from ADMIN_EMAILS'),
+  bootstrapAdmins(db, adminEmails, { viaEmail: process.env.NODE_ENV === 'production' }).then(
+    ({ made, unverified }) => {
+      if (made) app.log.info({ admins: made }, 'made admin from ADMIN_EMAILS');
+      if (unverified)
+        app.log.warn(
+          { accounts: unverified },
+          'ADMIN_EMAILS: not made admin because no confirmation email was sent. Turn on Authentication → Sign In / Providers → Confirm email in Supabase, or use npm run grant-role',
+        );
+    },
     (e) => app.log.error(e, 'ADMIN_EMAILS check failed'),
   );
 // Always once, so removing an address from ADMIN_EMAILS also stops it skipping the invite code.

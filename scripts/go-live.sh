@@ -167,7 +167,10 @@ grep -E '^[A-Z_][A-Z0-9_]*=.+' "$env_file" \
   | grep -vE '^(SUPABASE_PROJECT_REF|SUPABASE_DB_PASSWORD|SUPABASE_ACCESS_TOKEN|EXPO_PUBLIC_[A-Z_]*|FLY_[A-Z_]*)=' \
   | fly secrets import --stage -a "$FLY_API_APP"
 # --ha=false: one machine per process for the pilot; scale later with `fly scale count`.
-fly deploy -a "$FLY_API_APP" --config "$root/fly.toml" --ha=false
+# A readable image label (date and commit) is what a rollback names
+# (PILOT_DAY_ONE_RUNBOOK.md → Rollback steps; docs.fly.io/blueprints/rollback-guide).
+label="v$(date -u +%Y%m%d-%H%M)-$(git -C "$root" rev-parse --short HEAD 2>/dev/null || echo local)"
+fly deploy -a "$FLY_API_APP" --config "$root/fly.toml" --ha=false --image-label "$label"
 fly scale count app=1 worker=1 -a "$FLY_API_APP" --yes
 
 # 4. Web app (PWA), built here with the production API and Supabase addresses.
@@ -176,7 +179,7 @@ log "Building the web app"
 rm -rf "$root/deploy/fly-web/site" && cp -R "$root/apps/mobile/dist" "$root/deploy/fly-web/site"
 log "Deploying the web app to Fly.io app $FLY_WEB_APP"
 fly status -a "$FLY_WEB_APP" >/dev/null 2>&1 || fly apps create "$FLY_WEB_APP" --org "$FLY_ORG"
-fly deploy "$root/deploy/fly-web" -a "$FLY_WEB_APP" --config "$root/deploy/fly-web/fly.toml" --ha=false
+fly deploy "$root/deploy/fly-web" -a "$FLY_WEB_APP" --config "$root/deploy/fly-web/fly.toml" --ha=false --image-label "$label"
 
 # 5. Smoke test.
 log "Checking the live API"
@@ -196,4 +199,5 @@ for i in $(seq 1 20); do
   [ "$i" = 20 ] && die "the web app did not answer at https://$FLY_WEB_APP.fly.dev (fly logs -a $FLY_WEB_APP)"
   sleep 5
 done
+echo "This release: registry.fly.io/$FLY_API_APP:$label (write it down; roll back to it with fly deploy --image)"
 log "Live. Next: docs/GO_LIVE.md → After go-live"

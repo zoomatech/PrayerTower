@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { isoWeek, sendDigests } from '../src/modules/digest/index.js';
+import { buildDigest, isoWeek, sendDigests } from '../src/modules/digest/index.js';
 import type { Mail } from '../src/modules/digest/mailer.js';
 import { as, createUser, db, newRequest } from './helpers.js';
 import { languages } from '../src/language.js';
@@ -51,6 +51,21 @@ describe('weekly email digest', () => {
     const es = outbox.find((m) => m.to === `${poster}@test.local`)!;
     expect(es.subject).toBe('Tu semana en oración');
     expect(es.text).toContain('(tu petición)');
+  });
+
+  it('never emails a sensitive request, or one across a block', async () => {
+    const poster = await createUser('Digest Poster');
+    const member = await createUser('Digest Reader');
+    const plain = await newRequest(poster, 'Pray for my job interview.');
+    const sensitive = await newRequest(poster, 'Pray for my recovery.', { isSensitive: true });
+    for (const p of [plain, sensitive]) {
+      await as(member).post(`/posts/${p.id}/praying-now`, {});
+      await as(poster).post(`/posts/${p.id}/answered`, {});
+    }
+    expect((await buildDigest(db, member)).answered.map((a) => a.body)).toEqual(['Pray for my job interview.']);
+    expect((await buildDigest(db, poster)).answered).toHaveLength(2); // your own requests, always
+    await as(poster).put(`/people/${member}/block`);
+    expect((await buildDigest(db, member)).answered).toEqual([]);
   });
 
   it('does nothing without SMTP', async () => {

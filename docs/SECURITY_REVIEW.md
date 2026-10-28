@@ -31,13 +31,30 @@ These run with every `npm test` and fail if anything regresses:
 | 3 | The Witness "add note" and "flag" routes read the request body before checking the role, so a non-staff member could get a 400 instead of a 403. | Low (information only) | The role is checked first. |
 | 4 | There was no API rate limit. | Medium | Added `@fastify/rate-limit`, counted per signed-in member after auth. The default is 300 requests per minute, set with `RATE_LIMIT_PER_MINUTE`, and 0 turns it off. |
 
+## Second review (2026-10-28, after the go-live rehearsal)
+
+Everything merged since the first review: invite-only sign-up and the `ADMIN_EMAILS` bypass, announcements, church partners, witness stories, testimonies, notebook features, job and operations admin, CSV import, the digest and sponsor emails, the public website and shared links, and the token and radio changes.
+
+How it was checked:
+
+- Every route the API registers was called as a plain signed-in member, outside the prefixes check 5 already covers (`/admin`, `/witness`, the moderation queues). Each one either refused the call or returned only that member's own data or public data. The two that looked odd are fine: `POST /conversations/:id/read` only updates the caller's own membership row, and `GET /post/:id` is a static page that reads nothing from the database.
+- Token moves were sent concurrently: 8 gifts and 8 radio sends at once from a member with 1 token gave exactly one success each, and one key sent 3 times at once moved 1 token. The ledger function locks the accounts.
+- The station API needs a key of 24 or more characters, compared in constant time. The invite hook is `security definer` with an empty `search_path`, and `app_metadata` (its other bypass) can't be set by a member at sign-up.
+- Staff-typed text in the invite, digest and sponsor emails is HTML-escaped. The data export leaves out staff identities (`omit` columns).
+
+| # | Finding | Risk | Fix |
+|---|---|---|---|
+| 5 | `ADMIN_EMAILS` addresses may sign up without an invite code and are then made admin. If the hosted project's "Confirm email" setting is off, Supabase confirms every account at sign-up, so anyone who knows the address and signs up first would become admin. | High, if confirmations are off | In production, an account is made admin only if Supabase actually sent it a confirmation email (`auth.users.confirmation_sent_at`, checked on a local stack with confirmations on and off). Otherwise the server logs a warning saying what to change. `scripts/go-live.sh` turns confirmations on when `SUPABASE_ACCESS_TOKEN` is set. Test: `bootstrap-admins.test.ts`. |
+| 6 | The weekly digest email quoted answered requests the member had prayed for, including requests marked sensitive, and requests from someone who has since blocked them (or whom they blocked). | Medium (privacy) | The digest leaves out other people's sensitive requests and anything across a block. Test: `digest.test.ts`. |
+| 7 | In station mode, members could spend a Priestly token on a prayer the station would never send. Found in the go-live rehearsal and fixed in #48. | Low (lost tokens) | Refused up front, with a plain message. |
+
 ## Settings to confirm on the hosted project before the pilot
 
 These live in the Supabase dashboard (Authentication), not in code. They are also in the [pilot launch checklist](PILOT_LAUNCH_CHECKLIST.md).
 
 - **Minimum password length of at least 8.** Supabase says anything shorter "is not recommended". Local `config.toml` uses 6. Requiring mixed character types is optional. Leaked-password protection needs the Pro plan. ([Supabase: Password security](https://supabase.com/docs/guides/auth/password-security))
-- **Email confirmations on**, so accounts belong to real inboxes.
-- **Sign-ups off for an invite-only pilot.** Invite the 10 members from the dashboard or with `auth.admin.inviteUserByEmail`. ([Supabase: inviteUserByEmail](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail))
+- **Email confirmations on**, so accounts belong to real inboxes. `ADMIN_EMAILS` depends on it: in production, an account is made admin only if Supabase sent it a confirmation email (see the second review below).
+- **The invite-code hook on** (Authentication → Hooks → Before User Created → `public.hook_before_user_created`). `scripts/go-live.sh` turns it on when `SUPABASE_ACCESS_TOKEN` is set ([INVITES.md](INVITES.md)). Sign-ups stay on; the hook refuses anyone without a valid code, apart from the `ADMIN_EMAILS` addresses.
 - **Keep the secret key on the API server only.** It must never be in the mobile app or its `.env`.
 
 ## Account deletion

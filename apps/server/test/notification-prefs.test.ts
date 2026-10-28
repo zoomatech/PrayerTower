@@ -64,5 +64,10 @@ describe('notification settings', () => {
     expect(sent).toHaveLength(1);
     const { rows } = await db.query(`select run_at from graphile_worker.jobs where key = $1`, [`push-held:${held}`]);
     expect(rows).toHaveLength(1);
+
+    // Safety and staff alerts are never held back.
+    const crisis = await notifications.notify(db, member, { kind: 'crisis_flag', title: 'Someone may be in danger', body: 'Open the moderation queue' });
+    await task({ notificationId: crisis }, helpers);
+    expect(sent).toHaveLength(2);
   });
 });

@@ -100,6 +100,9 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     const statusCode = (err as { statusCode?: number }).statusCode;
     if (statusCode && statusCode < 500) return reply.code(statusCode).send({ error: 'invalid_request', message: (err as Error).message });
     req.log.error(err);
+    // Unexpected failures only, for Admin → Operations and the ops alerts (route patterns, never ids).
+    // Deliberate 5xx answers (a feature not set up, /health/ready during an outage) are not counted.
+    void ops.recordError(db, { method: req.method, route: req.routeOptions.url ?? 'unmatched', status: 500 }).catch(() => undefined);
     return reply.code(500).send({ error: 'internal', message: 'Something went wrong' });
   });
 
@@ -113,10 +116,6 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.get('/health/ready', async (_req, reply) => {
     const r = ops.ready(await ops.status(db));
     return reply.code(r.ok ? 200 : 503).send(r);
-  });
-  // Server errors, for Admin → Operations and the ops alerts. Route patterns only, never ids.
-  app.addHook('onResponse', async (req, reply) => {
-    if (reply.statusCode >= 500) await ops.recordError(db, { method: req.method, route: req.routeOptions.url ?? 'unmatched', status: reply.statusCode }).catch(() => undefined);
   });
 
   // The radio station authenticates with its own key, not a member login.
