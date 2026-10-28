@@ -125,6 +125,10 @@ describe('Open Circle, the non-religious community', () => {
     expect((await as(circle).get(`/posts/${post.id}/prayers`)).statusCode).toBe(404);
     expect((await as(circle).post(`/posts/${post.id}/boost`, { amount: 1, idempotencyKey: 'sandbox' })).statusCode).toBe(404);
     expect((await as(faith).get(`/posts/${post.id}`)).statusCode).toBe(200);
+    // Their profile page doesn't list it either.
+    const page = (await as(circle).get(`/people/${faith}`)).json();
+    expect(page.posts.map((p: { id: string }) => p.id)).not.toContain(post.id);
+    expect((await as(faith).get(`/people/${faith}`)).json().posts.map((p: { id: string }) => p.id)).toContain(post.id);
   });
 
   it('uses plain, warm wording in notices to Open Circle members', async () => {

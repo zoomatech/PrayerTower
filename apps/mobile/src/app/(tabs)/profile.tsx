@@ -164,6 +164,8 @@ export default function Profile() {
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
+          {features.prayerChain ? <Button small variant="secondary" label={t('growth.chainOpen')} onPress={() => router.push('/prayer-chain')} /> : null}
+          {features.prayerMinute ? <Button small variant="secondary" label={t('growth.minuteOpen')} onPress={() => router.push('/prayer-minute')} /> : null}
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (

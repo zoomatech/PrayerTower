@@ -11,6 +11,7 @@ import { isBlocked } from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
+import * as growth from '../growth/index.js';
 
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
@@ -64,6 +65,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const { testimony } = z.object({ testimony: z.string().trim().min(1).max(2000).optional() }).parse(req.body ?? {});
     const crisis = await withTx(db, async (tx) => {
       const post = await posts.markAnswered(tx, userId, req.params.id);
+      await growth.queueGuestAnswered(tx, post.id);
       if (testimony) return shareTestimony(tx, userId, req.params.id, testimony);
       await tellPrayersAnswered(tx, userId, post);
       return false;

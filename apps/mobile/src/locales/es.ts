@@ -1,6 +1,6 @@
 // Spanish (Latin American, neutral "tú"). Drafted 2026-10-28; have a native
 // speaker from the pilot review it before release.
-import type { Messages } from './en';
+import en, { type Messages } from './en';
 
 const es: Messages & { enums: Record<string, Record<string, string>> } = {
   common: {
@@ -1288,6 +1288,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     decline: "Rechazar",
     revoke: "Revocar verificación",
   },
+  // English until Spanish is turned on (Steve, 2026-10-28: no Spanish work for now).
+  growth: en.growth,
   card: {
     answered: '✨ Oración contestada',
     hide: 'No es para mí: ocultar esta publicación',

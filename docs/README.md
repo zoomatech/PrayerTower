@@ -20,6 +20,7 @@ Every current doc, grouped by who it's for. The pilot is **English only** and **
 | [CSV_IMPORT.md](CSV_IMPORT.md) | Loading a church's members (as invites) and starter requests from a spreadsheet |
 | [CHURCH_PARTNERS.md](CHURCH_PARTNERS.md) | Church partners and pastor badges |
 | [TESTIMONIES_AND_STATS.md](TESTIMONIES_AND_STATS.md) | Answered-prayer testimonies and prayer stats on Me |
+| [GROWTH.md](GROWTH.md) | Growth ideas the big platforms missed: pray from a link without an account, email prayer chain, "prayed for you today" on the widget, prayer minute. All off until switched on |
 | [NOTEBOOK_FEATURES.md](NOTEBOOK_FEATURES.md) | Notebook ideas with their own switches: worldwide count, thanksgiving card, notes for event hosts, "positive thoughts welcome" |
 | [RADIO_STATION.md](RADIO_STATION.md) | How radio prayers go out, and the radio rules |
 | [RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md) | Installing the station on a Raspberry Pi or Debian laptop |

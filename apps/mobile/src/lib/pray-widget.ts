@@ -6,6 +6,8 @@ import type { Card, FeedPage } from '@prayer-tower/shared';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
+import { api, type PrayedFor } from '@/lib/api';
+import { loadFeatures } from '@/lib/features';
 import type { T } from '@/lib/i18n';
 import type { PrayNowProps } from '@/widgets/pray-now';
 
@@ -39,13 +41,43 @@ export function widgetProps(card: Card | null, t: T): PrayNowProps {
   };
 }
 
-export function updatePrayWidget(page: Pick<FeedPage, 'posts' | 'pinnedId'> | null, t: T) {
-  const props = widgetProps(page ? nextRequest(page) : null, t);
+/** "💛 Ana and 2 others prayed for you today": first names only, never anyone who prayed anonymously. */
+export function prayedForLine(p: PrayedFor, t: T): string {
+  if (!p.enabled || p.people === 0) return '';
+  const [first, second] = p.names;
+  if (!first) return t('growth.widgetPrayedForCount', { count: p.people });
+  if (p.people === 1) return t('growth.widgetPrayedForOne', { name: first });
+  if (p.people === 2 && second) return t('growth.widgetPrayedForTwo', { name: first, other: second });
+  return t('growth.widgetPrayedForMore', { name: first, count: p.people - 1 });
+}
+
+let prayedFor = '';
+
+function push(props: PrayNowProps) {
   if (Platform.OS === 'android') return void updateAndroid(props);
   try {
     widget()?.updateSnapshot(props);
   } catch {
     // A build without the widget extension: nothing to update.
+  }
+}
+
+export function updatePrayWidget(page: Pick<FeedPage, 'posts' | 'pinnedId'> | null, t: T) {
+  if (!page) prayedFor = '';
+  const props = { ...widgetProps(page ? nextRequest(page) : null, t), prayedFor };
+  push(props);
+  // Signed in: also say who prayed for the member today, while an admin has it on.
+  if (page && Platform.OS !== 'web') {
+    loadFeatures()
+      .then((f) => (f.prayedForWidget ? api.prayedFor().then((r) => prayedForLine(r.prayedFor, t)) : ''))
+      .then(
+        (line) => {
+          if (line === prayedFor) return;
+          prayedFor = line;
+          push({ ...props, prayedFor: line });
+        },
+        () => undefined,
+      );
   }
 }
 

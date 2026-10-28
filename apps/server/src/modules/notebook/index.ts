@@ -12,6 +12,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
+import * as growth from '../growth/index.js';
 import * as safety from '../safety/index.js';
 
 export interface NotebookSettings {
@@ -117,6 +118,8 @@ export async function features(q: Queryable) {
     podcasts: s.podcasts_enabled,
     /** Paid radio prayers are matched with equal material help (modules/material-match). */
     materialMatch: match[0]?.enabled === true,
+    /** Growth ideas (modules/growth, Admin → Growth). */
+    ...(await growth.features(q)),
   };
 }
 

@@ -54,6 +54,15 @@ describe('power prayer', () => {
     const alreadyPrayed = await livePrayer('Already', other.id);
     await as(alreadyPrayed).post(`/posts/${post.id}/praying-now`);
     const inactive = await member('Inactive');
+    const blocker = await livePrayer('Blocker', other.id);
+    await db.query('insert into public.user_blocks (user_id, blocked_id) values ($1, $2)', [blocker, poster]);
+    // An Open Circle member who prays a lot is never sent a faith request.
+    const circle = await livePrayer('Circle Prayer', other.id);
+    await db.query('delete from public.community_memberships where user_id = $1', [circle]);
+    await db.query(
+      `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+      [circle],
+    );
 
     expect((await as(sender).get('/me/power-prayer')).json()).toEqual({ reach: 1000, freeLeft: 1, cost: 0, blockedReason: null });
     const first = await as(sender).post(`/posts/${post.id}/power-prayer`, { idempotencyKey: 'pp1' });
@@ -63,7 +72,7 @@ describe('power prayer', () => {
 
     const asked = (await db.query('select user_id from public.power_prayer_recipients where post_id = $1', [post.id])).rows.map((r) => r.user_id);
     expect(asked).toContain(stranger);
-    for (const notAsked of [poster, sender, friend, alreadyPrayed, inactive]) expect(asked).not.toContain(notAsked);
+    for (const notAsked of [poster, sender, friend, alreadyPrayed, inactive, blocker, circle]) expect(asked).not.toContain(notAsked);
     const note = (await as(stranger).get('/me/notifications')).json().notifications.find((n: { kind: string }) => n.kind === 'power_prayer');
     expect(note).toMatchObject({ title: 'Will you pray for this request?', body: 'Pray that I may have a child.' });
     expect(JSON.stringify(note)).not.toContain('Elkanah');

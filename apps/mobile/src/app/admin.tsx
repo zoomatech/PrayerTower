@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek, type AiSettings, type LiveSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -307,6 +307,7 @@ function Admin() {
         <MessagingSettingsSection />
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
+        <GrowthSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
         <MaterialMatchSection />
@@ -963,6 +964,46 @@ function NewCommunity({ onCreated, onNote }: { onCreated: (c: Community) => void
       <Field label={t('admin.field.communityContact')} autoCapitalize="none" value={d.operatorContact} onChangeText={(operatorContact) => setD((x) => ({ ...x, operatorContact }))} />
       <Toggle label={t('admin.communityNeutral')} hint={t('admin.communityNeutralHint')} value={d.neutral} onChange={(neutral) => setD((x) => ({ ...x, neutral }))} />
       <Button label={t('admin.btn.createCommunity')} disabled={!d.name.trim() || !d.slug.trim()} onPress={() => create()} />
+    </View>
+  );
+}
+
+/** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
+function GrowthSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<GrowthSettings | null>(null);
+  const [max, setMax] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: GrowthSettings) => {
+    setS(x);
+    setMax(String(x.prayer_chain_max));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.growthSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateGrowthSettings>[0] = {}) =>
+    api.admin
+      .updateGrowthSettings({ prayerChainMax: toInt(max) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('growth.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('growth.adminTitle')}</Text>
+      <Text style={type.small}>{t('growth.adminIntro')}</Text>
+      <Toggle label={t('growth.adminGuest')} hint={t('growth.adminGuestHint')} value={s.guest_prayer_enabled} onChange={(v) => save({ guestPrayerEnabled: v })} />
+      <Toggle label={t('growth.adminChain')} hint={t('growth.adminChainHint')} value={s.prayer_chain_enabled} onChange={(v) => save({ prayerChainEnabled: v })} />
+      <Field label={t('growth.adminChainMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
+      <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
+      <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
+      <Button label={t('growth.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
 }

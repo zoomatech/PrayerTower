@@ -418,13 +418,14 @@ export async function askToPray(q: Queryable, senderId: string, postId: string, 
     throw badRequest('You can ask only people you follow or who follow you');
   }
   // Sensitive requests skip anyone who opted out of trauma-related content; nobody who blocked
-  // (or was blocked by) the sender or the poster is asked.
+  // (or was blocked by) the sender or the poster is asked, and only people in the post's community.
   const { rows: recipients } = await q.query<{ id: string }>(
     `select p.id from public.profiles p
       where p.id = any($1::uuid[]) and p.deleted_at is null and not ($2 and p.trauma_content_opt_out)
+        and exists (select 1 from public.community_memberships m where m.user_id = p.id and m.community_id = $4)
         and not exists (select 1 from public.user_blocks b
                          where (b.user_id = p.id and b.blocked_id = any($3::uuid[])) or (b.blocked_id = p.id and b.user_id = any($3::uuid[])))`,
-    [rows.map((r) => r.id), post.is_sensitive, [senderId, post.user_id]],
+    [rows.map((r) => r.id), post.is_sensitive, [senderId, post.user_id], post.community_id],
   );
   const sender = await getProfile(q, senderId);
   const hidden = post.user_id === senderId && post.is_anonymous;
@@ -718,12 +719,14 @@ export async function promptSubject(q: Queryable, postId: string, viewerId: stri
 }
 
 /** A person's recent visible posts made under their name (never their anonymous ones). */
-export async function namedPostIds(q: Queryable, authorId: string, limit = 20): Promise<string[]> {
+/** The author's named posts the viewer may see: only in the viewer's communities, unless it's their own page. */
+export async function namedPostIds(q: Queryable, authorId: string, viewerId: string, limit = 20): Promise<string[]> {
   const { rows } = await q.query<{ id: string }>(
     `select id from public.posts
       where user_id = $1 and not is_anonymous and moderation_status = 'visible'
+        and ($1 = $3 or community_id in (select community_id from public.community_memberships where user_id = $3))
       order by id desc limit $2`,
-    [authorId, limit],
+    [authorId, limit, viewerId],
   );
   return rows.map((r) => r.id);
 }
