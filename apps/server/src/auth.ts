@@ -47,7 +47,7 @@ export function makeAuthHook(verify: TokenVerifier, db: Queryable) {
       throw new AppError(401, 'unauthenticated', 'Invalid or expired token');
     }
     const { rows } = await db.query<{ suspended_until: Date | null }>(
-      'select suspended_until from public.profiles where id = $1',
+      'select suspended_until from public.profiles where id = $1 and deleted_at is null',
       [userId],
     );
     const profile = rows[0];

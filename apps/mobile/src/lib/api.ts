@@ -237,6 +237,7 @@ export interface NewPost {
 
 export const api = {
   me: () => get<{ profile: Profile; roles: Role[] }>('/me'),
+  deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
   feed: (page = 0) => get<FeedPage>(`/feed?page=${page}`),
   post: (id: string) => get<{ post: Card }>(`/posts/${id}`),

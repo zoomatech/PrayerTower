@@ -242,3 +242,66 @@ export function presentIdentity(
   if (isAnonymous && person.id !== viewerId) return { id: null, displayName: 'Anonymous', handle: null, anonymous: true };
   return { id: person.id, displayName: person.display_name || 'Member', handle: person.handle, anonymous: isAnonymous };
 }
+
+// Account deletion ------------------------------------------------------------------
+
+/**
+ * Delete a member's account (App Store Review Guideline 5.1.1(v)). Their
+ * sign-in, profile details and everything they wrote or did are removed. Only
+ * records the app must keep stay behind, under an anonymous "Deleted member":
+ * the append-only token ledger (and any request that holds tokens, emptied of
+ * its text) and moderators' decisions. Returns the media paths to remove from storage.
+ */
+export async function deleteAccount(q: Queryable, userId: string): Promise<string[]> {
+  const { rows: media } = await q.query<{ storage_path: string }>('select storage_path from public.post_media where user_id = $1', [userId]);
+  // Requests: delete outright, unless the ledger points at them; then empty them and take them down.
+  await q.query(
+    `delete from public.posts p where p.user_id = $1 and not exists (select 1 from public.token_accounts a where a.post_id = p.id)`,
+    [userId],
+  );
+  await q.query(
+    `update public.posts set body = '(deleted)', is_anonymous = true, moderation_status = 'removed' where user_id = $1`,
+    [userId],
+  );
+  for (const sql of [
+    'delete from public.post_media where user_id = $1',
+    'delete from public.comments where user_id = $1',
+    'delete from public.reactions where user_id = $1',
+    'delete from public.messages where user_id = $1',
+    'delete from public.conversation_members where user_id = $1',
+    'delete from public.follows where user_id = $1 or followee_id = $1',
+    'delete from public.user_blocks where user_id = $1 or blocked_id = $1',
+    'delete from public.thanks where user_id = $1 or recipient_id = $1',
+    'delete from public.events where created_by = $1',
+    'delete from public.event_rsvps where user_id = $1',
+    'delete from public.commitments where user_id = $1',
+    'delete from public.scheduled_spends where user_id = $1',
+    'delete from public.care_requests where user_id = $1',
+    'delete from public.prayer_prompts where user_id = $1',
+    'delete from public.prayer_events where user_id = $1',
+    'delete from public.power_prayer_recipients where user_id = $1',
+    'delete from public.power_prayers where user_id = $1',
+    'delete from public.radio_prayers where user_id = $1',
+    'delete from public.token_pool_draws where user_id = $1',
+    'delete from public.macro_need_helpers where user_id = $1',
+    'delete from public.milestone_awards where user_id = $1',
+    'delete from public.priestly_progress where user_id = $1',
+    'delete from public.hidden_posts where user_id = $1',
+    'delete from public.notifications where user_id = $1',
+    'delete from public.push_tokens where user_id = $1',
+    'delete from public.activity_flags where user_id = $1',
+    'delete from public.moderation_appeals where user_id = $1',
+    'delete from public.user_roles where user_id = $1',
+    'delete from public.community_memberships where user_id = $1',
+  ]) {
+    await q.query(sql, [userId]);
+  }
+  await q.query(
+    `update public.profiles set display_name = 'Deleted member', handle = null, bio = '', why_here = '{}', support_wanted = '{}',
+            support_offered = '{}', pray_for_scope = '{}', feed_mix = '{}', onboarded_at = null, deleted_at = now()
+      where id = $1`,
+    [userId],
+  );
+  await q.query('delete from auth.users where id = $1', [userId]);
+  return media.map((m) => m.storage_path);
+}

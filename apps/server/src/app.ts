@@ -93,7 +93,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
         keyGenerator: (req) => req.auth?.userId ?? req.ip,
       });
     }
-    accountRoutes(authed, db);
+    accountRoutes(authed, db, storage);
     postRoutes(authed, db, storage);
     feedRoutes(authed, db, storage);
     prayerActionRoutes(authed, db);

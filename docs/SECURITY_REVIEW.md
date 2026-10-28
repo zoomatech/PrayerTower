@@ -40,6 +40,10 @@ These live in the Supabase dashboard (Authentication), not in code. They are als
 - **Sign-ups off for an invite-only pilot.** Invite the 10 members from the dashboard or with `auth.admin.inviteUserByEmail`. ([Supabase: inviteUserByEmail](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail))
 - **Keep the secret key on the API server only.** It must never be in the mobile app or its `.env`.
 
+## Account deletion
+
+`DELETE /me`, reached from Me → Delete my account, removes the sign-in from `auth.users`, along with the member's profile details, content and activity. Because the token ledger is append-only, the profile row stays behind as an anonymous "Deleted member" tombstone, and it can no longer sign in. A request that holds other people's tokens is emptied and taken down rather than deleted. Covered by `test/account-deletion.test.ts` and the end-to-end test `05-account`.
+
 ## Accepted for the pilot
 
 - **CORS allows any origin when `CORS_ORIGINS` is unset.** The API uses bearer tokens, not cookies, so another site can't act as a signed-in member. Set `CORS_ORIGINS` anyway if a web build is hosted.

@@ -4,7 +4,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 
 ## 1. Must be done first
 
-- [ ] **In-app account deletion.** Apple requires apps that let people create accounts to "also let people initiate deletion of their account within the app". Deleting the account has to remove the user's content too, including "text posts". ([App Review: 5.1.1(v)](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion)) External TestFlight builds go through Beta App Review first. ([TestFlight](https://developer.apple.com/testflight/)) This is being built next. It erases the member's content and personal details, and keeps only the token ledger rows, which are append-only, under an anonymous id.
+- [x] **In-app account deletion** (Me → Delete my account; `DELETE /me`). Apple requires apps that let people create accounts to "also let people initiate deletion of their account within the app". Deleting the account has to remove the user's content too, including "text posts". ([App Review: 5.1.1(v)](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion)) External TestFlight builds go through Beta App Review first. ([TestFlight](https://developer.apple.com/testflight/)) The feature erases the sign-in, profile, content and activity at once. It keeps only the append-only token ledger and moderators' decisions, under "Deleted member". Check that the privacy policy says this.
 - [ ] **Privacy policy and terms**, with links in the app and in App Store Connect.
 - [ ] **Crisis resources checked for the pilot's country**, both the crisis banner text and the numbers.
 
@@ -56,7 +56,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 ## 7. Final checks
 
 - [ ] `npm test`: all server and station tests pass, including the security checks.
-- [ ] `npm run test:e2e`: all 10 main flows pass locally.
+- [ ] `npm run test:e2e`: all 11 end-to-end tests pass locally.
 - [ ] Do one manual pass on a real phone: sign in, post, pray, commit, message, RSVP, report, and delete the account.
 - [ ] Set up a feedback channel, for example a group chat or a form, and tell members how to report bugs.
 - [ ] Rollback plan: keep the previous build in TestFlight, and take a database backup before each migration.
