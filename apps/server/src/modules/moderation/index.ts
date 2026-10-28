@@ -236,6 +236,16 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
       if (t) await log('forfeit_tokens', { transferId: t.id });
     }
     for (const transferId of d.clawbackTransferIds) {
+      // Only transfers the reported member sent or received: a decision about one member
+      // must not reverse tokens between other people.
+      const { rowCount } = await q.query(
+        `select 1 from public.token_transfers t
+           join public.token_accounts dr on dr.id = t.debit_account_id
+           join public.token_accounts cr on cr.id = t.credit_account_id
+          where t.id = $1 and $2 in (dr.user_id, cr.user_id)`,
+        [transferId, item.user_id],
+      );
+      if (!rowCount) throw badRequest("A clawback must be a transfer to or from the member you're deciding about");
       const t = await tokens.clawback(q, transferId, moderatorId, d.note ?? 'moderation');
       await log('clawback', { transferId: t.id });
     }

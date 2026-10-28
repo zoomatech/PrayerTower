@@ -3,7 +3,7 @@
 // idempotent, and refuses to overdraw a member.
 import type { DatabaseError } from 'pg';
 import type { Queryable } from '../../db.js';
-import { AppError, badRequest } from '../../errors.js';
+import { AppError, badRequest, notFound } from '../../errors.js';
 
 export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus' | 'spend_radio' | 'pool_fund' | 'pool_draw' | 'pool_return';
 /** Regular tokens are earned per prayer; Priestly tokens per N verified prayers and fund the infrastructure. */
@@ -97,6 +97,15 @@ export async function resupply(q: Queryable, userId: string, amount: number, key
 
 export async function gift(q: Queryable, fromUserId: string, toUserId: string, amount: number, key: string, currency: Currency = 'regular') {
   if (fromUserId === toUserId) throw badRequest('You cannot gift tokens to yourself');
+  // Only to a current member, and never across a block (either way): the tokens would be lost, or
+  // reach someone who chose not to hear from the giver. Same answer for all three, like /people/:id.
+  const { rowCount } = await q.query(
+    `select 1 from public.profiles p where p.id = $2 and p.deleted_at is null
+        and not exists (select 1 from public.user_blocks b
+                         where (b.user_id = $1 and b.blocked_id = $2) or (b.user_id = $2 and b.blocked_id = $1))`,
+    [fromUserId, toUserId],
+  );
+  if (!rowCount) throw notFound('Person');
   return transfer(
     q, `gift:${fromUserId}:${key}`, 'gift',
     await userAccount(q, fromUserId, currency), await userAccount(q, toUserId, currency), amount, fromUserId, null,
