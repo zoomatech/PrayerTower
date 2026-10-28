@@ -1,7 +1,8 @@
 // Admin → Feedback: triage what testers send from Me → Send feedback. Tag each
 // item by type (suggested tags come pre-filled), set how serious it is, add a
 // note, mark it handled, and export everything (or one tag) as CSV.
-import { FEEDBACK_SEVERITIES, FEEDBACK_TAGS, type FeedbackSeverity, type FeedbackTag } from '@prayer-tower/shared';
+import { env } from '@/lib/env';
+import { FEEDBACK_SEVERITIES, FEEDBACK_TAGS as ALL_TAGS, type FeedbackSeverity, type FeedbackTag } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +12,9 @@ import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type FeedbackItem } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+
+// The Spanish tag only matters once the Spanish switch is on; the pilot is English only.
+const FEEDBACK_TAGS = ALL_TAGS.filter((g) => g !== 'spanish' || env.spanish);
 
 type Status = 'open' | 'closed' | 'all';
 

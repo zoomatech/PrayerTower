@@ -1,7 +1,7 @@
 // The push test (`npm run push-test`): checks Firebase's google-services.json
 // against the app's package names, then sends one test notice to a member's
 // devices through Expo and reads back the receipts, which name a broken FCM or
-// APNs setup (InvalidCredentials, MismatchSenderId). docs/ANDROID_PUSH.md.
+// APNs setup (InvalidCredentials, MismatchSenderId). docs/archive/ANDROID_PUSH.md.
 // https://docs.expo.dev/push-notifications/sending-notifications/
 export const EXPO_SEND_URL = 'https://exp.host/--/api/v2/push/send';
 export const EXPO_RECEIPTS_URL = 'https://exp.host/--/api/v2/push/getReceipts';

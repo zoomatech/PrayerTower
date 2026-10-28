@@ -1,6 +1,6 @@
 # Security review for the 10-member pilot
 
-Reviewed 2026-10-28 on branch `claude/project-thread-crq6q6`: 57 tables and 143 API routes.
+Reviewed 2026-10-28 on a work branch, since merged into `main`: 57 tables and 143 API routes.
 
 ## How the app is protected
 

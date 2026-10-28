@@ -22,7 +22,7 @@ if (existsSync(gs)) {
   const problems = checkGoogleServices(JSON.parse(readFileSync(gs, 'utf8')));
   console.log(problems.length ? `google-services.json:\n  ${problems.join('\n  ')}` : 'google-services.json: fits the app.');
 } else if (platform !== 'ios') {
-  console.log('google-services.json: not in apps/mobile yet, so Android builds have push off (docs/ANDROID_PUSH.md).');
+  console.log('google-services.json: not in apps/mobile yet, so Android builds have push off (docs/archive/ANDROID_PUSH.md).');
 }
 
 let tokens: string[];

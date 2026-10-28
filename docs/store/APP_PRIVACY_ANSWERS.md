@@ -1,4 +1,6 @@
-# App Store privacy label and Google Play Data safety answers
+# App Store privacy label answers
+
+The Google Play Data safety answers are archived in [archive/GOOGLE_PLAY_DRAFTS.md](../archive/GOOGLE_PLAY_DRAFTS.md); the pilot is iPhone only.
 
 > Drafted 2026-10-28 from the code in PR #4. **Check again before each submission** if a feature, SDK or server integration changes. Have counsel review these together with the privacy policy draft (`docs/legal/PRIVACY_POLICY_DRAFT.md`). The stores hold the developer responsible for accurate answers.
 
@@ -68,44 +70,6 @@ The questionnaire now asks about these capabilities. ([Apple: Age ratings](https
 | Unrestricted Web Access | **No.** The app only opens specific links, such as the terms, the privacy policy and event meeting links. It has no browser of its own. |
 | Parental Controls / Age Assurance | **No** for the pilot. The terms require 18+, confirmed at sign-up. |
 | Content descriptors (violence, mature themes, and others) | Mostly "None". Answer **"Infrequent" for Mature/Suggestive Themes or Medical/Treatment Information** if counsel agrees, because members describe illness and crises. |
-
----
-
-## Google Play: Data safety (Play Console → App content → Data safety)
-
-Definitions: "Collect" means transmitting data off the device. "Sharing" means transferring data to a third party. Transfers to **service providers** acting on your instructions, and **user-initiated** transfers, are not sharing. ([Play Console Help](https://support.google.com/googleplay/android-developer/answer/10787469))
-
-### Overview questions
-
-| Question | Answer |
-|---|---|
-| Does your app collect or share any of the required user data types? | **Yes** |
-| Is all of the user data collected by your app encrypted in transit? | **Yes.** HTTPS/TLS to the API and Supabase. |
-| Which ways can users request that their data is deleted? | **In-app:** Me → Delete my account. **Web link:** `https://<your API host>/account-deletion`. Google requires a web resource where people can request deletion without reinstalling the app. ([Play: account deletion](https://support.google.com/googleplay/android-developer/answer/13327111)) The API server hosts this page. People can sign in there and delete their account at once (this needs `SUPABASE_PUBLISHABLE_KEY` on the server), or leave a request that admins handle under Admin → Account deletion requests after confirming by email. Set `SUPPORT_EMAIL` so the page shows a contact address. |
-| Account creation | "My app allows users to create an account" → username/email and password |
-
-### Data types (all **Collected**, **Not shared**, processing **not ephemeral**, collection **required** unless noted)
-
-| Play category → type | Purposes | Optional? |
-|---|---|---|
-| Personal info → **Name** | App functionality, Account management | Required |
-| Personal info → **Email address** | App functionality, Account management | Required |
-| Personal info → **User IDs** | App functionality, Account management | Required |
-| Personal info → **Political or religious beliefs** | App functionality | Required (implied by using the app) |
-| Health and fitness → **Health info** | App functionality | **Optional** (only if the member writes it) |
-| Messages → **Other in-app messages** | App functionality | Optional |
-| Photos and videos → **Photos**, **Videos** | App functionality | Optional |
-| App activity → **App interactions** | App functionality, Analytics, Personalization | Required |
-| App activity → **Other user-generated content** | App functionality | Required to post |
-| App activity → **Other actions** (reports, blocks, follows) | App functionality, Fraud prevention, security and compliance | Optional |
-| Device or other IDs → **Device or other IDs** | App functionality (push token) | Optional (notifications) |
-| App info and performance → **Crash logs** (only if `EXPO_PUBLIC_SENTRY_DSN` is set) | Analytics ("stack traces, or other information directly related to a crash") | Required |
-
-**Shared:** **None.** These count as service providers: Supabase, the API host, OpenAI moderation, and the Expo, APNs and FCM push services. Content that other members see inside the app isn't "sharing" to a third party.
-
-**Ask counsel:** the amateur-radio broadcast of request text is public, and the member who spends the token starts it, not the poster. Decide whether to declare "Other user-generated content: Shared", or to require the poster's own opt-in before a request can go on the radio.
-
-**Privacy policy URL:** same as Apple.
 
 ---
 

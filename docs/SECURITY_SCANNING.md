@@ -18,5 +18,5 @@ Expo SDK packages must move together, so Dependabot skips major updates of `expo
 
 ## Settings to turn on in GitHub (one time, repository owner)
 
-1. **Settings → General → Default branch:** the default branch is `claude/project-thread-x8bjyl`, not `main`. Switch it to `main`. GitHub reads `dependabot.yml` from the default branch ([GitHub: About the dependabot.yml file](https://docs.github.com/en/enterprise-cloud@latest/code-security/concepts/supply-chain-security/about-the-dependabot-yml-file)) and runs CodeQL's weekly schedule only there, so neither starts until this is done.
+1. **Default branch:** `main` (done). GitHub reads `dependabot.yml` and runs CodeQL's weekly schedule from the default branch.
 2. **Settings → Advanced Security:** turn on Dependabot alerts, Dependabot security updates and secret scanning with push protection. All are free for public repositories.

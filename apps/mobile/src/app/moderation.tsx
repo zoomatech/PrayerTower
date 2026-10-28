@@ -104,7 +104,7 @@ function Moderation() {
           <View key={item.id} style={styles.item}>
             <Text style={styles.meta}>
               {t(`moderation.target.${item.target_type}`)} · {t(`moderation.source.${item.source}`)} ·{' '}
-              {new Date(item.created_at).toLocaleString(locale)}
+              {new Date(item.created_at).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
             </Text>
             <Text style={type.body}>{item.content ?? t('moderation.gone')}</Text>
             {item.reason ? <Text style={styles.reason}>{t('moderation.why', { reason: item.reason })}</Text> : null}

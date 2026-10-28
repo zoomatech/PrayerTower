@@ -126,10 +126,6 @@ The build number goes up by itself. In TestFlight, add the new build to the **Pi
 
 Once the one-time setup in [RELEASING_APPS.md](RELEASING_APPS.md) is done, GitHub can do this for you: push a version tag to build and send to TestFlight, or run the Release workflow to send an over-the-air update without a new build.
 
-## 10. Android
-
-See [ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md) for the full Google Play internal testing setup.
-
 ## If something goes wrong
 
 | Problem | What to do |

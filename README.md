@@ -29,7 +29,7 @@ npm run dev:mobile    # Expo dev server: press i / a / w, or scan the QR code wi
 
 On a phone, set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_SUPABASE_URL` to your computer's LAN address, not localhost. For a browser build, list its origin in the server's `CORS_ORIGINS`.
 
-Push notifications need a development or store build on a real device (not simulators, web, or Expo Go on Android) and an EAS project ID: run `npx eas init` in `apps/mobile` once, then the app registers its push token after onboarding and a tapped notice opens its request. The server sends through the Expo Push Service; set `PUSH_ENABLED=1` (and optionally `EXPO_ACCESS_TOKEN`) in `apps/server/.env`.
+Push notifications need a development or store build on a real device (not simulators or the web) and an EAS project ID: run `npx eas init` in `apps/mobile` once, then the app registers its push token after onboarding and a tapped notice opens its request. The server sends through the Expo Push Service; set `PUSH_ENABLED=1` (and optionally `EXPO_ACCESS_TOKEN`) in `apps/server/.env`.
 
 The app runs on iPhone, iPad and Mac ("Designed for iPad"), with menu bar commands and keyboard shortcuts on Mac and iPad; see [docs/MAC_AND_IPAD.md](docs/MAC_AND_IPAD.md). Expo generates the Xcode project, so settings live in `app.json` and `apps/mobile/plugins/`, not in `ios/`. On a Mac with Xcode: `cd apps/mobile && npx expo prebuild -p ios && xed ios`.
 

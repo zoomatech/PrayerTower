@@ -7,8 +7,8 @@ Paste these into Google Forms or Microsoft Forms. Question types are in brackets
 **About you**
 
 1. How often did you open Prayer Tower during the test? [Multiple choice: Every day · A few times a week · About once a week · Less than once a week]
-2. Which phone did you use? [Multiple choice: iPhone · Android]
-3. Which language did you use the app in? [Multiple choice: English · Spanish · Both]
+2. Which device did you use? [Checkboxes: iPhone · iPad · Mac · Web app]
+3. Did you add the "Pray now" widget to your home screen? [Yes · No · I didn't know about it]
 
 **Praying**
 

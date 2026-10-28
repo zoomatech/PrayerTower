@@ -55,7 +55,7 @@ Sum the CSV columns over the pilot weeks:
 | **Total** | **$[ ]** | Roadmap target is about $85K |
 
 ## 7. Next 12 months
-- [Milestones: wider beta, Android, groups and events, radio prayers]
+- [Milestones: wider beta, groups and events, radio prayers]
 
 ## 8. Contact
 [Name], [email], [phone]

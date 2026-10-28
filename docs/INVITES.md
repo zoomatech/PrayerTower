@@ -17,7 +17,7 @@ While **invite-only mode** is on, a new member needs an invite code to create an
 - **Admin → Invite codes:**
   - Turn invite-only on or off.
   - Create codes: 1 to 50 at a time. Each code can be used by 1 to 1,000 people and expires after 1 to 365 days, or never. You can add an optional note saying who it is for.
-  - Share or revoke a code, or email it. **Email** sends the code in English or Spanish (by default the admin's own language) with an optional personal note, the store links and, when `WEB_APP_URL` is set, a link that opens sign-up with the code filled in. It needs `SMTP_URL` on the server.
+  - Share or revoke a code, or email it. **Email** sends the code in English with an optional personal note, the store links and, when `WEB_APP_URL` is set, a link that opens sign-up with the code filled in. It needs `SMTP_URL` on the server.
   - Every change is in the audit log.
 - **Sign-up:** shows an "Invite code" field while invite-only is on. The app reads the mode from the public `GET /signup-config` endpoint.
   - The link `prayertower://sign-in?invite=CODE` opens sign-up with the code already filled in.

@@ -11,3 +11,4 @@ supabase/signing_keys.json
 # Google service account keys (Play submit, FCM). Never commit these.
 *service-account*.json
 play-*.json
+build-logs/

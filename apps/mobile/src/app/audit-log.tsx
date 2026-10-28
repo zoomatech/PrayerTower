@@ -39,7 +39,11 @@ function AuditLog() {
   const when = (iso: string) => new Date(iso).toLocaleString(language === 'es' ? 'es' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
   const details = (e: AuditEntry) => {
     const { id: _id, ...params } = e.params;
-    const parts = [...Object.values(params), e.body ? JSON.stringify(e.body) : ''].filter(Boolean).join(' · ');
+    // Plain "key: value" pairs instead of raw JSON. Spanish copies (titleEs, bodyEs) and empty values are left out.
+    const body = Object.entries(e.body && typeof e.body === 'object' ? (e.body as Record<string, unknown>) : {})
+      .filter(([k, v]) => v !== null && v !== undefined && v !== '' && !/Es$/.test(k))
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+    const parts = [...Object.values(params), ...body].filter(Boolean).join(' · ');
     return parts.length > 240 ? `${parts.slice(0, 237)}…` : parts;
   };
 

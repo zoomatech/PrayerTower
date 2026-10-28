@@ -47,7 +47,7 @@ On 2026-10-28, across all of `apps/server/src`:
 | Functions | 90.5% |
 | Branches | 72.4% |
 
-These figures include the command-line scripts (seed, load test, query audit, push test, grant role) and the two process entry points (`server.ts` and `worker.ts`). Tests don't run those, and they make up most of the uncovered lines. The app code itself is mostly above 90%. A new test, `notification-i18n.test.ts`, checks that every notification the server sends has Spanish text, with and without its optional details.
+These figures include the command-line scripts (seed, the archived load test, query audit, push test, grant role) and the two process entry points (`server.ts` and `worker.ts`). Tests don't run those, and they make up most of the uncovered lines. The app code itself is mostly above 90%. A new test, `notification-i18n.test.ts`, checks that every notification the server sends has Spanish text, with and without its optional details.
 
 ## Mobile unit tests
 
