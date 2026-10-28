@@ -306,6 +306,10 @@ export const api = {
   admin: {
     deletionRequests: () =>
       get<{ requests: { id: string; email: string; note: string | null; createdAt: string; accountFound: boolean }[] }>('/admin/deletion-requests'),
+    prayerWarriors: (days = 365) =>
+      get<{ standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(
+        `/admin/prayer-warriors?days=${days}`,
+      ),
     decideDeletionRequest: (id: string, action: 'delete' | 'dismiss') => post<{ ok: true }>(`/admin/deletion-requests/${id}`, { action }),
     milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),
     addMilestone: (input: Pick<MilestoneRule, 'label' | 'metric' | 'threshold' | 'amount'>) =>

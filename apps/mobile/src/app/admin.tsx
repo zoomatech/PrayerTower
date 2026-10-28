@@ -185,6 +185,7 @@ export default function Admin() {
         <ErrorText error={error} />
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
         <DeletionRequestsSection />
+        <PrayerWarriorsSection />
 
         <View style={styles.section}>
           <Text style={type.heading}>Pilot metrics</Text>
@@ -611,3 +612,36 @@ const styles = StyleSheet.create({
   trendWeek: { flex: 1.2, textAlign: 'left' },
   trendHead: { ...type.small, fontWeight: '700' },
 });
+
+// Private standings for the Annual Prayer Warrior Award. Not shown to members.
+function PrayerWarriorsSection() {
+  const [days, setDays] = useState(365);
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof api.admin.prayerWarriors>>['standings']>([]);
+  const load = useCallback(() => {
+    api.admin
+      .prayerWarriors(days)
+      .then((r) => setRows(r.standings.slice(0, 10)))
+      .catch(() => undefined);
+  }, [days]);
+  useFocusEffect(load);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Prayer Warrior standings</Text>
+      <Text style={type.small}>Verified prayers for others and kept promises. Private to admins until award rules are approved.</Text>
+      <View style={styles.row}>
+        {[30, 90, 365].map((d) => (
+          <Button key={d} small variant={d === days ? 'primary' : 'ghost'} label={d === 365 ? 'Year' : `${d} days`} onPress={() => setDays(d)} />
+        ))}
+      </View>
+      {rows.length ? (
+        rows.map((r) => (
+          <Text key={r.userId} style={type.body}>
+            {r.rank}. {r.name}: {r.prayers} prayers, {r.checkins} promise check-ins, {r.peoplePrayedFor} people
+          </Text>
+        ))
+      ) : (
+        <Text style={type.small}>No verified prayers yet.</Text>
+      )}
+    </View>
+  );
+}
