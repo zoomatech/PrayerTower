@@ -1,7 +1,13 @@
 // API shapes and product constants shared by apps/server and apps/mobile.
 
-export const POST_TYPES = ['prayer_request', 'praise', 'open_prayer', 'testimony', 'confessional'] as const;
+export const POST_TYPES = ['prayer_request', 'praise', 'open_prayer', 'testimony', 'confessional', 'discussion', 'news', 'blog'] as const;
 export type PostType = (typeof POST_TYPES)[number];
+/**
+ * Posts that aren't prayer (Mockup 8): no Praying Now, promises, radio or Power Prayer;
+ * people comment, encourage and share. Off until an admin turns them on for a community.
+ */
+export const DISCUSSION_TYPES: readonly PostType[] = ['discussion', 'news', 'blog'];
+export const isPrayable = (t: PostType) => !DISCUSSION_TYPES.includes(t);
 
 export const POST_TYPE_LABELS: Record<PostType, string> = {
   prayer_request: 'Prayer Request',
@@ -9,6 +15,9 @@ export const POST_TYPE_LABELS: Record<PostType, string> = {
   open_prayer: 'Open Prayer',
   testimony: 'Testimony',
   confessional: 'Confession',
+  discussion: 'Discussion',
+  news: 'News',
+  blog: 'Blog Post',
 };
 
 // Kinds and realms of prayer, from Steve's notebook (Page 10). Optional on every post.
@@ -569,7 +578,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'spoken_prayer'],
   promises: ['commitment_made', 'commitment_reminder'],
-  encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered'],
+  encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered', 'award'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
   tokens: ['mint', 'milestone', 'scheduled_spend', 'radio_not_sent'],

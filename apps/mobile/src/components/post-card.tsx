@@ -3,6 +3,7 @@
 // Layouts decide where a card goes; the card's content and action order never change.
 import {
   ACTION_LABELS,
+  isPrayable,
   POST_BACKGROUND_STYLES,
   POST_TYPE_LABELS,
   PRAYER_KIND_LABELS,
@@ -108,7 +109,15 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
       ) : null}
 
       <Text style={styles.counts}>
-        {card.counts.prayers > 0 ? t('card.praying', { count: card.counts.prayers }) : card.isMine ? t('post.prayed', { count: 0 }) : card.postType === 'praise' ? '' : t('card.firstToPray')}
+        {!isPrayable(card.postType)
+          ? ''
+          : card.counts.prayers > 0
+            ? t('card.praying', { count: card.counts.prayers })
+            : card.isMine
+              ? t('post.prayed', { count: 0 })
+              : card.postType === 'praise'
+                ? ''
+                : t('card.firstToPray')}
         {card.counts.commitments > 0 ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
         {card.counts.encouragements > 0 ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
       </Text>

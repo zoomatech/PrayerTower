@@ -1,11 +1,13 @@
 import {
   FEED_MIX_KEYS,
+  isPrayable,
   POST_TYPE_LABELS,
   PRAYER_REALM_LABELS,
   WHY_HERE_LABELS,
   type FeedMix,
   type FeedMixKey,
   type FeedThemeChoices,
+  type PostType,
   type PrayerStats,
   type TierStatus,
   type TokenSummary,
@@ -14,6 +16,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AwardCard } from '@/components/award-card';
 import { CommunityPicker } from '@/components/community-picker';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
@@ -26,7 +29,7 @@ import { saveJson } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Profile() {
-  const { profile, roles, refreshProfile, signOut } = useAuth();
+  const { profile, roles, community, refreshProfile, signOut } = useAuth();
   const { t, label, n, wording } = useLocale();
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
@@ -138,6 +141,7 @@ export default function Profile() {
             </Text>
           </View>
         ) : null}
+        <AwardCard />
         <PrayedForYou />
         <View style={styles.chips}>
           <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
@@ -169,7 +173,7 @@ export default function Profile() {
         <View style={{ gap: space.sm }}>
           <Text style={type.heading}>{t('profile.mix')}</Text>
           <Text style={type.small}>{t('profile.mixHint')}</Text>
-          {FEED_MIX_KEYS.map((key) => {
+          {FEED_MIX_KEYS.filter((key) => !key.startsWith('type:') || (community ? community.enabledPostTypes.includes(key.slice(5)) : isPrayable(key.slice(5) as PostType))).map((key) => {
             const level = profile.feed_mix?.[key] ?? 'normal';
             const setLevel = (next: 'less' | 'normal' | 'more') => {
               const mix: FeedMix = { ...profile.feed_mix };

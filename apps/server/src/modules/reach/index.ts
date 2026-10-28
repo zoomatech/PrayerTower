@@ -84,6 +84,7 @@ export interface PowerPrayer {
 export async function powerPrayer(q: Queryable, userId: string, postId: string, key: string): Promise<PowerPrayer> {
   const post = await posts.getVisible(q, postId);
   if (!post) throw notFound('Post');
+  posts.requirePrayable(post);
   const existing = await q.query<PowerPrayer>(
     'select id, post_id, cost, reached, created_at from public.power_prayers where user_id = $1 and idempotency_key = $2',
     [userId, key],

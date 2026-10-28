@@ -2,7 +2,7 @@
 // (including whether radio prayers spend Priestly tokens or are free), tier
 // thresholds and weekly allotments, and finding people to grant or revoke
 // roles. The server checks the admin role on every call.
-import type { Role } from '@prayer-tower/shared';
+import { POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -305,6 +305,7 @@ function Admin() {
         <NotebookSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
+        <AwardSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -577,6 +578,80 @@ function CareAndEventSettingsSection() {
   );
 }
 
+/** Annual Prayer Warrior Award: off by default. Offer it to a year's top pray-ers from the standings. */
+function AwardSection() {
+  const t = useT();
+  const [s, setS] = useState<AwardSettings | null>(null);
+  const [draft, setDraft] = useState({ winners: '', tokens: '', priestly: '', note: '' });
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [awards, setAwards] = useState<Award[]>([]);
+  const [top, setTop] = useState<{ rank: number; name: string; prayers: number; checkins: number }[]>([]);
+  const [note, setNote] = useState<string | null>(null);
+  const fail = (e: unknown) => setNote((e as Error).message);
+  const show = (x: AwardSettings) => {
+    setS(x);
+    setDraft({ winners: String(x.winners), tokens: String(x.token_prize), priestly: String(x.priestly_prize), note: x.prize_note });
+  };
+  const loadYear = (y = year) =>
+    toInt(y) &&
+    api.admin
+      .awardYear(toInt(y)!)
+      .then((r) => {
+        setAwards(r.awards);
+        setTop(r.standings);
+      })
+      .catch(fail);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.awardSettings().then((r) => show(r.settings)).catch(fail);
+      loadYear();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateAwardSettings>[0] = {}) =>
+    api.admin
+      .updateAwardSettings({
+        winners: toInt(draft.winners) ?? undefined,
+        tokenPrize: toInt(draft.tokens) ?? undefined,
+        priestlyPrize: toInt(draft.priestly) ?? undefined,
+        prizeNote: draft.note,
+        ...patch,
+      })
+      .then((r) => {
+        show(r.settings);
+        setNote(t('admin.saved.award'));
+      })
+      .catch(fail);
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.award')}</Text>
+      <Toggle label={t('admin.toggle.award')} hint={t('admin.toggle.awardHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Toggle label={t('admin.toggle.awardHall')} value={s.public_hall} onChange={(v) => save({ publicHall: v })} />
+      <Field label={t('admin.field.awardWinners')} keyboardType="number-pad" value={draft.winners} onChangeText={(winners) => setDraft((d) => ({ ...d, winners }))} />
+      <Field label={t('admin.field.awardTokens')} keyboardType="number-pad" value={draft.tokens} onChangeText={(tokens) => setDraft((d) => ({ ...d, tokens }))} />
+      <Field label={t('admin.field.awardPriestly')} keyboardType="number-pad" value={draft.priestly} onChangeText={(priestly) => setDraft((d) => ({ ...d, priestly }))} />
+      <Field label={t('admin.field.awardNote')} value={draft.note} onChangeText={(n) => setDraft((d) => ({ ...d, note: n }))} maxLength={500} />
+      <Button label={t('admin.btn.saveAward')} onPress={() => save()} />
+      <Field label={t('admin.field.awardYear')} keyboardType="number-pad" value={year} onChangeText={setYear} onBlur={() => loadYear()} />
+      {top.slice(0, 10).map((x) => (
+        <Text key={x.rank} style={type.small}>
+          {x.rank}. {x.name} · {x.prayers + x.checkins}
+        </Text>
+      ))}
+      {s.enabled ? (
+        <Button variant="secondary" label={t('admin.btn.selectWinners')} onPress={() => toInt(year) && api.admin.selectAwards(toInt(year)!).then((r) => setAwards(r.awards), fail)} />
+      ) : null}
+      {awards.map((a) => (
+        <Text key={a.id} style={type.body}>
+          {a.rank}. {a.name} · {a.status}
+        </Text>
+      ))}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Spoken prayers: off by default; limits for recording length and token offers. */
 function SpokenPrayerSection() {
   const t = useT();
@@ -623,9 +698,9 @@ function CommunitiesSection() {
       api.admin.communities().then((r) => setList(r.communities)).catch((e) => setNote((e as Error).message));
     }, []),
   );
-  const toggle = (c: Community, on: boolean) =>
+  const change = (c: Community, patch: Parameters<typeof api.admin.updateCommunity>[1]) =>
     api.admin
-      .updateCommunity(c.slug, { status: on ? 'active' : 'hidden' })
+      .updateCommunity(c.slug, patch)
       .then((r) => {
         setList((l) => l?.map((x) => (x.slug === c.slug ? { ...x, ...r.community } : x)) ?? null);
         setNote(t('admin.savedCommunity'));
@@ -636,21 +711,34 @@ function CommunitiesSection() {
     <View style={styles.section}>
       <Text style={type.heading}>{t('admin.communities')}</Text>
       <Text style={type.small}>{t('admin.communitiesHint')}</Text>
-      {list.map((c) =>
-        c.isDefault ? (
-          <Text key={c.slug} style={type.body}>
-            {t('admin.communityDefault', { name: c.name, count: c.members ?? 0 })}
-          </Text>
-        ) : (
-          <Toggle
-            key={c.slug}
-            label={t('admin.communityOn', { name: c.name, count: c.members ?? 0 })}
-            hint={t('admin.communityOnHint')}
-            value={c.status === 'active'}
-            onChange={(v) => toggle(c, v)}
-          />
-        ),
-      )}
+      {list.map((c) => (
+        <View key={c.slug} style={{ gap: space.xs }}>
+          {c.isDefault ? (
+            <Text style={type.body}>{t('admin.communityDefault', { name: c.name, count: c.members ?? 0 })}</Text>
+          ) : (
+            <Toggle
+              label={t('admin.communityOn', { name: c.name, count: c.members ?? 0 })}
+              hint={t('admin.communityOnHint')}
+              value={c.status === 'active'}
+              onChange={(v) => change(c, { status: v ? 'active' : 'hidden' })}
+            />
+          )}
+          <Text style={type.small}>{t('admin.communityTypes')}</Text>
+          <View style={styles.row}>
+            {POST_TYPES.map((p) => {
+              const on = c.enabledPostTypes.includes(p);
+              return (
+                <Chip
+                  key={p}
+                  label={POST_TYPE_LABELS[p]}
+                  selected={on}
+                  onPress={() => change(c, { enabledPostTypes: on ? c.enabledPostTypes.filter((x) => x !== p) : [...c.enabledPostTypes, p] })}
+                />
+              );
+            })}
+          </View>
+        </View>
+      ))}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

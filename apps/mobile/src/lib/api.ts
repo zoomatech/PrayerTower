@@ -443,6 +443,33 @@ export interface NewPost {
   media?: { kind: 'image' | 'video'; storagePath: string }[];
 }
 
+/** Annual Prayer Warrior Award (off by default). */
+export interface Award {
+  id: string;
+  year: number;
+  rank: number;
+  userId: string;
+  name: string;
+  prayers: number;
+  checkins: number;
+  peoplePrayedFor: number;
+  status: 'offered' | 'accepted' | 'declined';
+  showName: boolean;
+  decidedAt: string | null;
+}
+export interface AwardSettings {
+  enabled: boolean;
+  winners: number;
+  token_prize: number;
+  priestly_prize: number;
+  prize_note: string;
+  public_hall: boolean;
+}
+export type MyAwards = { enabled: false; awards: [] } | { enabled: true; prize: { tokens: number; priestly: number; note: string }; publicHall: boolean; awards: Award[] };
+export type AwardHall =
+  | { enabled: false; years: [] }
+  | { enabled: true; years: { year: number; winners: { rank: number; name: string | null; prayers: number; peoplePrayedFor: number }[] }[] };
+
 export interface SpokenPrayerSettings {
   enabled: boolean;
   max_seconds: number;
@@ -492,6 +519,10 @@ export const api = {
     post<{ id: string; offerTokens: number }>(`/posts/${postId}/spoken-prayers`, { storagePath, durationSeconds }),
   spokenListened: (id: string) => post<{ listened: true; paid: boolean; notEnoughTokens: boolean }>(`/spoken-prayers/${id}/listened`),
   removeSpokenPrayer: (id: string) => request<{ removed: true }>('DELETE', `/spoken-prayers/${id}`),
+  awardHall: () => get<AwardHall>('/awards'),
+  myAwards: () => get<MyAwards>('/me/awards'),
+  acceptAward: (id: string, showName: boolean) => post<{ accepted: true; tokens: number; priestly: number }>(`/me/awards/${id}/accept`, { showName }),
+  declineAward: (id: string) => post<{ declined: true }>(`/me/awards/${id}/decline`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
   sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
@@ -575,10 +606,16 @@ export const api = {
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
     communities: () => get<{ communities: Community[] }>('/admin/communities'),
+    awardSettings: () => get<{ settings: AwardSettings }>('/admin/award-settings'),
+    updateAwardSettings: (patch: Partial<{ enabled: boolean; winners: number; tokenPrize: number; priestlyPrize: number; prizeNote: string; publicHall: boolean }>) =>
+      request<{ settings: AwardSettings }>('PATCH', '/admin/award-settings', patch),
+    awardYear: (year: number) =>
+      get<{ year: number; awards: Award[]; standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(`/admin/awards/${year}`),
+    selectAwards: (year: number) => post<{ year: number; awards: Award[] }>(`/admin/awards/${year}/select`),
     spokenPrayerSettings: () => get<{ settings: SpokenPrayerSettings }>('/admin/spoken-prayers'),
     updateSpokenPrayerSettings: (patch: { enabled?: boolean; maxSeconds?: number; maxOfferTokens?: number }) =>
       request<{ settings: SpokenPrayerSettings }>('PATCH', '/admin/spoken-prayers', patch),
-    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden' }) =>
+    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden'; enabledPostTypes?: string[] }) =>
       request<{ community: Community }>('PATCH', `/admin/communities/${slug}`, patch),
     deletionRequests: () =>
       get<{ requests: { id: string; email: string; note: string | null; createdAt: string; accountFound: boolean }[] }>('/admin/deletion-requests'),
