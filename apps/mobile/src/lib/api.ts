@@ -215,6 +215,18 @@ export interface Highlights {
   topWarriors: { id: string | null; displayName: string; prayers: number }[];
 }
 
+export interface AuditEntry {
+  id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  target_id: string | null;
+  params: Record<string, string>;
+  body: unknown;
+  status: number;
+  created_at: string;
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -391,6 +403,8 @@ export const api = {
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
+    auditLog: (q: { before?: string; limit?: number } = {}) =>
+      get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number }>) =>

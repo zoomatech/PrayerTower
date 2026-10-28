@@ -1,0 +1,17 @@
+{
+  "short_name": "Prayer Tower",
+  "name": "Prayer Tower",
+  "description": "Ask for prayer and pray for one another.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#5B3E96",
+  "background_color": "#5B3E96",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" }
+  ]
+}

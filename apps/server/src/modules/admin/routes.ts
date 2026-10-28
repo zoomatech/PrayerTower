@@ -28,6 +28,7 @@ import * as messages from '../messages/index.js';
 import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
+import * as audit from '../audit/index.js';
 import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
@@ -316,6 +317,15 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         group_max_members: input.groupMaxMembers,
       }),
     };
+  });
+
+  // Staff audit log, newest first; ?before= pages back, ?actorId= / ?targetId= filter.
+  app.get('/admin/audit-log', async (req) => {
+    await requireAdmin(req);
+    const query = z
+      .object({ actorId: z.uuid().optional(), targetId: z.uuid().optional(), before: z.iso.datetime({ offset: true }).optional(), limit: z.coerce.number().int().min(1).max(200).default(50) })
+      .parse(req.query);
+    return { entries: await audit.list(db, query) };
   });
 
   // Week-by-week pilot results; ?format=csv downloads a spreadsheet, ?format=html the sponsor report.

@@ -1,0 +1,16 @@
+# Fly.io: the web app (PWA) as static files behind Caddy. scripts/go-live.sh
+# builds apps/mobile into deploy/fly-web/site and runs `fly deploy deploy/fly-web`.
+app = "prayertower-web"
+primary_region = "iad"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Static files: let Fly stop the machine when idle and start it on the next visit.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
