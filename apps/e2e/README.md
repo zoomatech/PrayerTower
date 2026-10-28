@@ -19,7 +19,7 @@ Playwright drives the app's web build against the local API and Supabase, signed
 | `17-ops` | Admin → Operations shows the worker, queue, errors and radio, and passes axe |
 | `09-tour` | The first-run tour shows once, steps through five cards, and reopens from Me |
 | `10-export` | A member downloads their data from Me as a JSON file |
-| `18-open-circle` | An Open Circle member posts, then visits 26 member screens; none may show a religious word. Set `OPEN_CIRCLE_SHOTS` to a folder to keep a screenshot of each. |
+| `18-open-circle` | An Open Circle member posts, then visits 28 member screens twice (feature switches off, then all on). No screen may show a religious word or fail an axe WCAG A/AA check. Set `OPEN_CIRCLE_SHOTS` to a folder to keep a screenshot of each. |
 
 ## Running it
 
