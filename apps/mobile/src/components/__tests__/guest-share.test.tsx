@@ -18,7 +18,7 @@ jest.mock('@/lib/api', () => ({
 }));
 
 describe('GuestShare', () => {
-  beforeEach(() => jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' }));
+  beforeEach(() => jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined }));
 
   it("shows nothing on someone else's request", async () => {
     await renderApp(<GuestShare card={sampleCard({ isMine: false })} />);
