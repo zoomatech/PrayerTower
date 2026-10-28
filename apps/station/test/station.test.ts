@@ -75,6 +75,21 @@ describe('station worker (build paper acceptance tests)', () => {
     expect(reports[0]).toMatchObject({ ok: true, pieces: sent.length });
   });
 
+  it('retries a failed report instead of leaving the prayer to be sent again', async () => {
+    const { api, reports } = fakeApi([{ id: 'r', text: 'Pray for the crew.' }]);
+    let failures = 2;
+    const flaky: StationApi = {
+      claim: api.claim,
+      report: async (id, r) => {
+        if (failures-- > 0) throw new Error('network down');
+        return api.report(id, r);
+      },
+    };
+    expect(await runOnce(flaky, fldigi(), cfg, quiet, [1, 1, 1])).toBe('sent');
+    expect(added()).toHaveLength(1);
+    expect(reports).toEqual([{ id: 'r', ok: true, callSign: 'N0CALL', pieces: 1 }]);
+  });
+
   it('never transmits when the queue is empty', async () => {
     const { api } = fakeApi([]);
     expect(await runOnce(api, fldigi(), cfg, quiet)).toBe('idle');

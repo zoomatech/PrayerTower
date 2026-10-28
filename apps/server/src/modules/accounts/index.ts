@@ -126,7 +126,13 @@ export async function updateProfile(q: Queryable, userId: string, input: z.infer
   }
 }
 
+/** Run in a transaction: the admin check locks the admin rows so two removals can't both pass it. */
 export async function revokeRole(q: Queryable, userId: string, role: Role) {
+  // Never leave the app without an admin: nobody could grant roles or change settings again.
+  if (role === 'admin') {
+    const { rows } = await q.query<{ user_id: string }>(`select user_id from public.user_roles where role = 'admin' for update`);
+    if (rows.length === 1 && rows[0]!.user_id === userId) throw conflict('This is the last admin. Make someone else an admin first.');
+  }
   await q.query('delete from public.user_roles where user_id = $1 and role = $2', [userId, role]);
 }
 

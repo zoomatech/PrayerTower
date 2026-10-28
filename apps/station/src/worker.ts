@@ -20,16 +20,39 @@ export interface StationConfig {
 
 export type Outcome = 'idle' | 'sent' | 'rejected';
 
+/**
+ * Report a result, retrying for about half a minute. A report that never
+ * arrives leaves the prayer "sending", and after 15 minutes Prayer Tower hands
+ * it out again, so a prayer that already went out would be transmitted twice.
+ */
+async function reportWithRetry(api: StationApi, id: string, result: Parameters<StationApi['report']>[1], waitMs: number[]) {
+  for (let i = 0; ; i++) {
+    try {
+      return await api.report(id, result);
+    } catch (err) {
+      if (i >= waitMs.length) throw err;
+      await new Promise((r) => setTimeout(r, waitMs[i]));
+    }
+  }
+}
+const REPORT_RETRY_MS = [2_000, 4_000, 8_000, 16_000];
+
 /** The radio side failed: transmit was disabled and the station should stop until a person checks it. */
 export class TransmitError extends Error {}
 
 /** Handle at most one prayer. Throws (after rx_only and a failure report) if transmitting fails. */
-export async function runOnce(api: StationApi, fldigi: Fldigi, cfg: StationConfig, log: (m: string) => void = console.log): Promise<Outcome> {
+export async function runOnce(
+  api: StationApi,
+  fldigi: Fldigi,
+  cfg: StationConfig,
+  log: (m: string) => void = console.log,
+  retryMs: number[] = REPORT_RETRY_MS,
+): Promise<Outcome> {
   const prayer = await api.claim();
   if (!prayer) return 'idle';
   if (!passesFilter(prayer.text, cfg.blocklist)) {
     log(`[station] ${prayer.id} rejected by the content filter (97.113(a)(4))`);
-    await api.report(prayer.id, { ok: false, callSign: cfg.callSign, error: 'rejected by station content filter' });
+    await reportWithRetry(api, prayer.id, { ok: false, callSign: cfg.callSign, error: 'rejected by station content filter' }, retryMs);
     return 'rejected';
   }
   // Amplify: the same call-signed pieces, sent `repeats` times.
@@ -40,10 +63,10 @@ export async function runOnce(api: StationApi, fldigi: Fldigi, cfg: StationConfi
   } catch (err) {
     await fldigi.rxOnly().catch(() => undefined);
     const message = String((err as Error).message ?? err).slice(0, 500);
-    await api.report(prayer.id, { ok: false, callSign: cfg.callSign, error: message }).catch(() => undefined);
+    await reportWithRetry(api, prayer.id, { ok: false, callSign: cfg.callSign, error: message }, retryMs).catch(() => undefined);
     throw new TransmitError(message);
   }
-  await api.report(prayer.id, { ok: true, callSign: cfg.callSign, pieces: pieces.length });
+  await reportWithRetry(api, prayer.id, { ok: true, callSign: cfg.callSign, pieces: pieces.length }, retryMs);
   log(`[station] ${prayer.id} sent in ${pieces.length} piece(s)`);
   return 'sent';
 }

@@ -115,6 +115,8 @@ export async function queue(q: Queryable, staffId: string) {
     `select r.id, r.kind, r.body, r.crisis, r.created_at, coalesce(nullif(p.display_name, ''), 'Member') as name
        from public.care_requests r join public.profiles p on p.id = r.user_id
       where r.status = 'open' and r.kind = any($1::public.care_kind[]) and r.user_id <> $2
+        and not exists (select 1 from public.user_blocks b
+                         where (b.user_id = r.user_id and b.blocked_id = $2) or (b.user_id = $2 and b.blocked_id = r.user_id))
       order by r.crisis desc, r.id limit 100`,
     [kinds, staffId],
   );

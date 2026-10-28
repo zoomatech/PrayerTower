@@ -34,7 +34,7 @@ export const logTransmitter: Transmitter = async (p) => {
  * only offered while radio prayers are free (amateur rules, 97.113).
  */
 export async function queue(q: Queryable, userId: string, postId: string, key: string, amplify = false): Promise<RadioPrayer> {
-  const post = await posts.getVisible(q, postId);
+  const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   const s = await tokens.settings(q);
   const existing = await q.query<RadioPrayer>(
@@ -69,19 +69,45 @@ export async function mine(q: Queryable, userId: string): Promise<RadioPrayer[]>
   return rows;
 }
 
+/** Why a queued prayer must not go out now: 'wait' while a moderator is still reviewing it. */
+function holdReason(r: { moderation_status: string; is_sensitive: boolean; pending_review: boolean }): string | 'wait' | null {
+  if (r.moderation_status !== 'visible') return 'request removed or hidden';
+  if (r.is_sensitive) return 'sensitive request';
+  return r.pending_review ? 'wait' : null;
+}
+const QUEUED_PRAYER = `select r.id, r.post_id, p.body, p.user_id as poster_id, r.user_id as sender_id, r.repeats,
+            p.moderation_status, p.is_sensitive,
+            exists (select 1 from public.moderation_items m
+                     where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending') as pending_review
+       from public.radio_prayers r join public.posts p on p.id = r.post_id`;
+type QueuedPrayer = { id: string; post_id: string; body: string; poster_id: string; sender_id: string; repeats: number; moderation_status: string; is_sensitive: boolean; pending_review: boolean };
+
+/** A prayer that will never go out gives back the Priestly tokens spent on it. */
+async function failAndRefund(q: Queryable, id: string, error: string) {
+  const { rows } = await q.query<{ transfer_id: string | null; user_id: string }>(
+    `update public.radio_prayers set status = 'failed', error = $2 where id = $1 returning transfer_id, user_id`,
+    [id, error.slice(0, 500)],
+  );
+  const transferId = rows[0]?.transfer_id;
+  if (transferId) await tokens.clawback(q, transferId, rows[0]!.user_id, 'Radio prayer not sent: refunded');
+}
+
 export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitter): Task {
   return async (payload) => {
     const { radioPrayerId } = payload as { radioPrayerId: string };
     // In station mode the prayer stays queued until the station worker claims it.
     if ((await stationSettings(q)).radio_transmitter === 'station') return;
-    const { rows } = await q.query<{ id: string; post_id: string; body: string; poster_id: string; sender_id: string; repeats: number }>(
-      `select r.id, r.post_id, p.body, p.user_id as poster_id, r.user_id as sender_id, r.repeats
-         from public.radio_prayers r join public.posts p on p.id = r.post_id
-        where r.id = $1 and r.status = 'queued'`,
-      [radioPrayerId],
-    );
+    const { rows } = await q.query<QueuedPrayer>(`${QUEUED_PRAYER} where r.id = $1 and r.status = 'queued'`, [radioPrayerId]);
     const r = rows[0];
     if (!r) return;
+    // The same checks as the station: removed or sensitive requests never go out, and
+    // ones a moderator is still reviewing wait (this job runs again in 15 minutes).
+    const hold = holdReason(r);
+    if (hold === 'wait') {
+      await enqueue(q, 'radio_transmit', { radioPrayerId }, { jobKey: `radio_transmit:${r.id}`, runAt: new Date(Date.now() + 15 * 60_000) });
+      return;
+    }
+    if (hold) return failAndRefund(q, r.id, `not sent: ${hold}`);
     try {
       let transmitter = '';
       for (let i = 0; i < r.repeats; i++) ({ transmitter } = await transmit({ id: r.id, postId: r.post_id, body: r.body }));
@@ -90,8 +116,8 @@ export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitte
         [r.id, transmitter],
       );
     } catch (err) {
-      await q.query(`update public.radio_prayers set status = 'failed', error = $2 where id = $1`, [r.id, String(err).slice(0, 500)]);
-      throw err;
+      await failAndRefund(q, r.id, String(err));
+      return;
     }
     await markAmplified(q, r);
     await tellPoster(q, r);
@@ -184,9 +210,9 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
     );
     const r = rows[0];
     if (!r) return null;
-    const skip = r.moderation_status !== 'visible' ? 'request removed or hidden' : r.is_sensitive ? 'sensitive request' : null;
+    const skip = holdReason({ ...r, pending_review: false });
     if (skip) {
-      await q.query(`update public.radio_prayers set status = 'failed', error = $2 where id = $1`, [r.id, `not sent: ${skip}`]);
+      await failAndRefund(q, r.id, `not sent: ${skip}`);
       continue;
     }
     await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now() where id = $1`, [r.id]);
@@ -214,6 +240,7 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
   );
   const r = rows[0];
   if (!r) throw badRequest('That radio prayer is not being sent');
+  if (!result.ok) await failAndRefund(q, r.id, result.error ?? 'station error');
   if (result.ok) {
     await markAmplified(q, r);
     await tellPoster(q, r);
