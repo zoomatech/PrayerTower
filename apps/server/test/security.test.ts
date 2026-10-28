@@ -80,6 +80,13 @@ describe('endpoint auth', () => {
       'GET /open-circle/promise',
       // Public podcast feeds for podcast apps (404 while switched off).
       'GET /podcasts/:slug/feed.xml',
+      // Guest prayer and prayer-chain pages: an unguessable link each, 404 while switched off.
+      'GET /pray/:token',
+      'POST /pray/:token',
+      'GET /circle/:token',
+      'POST /circle/:token',
+      'GET /chain/:token',
+      'POST /chain/:token',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

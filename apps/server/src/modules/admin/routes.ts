@@ -21,6 +21,7 @@ import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
+import * as growth from '../growth/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
@@ -254,6 +255,16 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/notebook-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await notebook.updateSettings(db, notebook.SettingsPatch.parse(req.body)) };
+  });
+
+  // Growth ideas (docs/GROWTH.md): each off until switched on here.
+  app.get('/admin/growth-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await growth.settings(db) };
+  });
+  app.patch('/admin/growth-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await growth.updateSettings(db, growth.SettingsPatch.parse(req.body)) };
   });
 
   // Fines for using prayer requests as ads (off by default). Collecting money is not built:

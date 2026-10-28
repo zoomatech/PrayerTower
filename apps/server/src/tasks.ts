@@ -21,9 +21,19 @@ import { publishDueTask as seedPrayersTask } from './modules/seed-prayers/index.
 import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
+import * as growth from './modules/growth/index.js';
 
 export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null } = {}): TaskList {
+  const mail: growth.MailContext = {
+    mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
+    siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
+  };
   return {
+    growth_guest_answered: growth.guestAnsweredTask(db, mail),
+    growth_chain_confirm: growth.chainConfirmTask(db, mail),
+    growth_chain_send: growth.chainSendTask(db, mail),
+    growth_prayer_minute: growth.minuteDueTask(db),
+    growth_purge: growth.purgeTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
@@ -88,4 +98,8 @@ export const crontab = [
   '*/15 * * * * seed_prayers_publish ?max=3&fill=1h&jobKey=seed_prayers_publish',
   // Daily 03:10: release evidence holds past their end date, erasing the copies.
   '10 3 * * * legal_holds_expire ?max=10&fill=1d&jobKey=legal_holds_expire',
+  // Every minute: the prayer minute notice for members whose chosen minute it is (only while switched on).
+  '* * * * * growth_prayer_minute ?max=1&jobKey=growth_prayer_minute',
+  // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
+  '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',
 ].join('\n');

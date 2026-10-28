@@ -28,3 +28,7 @@ The Android widget code is still in the repo but is not part of the iPhone pilot
 
 1. Expo, Widgets (SDK 58): https://docs.expo.dev/versions/v58.0.0/sdk/widgets/
 2. Apple, widgetURL(_:): https://developer.apple.com/documentation/SwiftUI/View/widgetURL(_:)
+
+## "Prayed for you today"
+
+While **Admin → Growth ideas → "Prayed for you today" on the home-screen widget** is on, the widget adds one line, such as "💛 Ana and 2 others prayed for you today". It shows first names only, never anyone who prayed anonymously, and counts guests who prayed from a shared link. Open Circle members see "is thinking of you". It updates when the app loads the feed. See [GROWTH.md](GROWTH.md).
