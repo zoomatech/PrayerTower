@@ -8,6 +8,7 @@ CI runs all four on every pull request. Run them locally with the same commands.
 | ESLint | `npm run lint` | Any error. Warnings are listed but don't fail. |
 | Knip: unused files, dependencies and exports | `npm run knip` | Anything unused, or a package used but not listed |
 | Server test coverage | `npm run coverage` (needs `npm run db:start`) | Lines, statements or functions under 80%, or branches under 70% |
+| Mobile unit tests | `npm test -w @prayer-tower/mobile` | Any failing test |
 
 ## TypeScript
 
@@ -47,3 +48,20 @@ On 2026-10-28, across all of `apps/server/src`:
 | Branches | 72.4% |
 
 These figures include the command-line scripts (seed, load test, query audit, push test, grant role) and the two process entry points (`server.ts` and `worker.ts`). Tests don't run those, and they make up most of the uncovered lines. The app code itself is mostly above 90%. A new test, `notification-i18n.test.ts`, checks that every notification the server sends has Spanish text, with and without its optional details.
+
+## Mobile unit tests
+
+The app's core pilot flows have component and logic tests, run with Jest and React Native Testing Library as the Expo docs describe ([Expo: Unit testing with Jest](https://docs.expo.dev/develop/unit-testing/), [React Native Testing Library](https://callstack.github.io/react-native-testing-library/)). They need no server or database: each test file stands in for the API, and `apps/mobile/jest.setup.ts` stands in for sign-in (Supabase), storage and navigation.
+
+| Flow | Test file |
+|---|---|
+| Sign-in and invite-only sign-up | `src/__tests__/sign-in.test.tsx` |
+| Feed | `src/__tests__/feed.test.tsx` |
+| The feed card | `src/components/__tests__/post-card.test.tsx` |
+| Praying Now and Commit to Pray | `src/components/__tests__/card-actions.test.tsx` |
+| Compose | `src/__tests__/compose.test.tsx` |
+| Tokens (balances, Priestly donation, gifts) | `src/__tests__/tokens.test.tsx` |
+| Messages | `src/__tests__/messages.test.tsx` |
+| API client and the offline queue | `src/lib/__tests__/api.test.ts` |
+
+Tests live in `__tests__` folders, never inside `src/app`, because Expo Router would treat a file there as a screen. React Native Testing Library 14 makes `render` and `fireEvent` async, so tests `await` them.

@@ -38,6 +38,8 @@ jobs:
           path: apps/server/coverage/
           retention-days: 14
       - run: npm test -w @prayer-tower/station
+      - name: Mobile unit tests (sign-in, feed, pray, commit, compose, tokens, messages)
+        run: npm test -w @prayer-tower/mobile -- --ci
       # Back up the test database, restore it into a throwaway stack, compare.
       - run: scripts/restore-drill.sh
 

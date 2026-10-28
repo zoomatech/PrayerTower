@@ -10,7 +10,8 @@ let cached: Promise<Features> | null = null;
 
 export function loadFeatures(): Promise<Features> {
   cached ??= api.features().then(
-    (r) => r.features,
+    // A switch the server doesn't send (an older server) stays off.
+    (r) => ({ ...OFF, ...r.features }),
     () => {
       cached = null;
       return OFF;
