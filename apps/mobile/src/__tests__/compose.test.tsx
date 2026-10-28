@@ -88,3 +88,13 @@ describe('Compose', () => {
     expect(screen.getByRole('button', { name: 'Post' })).toBeDisabled();
   });
 });
+
+it('goes to the feed after posting when there is nothing to go back to (opened from a link)', async () => {
+  (router.canGoBack as jest.Mock).mockReturnValueOnce(false);
+  create.mockResolvedValueOnce({ post: sampleCard() });
+  await renderApp(<Compose />);
+  await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'Please pray for my job interview.');
+  await fireEvent.press(screen.getByRole('button', { name: 'Post' }));
+  expect(router.replace).toHaveBeenCalledWith('/');
+  expect(router.back).not.toHaveBeenCalled();
+});

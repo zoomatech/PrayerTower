@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api, type AuditEntry } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -13,7 +14,7 @@ const PAGE = 50;
 // 'PATCH /admin/token-settings' -> 'PATCH_admin_token-settings' (i18n keys can't hold '/' or ':').
 const actionKey = (action: string) => action.replace(/[/:\s]+/g, '_');
 
-export default function AuditLog() {
+function AuditLog() {
   const { t, language } = useLocale();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [more, setMore] = useState(false);
@@ -72,3 +73,5 @@ const styles = StyleSheet.create({
   action: { ...type.body, fontWeight: '700' },
   details: { ...type.small, color: colors.textMuted },
 });
+
+export default staffOnly(AuditLog, ['admin']);

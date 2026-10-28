@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -13,7 +14,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter((r) => r !== 'safe_messaging');
 
-export default function Moderation() {
+function Moderation() {
   const { t, label, language: locale } = useLocale();
   const ruleLabel = (r: ModerationRule) => label('moderationRule', r, MODERATION_RULES[r]);
   const [items, setItems] = useState<ModerationItem[]>([]);
@@ -153,3 +154,5 @@ const styles = StyleSheet.create({
   appeal: { ...type.body, fontStyle: 'italic' },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });
+
+export default staffOnly(Moderation, ['moderator', 'admin']);

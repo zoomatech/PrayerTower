@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type MacroNeed } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -11,7 +12,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const BLANK = { label: '', url: '' };
 
-export default function MacroNeedsScreen() {
+function MacroNeedsScreen() {
   const [needs, setNeeds] = useState<MacroNeed[]>([]);
   const [title, setTitle] = useState('');
   const { t } = useLocale();
@@ -98,3 +99,5 @@ const styles = StyleSheet.create({
   row: { gap: space.xs },
   name: { fontWeight: '700', color: colors.text, fontSize: 16 },
 });
+
+export default staffOnly(MacroNeedsScreen, ['moderator', 'admin']);

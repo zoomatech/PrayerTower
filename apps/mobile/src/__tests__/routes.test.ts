@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // Every screen must sit behind a sign-in guard in app/_layout.tsx. A screen left
 // out is open to everyone, and Expo Router sends signed-out visitors to it
 // (a new visitor once landed on "My church" instead of sign-in).

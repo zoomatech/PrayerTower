@@ -30,6 +30,8 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const MAX_MEDIA = 10;
 const URGENCY = [0, 1, 2, 3];
+// Opened from a link or after a reload there is nothing to go back to: go to the feed.
+const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
 export default function Compose() {
@@ -58,7 +60,7 @@ export default function Compose() {
     if (post.crisis) router.replace(`/post/${post.id}`);
     // Praise opens with the thanksgiving celebration.
     else if (postType === 'praise') router.replace(`/post/${post.id}?celebrate=1`);
-    else router.back();
+    else leave();
   };
 
   const submit = async () => {
@@ -80,7 +82,7 @@ export default function Compose() {
           isSensitive: sensitive,
           allSupportWelcome: features.supportLabel && allSupport,
         });
-        if ('queued' in result) return router.back();
+        if ('queued' in result) return leave();
         return afterCreate(result.post);
       }
       const created = await api.createPost({
@@ -117,7 +119,7 @@ export default function Compose() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>
-          <Button small variant="ghost" label={t('common.cancel')} onPress={() => router.back()} />
+          <Button small variant="ghost" label={t('common.cancel')} onPress={leave} />
           <Button small testID="compose-post" label={t('compose.post')} onPress={submit} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
         </View>
         <ErrorText error={error} />
