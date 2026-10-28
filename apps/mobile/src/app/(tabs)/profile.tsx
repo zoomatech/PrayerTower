@@ -37,6 +37,8 @@ export default function Profile() {
   const [exporting, setExporting] = useState(false);
   const [feedStyles, setFeedStyles] = useState<FeedThemeChoices | null>(null);
   const [stats, setStats] = useState<PrayerStats | null>(null);
+  // "Buy tokens" shows only while an admin has turned purchases on.
+  const [storeOn, setStoreOn] = useState(false);
 
   // If the counts can't load, say so instead of showing zeros that look real.
   const [countsError, setCountsError] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export default function Profile() {
     api.tier().then(setTier).catch(() => undefined);
     api.tokens().then(setTokens).catch((e) => setCountsError((e as Error).message));
     api.feedThemes().then(setFeedStyles).catch(() => undefined);
+    api.tokenStore().then((l) => setStoreOn(l.enabled)).catch(() => undefined);
     loadStats();
   }, []);
   useFocusEffect(loadCounts);
@@ -146,6 +149,7 @@ export default function Profile() {
         <View style={styles.chips}>
           <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
+          {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} />
         </View>
 

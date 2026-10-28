@@ -1031,6 +1031,22 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     testimony: 'Testimonio',
   },
   // Labels for values defined in @prayer-tower/shared (English lives there).
+  // Not translated: Spanish is off (English placeholders keep the type complete).
+  tokenStore: {
+    title: 'Buy tokens',
+    open: 'Buy tokens',
+    off: "Buying tokens isn't available yet. You can earn tokens by praying for others.",
+    iosOnly: 'Tokens can be bought in the iPhone app.',
+    intro: 'Tokens you buy work just like tokens you earn. %{percent}% of every purchase goes to the Common Prayer Fund, which pays for direct help to people in real need.',
+    regular: '%{count} tokens',
+    priestly: '%{count} Priestly tokens',
+    buy: 'Buy for %{price}',
+    finishing: 'Finishing your purchase…',
+    added: 'Thank you. %{count} tokens were added to your balance.',
+    failed: "The purchase couldn't be finished. You weren't charged twice; try again later.",
+    history: 'Your purchases',
+    refunded: 'Refunded',
+  },
   enums: {
     moderationRule: {
       harm: 'Ora por el bien, nunca por el mal',

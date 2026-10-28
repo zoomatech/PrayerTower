@@ -107,7 +107,8 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to record the spoken prayers and voice notes you choose to send.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true,

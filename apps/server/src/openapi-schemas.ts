@@ -11,6 +11,7 @@ import * as deletion from './modules/deletion-page/index.js';
 import * as events from './modules/events/index.js';
 import * as feedback from './modules/feedback/index.js';
 import * as future from './modules/future/index.js';
+import * as store from './modules/store/index.js';
 import * as invites from './modules/invites/index.js';
 import * as inviteEmail from './modules/invites/email.js';
 import * as inviteImport from './modules/invites/import.js';
@@ -47,7 +48,7 @@ export const REQUEST_SCHEMAS: Record<string, { body?: z.ZodType; query?: z.ZodTy
   'POST /account-deletion/requests': { body: deletion.NewRequest },
   'POST /events': { body: events.NewEvent },
   'POST /feedback': { body: feedback.NewFeedback },
-  'POST /token-store/purchases': { body: future.Purchase },
+  'POST /token-store/purchases': { body: store.Purchase },
   'POST /ai-chat': { body: future.AiChat },
   'POST /admin/invites': { body: invites.NewInvites },
   'POST /macro-needs': { body: macroNeeds.NewMacroNeed },

@@ -503,6 +503,30 @@ export interface Community {
   members?: number;
 }
 
+export interface TokenProduct {
+  sku: string;
+  tokens: number;
+  currency: 'regular' | 'priestly';
+  priceLabel: string | null;
+  appleProductId: string | null;
+  googleProductId: string | null;
+}
+export interface TokenPurchaseResult {
+  id: string;
+  tokens: number;
+  currency: 'regular' | 'priestly';
+  status: 'credited' | 'refunded';
+  balance: number;
+}
+export interface TokenPurchase {
+  id: string;
+  store_product_id: string;
+  tokens: number;
+  currency: 'regular' | 'priestly';
+  status: 'credited' | 'refunded';
+  purchased_at: string | null;
+}
+
 export const api = {
   /** Public: whether sign-up needs an invite code. */
   signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
@@ -789,6 +813,11 @@ export const api = {
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
+  tokenStore: () =>
+    get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[] }>('/token-store'),
+  /** A StoreKit 2 signed transaction; the server checks it with Apple before crediting. */
+  buyTokens: (signedTransaction: string) => post<{ purchase: TokenPurchaseResult }>('/token-store/purchases', { platform: 'ios', signedTransaction }),
+  tokenPurchases: () => get<{ purchases: TokenPurchase[] }>('/me/token-purchases'),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
   features: () => get<{ features: Features }>('/features'),
