@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
@@ -12,7 +13,8 @@ import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
 
 export default function PostScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, celebrate: celebrateParam } = useLocalSearchParams<{ id: string; celebrate?: string }>();
+  const { celebrate, overlay } = useCelebration();
   const { profile } = useAuth();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -46,6 +48,10 @@ export default function PostScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (celebrateParam) celebrate();
+  }, [celebrateParam, celebrate]);
 
   const { onAction, openReport, sheets } = useCardActions(load);
 
@@ -92,7 +98,12 @@ export default function PostScreen() {
   };
 
   const markAnswered = async () => {
-    await api.markAnswered(id).catch((e) => setError((e as Error).message));
+    try {
+      await api.markAnswered(id);
+      celebrate();
+    } catch (e) {
+      setError((e as Error).message);
+    }
     load();
   };
 
@@ -224,6 +235,7 @@ export default function PostScreen() {
         </View>
       </ScrollView>
       {sheets}
+      {overlay}
     </Screen>
   );
 }
