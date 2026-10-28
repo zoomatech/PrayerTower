@@ -78,6 +78,11 @@ export default function PersonScreen() {
         {person ? (
           <View style={styles.head}>
             <Text style={type.title}>{person.displayName}</Text>
+            {person.pastor ? (
+              <Text style={styles.pastor}>
+                ✝ {person.pastor.title} · {person.pastor.church}
+              </Text>
+            ) : null}
             {person.whyHere.length ? (
               <Text style={type.body}>{person.whyHere.map((w) => WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS] ?? w).join(' · ')}</Text>
             ) : null}
@@ -117,6 +122,7 @@ export default function PersonScreen() {
 }
 
 const styles = StyleSheet.create({
+  pastor: { color: colors.primary, fontWeight: '600' },
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   head: { gap: space.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },

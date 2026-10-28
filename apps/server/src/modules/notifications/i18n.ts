@@ -76,6 +76,12 @@ const es: Record<string, Template> = {
   }),
   scheduled_spend_failed: (p) => ({ title: 'Un regalo programado no se envió', body: s(p.body) }),
   weekly_review: (p) => ({ title: 'Tu semana en oración', body: s(p.body) }),
+  church_verified: (p) => ({
+    title: `${s(p.church, 'Tu iglesia')} está verificada`,
+    body: 'Tu insignia de pastor ahora aparece en las peticiones que publicas con tu nombre. Gracias por pastorear con nosotros.',
+  }),
+  church_declined: (p) => ({ title: `Aún no pudimos verificar ${s(p.church, 'tu iglesia')}`, body: s(p.note) }),
+  church_revoked: (p) => ({ title: `${s(p.church, 'Tu iglesia')} ya no está verificada`, body: s(p.note) }),
 };
 
 const catalogs: Record<string, Record<string, Template>> = { es };

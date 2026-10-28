@@ -6,6 +6,7 @@ import { product } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { getProfile, presentIdentity, primaryCommunityId } from '../accounts/index.js';
+import { badgesOf } from '../churches/index.js';
 import * as moderation from '../moderation/index.js';
 import * as safety from '../safety/index.js';
 import { tiersOf } from '../tiers/index.js';
@@ -478,7 +479,10 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   );
   const actionsByCommunity = new Map(enabled.map((c) => [c.id, cardActions(c.enabled_reactions)]));
 
-  const tiers = await tiersOf(q, [...new Set(rows.map((r) => r.user_id))]);
+  const authorIds = [...new Set(rows.map((r) => r.user_id))];
+  const tiers = await tiersOf(q, authorIds);
+  // Verified pastors' badge ("Pastor · Grace Chapel"), never on an anonymous post.
+  const pastors = await badgesOf(q, authorIds);
   // Tier icons: anonymous posts and anonymous members (private track) show a tier only to the author.
   const tierShown = (r: (typeof rows)[number]) =>
     (!r.is_anonymous && !r.private_tier) || r.user_id === viewerId ? (tiers.get(r.user_id)?.tier ?? null) : null;
@@ -494,6 +498,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         author: {
           ...presentIdentity({ id: r.user_id, display_name: r.display_name, handle: r.handle }, r.is_anonymous, viewerId),
           tier: tierShown(r),
+          pastor: r.is_anonymous ? null : (pastors.get(r.user_id) ?? null),
         },
         cardType: r.post_type as CardType,
         // Groups one person's posts (e.g. a personal vine branch) without exposing who; null when anonymous.

@@ -30,6 +30,7 @@ import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
+import { churchRoutes } from './modules/churches/routes.js';
 import { registerMetrics } from './metrics.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
@@ -150,6 +151,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     eventRoutes(authed, db);
     careRoutes(authed, db);
     witnessRoutes(authed, db);
+    churchRoutes(authed, db);
     futureRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);

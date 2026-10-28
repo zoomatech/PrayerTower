@@ -68,6 +68,11 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         ) : null}
       </View>
 
+      {card.author.pastor ? (
+        <Text style={styles.pastor} accessibilityLabel={t('card.pastorBadge', { title: card.author.pastor.title, church: card.author.pastor.church })}>
+          ✝ {card.author.pastor.title} · {card.author.pastor.church}
+        </Text>
+      ) : null}
       {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
 
       <Pressable onPress={open} accessibilityRole="link" style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
@@ -140,6 +145,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   urgency: { width: 10, height: 10, borderRadius: 5 },
   tags: { ...type.small, marginTop: -space.sm },
+  pastor: { color: colors.primary, fontWeight: '600', fontSize: 13, marginTop: -space.sm },
   backdrop: { borderRadius: radius.md, minHeight: 160, padding: space.xl, justifyContent: 'center' },
   backdropText: { fontSize: 22, lineHeight: 30, fontWeight: '600', textAlign: 'center' },
   author: { flex: 1, fontWeight: '700', fontSize: 16, color: colors.text },

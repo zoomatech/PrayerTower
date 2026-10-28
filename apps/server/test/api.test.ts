@@ -96,7 +96,7 @@ describe('posts', () => {
     const reader = await createUser('Reader');
     const post = await newRequest(author, 'Pray for me in secret.', { isAnonymous: true });
     const asReader = (await as(reader).get(`/posts/${post.id}`)).json().post;
-    expect(asReader.author).toEqual({ id: null, displayName: 'Anonymous', handle: null, anonymous: true, tier: null });
+    expect(asReader.author).toEqual({ id: null, displayName: 'Anonymous', handle: null, anonymous: true, tier: null, pastor: null });
     const asAuthor = (await as(author).get(`/posts/${post.id}`)).json().post;
     expect(asAuthor.author.id).toBe(author);
     // The author link is still stored for tiers and tokens.
