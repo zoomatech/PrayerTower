@@ -24,6 +24,10 @@ export async function buildDigest(q: Queryable, userId: string): Promise<Digest>
   const { rows: answered } = await q.query<{ body: string; mine: boolean }>(
     `select p.body, p.user_id = $1 as mine from public.posts p
       where p.answered_at > now() - interval '7 days' and p.moderation_status = 'visible'
+        -- Email is less private than the app: no sensitive requests, and nothing across a block.
+        and (p.user_id = $1 or not p.is_sensitive)
+        and not exists (select 1 from public.user_blocks b
+                         where (b.user_id = $1 and b.blocked_id = p.user_id) or (b.user_id = p.user_id and b.blocked_id = $1))
         and (p.user_id = $1
              or exists (select 1 from public.prayer_events e where e.post_id = p.id and e.user_id = $1)
              or exists (select 1 from public.commitments c where c.post_id = p.id and c.user_id = $1))

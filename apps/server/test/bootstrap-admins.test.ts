@@ -10,12 +10,24 @@ describe('ADMIN_EMAILS', () => {
     const { rows } = await db.query<{ email: string }>('select email from auth.users where id = $1', [id]);
     const email = rows[0]!.email.toUpperCase();
     await db.query('update auth.users set email_confirmed_at = null where id = $1', [id]);
-    expect(await bootstrapAdmins(db, [` ${email} `, ''])).toBe(0);
+    expect((await bootstrapAdmins(db, [` ${email} `, ''])).made).toBe(0);
     await db.query('update auth.users set email_confirmed_at = now() where id = $1', [id]);
-    expect(await bootstrapAdmins(db, [email])).toBe(1);
+    expect((await bootstrapAdmins(db, [email])).made).toBe(1);
     expect(await roles(db, id)).toContain('admin');
-    expect(await bootstrapAdmins(db, [email])).toBe(0); // already admin
-    expect(await bootstrapAdmins(db, [])).toBe(0);
+    expect((await bootstrapAdmins(db, [email])).made).toBe(0); // already admin
+    expect((await bootstrapAdmins(db, [])).made).toBe(0);
+  });
+
+  it('in production, needs a confirmation email Supabase actually sent', async () => {
+    // With "Confirm email" off, Supabase confirms on sign-up and sends nothing: anyone could claim the address.
+    const id = await createUser('Claimed Address');
+    const { rows } = await db.query<{ email: string }>('select email from auth.users where id = $1', [id]);
+    await db.query('update auth.users set email_confirmed_at = now(), confirmation_sent_at = null where id = $1', [id]);
+    expect(await bootstrapAdmins(db, [rows[0]!.email], { viaEmail: true })).toEqual({ made: 0, unverified: 1 });
+    expect(await roles(db, id)).not.toContain('admin');
+    await db.query('update auth.users set confirmation_sent_at = now() - interval \'1 minute\' where id = $1', [id]);
+    expect(await bootstrapAdmins(db, [rows[0]!.email], { viaEmail: true })).toEqual({ made: 1, unverified: 0 });
+    await bootstrapAdmins(db, []);
   });
 
   it('lets the ADMIN_EMAILS addresses sign up without an invite code, and only while listed', async () => {

@@ -13,6 +13,9 @@
 # Prayer Tower tables, so it can never overwrite a real database.
 # DRILL_STRICT=0 reports row-count differences without failing, for a live
 # source that takes writes while the dump runs.
+# BACKUP_DIR=backups/<time> restores that backup instead of taking a new one.
+# KEEP=1 leaves the throwaway stack running and prints its address, to copy
+# damaged rows back from (docs/BACKUP_RESTORE.md → Repair after a bad deploy).
 # Needs Docker, psql and the repo's Supabase CLI (npx supabase).
 set -euo pipefail
 
@@ -23,7 +26,12 @@ work=$(mktemp -d)
 drill_stack=""
 
 cleanup() {
-  if [ -n "$drill_stack" ]; then
+  if [ -n "$drill_stack" ] && [ "${KEEP:-0}" = 1 ]; then
+    echo
+    echo "Kept the restored copy for repairs (docs/BACKUP_RESTORE.md → Repair after a bad deploy):"
+    echo "  RESTORE_URL=$RESTORE_URL"
+    echo "  Remove it when done: npx supabase stop --workdir $drill_stack --no-backup"
+  elif [ -n "$drill_stack" ]; then
     npx supabase stop --workdir "$drill_stack" --no-backup >/dev/null 2>&1 || true
   fi
 }
@@ -31,11 +39,19 @@ trap cleanup EXIT
 
 log() { printf '%s  %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 
-# 1. Backup.
+# 1. Backup, or an existing one.
 start=$(date +%s)
-log "Backing up the source database"
-DATABASE_URL="$source_url" "$root/scripts/backup-db.sh" "$work/backups" >/dev/null
-dump=$(ls -d "$work"/backups/*/ | head -1)
+if [ -n "${BACKUP_DIR:-}" ]; then
+  dump=${BACKUP_DIR%/}/
+  for f in roles.sql schema.sql data.sql; do [ -f "$dump$f" ] || { echo "No $f in $BACKUP_DIR" >&2; exit 1; }; done
+  log "Using the backup in $BACKUP_DIR"
+  # Row counts are compared with today's database, which has moved on since then.
+  strict=0
+else
+  log "Backing up the source database"
+  DATABASE_URL="$source_url" "$root/scripts/backup-db.sh" "$work/backups" >/dev/null
+  dump=$(ls -d "$work"/backups/*/ | head -1)
+fi
 backup_secs=$(($(date +%s) - start))
 log "Backup done in ${backup_secs}s ($(du -sh "$dump" | cut -f1))"
 

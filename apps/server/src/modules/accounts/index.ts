@@ -200,21 +200,32 @@ export async function grantRole(q: Queryable, userId: string, role: Role, grante
 /**
  * ADMIN_EMAILS: make the listed people admin once their account exists and
  * the address is confirmed (so nobody can claim it by signing up first).
- * Returns how many new admins were made.
+ * With `viaEmail` (production), the confirmation must have come through an
+ * email Supabase sent: if Auth's "Confirm email" is off, accounts are
+ * confirmed on sign-up, and anyone who knows the address could claim it.
+ * Returns how many new admins were made, and the listed accounts skipped for that.
  */
-export async function bootstrapAdmins(q: Queryable, emails: string[]): Promise<number> {
+export async function bootstrapAdmins(q: Queryable, emails: string[], opts: { viaEmail?: boolean } = {}): Promise<{ made: number; unverified: number }> {
   const list = emails.map((e) => e.trim().toLowerCase()).filter(Boolean);
   await syncInviteExempt(q, list);
-  if (!list.length) return 0;
+  if (!list.length) return { made: 0, unverified: 0 };
+  const viaEmail = opts.viaEmail ?? false;
   const { rowCount } = await q.query(
     `insert into public.user_roles (user_id, role, granted_by)
      select u.id, 'admin', null from auth.users u
       where lower(u.email) = any($1::text[]) and u.email_confirmed_at is not null
+        and (not $2 or u.confirmation_sent_at is not null)
         and exists (select 1 from public.profiles p where p.id = u.id and p.deleted_at is null)
      on conflict do nothing`,
-    [list],
+    [list, viaEmail],
   );
-  return rowCount ?? 0;
+  const { rows } = await q.query<{ n: number }>(
+    `select count(*)::int as n from auth.users u
+      where $2 and lower(u.email) = any($1::text[]) and u.confirmation_sent_at is null
+        and not exists (select 1 from public.user_roles r where r.user_id = u.id and r.role = 'admin')`,
+    [list, viaEmail],
+  );
+  return { made: rowCount ?? 0, unverified: rows[0]!.n };
 }
 
 /** The ADMIN_EMAILS addresses may sign up without an invite code (the invite hook reads this table). */

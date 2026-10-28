@@ -115,8 +115,9 @@ export function sendPushTask(q: Queryable, config: Config, fetchImpl: typeof fet
     if (rows.length === 0 || config.PUSH_ENABLED === '0') return;
     const { kind, prefs, read } = rows[0]!;
     if (!wantsPush(prefs, kind)) return;
-    // Quiet hours: send when they end, unless it was read in the app meanwhile.
-    const until = quietUntil(prefs);
+    // Quiet hours: send when they end, unless it was read in the app meanwhile. Kinds in no
+    // category (crisis flags, moderation notices, ops and job alerts) are never held back.
+    const until = notificationCategory(kind) ? quietUntil(prefs) : null;
     if (until) return enqueue(q, 'notifications_send_push', { notificationId, held: true }, { runAt: until, jobKey: `push-held:${notificationId}` });
     if (read && (payload as { held?: boolean }).held) return;
 

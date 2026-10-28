@@ -2,6 +2,7 @@
 // Admin → Operations status and the ops alert.
 import { afterAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { AppError } from '../src/errors.js';
 import { grantRole } from '../src/modules/accounts/index.js';
 import { beat, check, LIMITS, status } from '../src/modules/ops/index.js';
 import { buildTaskList, crontab } from '../src/tasks.js';
@@ -40,9 +41,20 @@ describe('operations status', () => {
     broken.get('/broken/:id', async () => {
       throw new Error('boom');
     });
+    broken.get('/not-set-up', async () => {
+      throw new AppError(503, 'smtp_missing', 'Email is not set up');
+    });
     expect((await broken.inject({ method: 'GET', url: '/broken/123' })).statusCode).toBe(500);
-    // onResponse runs after the reply is sent.
+    // Recorded without waiting for it.
     await expect.poll(async () => (await db.query(`select 1 from public.server_errors where route = '/broken/:id'`)).rowCount).toBe(1);
+    // Deliberate 5xx answers aren't errors: a feature not set up, and /health/ready during an outage.
+    await db.query(`delete from public.server_errors where route in ('/not-set-up', '/health/ready')`);
+    await db.query(`update public.ops_heartbeats set seen_at = now() - interval '1 hour' where name = 'worker'`);
+    expect((await broken.inject({ method: 'GET', url: '/not-set-up' })).statusCode).toBe(503);
+    expect((await broken.inject({ method: 'GET', url: '/health/ready' })).statusCode).toBe(503);
+    await beat(db, 'worker');
+    await new Promise((r) => setTimeout(r, 200));
+    expect((await db.query(`select 1 from public.server_errors where route in ('/not-set-up', '/health/ready')`)).rowCount).toBe(0);
     await broken.close();
     const before = (await status(db)).errors.lastHour;
     await db.query(`insert into public.server_errors (method, route, status) select 'GET', '/posts/:id', 500 from generate_series(1, $1)`, [LIMITS.errorsPerHour]);
@@ -72,7 +84,10 @@ describe('operations status', () => {
     expect((await check(db, when)).alerted).toContain('worker_down');
     await check(db, when);
     const alerts = (await as(admin).get('/me/notifications')).json().notifications.filter((n: { kind: string }) => n.kind === 'ops_alert');
-    expect(alerts).toHaveLength(1);
+    // Once per problem set: other test files can queue jobs between the two checks, and a new problem alerts again.
+    const sets = alerts.map((a: { data: { problems: string[] } }) => a.data.problems.join(','));
+    expect(sets.length).toBeGreaterThanOrEqual(1);
+    expect(new Set(sets).size).toBe(sets.length);
     expect(alerts[0].body).toContain('Admin → Operations');
   });
 

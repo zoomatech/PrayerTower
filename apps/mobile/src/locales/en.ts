@@ -126,7 +126,7 @@ const en = {
     tokensHint: 'Tokens earned, milestones and scheduled gifts',
     safety: 'Notices about your posts and appeals are always sent.',
     quiet: 'Quiet hours',
-    quietHint: 'Alerts that arrive during quiet hours wait until they end.',
+    quietHint: 'Alerts that arrive during quiet hours wait until they end. Safety and staff alerts still come through.',
     from: 'From',
     until: 'Until',
     saved: 'Saved',

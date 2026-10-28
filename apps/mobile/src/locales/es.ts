@@ -128,7 +128,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     tokensHint: 'Fichas ganadas, logros y regalos programados',
     safety: 'Los avisos sobre tus publicaciones y apelaciones siempre se envían.',
     quiet: 'Horas de silencio',
-    quietHint: 'Los avisos que lleguen durante las horas de silencio esperan hasta que terminen.',
+    quietHint: 'Los avisos que lleguen durante las horas de silencio esperan hasta que terminen. Los avisos de seguridad y del personal llegan igual.',
     from: 'Desde',
     until: 'Hasta',
     saved: 'Guardado',
