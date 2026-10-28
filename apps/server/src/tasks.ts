@@ -18,6 +18,7 @@ import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
 import { failureCheckTask } from './modules/jobs/index.js';
+import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 
 export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null } = {}): TaskList {
   return {
@@ -42,6 +43,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     ),
     token_ledger_check: ledgerCheckTask(db),
     jobs_failure_check: failureCheckTask(db),
+    ops_heartbeat: heartbeatTask(db),
+    ops_check: opsCheckTask(db),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
   };
 }
@@ -73,4 +76,8 @@ export const crontab = [
   '15 4 * * * token_ledger_check ?max=10&fill=1d&jobKey=token_ledger_check',
   // Every 10 minutes: alert admins about jobs that ran out of tries or keep failing.
   '*/10 * * * * jobs_failure_check ?max=3&jobKey=jobs_failure_check',
+  // Every minute: the worker checks in (Admin → Operations, /health/ready).
+  '* * * * * ops_heartbeat ?max=1&jobKey=ops_heartbeat',
+  // Every 5 minutes: alert admins about overdue jobs, server errors or a silent radio station.
+  '*/5 * * * * ops_check ?max=3&jobKey=ops_check',
 ].join('\n');

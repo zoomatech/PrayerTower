@@ -36,6 +36,7 @@ import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
 import * as ledgerCheck from '../tokens/ledger-check.js';
 import * as jobs from '../jobs/index.js';
+import * as ops from '../ops/index.js';
 
 const ROLES = ['admin', 'moderator', 'pastor', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
@@ -103,6 +104,12 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.get('/admin/jobs', async (req) => {
     await requireAdmin(req);
     return { failed: await jobs.failed(db), retrying: await jobs.retrying(db) };
+  });
+
+  // Operations: worker, job queue, server errors and the radio station at a glance.
+  app.get('/admin/ops', async (req) => {
+    await requireAdmin(req);
+    return { status: await ops.status(db) };
   });
 
   app.post<{ Params: { id: string } }>('/admin/jobs/:id/retry', async (req) => {

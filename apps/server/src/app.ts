@@ -40,6 +40,7 @@ import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
 import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
+import * as ops from './modules/ops/index.js';
 import type { Mailer } from './modules/digest/mailer.js';
 import { docsRoutes, markScope, RouteCatalog } from './openapi.js';
 
@@ -107,6 +108,15 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.get('/health', async () => {
     await db.query('select 1');
     return { ok: true };
+  });
+  // For uptime monitors: also 503 when the worker has stopped or jobs pile up (docs/MONITORING.md).
+  app.get('/health/ready', async (_req, reply) => {
+    const r = ops.ready(await ops.status(db));
+    return reply.code(r.ok ? 200 : 503).send(r);
+  });
+  // Server errors, for Admin → Operations and the ops alerts. Route patterns only, never ids.
+  app.addHook('onResponse', async (req, reply) => {
+    if (reply.statusCode >= 500) await ops.recordError(db, { method: req.method, route: req.routeOptions.url ?? 'unmatched', status: reply.statusCode }).catch(() => undefined);
   });
 
   // The radio station authenticates with its own key, not a member login.

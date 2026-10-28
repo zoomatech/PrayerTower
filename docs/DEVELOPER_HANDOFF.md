@@ -251,8 +251,10 @@ All times are UTC (`apps/server/src/tasks.ts`).
 |---|---|
 | Commitment reminders | every minute |
 | Scheduled token gifts | every minute |
+| Worker heartbeat (`ops_heartbeat`) | every minute |
 | Event reminders | every 5 minutes |
 | Milestone bonuses (enabled rules only) | every 5 minutes |
+| Ops check and admin alert ([MONITORING.md](MONITORING.md)) | every 5 minutes |
 | Failed-job check and admin alert | every 10 minutes |
 | Automated-tap scan (flags only) | every 15 minutes |
 | Retention purge | daily 03:30 |

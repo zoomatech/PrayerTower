@@ -46,6 +46,7 @@ The product plans are in the project files under `roadmap/`: the product roadmap
 | [PILOT_DAY_ONE_RUNBOOK.md](PILOT_DAY_ONE_RUNBOOK.md) | Who does what on launch day |
 | [policy/PROSELYTIZING_RULE_DRAFT.md](policy/PROSELYTIZING_RULE_DRAFT.md) | Draft community rule on sharing faith without pressuring people |
 | [BACKGROUND_JOBS.md](BACKGROUND_JOBS.md) | Admins: failed background jobs, Retry and Discard, and the alerts |
+| [MONITORING.md](MONITORING.md) | Admins: Admin → Operations and the "needs attention" alert |
 
 ## App stores
 
@@ -75,6 +76,7 @@ The product plans are in the project files under `roadmap/`: the product roadmap
 | [STAGING.md](STAGING.md) | The staging copy used to try releases |
 | [RELEASING.md](RELEASING.md) | The changelog and release notes |
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | Backups and the restore drill |
+| [MONITORING.md](MONITORING.md) | Health checks, uptime alerts and Admin → Operations |
 | [BACKGROUND_JOBS.md](BACKGROUND_JOBS.md) | Job retries, the failed-jobs list and alerts |
 | [APP_LINKS.md](APP_LINKS.md) | Shared links that open the app |
 | [LOCALIZATION.md](LOCALIZATION.md) | English only for now; how the switched-off Spanish works |

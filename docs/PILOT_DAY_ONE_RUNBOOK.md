@@ -39,7 +39,7 @@ If someone may be in immediate danger, call 911 (or the local emergency number) 
 
 - [ ] `GET https://<API host>/health` returns `{"ok":true}`. The uptime check is green.
 - [ ] Fly: `fly status --app prayertower-api` shows one `app` and one `worker` machine, both started.
-- [ ] Admin → Background jobs shows no failed jobs ([BACKGROUND_JOBS.md](BACKGROUND_JOBS.md)).
+- [ ] Admin → Operations says "Everything is running" ([MONITORING.md](MONITORING.md)), and Admin → Background jobs shows no failed jobs ([BACKGROUND_JOBS.md](BACKGROUND_JOBS.md)).
 - [ ] Sentry (if `SENTRY_DSN` is set) shows no new errors since yesterday.
 - [ ] Fly and Supabase status pages show no incident. If one is open, hold the launch until it is resolved.
 
@@ -64,7 +64,7 @@ If someone may be in immediate danger, call 911 (or the local emergency number) 
 
 ### T + 2 to T + 4 hours (12:00–14:00): first use
 
-- [ ] Every hour: `/health`, Admin → Background jobs, Sentry, and the moderation queue.
+- [ ] Every hour: Admin → Operations, Admin → Background jobs, Sentry, and the moderation queue.
 - [ ] Check Admin → Triage and export feedback for anything urgent. Answer each person who reported a problem.
 - [ ] Confirm that push notifications arrive for a prayer and a message. If they don't, check the worker logs (`fly logs --app prayertower-api`) for push errors.
 - [ ] Crisis flags: the moderator reaches out within 15 minutes ([STAFF_HANDBOOK.md](STAFF_HANDBOOK.md) §3).

@@ -243,6 +243,7 @@ export default function Admin() {
             ))}
             <Button variant="secondary" label={t('admin.downloadCsv', { weeks: REPORT_WEEKS })} onPress={downloadCsv} />
             <Button variant="secondary" label={t('admin.downloadSponsor', { weeks: REPORT_WEEKS })} onPress={downloadSponsorReport} />
+            <Button variant="secondary" label={t('admin.ops')} onPress={() => router.push('/ops')} />
             <Button variant="secondary" label={t('admin.auditLog')} onPress={() => router.push('/audit-log')} />
             <Button variant="secondary" label={t('admin.invites')} onPress={() => router.push('/invites')} />
             <Button variant="secondary" label={t('admin.churches')} onPress={() => router.push('/churches')} />

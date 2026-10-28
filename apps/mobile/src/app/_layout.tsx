@@ -73,6 +73,7 @@ function RootStack() {
           <Stack.Screen name="moderation" />
           <Stack.Screen name="admin" />
           <Stack.Screen name="audit-log" />
+          <Stack.Screen name="ops" />
           <Stack.Screen name="invites" />
           <Stack.Screen name="announcements" />
           <Stack.Screen name="feedback-triage" />
