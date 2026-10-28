@@ -96,7 +96,8 @@ describe('moderation notices and appeals', () => {
     await grantRole(db, moderator, 'moderator', null);
     const post = await newRequest(author, 'Lord, smite my enemies and their families.');
     await as(reporter).post('/reports', { targetType: 'post', targetId: post.id, reason: 'Harmful or abusive' });
-    const item = (await as(moderator).get('/moderation/queue')).json().items.find((i: { target_id: string }) => i.target_id === post.id);
+    const { rows } = await db.query(`select id from public.moderation_items where target_id = $1 and source = 'report'`, [post.id]);
+    const item = rows[0];
     await as(moderator).post(`/moderation/items/${item.id}/decision`, { action: 'remove', rule: 'harm', suspendDays: 3 });
 
     const notice = (await as(author).get('/me/notifications')).json().notifications.find((n: { kind: string }) => n.kind === 'moderation_notice');
@@ -129,5 +130,21 @@ describe('moderation notices and appeals', () => {
     const notice = moderation.removalNotice('post', 'safe_messaging', 'x', null);
     expect(notice.body).toContain('988');
     expect(notice.body).toContain('welcome to post it again');
+  });
+});
+
+describe('warn before posting', () => {
+  it('warns only when the AI would flag the text, and never for self-harm', async () => {
+    const u = await createUser('Writer');
+    expect((await as(u).post('/moderation/precheck', { text: 'Praying for you.' })).json()).toEqual({ warn: false });
+    setClassifier(async () => ({ flagged: true, categories: { harassment: true }, category_scores: { harassment: 0.9 } }));
+    expect((await as(u).post('/moderation/precheck', { text: 'You are an idiot.' })).json()).toEqual({ warn: true });
+    setClassifier(async () => ({ flagged: true, categories: { 'self-harm': true }, category_scores: { 'self-harm': 0.9 } }));
+    expect((await as(u).post('/moderation/precheck', { text: 'I am hurting.' })).json()).toEqual({ warn: false });
+    setClassifier(async () => {
+      throw new Error('down');
+    });
+    expect((await as(u).post('/moderation/precheck', { text: 'Anything' })).json()).toEqual({ warn: false });
+    setClassifier(async () => null);
   });
 });

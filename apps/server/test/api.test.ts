@@ -252,8 +252,14 @@ describe('feed', () => {
     expect((await as(booster).post(`/posts/${boosted.id}/boost`, { amount: 10, idempotencyKey: 'b1' })).statusCode).toBe(200);
     const latest = await newRequest(poster, 'Newest request.');
 
+    // Read every page, so posts left by other tests in the shared database can't push these off page one.
     const feed = (await as(viewer).get('/feed?pageSize=50')).json();
-    const ids = feed.posts.map((p: { id: string }) => p.id);
+    const ids: string[] = feed.posts.map((p: { id: string }) => p.id);
+    for (let page = 1; page < 40; page++) {
+      const next = (await as(viewer).get(`/feed?pageSize=50&page=${page}`)).json().posts;
+      if (!next.length) break;
+      ids.push(...next.map((p: { id: string }) => p.id));
+    }
     expect(ids[0]).toBe(latest.id);
     expect(feed.pinnedId).toBe(latest.id);
     expect(ids).toContain(plain.id);

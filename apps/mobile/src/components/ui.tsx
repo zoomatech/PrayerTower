@@ -87,6 +87,18 @@ export function Toggle({ label, value, onChange, hint }: { label: string; value:
   );
 }
 
+/** Shown once before posting text the AI would flag (Instagram-style nudge). Posting anyway is allowed. */
+export function RulesWarning({ onPostAnyway, busy }: { onPostAnyway: () => void; busy?: boolean }) {
+  return (
+    <View style={styles.warning}>
+      <Text style={type.body}>This may go against our community rules: pray for good, never for harm, and no harassment. It may be hidden or removed. Would you like to edit it?</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+        <Button small variant="ghost" label="Post anyway" busy={busy} onPress={onPostAnyway} />
+      </View>
+    </View>
+  );
+}
+
 export function ErrorText({ error }: { error: string | null }) {
   return error ? <Text style={styles.error}>{error}</Text> : null;
 }
@@ -135,4 +147,5 @@ const styles = StyleSheet.create({
   knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
   knobOn: { transform: [{ translateX: 18 }] },
   error: { color: colors.danger, fontSize: 14 },
+  warning: { backgroundColor: colors.goldSoft, borderRadius: radius.md, padding: space.md, gap: space.sm },
 });

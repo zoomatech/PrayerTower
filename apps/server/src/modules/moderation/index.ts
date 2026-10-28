@@ -131,14 +131,17 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
   return rows[0]!;
 }
 
-export async function pending(q: Queryable, limit = 50) {
+/** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. */
+export async function pending(q: Queryable, limit = 100) {
   const { rows } = await q.query(
     `select m.*, coalesce(po.body, c.body, r.note) as content
        from public.moderation_items m
        left join public.posts po on m.target_type = 'post' and po.id = m.target_id
        left join public.comments c on m.target_type = 'comment' and c.id = m.target_id
        left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
-      where m.status = 'pending' order by m.id limit $1`,
+      where m.status = 'pending'
+      order by (m.source = 'crisis') desc, m.auto_hidden desc, m.id
+      limit $1`,
     [limit],
   );
   return rows;

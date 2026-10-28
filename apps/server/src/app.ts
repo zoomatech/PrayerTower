@@ -9,6 +9,7 @@ import { adminRoutes } from './modules/admin/routes.js';
 import { accountRoutes } from './modules/accounts/routes.js';
 import { commitmentRoutes } from './modules/commitments/routes.js';
 import { feedRoutes } from './modules/feed/routes.js';
+import type { Classifier } from './modules/moderation/index.js';
 import { moderationRoutes } from './modules/moderation/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { postRoutes } from './modules/posts/routes.js';
@@ -25,9 +26,11 @@ export interface AppDeps {
   logger?: boolean;
   /** Allowed browser origins for the web app; empty = any (development). */
   corsOrigins?: string[];
+  /** AI classifier for the warn-before-posting check; null = no warnings. */
+  classify?: Classifier | null;
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [] }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null }: AppDeps) {
   const app = Fastify({ logger });
   app.register(cors, {
     origin: corsOrigins.length ? corsOrigins : true,
@@ -63,7 +66,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     tokenRoutes(authed, db);
     radioRoutes(authed, db);
     notificationRoutes(authed, db);
-    moderationRoutes(authed, db);
+    moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     adminRoutes(authed, db);

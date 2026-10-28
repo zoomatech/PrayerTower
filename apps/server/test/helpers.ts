@@ -20,6 +20,7 @@ export const app = buildApp({
     if (!token.startsWith('test:')) throw new Error('bad token');
     return token.slice(5);
   },
+  classify: (text) => classifier(text),
 });
 
 export let classifier: Classifier = async () => null;

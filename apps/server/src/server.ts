@@ -4,6 +4,7 @@ import { buildApp } from './app.js';
 import { supabaseJwksVerifier } from './auth.js';
 import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
+import { openAiClassifier } from './modules/moderation/index.js';
 
 loadDotEnv();
 const config = loadConfig();
@@ -21,6 +22,7 @@ const app = buildApp({
   verifyToken: supabaseJwksVerifier(config.SUPABASE_URL),
   storage,
   logger: true,
+  classify: openAiClassifier(config),
   corsOrigins: config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
 });
 

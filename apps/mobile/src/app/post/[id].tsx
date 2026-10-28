@@ -6,7 +6,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCardActions } from '@/components/card-actions';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
-import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
@@ -26,6 +26,7 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
+  const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -45,10 +46,15 @@ export default function PostScreen() {
 
   const { onAction, openReport, sheets } = useCardActions(load);
 
-  const send = async (isUpdate = false) => {
+  const send = async (isUpdate = false, confirmed = false) => {
     setBusy(true);
     setError(null);
     try {
+      if (!confirmed && (await api.precheck(text.trim())).warn) {
+        setWarnedFor({ text, isUpdate });
+        return;
+      }
+      setWarnedFor(null);
       const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
       if (r.comment.crisis) setSupport(true);
       setText('');
@@ -177,6 +183,7 @@ export default function PostScreen() {
             </Text>
           ) : null}
           <Field placeholder="Write a comment" value={text} onChangeText={setText} multiline maxLength={5000} />
+          {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
           <View style={styles.row}>
             <Button small label="Comment" onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
             {card?.isMine ? <Button small variant="secondary" label="Post as an update" onPress={() => send(true)} disabled={!text.trim()} /> : null}

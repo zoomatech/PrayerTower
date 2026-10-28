@@ -8,7 +8,7 @@ import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'rea
 import { api } from '@/lib/api';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
-import { Button, Chip, ErrorText, Field } from './ui';
+import { Button, Chip, ErrorText, Field, RulesWarning } from './ui';
 
 type ReportTarget = { type: 'post' | 'comment'; id: string };
 type Sheet = {
@@ -32,6 +32,7 @@ export function useCardActions(onChanged: () => void) {
   const [reason, setReason] = useState<string | null>(null);
   const [people, setPeople] = useState<{ id: string; display_name: string }[] | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
+  const [warnedFor, setWarnedFor] = useState<string | null>(null);
 
   const close = () => {
     setSheet(null);
@@ -39,6 +40,7 @@ export function useCardActions(onChanged: () => void) {
     setText('');
     setReason(null);
     setPicked([]);
+    setWarnedFor(null);
   };
 
   /** Report a request or one of its comments to the moderators. */
@@ -126,7 +128,18 @@ export function useCardActions(onChanged: () => void) {
         <Text style={type.small}>
           {text.length}/{ENCOURAGEMENT_MAX_CHARS}
         </Text>
-        <Button label="Send" busy={busy} disabled={!text.trim()} onPress={() => run(() => api.encourage(sheet.card.id, text.trim()), 'Your encouragement was sent.')} />
+        {warnedFor === text ? (
+          <RulesWarning busy={busy} onPostAnyway={() => run(() => api.encourage(sheet.card.id, text.trim()), 'Your encouragement was sent.')} />
+        ) : null}
+        <Button
+          label="Send"
+          busy={busy}
+          disabled={!text.trim()}
+          onPress={async () => {
+            if ((await api.precheck(text.trim())).warn) return setWarnedFor(text);
+            run(() => api.encourage(sheet.card.id, text.trim()), 'Your encouragement was sent.');
+          }}
+        />
       </>
     );
   } else if (sheet?.kind === 'share') {
