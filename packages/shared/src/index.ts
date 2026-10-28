@@ -31,6 +31,16 @@ export const PRAYER_REALM_LABELS: Record<PrayerRealm, string> = {
   world: 'World',
 };
 
+/** "Pick Your Prayer Mix": see more or less of a post type or realm. Only reorders; never hides. */
+export type FeedMixLevel = 'less' | 'more';
+export type FeedMixKey = `type:${PostType}` | `realm:${PrayerRealm}`;
+export type FeedMix = Partial<Record<FeedMixKey, FeedMixLevel>>;
+export const FEED_MIX_MULTIPLIER: Record<FeedMixLevel | 'normal', number> = { less: 0.5, normal: 1, more: 2 };
+export const FEED_MIX_KEYS: FeedMixKey[] = [
+  ...POST_TYPES.map((t) => `type:${t}` as const),
+  ...PRAYER_REALMS.map((r) => `realm:${r}` as const),
+];
+
 /** Backgrounds for text-only posts. */
 export const POST_BACKGROUNDS = ['dawn', 'sky', 'meadow', 'lavender', 'gold', 'night'] as const;
 export type PostBackground = (typeof POST_BACKGROUNDS)[number];
@@ -240,6 +250,7 @@ export interface Profile {
   updates_in_first_comment: boolean;
   prompts_enabled: boolean;
   prompt_min_hours: number | null;
+  feed_mix: FeedMix;
   onboarded_at: string | null;
   suspended_until: string | null;
 }
