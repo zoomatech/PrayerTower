@@ -78,6 +78,8 @@ describe('endpoint auth', () => {
       // The ad-free promise (404 while switched off).
       'GET /promise',
       'GET /open-circle/promise',
+      // Public podcast feeds for podcast apps (404 while switched off).
+      'GET /podcasts/:slug/feed.xml',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);
