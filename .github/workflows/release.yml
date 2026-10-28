@@ -1,0 +1,102 @@
+# iPhone releases from GitHub (docs/RELEASING_APPS.md):
+#   - Pushing a tag v1.2.3 (npm run release, then git push origin v1.2.3) builds the
+#     iOS app on EAS and sends it to TestFlight.
+#   - Actions → Release → Run workflow builds, or publishes an over-the-air update
+#     (JavaScript and images only) to a channel.
+# Needs the EXPO_TOKEN secret, and ASC_APP_ID (variable) for TestFlight. Until
+# they are set, every run stops early with a note and doesn't fail.
+# References: https://docs.expo.dev/build/building-on-ci/
+#             https://docs.expo.dev/eas-update/github-actions/
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [build, update]
+        default: build
+      channel:
+        description: 'Update channel (update only): production, staging or preview'
+        type: choice
+        options: [production, staging, preview]
+        default: production
+      message:
+        description: 'Update message (update only), shown on expo.dev'
+        type: string
+        default: ''
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+      ACTION: ${{ github.event_name == 'push' && 'build' || inputs.action }}
+    steps:
+      - name: Check for the Expo token
+        id: ready
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::notice::EXPO_TOKEN isn't set, so nothing was built or published. See docs/RELEASING_APPS.md."
+            echo "Not run: add the EXPO_TOKEN secret (docs/RELEASING_APPS.md)." >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.ready.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - if: steps.ready.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - if: steps.ready.outputs.ok == 'true'
+        name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - if: steps.ready.outputs.ok == 'true'
+        run: npm ci
+
+      - if: steps.ready.outputs.ok == 'true' && env.ACTION == 'build'
+        name: Build iOS on EAS and send it to TestFlight
+        working-directory: apps/mobile
+        run: |
+          if [ -n "$ASC_APP_ID" ]; then
+            # Non-interactive submits need the App Store Connect Apple ID (docs.expo.dev/submit/ios).
+            jq --arg id "$ASC_APP_ID" '.submit.production.ios.ascAppId = $id' eas.json > eas.tmp && mv eas.tmp eas.json
+            eas build --platform ios --profile production --non-interactive --no-wait --auto-submit
+            echo "iOS build queued on EAS; it goes to TestFlight when it finishes." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::notice::ASC_APP_ID isn't set, so the build won't be sent to TestFlight."
+            eas build --platform ios --profile production --non-interactive --no-wait
+            echo "iOS build queued on EAS. Set ASC_APP_ID to send builds to TestFlight automatically." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - if: steps.ready.outputs.ok == 'true' && env.ACTION == 'update'
+        name: Publish an over-the-air update
+        working-directory: apps/mobile
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          # Staging builds read the "preview" EAS environment (eas.json).
+          ENVIRONMENT=$([ "$CHANNEL" = production ] && echo production || echo preview)
+          eas update --channel "$CHANNEL" --environment "$ENVIRONMENT" --message "${MESSAGE:-$(git log -1 --pretty=%s)}" --platform ios --non-interactive
+          echo "Update published to the $CHANNEL channel." >> "$GITHUB_STEP_SUMMARY"

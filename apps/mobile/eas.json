@@ -9,18 +9,21 @@
       "environment": "preview",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "preview"
     },
     "staging": {
       "extends": "preview",
       "environment": "preview",
       "env": {
         "APP_VARIANT": "staging"
-      }
+      },
+      "channel": "staging"
     },
     "production": {
       "autoIncrement": true,
-      "environment": "production"
+      "environment": "production",
+      "channel": "production"
     }
   },
   "submit": {
@@ -28,7 +31,8 @@
       "android": {
         "track": "internal",
         "releaseStatus": "draft"
-      }
+      },
+      "ios": {}
     }
   }
 }

@@ -1,5 +1,7 @@
 # Releasing
 
+To build the iPhone app and send over-the-air updates from GitHub Actions, see [RELEASING_APPS.md](RELEASING_APPS.md).
+
 The changelog and release notes are generated from the pull requests merged into main, using git history only (no token needed). Each PR title becomes one line, so write PR titles for people.
 
 ## Commands
