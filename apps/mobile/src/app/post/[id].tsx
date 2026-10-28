@@ -70,9 +70,9 @@ export default function PostScreen() {
     }
   };
 
-  const sendRadio = async () => {
+  const sendRadio = async (amplify = false) => {
     try {
-      await api.sendRadioPrayer(id);
+      await api.sendRadioPrayer(id, amplify);
       setRadioSent(true);
       setTokens(await api.tokens());
     } catch (e) {
@@ -124,8 +124,11 @@ export default function PostScreen() {
                 ? 'Send as a radio prayer'
                 : `Send as a radio prayer (${tokens.priestly.radioPrayerCost} Priestly token${tokens.priestly.radioPrayerCost === 1 ? '' : 's'})`
             }
-            onPress={sendRadio}
+            onPress={() => sendRadio()}
           />
+        ) : null}
+        {!radioSent && tokens?.priestly.amplifyRepeats ? (
+          <Button variant="secondary" label={`Amplify: send it out by radio ${tokens.priestly.amplifyRepeats} times (free)`} onPress={() => sendRadio(true)} />
         ) : null}
 
         {powerSent !== null ? (

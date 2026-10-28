@@ -280,6 +280,15 @@ export default function Admin() {
               value={radio.radio_station_requires_free}
               onChange={(v) => saveRadio({ stationRequiresFree: v })}
             />
+            <Text style={type.small}>
+              Amplify sends a prayer {radio.radio_amplify_repeats} times (free only). “1,000x a second” is not possible on PSK31, about one prayer a
+              minute.
+            </Text>
+            <View style={styles.row}>
+              {[2, 3, 5, 10].map((n) => (
+                <Chip key={n} label={`${n}x`} selected={radio.radio_amplify_repeats === n} onPress={() => saveRadio({ amplifyRepeats: n })} />
+              ))}
+            </View>
             {radio.radio_transmitter === 'station' && radio.radio_station_requires_free && tokens?.radio_funding !== 'free' ? (
               <Text style={[type.small, { color: colors.danger }]}>The station is paused: turn on “Radio prayers are free” above.</Text>
             ) : null}

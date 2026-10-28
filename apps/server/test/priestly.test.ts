@@ -35,7 +35,7 @@ describe('priestly tokens', () => {
 
     const me = (await as(pray).get('/me/tokens')).json();
     expect(me.balance).toBe(4); // one regular token per prayer for someone else
-    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3, radioPrayerCost: 1 });
+    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3, radioPrayerCost: 1, amplifyRepeats: null });
 
     // Re-running the follow-up job does not double count.
     const { rows } = await db.query<{ id: string }>('select id from public.prayer_events where user_id = $1', [pray]);

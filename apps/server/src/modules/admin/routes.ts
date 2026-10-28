@@ -104,12 +104,14 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         transmitter: z.enum(['log', 'station']).optional(),
         stationRequiresFree: z.boolean().optional(),
         maxChars: z.number().int().min(50).max(2800).optional(),
+        amplifyRepeats: z.number().int().min(2).max(50).optional(),
       })
       .parse(req.body);
     return {
       settings: await radio.updateStationSettings(db, {
         radio_transmitter: input.transmitter,
         radio_station_requires_free: input.stationRequiresFree,
+        radio_amplify_repeats: input.amplifyRepeats,
         radio_max_chars: input.maxChars,
       }),
     };

@@ -171,6 +171,8 @@ export async function priestlyStatus(q: Queryable, userId: string) {
     towardNext: rows[0]?.verified_pending ?? 0,
     prayersPerToken: s.priestly_prayers_per_token,
     radioPrayerCost: s.radio_funding === 'free' ? 0 : s.radio_prayer_cost,
+    /** Amplify (send several times) is free-only; null while radio prayers cost tokens. */
+    amplifyRepeats: s.radio_funding === 'free' ? (await q.query<{ n: number }>('select radio_amplify_repeats as n from public.token_settings')).rows[0]!.n : null,
   };
 }
 

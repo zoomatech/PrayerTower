@@ -78,6 +78,7 @@ export interface AdminRadioSettings {
   radio_transmitter: 'log' | 'station';
   radio_station_requires_free: boolean;
   radio_max_chars: number;
+  radio_amplify_repeats: number;
 }
 
 export interface PowerPrayerStatus {
@@ -217,8 +218,11 @@ export const api = {
     post<{ recorded: boolean }>(`/me/prompts/${id}/response`, { response }),
   tier: () => get<TierStatus>('/me/tier'),
   tokens: () => get<TokenSummary>('/me/tokens'),
-  sendRadioPrayer: (postId: string) =>
-    post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
+  sendRadioPrayer: (postId: string, amplify = false) =>
+    post<{ radioPrayer: { id: string; status: string; repeats: number } }>(`/posts/${postId}/radio`, {
+      idempotencyKey: `radio-${postId}-${Date.now()}`,
+      amplify,
+    }),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
@@ -261,7 +265,7 @@ export const api = {
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
