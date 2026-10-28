@@ -8,7 +8,9 @@ type Id = { Params: { id: string } };
 
 export function witnessRoutes(app: FastifyInstance, db: Db) {
   app.post<Id>('/posts/:id/witness', async (req, reply) => {
-    const r = await witness.flag(db, requireUser(req), req.params.id, witness.NewCase.parse(req.body));
+    const userId = requireUser(req);
+    await witness.requireWitness(db, userId);
+    const r = await witness.flag(db, userId, req.params.id, witness.NewCase.parse(req.body));
     reply.code(201);
     return r;
   });
@@ -21,7 +23,9 @@ export function witnessRoutes(app: FastifyInstance, db: Db) {
   app.get<Id>('/witness/cases/:id/notes', async (req) => ({ notes: await witness.notes(db, requireUser(req), req.params.id) }));
 
   app.post<Id>('/witness/cases/:id/notes', async (req, reply) => {
-    await witness.addNote(db, requireUser(req), req.params.id, witness.NewNote.parse(req.body));
+    const userId = requireUser(req);
+    await witness.requireWitness(db, userId); // before reading the body, so non-staff always get 403
+    await witness.addNote(db, userId, req.params.id, witness.NewNote.parse(req.body));
     reply.code(201);
     return { ok: true };
   });

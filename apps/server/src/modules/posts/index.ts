@@ -66,7 +66,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
   for (const m of input.media) {
-    if (!m.storagePath.startsWith(`${userId}/`)) throw badRequest('Media must be uploaded through /media/upload-url');
+    // Exactly the shape /media/upload-url hands out: <user id>/<uuid>.<ext>, no other folders.
+    if (!m.storagePath.startsWith(`${userId}/`) || !/^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(m.storagePath.slice(userId.length + 1))) throw badRequest('Media must be uploaded through /media/upload-url');
   }
   const { rows } = await q.query<PostRow>(
     `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id)

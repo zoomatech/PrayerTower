@@ -12,6 +12,8 @@ const Env = z.object({
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
   /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */
   CORS_ORIGINS: z.string().default(''),
+  /** API requests allowed per signed-in member per minute; 0 turns the limit off. */
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).default(300),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
 });
 

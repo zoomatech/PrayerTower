@@ -1,4 +1,5 @@
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ZodError } from 'zod';
@@ -41,10 +42,19 @@ export interface AppDeps {
   classify?: Classifier | null;
   /** Radio station worker's key; null = station API off. */
   stationKey?: string | null;
+  /** Requests per member per minute; 0 = no limit (tests). */
+  rateLimitPerMinute?: number;
+  /** Called for every route as it's added (the security test lists them this way). */
+  onRoute?: (route: { method: string; url: string }) => void;
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute }: AppDeps) {
   const app = Fastify({ logger });
+  if (onRoute) {
+    app.addHook('onRoute', (r) => {
+      for (const method of [r.method].flat()) if (method !== 'HEAD') onRoute({ method, url: r.url });
+    });
+  }
   app.register(cors, {
     origin: corsOrigins.length ? corsOrigins : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -74,6 +84,15 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   // Everything else requires a signed-in member.
   app.register(async (authed) => {
     authed.addHook('preHandler', makeAuthHook(verifyToken, db));
+    // Counted per member after sign-in, so people sharing a network don't share a limit.
+    if (rateLimitPerMinute > 0) {
+      await authed.register(rateLimit, {
+        hook: 'preHandler',
+        max: rateLimitPerMinute,
+        timeWindow: '1 minute',
+        keyGenerator: (req) => req.auth?.userId ?? req.ip,
+      });
+    }
     accountRoutes(authed, db);
     postRoutes(authed, db, storage);
     feedRoutes(authed, db, storage);

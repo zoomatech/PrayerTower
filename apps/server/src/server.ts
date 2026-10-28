@@ -24,6 +24,7 @@ const app = buildApp({
   logger: true,
   classify: openAiClassifier(config),
   stationKey: config.STATION_API_KEY ?? null,
+  rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
   corsOrigins: config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
 });
 
