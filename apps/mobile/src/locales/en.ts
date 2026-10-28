@@ -782,6 +782,7 @@ const en = {
       pools: 'Pools',
       highlights: 'Highlights',
       surveys: 'Surveys',
+      podcasts: 'Podcasts',
     },
     communityTypes: "Kinds of post members can make. Discussion, News and Blog Post are posts that aren't prayed for: people comment, encourage and share.",
     award: "Prayer Warrior Award",

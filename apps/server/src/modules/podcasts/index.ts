@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
+import { featureOn } from '../communities/index.js';
 
 export async function enabled(q: Queryable): Promise<boolean> {
   const { rows } = await q.query<{ on: boolean }>('select podcasts_enabled as on from public.notebook_settings');
@@ -50,7 +51,7 @@ const FROM = 'from public.podcast_shows s left join public.communities c on c.id
  * for everyone skips neutral-wording communities (Open Circle). Empty while switched off.
  */
 export async function forMember(q: Queryable, userId: string): Promise<Show[]> {
-  if (!(await enabled(q))) return [];
+  if (!(await enabled(q)) || !(await featureOn(q, userId, 'podcasts'))) return [];
   const { rows } = await q.query<Show>(
     `select ${SHOW(true)} ${FROM} where s.published and (s.community_id = public.member_community_id($1) or (s.community_id is null and not exists (
           select 1 from public.communities mc where mc.id = public.member_community_id($1)
@@ -205,7 +206,12 @@ const rfc2822 = (iso: string) => new Date(iso).toUTCString().replace('GMT', '+00
 /** The public RSS 2.0 feed of a published show, or null (switched off, unknown or not published). */
 export async function feed(q: Queryable, slug: string, siteUrl: string): Promise<string | null> {
   if (!(await enabled(q))) return null;
-  const { rows } = await q.query<Show>(`select ${SHOW(true)} ${FROM} where s.slug = $1 and s.published`, [slug]);
+  // A community that hides podcasts (Admin → Communities) doesn't publish its feeds either.
+  const { rows } = await q.query<Show>(
+    `select ${SHOW(true)} ${FROM} where s.slug = $1 and s.published
+        and not exists (select 1 from public.communities hc where hc.id = s.community_id and 'podcasts' = any (hc.hidden_features))`,
+    [slug],
+  );
   const s = rows[0];
   if (!s) return null;
   const [top, sub] = s.category.split(' > ');

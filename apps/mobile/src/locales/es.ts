@@ -784,6 +784,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
       pools: 'Fondos',
       highlights: 'Destacados',
       surveys: 'Encuestas',
+      podcasts: 'Podcasts',
     },
     communityTypes: 'Tipos de publicación que pueden hacer los miembros. Debate, Noticias y Blog no son para orar: se comentan, se animan y se comparten.',
     award: 'Premio Guerrero de Oración',

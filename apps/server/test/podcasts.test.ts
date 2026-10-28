@@ -76,6 +76,12 @@ describe('Podcasts', () => {
         [circle],
       );
       expect((await podcasts.forMember(c, circle)).map((x) => x.id)).toEqual([oc.id]);
+
+      // A community that hides podcasts sees none, and its feeds go dark.
+      await c.query(`update public.communities set hidden_features = array_append(hidden_features, 'podcasts') where slug = 'open-circle'`);
+      expect(await podcasts.forMember(c, circle)).toEqual([]);
+      expect(await podcasts.feed(c, `${slug}-oc`, 'https://prayertower.example/')).toBeNull();
+      expect(await podcasts.feed(c, slug, 'https://prayertower.example/')).not.toBeNull();
     } finally {
       await c.query('rollback');
       c.release();
