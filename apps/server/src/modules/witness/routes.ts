@@ -34,4 +34,30 @@ export function witnessRoutes(app: FastifyInstance, db: Db) {
     await witness.update(db, requireUser(req), req.params.id, witness.CaseUpdate.parse(req.body));
     return { ok: true };
   });
+
+  app.post<Id>('/witness/cases/:id/story', async (req, reply) => {
+    const userId = requireUser(req);
+    await witness.requireWitness(db, userId);
+    const r = await witness.draftStory(db, userId, req.params.id, witness.NewStory.parse(req.body));
+    reply.code(201);
+    return r;
+  });
+
+  app.delete<Id>('/witness/stories/:id', async (req) => {
+    await witness.withdrawStory(db, requireUser(req), req.params.id);
+    return { ok: true };
+  });
+
+  app.get('/me/witness-stories', async (req) => ({ stories: await witness.myStories(db, requireUser(req)) }));
+
+  app.post<Id>('/me/witness-stories/:id/decision', async (req) => {
+    const { approve } = z.object({ approve: z.boolean() }).parse(req.body);
+    await witness.decideStory(db, requireUser(req), req.params.id, approve);
+    return { ok: true };
+  });
+
+  app.get('/help-stories', async (req) => {
+    requireUser(req);
+    return witness.shownStories(db);
+  });
 }

@@ -47,7 +47,32 @@ fi
 if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   echo "Note: SUPABASE_ACCESS_TOKEN is not set, so the invite-code hook must be turned on by hand (docs/INVITES.md)."
 fi
+# One value serves both: the app's copies default to the server's (support email,
+# crisis line, crash reports, shared-link address).
+export EXPO_PUBLIC_SUPPORT_EMAIL=${EXPO_PUBLIC_SUPPORT_EMAIL:-${SUPPORT_EMAIL:-}}
+export EXPO_PUBLIC_CRISIS_COUNTRY=${EXPO_PUBLIC_CRISIS_COUNTRY:-${CRISIS_COUNTRY:-US}}
+export EXPO_PUBLIC_SENTRY_DSN=${EXPO_PUBLIC_SENTRY_DSN:-${SENTRY_DSN:-}}
+export EXPO_PUBLIC_LINK_URL=${EXPO_PUBLIC_LINK_URL:-${WEB_APP_URL:-}}
 echo "Settings look complete."
+
+# What's still open from STEVE_TODO.md (optional for go-live, each off until set).
+log "Optional settings (STEVE_TODO.md section in brackets)"
+for item in "SUPABASE_ACCESS_TOKEN|invite hook, auth settings and emails set for you [2]" \
+            "SMTP_URL|sign-up, invite and digest emails [1]" \
+            "WEB_APP_URL|invite links and the Supabase Site URL [2]" \
+            "ADMIN_EMAILS|makes you admin after you sign up [2]" \
+            "SUPPORT_EMAIL|contact address Apple requires [2]" \
+            "EXPO_ACCESS_TOKEN|push notifications [1]" \
+            "API_DOCS_PASSWORD|staff API docs [2]" \
+            "APPLE_TEAM_ID|iPhone shared links [3]" \
+            "ANDROID_CERT_SHA256|Android shared links [3]" \
+            "STATION_API_KEY|radio station [6]" \
+            "SENTRY_DSN|crash reports [2]" \
+            "OPENAI_API_KEY|AI moderation (or ANTHROPIC_API_KEY) [2]" \
+            "SPONSOR_REPORT_TO|weekly sponsor report [2]"; do
+  v=${item%%|*}; what=${item#*|}
+  if [ -n "${!v:-}" ]; then printf '  [x] %-22s %s\n' "$v" "$what"; else printf '  [ ] %-22s %s\n' "$v" "$what"; fi
+done
 [ "$mode" = --check ] && exit 0
 
 # 2. Database: link the project and push every migration in supabase/migrations.
@@ -94,6 +119,34 @@ if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @- >/dev/null \
     || die "could not upload the email templates; paste supabase/templates/*.html into Dashboard → Authentication → Email Templates"
   echo "Sign-up and password emails are bilingual."
+  # Hosted Auth settings from PILOT_LAUNCH_CHECKLIST.md §2, and the SMTP sender
+  # from SMTP_URL (smtp://user:pass@host:port). Field names:
+  # https://supabase.com/docs/reference/api/v1-update-auth-service-config
+  log "Setting sign-up rules, the site address and the email sender"
+  node -e '
+    const e = process.env;
+    const body = { password_min_length: 8, mailer_autoconfirm: false };
+    if (e.WEB_APP_URL) {
+      const site = e.WEB_APP_URL.replace(/\/+$/, "");
+      body.site_url = site;
+      body.uri_allow_list = [site + "/**", "prayertower://**"].join(",");
+    }
+    if (e.SMTP_URL) {
+      const u = new URL(e.SMTP_URL);
+      Object.assign(body, {
+        smtp_host: u.hostname,
+        smtp_port: u.port || (u.protocol === "smtps:" ? "465" : "587"),
+        smtp_user: decodeURIComponent(u.username),
+        smtp_pass: decodeURIComponent(u.password),
+        smtp_admin_email: (e.MAIL_FROM || "").replace(/.*<([^>]+)>.*/, "$1") || decodeURIComponent(u.username),
+        smtp_sender_name: "Prayer Tower",
+      });
+    }
+    process.stdout.write(JSON.stringify(body));
+  ' | curl -fsS -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @- >/dev/null \
+    || die "could not save the Auth settings; set them by hand (docs/PILOT_LAUNCH_CHECKLIST.md §2)"
+  echo "Passwords need 8+ characters, emails must be confirmed${WEB_APP_URL:+, the site is $WEB_APP_URL}${SMTP_URL:+, and Auth emails go through your SMTP server}."
 else
   printf '\nACTION NEEDED: in the Supabase Dashboard, Authentication → Hooks → Before User Created,\n'
   printf 'choose Postgres function public.hook_before_user_created (or set SUPABASE_ACCESS_TOKEN and re-run).\n'

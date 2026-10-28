@@ -4,8 +4,9 @@
 // person being helped, and no money moves through the app.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { forbidden, notFound } from '../../errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
+import * as notifications from '../notifications/index.js';
 
 export async function requireWitness(q: Queryable, userId: string) {
   if (!(await hasRole(q, userId, 'witness', 'moderator', 'admin'))) throw forbidden('Witness team only');
@@ -99,4 +100,85 @@ export async function update(q: Queryable, userId: string, caseId: string, input
     [caseId, input.status ?? null, !!input.assignToMe, userId],
   );
   if (!rowCount) throw notFound('Case');
+}
+
+// Witness stories ------------------------------------------------------------------------
+// Business Plan 7: with permission, stories of help delivered go back to the
+// community. The person helped approves the exact text first; it never names
+// them; they can take the approval back. Switched off until an admin turns it on.
+
+export const NewStory = z.object({ body: z.string().trim().min(20).max(1000) });
+
+async function storiesEnabled(q: Queryable) {
+  const { rows } = await q.query<{ on: boolean }>('select witness_stories_enabled as on from public.notebook_settings');
+  return !!rows[0]?.on;
+}
+
+/** A Witness member drafts the story of a helped case and asks the person helped. */
+export async function draftStory(q: Queryable, userId: string, caseId: string, input: z.infer<typeof NewStory>) {
+  await requireWitness(q, userId);
+  if (!(await storiesEnabled(q))) throw forbidden('Witness stories are turned off for now');
+  const { rows } = await q.query<{ status: string; poster_id: string; post_id: string }>(
+    `select w.status, p.user_id as poster_id, p.id as post_id from public.witness_cases w join public.posts p on p.id = w.post_id where w.id = $1`,
+    [caseId],
+  );
+  const c = rows[0];
+  if (!c) throw notFound('Case');
+  if (c.status !== 'helped') throw badRequest('Log the help first: a story is only for a case marked helped');
+  if (c.poster_id === userId) throw badRequest("You can't ask yourself");
+  const { rows: created } = await q.query<{ id: string }>(
+    `insert into public.witness_stories (case_id, author_id, recipient_id, body) values ($1, $2, $3, $4)
+     on conflict do nothing returning id`,
+    [caseId, userId, c.poster_id, input.body],
+  );
+  if (!created[0]) throw conflict('This case already has a story waiting or shown');
+  await notifications.notify(q, c.poster_id, {
+    kind: 'witness_story',
+    title: 'May we share how you were helped?',
+    body: 'The Witness team wrote a short story about the help you received. Nothing is shared unless you say yes, and it never shows your name.',
+    t: { key: 'witness_story', params: {} },
+    data: { storyId: created[0].id, postId: c.post_id },
+    dedupeKey: `witness_story:${created[0].id}`,
+  });
+  return { id: created[0].id };
+}
+
+/** Stories about me: waiting for my answer, approved or declined. */
+export async function myStories(q: Queryable, userId: string) {
+  const { rows } = await q.query<{ id: string; body: string; status: string; created_at: Date; decided_at: Date | null }>(
+    `select id, body, status, created_at, decided_at from public.witness_stories
+      where recipient_id = $1 and status <> 'withdrawn' order by created_at desc`,
+    [userId],
+  );
+  return rows.map((r) => ({ id: r.id, body: r.body, status: r.status, createdAt: r.created_at, decidedAt: r.decided_at }));
+}
+
+/** The person helped says yes or no; a later "no" takes a shown story down. */
+export async function decideStory(q: Queryable, userId: string, storyId: string, approve: boolean) {
+  const { rowCount } = await q.query(
+    `update public.witness_stories set status = $3::public.witness_story_status, decided_at = now()
+      where id = $1 and recipient_id = $2 and status in ('awaiting_consent', 'approved')`,
+    [storyId, userId, approve ? 'approved' : 'declined'],
+  );
+  if (!rowCount) throw notFound('Story');
+}
+
+/** Witness staff take back a story they drafted (or any, for moderators and admins). */
+export async function withdrawStory(q: Queryable, userId: string, storyId: string) {
+  await requireWitness(q, userId);
+  const { rowCount } = await q.query(
+    `update public.witness_stories set status = 'withdrawn', decided_at = now() where id = $1 and status in ('awaiting_consent', 'approved')`,
+    [storyId],
+  );
+  if (!rowCount) throw notFound('Story');
+}
+
+/** Approved stories, newest first, with no names. Empty while the switch is off. */
+export async function shownStories(q: Queryable, limit = 20) {
+  if (!(await storiesEnabled(q))) return { enabled: false, stories: [] };
+  const { rows } = await q.query<{ id: string; body: string; decided_at: Date }>(
+    `select id, body, decided_at from public.witness_stories where status = 'approved' order by decided_at desc limit $1`,
+    [limit],
+  );
+  return { enabled: true, stories: rows.map((r) => ({ id: r.id, body: r.body, sharedAt: r.decided_at })) };
 }

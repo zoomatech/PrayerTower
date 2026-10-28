@@ -1,6 +1,6 @@
 # Spanish review checklist
 
-Every Spanish string in Prayer Tower, beside the English, for a native Spanish speaker to check before release. 1074 items. Generated from the code by `npx tsx scripts/i18n/spanish-review.ts`; regenerate it after strings change, and don't edit the tables by hand.
+Every Spanish string in Prayer Tower, beside the English, for a native Spanish speaker to check before release. 1101 items. Generated from the code by `npx tsx scripts/i18n/spanish-review.ts`; regenerate it after strings change, and don't edit the tables by hand.
 
 ## How to review
 
@@ -109,7 +109,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `legal.and` | and | y la | |
 | ☐ | `legal.questions` | Questions or concerns? | ¿Preguntas o inquietudes? | |
 
-### onboarding (22)
+### onboarding (28)
 
 | ✓ | Key | English | Español | Correction |
 | --- | --- | --- | --- | --- |
@@ -131,9 +131,15 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `onboarding.support.Relationships` | Relationships | Relaciones | |
 | ☐ | `onboarding.scopes.family` | My family | Mi familia | |
 | ☐ | `onboarding.scopes.friends` | Friends | Amigos | |
+| ☐ | `onboarding.scopes.loved_ones` | Loved ones | Mis seres queridos | |
+| ☐ | `onboarding.scopes.neighbors` | Neighbors of all kinds | Vecinos de todo tipo | |
 | ☐ | `onboarding.scopes.church` | My church | Mi iglesia | |
 | ☐ | `onboarding.scopes.community` | My community | Mi comunidad | |
+| ☐ | `onboarding.scopes.enemies` | My enemies | Mis enemigos | |
+| ☐ | `onboarding.scopes.towns` | Towns | Pueblos | |
+| ☐ | `onboarding.scopes.cities` | Cities | Ciudades | |
 | ☐ | `onboarding.scopes.nation` | My nation | Mi país | |
+| ☐ | `onboarding.scopes.countries` | Other countries | Otros países | |
 | ☐ | `onboarding.scopes.world` | The world | El mundo | |
 
 ### tour (15)
@@ -734,10 +740,15 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `moderation.source.report` | Reported by a member | Denunciado por un miembro | |
 | ☐ | `moderation.source.crisis` | May need support | Podría necesitar apoyo | |
 
-### witness (19)
+### witness (24)
 
 | ✓ | Key | English | Español | Correction |
 | --- | --- | --- | --- | --- |
+| ☐ | `witness.storyTitle` | Share the story (with their OK) | Compartir la historia (con su permiso) | |
+| ☐ | `witness.storyHint` | Write what happened without naming them. We'll ask the person helped; nothing is shown unless they say yes. | Escribe lo que pasó sin nombrar a la persona. Le preguntaremos a quien recibió ayuda; no se muestra nada si no dice que sí. | |
+| ☐ | `witness.storyPlaceholder` | For example: a family behind on rent got two months covered by a partner church. | Por ejemplo: una familia atrasada con el alquiler recibió dos meses cubiertos por una iglesia aliada. | |
+| ☐ | `witness.storyAsk` | Ask them to approve | Pedirle que lo apruebe | |
+| ☐ | `witness.storySent` | Sent. They'll see it in their notices. | Enviado. Lo verá en sus avisos. | |
 | ☐ | `witness.intro` | Needs marked as sincere, from a request's page. Notes stay inside the team. | Necesidades marcadas como sinceras desde la página de una petición. Las notas quedan dentro del equipo. | |
 | ☐ | `witness.open` | Open | Abiertas | |
 | ☐ | `witness.status.watching` | Watching | En observación | |
@@ -775,7 +786,7 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `macroAdmin.stats` | %{prayers} praying · %{tokens} tokens · %{helpers} gave material help | %{prayers} orando · %{tokens} fichas · %{helpers} dieron ayuda material | |
 | ☐ | `macroAdmin.stop` | Stop featuring | Dejar de destacar | |
 
-### admin (163)
+### admin (165)
 
 | ✓ | Key | English | Español | Correction |
 | --- | --- | --- | --- | --- |
@@ -893,6 +904,8 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `admin.toggle.sermonInputsHint` | People coming to an event can tell the host what to pray about or preach on. Only the host and staff see them. | Quienes asistirán a un evento pueden decirle al organizador por qué orar o de qué predicar. Solo el organizador y el personal las ven. | |
 | ☐ | `admin.toggle.supportLabel` | "Prayer and positive thoughts welcome" label | Etiqueta "Oraciones y buenos deseos bienvenidos" | |
 | ☐ | `admin.toggle.supportLabelHint` | Posters can welcome support from people of any faith or none. | Quien publica puede dar la bienvenida al apoyo de personas de cualquier fe o de ninguna. | |
+| ☐ | `admin.toggle.witnessStories` | Witness stories of help | Historias de ayuda del equipo de Testigos | |
+| ☐ | `admin.toggle.witnessStoriesHint` | The Witness team can share how someone was helped, only after that person approves the exact words. Never shows names. | El equipo de Testigos puede contar cómo se ayudó a alguien, solo después de que esa persona apruebe las palabras exactas. Nunca muestra nombres. | |
 | ☐ | `admin.everyoneLimits` | Limits for everyone (admins and moderators are exempt; 0 = no limit). The same request or comment can't be posted twice in a day. | Límites para todos (los administradores y moderadores están exentos; 0 = sin límite). No se puede publicar la misma petición o comentario dos veces en un día. | |
 | ☐ | `admin.newMembers` | New members | Miembros nuevos | |
 | ☐ | `admin.radio` | Radio | Radio | |
@@ -1174,6 +1187,24 @@ Every Spanish string in Prayer Tower, beside the English, for a native Spanish s
 | ☐ | `auditLog.deleted` | Deleted member | Miembro eliminado | |
 | ☐ | `auditLog.target` | Record …%{id} | Registro …%{id} | |
 | ☐ | `auditLog.more` | Show older | Mostrar anteriores | |
+
+### helpStories (13)
+
+| ✓ | Key | English | Español | Correction |
+| --- | --- | --- | --- | --- |
+| ☐ | `helpStories.title` | Stories of help | Historias de ayuda | |
+| ☐ | `helpStories.aboutYou` | A story about you | Una historia sobre ti | |
+| ☐ | `helpStories.aboutYouHint` | The Witness team would like to share this. It never shows your name. You can take back a yes at any time. | Al equipo de Testigos le gustaría compartir esto. Nunca muestra tu nombre. Puedes retirar tu sí en cualquier momento. | |
+| ☐ | `helpStories.status.awaiting_consent` | Waiting for your answer | Esperando tu respuesta | |
+| ☐ | `helpStories.status.approved` | Shared with your OK | Compartida con tu permiso | |
+| ☐ | `helpStories.status.declined` | Not shared | No compartida | |
+| ☐ | `helpStories.approve` | Yes, share it | Sí, compártela | |
+| ☐ | `helpStories.decline` | No, don't share | No, no la compartas | |
+| ☐ | `helpStories.takeBack` | Take it back | Retirarla | |
+| ☐ | `helpStories.intro` | How the Witness team helped people who asked for prayer, shared with their permission and without names. | Cómo el equipo de Testigos ayudó a personas que pidieron oración, compartido con su permiso y sin nombres. | |
+| ☐ | `helpStories.none` | No stories yet. | Todavía no hay historias. | |
+| ☐ | `helpStories.off` | Stories of help aren't turned on yet. | Las historias de ayuda aún no están activadas. | |
+| ☐ | `helpStories.link` | Stories of help → | Historias de ayuda → | |
 
 ### notebook (18)
 
@@ -1555,6 +1586,12 @@ Push notices and the Notices tab, for members whose app is in Spanish. Values in
 
   ```ts
   answered: (p) => ({ title: 'Una oración que hiciste fue contestada', body: `${s(p.who, 'Alguien')} marcó su petición como contestada. Gracias por orar.` })
+  ```
+
+- [ ] **witness_story**
+
+  ```ts
+  witness_story: () => ({ title: '¿Podemos contar cómo recibiste ayuda?', body: 'El equipo de Testigos escribió una breve historia sobre la ayuda que recibiste. No se comparte nada a menos que digas que sí, y nunca muestra tu nombre.' })
   ```
 
 - [ ] **testimony**

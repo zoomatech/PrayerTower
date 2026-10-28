@@ -5,11 +5,13 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { type Highlights as Data } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export function Highlights({ data }: { data: Data | null }) {
   const { t } = useLocale();
+  const features = useFeatures();
   if (!data) return null;
   return (
     <View style={styles.wrap}>
@@ -40,6 +42,11 @@ export function Highlights({ data }: { data: Data | null }) {
         ))}
         <Text style={type.small}>{t('highlights.window', { count: data.days })}</Text>
       </View>
+      {features.witnessStories ? (
+        <Text style={styles.link} onPress={() => router.push('/help-stories')} accessibilityRole="link">
+          {t('helpStories.link')}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -50,4 +57,5 @@ const styles = StyleSheet.create({
   rank: { fontWeight: '700', color: colors.primary },
   warrior: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
   name: { flex: 1 },
+  link: { ...type.body, color: colors.primary, fontWeight: '600' },
 });

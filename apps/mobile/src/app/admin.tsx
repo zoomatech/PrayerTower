@@ -597,6 +597,7 @@ function NotebookSettingsSection() {
       <Field label={t('admin.field.thanksDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
       <Toggle label={t('admin.toggle.sermonInputs')} hint={t('admin.toggle.sermonInputsHint')} value={s.sermon_inputs_enabled} onChange={(v) => save({ sermonInputsEnabled: v })} />
       <Toggle label={t('admin.toggle.supportLabel')} hint={t('admin.toggle.supportLabelHint')} value={s.support_label_enabled} onChange={(v) => save({ supportLabelEnabled: v })} />
+      <Toggle label={t('admin.toggle.witnessStories')} hint={t('admin.toggle.witnessStoriesHint')} value={s.witness_stories_enabled} onChange={(v) => save({ witnessStoriesEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

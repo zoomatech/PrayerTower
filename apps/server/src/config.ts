@@ -23,6 +23,12 @@ const Env = z.object({
   APP_LINK_APP_IDS: z.string().default('com.zoomatech.prayertower,com.zoomatech.prayertower.staging'),
   /** Comma-separated SHA-256 signing-certificate fingerprints for Android App Links; unset = no assetlinks.json. */
   ANDROID_CERT_SHA256: z.string().default(''),
+  /**
+   * Comma-separated emails made admin once they have signed up and confirmed
+   * their address (checked at start-up and every 5 minutes). Saves running
+   * `npm run grant-role` by hand for the first admin.
+   */
+  ADMIN_EMAILS: z.string().default(''),
   /** Crisis line on the support page and in removal notices: US (default), CA, GB or IE. */
   CRISIS_COUNTRY: z.string().default('US'),
   PORT: z.coerce.number().int().default(3000),

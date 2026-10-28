@@ -8,6 +8,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type WitnessCase, type WitnessStatus } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -22,6 +23,9 @@ export default function Witness() {
   const [notes, setNotes] = useState<{ id: string; body: string; helpKind: string | null; author: string; createdAt: string }[]>([]);
   const [note, setNote] = useState('');
   const [helpKind, setHelpKind] = useState('');
+  const [story, setStory] = useState('');
+  const [sent, setSent] = useState<string | null>(null);
+  const features = useFeatures();
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -110,6 +114,26 @@ export default function Witness() {
                     })
                   }
                 />
+              </View>
+            ) : null}
+            {open === c.id && c.status === 'helped' && features.witnessStories ? (
+              <View style={styles.notes}>
+                <Text style={type.heading}>{t('witness.storyTitle')}</Text>
+                <Text style={type.small}>{t('witness.storyHint')}</Text>
+                <Field placeholder={t('witness.storyPlaceholder')} value={story} onChangeText={setStory} maxLength={1000} multiline />
+                <Button
+                  small
+                  label={t('witness.storyAsk')}
+                  disabled={story.trim().length < 20}
+                  onPress={() =>
+                    run(async () => {
+                      await api.draftWitnessStory(c.id, story.trim());
+                      setStory('');
+                      setSent(c.id);
+                    })
+                  }
+                />
+                {sent === c.id ? <Text style={type.small}>{t('witness.storySent')}</Text> : null}
               </View>
             ) : null}
           </View>
