@@ -123,6 +123,7 @@ export interface Comment {
   body: string;
   isUpdate: boolean;
   createdAt: string;
+  isMine?: boolean;
   author: Identity;
   depth?: number;
 }

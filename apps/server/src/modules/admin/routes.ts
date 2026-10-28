@@ -1,5 +1,6 @@
 // Admin routes: roles, tier settings, token settings, and pilot metrics. Admin-only; each
 // area's data comes from that module's public functions.
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { requireUser } from '../../auth.js';
@@ -10,11 +11,13 @@ import * as accounts from '../accounts/index.js';
 import * as activity from '../activity/index.js';
 import * as care from '../care/index.js';
 import * as commitments from '../commitments/index.js';
+import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
 import * as future from '../future/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
+import { MEDIA_BUCKET } from '../posts/media.js';
 import * as prayerActions from '../prayer-actions/index.js';
 import * as prompts from '../prompts/index.js';
 import * as radio from '../radio/index.js';
@@ -28,7 +31,7 @@ import * as report from './report.js';
 
 const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
-export function adminRoutes(app: FastifyInstance, db: Db) {
+export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   const requireAdmin = async (req: FastifyRequest) => {
     const userId = requireUser(req);
     if (!(await accounts.hasRole(db, userId, 'admin'))) throw forbidden('Admins only');
@@ -173,6 +176,19 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
   app.patch('/admin/future-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await future.updateSettings(db, future.SettingsPatch.parse(req.body)) };
+  });
+
+  // Account deletion requests from the public web page.
+  app.get('/admin/deletion-requests', async (req) => {
+    await requireAdmin(req);
+    return { requests: await deletion.pending(db) };
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/deletion-requests/:id', async (req) => {
+    const adminId = await requireAdmin(req);
+    const paths = await withTx(db, (tx) => deletion.decide(tx, adminId, req.params.id, deletion.Decision.parse(req.body)));
+    if (storage && paths.length) await storage.storage.from(MEDIA_BUCKET).remove(paths);
+    return { ok: true };
   });
 
   // Scripture leaves on the Vine feed.

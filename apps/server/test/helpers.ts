@@ -27,6 +27,7 @@ export const app = buildApp({
   },
   classify: (text) => classifier(text),
   stationKey: STATION_KEY,
+  deletionPage: { supabaseUrl: 'http://127.0.0.1:54321', publishableKey: 'sb_publishable_test', supportEmail: 'help@example.com' },
 });
 
 export let classifier: Classifier = async () => null;

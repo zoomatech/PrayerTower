@@ -6,7 +6,11 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 
 - [x] **In-app account deletion** (Me → Delete my account; `DELETE /me`). Apple requires apps that let people create accounts to "also let people initiate deletion of their account within the app". Deleting the account has to remove the user's content too, including "text posts". ([App Review: 5.1.1(v)](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion)) External TestFlight builds go through Beta App Review first. ([TestFlight](https://developer.apple.com/testflight/)) The feature erases the sign-in, profile, content and activity at once. It keeps only the append-only token ledger and moderators' decisions, under "Deleted member". Check that the privacy policy says this.
 - [ ] **Privacy policy and terms.** Drafts are in `docs/legal/` and need a lawyer's review. Publish them, then set `EXPO_PUBLIC_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_URL`. The app links to them at sign-up and on the profile. Add the privacy URL in App Store Connect and Play Console.
-- [ ] **A web page for deletion requests.** Google Play requires one. Use the hosted web app's `/delete-account`, or a request form. See `docs/store/APP_PRIVACY_ANSWERS.md`.
+- [x] **A web page for deletion requests**, which Google Play requires. It's at `https://<API host>/account-deletion` and is served by the API. Set `SUPABASE_PUBLISHABLE_KEY` and `SUPPORT_EMAIL` on the server. Check Admin → Account deletion requests weekly.
+- [x] **Members can delete their own requests and comments.** It's in the post screen, with two taps to confirm.
+- [ ] **Contact address in the app** (Apple 1.2). Set `EXPO_PUBLIC_SUPPORT_EMAIL`. It shows on the profile and with the rules.
+- [ ] **A real app icon.** A placeholder tower icon replaces Expo's default. Have a designer finalize it before App Store review.
+- [ ] **iPad screenshots.** `ios.supportsTablet` is true, so App Store Connect asks for iPad screenshots. Either provide them, or set it to false for the pilot.
 - [ ] **Store privacy answers and listing copy** from `docs/store/`.
 - [ ] **Crisis resources checked for the pilot's country**, both the crisis banner text and the numbers.
 

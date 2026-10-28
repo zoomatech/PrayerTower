@@ -23,6 +23,8 @@ export default function PostScreen() {
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Two taps to delete: the first asks "Tap again to delete".
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
@@ -137,6 +139,21 @@ export default function PostScreen() {
         {card && !card.isMine ? (
           <Text style={styles.report} onPress={() => openReport(card)} accessibilityRole="button">
             Report this request
+          </Text>
+        ) : null}
+        {card?.isMine ? (
+          <Text
+            style={styles.report}
+            accessibilityRole="button"
+            onPress={() =>
+              confirmDelete === card.id
+                ? api
+                    .deletePost(card.id)
+                    .then(() => (router.canGoBack() ? router.back() : router.replace('/')))
+                    .catch((e) => setError((e as Error).message))
+                : setConfirmDelete(card.id)
+            }>
+            {confirmDelete === card.id ? 'Tap again to delete this request for good' : 'Delete this request'}
           </Text>
         ) : null}
 
@@ -284,9 +301,27 @@ export default function PostScreen() {
                 >
                   Share
                 </Text>
-                {card && c.author.id !== profile?.id ? (
+                {card && !c.isMine && c.author.id !== profile?.id ? (
                   <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
                     Report
+                  </Text>
+                ) : null}
+                {c.isMine ? (
+                  <Text
+                    style={styles.report}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      confirmDelete === c.id
+                        ? api
+                            .deleteComment(c.id)
+                            .then(() => {
+                              setConfirmDelete(null);
+                              load();
+                            })
+                            .catch((e) => setError((e as Error).message))
+                        : setConfirmDelete(c.id)
+                    }>
+                    {confirmDelete === c.id ? 'Tap again to delete' : 'Delete'}
                   </Text>
                 ) : null}
               </View>

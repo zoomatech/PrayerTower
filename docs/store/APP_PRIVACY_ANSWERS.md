@@ -78,7 +78,7 @@ Definitions: "Collect" means transmitting data off the device. "Sharing" means t
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** |
 | Is all of the user data collected by your app encrypted in transit? | **Yes.** HTTPS/TLS to the API and Supabase. |
-| Which ways can users request that their data is deleted? | **In-app:** Me → Delete my account. **Web link:** [URL]. Google requires a web resource where people can request deletion without reinstalling the app. ([Play: account deletion](https://support.google.com/googleplay/android-developer/answer/13327111)) Use the hosted web app's `/delete-account` page, which needs sign-in, or a simple request form or email page. |
+| Which ways can users request that their data is deleted? | **In-app:** Me → Delete my account. **Web link:** `https://<your API host>/account-deletion`. Google requires a web resource where people can request deletion without reinstalling the app. ([Play: account deletion](https://support.google.com/googleplay/android-developer/answer/13327111)) The API server hosts this page. People can sign in there and delete their account at once (this needs `SUPABASE_PUBLISHABLE_KEY` on the server), or leave a request that admins handle under Admin → Account deletion requests after confirming by email. Set `SUPPORT_EMAIL` so the page shows a contact address. |
 | Account creation | "My app allows users to create an account" → username/email and password |
 
 ### Data types (all **Collected**, **Not shared**, processing **not ephemeral**, collection **required** unless noted)
@@ -108,5 +108,5 @@ Definitions: "Collect" means transmitting data off the device. "Sharing" means t
 ## Before each submission
 - [ ] There are still no analytics, crash or ad SDKs in `apps/mobile/package.json`. If one is added, update both forms.
 - [ ] Moderation still uses only OpenAI's `/v1/moderations`, not chat or completions, which are retained for abuse monitoring by default. ([OpenAI: your data](https://developers.openai.com/api/docs/guides/your-data))
-- [ ] The deletion web link works.
+- [ ] `https://<API host>/account-deletion` loads, and a test deletion works.
 - [ ] The privacy policy is published and matches these answers.

@@ -31,6 +31,19 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     return { post: (await signMedia(storage, await posts.cards(db, [post.id], viewerId)))[0] };
   });
 
+  // The poster deletes their request.
+  app.delete<{ Params: { id: string } }>('/posts/:id', async (req) => {
+    const userId = requireUser(req);
+    const paths = await withTx(db, (tx) => posts.remove(tx, userId, req.params.id));
+    if (storage && paths.length) await storage.storage.from(MEDIA_BUCKET).remove(paths);
+    return { deleted: true };
+  });
+
+  app.delete<{ Params: { id: string } }>('/comments/:id', async (req) => {
+    await posts.removeComment(db, requireUser(req), req.params.id);
+    return { deleted: true };
+  });
+
   // "Not for me": hide a post from my feed, or bring it back.
   app.put<{ Params: { id: string } }>('/posts/:id/hide', async (req) => {
     const userId = requireUser(req);

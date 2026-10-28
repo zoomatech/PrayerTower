@@ -6,4 +6,6 @@ export const env = {
   /** Where the published privacy policy and terms of use live (required by both app stores). */
   privacyUrl: process.env.EXPO_PUBLIC_PRIVACY_URL ?? '',
   termsUrl: process.env.EXPO_PUBLIC_TERMS_URL ?? '',
+  /** Published contact address (Apple 1.2 asks apps with user content for one). */
+  supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? '',
 };

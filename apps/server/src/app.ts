@@ -29,6 +29,7 @@ import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
+import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
 export interface AppDeps {
@@ -44,11 +45,13 @@ export interface AppDeps {
   stationKey?: string | null;
   /** Requests per member per minute; 0 = no limit (tests). */
   rateLimitPerMinute?: number;
+  /** The public account-deletion page (Google Play); null = page off. */
+  deletionPage?: DeletionPageOptions | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null }: AppDeps) {
   const app = Fastify({ logger });
   if (onRoute) {
     app.addHook('onRoute', (r) => {
@@ -80,6 +83,14 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
 
   // The radio station authenticates with its own key, not a member login.
   app.register(async (station) => stationRoutes(station, db, stationKey));
+
+  // The public account-deletion page, limited per IP address.
+  if (deletionPage) {
+    app.register(async (open) => {
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 10, timeWindow: '1 minute' });
+      deletionPageRoutes(open, db, deletionPage);
+    });
+  }
 
   // Everything else requires a signed-in member.
   app.register(async (authed) => {
@@ -114,7 +125,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);
     tierRoutes(authed, db);
-    adminRoutes(authed, db);
+    adminRoutes(authed, db, storage);
   });
 
   return app;

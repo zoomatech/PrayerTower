@@ -142,6 +142,37 @@ export async function markAnswered(q: Queryable, userId: string, postId: string)
   return rows[0]!;
 }
 
+/**
+ * The poster deletes their own request. It's erased with its comments, prayers
+ * and media, unless the token ledger points at it (tokens were given to it);
+ * then it's emptied and taken down instead. Returns media paths to remove.
+ */
+export async function remove(q: Queryable, userId: string, postId: string): Promise<string[]> {
+  const post = await get(q, postId);
+  if (!post || post.user_id !== userId) throw notFound('Post');
+  const { rows: media } = await q.query<{ storage_path: string }>('select storage_path from public.post_media where post_id = $1', [postId]);
+  const { rowCount } = await q.query(
+    `delete from public.posts p where p.id = $1 and not exists (select 1 from public.token_accounts a where a.post_id = p.id)`,
+    [postId],
+  );
+  if (!rowCount) {
+    await q.query(`update public.posts set body = '(deleted)', moderation_status = 'removed' where id = $1`, [postId]);
+    await q.query('delete from public.post_media where post_id = $1', [postId]);
+  }
+  return media.map((m) => m.storage_path);
+}
+
+/** The author deletes their comment. Replies from others stay, under a "(deleted)" placeholder. */
+export async function removeComment(q: Queryable, userId: string, commentId: string) {
+  const { rows } = await q.query<{ user_id: string }>('select user_id from public.comments where id = $1', [commentId]);
+  if (!rows[0] || rows[0].user_id !== userId) throw notFound('Comment');
+  const { rowCount } = await q.query(
+    `delete from public.comments c where c.id = $1 and not exists (select 1 from public.comments r where r.parent_id = c.id)`,
+    [commentId],
+  );
+  if (!rowCount) await q.query(`update public.comments set body = '(deleted)' where id = $1`, [commentId]);
+}
+
 export async function setModerationStatus(q: Queryable, target: moderation.Target, id: string, status: ModerationStatus) {
   const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events' }[target];
   await q.query(`update public.${table} set moderation_status = $2 where id = $1`, [id, status]);
@@ -213,6 +244,7 @@ function presentComment(c: CommentRow, viewerId: string | null) {
     body: c.body,
     isUpdate: c.is_update,
     createdAt: c.created_at,
+    isMine: c.user_id === viewerId,
     author: presentIdentity({ id: c.user_id, display_name: c.display_name, handle: c.handle }, c.is_anonymous, viewerId),
   };
 }

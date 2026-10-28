@@ -168,7 +168,7 @@ export default function Profile() {
         <ErrorText error={error} />
         <Button variant="ghost" label="Sign out" onPress={signOut} />
         <Button variant="ghost" label="Delete my account" onPress={() => router.push('/delete-account')} />
-        <LegalLinks />
+        <LegalLinks contact />
       </ScrollView>
     </Screen>
   );

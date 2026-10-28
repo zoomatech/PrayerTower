@@ -40,7 +40,13 @@ describe('database lock-down', () => {
 
 describe('endpoint auth', () => {
   it('refuses every route without a sign-in, except health and the station key routes', async () => {
-    const open = new Set(['GET /health', 'POST /station/claim', 'POST /station/radio-prayers/:id/result']);
+    const open = new Set([
+      'GET /health',
+      'POST /station/claim',
+      'POST /station/radio-prayers/:id/result',
+      'GET /account-deletion',
+      'POST /account-deletion/requests',
+    ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);
     const leaks: string[] = [];

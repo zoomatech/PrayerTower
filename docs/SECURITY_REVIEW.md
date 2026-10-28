@@ -5,7 +5,7 @@ Reviewed 2026-10-28 on branch `claude/project-thread-crq6q6`: 57 tables and 143 
 ## How the app is protected
 
 - **The database is closed to phones.** The app never talks to the Supabase Data API. Every table has row-level security switched on with no policies, and the `anon` and `authenticated` roles have no grants on tables, sequences or functions. The API server, which connects as `postgres`, is the only reader and writer.
-- **Every member route needs a sign-in.** All routes sit behind one auth hook that checks the Supabase access token against the project's published signing keys (JWKS) and turns suspended members away from anything but reading and appealing. Three routes are outside it. `GET /health` is one. The other two are the radio station's `/station/*` routes, which take a separate shared key compared in constant time.
+- **Every member route needs a sign-in.** All routes sit behind one auth hook that checks the Supabase access token against the project's published signing keys (JWKS) and turns suspended members away from anything but reading and appealing. Five routes are outside it. `GET /health` is one. The radio station's two `/station/*` routes take a separate shared key compared in constant time. The two public account-deletion routes, `GET /account-deletion` and `POST /account-deletion/requests`, are limited to 10 requests a minute per IP address. A request posted there only queues an entry for staff, who confirm by email before deleting anything.
 - **Staff routes check roles.** That covers admin (34 routes), moderation queues and decisions, the Witness team, care queues, macro needs and restorative circles.
 - **Object routes check ownership.** Commitments, scheduled gifts, prompts, notifications, care requests, pools, events, "answered" and "thanks" all scope by the caller. Conversations require membership. Removed or held posts, and posts from blocked members, return 404.
 - **Media stays private.** The `post-media` bucket is private. Uploads use signed upload URLs under the member's own folder, and reads use short-lived signed URLs.
@@ -17,7 +17,7 @@ These run with every `npm test` and fail if anything regresses:
 1. Every public table has RLS on, and there are no policies.
 2. `anon` and `authenticated` have no table, view, sequence or function privileges in `public`.
 3. No storage bucket is public.
-4. Every route the app registers returns 401 without a sign-in, apart from the three open routes listed above. The list of routes comes from Fastify itself, so a new route is covered automatically.
+4. Every route the app registers returns 401 without a sign-in, apart from the five open routes listed above. The list of routes comes from Fastify itself, so a new route is covered automatically.
 5. A plain member gets 403 from every admin, Witness and moderator-queue route.
 6. Media can only be attached from the member's own upload folder.
 7. The rate limit cuts off a flooding member without affecting others.

@@ -4,6 +4,10 @@ const Env = z.object({
   DATABASE_URL: z.string().default('postgresql://postgres:postgres@127.0.0.1:54322/postgres'),
   SUPABASE_URL: z.string().default('http://127.0.0.1:54321'),
   SUPABASE_SECRET_KEY: z.string().optional(),
+  /** Publishable key, only for the public account-deletion page's sign-in. */
+  SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
+  /** Shown on the account-deletion page as the contact address. */
+  SUPPORT_EMAIL: z.string().optional(),
   PORT: z.coerce.number().int().default(3000),
   OPENAI_API_KEY: z.string().optional(),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */

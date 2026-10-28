@@ -184,6 +184,7 @@ export default function Admin() {
         <Text style={type.title}>Admin</Text>
         <ErrorText error={error} />
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
+        <DeletionRequestsSection />
 
         <View style={styles.section}>
           <Text style={type.heading}>Pilot metrics</Text>
@@ -399,6 +400,58 @@ const METRIC_LABELS: Record<MilestoneRule['metric'], string> = {
   commitment_checkins: 'Commitment check-ins',
   answered_requests: 'Answered requests',
 };
+
+/**
+ * Requests from the public account-deletion web page. Email the person from
+ * the account's address first to confirm it's them; then delete.
+ */
+function DeletionRequestsSection() {
+  const [requests, setRequests] = useState<Awaited<ReturnType<typeof api.admin.deletionRequests>>['requests']>([]);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(() => {
+    api.admin
+      .deletionRequests()
+      .then((r) => setRequests(r.requests))
+      .catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  if (!requests.length) return null;
+  const decide = (id: string, action: 'delete' | 'dismiss') =>
+    api.admin
+      .decideDeletionRequest(id, action)
+      .then(() => {
+        setConfirm(null);
+        load();
+      })
+      .catch((e) => setError((e as Error).message));
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Account deletion requests</Text>
+      <Text style={type.small}>From the web page. Confirm with the person by email before deleting.</Text>
+      <ErrorText error={error} />
+      {requests.map((r) => (
+        <View key={r.id} style={styles.group}>
+          <Text style={styles.groupTitle}>{r.email}</Text>
+          <Text style={type.small}>
+            {new Date(r.createdAt).toLocaleDateString()} · {r.accountFound ? 'account found' : 'no account with this email'}
+          </Text>
+          {r.note ? <Text style={type.body}>{r.note}</Text> : null}
+          <View style={styles.row}>
+            {r.accountFound ? (
+              <Button
+                small
+                label={confirm === r.id ? 'Tap again to delete for good' : 'Delete account'}
+                onPress={() => (confirm === r.id ? decide(r.id, 'delete') : setConfirm(r.id))}
+              />
+            ) : null}
+            <Button small variant="ghost" label="Dismiss" onPress={() => decide(r.id, 'dismiss')} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 /** Reminder popups: gentle or firm by default, with 30-day results for each tone. */
 function ReminderToneSection() {

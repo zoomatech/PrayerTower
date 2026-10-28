@@ -1,6 +1,6 @@
-// Links to the privacy policy and terms of use, shown at sign-up and on the profile.
+// Links to the privacy policy, terms of use and contact address, shown at sign-up, on the profile and with the rules.
 import * as WebBrowser from 'expo-web-browser';
-import { StyleSheet, Text } from 'react-native';
+import { Linking, StyleSheet, Text } from 'react-native';
 
 import { env } from '@/lib/env';
 import { colors, type } from '@/lib/theme';
@@ -14,11 +14,19 @@ function Link({ label, url }: { label: string; url: string }) {
   );
 }
 
-export function LegalLinks({ prefix }: { prefix?: string }) {
+export function LegalLinks({ prefix, contact = false }: { prefix?: string; contact?: boolean }) {
   return (
     <Text style={[type.small, styles.center]}>
       {prefix ? `${prefix} ` : ''}
       <Link label="Terms of Use" url={env.termsUrl} /> and <Link label="Privacy Policy" url={env.privacyUrl} />.
+      {contact && env.supportEmail ? (
+        <>
+          {' Questions or concerns? '}
+          <Text style={styles.link} accessibilityRole="link" onPress={() => Linking.openURL(`mailto:${env.supportEmail}`)}>
+            {env.supportEmail}
+          </Text>
+        </>
+      ) : null}
     </Text>
   );
 }

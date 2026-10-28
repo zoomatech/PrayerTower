@@ -242,6 +242,8 @@ export const api = {
   feed: (page = 0) => get<FeedPage>(`/feed?page=${page}`),
   post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
   createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
+  deletePost: (id: string) => request<{ deleted: true }>('DELETE', `/posts/${id}`),
+  deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
   hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
   unhidePost: (id: string) => request<{ hidden: boolean }>('DELETE', `/posts/${id}/hide`),
   markAnswered: (id: string) => post<{ post: Card }>(`/posts/${id}/answered`),
@@ -302,6 +304,9 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
+    deletionRequests: () =>
+      get<{ requests: { id: string; email: string; note: string | null; createdAt: string; accountFound: boolean }[] }>('/admin/deletion-requests'),
+    decideDeletionRequest: (id: string, action: 'delete' | 'dismiss') => post<{ ok: true }>(`/admin/deletion-requests/${id}`, { action }),
     milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),
     addMilestone: (input: Pick<MilestoneRule, 'label' | 'metric' | 'threshold' | 'amount'>) =>
       post<{ rule: MilestoneRule }>('/admin/milestones', input),
