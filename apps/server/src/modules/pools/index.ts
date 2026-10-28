@@ -38,9 +38,10 @@ interface PoolRow {
   show_donor: boolean;
   closed_at: Date | null;
   created_at: Date;
+  community_id: string;
 }
 
-const COLS = 'p.id, p.owner_id, p.name, p.purpose, p.realm, p.draw_amount, p.draws_per_member_day, p.show_donor, p.closed_at, p.created_at';
+const COLS = 'p.id, p.owner_id, p.name, p.purpose, p.realm, p.draw_amount, p.draws_per_member_day, p.show_donor, p.closed_at, p.created_at, p.community_id';
 
 /** What members see: the donor only if they chose to be named. */
 async function present(q: Queryable, rows: (PoolRow & { donor: string })[], viewerId: string) {
@@ -77,8 +78,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
   );
   if (existing.rows[0]) return existing.rows[0].id;
   const { rows } = await q.query<{ id: string }>(
-    `insert into public.token_pools (owner_id, name, purpose, realm, draw_amount, draws_per_member_day, show_donor)
-     values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+    `insert into public.token_pools (owner_id, name, purpose, realm, draw_amount, draws_per_member_day, show_donor, community_id)
+     values ($1, $2, $3, $4, $5, $6, $7, public.member_community_id($1)) returning id`,
     [userId, input.name, input.purpose, input.realm, input.drawAmount, input.drawsPerMemberDay, input.showDonor],
   );
   await tokens.fundPool(q, userId, rows[0]!.id, input.amount, input.idempotencyKey);
@@ -122,13 +123,14 @@ async function drawBlock(q: Queryable, userId: string, pool: PoolRow, post: post
 export async function list(q: Queryable, viewerId: string, opts: { postId?: string; mine?: boolean } = {}) {
   const { rows } = await q.query<PoolRow & { donor: string }>(
     `select ${COLS}, pr.display_name as donor from public.token_pools p join public.profiles pr on pr.id = p.owner_id
-      where case when $2 then p.owner_id = $1 else p.closed_at is null end
+      where case when $2 then p.owner_id = $1
+                 else p.closed_at is null and p.community_id in (select community_id from public.community_memberships where user_id = $1) end
       order by p.created_at desc limit 50`,
     [viewerId, !!opts.mine],
   );
   const pools = await present(q, rows, viewerId);
   if (!opts.postId) return pools;
-  const post = await posts.getVisible(q, opts.postId);
+  const post = await posts.getViewable(q, viewerId, opts.postId);
   if (!post) throw notFound('Post');
   return Promise.all(pools.map(async (p, i) => ({ ...p, blockedReason: await drawBlock(q, viewerId, rows[i]!, post, p.balance) })));
 }
@@ -136,8 +138,9 @@ export async function list(q: Queryable, viewerId: string, opts: { postId?: stri
 export async function draw(q: Queryable, userId: string, poolId: string, postId: string) {
   await requireFeature(q, userId, 'pools');
   const pool = await get(q, poolId, true);
-  const post = await posts.getVisible(q, postId);
-  if (!post) throw notFound('Post');
+  const post = await posts.getViewable(q, userId, postId);
+  // A pool only reaches requests in its own community.
+  if (!post || post.community_id !== pool.community_id) throw notFound('Post');
   if (await moderation.awaitingCrisisReview(q, post.id)) {
     throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
   }

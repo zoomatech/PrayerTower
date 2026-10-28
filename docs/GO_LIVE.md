@@ -41,6 +41,18 @@ What the script does, in order:
 
 ## Supabase Cloud
 
+**The quick way (what Claude runs for Steve):** sign in at [supabase.com/dashboard](https://supabase.com/dashboard) (GitHub works), make an organization (Personal, Free), then create a personal access token at [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) and click its Copy button ([docs](https://supabase.com/docs/guides/platform/personal-access-tokens)). Never paste the token into a chat. `scripts/supabase-setup.sh`, run on the Mac through Remote Control, reads the token from the clipboard and then does the rest through the Management API ([Supabase for Platforms](https://supabase.com/docs/guides/integrations/supabase-for-platforms)):
+
+- it creates the project in the organization (Free plan, the `americas` region group) with a random database password;
+- it waits until the project is healthy, then saves the address, the publishable and secret keys, and the session-pooler `DATABASE_URL` ([pooler config](https://supabase.com/docs/reference/api/v1-get-pooler-config)) into `deploy/production.env`, which is gitignored and readable only by its owner;
+- it runs `scripts/go-live.sh --migrate-only`, which pushes the migrations and sets up sign-in.
+
+A project made by hand in the dashboard works too: name it **Prayer Tower** and keep the defaults (Data API on; "Automatically expose new tables" and "Enable automatic RLS" off, because the migrations revoke all Data API access and the API server talks to Postgres directly). Click **Copy** next to the database password and save it in your password manager. The script finds the project by name. When it asks for the password, copy it again, and it reads it from the clipboard.
+
+The token must be able to create projects, read API keys and their secrets, read the pooler config, and change Auth settings. A full-access token works. If the dashboard only offers scoped tokens, give it Read-write on everything. Free projects pause after a week with too little database activity, which the running API and worker prevent ([pausing](https://supabase.com/kb/faqs/platform/free-project-pausing)).
+
+**By hand instead:**
+
 1. Create a project (Pro is recommended for daily backups; see DEPLOY.md).
 2. From the project's **Connect** panel, copy the **Session pooler** string (port 5432) into `DATABASE_URL`. Supabase recommends the session pooler for long-running servers on IPv4. Direct connections are IPv6-only unless you buy the IPv4 add-on, and the transaction pooler (6543) is meant for serverless functions. ([Connecting to Postgres](https://supabase.com/docs/guides/database/connecting-to-postgres)) Keep `DATABASE_POOL_MAX` small (5); the API and worker each open a pool.
 3. Copy the project URL, the publishable key and the secret key into the env file.

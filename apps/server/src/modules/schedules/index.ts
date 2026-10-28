@@ -35,7 +35,7 @@ export interface Schedule {
 const COLS = 'id, post_id, amount, next_run_at, repeat_weeks, runs, status, error';
 
 export async function create(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewSchedule>): Promise<Schedule> {
-  const post = await posts.getVisible(q, postId);
+  const post = await posts.getViewable(q, userId, postId);
   if (!post) throw notFound('Post');
   const runAt = new Date(input.runAt);
   if (runAt.getTime() < Date.now() - 60_000) throw badRequest('Pick a time in the future');
