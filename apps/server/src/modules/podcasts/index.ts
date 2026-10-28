@@ -45,11 +45,16 @@ const SHOW = (onlyPublished: boolean) => `s.id, s.slug, c.slug as community, s.t
              where e.show_id = s.id ${onlyPublished ? 'and e.published_at is not null and e.published_at <= now()' : ''}), '[]') as episodes`;
 const FROM = 'from public.podcast_shows s left join public.communities c on c.id = s.community_id';
 
-/** Published shows for the member's community, with their published episodes. Empty while switched off. */
+/**
+ * Published shows for the member's community, with their published episodes. A show
+ * for everyone skips neutral-wording communities (Open Circle). Empty while switched off.
+ */
 export async function forMember(q: Queryable, userId: string): Promise<Show[]> {
   if (!(await enabled(q))) return [];
   const { rows } = await q.query<Show>(
-    `select ${SHOW(true)} ${FROM} where s.published and (s.community_id is null or s.community_id = public.member_community_id($1)) order by s.title`,
+    `select ${SHOW(true)} ${FROM} where s.published and (s.community_id = public.member_community_id($1) or (s.community_id is null and not exists (
+          select 1 from public.communities mc where mc.id = public.member_community_id($1)
+             and coalesce(mc.vocabulary->>'wording', case when mc.tradition = 'secular' then 'neutral' else 'faith' end) = 'neutral'))) order by s.title`,
     [userId],
   );
   return rows.filter((s) => s.episodes.length > 0);

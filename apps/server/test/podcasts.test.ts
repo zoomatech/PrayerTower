@@ -65,6 +65,17 @@ describe('Podcasts', () => {
       const oc = await podcasts.createShow(c, admin, podcasts.NewShow.parse({ ...show(`${slug}-oc`), community: 'open-circle' }));
       expect(oc.category).toBe('Society & Culture');
       expect((await podcasts.forMember(c, member)).some((x) => x.id === oc.id)).toBe(false);
+
+      // Open Circle members get only their own shows, never the faith show made for everyone.
+      await podcasts.updateShow(c, oc.id, { published: true });
+      await podcasts.addEpisode(c, oc.id, podcasts.NewEpisode.parse({ ...episode, audioUrl: 'https://cdn.example/oc1.mp3', publish: true }));
+      const circle = await createUser('Circle Listener');
+      await c.query('delete from public.community_memberships where user_id = $1', [circle]);
+      await c.query(
+        `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+        [circle],
+      );
+      expect((await podcasts.forMember(c, circle)).map((x) => x.id)).toEqual([oc.id]);
     } finally {
       await c.query('rollback');
       c.release();

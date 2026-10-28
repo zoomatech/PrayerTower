@@ -84,4 +84,21 @@ describe('Surveys', () => {
     expect((await as(member).get('/surveys')).json().surveys.map((s: { id: string }) => s.id)).not.toContain(survey.id);
     expect((await as(admin).delete(`/admin/surveys/${survey.id}`)).statusCode).toBe(200);
   });
+
+  it("keeps surveys for everyone out of Open Circle, which sees only its own", async () => {
+    const admin = await createUser('Edition Admin');
+    await grantRole(db, admin, 'admin', null);
+    const everyone = (await as(admin).post('/admin/surveys', { title: 'For everyone', questions })).json().survey;
+    const circle = (await as(admin).post('/admin/surveys', { title: 'For the circle', community: 'open-circle', questions })).json().survey;
+    for (const s of [everyone, circle]) await as(admin).patch(`/admin/surveys/${s.id}`, { status: 'open' });
+    const member = await createUser('Circle Surveyed');
+    const { rows } = await db.query<{ id: string }>(`select id from public.communities where slug = 'open-circle'`);
+    await db.query('delete from public.community_memberships where user_id = $1', [member]);
+    await db.query('insert into public.community_memberships (community_id, user_id, is_primary) values ($1, $2, true)', [rows[0]!.id, member]);
+    const seen = (await as(member).get('/surveys')).json().surveys.map((s: { id: string }) => s.id);
+    expect(seen).toContain(circle.id);
+    expect(seen).not.toContain(everyone.id);
+    expect((await as(member).post(`/surveys/${everyone.id}/responses`, { answers: [] })).statusCode).toBe(404);
+    for (const s of [everyone, circle]) await as(admin).delete(`/admin/surveys/${s.id}`);
+  });
 });

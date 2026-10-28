@@ -5,7 +5,7 @@ Admin → Surveys lets staff ask members a few questions. Nothing is shown to me
 ## How it works
 
 1. **Write a draft.** Give it a title, an optional intro, and up to 30 questions. Each question is one of: one answer, several answers, a 1 to 5 scale, or a written answer. A question can be marked "must answer".
-2. **Choose who sees it.** Leave the community blank for everyone, or enter a community's short name (for example `open-circle`) to ask only that community.
+2. **Choose who sees it.** Leave the community blank for everyone, or enter a community's short name (for example `open-circle`) to ask only that community. "Everyone" means every faith community: Open Circle and other neutral communities never see it and get only surveys made for them.
 3. **Open it.** Members see it at the top of their feed ("A short survey: …") until they answer. Each member answers once.
 4. **Close it** when you have enough answers. Closed surveys stop taking answers.
 

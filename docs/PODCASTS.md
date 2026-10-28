@@ -6,7 +6,7 @@ Staff podcasts that members hear in the app, with a public RSS feed for podcast 
 
 ## Adding a show
 
-Admin → Podcasts → New show: a short name (it becomes the feed link), title, description, host, optional square artwork link, and optionally one community. A show for a neutral community (such as Open Circle) gets the category "Society & Culture"; others get "Religion & Spirituality".
+Admin → Podcasts → New show: a short name (it becomes the feed link), title, description, host, optional square artwork link, and optionally one community. A show for a neutral community (such as Open Circle) gets the category "Society & Culture"; others get "Religion & Spirituality". A show with no community reaches every faith community but never Open Circle or other neutral communities, which see only their own shows.
 
 Then add episodes. **The audio is not uploaded to Prayer Tower.** Host each MP3 or M4A file anywhere that gives an https link (a podcast host, cloud storage, the church website) and paste the link. The server asks the host for the file's size, which podcast apps need. An episode can be published at once or saved as a draft.
 
