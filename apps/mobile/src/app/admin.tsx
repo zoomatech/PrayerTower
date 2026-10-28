@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek, type AiSettings } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -306,6 +306,7 @@ function Admin() {
         <CommunitiesSection />
         <SpokenPrayerSection />
         <AwardSection />
+        <AiSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -573,6 +574,60 @@ function CareAndEventSettingsSection() {
           <Button label={t('admin.btn.saveEvents')} onPress={() => saveEv()} />
         </>
       ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** AI features: the "not God" conversation and the circle facilitator, both off by default. */
+function AiSection() {
+  const t = useT();
+  const [s, setS] = useState<AiSettings | null>(null);
+  const [chat, setChat] = useState<{ ai_chat_enabled: boolean; ai_chat_warning: string } | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [draft, setDraft] = useState({ warning: '', chatLimit: '', facLimit: '' });
+  const [note, setNote] = useState<string | null>(null);
+  const fail = (e: unknown) => setNote((e as Error).message);
+  const show = (x: AiSettings, c: { ai_chat_enabled: boolean; ai_chat_warning: string }) => {
+    setS(x);
+    setChat(c);
+    setDraft({ warning: c.ai_chat_warning, chatLimit: String(x.chat_daily_limit), facLimit: String(x.facilitator_daily_limit) });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      Promise.all([api.admin.aiSettings(), api.admin.futureSettings()])
+        .then(([a, f]) => {
+          setConnected(a.aiConnected);
+          show(a.settings, f.settings);
+        })
+        .catch(fail);
+    }, []),
+  );
+  const save = async (patch: { chatEnabled?: boolean; facilitatorEnabled?: boolean } = {}) => {
+    try {
+      const f = await api.admin.updateFutureSettings({ aiChatEnabled: patch.chatEnabled, aiChatWarning: draft.warning || undefined });
+      const a = await api.admin.updateAiSettings({
+        facilitatorEnabled: patch.facilitatorEnabled,
+        chatDailyLimit: toInt(draft.chatLimit) ?? undefined,
+        facilitatorDailyLimit: toInt(draft.facLimit) ?? undefined,
+      });
+      show(a.settings, f.settings);
+      setNote(t('admin.saved.ai'));
+    } catch (e) {
+      fail(e);
+    }
+  };
+  if (!s || !chat) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.aiSection')}</Text>
+      <Text style={type.small}>{t(connected ? 'admin.aiConnected' : 'admin.aiNotConnected')}</Text>
+      <Toggle label={t('admin.toggle.aiChat')} hint={t('admin.toggle.aiChatHint')} value={chat.ai_chat_enabled} onChange={(v) => save({ chatEnabled: v })} />
+      <Field label={t('admin.field.aiWarning')} value={draft.warning} onChangeText={(warning) => setDraft((d) => ({ ...d, warning }))} multiline maxLength={1000} />
+      <Field label={t('admin.field.aiChatLimit')} keyboardType="number-pad" value={draft.chatLimit} onChangeText={(chatLimit) => setDraft((d) => ({ ...d, chatLimit }))} />
+      <Toggle label={t('admin.toggle.aiFacilitator')} hint={t('admin.toggle.aiFacilitatorHint')} value={s.facilitator_enabled} onChange={(v) => save({ facilitatorEnabled: v })} />
+      <Field label={t('admin.field.aiFacLimit')} keyboardType="number-pad" value={draft.facLimit} onChangeText={(facLimit) => setDraft((d) => ({ ...d, facLimit }))} />
+      <Button label={t('admin.btn.saveAi')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

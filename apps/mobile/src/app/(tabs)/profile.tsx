@@ -16,6 +16,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AiLinks } from '@/components/ai-links';
 import { AwardCard } from '@/components/award-card';
 import { CommunityPicker } from '@/components/community-picker';
 import { LanguagePicker } from '@/components/language-picker';
@@ -146,6 +147,7 @@ export default function Profile() {
         <View style={styles.chips}>
           <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
           <Button small variant="secondary" label={t('vine.branchLink')} onPress={() => router.push('/branch')} />
+          <AiLinks />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} />
         </View>

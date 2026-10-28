@@ -24,6 +24,8 @@ import { awardRoutes } from './modules/admin/award-routes.js';
 import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
+import { aiRoutes } from './modules/ai/routes.js';
+import type { Converse } from './modules/ai/provider.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
 import { messageRoutes } from './modules/messages/routes.js';
@@ -56,6 +58,8 @@ export interface AppDeps {
   corsOrigins?: string[];
   /** AI classifier for the warn-before-posting check; null = no warnings. */
   classify?: Classifier | null;
+  /** The AI for the "not God" conversation and the circle facilitator; null = fixed answers. */
+  converse?: Converse | null;
   /** Radio station worker's key; null = station API off. */
   stationKey?: string | null;
   /** Requests per member per minute; 0 = no limit (tests). */
@@ -83,7 +87,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -204,6 +208,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
     futureRoutes(authed, db);
+    aiRoutes(authed, db, converse);
     communityRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);

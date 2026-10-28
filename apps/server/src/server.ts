@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { runMigrations } from 'graphile-worker';
 import { buildApp } from './app.js';
+import { createConverser } from './modules/ai/provider.js';
 import { supabaseJwksVerifier } from './auth.js';
 import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
@@ -44,6 +45,7 @@ const app = buildApp({
   storage,
   logger: true,
   classify: createClassifier(config),
+  converse: createConverser(config),
   stationKey: config.STATION_API_KEY ?? null,
   rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
   metricsToken: config.METRICS_TOKEN ?? null,

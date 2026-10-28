@@ -3,6 +3,7 @@
 // openapi.test.ts fails when a key here no longer matches a route.
 import type { z } from 'zod';
 import * as accounts from './modules/accounts/index.js';
+import * as ai from './modules/ai/index.js';
 import * as activity from './modules/activity/index.js';
 import * as announcements from './modules/announcements/index.js';
 import * as care from './modules/care/index.js';
@@ -48,7 +49,10 @@ export const REQUEST_SCHEMAS: Record<string, { body?: z.ZodType; query?: z.ZodTy
   'POST /events': { body: events.NewEvent },
   'POST /feedback': { body: feedback.NewFeedback },
   'POST /token-store/purchases': { body: future.Purchase },
-  'POST /ai-chat': { body: future.AiChat },
+  'POST /ai-chat': { body: ai.ChatInput },
+  'POST /ai-facilitator': { body: ai.FacilitateInput },
+  'POST /circle-requests': { body: ai.CircleRequest },
+  'PATCH /admin/ai-settings': { body: ai.SettingsPatch },
   'POST /admin/invites': { body: invites.NewInvites },
   'POST /macro-needs': { body: macroNeeds.NewMacroNeed },
   'POST /posts/:id/messages': { body: messages.NewPrayerThread },

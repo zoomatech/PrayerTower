@@ -465,6 +465,10 @@ export interface AwardSettings {
   prize_note: string;
   public_hall: boolean;
 }
+export type AiTurn = { role: 'user' | 'assistant'; content: string };
+export type CircleRole = 'harmed' | 'caused' | 'unsure';
+export type CircleRequest = { id: string; userId: string; displayName: string; role: CircleRole; summary: string; status: 'open' | 'closed'; createdAt: string };
+export type AiSettings = { chat_daily_limit: number; facilitator_enabled: boolean; facilitator_daily_limit: number };
 export type MyAwards = { enabled: false; awards: [] } | { enabled: true; prize: { tokens: number; priestly: number; note: string }; publicHall: boolean; awards: Award[] };
 export type AwardHall =
   | { enabled: false; years: [] }
@@ -519,6 +523,14 @@ export const api = {
     post<{ id: string; offerTokens: number }>(`/posts/${postId}/spoken-prayers`, { storagePath, durationSeconds }),
   spokenListened: (id: string) => post<{ listened: true; paid: boolean; notEnoughTokens: boolean }>(`/spoken-prayers/${id}/listened`),
   removeSpokenPrayer: (id: string) => request<{ removed: true }>('DELETE', `/spoken-prayers/${id}`),
+  aiChatInfo: () => get<{ enabled: boolean; warning: string }>('/ai-chat'),
+  aiChat: (message: string, history: AiTurn[]) => post<{ warning: string; reply: string; crisis: boolean }>('/ai-chat', { message, history }),
+  facilitatorInfo: () => get<{ enabled: boolean; questions: Record<CircleRole, string[]> }>('/ai-facilitator'),
+  facilitate: (role: CircleRole, message: string, history: AiTurn[]) =>
+    post<{ reply: string; crisis: boolean; ai: boolean }>('/ai-facilitator', { role, message, history }),
+  askForCircle: (role: CircleRole, summary: string) => post<{ id: string }>('/circle-requests', { role, summary }),
+  circleRequests: () => get<{ requests: CircleRequest[] }>('/moderation/circle-requests'),
+  closeCircleRequest: (id: string) => post<{ closed: true }>(`/moderation/circle-requests/${id}/close`),
   awardHall: () => get<AwardHall>('/awards'),
   myAwards: () => get<MyAwards>('/me/awards'),
   acceptAward: (id: string, showName: boolean) => post<{ accepted: true; tokens: number; priestly: number }>(`/me/awards/${id}/accept`, { showName }),
@@ -613,6 +625,12 @@ export const api = {
     awardYear: (year: number) =>
       get<{ year: number; awards: Award[]; standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(`/admin/awards/${year}`),
     selectAwards: (year: number) => post<{ year: number; awards: Award[] }>(`/admin/awards/${year}/select`),
+    aiSettings: () => get<{ settings: AiSettings; aiConnected: boolean }>('/admin/ai-settings'),
+    updateAiSettings: (patch: { chatDailyLimit?: number; facilitatorEnabled?: boolean; facilitatorDailyLimit?: number }) =>
+      request<{ settings: AiSettings; aiConnected: boolean }>('PATCH', '/admin/ai-settings', patch),
+    futureSettings: () => get<{ settings: { ai_chat_enabled: boolean; ai_chat_warning: string } }>('/admin/future-settings'),
+    updateFutureSettings: (patch: { aiChatEnabled?: boolean; aiChatWarning?: string }) =>
+      request<{ settings: { ai_chat_enabled: boolean; ai_chat_warning: string } }>('PATCH', '/admin/future-settings', patch),
     spokenPrayerSettings: () => get<{ settings: SpokenPrayerSettings }>('/admin/spoken-prayers'),
     updateSpokenPrayerSettings: (patch: { enabled?: boolean; maxSeconds?: number; maxOfferTokens?: number }) =>
       request<{ settings: SpokenPrayerSettings }>('PATCH', '/admin/spoken-prayers', patch),

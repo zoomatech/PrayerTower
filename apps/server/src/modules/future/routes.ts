@@ -3,7 +3,7 @@ import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import * as future from './index.js';
 
-// Switched-off groundwork: token store, Common Prayer Fund page, AI conversation.
+// Switched-off groundwork: token store and Common Prayer Fund page. The AI conversation is in modules/ai.
 export function futureRoutes(app: FastifyInstance, db: Db) {
   app.get('/token-store', async (req) => {
     requireUser(req);
@@ -17,10 +17,4 @@ export function futureRoutes(app: FastifyInstance, db: Db) {
     return future.commonFund(db);
   });
 
-  app.get('/ai-chat', async (req) => {
-    requireUser(req);
-    return future.aiChatInfo(db);
-  });
-
-  app.post('/ai-chat', async (req) => future.aiChat(db, requireUser(req), future.AiChat.parse(req.body)));
 }
