@@ -1,6 +1,6 @@
 import type { Card, FeedTheme, Prompt } from "@prayer-tower/shared";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { colors, maxContentWidth, radius, space, type } from "@/lib/theme";
+import { tourSeen } from "@/lib/tour";
 
 /** Wide screens show the highlights in a right column; phones link to them. */
 const WIDE = 1000;
@@ -43,6 +44,14 @@ export default function Feed() {
   const [highlights, setHighlights] = useState<HighlightsData | null>(null);
   const wide = useWindowDimensions().width >= WIDE;
   const loadingMore = useRef(false);
+
+  // First time on this device: show the short tour once.
+  useEffect(() => {
+    if (!profile?.id) return;
+    tourSeen(profile.id).then((seen) => {
+      if (!seen) router.push("/tour");
+    });
+  }, [profile?.id]);
 
   const load = useCallback(async () => {
     setRefreshing(true);
