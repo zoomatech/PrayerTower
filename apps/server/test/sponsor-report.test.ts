@@ -3,6 +3,10 @@ import { grantRole } from '../src/modules/accounts/index.js';
 import { toHtml, weeklySponsorReportTask } from '../src/modules/admin/sponsor-report.js';
 import type { Mail } from '../src/modules/digest/mailer.js';
 import { as, createUser, db, newRequest } from './helpers.js';
+import { languages } from '../src/language.js';
+
+// These tests check the Spanish text, which members see only with SPANISH_ENABLED=1.
+languages.spanish = true;
 
 afterAll(async () => {
   await db.end();

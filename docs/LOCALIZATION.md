@@ -1,4 +1,13 @@
-# Languages (English and Spanish)
+# Languages: English only for now
+
+> **Members see English only (Steve, 2026-10-28).** The app, notifications, push, emails, prompts and the public website are all English, whatever the phone's language or a language saved earlier. The language picker, the Spanish fields on Admin → Announcements and Invite codes, and the `/es` website pages are hidden; old `/es` links go to the English page. The Spanish text below stays in the code, switched off:
+>
+> - **App:** build with `EXPO_PUBLIC_SPANISH=1` (`env.spanish`). To list Spanish in the phone's per-app language setting again, add `"es"` back to `supportedLocales` in `app.json` and `"locales": { "es": "./languages/es.json" }`.
+> - **Server:** set `SPANISH_ENABLED=1` (`src/language.ts`). Everything that writes to a member goes through `memberLang()`, which gives English while it is off.
+> - Tests: `test/english-only.test.ts` checks the default; the Spanish tests turn the switch on for themselves.
+>
+> The rest of this page describes how it works with Spanish on.
+
 
 > Set up 2026-10-28 following Expo's localization guide (https://docs.expo.dev/guides/localization/): `expo-localization` reads the phone's language, and `i18n-js` holds the strings.
 

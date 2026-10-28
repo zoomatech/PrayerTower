@@ -68,10 +68,10 @@ test('the newer screens (settings, Me, messages, events, care, admin, audit log,
   await visit(admin, 'announcements', '/announcements');
   await visit(admin, 'feedbackTriage', '/feedback-triage');
   await visit(admin, 'csvImport', '/import');
-  // In Spanish the page language must follow (WCAG 3.1.1).
+  // English only: Spanish saved by an older build is ignored, and the page language stays English (WCAG 3.1.1).
   await page.evaluate(() => window.localStorage.setItem('prayer-tower.language', 'es'));
-  await visit(page, 'spanishSettings', '/notification-settings');
-  expect(await page.locator('html').getAttribute('lang')).toBe('es');
+  await visit(page, 'savedSpanish', '/notification-settings');
+  expect(await page.locator('html').getAttribute('lang')).toBe('en');
   await page.evaluate(() => window.localStorage.removeItem('prayer-tower.language'));
   expect(found).toEqual({
     notificationSettings: [],
@@ -87,16 +87,17 @@ test('the newer screens (settings, Me, messages, events, care, admin, audit log,
     announcements: [],
     feedbackTriage: [],
     csvImport: [],
-    spanishSettings: [],
+    savedSpanish: [],
   });
 });
 
-test('the public website has no violations in English or Spanish', async ({ page }) => {
+test('the public website is English only and has no violations', async ({ page }) => {
   const api = process.env.E2E_API_URL ?? 'http://127.0.0.1:3000';
   const found: Record<string, string[]> = {};
-  for (const path of ['/', '/support', '/privacy', '/terms', '/account-deletion', '/es', '/es/support', '/es/privacy', '/es/terms', '/es/account-deletion']) {
+  // The old /es addresses lead to the English pages.
+  for (const path of ['/', '/support', '/privacy', '/terms', '/account-deletion', '/es', '/es/support']) {
     await page.goto(api + path);
-    expect(await page.locator('html').getAttribute('lang')).toBe(path.startsWith('/es') ? 'es' : 'en');
+    expect(await page.locator('html').getAttribute('lang')).toBe('en');
     found[path] = await scan(page);
   }
   expect(Object.entries(found).filter(([, v]) => v.length)).toEqual([]);

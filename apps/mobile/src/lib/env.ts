@@ -17,5 +17,7 @@ export const env = {
   crisisCountry: process.env.EXPO_PUBLIC_CRISIS_COUNTRY ?? 'US',
   /** Crash reporting (Sentry); unset = off. The DSN is public by design. */
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
+  /** Members see English only (Steve, 2026-10-28). EXPO_PUBLIC_SPANISH=1 brings back Spanish and the language picker. */
+  spanish: process.env.EXPO_PUBLIC_SPANISH === '1',
   sentryEnvironment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'production',
 };

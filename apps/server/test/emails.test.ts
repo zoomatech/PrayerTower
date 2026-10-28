@@ -8,6 +8,10 @@ import { recipientLangs, weeklySponsorReportTask } from '../src/modules/admin/sp
 import type { Mail } from '../src/modules/digest/mailer.js';
 import { renderInviteEmail } from '../src/modules/invites/email.js';
 import { app as noMailApp, createUser, db } from './helpers.js';
+import { languages } from '../src/language.js';
+
+// These tests check the Spanish text, which members see only with SPANISH_ENABLED=1.
+languages.spanish = true;
 
 afterAll(() => db.end());
 

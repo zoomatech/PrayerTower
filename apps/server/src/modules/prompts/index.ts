@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { product } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, notFound } from '../../errors.js';
+import { memberLang } from '../../language.js';
 import { following, getProfile } from '../accounts/index.js';
 import * as commitments from '../commitments/index.js';
 import * as posts from '../posts/index.js';
@@ -63,7 +64,7 @@ export type Tone = 'gentle' | 'firm';
 
 /** Firm copy is Steve's own wording from notebook Page 14. */
 export function question(tone: Tone, who: string, committed: boolean, locale = 'en'): string {
-  if (locale === 'es') {
+  if (memberLang(locale) === 'es') {
     if (who === 'this request') who = 'esta petición';
     if (tone === 'firm') {
       return committed

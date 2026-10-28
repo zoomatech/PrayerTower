@@ -2,6 +2,7 @@
 // Spanish. It carries the code, where to get the app, and (when the web app's
 // address is set) a link that opens sign-up with the code filled in.
 import { z } from 'zod';
+import { memberLang } from '../../language.js';
 import type { Mail } from '../digest/mailer.js';
 
 export type InviteLang = 'en' | 'es';
@@ -51,7 +52,8 @@ const TEXT = {
 } satisfies Record<InviteLang, unknown>;
 
 export function renderInviteEmail(input: { to: string; code: string; lang: InviteLang; from: string; message?: string | null; links: InviteLinks }): Mail {
-  const t = TEXT[input.lang];
+  const lang = memberLang(input.lang);
+  const t = TEXT[lang];
   const signUp = input.links.webAppUrl ? `${input.links.webAppUrl.replace(/\/$/, '')}/sign-in?invite=${encodeURIComponent(input.code)}` : null;
   const stores = [
     input.links.appStoreUrl ? { label: t.ios, url: input.links.appStoreUrl } : null,
@@ -71,7 +73,7 @@ export function renderInviteEmail(input: { to: string; code: string; lang: Invit
     '—',
     t.footer,
   ].join('\n');
-  const html = `<!doctype html><html lang="${input.lang}"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
+  const html = `<!doctype html><html lang="${lang}"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
 <p>${esc(t.hello(input.from))}</p>
 <p>${esc(t.code)}:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px;font-family:ui-monospace,monospace">${esc(input.code)}</p>
 <p>${esc(t.steps)}</p>

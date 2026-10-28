@@ -1,14 +1,17 @@
-// App language: English (default) and Spanish. The member picks a language on
-// the Me screen, or follows the phone ("System"); the choice is saved on this
-// device. Strings live in src/locales/<code>.ts. A key missing from a locale
-// falls back to English. Enum labels (post types, realms...) fall back to the
-// English labels in @prayer-tower/shared, so English needs no copy of them.
+// App language: English only for now (Steve, 2026-10-28). The Spanish strings
+// stay in src/locales/es.ts and come back with EXPO_PUBLIC_SPANISH=1 (env.spanish),
+// which also shows the language picker. With Spanish on, the member picks a
+// language on the Me screen, or follows the phone ("System"); the choice is saved
+// on this device. Strings live in src/locales/<code>.ts. A key missing from a
+// locale falls back to English. Enum labels (post types, realms...) fall back to
+// the English labels in @prayer-tower/shared, so English needs no copy of them.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import { I18n, type TranslateOptions } from 'i18n-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState, Platform, Text, type StyleProp, type TextStyle } from 'react-native';
 
+import { env } from '@/lib/env';
 import en from '@/locales/en';
 import es from '@/locales/es';
 
@@ -62,7 +65,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => undefined);
   }, []);
 
-  const language = choice === 'system' ? device : choice;
+  const language: Language = !env.spanish ? 'en' : choice === 'system' ? device : choice;
   // Screen readers on the web pick their voice from <html lang> (WCAG 3.1.1).
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined' && document.documentElement.lang !== language) document.documentElement.lang = language;

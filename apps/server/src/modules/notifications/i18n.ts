@@ -3,6 +3,8 @@
 // translation when the recipient reads another language and the key exists here.
 // Spanish drafted 2026-10-28; have a native speaker review before release.
 
+import { memberLang } from '../../language.js';
+
 export type Params = Record<string, string | number | boolean | null | undefined>;
 type Template = (p: Params) => { title: string; body: string };
 
@@ -103,6 +105,7 @@ const catalogs: Record<string, Record<string, Template>> = { es };
 
 /** The notification in `locale`, or null to keep the English text. */
 export function localize(locale: string | null | undefined, key: string, params: Params = {}) {
-  const template = locale ? catalogs[locale]?.[key] : undefined;
+  const lang = memberLang(locale);
+  const template = lang !== 'en' ? catalogs[lang]?.[key] : undefined;
   return template ? template(params) : null;
 }

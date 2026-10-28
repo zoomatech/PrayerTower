@@ -4,6 +4,7 @@
 import type { Task } from 'graphile-worker';
 import type { Locale } from '@prayer-tower/shared';
 import type { Queryable } from '../../db.js';
+import { memberLang } from '../../language.js';
 import { weeklyReview } from '../commitments/index.js';
 import type { Mail, Mailer } from './mailer.js';
 
@@ -69,7 +70,8 @@ const TEXT = {
   },
 } satisfies Record<Locale, unknown>;
 
-export function renderDigest(d: Digest, locale: Locale, to: string): Mail {
+export function renderDigest(d: Digest, saved: Locale, to: string): Mail {
+  const locale = memberLang(saved);
   const t = TEXT[locale] ?? TEXT.en;
   const lines = [t.hello(d.name), '', t.week(d), t.promises(d)].filter((l, i) => i < 2 || l);
   const answered = d.answered.map((a) => `• ${a.body}${a.mine ? ` ${t.mine}` : ''}`);
