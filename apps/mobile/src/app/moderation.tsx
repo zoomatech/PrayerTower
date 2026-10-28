@@ -18,8 +18,10 @@ const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter(
 
 function Moderation() {
   const { t, label, language: locale } = useLocale();
-  const { pressureRule, legalReview } = useFeatures();
-  const ruleChoices = RULE_CHOICES.filter((r) => r !== 'pressure' || pressureRule);
+  const { pressureRule, misleadingRule, automationRule, legalReview } = useFeatures();
+  // Rules with a switch are offered only while it is on.
+  const switchedOn: Partial<Record<ModerationRule, boolean>> = { pressure: pressureRule, misleading: misleadingRule, automation: automationRule };
+  const ruleChoices = RULE_CHOICES.filter((r) => switchedOn[r] ?? true);
   const [escalated, setEscalated] = useState<Record<string, boolean>>({});
   const ruleLabel = (r: ModerationRule) => label('moderationRule', r, MODERATION_RULES[r]);
   const [items, setItems] = useState<ModerationItem[]>([]);

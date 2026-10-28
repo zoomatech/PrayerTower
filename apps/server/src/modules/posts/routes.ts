@@ -150,9 +150,10 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const userId = requireUser(req);
     const input = posts.AskToPray.parse(req.body);
     const sent = await withTx(db, async (tx) => {
-      const { recipients, senderName, preview } = await posts.askToPray(tx, userId, req.params.id, input);
+      const { recipients, nameFor, preview } = await posts.askToPray(tx, userId, req.params.id, input);
       let n = 0;
       for (const recipientId of recipients) {
+        const senderName = nameFor(recipientId);
         const id = await notifications.notify(tx, recipientId, {
           kind: 'pray_request',
           title: `${senderName} would like you to pray for this`,

@@ -62,11 +62,12 @@ interface AwardRow {
   people: number;
   status: 'offered' | 'accepted' | 'declined';
   show_name: boolean;
+  prize_choice: PrizeChoice;
   decided_at: Date | null;
 }
 const shape = (r: AwardRow) => ({
   id: r.id, year: r.year, rank: r.rank, userId: r.user_id, name: r.name, prayers: r.prayers, checkins: r.checkins,
-  peoplePrayedFor: r.people, status: r.status, showName: r.show_name, decidedAt: r.decided_at,
+  peoplePrayedFor: r.people, status: r.status, showName: r.show_name, prizeChoice: r.prize_choice, decidedAt: r.decided_at,
 });
 const SELECT = `select a.*, coalesce(nullif(p.display_name, ''), 'Member') as name
                   from public.prayer_warrior_awards a join public.profiles p on p.id = a.user_id`;
@@ -127,7 +128,13 @@ export async function mine(q: Queryable, userId: string) {
   };
 }
 
-export const Accept = z.object({ showName: z.boolean().default(false) });
+export const PRIZE_CHOICES = ['keep', 'donate', 'split'] as const;
+export type PrizeChoice = (typeof PRIZE_CHOICES)[number];
+/** `prize` counts only while the "Award winners choose" switch is on; otherwise the winner keeps it. */
+export const Accept = z.object({ showName: z.boolean().default(false), prize: z.enum(PRIZE_CHOICES).default('keep') });
+
+/** The share given away: all of it, half (rounded down) for a split, or none. */
+export const donatedShare = (amount: number, choice: PrizeChoice) => (choice === 'donate' ? amount : choice === 'split' ? Math.floor(amount / 2) : 0);
 
 /** Accept: pay the token prizes once, and record whether the Hall may show the name. */
 export async function accept(q: Queryable, userId: string, id: string, input: z.infer<typeof Accept>) {
@@ -137,16 +144,30 @@ export async function accept(q: Queryable, userId: string, id: string, input: z.
   const a = rows[0];
   if (!a) throw notFound('Award');
   if (a.status === 'declined') throw conflict('You declined this award');
+  const { rows: sw } = await q.query<{ on: boolean }>('select prize_choice_enabled as on from public.notebook_settings');
+  // The choice is made once, on accepting; afterwards only the name setting can change.
+  const choice: PrizeChoice = a.status === 'offered' ? (sw[0]?.on ? input.prize : 'keep') : a.prize_choice;
+  const give = { tokens: donatedShare(s.token_prize, choice), priestly: donatedShare(s.priestly_prize, choice) };
   if (a.status === 'offered') {
+    // The winner is paid the whole prize, then gives the donated share to the infrastructure fund, so the ledger shows both.
     const t = s.token_prize > 0 ? await tokens.awardBonus(q, userId, `award-${a.year}`, s.token_prize) : null;
     const p = s.priestly_prize > 0 ? await tokens.awardBonus(q, userId, `award-${a.year}-priestly`, s.priestly_prize, 'priestly') : null;
+    if (give.tokens > 0) await tokens.donate(q, userId, give.tokens, `award-${a.year}`, 'regular');
+    if (give.priestly > 0) await tokens.donate(q, userId, give.priestly, `award-${a.year}-priestly`, 'priestly');
     await q.query(
-      `update public.prayer_warrior_awards set status = 'accepted', decided_at = now(), token_transfer_id = $2, priestly_transfer_id = $3 where id = $1`,
-      [id, t?.id ?? null, p?.id ?? null],
+      `update public.prayer_warrior_awards set status = 'accepted', decided_at = now(), token_transfer_id = $2, priestly_transfer_id = $3, prize_choice = $4 where id = $1`,
+      [id, t?.id ?? null, p?.id ?? null, choice],
     );
   }
   await q.query('update public.prayer_warrior_awards set show_name = $2 where id = $1', [id, input.showName]);
-  return { accepted: true, tokens: a.status === 'offered' ? s.token_prize : 0, priestly: a.status === 'offered' ? s.priestly_prize : 0 };
+  const paid = a.status === 'offered';
+  return {
+    accepted: true,
+    prizeChoice: choice,
+    tokens: paid ? s.token_prize - give.tokens : 0,
+    priestly: paid ? s.priestly_prize - give.priestly : 0,
+    donated: paid ? give : { tokens: 0, priestly: 0 },
+  };
 }
 
 export async function decline(q: Queryable, userId: string, id: string) {

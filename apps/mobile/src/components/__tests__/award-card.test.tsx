@@ -30,6 +30,6 @@ describe('AwardCard', () => {
     expect(await screen.findByText('You are a 2026 Prayer Warrior')).toBeTruthy();
     expect(screen.getByText('With the award: 25 tokens and 2 Priestly tokens.')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Accept the award' }));
-    expect(mocked.acceptAward).toHaveBeenCalledWith('a1', true);
+    expect(mocked.acceptAward).toHaveBeenCalledWith('a1', true, undefined);
   });
 });

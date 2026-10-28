@@ -24,6 +24,7 @@ import { awardRoutes } from './modules/admin/award-routes.js';
 import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { surveyRoutes } from './modules/surveys/routes.js';
+import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
@@ -50,6 +51,7 @@ import { feedbackRoutes } from './modules/feedback/routes.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
+import { waitlistAdminRoutes, waitlistJoinRoutes } from './modules/waitlist/routes.js';
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
 import type { AppleVerifier } from './modules/store/index.js';
 import { storeNotificationRoutes } from './modules/store/routes.js';
@@ -183,6 +185,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     });
   }
 
+  // Joining the waitlist (switched off by default), limited per IP address.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 10, timeWindow: '1 minute' });
+    waitlistJoinRoutes(open, db);
+  });
+
   // The public website, limited per IP address.
   if (site) {
     app.register(async (open) => {
@@ -244,6 +252,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
+    quickReactionRoutes(authed, db);
+    waitlistAdminRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);

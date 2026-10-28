@@ -4,6 +4,8 @@ import { languages } from '../../language.js';
 import * as site from './index.js';
 import * as openCircle from './open-circle.js';
 import { promisePage } from './promise.js';
+import { waitlistPage } from '../waitlist/page.js';
+import * as waitlist from '../waitlist/index.js';
 
 /** Public pages: no sign-in. Built once at start-up; restart to pick up a new policy file. */
 export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db) {
@@ -66,6 +68,21 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db
     const prefixed = promisePage(oc.name, openCircle.brand(oc, openCircle.PREFIX));
     app.get(`${openCircle.PREFIX}/promise`, async (_req, reply) =>
       (await promiseOn()) ? reply.type(html).send(prefixed) : reply.code(404).type(html).send(notFound()),
+    );
+  }
+
+  // The waitlist, only while Admin → Notebook ideas has it on.
+  const waitlistOn = async () => (db ? waitlist.enabled(db) : false);
+  const prayerWaitlist = waitlistPage('Prayer Tower');
+  const ocWaitlist = oc ? waitlistPage(oc.name, openCircle.brand(oc, '')) : null;
+  app.get('/waitlist', async (req, reply) => {
+    if (!(await waitlistOn())) return reply.code(404).type(html).send(notFound());
+    return reply.type(html).send(ocHere(req) ? ocWaitlist : prayerWaitlist);
+  });
+  if (oc) {
+    const prefixed = waitlistPage(oc.name, openCircle.brand(oc, openCircle.PREFIX));
+    app.get(`${openCircle.PREFIX}/waitlist`, async (_req, reply) =>
+      (await waitlistOn()) ? reply.type(html).send(prefixed) : reply.code(404).type(html).send(notFound()),
     );
   }
 
