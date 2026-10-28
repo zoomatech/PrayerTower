@@ -19,5 +19,11 @@ export const env = {
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
   /** Members see English only (Steve, 2026-10-28). EXPO_PUBLIC_SPANISH=1 brings back Spanish and the language picker. */
   spanish: process.env.EXPO_PUBLIC_SPANISH === '1',
+  /**
+   * Which edition this build is. "open-circle" is the separately branded, non-religious app
+   * (Steve, 2026-10-28): its wording is always neutral and new members join the Open Circle community.
+   * Unset = Prayer Tower, where wording follows the member's community.
+   */
+  edition: process.env.EXPO_PUBLIC_EDITION === 'open-circle' ? ('open-circle' as const) : ('prayer-tower' as const),
   sentryEnvironment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'production',
 };

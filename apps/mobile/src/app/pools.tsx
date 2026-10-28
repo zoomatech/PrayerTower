@@ -11,7 +11,7 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function PoolsScreen() {
-  const { t, label } = useLocale();
+  const { t, label, n } = useLocale();
   const [mine, setMine] = useState<TokenPool[]>([]);
   const [open, setOpen] = useState<TokenPool[]>([]);
   const [balance, setBalance] = useState(0);
@@ -81,7 +81,7 @@ export default function PoolsScreen() {
             <View style={styles.card}>
               <Text style={type.heading}>{t('pools.start')}</Text>
               <Text style={type.small}>{t('pools.youHave', { count: balance })}</Text>
-              {balance === 0 ? <Text style={type.small}>Each prayer you offer for someone else earns a token.</Text> : null}
+              {balance === 0 ? <Text style={type.small}>{n('Each prayer you offer for someone else earns a token.')}</Text> : null}
               <Field label={t('pools.name')} value={name} onChangeText={setName} maxLength={60} placeholder={t('pools.namePlaceholder')} />
               <Field label={t('pools.purpose')} value={purpose} onChangeText={setPurpose} maxLength={280} multiline />
               <Text style={type.small}>{t('pools.onlyFor')}</Text>

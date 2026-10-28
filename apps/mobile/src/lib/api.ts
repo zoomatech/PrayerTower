@@ -441,13 +441,26 @@ export interface NewPost {
   media?: { kind: 'image' | 'video'; storagePath: string }[];
 }
 
+/** A community members belong to; "secular" ones (Open Circle) use neutral wording. */
+export interface Community {
+  slug: string;
+  name: string;
+  tradition: string;
+  status: 'active' | 'hidden';
+  isDefault: boolean;
+  enabledPostTypes: string[];
+  members?: number;
+}
+
 export const api = {
   /** Public: whether sign-up needs an invite code. */
   signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
   announcements: () => get<{ announcements: Announcement[] }>('/announcements'),
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
-  me: () => cachedGet<{ profile: Profile; roles: Role[] }>('me', '/me'),
+  me: () => cachedGet<{ profile: Profile; roles: Role[]; community?: Community | null }>('me', '/me'),
+  communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
+  chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
   sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
     post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
@@ -528,6 +541,9 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
+    communities: () => get<{ communities: Community[] }>('/admin/communities'),
+    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden' }) =>
+      request<{ community: Community }>('PATCH', `/admin/communities/${slug}`, patch),
     deletionRequests: () =>
       get<{ requests: { id: string; email: string; note: string | null; createdAt: string; accountFound: boolean }[] }>('/admin/deletion-requests'),
     prayerWarriors: (days = 365) =>

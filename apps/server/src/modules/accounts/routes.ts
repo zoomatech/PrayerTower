@@ -11,13 +11,14 @@ import { prayerStats } from '../prayer-stats/index.js';
 import { MEDIA_BUCKET } from '../posts/media.js';
 import { exportData } from './export.js';
 import * as accounts from './index.js';
+import * as communities from '../communities/index.js';
 
 export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   app.get('/me', async (req) => {
     const userId = requireUser(req);
     const profile = await accounts.getProfile(db, userId);
     if (!profile) throw notFound('Profile');
-    return { profile, roles: await accounts.roles(db, userId) };
+    return { profile, roles: await accounts.roles(db, userId), community: await communities.mine(db, userId) };
   });
 
   // A member's own ad fines (empty unless the switch was ever on).

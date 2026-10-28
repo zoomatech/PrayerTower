@@ -3,6 +3,7 @@ import type { Profile, Role } from '@prayer-tower/shared';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { api, ApiError } from './api';
+import { setWording, wordingForTradition } from './i18n';
 import { clearOffline } from './offline';
 import { supabase } from './supabase';
 
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await api.me();
       setProfile(me.profile);
       setRoles(me.roles ?? []);
+      setWording(wordingForTradition(me.community?.tradition));
       setProfileError(null);
     } catch (e) {
       // The account is gone or the sign-in no longer works: back to the sign-in screen.
@@ -56,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else {
         setProfile(null);
         setRoles([]);
+        setWording('faith');
         setProfileError(null);
       }
     });

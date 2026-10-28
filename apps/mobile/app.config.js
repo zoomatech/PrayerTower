@@ -12,10 +12,32 @@
 // google-services.json exists: either the file in this folder, or an EAS file
 // environment variable GOOGLE_SERVICES_JSON (its path on the build server).
 // docs/archive/ANDROID_PUSH.md; https://docs.expo.dev/push-notifications/fcm-credentials/
+//
+// EXPO_PUBLIC_EDITION=open-circle builds the separately branded, non-religious
+// app (Steve, 2026-10-28): its own name, bundle ID and link scheme, always the
+// neutral wording, and new members join the Open Circle community. Its icon is
+// assets/images/open-circle-icon.png when that file exists, else the usual one.
+// "Open Circle" is a placeholder name until Steve picks one.
 const fs = require('node:fs');
 const path = require('node:path');
 
 const STAGING = process.env.APP_VARIANT === 'staging';
+const OPEN_CIRCLE = process.env.EXPO_PUBLIC_EDITION === 'open-circle';
+
+/** The Open Circle app's name, IDs and icon over the Prayer Tower ones. */
+function openCircle(config) {
+  const id = 'com.zoomatech.opencircle';
+  const icon = fs.existsSync(path.join(__dirname, 'assets/images/open-circle-icon.png')) ? './assets/images/open-circle-icon.png' : config.icon;
+  return {
+    ...config,
+    name: 'Open Circle',
+    slug: 'open-circle',
+    scheme: 'opencircle',
+    icon,
+    ios: { ...config.ios, bundleIdentifier: id },
+    android: { ...config.android, package: id },
+  };
+}
 
 /** The google-services.json to build with, or null while Android push is off. */
 function googleServicesFile() {
@@ -29,6 +51,7 @@ function easProjectId(config) {
 }
 
 module.exports = ({ config }) => {
+  if (OPEN_CIRCLE) config = openCircle(config);
   const firebase = googleServicesFile();
   const android = firebase ? { ...config.android, googleServicesFile: firebase } : config.android;
   const projectId = easProjectId(config);

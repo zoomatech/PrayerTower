@@ -14,6 +14,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CommunityPicker } from '@/components/community-picker';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
@@ -26,7 +27,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Profile() {
   const { profile, roles, refreshProfile, signOut } = useAuth();
-  const { t, label } = useLocale();
+  const { t, label, n, wording } = useLocale();
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export default function Profile() {
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Text style={styles.statValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>
-              {tier?.tier?.label ?? '—'}
+              {tier?.tier?.label ? n(tier.tier.label) : '—'}
             </Text>
             <Text style={type.small}>{profile.anonymous_by_default ? t('profile.tierPrivate') : t('profile.tier')}</Text>
           </View>
@@ -92,7 +93,7 @@ export default function Profile() {
         </View>
         {tier?.next ? (
           <Text style={type.small}>
-            {t('profile.nextTier', { count: tier.next.prayersNeeded, tier: tier.next.label })}
+            {t('profile.nextTier', { count: tier.next.prayersNeeded, tier: n(tier.next.label) })}
           </Text>
         ) : null}
         {tokens ? (
@@ -210,9 +211,12 @@ export default function Profile() {
           onChange={(v) => update({ showPrayerStats: v }).then(loadStats)}
         />
         <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
+        <CommunityPicker />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
-        <Button variant="secondary" label={roles.includes('pastor') ? t('profile.myChurch') : t('profile.churchApply')} onPress={() => router.push('/church')} />
+        {wording === 'faith' ? (
+          <Button variant="secondary" label={roles.includes('pastor') ? t('profile.myChurch') : t('profile.churchApply')} onPress={() => router.push('/church')} />
+        ) : null}
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
           <>
             <Button variant="secondary" label={t('profile.moderation')} onPress={() => router.push('/moderation')} />

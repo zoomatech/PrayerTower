@@ -9,6 +9,7 @@ import { badRequest, notFound } from '../../errors.js';
 import { memberLang } from '../../language.js';
 import { following, getProfile } from '../accounts/index.js';
 import * as commitments from '../commitments/index.js';
+import { isSecular } from '../communities/index.js';
 import * as posts from '../posts/index.js';
 import * as prayerActions from '../prayer-actions/index.js';
 
@@ -57,13 +58,22 @@ export async function next(q: Queryable, userId: string, now = new Date()): Prom
     [userId, postId, commitmentId, now, tone],
   );
   const who = await posts.promptSubject(q, postId, userId);
-  return { id: rows[0]!.id, postId, commitmentId, question: question(tone, who, !!commitmentId, profile.locale), tone };
+  return { id: rows[0]!.id, postId, commitmentId, question: question(tone, who, !!commitmentId, profile.locale, await isSecular(q, userId)), tone };
 }
 
 export type Tone = 'gentle' | 'firm';
 
 /** Firm copy is Steve's own wording from notebook Page 14. */
-export function question(tone: Tone, who: string, committed: boolean, locale = 'en'): string {
+export function question(tone: Tone, who: string, committed: boolean, locale = 'en', secular = false): string {
+  // Open Circle, the non-religious community, in English.
+  if (secular) {
+    if (tone === 'firm') {
+      return committed
+        ? `Remember, you promised to be there for ${who}. Won't you take just a moment now?`
+        : `Don't let your friends down. Would you send some support to ${who} now?`;
+    }
+    return committed ? `When did you last check in on ${who}?` : `Would you send some support to ${who} today?`;
+  }
   if (memberLang(locale) === 'es') {
     if (who === 'this request') who = 'esta petición';
     if (tone === 'firm') {
