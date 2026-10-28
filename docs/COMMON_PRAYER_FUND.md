@@ -40,6 +40,6 @@ POST /admin/common-fund/entries
 
 ## Files
 
-- `supabase/migrations/20261029002700_common_fund_ledger.sql`
+- `supabase/migrations/20261029003200_common_fund_ledger.sql`
 - `apps/server/src/modules/common-fund/`
 - Tests: `apps/server/test/common-fund.test.ts` and `test/future.test.ts`
