@@ -30,8 +30,9 @@ export const logTransmitter: Transmitter = async (p) => {
 };
 
 /**
- * Queue a radio prayer. Amplify sends it `radio_amplify_repeats` times and is
- * only offered while radio prayers are free (amateur rules, 97.113).
+ * Queue a radio prayer. Amplify sends it `radio_amplify_repeats` times. It is free
+ * while radio prayers are free; otherwise it costs `amplify_paid_cost` Priestly
+ * tokens, and is refused while no admin has set that price.
  */
 export async function queue(q: Queryable, userId: string, postId: string, key: string, amplify = false): Promise<RadioPrayer> {
   const post = await posts.getActionable(q, userId, postId);
@@ -47,8 +48,10 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   if (post.is_sensitive) throw conflict("Sensitive requests aren't sent by radio.");
   // 'free' mode: no tokens move; Priestly tokens are donations only.
   if (await moderation.awaitingCrisisReview(q, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
-  if (amplify && s.radio_funding !== 'free') {
-    throw conflict('Amplify is only available while radio prayers are free: amateur radio rules forbid tying a transmission to payment.');
+  // Paid Amplify is off unless an admin set its price (token_settings.amplify_paid_cost).
+  const paidAmplify = amplify && s.radio_funding !== 'free';
+  if (paidAmplify && s.amplify_paid_cost === null) {
+    throw conflict('Amplify is only available while radio prayers are free. An admin can set a token price for Amplify on the Admin screen.');
   }
   const station = await stationSettings(q);
   // The station won't send paid prayers (claimNext), so don't take tokens for one it would never send.
@@ -56,7 +59,7 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
     throw conflict('Radio prayers are paused: the station only sends while they are free. An admin can turn on “Radio prayers are free” on the Admin screen.');
   }
   const repeats = amplify ? station.radio_amplify_repeats : 1;
-  const cost = s.radio_funding === 'free' ? 0 : s.radio_prayer_cost;
+  const cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
   const t = cost > 0 ? await tokens.spendOnRadio(q, userId, cost, key) : null;
   const { rows } = await q.query<RadioPrayer>(
     `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key, repeats) values ($1, $2, $3, $4, $5, $6)

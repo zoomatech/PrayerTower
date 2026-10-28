@@ -82,4 +82,10 @@ If a transmission fails or times out, the worker disables transmit, reports the 
 
 ## Amplify
 
-Amplify sends one prayer several times (admin setting **Radio → Amplify**, placeholder 3, range 2-50). The claim response carries `repeats`, and the worker sends the same call-signed pieces that many times. Amplify is offered only while radio prayers are free (`radio_funding = free`), because 47 CFR 97.113 bars tying an amateur transmission to payment. The notebook's "1,000x a second" is not possible on PSK31, which sends about one 280-character prayer a minute; it needs Steve's decision (roadmap open question 1).
+Amplify sends one prayer several times. The number of sends is the admin setting **Radio → Amplify** (placeholder 3, range 2–50). The claim response carries `repeats`, and the worker sends the same call-signed pieces that many times.
+
+**Price.** Amplify is free while radio prayers are free (`radio_funding = free`). While radio prayers cost tokens, Amplify is off until an admin sets a price: **Admin → Tokens → Amplify price** (`token_settings.amplify_paid_cost`, in Priestly tokens). The app then shows "Amplify (N Priestly tokens)" to members who have enough. Clearing the field turns paid Amplify off again.
+
+**For the licensing and legal side.** 47 CFR 97.113 restricts tying an amateur transmission to payment. Whether paid Amplify may go on the air, and through which kind of station, is a decision for the licensing and legal side; the switch is built so it can be turned on or left off. The station's own "only send while free" setting still holds paid prayers back (see above).
+
+**"1,000x a second".** The notebook asks for 1,000 sends a second. That is not possible on PSK31, which sends about one 280-character prayer a minute. A faster mode or a different transmitter is roadmap open question 1.

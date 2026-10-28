@@ -176,6 +176,8 @@ export interface AdminTokenSettings {
   radio_prayer_cost: number;
   radio_funding: 'tokens' | 'free';
   verified_prayers_per_day: number;
+  /** Priestly tokens for one Amplify while radio prayers cost tokens; null = paid Amplify off. */
+  amplify_paid_cost: number | null;
 }
 export interface AdminRadioSettings {
   radio_transmitter: 'log' | 'station';
@@ -600,7 +602,7 @@ export const api = {
     metrics: (days: number) => get<Record<string, Record<string, number | string | null>>>(`/admin/metrics?days=${days}`),
     tokenSettings: () => get<{ settings: AdminTokenSettings }>('/admin/token-settings'),
     updateTokenSettings: (
-      patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free'; verifiedPrayersPerDay: number }>,
+      patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free'; verifiedPrayersPerDay: number; amplifyPaidCost: number | null }>,
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
@@ -657,9 +659,9 @@ export const api = {
         groupMaxMembers: number;
       }>,
     ) => request<{ settings: AdminMessagingSettings }>('PATCH', '/admin/messaging-settings', patch),
-    careSettings: () => get<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('/admin/care-settings'),
-    updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number }>) =>
-      request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('PATCH', '/admin/care-settings', patch),
+    careSettings: () => get<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('/admin/care-settings'),
+    updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number; confessionRetentionDays: number }>) =>
+      request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
@@ -730,7 +732,7 @@ export const api = {
   rsvp: (id: string, status: 'going' | 'maybe') => put<{ event: PrayerEvent }>(`/events/${id}/rsvp`, { status }),
   unrsvp: (id: string) => request<{ event: PrayerEvent }>('DELETE', `/events/${id}/rsvp`),
   cancelEvent: (id: string) => post(`/events/${id}/cancel`),
-  care: () => get<{ enabled: boolean; kinds: CareKind[] }>('/care'),
+  care: () => get<{ enabled: boolean; kinds: CareKind[]; confessionRetentionDays?: number }>('/care'),
   myCareRequests: () => get<{ requests: CareRequest[] }>('/me/care-requests'),
   askForCare: (kind: CareKind, body: string) => post<{ id: string; crisis: boolean }>('/care-requests', { kind, body }),
   careQueue: () => get<{ requests: CareQueueItem[] }>('/care/queue'),

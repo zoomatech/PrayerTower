@@ -266,8 +266,16 @@ export default function PostScreen() {
             onPress={() => sendRadio()}
           />
         ) : null}
-        {!radioSent && tokens?.priestly.amplifyRepeats ? (
-          <Button variant="secondary" label={t('post.amplify', { count: tokens.priestly.amplifyRepeats })} onPress={() => sendRadio(true)} />
+        {!radioSent && tokens?.priestly.amplifyRepeats && tokens.priestly.balance >= (tokens.priestly.amplifyCost ?? 0) ? (
+          <Button
+            variant="secondary"
+            label={
+              tokens.priestly.amplifyCost
+                ? t('post.amplifyCost', { count: tokens.priestly.amplifyRepeats, cost: tokens.priestly.amplifyCost })
+                : t('post.amplify', { count: tokens.priestly.amplifyRepeats })
+            }
+            onPress={() => sendRadio(true)}
+          />
         ) : null}
 
         {powerSent !== null ? (

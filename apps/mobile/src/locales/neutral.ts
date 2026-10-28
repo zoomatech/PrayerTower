@@ -111,6 +111,7 @@ export const keys: Tree = {
     testimonyRemove: 'Remove story',
     radioSent: 'Sent. This request is going out by radio.',
     radio: 'Send by radio',
+    amplifyCost: 'Amplify: send it out by radio %{count} times (%{cost} Lighthouse tokens)',
     radioCost: { one: 'Send by radio (1 Lighthouse token)', other: 'Send by radio (%{count} Lighthouse tokens)' },
     powerNone: 'Thank you. Everyone we could ask has already been asked or has helped; your tokens still extend its reach.',
     powerSentYou: { one: "Thank you. We asked 1 person who doesn't know you yet for support.", other: "Thank you. We asked %{count} people who don't know you yet for support." },

@@ -153,11 +153,13 @@ export interface TokenSettings {
   radio_funding: 'tokens' | 'free';
   /** Verified prayers that count toward Priestly tokens per member per UTC day (0 = no cap). */
   verified_prayers_per_day: number;
+  /** Priestly tokens for one Amplify while radio prayers cost tokens; null = paid Amplify off. */
+  amplify_paid_cost: number | null;
 }
 
 export async function settings(q: Queryable): Promise<TokenSettings> {
   const { rows } = await q.query<TokenSettings>(
-    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding, verified_prayers_per_day from public.token_settings',
+    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding, verified_prayers_per_day, amplify_paid_cost from public.token_settings',
   );
   return rows[0]!;
 }
@@ -169,9 +171,13 @@ export async function updateSettings(q: Queryable, patch: Partial<TokenSettings>
             verified_prayer_min_gap_seconds = coalesce($2, verified_prayer_min_gap_seconds),
             radio_prayer_cost = coalesce($3, radio_prayer_cost),
             radio_funding = coalesce($4, radio_funding),
-            verified_prayers_per_day = coalesce($5, verified_prayers_per_day)
-      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding, verified_prayers_per_day`,
-    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null, patch.radio_prayer_cost ?? null, patch.radio_funding ?? null, patch.verified_prayers_per_day ?? null],
+            verified_prayers_per_day = coalesce($5, verified_prayers_per_day),
+            amplify_paid_cost = case when $6 then $7::int else amplify_paid_cost end
+      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding, verified_prayers_per_day, amplify_paid_cost`,
+    [
+      patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null, patch.radio_prayer_cost ?? null, patch.radio_funding ?? null,
+      patch.verified_prayers_per_day ?? null, patch.amplify_paid_cost !== undefined, patch.amplify_paid_cost ?? null,
+    ],
   );
   return rows[0]!;
 }
@@ -192,8 +198,12 @@ export async function priestlyStatus(q: Queryable, userId: string) {
     towardNext: rows[0]?.verified_pending ?? 0,
     prayersPerToken: s.priestly_prayers_per_token,
     radioPrayerCost: s.radio_funding === 'free' ? 0 : s.radio_prayer_cost,
-    /** Amplify (send several times) is free-only; null while radio prayers cost tokens. */
-    amplifyRepeats: s.radio_funding === 'free' ? (await q.query<{ n: number }>('select radio_amplify_repeats as n from public.token_settings')).rows[0]!.n : null,
+    /** Amplify (send several times): free while radio prayers are free, else at amplifyCost when an admin set one; null when unavailable. */
+    amplifyRepeats:
+      s.radio_funding === 'free' || s.amplify_paid_cost !== null
+        ? (await q.query<{ n: number }>('select radio_amplify_repeats as n from public.token_settings')).rows[0]!.n
+        : null,
+    amplifyCost: s.radio_funding === 'free' ? 0 : s.amplify_paid_cost,
   };
 }
 

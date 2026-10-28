@@ -63,7 +63,7 @@ const es: Record<string, Template> = {
     };
   },
   care_request: (p) => ({
-    title: p.crisis ? 'Alguien podría estar en peligro y pidió oración' : 'Alguien pidió un compañero de oración',
+    title: p.crisis ? 'Alguien podría estar en peligro y pidió oración' : p.confession ? 'Alguien pidió hacer una confesión' : 'Alguien pidió un compañero de oración',
     body: 'Abre la cola de cuidado para comunicarte.',
   }),
   care_claimed: (p) => ({ title: `${s(p.who, 'Un compañero de oración')} está aquí para orar contigo`, body: 'Abre la conversación para hablar y orar juntos.' }),

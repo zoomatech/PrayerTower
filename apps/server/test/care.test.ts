@@ -17,7 +17,7 @@ describe('talk to a prayer partner or pastor', () => {
     await grantRole(db, partner, 'prayer_partner', null);
     await grantRole(db, pastor, 'pastor_counselor', null);
 
-    expect((await as(member).get('/care')).json()).toEqual({ enabled: true, kinds: ['pray_with_me', 'pastor'] });
+    expect((await as(member).get('/care')).json()).toEqual({ enabled: true, kinds: ['pray_with_me', 'pastor'], confessionRetentionDays: 7 });
     expect((await as(member).post('/care-requests', { kind: 'confession', body: 'x' })).statusCode).toBe(403);
 
     const req1 = (await as(member).post('/care-requests', { kind: 'pray_with_me', body: 'I feel alone tonight. Would someone pray with me?' })).json();
@@ -74,7 +74,7 @@ describe('talk to a prayer partner or pastor', () => {
     expect(r.json().settings.confession_enabled).toBe(true);
     expect((await as(admin).get('/care')).json().kinds).toContain('confession');
     await as(admin).patch('/admin/care-settings', { confessionEnabled: false, careEnabled: false });
-    expect((await as(admin).get('/care')).json()).toEqual({ enabled: false, kinds: [] });
+    expect((await as(admin).get('/care')).json()).toMatchObject({ enabled: false, kinds: [] });
     await as(admin).patch('/admin/care-settings', { careEnabled: true });
   });
 });

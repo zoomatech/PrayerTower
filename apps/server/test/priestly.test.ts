@@ -17,7 +17,7 @@ describe('priestly tokens', () => {
     await grantRole(db, admin, 'admin', admin);
     expect((await as(member).patch('/admin/token-settings', { priestlyPrayersPerToken: 3 })).statusCode).toBe(403);
     const res = await as(admin).patch('/admin/token-settings', { priestlyPrayersPerToken: 3, verifiedPrayerMinGapSeconds: 0 });
-    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0, radio_prayer_cost: 1, radio_funding: 'tokens', verified_prayers_per_day: 50 });
+    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0, radio_prayer_cost: 1, radio_funding: 'tokens', verified_prayers_per_day: 50, amplify_paid_cost: null });
   });
 
   it('earns one Priestly token per N verified prayers for other people, then gifts and donates it', async () => {
@@ -35,7 +35,7 @@ describe('priestly tokens', () => {
 
     const me = (await as(pray).get('/me/tokens')).json();
     expect(me.balance).toBe(4); // one regular token per prayer for someone else
-    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3, radioPrayerCost: 1, amplifyRepeats: null });
+    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3, radioPrayerCost: 1, amplifyRepeats: null, amplifyCost: null });
 
     // Re-running the follow-up job does not double count.
     const { rows } = await db.query<{ id: string }>('select id from public.prayer_events where user_id = $1', [pray]);

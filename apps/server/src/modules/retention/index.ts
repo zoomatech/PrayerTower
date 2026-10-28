@@ -6,6 +6,9 @@
 //   lose their text and photos once the period has passed since the decision,
 //   unless an appeal is still pending.
 // - Notifications older than the period are deleted, read or not.
+// - Confessions (care requests of kind 'confession') are erased once closed for
+//   care_settings.confession_retention_days: the conversation and its messages
+//   are deleted and the request keeps no text. This runs whatever the env vars say.
 // - Finished queues: deletion requests sent from the website (they hold an
 //   email address) once handled, push tokens Expo reported dead, and scheduled
 //   gifts that are done, cancelled or failed.
@@ -37,6 +40,7 @@ export interface PurgeResult {
   deletionRequests: number;
   pushTokens: number;
   scheduledGifts: number;
+  confessions: number;
   /** Storage paths of photos whose rows were removed; the caller deletes the files. */
   mediaPaths: string[];
 }
@@ -50,7 +54,7 @@ const due = (target: string, alias: string, created = `${alias}.created_at`) => 
                    where m.target_type = '${target}' and m.target_id = ${alias}.id and a.status = 'pending')`;
 
 export async function purge(q: Queryable, p: RetentionPeriods): Promise<PurgeResult> {
-  const r: PurgeResult = { posts: 0, comments: 0, reactions: 0, messages: 0, events: 0, notifications: 0, deletionRequests: 0, pushTokens: 0, scheduledGifts: 0, mediaPaths: [] };
+  const r: PurgeResult = { posts: 0, comments: 0, reactions: 0, messages: 0, events: 0, notifications: 0, deletionRequests: 0, pushTokens: 0, scheduledGifts: 0, confessions: 0, mediaPaths: [] };
   const n = async (sql: string, days: number) => (days > 0 ? ((await q.query(sql, [days])).rowCount ?? 0) : 0);
 
   if (p.removedDays > 0) {
@@ -83,7 +87,31 @@ export async function purge(q: Queryable, p: RetentionPeriods): Promise<PurgeRes
     `delete from public.scheduled_spends where status in ('done', 'cancelled', 'failed') and next_run_at < now() - make_interval(days => $1)`,
     p.queueDays,
   );
+  r.confessions = await eraseConfessions(q);
   return r;
+}
+
+export const ERASED_TEXT = '(erased)';
+
+/** Closed confessions past their retention period: delete the conversation, keep no text. */
+export async function eraseConfessions(q: Queryable): Promise<number> {
+  // A confession that a moderator still has to look at (someone may be in danger) waits.
+  const { rows } = await q.query<{ conversation_id: string | null }>(
+    `with due as (
+       select r.id, r.conversation_id from public.care_requests r, public.care_settings s
+        where r.kind = 'confession' and r.status = 'closed' and r.body <> '${ERASED_TEXT}'
+          and r.closed_at <= now() - make_interval(days => s.confession_retention_days)
+          and not exists (select 1 from public.moderation_items m join public.messages x on m.target_type = 'message' and x.id = m.target_id
+                           where x.conversation_id = r.conversation_id and m.status = 'pending')
+        for update of r
+     ), erased as (
+       update public.care_requests r set body = '${ERASED_TEXT}', conversation_id = null from due where r.id = due.id
+     )
+     select conversation_id from due`,
+  );
+  const ids = rows.map((r) => r.conversation_id).filter((id): id is string => !!id);
+  if (ids.length) await q.query('delete from public.conversations where id = any($1::uuid[])', [ids]);
+  return rows.length;
 }
 
 export function purgeTask(q: Queryable, periods: RetentionPeriods, removeMedia: ((paths: string[]) => Promise<void>) | null): Task {
