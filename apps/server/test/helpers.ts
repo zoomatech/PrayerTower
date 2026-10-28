@@ -47,7 +47,7 @@ export function as(userId: string) {
     get: (url: string) => app.inject({ method: 'GET', url, headers }),
     post: (url: string, payload?: object) => app.inject({ method: 'POST', url, headers, payload: payload ?? {} }),
     patch: (url: string, payload: object) => app.inject({ method: 'PATCH', url, headers, payload }),
-    put: (url: string) => app.inject({ method: 'PUT', url, headers }),
+    put: (url: string, payload?: object) => app.inject({ method: 'PUT', url, headers, ...(payload ? { payload } : {}) }),
   };
 }
 

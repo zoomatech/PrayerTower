@@ -5,6 +5,7 @@ import type {
   Comment,
   Commitment,
   FeedPage,
+  FeedThemeChoices,
   Frequency,
   PostType,
   Profile,
@@ -48,6 +49,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 const get = <T>(path: string) => request<T>('GET', path);
 const post = <T>(path: string, body: unknown = {}) => request<T>('POST', path, body);
+const put = <T>(path: string, body: unknown = {}) => request<T>('PUT', path, body);
 
 export interface NewPost {
   postType: PostType;
@@ -89,6 +91,8 @@ export const api = {
   tokens: () => get<TokenSummary>('/me/tokens'),
   sendRadioPrayer: (postId: string) =>
     post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
+  feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
+  chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

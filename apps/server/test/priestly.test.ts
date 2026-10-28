@@ -103,3 +103,16 @@ describe('priestly tokens', () => {
     expect((await db.query('select * from public.token_ledger_audit')).rows).toEqual([]);
   });
 });
+
+describe('feed styles', () => {
+  it('offers Classic by default and lets a member switch to Vine or Flip and back', async () => {
+    const u = await createUser('Styler');
+    const choices = (await as(u).get('/me/feed-themes')).json();
+    expect(choices.current).toBe('column');
+    expect(choices.themes.map((t: { slug: string }) => t.slug).sort()).toEqual(['column', 'flip', 'vine']);
+    expect((await as(u).put('/me/feed-theme', { slug: 'vine' })).json().current).toBe('vine');
+    expect((await as(u).get('/feed')).json().theme.layout).toBe('vine');
+    expect((await as(u).put('/me/feed-theme', { slug: 'nope' })).statusCode).toBe(404);
+    expect((await as(u).put('/me/feed-theme', { slug: null })).json().current).toBe('column');
+  });
+});

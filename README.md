@@ -78,7 +78,7 @@ Modules: `accounts`, `posts`, `feed`, `prayer-actions`, `commitments`, `prompts`
 - **Feed.** Fan-out on read. All ranking weights live in `apps/server/src/modules/feed/index.ts` (`weights`, `score`). Commitments outrank taps; tokens can raise a request but ranking never removes one. The first post is the newest prayer request or thanksgiving. Posts marked sensitive are hidden from members who opted out of trauma content.
 
 - **Communities.** Every post and its children carry a `community_id` (copied by trigger from the post). V1 seeds one community, `christian-ecumenical`, and every new member joins it. Feeds only show the viewer's communities. Roles and tier settings can be scoped to one community (null = platform-wide).
-- **Feed themes.** The feed returns a `theme` with a `layout` (`column`, `vine`, `carousel`, `flip`) and cards that carry no layout data, so a layout can be added in the app (`apps/mobile/src/layouts/index.tsx`) without server changes. Unknown layouts fall back to `column`.
+- **Feed themes.** The feed returns a `theme` with a `layout` (`column`, `vine`, `carousel`, `flip`) and cards that carry no layout data, so a layout can be added in the app (`apps/mobile/src/layouts/index.tsx`) without server changes. Unknown layouts fall back to `column`. Members can switch between Classic (default) and the beta Vine and Flip styles on the Me tab (`GET /me/feed-themes`, `PUT /me/feed-theme`).
 
 ## API (all routes need `Authorization: Bearer <supabase access token>` except `/health`)
 

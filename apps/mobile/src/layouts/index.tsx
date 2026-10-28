@@ -6,6 +6,8 @@ import type { Card, FeedLayoutKind, FeedTheme } from '@prayer-tower/shared';
 import type { ReactElement } from 'react';
 
 import { ColumnLayout } from './column';
+import { FlipLayout } from './flip';
+import { VineLayout } from './vine';
 
 export interface FeedLayoutProps {
   cards: Card[];
@@ -23,9 +25,12 @@ export interface FeedLayoutProps {
 
 export type FeedLayout = (props: FeedLayoutProps) => ReactElement;
 
-// V1 ships the column. Other kinds fall back to it until their layout exists.
+// Column is the V1 default; vine and flip are beta styles members can opt into.
+// Kinds without a layout (carousel) fall back to the column.
 const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   column: ColumnLayout,
+  vine: VineLayout,
+  flip: FlipLayout,
 };
 
 export function layoutFor(theme: FeedTheme | null): FeedLayout {

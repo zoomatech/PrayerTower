@@ -125,6 +125,11 @@ export interface FeedTheme {
   tokens: Record<string, unknown>;
 }
 
+export interface FeedThemeChoices {
+  themes: { slug: string; name: string; layout: FeedLayoutKind; status: 'active' | 'beta'; is_default: boolean }[];
+  current: string | null;
+}
+
 export interface FeedPage {
   theme?: FeedTheme | null;
   posts: Card[];

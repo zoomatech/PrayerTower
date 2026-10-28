@@ -3,6 +3,7 @@
 // change in one place. A member sees posts from the communities they belong
 // to (V1: one Christian ecumenical community).
 import type { Queryable } from '../../db.js';
+import { notFound } from '../../errors.js';
 import { communityIds, getProfile } from '../accounts/index.js';
 import * as posts from '../posts/index.js';
 
@@ -124,6 +125,38 @@ export async function theme(q: Queryable, viewerId: string): Promise<FeedTheme |
     [viewerId],
   );
   return rows[0] ?? null;
+}
+
+/** Feed styles offered in the member's primary community, and which one they use. */
+export async function themeChoices(q: Queryable, viewerId: string) {
+  const { rows } = await q.query<{ slug: string; name: string; layout: string; status: string; is_default: boolean; chosen: boolean }>(
+    `select t.slug, t.name, t.layout, t.status, d.is_default, (m.feed_theme_id = t.id) as chosen
+       from public.community_memberships m
+       join public.community_feed_themes d on d.community_id = m.community_id
+       join public.feed_themes t on t.id = d.theme_id
+      where m.user_id = $1 and m.is_primary and t.status <> 'retired'
+      order by d.is_default desc, t.name`,
+    [viewerId],
+  );
+  const current = rows.find((r) => r.chosen) ?? rows.find((r) => r.is_default);
+  return { themes: rows.map(({ chosen: _c, ...t }) => t), current: current?.slug ?? null };
+}
+
+/** Choose a feed style offered in the primary community; null returns to the community default. */
+export async function chooseTheme(q: Queryable, viewerId: string, slug: string | null) {
+  const { rowCount } = await q.query(
+    `update public.community_memberships m
+        set feed_theme_id = case when $2::text is null then null else (
+          select t.id from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
+           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired') end
+      where m.user_id = $1 and m.is_primary
+        and ($2::text is null or exists (
+          select 1 from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
+           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired'))`,
+    [viewerId, slug],
+  );
+  if (!rowCount) throw notFound('Feed style');
+  return themeChoices(q, viewerId);
 }
 
 export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize = 20) {
