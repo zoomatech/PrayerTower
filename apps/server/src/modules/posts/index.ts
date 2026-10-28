@@ -113,6 +113,22 @@ export async function getVisible(q: Queryable, postId: string): Promise<PostRow 
   return post && post.moderation_status === 'visible' ? post : null;
 }
 
+/** True when either member has blocked the other. */
+export async function blockedBetween(q: Queryable, a: string, b: string): Promise<boolean> {
+  if (a === b) return false;
+  const { rowCount } = await q.query(
+    'select 1 from public.user_blocks where (user_id = $1 and blocked_id = $2) or (user_id = $2 and blocked_id = $1)',
+    [a, b],
+  );
+  return !!rowCount;
+}
+
+/** A visible post the member may act on: never one between people where either blocked the other. */
+export async function getActionable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
+  const post = await getVisible(q, postId);
+  return post && !(await blockedBetween(q, userId, post.user_id)) ? post : null;
+}
+
 /** Request state machine. Answered is poster-only and final; amplified waits for the broadcast. */
 const transitions: Record<PostState, PostState[]> = {
   open: ['actively_prayed', 'answered'],
@@ -178,6 +194,12 @@ export async function setModerationStatus(q: Queryable, target: moderation.Targe
   await q.query(`update public.${table} set moderation_status = $2 where id = $1`, [id, status]);
 }
 
+/** Show content again that was hidden pending review; content already removed stays removed. */
+export async function unhide(q: Queryable, target: moderation.Target, id: string) {
+  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events' }[target];
+  await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
+}
+
 /** The author and text of any moderatable item. */
 export async function moderationSubject(q: Queryable, target: moderation.Target, id: string) {
   const sql = {
@@ -201,7 +223,7 @@ export const NewComment = z.object({
 });
 
 export async function addComment(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewComment>) {
-  const post = await getVisible(q, postId);
+  const post = await getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   if (input.isUpdate && post.user_id !== userId) throw forbidden('Only the poster can add an update');
   if (input.parentId) {
@@ -283,7 +305,7 @@ export const NewReaction = z.discriminatedUnion('kind', [
 ]);
 
 export async function react(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewReaction>) {
-  const post = await getVisible(q, postId);
+  const post = await getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   const note = 'note' in input ? (input.note ?? null) : null;
   const { rows } = await q.query<{ id: string }>(
@@ -307,7 +329,7 @@ export const AskToPray = z.object({
  * of an anonymous request stays anonymous.
  */
 export async function askToPray(q: Queryable, senderId: string, postId: string, input: z.infer<typeof AskToPray>) {
-  const post = await getVisible(q, postId);
+  const post = await getActionable(q, senderId, postId);
   if (!post) throw notFound('Post');
   await safety.checkNewMember(q, senderId, 'ask');
   const { rows } = await q.query<{ id: string }>(
@@ -320,14 +342,15 @@ export async function askToPray(q: Queryable, senderId: string, postId: string, 
   if (rows.length !== new Set(input.recipientIds.filter((id) => id !== senderId)).size) {
     throw badRequest('You can ask only people you follow or who follow you');
   }
-  // Sensitive requests skip anyone who opted out of trauma-related content.
-  const recipients = post.is_sensitive
-    ? (
-        await q.query<{ id: string }>('select id from public.profiles where id = any($1::uuid[]) and not trauma_content_opt_out', [
-          rows.map((r) => r.id),
-        ])
-      ).rows
-    : rows;
+  // Sensitive requests skip anyone who opted out of trauma-related content; nobody who blocked
+  // (or was blocked by) the sender or the poster is asked.
+  const { rows: recipients } = await q.query<{ id: string }>(
+    `select p.id from public.profiles p
+      where p.id = any($1::uuid[]) and p.deleted_at is null and not ($2 and p.trauma_content_opt_out)
+        and not exists (select 1 from public.user_blocks b
+                         where (b.user_id = p.id and b.blocked_id = any($3::uuid[])) or (b.blocked_id = p.id and b.user_id = any($3::uuid[])))`,
+    [rows.map((r) => r.id), post.is_sensitive, [senderId, post.user_id]],
+  );
   const sender = await getProfile(q, senderId);
   const senderName = post.user_id === senderId && post.is_anonymous ? 'Someone' : (sender?.display_name ?? 'Someone');
   return { recipients: recipients.map((r) => r.id), senderName, preview: post.body.slice(0, 120) };

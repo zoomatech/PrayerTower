@@ -131,7 +131,10 @@ export async function flushQueue(send: (a: QueuedAction) => Promise<unknown>) {
       try {
         await send(next);
       } catch (e) {
-        if (isOffline(e)) break;
+        // No signal, a server error or "too many requests": keep it and try again later.
+        // Anything else is a refusal (e.g. the request was removed): drop it and say so.
+        const status = (e as { status?: number }).status ?? 0;
+        if (isOffline(e) || status >= 500 || status === 429) break;
         set({ dropped: [...state.dropped, `${next.label}: ${(e as Error).message}`] });
       }
       set({ queued: state.queued.slice(1) });
