@@ -95,7 +95,11 @@ export default function PostScreen() {
         ) : tokens && tokens.priestly.balance >= tokens.priestly.radioPrayerCost ? (
           <Button
             variant="secondary"
-            label={`Send as a radio prayer (${tokens.priestly.radioPrayerCost} Priestly token${tokens.priestly.radioPrayerCost === 1 ? '' : 's'})`}
+            label={
+              tokens.priestly.radioPrayerCost === 0
+                ? 'Send as a radio prayer'
+                : `Send as a radio prayer (${tokens.priestly.radioPrayerCost} Priestly token${tokens.priestly.radioPrayerCost === 1 ? '' : 's'})`
+            }
             onPress={sendRadio}
           />
         ) : null}

@@ -17,7 +17,7 @@ describe('priestly tokens', () => {
     await grantRole(db, admin, 'admin', admin);
     expect((await as(member).patch('/admin/token-settings', { priestlyPrayersPerToken: 3 })).statusCode).toBe(403);
     const res = await as(admin).patch('/admin/token-settings', { priestlyPrayersPerToken: 3, verifiedPrayerMinGapSeconds: 0 });
-    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0, radio_prayer_cost: 1 });
+    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0, radio_prayer_cost: 1, radio_funding: 'tokens' });
   });
 
   it('earns one Priestly token per N verified prayers for other people, then gifts and donates it', async () => {
@@ -85,6 +85,20 @@ describe('priestly tokens', () => {
     expect(sent.status).toBe('transmitted');
     const notes = (await as(asker).get('/me/notifications')).json().notifications;
     expect(notes.map((n: { kind: string }) => n.kind)).toContain('radio_prayer');
+  });
+
+  it('sends radio prayers free, once per request, when funding is switched to free', async () => {
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    const asker = await createUser('Free Asker');
+    const sender = await createUser('Free Sender');
+    const post = await newRequest(asker, 'Please pray for my town.');
+    expect((await as(sender).get('/me/tokens')).json().priestly.radioPrayerCost).toBe(0);
+    const first = await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'f1' });
+    expect(first.statusCode).toBe(201);
+    expect(first.json().radioPrayer.cost).toBe(0);
+    const second = await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'f2' });
+    expect(second.json().radioPrayer.id).toBe(first.json().radioPrayer.id);
+    await tokens.updateSettings(db, { radio_funding: 'tokens' });
   });
 
   it('never mixes currencies in one transfer', async () => {

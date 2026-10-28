@@ -29,13 +29,20 @@ export const logTransmitter: Transmitter = async (p) => {
 export async function queue(q: Queryable, userId: string, postId: string, key: string): Promise<RadioPrayer> {
   const post = await posts.getVisible(q, postId);
   if (!post) throw notFound('Post');
-  const { radio_prayer_cost: cost } = await tokens.settings(q);
-  const t = await tokens.spendOnRadio(q, userId, cost, key);
+  const s = await tokens.settings(q);
+  const existing = await q.query<RadioPrayer>(
+    `select id, post_id, cost, status, created_at, transmitted_at
+       from public.radio_prayers where user_id = $1 and (idempotency_key = $2 or (cost = 0 and post_id = $3))`,
+    [userId, key, post.id],
+  );
+  if (existing.rows[0]) return existing.rows[0];
+  // 'free' mode: no tokens move; Priestly tokens are donations only.
+  const cost = s.radio_funding === 'free' ? 0 : s.radio_prayer_cost;
+  const t = cost > 0 ? await tokens.spendOnRadio(q, userId, cost, key) : null;
   const { rows } = await q.query<RadioPrayer>(
-    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost) values ($1, $2, $3, $4)
-     on conflict (transfer_id) do update set transfer_id = excluded.transfer_id
+    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key) values ($1, $2, $3, $4, $5)
      returning id, post_id, cost, status, created_at, transmitted_at`,
-    [post.id, userId, t.id, cost],
+    [post.id, userId, t?.id ?? null, cost, key],
   );
   await enqueue(q, 'radio_transmit', { radioPrayerId: rows[0]!.id }, { jobKey: `radio_transmit:${rows[0]!.id}` });
   return rows[0]!;
@@ -75,7 +82,7 @@ export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitte
       await notifications.notify(q, r.poster_id, {
         kind: 'radio_prayer',
         title: 'Your request went out as a radio prayer',
-        body: 'Someone gave a Priestly token so more people could pray with you.',
+        body: 'Someone sent it out so more people could pray with you.',
         data: { postId: r.post_id },
         dedupeKey: `radio_prayer:${r.id}`,
       });

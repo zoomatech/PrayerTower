@@ -67,6 +67,7 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         priestlyPrayersPerToken: z.number().int().min(1).max(10_000).optional(),
         verifiedPrayerMinGapSeconds: z.number().int().min(0).max(86_400).optional(),
         radioPrayerCost: z.number().int().min(1).max(10_000).optional(),
+        radioFunding: z.enum(['tokens', 'free']).optional(),
       })
       .parse(req.body);
     return {
@@ -74,6 +75,7 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         priestly_prayers_per_token: input.priestlyPrayersPerToken,
         verified_prayer_min_gap_seconds: input.verifiedPrayerMinGapSeconds,
         radio_prayer_cost: input.radioPrayerCost,
+        radio_funding: input.radioFunding,
       }),
     };
   });

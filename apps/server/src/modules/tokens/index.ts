@@ -129,11 +129,13 @@ export interface TokenSettings {
   priestly_prayers_per_token: number;
   verified_prayer_min_gap_seconds: number;
   radio_prayer_cost: number;
+  /** 'tokens': radio prayers spend Priestly tokens. 'free': they cost nothing; Priestly tokens are donations only. */
+  radio_funding: 'tokens' | 'free';
 }
 
 export async function settings(q: Queryable): Promise<TokenSettings> {
   const { rows } = await q.query<TokenSettings>(
-    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost from public.token_settings',
+    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding from public.token_settings',
   );
   return rows[0]!;
 }
@@ -143,9 +145,10 @@ export async function updateSettings(q: Queryable, patch: Partial<TokenSettings>
     `update public.token_settings
         set priestly_prayers_per_token = coalesce($1, priestly_prayers_per_token),
             verified_prayer_min_gap_seconds = coalesce($2, verified_prayer_min_gap_seconds),
-            radio_prayer_cost = coalesce($3, radio_prayer_cost)
-      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost`,
-    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null, patch.radio_prayer_cost ?? null],
+            radio_prayer_cost = coalesce($3, radio_prayer_cost),
+            radio_funding = coalesce($4, radio_funding)
+      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost, radio_funding`,
+    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null, patch.radio_prayer_cost ?? null, patch.radio_funding ?? null],
   );
   return rows[0]!;
 }
@@ -165,7 +168,7 @@ export async function priestlyStatus(q: Queryable, userId: string) {
     verifiedPrayers: rows[0]?.verified_total ?? 0,
     towardNext: rows[0]?.verified_pending ?? 0,
     prayersPerToken: s.priestly_prayers_per_token,
-    radioPrayerCost: s.radio_prayer_cost,
+    radioPrayerCost: s.radio_funding === 'free' ? 0 : s.radio_prayer_cost,
   };
 }
 
