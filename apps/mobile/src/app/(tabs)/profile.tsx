@@ -145,6 +145,7 @@ export default function Profile() {
         <PrayedForYou />
         <View style={styles.chips}>
           <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
+          <Button small variant="secondary" label={t('vine.branchLink')} onPress={() => router.push('/branch')} />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} />
         </View>

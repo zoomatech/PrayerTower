@@ -201,6 +201,19 @@ export const keys: Tree = {
     anonymous: 'A Kindness Champion',
     line: '%{count} acts of support for %{people} people',
   },
+  vine: {
+    yourTendril: '➰ Your tendril: you promised to check in',
+    tendrils: { one: '1 person promised to check in on this', other: '%{count} people promised to check in on this' },
+    bloom: '🌸 Worked out',
+    ripeness: {
+      open: 'Request waiting for support',
+      actively_prayed: 'Request being supported',
+      amplified: 'Request sent out by radio',
+      answered: 'Request worked out',
+    },
+    bird: 'Uh-uh! No ads here. Just people and kindness.',
+    branchIntro: 'Every request you have shared, on one branch of the vine. Tendrils show the people who promised to check in.',
+  },
   macro: { pray: 'Support', prayingNow: 'Thinking of them', commit: 'Promise to check in' },
   helpStories: {
     aboutYouHint: 'The Helpers team would like to share this. It never shows your name. You can take back a yes at any time.',

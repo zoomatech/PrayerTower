@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Db } from '../../db.js';
+import * as posts from '../posts/index.js';
 import { signMedia } from '../posts/index.js';
 import { chooseTheme, FEED_FILTERS, getFeed, themeChoices } from './index.js';
 
@@ -17,6 +18,16 @@ export function feedRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
       .parse(req.query);
     const feed = await getFeed(db, requireUser(req), page, pageSize, filter);
     return { ...feed, posts: await signMedia(storage, feed.posts) };
+  });
+
+  // Your branch (Vine 2.0): all your own requests, newest first, on one branch of the vine.
+  app.get('/me/branch', async (req) => {
+    const userId = requireUser(req);
+    const { rows } = await db.query<{ id: string }>(
+      `select id from public.posts where user_id = $1 and moderation_status <> 'removed' order by created_at desc limit 100`,
+      [userId],
+    );
+    return { posts: await signMedia(storage, await posts.cards(db, rows.map((r) => r.id), userId)) };
   });
 
   // Scripture leaves for the Vine feed, from the viewer's communities.

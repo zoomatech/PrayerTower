@@ -576,6 +576,7 @@ export const api = {
       idempotencyKey: `radio-${postId}-${Date.now()}`,
       amplify,
     }),
+  myBranch: () => get<{ posts: Card[] }>('/me/branch'),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
