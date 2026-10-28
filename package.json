@@ -19,7 +19,8 @@
     "grant-role": "npm run grant-role -w @prayer-tower/server --",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test -w @prayer-tower/server && npm test -w @prayer-tower/station",
-    "station": "npm run dev -w @prayer-tower/station"
+    "station": "npm run dev -w @prayer-tower/station",
+    "seed:demo": "npm run seed:demo -w @prayer-tower/server --"
   },
   "devDependencies": {
     "supabase": "^2.122.0"

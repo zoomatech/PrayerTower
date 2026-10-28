@@ -9,7 +9,8 @@
     "start:worker": "node dist/src/worker.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "grant-role": "tsx src/scripts/grant-role.ts"
+    "grant-role": "tsx src/scripts/grant-role.ts",
+    "seed:demo": "tsx src/scripts/seed-demo.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
