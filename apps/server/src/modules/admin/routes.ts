@@ -8,6 +8,7 @@ import { withTx } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import * as commitments from '../commitments/index.js';
+import * as events from '../events/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
@@ -157,6 +158,17 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_links_allowed: input.newMemberLinksAllowed,
       }),
     };
+  });
+
+  // Events: on/off, who can host, allowed video meeting sites, reminder lead time.
+  app.get('/admin/event-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await events.settings(db) };
+  });
+
+  app.patch('/admin/event-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await events.updateSettings(db, events.SettingsPatch.parse(req.body)) };
   });
 
   // Messages (Features Set 2): switches and limits, placeholders until Steve decides.

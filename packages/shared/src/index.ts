@@ -206,7 +206,7 @@ export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner'
 
 export interface ModerationItem {
   id: string;
-  target_type: 'post' | 'comment' | 'reaction' | 'message';
+  target_type: 'post' | 'comment' | 'reaction' | 'message' | 'event';
   target_id: string;
   source: 'report' | 'ai' | 'crisis';
   reason: string | null;
@@ -391,3 +391,38 @@ export interface PublicGroup {
 }
 
 export const MESSAGE_MAX_CHARS = 2000;
+
+// Events: prayer meetings, meet-ups, seminars, outreach, restorative circles -----
+
+export const EVENT_KINDS = ['prayer_meeting', 'meetup', 'seminar', 'outreach', 'circle'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
+export const EVENT_KIND_LABELS: Record<EventKind, string> = {
+  prayer_meeting: 'Prayer meeting',
+  meetup: 'Local meet-up',
+  seminar: 'Seminar',
+  outreach: 'Outreach',
+  circle: 'Restorative circle',
+};
+
+export interface PrayerEvent {
+  id: string;
+  kind: EventKind;
+  title: string;
+  description: string;
+  startsAt: string;
+  durationMinutes: number;
+  /** Shown only once you RSVP (or host). */
+  videoUrl: string | null;
+  hasVideo: boolean;
+  location: string | null;
+  groupId: string | null;
+  groupTitle: string | null;
+  host: { id: string; name: string };
+  isHost: boolean;
+  going: number;
+  myRsvp: 'going' | 'maybe' | null;
+  cancelled: boolean;
+  /** From 10 minutes before the start until the end. */
+  live: boolean;
+}

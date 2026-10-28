@@ -49,6 +49,7 @@ function openFrom(response: Notifications.NotificationResponse | null) {
   if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
   const data = response.notification.request.content.data;
   if (typeof data?.conversationId === 'string') router.push(`/conversation/${data.conversationId}`);
+  else if (typeof data?.eventId === 'string') router.push(`/event/${data.eventId}`);
   else if (typeof data?.postId === 'string') router.push(`/post/${data.postId}`);
 }
 

@@ -21,6 +21,8 @@ import type {
   PrayerRealm,
   Profile,
   Prompt,
+  PrayerEvent,
+  EventKind,
   PublicGroup,
   TierStatus,
   TokenSummary,
@@ -268,7 +270,7 @@ export const api = {
     post<{ sent: number }>(`/posts/${postId}/ask`, { recipientIds, note: note || undefined }),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
-  report: (targetType: 'post' | 'comment' | 'message', targetId: string, reason: string) =>
+  report: (targetType: 'post' | 'comment' | 'message' | 'event', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
@@ -366,6 +368,22 @@ export const api = {
   acceptConversation: (id: string) => post(`/conversations/${id}/accept`),
   leaveConversation: (id: string) => post(`/conversations/${id}/decline`),
   markConversationRead: (id: string) => post(`/conversations/${id}/read`),
+  events: (groupId?: string) => get<{ events: PrayerEvent[] }>(groupId ? `/events?groupId=${groupId}` : '/events'),
+  myEvents: () => get<{ events: PrayerEvent[] }>('/me/events'),
+  event: (id: string) => get<{ event: PrayerEvent }>(`/events/${id}`),
+  createEvent: (input: {
+    kind: EventKind;
+    title: string;
+    description?: string;
+    startsAt: string;
+    durationMinutes?: number;
+    videoUrl?: string;
+    location?: string;
+    groupId?: string;
+  }) => post<{ event: PrayerEvent }>('/events', input),
+  rsvp: (id: string, status: 'going' | 'maybe') => put<{ event: PrayerEvent }>(`/events/${id}/rsvp`, { status }),
+  unrsvp: (id: string) => request<{ event: PrayerEvent }>('DELETE', `/events/${id}/rsvp`),
+  cancelEvent: (id: string) => post(`/events/${id}/cancel`),
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),

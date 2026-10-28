@@ -66,7 +66,10 @@ export default function Messages() {
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
         <Text style={type.title}>Messages</Text>
         <Text style={type.small}>Private notes stay between you, but a message can be reviewed by a moderator if someone reports it.</Text>
-        <Button variant="secondary" label="Prayer groups" onPress={() => router.push('/groups')} />
+        <View style={styles.links}>
+          <Button variant="secondary" label="Prayer groups" onPress={() => router.push('/groups')} />
+          <Button variant="secondary" label="Meetings & events" onPress={() => router.push('/events')} />
+        </View>
         <ErrorText error={error} />
         {requests.length ? <Text style={type.heading}>Requests and invites</Text> : null}
         {requests.map(row)}
@@ -84,6 +87,7 @@ const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.md, paddingBottom: 120 },
   item: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: 4 },
   unread: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  links: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   title: { flex: 1, fontWeight: '700', fontSize: 16, color: colors.text },
   badge: { alignSelf: 'flex-start', color: '#fff', backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: space.sm, fontSize: 12, overflow: 'hidden' },

@@ -199,6 +199,7 @@ export default function ConversationScreen() {
         {c && !c.isRequest ? (
           <View style={styles.row}>
             {c.kind === 'group' && (c.isOwner || c.isPublic) ? <Button small variant="secondary" label="Invite people" onPress={openInvite} /> : null}
+            {c.kind === 'group' ? <Button small variant="secondary" label="Group events" onPress={() => router.push(`/events?groupId=${id}`)} /> : null}
             {other?.id ? <Button small variant="ghost" label={`Block ${other.name}`} onPress={() => act(() => api.block(other.id!), 'leave')} /> : null}
             <Button small variant="ghost" label={c.kind === 'group' ? 'Leave group' : 'Close conversation'} onPress={() => act(() => api.leaveConversation(id), 'leave')} />
           </View>

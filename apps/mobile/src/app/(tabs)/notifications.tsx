@@ -42,7 +42,8 @@ export default function Notifications() {
         {items.map((n) => {
           const postId = typeof n.data.postId === 'string' ? n.data.postId : null;
           const conversationId = typeof n.data.conversationId === 'string' ? n.data.conversationId : null;
-          const target = conversationId ? `/conversation/${conversationId}` : postId ? `/post/${postId}` : null;
+          const eventId = typeof n.data.eventId === 'string' ? n.data.eventId : null;
+          const target = conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}` : null;
           return (
             <Pressable
               key={n.id}
