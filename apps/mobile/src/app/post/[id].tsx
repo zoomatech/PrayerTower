@@ -7,6 +7,7 @@ import { useCardActions } from '@/components/card-actions';
 import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
+import { SpokenPrayers } from '@/components/spoken-prayers';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -249,6 +250,8 @@ export default function PostScreen() {
             ) : null}
           </View>
         ) : null}
+
+        {card ? <SpokenPrayers postId={id} /> : null}
 
         {radioSent ? (
           <Text style={type.small}>{t('post.radioSent')}</Text>

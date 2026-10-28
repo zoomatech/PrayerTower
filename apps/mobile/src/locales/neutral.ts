@@ -176,6 +176,16 @@ export const keys: Tree = {
     sent: 'messages sent',
     empty: 'No messages have gone out yet.',
   },
+  spoken: {
+    heading: 'Voice notes',
+    askHint: 'Let people who support you record a short voice note. You can offer tokens to each person who sends one; they are paid when you first listen.',
+    none: 'No voice notes yet.',
+    theyAsked: 'They asked for voice notes. Record a short, kind message in your own voice.',
+    theyOffer: { one: 'They asked for voice notes and offer 1 token for yours.', other: 'They asked for voice notes and offer %{count} tokens for yours.' },
+    prayFirst: 'Tap "Thinking of You" on this request first, then you can record a voice note.',
+    sent: 'Your voice note was sent.',
+    record: 'Record a voice note',
+  },
   macro: { pray: 'Support', prayingNow: 'Thinking of them', commit: 'Promise to check in' },
   helpStories: {
     aboutYouHint: 'The Helpers team would like to share this. It never shows your name. You can take back a yes at any time.',

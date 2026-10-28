@@ -441,6 +441,28 @@ export interface NewPost {
   media?: { kind: 'image' | 'video'; storagePath: string }[];
 }
 
+export interface SpokenPrayerSettings {
+  enabled: boolean;
+  max_seconds: number;
+  max_offer_tokens: number;
+}
+
+/** A voice prayer someone recorded for a request (spoken prayers). */
+export interface SpokenPrayer {
+  id: string;
+  from: { id: string; displayName: string };
+  durationSeconds: number;
+  offerTokens: number;
+  paid: boolean;
+  listened: boolean;
+  createdAt: string;
+  url: string | null;
+}
+export type SpokenPrayerStatus =
+  | { enabled: false }
+  | { enabled: true; mine: true; invited: boolean; offerTokens: number; maxSeconds: number; maxOfferTokens: number; received: SpokenPrayer[] }
+  | { enabled: true; mine: false; invited: boolean; offerTokens: number; maxSeconds: number; sent: boolean; prayed: boolean };
+
 /** A community members belong to; "secular" ones (Open Circle) use neutral wording. */
 export interface Community {
   slug: string;
@@ -459,6 +481,15 @@ export const api = {
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
   me: () => cachedGet<{ profile: Profile; roles: Role[]; community?: Community | null }>('me', '/me'),
+  spokenPrayers: (postId: string) => get<SpokenPrayerStatus>(`/posts/${postId}/spoken-prayers`),
+  inviteSpokenPrayers: (postId: string, offerTokens: number) => put<{ invited: true; offerTokens: number }>(`/posts/${postId}/spoken-prayers/invite`, { offerTokens }),
+  uninviteSpokenPrayers: (postId: string) => request<{ invited: false }>('DELETE', `/posts/${postId}/spoken-prayers/invite`),
+  spokenUploadUrl: (postId: string, contentType: string) =>
+    post<{ path: string; token: string; signedUrl: string }>(`/posts/${postId}/spoken-prayers/upload-url`, { contentType }),
+  sendSpokenPrayer: (postId: string, storagePath: string, durationSeconds: number) =>
+    post<{ id: string; offerTokens: number }>(`/posts/${postId}/spoken-prayers`, { storagePath, durationSeconds }),
+  spokenListened: (id: string) => post<{ listened: true; paid: boolean; notEnoughTokens: boolean }>(`/spoken-prayers/${id}/listened`),
+  removeSpokenPrayer: (id: string) => request<{ removed: true }>('DELETE', `/spoken-prayers/${id}`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
   sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
@@ -528,7 +559,7 @@ export const api = {
     post<{ sent: number }>(`/posts/${postId}/ask`, { recipientIds, note: note || undefined }),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
-  report: (targetType: 'post' | 'comment' | 'message' | 'event', targetId: string, reason: string) =>
+  report: (targetType: 'post' | 'comment' | 'message' | 'event' | 'spoken_prayer', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
@@ -542,6 +573,9 @@ export const api = {
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
     communities: () => get<{ communities: Community[] }>('/admin/communities'),
+    spokenPrayerSettings: () => get<{ settings: SpokenPrayerSettings }>('/admin/spoken-prayers'),
+    updateSpokenPrayerSettings: (patch: { enabled?: boolean; maxSeconds?: number; maxOfferTokens?: number }) =>
+      request<{ settings: SpokenPrayerSettings }>('PATCH', '/admin/spoken-prayers', patch),
     updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden' }) =>
       request<{ community: Community }>('PATCH', `/admin/communities/${slug}`, patch),
     deletionRequests: () =>

@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Community, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -302,6 +302,7 @@ function Admin() {
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
         <CommunitiesSection />
+        <SpokenPrayerSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -562,6 +563,42 @@ function CareAndEventSettingsSection() {
           <Button label={t('admin.btn.saveEvents')} onPress={() => saveEv()} />
         </>
       ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Spoken prayers: off by default; limits for recording length and token offers. */
+function SpokenPrayerSection() {
+  const t = useT();
+  const [s, setS] = useState<SpokenPrayerSettings | null>(null);
+  const [draft, setDraft] = useState({ seconds: '', offer: '' });
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: SpokenPrayerSettings) => {
+    setS(x);
+    setDraft({ seconds: String(x.max_seconds), offer: String(x.max_offer_tokens) });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.spokenPrayerSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateSpokenPrayerSettings>[0] = {}) =>
+    api.admin
+      .updateSpokenPrayerSettings({ maxSeconds: toInt(draft.seconds) ?? undefined, maxOfferTokens: toInt(draft.offer) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        setNote(t('admin.saved.spoken'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.spoken')}</Text>
+      <Toggle label={t('admin.toggle.spoken')} hint={t('admin.toggle.spokenHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('admin.field.spokenSeconds')} keyboardType="number-pad" value={draft.seconds} onChangeText={(seconds) => setDraft((d) => ({ ...d, seconds }))} />
+      <Field label={t('admin.field.spokenOffer')} keyboardType="number-pad" value={draft.offer} onChangeText={(offer) => setDraft((d) => ({ ...d, offer }))} />
+      <Button label={t('admin.btn.saveSpoken')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

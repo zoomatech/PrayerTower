@@ -244,13 +244,13 @@ export async function removeComment(q: Queryable, userId: string, commentId: str
 }
 
 export async function setModerationStatus(q: Queryable, target: moderation.Target, id: string, status: ModerationStatus) {
-  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events' }[target];
+  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events', spoken_prayer: 'spoken_prayers' }[target];
   await q.query(`update public.${table} set moderation_status = $2 where id = $1`, [id, status]);
 }
 
 /** Show content again that was hidden pending review; content already removed stays removed. */
 export async function unhide(q: Queryable, target: moderation.Target, id: string) {
-  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events' }[target];
+  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events', spoken_prayer: 'spoken_prayers' }[target];
   await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
 }
 
@@ -262,6 +262,7 @@ export async function moderationSubject(q: Queryable, target: moderation.Target,
     reaction: 'select user_id, community_id, note as text from public.reactions where id = $1',
     message: 'select user_id, community_id, body as text from public.messages where id = $1',
     event: `select created_by as user_id, community_id, title || E'\n' || description || coalesce(E'\n' || location, '') as text from public.events where id = $1`,
+    spoken_prayer: `select user_id, community_id, '[Spoken prayer]' as text from public.spoken_prayers where id = $1`,
   }[target];
   const { rows } = await q.query<{ user_id: string; community_id: string; text: string | null }>(sql, [id]);
   return rows[0] ?? null;

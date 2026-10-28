@@ -40,3 +40,17 @@ jest.mock('expo-router', () => {
 afterEach(() => {
   jest.clearAllMocks();
 });
+
+// expo-audio needs the native module; tests drive a fake recorder and player.
+jest.mock('expo-audio', () => {
+  const recorder = { uri: 'file:///take.m4a', currentTime: 12, prepareToRecordAsync: jest.fn(async () => undefined), record: jest.fn(), stop: jest.fn(async () => undefined) };
+  const player = { play: jest.fn(), seekTo: jest.fn() };
+  return {
+    RecordingPresets: { HIGH_QUALITY: {} },
+    requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true })),
+    setAudioModeAsync: jest.fn(async () => undefined),
+    useAudioRecorder: () => recorder,
+    useAudioRecorderState: () => ({ isRecording: false, durationMillis: 0 }),
+    useAudioPlayer: () => player,
+  };
+});
