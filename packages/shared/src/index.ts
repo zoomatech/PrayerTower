@@ -301,6 +301,8 @@ export interface Profile {
   feed_mix: FeedMix;
   /** App language; notifications are sent in it. */
   locale?: Locale;
+  /** Weekly email digest; off by default. */
+  digest_enabled?: boolean;
   onboarded_at: string | null;
   suspended_until: string | null;
 }

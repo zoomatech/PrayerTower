@@ -86,6 +86,8 @@ const en = {
     safeBody: 'Report anything that breaks the community rules, and block anyone you like. Real moderators read every report. If someone is in crisis, Prayer Tower shows a crisis line right away.',
   },
   settings: {
+    digest: 'Weekly email',
+    digestHint: 'A Sunday email with prayers answered and how your promises went.',
     traumaOptOut: 'Hide graphic or trauma-related requests',
     traumaOptOutHint: 'Posts marked sensitive will not appear in your feed.',
     anonymous: 'Pray and post anonymously by default',
@@ -96,6 +98,8 @@ const en = {
     updatesFirst: 'Show my updates as the first comment',
   },
   profile: {
+    export: 'Download my data',
+    exporting: 'Preparing your data…',
     me: 'Me',
     tier: 'Your tier',
     tierPrivate: 'Your tier (private)',

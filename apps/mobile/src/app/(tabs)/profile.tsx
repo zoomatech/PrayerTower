@@ -19,6 +19,7 @@ import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useLocale } from '@/lib/i18n';
+import { saveJson } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Profile() {
@@ -27,6 +28,7 @@ export default function Profile() {
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [feedStyles, setFeedStyles] = useState<FeedThemeChoices | null>(null);
 
   useFocusEffect(
@@ -156,6 +158,7 @@ export default function Profile() {
           />
         ) : null}
         <Toggle label={t('settings.updatesFirst')} value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
+        <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
@@ -171,6 +174,22 @@ export default function Profile() {
         <ErrorText error={error} />
         <Button variant="ghost" label={t('profile.tour')} onPress={() => router.push('/tour')} />
         <Button variant="ghost" label={t('profile.feedback')} onPress={() => router.push('/feedback')} />
+        <Button
+          variant="ghost"
+          label={exporting ? t('profile.exporting') : t('profile.export')}
+          disabled={exporting}
+          onPress={async () => {
+            setExporting(true);
+            try {
+              const data = await api.exportMyData();
+              await saveJson(`prayer-tower-data-${data.exportedAt.slice(0, 10)}.json`, data);
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setExporting(false);
+            }
+          }}
+        />
         <Button variant="ghost" label={t('profile.signOut')} onPress={signOut} />
         <Button variant="ghost" label={t('profile.deleteAccount')} onPress={() => router.push('/delete-account')} />
         <LegalLinks contact />

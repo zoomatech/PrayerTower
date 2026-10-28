@@ -88,6 +88,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     safeBody: 'Reporta todo lo que rompa las reglas de la comunidad y bloquea a quien quieras. Moderadores reales leen cada reporte. Si alguien está en crisis, Prayer Tower muestra de inmediato una línea de ayuda.',
   },
   settings: {
+    digest: 'Correo semanal',
+    digestHint: 'Un correo cada domingo con oraciones respondidas y cómo van tus compromisos.',
     traumaOptOut: 'Ocultar peticiones gráficas o sobre traumas',
     traumaOptOutHint: 'Las publicaciones marcadas como delicadas no aparecerán en tu feed.',
     anonymous: 'Orar y publicar de forma anónima por defecto',
@@ -98,6 +100,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     updatesFirst: 'Mostrar mis novedades como primer comentario',
   },
   profile: {
+    export: 'Descargar mis datos',
+    exporting: 'Preparando tus datos…',
     me: 'Yo',
     tier: 'Tu nivel',
     tierPrivate: 'Tu nivel (privado)',

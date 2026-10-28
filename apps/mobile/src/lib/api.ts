@@ -297,6 +297,7 @@ export const api = {
     post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
+  exportMyData: () => request<{ exportedAt: string } & Record<string, unknown>>('GET', '/me/export'),
   /** Page 0 is saved for offline reading; when offline it comes back with `savedAt`. */
   feed: (page = 0): Promise<FeedPage & { savedAt?: number }> =>
     page === 0 ? cachedGet<FeedPage>('feed', '/feed?page=0') : get<FeedPage>(`/feed?page=${page}`),
