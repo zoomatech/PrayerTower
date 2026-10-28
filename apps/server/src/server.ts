@@ -1,9 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { runMigrations } from 'graphile-worker';
 import { buildApp } from './app.js';
 import { supabaseJwksVerifier } from './auth.js';
 import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
+import { createMailer } from './modules/digest/mailer.js';
 import { createClassifier } from './modules/moderation/providers.js';
 import { defaultLegalDir } from './modules/site/index.js';
 
@@ -13,6 +15,9 @@ const db = createPool(config.DATABASE_URL, config.DATABASE_POOL_MAX);
 
 // The API enqueues jobs, so the job queue schema must exist before it serves.
 await runMigrations({ pgPool: db });
+
+// The version in the API docs follows apps/server/package.json (set by npm run release).
+const serverVersion = () => (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
 const storage = config.SUPABASE_SECRET_KEY
   ? createClient(config.SUPABASE_URL, config.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
@@ -37,6 +42,9 @@ const app = buildApp({
   stationKey: config.STATION_API_KEY ?? null,
   rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
   metricsToken: config.METRICS_TOKEN ?? null,
+  mailer: createMailer(config),
+  webAppUrl: config.WEB_APP_URL ?? null,
+  apiDocs: { restricted: process.env.NODE_ENV === 'production', password: config.API_DOCS_PASSWORD ?? null, version: serverVersion() },
   deletionPage: { supabaseUrl: config.SUPABASE_URL, publishableKey: config.SUPABASE_PUBLISHABLE_KEY ?? null, supportEmail: config.SUPPORT_EMAIL ?? null },
   site: {
     supportEmail: config.SUPPORT_EMAIL ?? null,

@@ -36,6 +36,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
       db,
       overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
       config.SPONSOR_REPORT_TO.split(',').map((s) => s.trim()).filter(Boolean),
+      12,
+      config.SPONSOR_REPORT_LANG,
     ),
     token_ledger_check: ledgerCheckTask(db),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),

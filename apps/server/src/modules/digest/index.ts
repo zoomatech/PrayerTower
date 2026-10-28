@@ -74,7 +74,7 @@ export function renderDigest(d: Digest, locale: Locale, to: string): Mail {
   const lines = [t.hello(d.name), '', t.week(d), t.promises(d)].filter((l, i) => i < 2 || l);
   const answered = d.answered.map((a) => `• ${a.body}${a.mine ? ` ${t.mine}` : ''}`);
   const text = [...lines, ...(answered.length ? ['', t.answered, ...answered] : []), '', '—', t.off].join('\n');
-  const html = `<!doctype html><html><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
+  const html = `<!doctype html><html lang="${locale === 'es' ? 'es' : 'en'}"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
 <p>${esc(t.hello(d.name))}</p><p>${esc(t.week(d))}${t.promises(d) ? `<br>${esc(t.promises(d))}` : ''}</p>
 ${d.answered.length ? `<h3>${esc(t.answered)}</h3><ul>${d.answered.map((a) => `<li>${esc(a.body)}${a.mine ? ` <em>${esc(t.mine)}</em>` : ''}</li>`).join('')}</ul>` : ''}
 <hr><p style="font-size:13px;color:#6b6478">${esc(t.off)}</p></body></html>`;

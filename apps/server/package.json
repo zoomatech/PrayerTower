@@ -12,6 +12,8 @@
     "grant-role": "tsx src/scripts/grant-role.ts",
     "seed:demo": "tsx src/scripts/seed-demo.ts",
     "review-account": "tsx src/scripts/review-account.ts",
+    "push-test": "tsx src/scripts/push-test.ts",
+    "query-audit": "tsx src/scripts/query-audit.ts",
     "load-test": "tsx src/scripts/load-test.ts"
   },
   "devDependencies": {

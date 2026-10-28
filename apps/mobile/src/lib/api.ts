@@ -475,6 +475,8 @@ export const api = {
     createInvites: (input: { note?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
       post<{ invites: Invite[] }>('/admin/invites', input),
     revokeInvite: (code: string) => post<{ invite: Invite }>(`/admin/invites/${encodeURIComponent(code)}/revoke`, {}),
+    emailInvite: (code: string, input: { email: string; language?: 'en' | 'es'; message?: string }) =>
+      post<{ sent: boolean; language: 'en' | 'es' }>(`/admin/invites/${encodeURIComponent(code)}/email`, input),
     setInviteOnly: (inviteOnly: boolean) => request<{ inviteOnly: boolean }>('PATCH', '/admin/invite-settings', { inviteOnly }),
     auditLog: (q: { before?: string; limit?: number } = {}) =>
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),

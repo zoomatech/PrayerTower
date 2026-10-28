@@ -1,0 +1,15 @@
+{{ if eq .Data.locale "es" }}<!doctype html>
+<html lang="es"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
+<h2>Restablece tu contraseña</h2>
+<p>Alguien pidió restablecer la contraseña de tu cuenta de Prayer Tower. Toca el enlace para elegir una nueva:</p>
+<p><a href="{{ .ConfirmationURL }}">Elegir una contraseña nueva</a></p>
+<p>O escribe este código en la aplicación: <strong>{{ .Token }}</strong></p>
+<p style="font-size:13px;color:#6b6478">Si no lo pediste, puedes ignorar este correo. Tu contraseña no cambiará.</p>
+</body></html>{{ else }}<!doctype html>
+<html lang="en"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
+<h2>Reset your password</h2>
+<p>Someone asked to reset the password for your Prayer Tower account. Tap the link to choose a new one:</p>
+<p><a href="{{ .ConfirmationURL }}">Choose a new password</a></p>
+<p>Or enter this code in the app: <strong>{{ .Token }}</strong></p>
+<p style="font-size:13px;color:#6b6478">If you didn't ask for this, you can ignore this email. Your password won't change.</p>
+</body></html>{{ end }}

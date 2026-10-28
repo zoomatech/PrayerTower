@@ -135,13 +135,43 @@ footer{margin-top:24px;font-size:12px;color:var(--muted)}
 }
 
 /** Monday morning: email the report to SPONSOR_REPORT_TO (comma-separated), if set and SMTP is set up. */
-export function weeklySponsorReportTask(q: Queryable, mailer: Mailer | null, to: string[], weeks = 12): Task {
+// The weekly line in the plain-text part of the email.
+const TEXT_LINE = {
+  en: (r: PilotWeek) => `${r.week_start}: ${r.requests_posted} requests, ${prayers(r)} prayers, ${r.prayers_answered} answered`,
+  es: (r: PilotWeek) => `${r.week_start}: ${r.requests_posted} peticiones, ${prayers(r)} oraciones, ${r.prayers_answered} respondidas`,
+} satisfies Record<ReportLang, (r: PilotWeek) => string>;
+const SUBJECT = {
+  en: (week: string) => `${L.en.title}, week of ${week}`,
+  es: (week: string) => `${L.es.title}, semana del ${week}`,
+} satisfies Record<ReportLang, (week: string) => string>;
+
+/**
+ * Each recipient gets the report in their language: a sponsor who is also a
+ * member gets their app language (profiles.locale); anyone else gets
+ * `fallback` (SPONSOR_REPORT_LANG). An address can also be written "es:name@org".
+ */
+export async function recipientLangs(q: Queryable, to: string[], fallback: ReportLang = 'en'): Promise<{ to: string; lang: ReportLang }[]> {
+  const parsed = to.map((raw) => {
+    const m = /^(en|es):(.+)$/.exec(raw.trim());
+    return m ? { to: m[2]!.trim(), forced: m[1] as ReportLang } : { to: raw.trim(), forced: null };
+  });
+  const { rows } = await q.query<{ email: string; locale: ReportLang }>(
+    `select lower(u.email) as email, p.locale from auth.users u join public.profiles p on p.id = u.id where lower(u.email) = any($1::text[])`,
+    [parsed.map((p) => p.to.toLowerCase())],
+  );
+  const byEmail = new Map(rows.map((r) => [r.email, r.locale]));
+  return parsed.map((p) => ({ to: p.to, lang: p.forced ?? byEmail.get(p.to.toLowerCase()) ?? fallback }));
+}
+
+export function weeklySponsorReportTask(q: Queryable, mailer: Mailer | null, to: string[], weeks = 12, fallback: ReportLang = 'en'): Task {
   return async (_payload, helpers) => {
     if (!mailer || !to.length) return helpers.logger.info('sponsor report: SPONSOR_REPORT_TO or SMTP_URL not set, skipped');
     const rows = await weekly(q, weeks);
-    const html = toHtml(rows);
-    const text = `${L.en.title}\n\n${rows.map((r) => `${r.week_start}: ${r.requests_posted} requests, ${prayers(r)} prayers, ${r.prayers_answered} answered`).join('\n')}\n`;
-    for (const addr of to) await mailer({ to: addr, subject: `${L.en.title}, week of ${rows.at(-2)?.week_start ?? rows.at(-1)?.week_start}`, text, html });
+    const week = rows.at(-2)?.week_start ?? rows.at(-1)?.week_start ?? '';
+    for (const r of await recipientLangs(q, to, fallback)) {
+      const text = `${L[r.lang].title}\n\n${rows.map(TEXT_LINE[r.lang]).join('\n')}\n`;
+      await mailer({ to: r.to, subject: SUBJECT[r.lang](week), text, html: toHtml(rows, r.lang) });
+    }
     helpers.logger.info(`sponsor report: sent to ${to.length}`);
   };
 }
