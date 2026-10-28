@@ -7,6 +7,7 @@ import type { Db } from './db.js';
 import { AppError } from './errors.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { accountRoutes } from './modules/accounts/routes.js';
+import { careRoutes } from './modules/care/routes.js';
 import { commitmentRoutes } from './modules/commitments/routes.js';
 import { feedRoutes } from './modules/feed/routes.js';
 import type { Classifier } from './modules/moderation/index.js';
@@ -85,6 +86,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     highlightRoutes(authed, db);
     messageRoutes(authed, db);
     eventRoutes(authed, db);
+    careRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);

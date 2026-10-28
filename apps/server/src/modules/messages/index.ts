@@ -241,7 +241,7 @@ export async function createGroup(q: Queryable, userId: string, input: z.infer<t
 async function getConversation(q: Queryable, id: string) {
   const { rows } = await q.query<{
     id: string;
-    kind: 'prayer' | 'direct' | 'group';
+    kind: 'prayer' | 'direct' | 'group' | 'care';
     post_id: string | null;
     title: string | null;
     topic: string | null;

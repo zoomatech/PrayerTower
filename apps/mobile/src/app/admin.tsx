@@ -268,6 +268,7 @@ export default function Admin() {
         ) : null}
 
         <MessagingSettingsSection />
+        <CareAndEventSettingsSection />
 
         {radio ? (
           <View style={styles.section}>
@@ -396,6 +397,65 @@ const METRIC_LABELS: Record<MilestoneRule['metric'], string> = {
   commitment_checkins: 'Commitment check-ins',
   answered_requests: 'Answered requests',
 };
+
+/** Prayer partners on call, and events. Confession stays off until a lawyer reviews it. */
+function CareAndEventSettingsSection() {
+  const [care, setCare] = useState<{ care_enabled: boolean; confession_enabled: boolean } | null>(null);
+  const [ev, setEv] = useState<{ events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } | null>(null);
+  const [hosts, setHosts] = useState('');
+  const [reminder, setReminder] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+
+  const showEv = (s: NonNullable<typeof ev>) => {
+    setEv(s);
+    setHosts(s.allowed_video_hosts.join(', '));
+    setReminder(String(s.reminder_minutes));
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.careSettings().then((r) => setCare(r.settings)).catch((e) => setNote((e as Error).message));
+      api.admin.eventSettings().then((r) => showEv(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+
+  const saveCare = (patch: Parameters<typeof api.admin.updateCareSettings>[0]) =>
+    api.admin.updateCareSettings(patch).then((r) => setCare(r.settings)).catch((e) => setNote((e as Error).message));
+  const saveEv = (patch: Parameters<typeof api.admin.updateEventSettings>[0] = {}) =>
+    api.admin
+      .updateEventSettings({
+        allowedVideoHosts: hosts.split(',').map((h) => h.trim()).filter(Boolean),
+        reminderMinutes: toInt(reminder) ?? undefined,
+        ...patch,
+      })
+      .then((r) => {
+        showEv(r.settings);
+        setNote('Event settings saved.');
+      })
+      .catch((e) => setNote((e as Error).message));
+
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Prayer partners and events</Text>
+      {care ? (
+        <>
+          <Toggle label="Members can ask for a prayer partner" value={care.care_enabled} onChange={(v) => saveCare({ careEnabled: v })} />
+          <Toggle label="Confession to a pastor" hint="Off until a lawyer reviews confidentiality and reporting duties." value={care.confession_enabled} onChange={(v) => saveCare({ confessionEnabled: v })} />
+        </>
+      ) : null}
+      {ev ? (
+        <>
+          <Toggle label="Events" value={ev.events_enabled} onChange={(v) => saveEv({ eventsEnabled: v })} />
+          <Toggle label="New members can host events" value={ev.new_members_can_host} onChange={(v) => saveEv({ newMembersCanHost: v })} />
+          <Field label="Allowed video meeting sites" value={hosts} onChangeText={setHosts} autoCapitalize="none" multiline />
+          <Field label="Reminder, minutes before" keyboardType="number-pad" value={reminder} onChangeText={setReminder} />
+          <Button label="Save event settings" onPress={() => saveEv()} />
+        </>
+      ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
 
 /** Messages (Features Set 2): switches and limits. Defaults are placeholders until Steve decides. */
 function MessagingSettingsSection() {

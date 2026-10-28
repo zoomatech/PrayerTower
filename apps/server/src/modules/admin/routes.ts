@@ -7,6 +7,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
+import * as care from '../care/index.js';
 import * as commitments from '../commitments/index.js';
 import * as events from '../events/index.js';
 import * as milestones from '../milestones/index.js';
@@ -158,6 +159,17 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_links_allowed: input.newMemberLinksAllowed,
       }),
     };
+  });
+
+  // Prayer partners and pastors on call; confession stays off until a lawyer reviews it.
+  app.get('/admin/care-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await care.settings(db) };
+  });
+
+  app.patch('/admin/care-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await care.updateSettings(db, care.SettingsPatch.parse(req.body)) };
   });
 
   // Events: on/off, who can host, allowed video meeting sites, reminder lead time.

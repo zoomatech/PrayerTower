@@ -335,7 +335,7 @@ export function importantWords(body: string, n = 4): string[] {
 
 // Messages (Features Set 2: pray-er-to-prayee, direct, group chats) ------------
 
-export type ConversationKind = 'prayer' | 'direct' | 'group';
+export type ConversationKind = 'prayer' | 'direct' | 'group' | 'care';
 
 /** A row in the Messages tab. */
 export interface ConversationSummary {
@@ -391,6 +391,34 @@ export interface PublicGroup {
 }
 
 export const MESSAGE_MAX_CHARS = 2000;
+
+// Talk to a prayer partner or pastor (notebook Page 4) ---------------------------
+
+export type CareKind = 'pray_with_me' | 'pastor' | 'confession';
+
+export const CARE_KIND_LABELS: Record<CareKind, string> = {
+  pray_with_me: 'Pray with me now',
+  pastor: 'Talk with a pastor',
+  confession: 'Confession',
+};
+
+export interface CareRequest {
+  id: string;
+  kind: CareKind;
+  body: string;
+  status: 'open' | 'claimed' | 'closed';
+  conversationId: string | null;
+  createdAt: string;
+}
+
+export interface CareQueueItem {
+  id: string;
+  kind: CareKind;
+  body: string;
+  crisis: boolean;
+  name: string;
+  createdAt: string;
+}
 
 // Events: prayer meetings, meet-ups, seminars, outreach, restorative circles -----
 

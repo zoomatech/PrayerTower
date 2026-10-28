@@ -10,7 +10,7 @@ import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
-const KIND_LABEL = { prayer: 'Prayer note', direct: 'Message', group: 'Group' } as const;
+const KIND_LABEL = { prayer: 'Prayer note', direct: 'Message', group: 'Group', care: 'Prayer partner' } as const;
 
 export default function Messages() {
   const [items, setItems] = useState<ConversationSummary[]>([]);
@@ -69,6 +69,7 @@ export default function Messages() {
         <View style={styles.links}>
           <Button variant="secondary" label="Prayer groups" onPress={() => router.push('/groups')} />
           <Button variant="secondary" label="Meetings & events" onPress={() => router.push('/events')} />
+          <Button variant="secondary" label="Pray with someone now" onPress={() => router.push('/care')} />
         </View>
         <ErrorText error={error} />
         {requests.length ? <Text style={type.heading}>Requests and invites</Text> : null}

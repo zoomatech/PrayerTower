@@ -43,7 +43,8 @@ export default function Notifications() {
           const postId = typeof n.data.postId === 'string' ? n.data.postId : null;
           const conversationId = typeof n.data.conversationId === 'string' ? n.data.conversationId : null;
           const eventId = typeof n.data.eventId === 'string' ? n.data.eventId : null;
-          const target = conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}` : null;
+          const careRequestId = typeof n.data.careRequestId === 'string' ? n.data.careRequestId : null;
+          const target = careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}` : null;
           return (
             <Pressable
               key={n.id}

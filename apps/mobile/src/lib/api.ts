@@ -3,6 +3,9 @@ import type {
   Appeal,
   AppNotification,
   Card,
+  CareKind,
+  CareQueueItem,
+  CareRequest,
   ChatMessage,
   Comment,
   Commitment,
@@ -323,6 +326,12 @@ export const api = {
         groupMaxMembers: number;
       }>,
     ) => request<{ settings: AdminMessagingSettings }>('PATCH', '/admin/messaging-settings', patch),
+    careSettings: () => get<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('/admin/care-settings'),
+    updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number }>) =>
+      request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('PATCH', '/admin/care-settings', patch),
+    eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
+    updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
+      request<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('PATCH', '/admin/event-settings', patch),
     tiers: () => get<{ tiers: AdminTier[] }>('/admin/tiers'),
     updateTier: (tier: string, patch: { minPrayerEvents?: number | null; weeklyAllotment?: number | null }) =>
       request<{ tier: AdminTier }>('PATCH', `/admin/tiers/${tier}`, patch),
@@ -384,6 +393,12 @@ export const api = {
   rsvp: (id: string, status: 'going' | 'maybe') => put<{ event: PrayerEvent }>(`/events/${id}/rsvp`, { status }),
   unrsvp: (id: string) => request<{ event: PrayerEvent }>('DELETE', `/events/${id}/rsvp`),
   cancelEvent: (id: string) => post(`/events/${id}/cancel`),
+  care: () => get<{ enabled: boolean; kinds: CareKind[] }>('/care'),
+  myCareRequests: () => get<{ requests: CareRequest[] }>('/me/care-requests'),
+  askForCare: (kind: CareKind, body: string) => post<{ id: string; crisis: boolean }>('/care-requests', { kind, body }),
+  careQueue: () => get<{ requests: CareQueueItem[] }>('/care/queue'),
+  claimCare: (id: string) => post<{ conversationId: string }>(`/care-requests/${id}/claim`),
+  closeCare: (id: string) => post(`/care-requests/${id}/close`),
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
