@@ -18,7 +18,7 @@
 | Radio | Request text (no name), when a member spends a radio token | Broadcast publicly over amateur radio |
 | Server | IP address and request logs | API host logs |
 
-**Not collected:** advertising IDs, precise or coarse location from the device, contacts, browsing or search history, purchases or payment details, crash SDK data (there is no analytics or crash SDK).
+**Not collected:** advertising IDs, precise or coarse location from the device, contacts, browsing or search history, purchases or payment details, crash data unless crash reporting is turned on (see below). There is no analytics or ad SDK.
 
 ---
 
@@ -48,7 +48,10 @@ Definitions: "Collect" means data sent off the device and kept longer than real-
 **Not declared:**
 - Location: event places are typed text, already under Other User Content.
 - Device ID: a push token is a delivery address, not a device identifier. Declare it if counsel prefers to be conservative.
-- Financial Info, Purchases, Contacts, Browsing History, Search History, Diagnostics.
+- Financial Info, Purchases, Contacts, Browsing History, Search History.
+- Diagnostics, **while crash reporting is off**. Crash reporting is off unless `EXPO_PUBLIC_SENTRY_DSN` was set for the build.
+
+**If crash reporting is on** (Sentry, through `EXPO_PUBLIC_SENTRY_DSN`), also declare **Diagnostics → Crash Data**, "such as crash logs". Its purpose is App Functionality, and it is **Not linked to the user**. The app strips the user, request bodies, screen taps and console logs before sending. Apple counts data as unlinked only when direct identifiers are stripped before collection, and when you never try to link it back. ([Apple: App privacy details](https://developer.apple.com/app-store/app-privacy-details/))
 
 **Privacy policy URL:** `https://<API host>/privacy`, once the reviewed `PRIVACY_POLICY.md` is in `docs/legal/`.
 
@@ -96,6 +99,7 @@ Definitions: "Collect" means transmitting data off the device. "Sharing" means t
 | App activity → **Other user-generated content** | App functionality | Required to post |
 | App activity → **Other actions** (reports, blocks, follows) | App functionality, Fraud prevention, security and compliance | Optional |
 | Device or other IDs → **Device or other IDs** | App functionality (push token) | Optional (notifications) |
+| App info and performance → **Crash logs** (only if `EXPO_PUBLIC_SENTRY_DSN` is set) | Analytics ("stack traces, or other information directly related to a crash") | Required |
 
 **Shared:** **None.** These count as service providers: Supabase, the API host, OpenAI moderation, and the Expo, APNs and FCM push services. Content that other members see inside the app isn't "sharing" to a third party.
 
@@ -106,7 +110,7 @@ Definitions: "Collect" means transmitting data off the device. "Sharing" means t
 ---
 
 ## Before each submission
-- [ ] There are still no analytics, crash or ad SDKs in `apps/mobile/package.json`. If one is added, update both forms.
+- [ ] There are still no analytics or ad SDKs in `apps/mobile/package.json`. Sentry is the only crash SDK, and it is off without a DSN. If you set a DSN, add Crash Data and Crash logs as described above.
 - [ ] Moderation still uses only OpenAI's `/v1/moderations`, not chat or completions, which are retained for abuse monitoring by default. ([OpenAI: your data](https://developers.openai.com/api/docs/guides/your-data))
 - [ ] `https://<API host>/account-deletion` loads, and a test deletion works.
 - [ ] The privacy policy is published and matches these answers.

@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { withMonitoring } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
 import { colors } from '@/lib/theme';
 
@@ -54,7 +55,7 @@ function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
@@ -64,3 +65,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default withMonitoring(RootLayout);
