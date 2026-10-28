@@ -40,6 +40,20 @@ describe('donated token pools', () => {
     expect(again.json().message).toMatch(/already used this pool/);
     // The poster can't draw for their own request.
     expect((await as(poster).post(`/token-pools/${poolId}/draw`, { postId: post.id })).json().message).toMatch(/other people/);
+
+    // Open Circle members never see a faith pool, and it never reaches their requests.
+    const circle = await createUser('Circle Pool Member');
+    await db.query('delete from public.community_memberships where user_id = $1', [circle]);
+    await db.query(
+      `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+      [circle],
+    );
+    expect((await as(circle).get('/token-pools')).json().pools.some((p: { id: string }) => p.id === poolId)).toBe(false);
+    const circlePost = (await db.query<{ id: string }>(
+      `insert into public.posts (user_id, post_type, body, community_id) select $1, 'prayer_request', 'Moving house', id from public.communities where slug = 'open-circle' returning id`,
+      [circle],
+    )).rows[0]!;
+    expect((await as(member).post(`/token-pools/${poolId}/draw`, { postId: circlePost.id })).statusCode).toBe(404);
   });
 
   it('enforces the daily limit, the realm, and an empty pool', async () => {
