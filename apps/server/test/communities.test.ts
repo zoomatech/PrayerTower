@@ -121,6 +121,9 @@ describe('Open Circle, the non-religious community', () => {
     const post = await newRequest(faith, 'A faith request.');
     expect((await as(circle).get(`/posts/${post.id}`)).statusCode).toBe(404);
     expect((await as(circle).post(`/posts/${post.id}/praying-now`, {})).statusCode).toBe(404);
+    expect((await as(circle).get(`/posts/${post.id}/comments`)).statusCode).toBe(404);
+    expect((await as(circle).get(`/posts/${post.id}/prayers`)).statusCode).toBe(404);
+    expect((await as(circle).post(`/posts/${post.id}/boost`, { amount: 1, idempotencyKey: 'sandbox' })).statusCode).toBe(404);
     expect((await as(faith).get(`/posts/${post.id}`)).statusCode).toBe(200);
   });
 

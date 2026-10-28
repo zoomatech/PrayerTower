@@ -149,6 +149,12 @@ export async function inCommunity(q: Queryable, userId: string, communityId: str
   return !!rowCount;
 }
 
+/** A visible post the member may read: their own, or one in a community they belong to. */
+export async function getViewable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
+  const post = await getVisible(q, postId);
+  return post && (post.user_id === userId || (await inCommunity(q, userId, post.community_id))) ? post : null;
+}
+
 /** A visible post the member may act on: only in their own communities, never one between people where either blocked the other. */
 export async function getActionable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
   const post = await getVisible(q, postId);

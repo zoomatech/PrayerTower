@@ -86,7 +86,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
 
   app.get<{ Params: { id: string } }>('/posts/:id/comments', async (req) => {
     const viewerId = requireUser(req);
-    if (!(await posts.getVisible(db, req.params.id))) throw notFound('Post');
+    if (!(await posts.getViewable(db, viewerId, req.params.id))) throw notFound('Post');
     return { comments: await posts.listComments(db, req.params.id, viewerId) };
   });
 
@@ -121,7 +121,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
 
   app.get<{ Params: { id: string } }>('/posts/:id/prayers', async (req) => {
     const viewerId = requireUser(req);
-    if (!(await posts.getVisible(db, req.params.id))) throw notFound('Post');
+    if (!(await posts.getViewable(db, viewerId, req.params.id))) throw notFound('Post');
     return posts.prayers(db, req.params.id, viewerId);
   });
 
