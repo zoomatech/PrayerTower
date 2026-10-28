@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { runMigrations, runOnce } from 'graphile-worker';
 import { buildApp } from '../src/app.js';
+import { defaultLegalDir } from '../src/modules/site/index.js';
 import { loadConfig } from '../src/config.js';
 import { createPool } from '../src/db.js';
 import type { Classifier } from '../src/modules/moderation/index.js';
@@ -28,6 +29,7 @@ export const app = buildApp({
   classify: (text) => classifier(text),
   stationKey: STATION_KEY,
   deletionPage: { supabaseUrl: 'http://127.0.0.1:54321', publishableKey: 'sb_publishable_test', supportEmail: 'help@example.com' },
+  site: { supportEmail: 'help@example.com', legalDir: defaultLegalDir(), appStoreUrl: null, playStoreUrl: null, crisisCountry: 'US' },
 });
 
 export let classifier: Classifier = async () => null;

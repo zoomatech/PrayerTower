@@ -30,6 +30,8 @@ import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
+import type { SiteOptions } from './modules/site/index.js';
+import { siteRoutes } from './modules/site/routes.js';
 import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
@@ -48,11 +50,13 @@ export interface AppDeps {
   rateLimitPerMinute?: number;
   /** The public account-deletion page (Google Play); null = page off. */
   deletionPage?: DeletionPageOptions | null;
+  /** The public website (landing, support, privacy, terms); null = off. */
+  site?: SiteOptions | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null }: AppDeps) {
   const app = Fastify({ logger });
   if (onRoute) {
     app.addHook('onRoute', (r) => {
@@ -90,6 +94,14 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     app.register(async (open) => {
       if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 10, timeWindow: '1 minute' });
       deletionPageRoutes(open, db, deletionPage);
+    });
+  }
+
+  // The public website, limited per IP address.
+  if (site) {
+    app.register(async (open) => {
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
+      siteRoutes(open, site);
     });
   }
 

@@ -50,7 +50,7 @@ Definitions: "Collect" means data sent off the device and kept longer than real-
 - Device ID: a push token is a delivery address, not a device identifier. Declare it if counsel prefers to be conservative.
 - Financial Info, Purchases, Contacts, Browsing History, Search History, Diagnostics.
 
-**Privacy policy URL:** [the hosted URL of `PRIVACY_POLICY_DRAFT.md` once it has been reviewed].
+**Privacy policy URL:** `https://<API host>/privacy`, once the reviewed `PRIVACY_POLICY.md` is in `docs/legal/`.
 
 ### Age rating questionnaire (App Store Connect → App Information → Age Ratings)
 

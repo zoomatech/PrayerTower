@@ -48,9 +48,9 @@ There are no ads, and we never sell your information. Delete your account at any
 Prayer Tower is in a small pilot. Features may change as we learn together. Prayer Tower is not an emergency service. If you are in danger, call 911 or 988.
 ```
 
-**Support URL:** [https://…/support]. Apple requires published contact information for apps with user content.
-**Marketing URL** (optional): [https://…]
-**Privacy Policy URL:** [the published URL of docs/legal/PRIVACY_POLICY_DRAFT.md after review]
+**Support URL:** `https://<API host>/support`. The server serves it, and Apple requires published contact information for apps with user content.
+**Marketing URL** (optional): `https://<API host>/`, the landing page
+**Privacy Policy URL:** `https://<API host>/privacy`. Publish it only after review: save the final version as `docs/legal/PRIVACY_POLICY.md`.
 **Category:** Lifestyle (primary), Social Networking (secondary). Steve to confirm.
 **Copyright:** `2026 [LEGAL NAME OF OPERATOR]`
 
@@ -109,7 +109,7 @@ Prayer Tower is in a small pilot. Features may change as we learn together. Pray
 ```
 
 **Category:** Lifestyle. **Tags:** Faith, Community. Choose them in the Play Console tag picker.
-**Contact email:** [SUPPORT EMAIL] (required) · **Website:** [URL] · **Privacy policy:** [URL]
+**Contact email:** [SUPPORT EMAIL] (required) · **Website:** `https://<API host>/` · **Privacy policy:** `https://<API host>/privacy`
 
 ## Screenshots to capture (both stores)
 
