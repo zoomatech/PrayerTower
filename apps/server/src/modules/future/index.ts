@@ -5,7 +5,7 @@
 // takes money or calls an AI.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { AppError, forbidden } from '../../errors.js';
+import { forbidden } from '../../errors.js';
 
 export interface FutureSettings {
   purchases_enabled: boolean;
@@ -47,26 +47,15 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
 export async function store(q: Queryable) {
   const s = await settings(q);
   if (!s.purchases_enabled) return { enabled: false, products: [] };
-  const { rows } = await q.query(`select sku, tokens, price_label, apple_product_id, google_product_id from public.token_products where active order by tokens`);
+  const { rows } = await q.query(`select sku, tokens, currency, price_label, apple_product_id, google_product_id from public.token_products where active order by currency, tokens`);
   return {
     enabled: true,
     commonFundPercent: s.common_fund_percent,
-    products: rows.map((r) => ({ sku: r.sku, tokens: r.tokens, priceLabel: r.price_label, appleProductId: r.apple_product_id, googleProductId: r.google_product_id })),
+    products: rows.map((r) => ({ sku: r.sku, tokens: r.tokens, currency: r.currency, priceLabel: r.price_label, appleProductId: r.apple_product_id, googleProductId: r.google_product_id })),
   };
 }
 
-export const Purchase = z.object({ sku: z.string(), platform: z.enum(['ios', 'android']), receipt: z.string().min(1).max(100_000) });
-
-/**
- * Refused while purchases are off. Even when switched on, the store receipt
- * check (App Store Server API / Google Play Developer API) isn't built yet, so
- * no tokens are ever credited from here until it is.
- */
-export async function purchase(q: Queryable, _userId: string, _input: z.infer<typeof Purchase>): Promise<never> {
-  const s = await settings(q);
-  if (!s.purchases_enabled) throw forbidden('Buying tokens is not available yet. You can earn tokens by praying.');
-  throw new AppError(501, 'not_implemented', 'Store receipt checking is not set up yet');
-}
+// Buying is in modules/store (App Store purchase with Apple's signature checked on the server).
 
 // Common Prayer Fund ------------------------------------------------------------------
 

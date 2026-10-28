@@ -5,7 +5,7 @@ import type { DatabaseError } from 'pg';
 import type { Queryable } from '../../db.js';
 import { AppError, badRequest, notFound } from '../../errors.js';
 
-export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus' | 'spend_radio' | 'pool_fund' | 'pool_draw' | 'pool_return';
+export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus' | 'spend_radio' | 'pool_fund' | 'pool_draw' | 'pool_return' | 'purchase';
 /** Regular tokens are earned per prayer; Priestly tokens per N verified prayers and fund the infrastructure. */
 export type Currency = 'regular' | 'priestly';
 
@@ -85,6 +85,11 @@ export async function reachOf(q: Queryable, postId: string): Promise<number> {
     [postId],
   );
   return Number(rows[0]?.balance ?? 0);
+}
+
+/** Tokens bought in the store (key: one per store transaction, so a retry never credits twice). */
+export async function creditPurchase(q: Queryable, userId: string, amount: number, key: string, currency: Currency = 'regular') {
+  return transfer(q, key, 'purchase', await systemAccount(q, 'mint', currency), await userAccount(q, userId, currency), amount, userId, 'Token purchase');
 }
 
 export async function earn(q: Queryable, userId: string, amount: number, key: string, reason: string) {

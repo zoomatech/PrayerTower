@@ -46,6 +46,13 @@ const Env = z.object({
   AI_CHAT_MODEL: z.string().default('claude-opus-5-5'),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */
   STATION_API_KEY: z.string().min(24).optional(),
+  /** In-app token purchase (App Store). Off until purchases_enabled is on AND the Apple root certificate is set. */
+  APPLE_IAP_ENVIRONMENT: z.enum(['Sandbox', 'Production']).default('Sandbox'),
+  /** The app's Apple ID (a number, App Store Connect → App Information). Required for Production. */
+  APPLE_APP_APPLE_ID: z.coerce.number().int().positive().optional(),
+  APPLE_BUNDLE_ID: z.string().default('com.zoomatech.prayertower'),
+  /** Comma-separated paths to Apple root certificates (DER .cer, e.g. AppleRootCA-G3.cer). Unset = purchases can't be checked. */
+  APPLE_ROOT_CA_PATHS: z.string().default(''),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
   /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */

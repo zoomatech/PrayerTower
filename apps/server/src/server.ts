@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { runMigrations } from 'graphile-worker';
+import { appleVerifier } from './modules/store/index.js';
 import { buildApp } from './app.js';
 import { createConverser } from './modules/ai/provider.js';
 import { supabaseJwksVerifier } from './auth.js';
@@ -51,6 +52,7 @@ const app = buildApp({
   metricsToken: config.METRICS_TOKEN ?? null,
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,
+  appleVerifier: appleVerifier(config),
   apiDocs: { restricted: process.env.NODE_ENV === 'production', password: config.API_DOCS_PASSWORD ?? null, version: serverVersion() },
   deletionPage: { supabaseUrl: config.SUPABASE_URL, publishableKey: config.SUPABASE_PUBLISHABLE_KEY ?? null, supportEmail: config.SUPPORT_EMAIL ?? null },
   site: {
