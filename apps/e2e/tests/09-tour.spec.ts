@@ -28,19 +28,16 @@ test('the tour shows once, can be stepped through, and reopens from Me', async (
   await expect(page.getByText('1 of 5')).toHaveCount(0);
 });
 
-test('the tour follows the chosen language', async ({ page }) => {
+test('the tour stays in English, even with Spanish saved on the device', async ({ page }) => {
   await signIn(page, 'pastor', { tour: true });
   await expect(page.getByText('1 of 5')).toBeVisible();
-  // Switch the app to Spanish and forget that the tour was seen, then reload.
+  // An older build saved Spanish; the app is English only now (Steve, 2026-10-28).
   await page.evaluate(() => {
     localStorage.setItem('prayer-tower.language', 'es');
     for (const k of Object.keys(localStorage)) if (k.startsWith('tour:seen')) localStorage.removeItem(k);
   });
   await page.reload();
-  await expect(page.getByText('Pide oración', { exact: true })).toBeVisible();
-  await expect(page.getByText('1 de 5')).toBeVisible();
-  await page.getByRole('button', { name: 'Siguiente' }).click();
-  await expect(page.getByText('Ora ahora', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Omitir' }).click();
+  await expect(page.getByText('1 of 5')).toBeVisible();
   await expect(page.getByText('1 de 5')).toHaveCount(0);
+  await page.evaluate(() => localStorage.removeItem('prayer-tower.language'));
 });

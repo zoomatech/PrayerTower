@@ -8,6 +8,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { localized } from '@/components/announcements';
 import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type Announcement } from '@/lib/api';
+import { env } from '@/lib/env';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -101,8 +102,8 @@ export default function Announcements() {
           <Text style={type.small}>{t(`announcementsAdmin.kindHint.${kind}`)}</Text>
           <Field label={t('announcementsAdmin.titleEn')} value={title} onChangeText={setTitle} maxLength={120} />
           {kind === 'notice' ? <Field label={t('announcementsAdmin.bodyEn')} value={body} onChangeText={setBody} maxLength={1000} multiline /> : null}
-          <Field label={t('announcementsAdmin.titleEs')} value={titleEs} onChangeText={setTitleEs} maxLength={120} />
-          {kind === 'notice' ? <Field label={t('announcementsAdmin.bodyEs')} value={bodyEs} onChangeText={setBodyEs} maxLength={1000} multiline /> : null}
+          {env.spanish ? <Field label={t('announcementsAdmin.titleEs')} value={titleEs} onChangeText={setTitleEs} maxLength={120} /> : null}
+          {env.spanish && kind === 'notice' ? <Field label={t('announcementsAdmin.bodyEs')} value={bodyEs} onChangeText={setBodyEs} maxLength={1000} multiline /> : null}
           <Field label={t('announcementsAdmin.hours')} value={hours} onChangeText={setHours} keyboardType="number-pad" placeholder={t('announcementsAdmin.untilEnded')} />
           {bodyEs.trim() && !titleEs.trim() ? <Text style={type.small}>{t('announcementsAdmin.needTitleEs')}</Text> : null}
           <Button label={t('announcementsAdmin.post')} onPress={post} busy={busy} disabled={!valid} />

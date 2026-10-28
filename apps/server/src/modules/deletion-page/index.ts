@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { conflict, notFound } from '../../errors.js';
+import { languages } from '../../language.js';
 import { deleteAccount } from '../accounts/index.js';
 
 export const NewRequest = z.object({ email: z.email().max(320), note: z.string().trim().max(1000).optional() });
@@ -131,8 +132,7 @@ export function page(opts: { supabaseUrl: string; publishableKey: string | null;
   return `<!doctype html>
 <html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${t.title}</title>
-<link rel="alternate" hreflang="en" href="/account-deletion"><link rel="alternate" hreflang="es" href="/es/account-deletion">
-<style>
+${languages.spanish ? '<link rel="alternate" hreflang="en" href="/account-deletion"><link rel="alternate" hreflang="es" href="/es/account-deletion">\n' : ''}<style>
   :root { color-scheme: light dark; --fg: #2B2238; --muted: #6B6478; --bg: #FAF7F2; --card: #fff; --line: #E7E0D6; --accent: #5B3E96; }
   @media (prefers-color-scheme: dark) { :root { --fg: #EEE9F5; --muted: #ABA3B8; --bg: #17131D; --card: #221C2B; --line: #3A3245; --accent: #B9A2E6; } }
   body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
@@ -145,8 +145,7 @@ export function page(opts: { supabaseUrl: string; publishableKey: string | null;
   a { color: var(--accent); } .msg { font-weight: 600; color: var(--fg); } .lang { text-align: right; margin: 0; }
 </style></head>
 <body><main>
-<p class="lang"><a href="${t.other.href}" hreflang="${t.other.lang}" lang="${t.other.lang}">${t.other.label}</a></p>
-<h1>${t.title}</h1>
+${languages.spanish ? `<p class="lang"><a href="${t.other.href}" hreflang="${t.other.lang}" lang="${t.other.lang}">${t.other.label}</a></p>\n` : ''}<h1>${t.title}</h1>
 <p>${t.intro}</p>
 <section>
   <h2>${t.whatTitle}</h2>

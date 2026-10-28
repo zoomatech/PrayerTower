@@ -77,7 +77,7 @@ The product plans are in the project files under `roadmap/`: the product roadmap
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | Backups and the restore drill |
 | [BACKGROUND_JOBS.md](BACKGROUND_JOBS.md) | Job retries, the failed-jobs list and alerts |
 | [APP_LINKS.md](APP_LINKS.md) | Shared links that open the app |
-| [LOCALIZATION.md](LOCALIZATION.md) | English and Spanish in the app and in emails |
+| [LOCALIZATION.md](LOCALIZATION.md) | English only for now; how the switched-off Spanish works |
 | [SPANISH_REVIEW_CHECKLIST.md](SPANISH_REVIEW_CHECKLIST.md) | Every Spanish string beside the English, for a native speaker |
 | [SECURITY_SCANNING.md](SECURITY_SCANNING.md) | Dependabot, npm audit and CodeQL |
 | [CODE_HEALTH.md](CODE_HEALTH.md) | Strict TypeScript, ESLint and the test coverage report |
@@ -101,4 +101,4 @@ Checked on 2026-10-28.
 | [LOAD_TEST.md](LOAD_TEST.md) | Still valid. It was run before the query-audit indexes, which only make it faster. |
 | [legal/](legal/PRIVACY_POLICY_DRAFT.md) drafts | Drafts until a lawyer reviews them (STEVE_TODO). |
 | [STAFF_HANDBOOK.md](STAFF_HANDBOOK.md) §3 (crisis) | Needs a licensed counselor's review before the pilot (STEVE_TODO). |
-| SPANISH_REVIEW_CHECKLIST.md | Generated from the code. Run it again after strings change. |
+| SPANISH_REVIEW_CHECKLIST.md | Not needed while the app is English only. |

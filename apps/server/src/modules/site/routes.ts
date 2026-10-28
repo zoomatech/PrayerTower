@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
+import { languages } from '../../language.js';
 import * as site from './index.js';
 
 /** Public pages: no sign-in. Built once at start-up; restart to pick up a new policy file. */
 export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions) {
   const html = 'text/html; charset=utf-8';
-  // English at /, Spanish at /es (see site.pathFor).
-  for (const lang of ['en', 'es'] as const) {
+  // English at /, Spanish at /es (see site.pathFor). While Spanish is off, /es pages send people to the English page.
+  for (const lang of languages.spanish ? (['en', 'es'] as const) : (['en'] as const)) {
     const landing = site.landing(opts, lang);
     const support = site.support(opts, lang);
     const privacy = site.legalPage(opts, 'privacy', lang);
@@ -15,7 +16,11 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions) {
     app.get(site.pathFor(lang, '/privacy'), async (_req, reply) => reply.code(privacy.status).type(html).send(privacy.html));
     app.get(site.pathFor(lang, '/terms'), async (_req, reply) => reply.code(terms.status).type(html).send(terms.html));
   }
-  app.get('/es/', async (_req, reply) => reply.redirect('/es', 301));
+  if (languages.spanish) app.get('/es/', async (_req, reply) => reply.redirect('/es', 301));
+  else {
+    for (const page of ['/', '/support', '/privacy', '/terms']) app.get(site.pathFor('es', page), async (_req, reply) => reply.redirect(page, 302));
+    app.get('/es/', async (_req, reply) => reply.redirect('/', 302));
+  }
 
   // Shared links: the apps open https://<host>/post/:id themselves once these files verify the domain.
   if (opts.appLinks?.appleAppIds.length) {

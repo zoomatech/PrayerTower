@@ -4,6 +4,9 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Notebook ideas behind switches: worldwide count, thanksgiving card, notes for event hosts; pastor defaults ([#41](https://github.com/zoomatech/PrayerTower/pull/41))
+- Answered-prayer testimonies, gentle prayer stats on Me, Spanish review checklist ([#37](https://github.com/zoomatech/PrayerTower/pull/37))
+- Code health (ESLint, stricter TypeScript, Knip, coverage in CI), docs index, day-one runbook ([#40](https://github.com/zoomatech/PrayerTower/pull/40))
 - Job retries and failed-jobs admin, abuse limits, Maestro flows, CSV import ([#39](https://github.com/zoomatech/PrayerTower/pull/39))
 - API docs, Spanish emails, Android push scaffolding, query audit indexes ([#38](https://github.com/zoomatech/PrayerTower/pull/38))
 - Staff handbook, instant crisis alerts, feedback triage, go-live turns on the invite hook ([#36](https://github.com/zoomatech/PrayerTower/pull/36))

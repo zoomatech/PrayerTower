@@ -5,6 +5,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { legalDoc } from '../src/modules/site/index.js';
 import { app, db } from './helpers.js';
+import { languages } from '../src/language.js';
+
+// These tests check the Spanish text, which members see only with SPANISH_ENABLED=1.
+languages.spanish = true;
 
 afterAll(() => db.end());
 

@@ -4,6 +4,10 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { localize } from '../src/modules/notifications/i18n.js';
+import { languages } from '../src/language.js';
+
+// These tests check the Spanish text, which members see only with SPANISH_ENABLED=1.
+languages.spanish = true;
 
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crisisLine } from '@prayer-tower/shared';
 import { marked } from 'marked';
+import { languages } from '../../language.js';
 
 export interface SiteOptions {
   supportEmail: string | null;
@@ -193,8 +194,8 @@ export function layout(title: string, body: string, current: string, lang: Lang 
     return `<a href="${href}"${p === current ? ' aria-current="page"' : ''}>${t.nav[i]}</a>`;
   }).join('');
   const other = t.other.lang as Lang;
-  const switcher = current ? `<a href="${pathFor(other, current)}" hreflang="${other}" lang="${other}">${t.other.label}</a>` : '';
-  const alternates = current
+  const switcher = current && languages.spanish ? `<a href="${pathFor(other, current)}" hreflang="${other}" lang="${other}">${t.other.label}</a>` : '';
+  const alternates = current && languages.spanish
     ? (['en', 'es'] as const).map((l) => `<link rel="alternate" hreflang="${l}" href="${pathFor(l, current)}">`).join('')
     : '';
   return `<!doctype html>

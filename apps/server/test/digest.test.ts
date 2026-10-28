@@ -2,6 +2,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { isoWeek, sendDigests } from '../src/modules/digest/index.js';
 import type { Mail } from '../src/modules/digest/mailer.js';
 import { as, createUser, db, newRequest } from './helpers.js';
+import { languages } from '../src/language.js';
+
+// These tests check the Spanish text, which members see only with SPANISH_ENABLED=1.
+languages.spanish = true;
 
 afterAll(async () => {
   await db.end();

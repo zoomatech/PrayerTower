@@ -1,10 +1,11 @@
 // CSV import for a pilot church: members as invite codes, starter requests.
 import { randomUUID } from 'node:crypto';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, onTestFinished } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { grantRole } from '../src/modules/accounts/index.js';
 import type { Mail } from '../src/modules/digest/mailer.js';
 import { parseCsv } from '../src/modules/invites/import.js';
+import { languages } from '../src/language.js';
 import { as, createUser, db } from './helpers.js';
 
 afterAll(() => db.end());
@@ -48,7 +49,11 @@ describe('CSV import', () => {
     expect(rows.every((x) => x.max_uses === 1)).toBe(true);
   });
 
-  it('emails each new member their code in their language when asked', async () => {
+  it('emails each new member their code in their language when asked (with Spanish on)', async () => {
+    languages.spanish = true;
+    onTestFinished(() => {
+      languages.spanish = false;
+    });
     const admin = await createUser('Mail Import Admin');
     await grantRole(db, admin, 'admin', null);
     const tag = randomUUID().slice(0, 8);

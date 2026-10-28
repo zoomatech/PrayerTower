@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { Db } from '../../db.js';
+import { languages } from '../../language.js';
 import * as deletion from './index.js';
 
 export interface DeletionPageOptions {
@@ -11,9 +12,9 @@ export interface DeletionPageOptions {
 /** Public routes: no sign-in. */
 export function deletionPageRoutes(app: FastifyInstance, db: Db, opts: DeletionPageOptions) {
   const html = deletion.page(opts, 'en');
-  const es = deletion.page(opts, 'es');
+  const es = languages.spanish ? deletion.page(opts, 'es') : null;
   app.get('/account-deletion', async (_req, reply) => reply.type('text/html; charset=utf-8').send(html));
-  app.get('/es/account-deletion', async (_req, reply) => reply.type('text/html; charset=utf-8').send(es));
+  app.get('/es/account-deletion', async (_req, reply) => (es ? reply.type('text/html; charset=utf-8').send(es) : reply.redirect('/account-deletion', 302)));
 
   app.post('/account-deletion/requests', async (req, reply) => {
     await deletion.createRequest(db, deletion.NewRequest.parse(req.body));

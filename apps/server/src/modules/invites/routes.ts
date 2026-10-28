@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
+import { memberLang } from '../../language.js';
 import { conflict, forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import type { Mailer } from '../digest/mailer.js';
@@ -52,7 +53,7 @@ export function inviteRoutes(app: FastifyInstance, db: Db, mailer: Mailer | null
       `select coalesce(nullif(display_name, ''), 'Prayer Tower') as name, locale from public.profiles where id = $1`,
       [userId],
     );
-    const lang = body.language ?? rows[0]?.locale ?? 'en';
+    const lang = memberLang(body.language ?? rows[0]?.locale);
     await mailer(renderInviteEmail({ to: body.email, code: invite.code, lang, from: rows[0]?.name ?? 'Prayer Tower', message: body.message, links }));
     return { sent: true, language: lang };
   });

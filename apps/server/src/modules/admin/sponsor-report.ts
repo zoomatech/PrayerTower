@@ -4,6 +4,7 @@
 // Admin → Pilot metrics; SPONSOR_REPORT_TO also gets it by email every Monday.
 import type { Task } from 'graphile-worker';
 import type { Queryable } from '../../db.js';
+import { memberLang } from '../../language.js';
 import type { Mailer } from '../digest/mailer.js';
 import { weekly, type PilotWeek } from './report.js';
 
@@ -87,7 +88,8 @@ function chart(rows: PilotWeek[]): string {
 <text x="${pad}" y="${H - 6}" class="lbl">${esc(first)}</text><text x="${W - pad}" y="${H - 6}" text-anchor="end" class="lbl">${esc(last)}</text></svg>`;
 }
 
-export function toHtml(rows: PilotWeek[], lang: ReportLang = 'en', now = new Date()): string {
+export function toHtml(rows: PilotWeek[], wanted: ReportLang = 'en', now = new Date()): string {
+  const lang = memberLang(wanted);
   const t = L[lang];
   const n = (v: number) => v.toLocaleString(lang === 'es' ? 'es' : 'en-US');
   // The current week is still running, so the headline uses the last full one.
@@ -160,7 +162,7 @@ export async function recipientLangs(q: Queryable, to: string[], fallback: Repor
     [parsed.map((p) => p.to.toLowerCase())],
   );
   const byEmail = new Map(rows.map((r) => [r.email, r.locale]));
-  return parsed.map((p) => ({ to: p.to, lang: p.forced ?? byEmail.get(p.to.toLowerCase()) ?? fallback }));
+  return parsed.map((p) => ({ to: p.to, lang: memberLang(p.forced ?? byEmail.get(p.to.toLowerCase()) ?? fallback) }));
 }
 
 export function weeklySponsorReportTask(q: Queryable, mailer: Mailer | null, to: string[], weeks = 12, fallback: ReportLang = 'en'): Task {

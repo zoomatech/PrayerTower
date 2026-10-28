@@ -59,8 +59,7 @@
         "expo-localization",
         {
           "supportedLocales": [
-            "en",
-            "es"
+            "en"
           ]
         }
       ],
@@ -103,9 +102,6 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "locales": {
-      "es": "./languages/es.json"
     }
   }
 }
