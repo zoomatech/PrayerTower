@@ -566,6 +566,7 @@ const en = {
     byWeek: "Pilot results by week",
     weekOf: "Week of",
     downloadCsv: "Download %{weeks}-week report (CSV)",
+    downloadSponsor: "Sponsor report, %{weeks} weeks (HTML, print to PDF)",
     tokens: "Tokens",
     radioFree: "Radio prayers are free",
     radioFreeHint: "On: radio prayers cost nothing and Priestly tokens are donations only. Off: each radio prayer spends Priestly tokens.",

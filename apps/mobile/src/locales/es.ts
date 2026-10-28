@@ -568,6 +568,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     byWeek: "Resultados del piloto por semana",
     weekOf: "Semana del",
     downloadCsv: "Descargar informe de %{weeks} semanas (CSV)",
+    downloadSponsor: "Informe para patrocinadores, %{weeks} semanas (HTML, imprimir a PDF)",
     tokens: "Fichas",
     radioFree: "Las oraciones por radio son gratis",
     radioFreeHint: "Activado: las oraciones por radio no cuestan nada y las fichas sacerdotales son solo donaciones. Desactivado: cada oración por radio gasta fichas sacerdotales.",

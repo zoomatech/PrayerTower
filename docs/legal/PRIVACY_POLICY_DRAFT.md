@@ -74,6 +74,7 @@ We use the companies below to run the app. They process information on our behal
 | Supabase | Database, sign-in and file storage | Everything stored by the app |
 | [HOSTING PROVIDER] | Runs our API server | Requests to the API |
 | OpenAI (moderation API) | Automated safety check, when switched on | The text being checked, without your name. OpenAI says API data isn't used to train its models by default. Its moderations endpoint is not covered by abuse-monitoring retention. ([OpenAI](https://developers.openai.com/api/docs/guides/your-data)) |
+| Anthropic (Claude API), if we choose it instead of OpenAI | Automated safety check, when switched on | The text being checked, without your name. Anthropic says that by default it does not use inputs or outputs from its commercial products, including the API, to train its models. ([Anthropic](https://privacy.claude.com/en/articles/7996868-is-our-data-used-for-model-training)) |
 | Sentry (error reporting), when switched on | Tells us when the app or server crashes | Crash details: the stack trace, device and app version, and the screen or route. It does not receive your name, account or anything you wrote. |
 | Expo push service, Apple Push Notification service, Firebase Cloud Messaging | Deliver notifications | Your push token and the notification text |
 | Video meeting services (for example Zoom or Google Meet) | Only when you choose to open an event's meeting link | Whatever you share with that service, under its own policy |
@@ -93,6 +94,10 @@ We may also disclose information when the law requires it, to protect someone's 
 
   None of these is linked to your name or email.
 - **Server logs** are deleted after [30] days. Database backups roll off within [7 / 30] days.
+- **Content our moderators removed** keeps no text or photos after [90] days from the decision, unless you have appealed and the appeal is still open.
+- **Notifications** in the app are deleted after [90] days.
+- **Deletion requests** sent from our website, which include your email address, are deleted [30] days after we handle them.
+- Actions you take while offline wait on your phone for up to 3 days, then are dropped.
 - You can hide posts, block people, or leave a conversation at any time. You can delete any of your own requests or comments from the request screen.
 
 ## 6. Your choices

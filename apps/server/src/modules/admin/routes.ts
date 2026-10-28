@@ -29,6 +29,7 @@ import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as report from './report.js';
+import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
 
 const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
@@ -315,14 +316,23 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     };
   });
 
-  // Week-by-week pilot results; ?format=csv downloads a spreadsheet.
+  // Week-by-week pilot results; ?format=csv downloads a spreadsheet, ?format=html the sponsor report.
   app.get('/admin/pilot-report', async (req, reply) => {
     await requireAdmin(req);
-    const { weeks, format } = z
-      .object({ weeks: z.coerce.number().int().min(1).max(104).default(12), format: z.enum(['json', 'csv']).default('json') })
+    const { weeks, format, lang } = z
+      .object({
+        weeks: z.coerce.number().int().min(1).max(104).default(12),
+        format: z.enum(['json', 'csv', 'html']).default('json'),
+        lang: z.enum(['en', 'es']).default('en'),
+      })
       .parse(req.query);
     const rows = await report.weekly(db, weeks);
     if (format === 'json') return { weeks: rows };
+    // For sponsors: a printable page (print to PDF from the browser).
+    if (format === 'html') {
+      reply.header('content-type', 'text/html; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-pilot-report.html"');
+      return sponsorReport.toHtml(rows, lang);
+    }
     reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-pilot.csv"');
     return report.toCsv(rows);
   });

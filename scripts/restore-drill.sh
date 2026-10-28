@@ -39,17 +39,32 @@ dump=$(ls -d "$work"/backups/*/ | head -1)
 backup_secs=$(($(date +%s) - start))
 log "Backup done in ${backup_secs}s ($(du -sh "$dump" | cut -f1))"
 
-# 2. Target: a new project, or a throwaway local Supabase stack on 553xx ports.
+# 2. Target: a new project, or a throwaway local Supabase stack on free 5x3xx ports.
 if [ -z "${RESTORE_URL:-}" ]; then
   log "Starting a throwaway Supabase stack for the restore"
   drill_stack="$work/stack"
   mkdir -p "$drill_stack/supabase/migrations"
-  sed -e 's/^project_id = .*/project_id = "prayertower-drill"/' \
-      -e 's/543\([0-9][0-9]\)/553\1/g' \
-      -e 's/^inspector_port = 8083/inspector_port = 8093/' \
-      "$root/supabase/config.toml" > "$drill_stack/supabase/config.toml"
-  npx supabase start --workdir "$drill_stack" -x studio,imgproxy,logflare,vector,supavisor,edge-runtime,realtime >/dev/null
-  RESTORE_URL=postgresql://postgres:postgres@127.0.0.1:55322/postgres
+  # The main stack uses 543xx. Try 553xx, then 563xx, ...: skip a range with a
+  # port already listening, and move on if Docker still can't bind one.
+  in_use() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+  prefix=""
+  for p in 553 563 573 583 593; do
+    busy=0
+    for n in $(seq 20 29); do in_use "$p$n" && { busy=1; break; }; done
+    [ $busy = 1 ] && continue
+    sed -e 's/^project_id = .*/project_id = "prayertower-drill"/' \
+        -e "s/543\\([0-9][0-9]\\)/$p\\1/g" \
+        -e "s/^inspector_port = 8083/inspector_port = 8${p:1:1}93/" \
+        "$root/supabase/config.toml" > "$drill_stack/supabase/config.toml"
+    if npx supabase start --workdir "$drill_stack" -x studio,imgproxy,logflare,vector,supavisor,edge-runtime,realtime >/dev/null; then
+      prefix=$p
+      break
+    fi
+    log "Could not start the drill stack on ${p}xx ports; trying the next range"
+    npx supabase stop --workdir "$drill_stack" --no-backup >/dev/null 2>&1 || true
+  done
+  [ -n "$prefix" ] || { echo "Could not start the drill stack on any port range" >&2; exit 1; }
+  RESTORE_URL=postgresql://postgres:postgres@127.0.0.1:${prefix}22/postgres
 fi
 
 if [ "$(psql "$RESTORE_URL" -tAc "select to_regclass('public.profiles') is not null")" = "t" ]; then
