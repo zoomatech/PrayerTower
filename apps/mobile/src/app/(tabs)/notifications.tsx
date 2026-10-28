@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -13,12 +13,14 @@ export default function Notifications() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
       const { notifications } = await api.notifications();
       setItems(notifications);
+      setLoaded(true);
       const unread = notifications.filter((n) => !n.read_at).map((n) => n.id);
       if (unread.length) api.markRead(unread).catch(() => undefined);
       setError(null);
@@ -39,8 +41,9 @@ export default function Notifications() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
         <Text style={type.title}>{t('tabs.notices')}</Text>
-        <ErrorText error={error} />
-        {items.length === 0 ? <Empty text={t('notices.empty')} /> : null}
+        <ErrorText error={error} onRetry={load} />
+        {!loaded && !error ? <Loading /> : null}
+        {loaded && items.length === 0 ? <Empty text={t('notices.empty')} /> : null}
         {items.map((n) => {
           const postId = typeof n.data.postId === 'string' ? n.data.postId : null;
           const conversationId = typeof n.data.conversationId === 'string' ? n.data.conversationId : null;

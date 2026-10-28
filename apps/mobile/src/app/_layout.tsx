@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -43,13 +43,7 @@ function RootStack() {
       </View>
     );
   }
-  if (loading || (session && !profile)) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
+  if (loading || (session && !profile)) return <Starting />;
   const signedIn = !!session;
   const onboarded = !!profile?.onboarded_at;
   // Every screen must be listed in one of the groups below. A screen left out is
@@ -117,3 +111,18 @@ function RootLayout() {
 }
 
 export default withMonitoring(RootLayout);
+
+/** The first screen while the app signs in. On a slow connection it says what it's doing after a few seconds. */
+function Starting() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl, backgroundColor: colors.background }}>
+      <ActivityIndicator color={colors.primary} accessibilityLabel="Loading Prayer Tower" />
+      {slow ? <Text style={[type.small, { textAlign: 'center' }]}>Connecting to Prayer Tower. This is taking longer than usual; check your connection.</Text> : null}
+    </View>
+  );
+}

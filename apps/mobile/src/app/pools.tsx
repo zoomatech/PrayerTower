@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Chip, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
+import { Button, Chip, Empty, ErrorText, Field, Loading, Screen, Toggle } from '@/components/ui';
 import { api, type TokenPool } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -16,6 +16,7 @@ export default function PoolsScreen() {
   const [open, setOpen] = useState<TokenPool[]>([]);
   const [balance, setBalance] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -31,6 +32,8 @@ export default function PoolsScreen() {
       setMine(m.pools);
       setOpen(o.pools.filter((p) => !p.isMine));
       setBalance(t.balance);
+      setLoaded(true);
+      setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -69,71 +72,78 @@ export default function PoolsScreen() {
         <Text style={type.body}>
           {t('pools.intro')}
         </Text>
-        <ErrorText error={error} />
+        <ErrorText error={error} onRetry={loaded ? undefined : load} />
+        {!loaded && !error ? <Loading /> : null}
 
-        <View style={styles.card}>
-          <Text style={type.heading}>{t('pools.start')}</Text>
-          <Text style={type.small}>{t('pools.youHave', { count: balance })}</Text>
-          <Field label={t('pools.name')} value={name} onChangeText={setName} maxLength={60} placeholder={t('pools.namePlaceholder')} />
-          <Field label={t('pools.purpose')} value={purpose} onChangeText={setPurpose} maxLength={280} multiline />
-          <Text style={type.small}>{t('pools.onlyFor')}</Text>
-          <View style={styles.chips}>
-            {PRAYER_REALMS.map((r) => (
-              <Chip key={r} label={label('prayerRealm', r, PRAYER_REALM_LABELS[r])} selected={realm === r} onPress={() => setRealm(realm === r ? null : r)} />
-            ))}
-          </View>
-          <Field label={t('pools.amount')} value={amount} onChangeText={setAmount} keyboardType="number-pad" maxLength={7} />
-          <Field label={t('pools.drawAmount')} value={drawAmount} onChangeText={setDrawAmount} keyboardType="number-pad" maxLength={4} />
-          <Toggle label={t('pools.showName')} value={showDonor} onChange={setShowDonor} />
-          <Button label={t('pools.create')} busy={busy} disabled={!name.trim() || !(Number(amount) > 0) || !(Number(drawAmount) > 0)} onPress={create} />
-        </View>
-
-        <Text style={type.heading}>{t('pools.yours')}</Text>
-        {mine.length === 0 ? <Empty text={t('pools.noneMine')} /> : null}
-        {mine.map((p) => (
-          <View key={p.id} style={styles.card}>
-            <Text style={styles.name}>
-              {p.name}
-              {p.open ? '' : ' (closed)'}
-            </Text>
-            {p.purpose ? <Text style={type.body}>{p.purpose}</Text> : null}
-            <Text style={type.small}>
-              {t('pools.left', { count: p.balance, per: p.drawAmount })}{p.realm ? ` · ${t('pools.only', { realm: label('prayerRealm', p.realm, PRAYER_REALM_LABELS[p.realm as PrayerRealm]) })}` : ''}
-            </Text>
-            {p.open ? (
+        {/* Nothing below until the pools and the balance have loaded, so a slow or failed load never shows "You have 0 tokens". */}
+        {loaded ? (
+          <>
+            <View style={styles.card}>
+              <Text style={type.heading}>{t('pools.start')}</Text>
+              <Text style={type.small}>{t('pools.youHave', { count: balance })}</Text>
+              {balance === 0 ? <Text style={type.small}>Each prayer you offer for someone else earns a token.</Text> : null}
+              <Field label={t('pools.name')} value={name} onChangeText={setName} maxLength={60} placeholder={t('pools.namePlaceholder')} />
+              <Field label={t('pools.purpose')} value={purpose} onChangeText={setPurpose} maxLength={280} multiline />
+              <Text style={type.small}>{t('pools.onlyFor')}</Text>
               <View style={styles.chips}>
-                <Field
-                  placeholder={t('pools.addTokens')}
-                  value={added[p.id] ?? ''}
-                  onChangeText={(v) => setAdded((s) => ({ ...s, [p.id]: v }))}
-                  keyboardType="number-pad"
-                  maxLength={7}
-                />
-                <Button
-                  small
-                  variant="secondary"
-                  label={t('pools.add')}
-                  disabled={!(Number(added[p.id]) > 0)}
-                  onPress={() => act(() => api.fundTokenPool(p.id, Number(added[p.id])).then(() => setAdded((s) => ({ ...s, [p.id]: '' }))))}
-                />
-                <Button small variant="ghost" label={t('pools.close')} onPress={() => act(() => api.closeTokenPool(p.id))} />
+                {PRAYER_REALMS.map((r) => (
+                  <Chip key={r} label={label('prayerRealm', r, PRAYER_REALM_LABELS[r])} selected={realm === r} onPress={() => setRealm(realm === r ? null : r)} />
+                ))}
               </View>
-            ) : null}
-          </View>
-        ))}
+              <Field label={t('pools.amount')} value={amount} onChangeText={setAmount} keyboardType="number-pad" maxLength={7} />
+              <Field label={t('pools.drawAmount')} value={drawAmount} onChangeText={setDrawAmount} keyboardType="number-pad" maxLength={4} />
+              <Toggle label={t('pools.showName')} value={showDonor} onChange={setShowDonor} />
+              <Button label={t('pools.create')} busy={busy} disabled={!name.trim() || !(Number(amount) > 0) || !(Number(drawAmount) > 0)} onPress={create} />
+            </View>
 
-        <Text style={type.heading}>{t('pools.open')}</Text>
-        {open.length === 0 ? <Empty text={t('pools.noneOpen')} /> : null}
-        {open.map((p) => (
-          <View key={p.id} style={styles.card}>
-            <Text style={styles.name}>{p.name}</Text>
-            {p.purpose ? <Text style={type.body}>{p.purpose}</Text> : null}
-            <Text style={type.small}>
-              {p.donor ? `${t('pools.from', { name: p.donor })} · ` : ''}
-              {t('pools.left', { count: p.balance, per: p.drawAmount })}. {t('pools.howToUse')}
-            </Text>
-          </View>
-        ))}
+            <Text style={type.heading}>{t('pools.yours')}</Text>
+            {mine.length === 0 ? <Empty text={t('pools.noneMine')} /> : null}
+            {mine.map((p) => (
+              <View key={p.id} style={styles.card}>
+                <Text style={styles.name}>
+                  {p.name}
+                  {p.open ? '' : ' (closed)'}
+                </Text>
+                {p.purpose ? <Text style={type.body}>{p.purpose}</Text> : null}
+                <Text style={type.small}>
+                  {t('pools.left', { count: p.balance, per: p.drawAmount })}{p.realm ? ` · ${t('pools.only', { realm: label('prayerRealm', p.realm, PRAYER_REALM_LABELS[p.realm as PrayerRealm]) })}` : ''}
+                </Text>
+                {p.open ? (
+                  <View style={styles.chips}>
+                    <Field
+                      placeholder={t('pools.addTokens')}
+                      value={added[p.id] ?? ''}
+                      onChangeText={(v) => setAdded((s) => ({ ...s, [p.id]: v }))}
+                      keyboardType="number-pad"
+                      maxLength={7}
+                    />
+                    <Button
+                      small
+                      variant="secondary"
+                      label={t('pools.add')}
+                      disabled={!(Number(added[p.id]) > 0)}
+                      onPress={() => act(() => api.fundTokenPool(p.id, Number(added[p.id])).then(() => setAdded((s) => ({ ...s, [p.id]: '' }))))}
+                    />
+                    <Button small variant="ghost" label={t('pools.close')} onPress={() => act(() => api.closeTokenPool(p.id))} />
+                  </View>
+                ) : null}
+              </View>
+            ))}
+
+            <Text style={type.heading}>{t('pools.open')}</Text>
+            {open.length === 0 ? <Empty text={t('pools.noneOpen')} /> : null}
+            {open.map((p) => (
+              <View key={p.id} style={styles.card}>
+                <Text style={styles.name}>{p.name}</Text>
+                {p.purpose ? <Text style={type.body}>{p.purpose}</Text> : null}
+                <Text style={type.small}>
+                  {p.donor ? `${t('pools.from', { name: p.donor })} · ` : ''}
+                  {t('pools.left', { count: p.balance, per: p.drawAmount })}. {t('pools.howToUse')}
+                </Text>
+              </View>
+            ))}
+          </>
+        ) : null}
       </ScrollView>
     </Screen>
   );

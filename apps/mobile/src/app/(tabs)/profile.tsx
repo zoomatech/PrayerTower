@@ -34,14 +34,16 @@ export default function Profile() {
   const [feedStyles, setFeedStyles] = useState<FeedThemeChoices | null>(null);
   const [stats, setStats] = useState<PrayerStats | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      api.tier().then(setTier).catch(() => undefined);
-      api.tokens().then(setTokens).catch(() => undefined);
-      api.feedThemes().then(setFeedStyles).catch(() => undefined);
-      loadStats();
-    }, []),
-  );
+  // If the counts can't load, say so instead of showing zeros that look real.
+  const [countsError, setCountsError] = useState<string | null>(null);
+  const loadCounts = useCallback(() => {
+    setCountsError(null);
+    api.tier().then(setTier).catch(() => undefined);
+    api.tokens().then(setTokens).catch((e) => setCountsError((e as Error).message));
+    api.feedThemes().then(setFeedStyles).catch(() => undefined);
+    loadStats();
+  }, []);
+  useFocusEffect(loadCounts);
 
   const loadStats = () =>
     api
@@ -67,9 +69,12 @@ export default function Profile() {
           <Text style={type.body}>{profile.why_here.map((w) => label('whyHere', w, WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS])).join(' · ')}</Text>
         ) : null}
 
+        <ErrorText error={countsError} onRetry={loadCounts} />
         <View style={styles.stats}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{tier?.tier?.label ?? '—'}</Text>
+            <Text style={styles.statValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6}>
+              {tier?.tier?.label ?? '—'}
+            </Text>
             <Text style={type.small}>{profile.anonymous_by_default ? t('profile.tierPrivate') : t('profile.tier')}</Text>
           </View>
           <View style={styles.stat}>

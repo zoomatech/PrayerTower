@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
+import { Button, Chip, Empty, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -16,6 +16,7 @@ export default function Commitments() {
   const [note, setNote] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState<{ id: string; vowText: string; frequency: Frequency; completedCount: number } | null>(null);
 
   const load = useCallback(async () => {
@@ -25,6 +26,7 @@ export default function Commitments() {
       setItems(c.commitments);
       setNote(c.note);
       setReview(r);
+      setLoaded(true);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -57,8 +59,9 @@ export default function Commitments() {
             <Text style={type.body}>{review.message}</Text>
           </View>
         ) : null}
-        <ErrorText error={error} />
-        {active.length === 0 ? <Empty text={t('promises.empty')} /> : null}
+        <ErrorText error={error} onRetry={load} />
+        {!loaded && !error ? <Loading /> : null}
+        {loaded && active.length === 0 ? <Empty text={t('promises.empty')} /> : null}
         {active.map((c) => (
           <View key={c.id} style={styles.card}>
             <Text style={type.small}>{freq(c.frequency)}</Text>

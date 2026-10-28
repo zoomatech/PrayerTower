@@ -53,7 +53,9 @@ export default function SignIn() {
     <Screen>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.wrap}>
         <View style={styles.hero}>
-          <Text style={styles.logo}>🕊</Text>
+          <Text style={styles.logo} aria-hidden>
+            🕊
+          </Text>
           <Text style={type.title}>Prayer Tower</Text>
           <Text style={[type.body, { color: colors.textMuted, textAlign: 'center' }]}>
             {t('signIn.tagline')}

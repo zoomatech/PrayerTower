@@ -60,10 +60,11 @@ const buttonVariants = {
   ghost: { bg: 'transparent', fg: colors.primary, border: 'transparent' },
 };
 
-export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+/** A choice chip. `radio` marks a pick-one group, so screen readers announce it as a radio button. */
+export function Chip({ label, selected, onPress, radio }: { label: string; selected: boolean; onPress: () => void; radio?: boolean }) {
   return (
     <Pressable
-      role="checkbox"
+      role={radio ? 'radio' : 'checkbox'}
       aria-checked={selected}
       hitSlop={6}
       onPress={onPress}
@@ -110,8 +111,26 @@ export function RulesWarning({ onPostAnyway, busy }: { onPostAnyway: () => void;
   );
 }
 
-export function ErrorText({ error }: { error: string | null }) {
-  return error ? <Text style={styles.error}>{error}</Text> : null;
+/** An error line. With onRetry it also offers "Try again", for a screen whose data didn't load. */
+export function ErrorText({ error, onRetry }: { error: string | null; onRetry?: () => void }) {
+  if (!error) return null;
+  if (!onRetry) return <Text style={styles.error}>{error}</Text>;
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: space.sm, alignItems: 'flex-start' }}>
+      <Text style={styles.error}>{error}</Text>
+      <Button small variant="secondary" label="Try again" onPress={onRetry} />
+    </View>
+  );
+}
+
+/** Shown while a screen's first load is on its way, so a slow connection never looks like an empty list. */
+export function Loading() {
+  return (
+    <View accessibilityRole="progressbar" accessibilityLabel="Loading" style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space.sm, padding: space.xl }}>
+      <ActivityIndicator color={colors.primary} />
+      <Text style={type.small}>Loading…</Text>
+    </View>
+  );
 }
 
 export function Empty({ text }: { text: string }) {

@@ -14,7 +14,7 @@ The test runs for **4 weeks, from [START DATE] to [END DATE]**. It takes about 5
 
 1. Watch for a second email from **Apple TestFlight** with the subject "You're invited to test Prayer Tower". It may land in Promotions or Spam.
 2. Follow the steps in the tester page: [TESTER INSTRUCTIONS LINK]
-3. Sign in with this email address: **[THEIR EMAIL]**
+3. Create your account with this email address: **[THEIR EMAIL]** and this invite code: **[INVITE CODE]** (make one in the app under Me → Admin → Invite codes, one per person).
 
 **What to know**
 
