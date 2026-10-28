@@ -170,6 +170,23 @@ export async function followStatus(q: Queryable, viewerId: string, personId: str
   return rows[0]!;
 }
 
+/** Admin lookup by name or sign-in email, with each person's roles. */
+export async function search(q: Queryable, term: string, limit = 20) {
+  const { rows } = await q.query<{ id: string; display_name: string; email: string | null; roles: Role[] }>(
+    `select p.id, p.display_name, u.email,
+            coalesce(array_agg(r.role::text order by r.role) filter (where r.role is not null), '{}')::text[] as roles
+       from public.profiles p
+       left join auth.users u on u.id = p.id
+       left join public.user_roles r on r.user_id = p.id
+      where p.display_name ilike '%' || $1 || '%' or u.email ilike '%' || $1 || '%'
+      group by p.id, u.email
+      order by p.display_name
+      limit $2`,
+    [term, limit],
+  );
+  return rows;
+}
+
 export async function followers(q: Queryable, userId: string) {
   const { rows } = await q.query(
     `select p.id, p.display_name, p.handle from public.follows f join public.profiles p on p.id = f.user_id

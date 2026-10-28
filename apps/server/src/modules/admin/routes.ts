@@ -24,6 +24,12 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     return userId;
   };
 
+  app.get('/admin/people', async (req) => {
+    await requireAdmin(req);
+    const { q } = z.object({ q: z.string().trim().min(1).max(100) }).parse(req.query);
+    return { people: await accounts.search(db, q) };
+  });
+
   app.get<{ Params: { id: string } }>('/admin/people/:id/roles', async (req) => {
     await requireAdmin(req);
     return { roles: await accounts.roles(db, req.params.id) };

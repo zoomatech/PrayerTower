@@ -110,6 +110,7 @@ export default function Profile() {
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
           <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
         ) : null}
+        {roles.includes('admin') ? <Button variant="secondary" label="Admin" onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
         <Button variant="ghost" label="Sign out" onPress={signOut} />
       </ScrollView>

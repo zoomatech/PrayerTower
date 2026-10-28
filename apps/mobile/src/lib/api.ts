@@ -54,6 +54,26 @@ const get = <T>(path: string) => request<T>('GET', path);
 const post = <T>(path: string, body: unknown = {}) => request<T>('POST', path, body);
 const put = <T>(path: string, body: unknown = {}) => request<T>('PUT', path, body);
 
+export interface AdminTokenSettings {
+  priestly_prayers_per_token: number;
+  verified_prayer_min_gap_seconds: number;
+  radio_prayer_cost: number;
+  radio_funding: 'tokens' | 'free';
+}
+export interface AdminTier {
+  tier: string;
+  label: string;
+  rank: number;
+  min_prayer_events: number | null;
+  weekly_allotment: number | null;
+}
+export interface AdminPerson {
+  id: string;
+  display_name: string;
+  email: string | null;
+  roles: Role[];
+}
+
 export interface NewPost {
   postType: PostType;
   body: string;
@@ -114,6 +134,19 @@ export const api = {
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
+  admin: {
+    metrics: (days: number) => get<Record<string, Record<string, number | string | null>>>(`/admin/metrics?days=${days}`),
+    tokenSettings: () => get<{ settings: AdminTokenSettings }>('/admin/token-settings'),
+    updateTokenSettings: (
+      patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free' }>,
+    ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
+    tiers: () => get<{ tiers: AdminTier[] }>('/admin/tiers'),
+    updateTier: (tier: string, patch: { minPrayerEvents?: number | null; weeklyAllotment?: number | null }) =>
+      request<{ tier: AdminTier }>('PATCH', `/admin/tiers/${tier}`, patch),
+    people: (q: string) => get<{ people: AdminPerson[] }>(`/admin/people?q=${encodeURIComponent(q)}`),
+    grant: (id: string, role: Role) => put<{ roles: Role[] }>(`/admin/people/${id}/roles/${role}`),
+    revoke: (id: string, role: Role) => request<{ roles: Role[] }>('DELETE', `/admin/people/${id}/roles/${role}`),
+  },
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

@@ -144,5 +144,9 @@ describe('weekly review and pilot metrics', () => {
     expect(granted.json().roles).toEqual(['moderator']);
     expect((await as(member).get('/moderation/queue')).statusCode).toBe(200);
     expect((await as(admin).put(`/admin/people/${member}/roles/king`)).statusCode).toBe(400);
+    const found = (await as(admin).get('/admin/people?q=volunt')).json().people;
+    expect(found.map((p: { id: string }) => p.id)).toContain(member);
+    expect(found.find((p: { id: string }) => p.id === member).roles).toEqual(['moderator']);
+    expect((await as(member).get('/admin/people?q=a')).statusCode).toBe(403);
   });
 });
