@@ -31,6 +31,7 @@ import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { registerMetrics } from './metrics.js';
+import { announcementRoutes } from './modules/announcements/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
@@ -157,6 +158,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);
     inviteRoutes(authed, db);
+    announcementRoutes(authed, db);
     adminRoutes(authed, db, storage);
   });
 

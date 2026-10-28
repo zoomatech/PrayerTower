@@ -16,6 +16,7 @@ import { createMailer, type Mailer } from './modules/digest/mailer.js';
 import { weeklySponsorReportTask } from './modules/admin/sponsor-report.js';
 import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
+import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
 
 export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null } = {}): TaskList {
   return {
@@ -36,6 +37,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
       overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
       config.SPONSOR_REPORT_TO.split(',').map((s) => s.trim()).filter(Boolean),
     ),
+    token_ledger_check: ledgerCheckTask(db),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
   };
 }
@@ -61,4 +63,6 @@ export const crontab = [
   '0 8 * * 1 sponsor_report_weekly ?fill=1d',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
   '30 3 * * * retention_purge ?fill=1d&jobKey=retention_purge',
+  // Daily 04:15: re-derive every token balance from the ledger; alerts admins on any mismatch.
+  '15 4 * * * token_ledger_check ?fill=1d&jobKey=token_ledger_check',
 ].join('\n');

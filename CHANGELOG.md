@@ -1,0 +1,38 @@
+# Changelog
+
+Generated from the pull requests merged into main by `npm run changelog`. Do not edit by hand; edit the PR titles instead.
+
+## Unreleased
+
+- Invite-only pilot sign-up, store review notes and review account ([#32](https://github.com/zoomatech/PrayerTower/pull/32))
+- iPad layouts: Messages split view, two-column feed; What's New store text ([#31](https://github.com/zoomatech/PrayerTower/pull/31))
+- Accessibility scan of the newer screens and the public site ([#29](https://github.com/zoomatech/PrayerTower/pull/29))
+- Add the iOS "Pray now" home-screen widget ([#30](https://github.com/zoomatech/PrayerTower/pull/30))
+- Mac and iPad: menu bar commands, keyboard shortcuts, resizable windows ([#28](https://github.com/zoomatech/PrayerTower/pull/28))
+- Spanish public website: /es pages and Spanish legal drafts ([#27](https://github.com/zoomatech/PrayerTower/pull/27))
+- One-command deploy (Fly.io/Render), installable web app, staff audit log ([#26](https://github.com/zoomatech/PrayerTower/pull/26))
+- Add radio station installer, health check and install guide ([#25](https://github.com/zoomatech/PrayerTower/pull/25))
+- Staff, admin and radio bug hunt ([#24](https://github.com/zoomatech/PrayerTower/pull/24))
+- Data retention jobs; AI moderation provider (OpenAI or Claude); sponsor pilot report ([#23](https://github.com/zoomatech/PrayerTower/pull/23))
+- Notification settings: push per kind of alert, and quiet hours ([#22](https://github.com/zoomatech/PrayerTower/pull/22))
+- Spanish on the staff screens; Dependabot, CodeQL and npm audit in CI ([#21](https://github.com/zoomatech/PrayerTower/pull/21))
+- Download my data, an opt-in weekly email digest, and the pilot onboarding kit ([#19](https://github.com/zoomatech/PrayerTower/pull/19))
+- Shared request and comment links open the app ([#20](https://github.com/zoomatech/PrayerTower/pull/20))
+- Backup and restore drill, and a staging setup ([#17](https://github.com/zoomatech/PrayerTower/pull/17))
+- Translate the first-run tour into Spanish ([#18](https://github.com/zoomatech/PrayerTower/pull/18))
+- CI: iOS and Android prebuild and bundle checks, and the e2e suite ([#16](https://github.com/zoomatech/PrayerTower/pull/16))
+- Speed up the app: feed list, image caching, bundle size ([#15](https://github.com/zoomatech/PrayerTower/pull/15))
+- Spanish on every member screen, plus notifications and prompts per member language ([#13](https://github.com/zoomatech/PrayerTower/pull/13))
+- Add developer handoff doc ([#14](https://github.com/zoomatech/PrayerTower/pull/14))
+- Fix bugs found in a full code review ([#12](https://github.com/zoomatech/PrayerTower/pull/12))
+- Spanish localization scaffolding and language picker ([#10](https://github.com/zoomatech/PrayerTower/pull/10))
+- First-run tour ([#11](https://github.com/zoomatech/PrayerTower/pull/11))
+- Error reporting and metrics, offline and poor-network handling ([#8](https://github.com/zoomatech/PrayerTower/pull/8))
+- Load test for 10–100 members, and feed hot-spot fixes ([#9](https://github.com/zoomatech/PrayerTower/pull/9))
+- Android: Google Play internal testing setup ([#7](https://github.com/zoomatech/PrayerTower/pull/7))
+- Accessibility pass, icon and splash options, public website ([#6](https://github.com/zoomatech/PrayerTower/pull/6))
+- Pilot launch items: feedback, iPhone-only build, crisis line by country, sharing-faith rule draft ([#5](https://github.com/zoomatech/PrayerTower/pull/5))
+- Phase 3 and pilot hardening: messages, groups, events, care, Vine 2.0, security, e2e, account deletion ([#4](https://github.com/zoomatech/PrayerTower/pull/4))
+- Phase 2: milestones, Prayer Mix, Macro Needs, Amplify, Prayer Cast, highlights, swipe, previews ([#3](https://github.com/zoomatech/PrayerTower/pull/3))
+- Mobile app and the rest of Phase 1: tokens, radio prayers, feed styles, media, moderation, deploy ([#2](https://github.com/zoomatech/PrayerTower/pull/2))
+- Build Prayer Tower V1 backend foundation ([#1](https://github.com/zoomatech/PrayerTower/pull/1))
