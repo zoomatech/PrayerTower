@@ -40,6 +40,8 @@ import { feedbackRoutes } from './modules/feedback/routes.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
+import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
+import { amplifierRoutes } from './modules/amplifier/routes.js';
 import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 import * as ops from './modules/ops/index.js';
@@ -169,6 +171,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     });
   }
 
+  // The Common Prayer Fund's public report (switched off by default), limited per IP address.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
+    commonFundPublicRoutes(open, db);
+  });
+
   // Everything else requires a signed-in member.
   app.register(async (authed) => {
     markScope(authed, catalog, 'member');
@@ -191,6 +199,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     commitmentRoutes(authed, db);
     tokenRoutes(authed, db);
     radioRoutes(authed, db);
+    amplifierRoutes(authed, db);
     reachRoutes(authed, db);
     poolRoutes(authed, db);
     scheduleRoutes(authed, db);

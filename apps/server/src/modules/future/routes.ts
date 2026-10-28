@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
+import * as fund from '../common-fund/index.js';
 import * as future from './index.js';
 
 // Switched-off groundwork: token store, Common Prayer Fund page, AI conversation.
@@ -14,7 +15,7 @@ export function futureRoutes(app: FastifyInstance, db: Db) {
 
   app.get('/common-prayer-fund', async (req) => {
     requireUser(req);
-    return future.commonFund(db);
+    return fund.report(db);
   });
 
   app.get('/ai-chat', async (req) => {
