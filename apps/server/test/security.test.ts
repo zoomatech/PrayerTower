@@ -46,6 +46,10 @@ describe('endpoint auth', () => {
       'POST /station/radio-prayers/:id/result',
       'GET /account-deletion',
       'POST /account-deletion/requests',
+      'GET /',
+      'GET /support',
+      'GET /privacy',
+      'GET /terms',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

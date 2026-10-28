@@ -5,6 +5,7 @@ import { supabaseJwksVerifier } from './auth.js';
 import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
 import { openAiClassifier } from './modules/moderation/index.js';
+import { defaultLegalDir } from './modules/site/index.js';
 
 loadDotEnv();
 const config = loadConfig();
@@ -26,6 +27,13 @@ const app = buildApp({
   stationKey: config.STATION_API_KEY ?? null,
   rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
   deletionPage: { supabaseUrl: config.SUPABASE_URL, publishableKey: config.SUPABASE_PUBLISHABLE_KEY ?? null, supportEmail: config.SUPPORT_EMAIL ?? null },
+  site: {
+    supportEmail: config.SUPPORT_EMAIL ?? null,
+    legalDir: config.SITE_LEGAL_DIR ?? defaultLegalDir(),
+    appStoreUrl: config.APP_STORE_URL ?? null,
+    playStoreUrl: config.PLAY_STORE_URL ?? null,
+    crisisCountry: config.CRISIS_COUNTRY,
+  },
   corsOrigins: config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
 });
 

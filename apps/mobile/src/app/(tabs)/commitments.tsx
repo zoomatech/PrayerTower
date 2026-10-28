@@ -129,7 +129,7 @@ export default function Commitments() {
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 120 },
   review: { backgroundColor: colors.goldSoft, borderRadius: radius.lg, padding: space.lg, gap: space.xs },
-  reviewTitle: { ...type.heading, color: colors.gold },
+  reviewTitle: { ...type.heading, color: colors.goldText },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.sm },
   vow: { ...type.body, fontStyle: 'italic', color: colors.primary },
   row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap', alignItems: 'center' },

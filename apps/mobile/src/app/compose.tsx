@@ -131,11 +131,11 @@ export default function Compose() {
           {assets.length < MAX_MEDIA ? <Button small variant="secondary" label="Add photos or video" onPress={pick} /> : null}
         </View>
         {assets.length === 0 ? (
-          <View style={styles.swatches} accessibilityLabel="Background">
+          <View style={styles.swatches} role="radiogroup" aria-label="Background">
             <Pressable
               onPress={() => setBackground(undefined)}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: !background }}
+              role="radio"
+              aria-checked={!background}
               accessibilityLabel="No background"
               style={[styles.swatch, { backgroundColor: colors.surface }, !background && styles.swatchOn]}
             />
@@ -143,8 +143,8 @@ export default function Compose() {
               <Pressable
                 key={b}
                 onPress={() => setBackground(b)}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: background === b }}
+                role="radio"
+                aria-checked={background === b}
                 accessibilityLabel={`${POST_BACKGROUND_STYLES[b].label} background`}
                 style={[styles.swatch, { backgroundColor: POST_BACKGROUND_STYLES[b].color }, background === b && styles.swatchOn]}
               />

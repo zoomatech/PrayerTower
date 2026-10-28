@@ -7,7 +7,7 @@
 - [ ] **A paid Apple Developer Program membership**, signed in as the Account Holder or an Admin. ([Expo: Submit to the Apple App Store](https://docs.expo.dev/submit/ios/))
 - [ ] **A free Expo account** at https://expo.dev/signup.
 - [ ] **The hosted backend running** (see [DEPLOY.md](DEPLOY.md)). You'll need its API URL, the Supabase project URL and the Supabase **publishable** key. Never use the secret key here.
-- [ ] **The privacy policy and terms published** at public URLs. Drafts are in `docs/legal/`. External testers and App Review need them.
+- [ ] **The privacy policy and terms published** at public URLs. The server publishes them at `https://<API host>/privacy` and `/terms`, from `docs/legal/`. Once counsel has reviewed them, save the final versions as `PRIVACY_POLICY.md` and `TERMS_OF_USE.md`, then redeploy. External testers and App Review need them.
 - [ ] **On the Mac:** Node.js 22 or newer (`node -v`) and git.
 
 ## 1. Get the code
@@ -52,8 +52,8 @@ These values are compiled into the app, and **anyone who has the app can read th
 eas env:set --name EXPO_PUBLIC_API_URL --value https://api.YOURDOMAIN --environment production --visibility plaintext
 eas env:set --name EXPO_PUBLIC_SUPABASE_URL --value https://YOURPROJECT.supabase.co --environment production --visibility plaintext
 eas env:set --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value sb_publishable_YOURKEY --environment production --visibility plaintext
-eas env:set --name EXPO_PUBLIC_PRIVACY_URL --value https://YOURDOMAIN/privacy --environment production --visibility plaintext
-eas env:set --name EXPO_PUBLIC_TERMS_URL --value https://YOURDOMAIN/terms --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_PRIVACY_URL --value https://api.YOURDOMAIN/privacy --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_TERMS_URL --value https://api.YOURDOMAIN/terms --environment production --visibility plaintext
 eas env:set --name EXPO_PUBLIC_SUPPORT_EMAIL --value help@YOURDOMAIN --environment production --visibility plaintext
 eas env:set --name EXPO_PUBLIC_CRISIS_COUNTRY --value US --environment production --visibility plaintext
 ```

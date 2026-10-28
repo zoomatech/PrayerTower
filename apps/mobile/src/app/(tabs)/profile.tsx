@@ -66,7 +66,7 @@ export default function Profile() {
             <Text style={type.small}>Tokens</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.gold }]}>{tokens?.priestly.balance ?? 0}</Text>
+            <Text style={[styles.statValue, { color: colors.goldText }]}>{tokens?.priestly.balance ?? 0}</Text>
             <Text style={type.small}>Priestly</Text>
           </View>
         </View>

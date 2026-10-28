@@ -8,6 +8,13 @@ const Env = z.object({
   SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
   /** Shown on the account-deletion page as the contact address. */
   SUPPORT_EMAIL: z.string().optional(),
+  /** Public website: where the privacy policy and terms (.md) live; defaults to docs/legal in the repo. */
+  SITE_LEGAL_DIR: z.string().optional(),
+  /** Store links shown on the landing page once the app is listed. */
+  APP_STORE_URL: z.url().optional(),
+  PLAY_STORE_URL: z.url().optional(),
+  /** Crisis line on the support page and in removal notices: US (default), CA, GB or IE. */
+  CRISIS_COUNTRY: z.string().default('US'),
   PORT: z.coerce.number().int().default(3000),
   OPENAI_API_KEY: z.string().optional(),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */

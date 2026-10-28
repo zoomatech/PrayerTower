@@ -32,6 +32,10 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!(disabled || busy), busy: !!busy }}
+      // Small buttons are drawn 34pt tall; the slop makes the tap area Apple's 44pt minimum.
+      hitSlop={small ? 5 : undefined}
       onPress={onPress}
       disabled={disabled || busy}
       style={({ pressed }) => [
@@ -54,8 +58,9 @@ const buttonVariants = {
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: selected }}
+      role="checkbox"
+      aria-checked={selected}
+      hitSlop={6}
       onPress={onPress}
       style={[styles.chip, selected && styles.chipSelected]}>
       <Text style={[styles.chipText, selected && { color: '#fff' }]}>{label}</Text>
@@ -68,14 +73,14 @@ export function Field(props: TextInputProps & { label?: string }) {
   return (
     <View style={{ gap: space.xs }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput placeholderTextColor={colors.textMuted} style={[styles.input, style]} {...rest} />
+      <TextInput accessibilityLabel={label ?? rest.placeholder} placeholderTextColor={colors.textMuted} style={[styles.input, style]} {...rest} />
     </View>
   );
 }
 
 export function Toggle({ label, value, onChange, hint }: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
   return (
-    <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} onPress={() => onChange(!value)} style={styles.toggleRow}>
+    <Pressable role="switch" aria-checked={value} onPress={() => onChange(!value)} style={styles.toggleRow}>
       <View style={{ flex: 1 }}>
         <Text style={type.body}>{label}</Text>
         {hint ? <Text style={type.small}>{hint}</Text> : null}
