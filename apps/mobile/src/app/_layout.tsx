@@ -114,6 +114,7 @@ export default withMonitoring(RootLayout);
 
 /** The first screen while the app signs in. On a slow connection it says what it's doing after a few seconds. */
 function Starting() {
+  const { n } = useLocale();
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setSlow(true), 4000);
@@ -121,8 +122,8 @@ function Starting() {
   }, []);
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.xl, backgroundColor: colors.background }}>
-      <ActivityIndicator color={colors.primary} accessibilityLabel="Loading Prayer Tower" />
-      {slow ? <Text style={[type.small, { textAlign: 'center' }]}>Connecting to Prayer Tower. This is taking longer than usual; check your connection.</Text> : null}
+      <ActivityIndicator color={colors.primary} accessibilityLabel={`Loading ${n('Prayer Tower')}`} />
+      {slow ? <Text style={[type.small, { textAlign: 'center' }]}>Connecting to {n('Prayer Tower')}. This is taking longer than usual; check your connection.</Text> : null}
     </View>
   );
 }

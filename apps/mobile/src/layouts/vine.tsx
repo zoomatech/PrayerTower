@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
-import { Tr } from '@/lib/i18n';
+import { Tr, useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -180,12 +180,15 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
   const [idleKey, setIdleKey] = useState(0);
   const lastScroll = useRef(0);
 
+  // Open Circle members (neutral wording) see no scripture.
+  const { wording } = useLocale();
   useEffect(() => {
+    if (wording === 'neutral') return setLeaves([]);
     api
       .scriptureLeaves()
       .then((r) => setLeaves(r.leaves))
       .catch(() => undefined);
-  }, []);
+  }, [wording]);
 
   // A scripture leaf after every few fruit, cycling through the verses.
   const items = useMemo<Item[]>(() => {

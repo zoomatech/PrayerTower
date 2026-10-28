@@ -4,15 +4,17 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Screen } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 export default function NotFound() {
+  const { n } = useLocale();
   return (
     <Screen>
       <View style={styles.wrap}>
         <Text style={type.title}>{"We couldn't find that page"}</Text>
         <Text style={[type.body, { color: colors.textMuted }]}>The link may be old, or the request may have been taken down.</Text>
-        <Button label="Go to Prayers" onPress={() => router.replace('/')} />
+        <Button label={n('Go to Prayers')} onPress={() => router.replace('/')} />
       </View>
     </Screen>
   );

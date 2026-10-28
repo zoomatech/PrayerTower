@@ -4,7 +4,7 @@ import type { Task } from 'graphile-worker';
 import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { enqueue } from '../../jobs.js';
-import { localize, type Params } from './i18n.js';
+import { localize, neutralize, type Params } from './i18n.js';
 
 export interface NewNotification {
   kind: string;
@@ -20,8 +20,13 @@ export interface NewNotification {
 /** Write the in-app notification and queue its push, in the caller's transaction. */
 export async function notify(q: Queryable, userId: string, n: NewNotification): Promise<string | null> {
   if (n.t) {
-    const { rows: who } = await q.query<{ locale: string }>('select locale from public.profiles where id = $1', [userId]);
-    const local = localize(who[0]?.locale, n.t.key, n.t.params);
+    const { rows: who } = await q.query<{ locale: string; tradition: string }>(
+      `select p.locale, c.tradition from public.profiles p, public.communities c
+        where p.id = $1 and c.id = public.member_community_id($1)`,
+      [userId],
+    );
+    // Open Circle members get the non-religious wording; others their language.
+    const local = who[0]?.tradition === 'secular' ? neutralize(n.t.key, n.t.params) : localize(who[0]?.locale, n.t.key, n.t.params);
     if (local) n = { ...n, ...local };
   }
   const { rows } = await q.query<{ id: string }>(

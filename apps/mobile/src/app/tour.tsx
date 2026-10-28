@@ -7,7 +7,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { useT } from '@/lib/i18n';
+import { useLocale } from '@/lib/i18n';
 import { markTourSeen } from '@/lib/tour';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -22,7 +22,7 @@ const STEPS = [
 
 export default function TourScreen() {
   const { session } = useAuth();
-  const t = useT();
+  const { t, wording } = useLocale();
   const [step, setStep] = useState(0);
   const s = STEPS[step]!;
   const last = step === STEPS.length - 1;
@@ -44,7 +44,7 @@ export default function TourScreen() {
         </View>
         <View style={styles.card}>
           <Text style={styles.icon} importantForAccessibility="no" accessibilityElementsHidden>
-            {s.icon}
+            {wording === 'neutral' && s.key === 'pray' ? '🤝' : s.icon}
           </Text>
           <Text style={type.title} role="heading">
             {t(`tour.${s.key}Title`)}

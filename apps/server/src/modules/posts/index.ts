@@ -76,6 +76,13 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     // Exactly the shape /media/upload-url hands out: <user id>/<uuid>.<ext>, no other folders.
     if (!m.storagePath.startsWith(`${userId}/`) || !/^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(m.storagePath.slice(userId.length + 1))) throw badRequest('Media must be uploaded through /media/upload-url');
   }
+  const communityId = await primaryCommunityId(q, userId);
+  // Each community lists the post types it uses (Open Circle has no confessional posts).
+  const { rowCount: typeAllowed } = await q.query('select 1 from public.communities where id = $1 and $2::public.post_type = any (enabled_post_types)', [
+    communityId,
+    input.postType,
+  ]);
+  if (!typeAllowed) throw badRequest('This kind of post is not available in your community');
   const { rows } = await q.query<PostRow>(
     `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id, all_support_welcome)
      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
@@ -89,7 +96,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
       input.background ?? null,
       isAnonymous,
       input.isSensitive,
-      await primaryCommunityId(q, userId),
+      communityId,
       input.allSupportWelcome,
     ],
   );

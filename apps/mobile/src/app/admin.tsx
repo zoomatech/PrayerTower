@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Community, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -301,6 +301,7 @@ function Admin() {
         <MessagingSettingsSection />
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
+        <CommunitiesSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -561,6 +562,49 @@ function CareAndEventSettingsSection() {
           <Button label={t('admin.btn.saveEvents')} onPress={() => saveEv()} />
         </>
       ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Communities (Open Circle, 2026-10-28): a non-default community is hidden until an admin turns it on. */
+function CommunitiesSection() {
+  const t = useT();
+  const [list, setList] = useState<Community[] | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.communities().then((r) => setList(r.communities)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const toggle = (c: Community, on: boolean) =>
+    api.admin
+      .updateCommunity(c.slug, { status: on ? 'active' : 'hidden' })
+      .then((r) => {
+        setList((l) => l?.map((x) => (x.slug === c.slug ? { ...x, ...r.community } : x)) ?? null);
+        setNote(t('admin.savedCommunity'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!list) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.communities')}</Text>
+      <Text style={type.small}>{t('admin.communitiesHint')}</Text>
+      {list.map((c) =>
+        c.isDefault ? (
+          <Text key={c.slug} style={type.body}>
+            {t('admin.communityDefault', { name: c.name, count: c.members ?? 0 })}
+          </Text>
+        ) : (
+          <Toggle
+            key={c.slug}
+            label={t('admin.communityOn', { name: c.name, count: c.members ?? 0 })}
+            hint={t('admin.communityOnHint')}
+            value={c.status === 'active'}
+            onChange={(v) => toggle(c, v)}
+          />
+        ),
+      )}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

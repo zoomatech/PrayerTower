@@ -5,15 +5,21 @@
 // on this device. Strings live in src/locales/<code>.ts. A key missing from a
 // locale falls back to English. Enum labels (post types, realms...) fall back to
 // the English labels in @prayer-tower/shared, so English needs no copy of them.
+//
+// Wording: members of a non-religious community (Open Circle) see the neutral
+// English in src/locales/neutral.ts instead of the faith wording. The wording
+// follows the member's community from /me (setWording), and the Open Circle
+// build (EXPO_PUBLIC_EDITION=open-circle) is always neutral.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import { I18n, type TranslateOptions } from 'i18n-js';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState, Platform, Text, type StyleProp, type TextStyle } from 'react-native';
 
 import { env } from '@/lib/env';
 import en from '@/locales/en';
 import es from '@/locales/es';
+import { keys as neutralKeys, literals as neutralLiterals } from '@/locales/neutral';
 
 export const LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -23,9 +29,36 @@ export type Language = (typeof LANGUAGES)[number]['code'];
 export type LanguageChoice = Language | 'system';
 
 const STORAGE_KEY = 'prayer-tower.language';
-const i18n = new I18n({ en, es });
+type Tree = { [key: string]: unknown };
+function merge(base: Tree, over: Tree): Tree {
+  const out: Tree = { ...base };
+  for (const [k, v] of Object.entries(over)) {
+    const b = out[k];
+    out[k] = v && typeof v === 'object' && b && typeof b === 'object' ? merge(b as Tree, v as Tree) : v;
+  }
+  return out;
+}
+
+const i18n = new I18n({ en, es, 'en-neutral': merge(en as Tree, neutralKeys) });
 i18n.defaultLocale = 'en';
 i18n.enableFallback = true;
+
+export type Wording = 'faith' | 'neutral';
+let wording: Wording = env.edition === 'open-circle' ? 'neutral' : 'faith';
+const listeners = new Set<() => void>();
+/** Faith or neutral wording; set from the member's community ("secular" = neutral). */
+export function setWording(next: Wording) {
+  if (env.edition === 'open-circle') next = 'neutral';
+  if (next === wording) return;
+  wording = next;
+  listeners.forEach((l) => l());
+}
+export const wordingForTradition = (tradition: string | null | undefined): Wording => (tradition === 'secular' ? 'neutral' : 'faith');
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
+const getWording = () => wording;
 
 function deviceLanguage(): Language {
   const code = getLocales()[0]?.languageCode;
@@ -41,6 +74,9 @@ interface LocaleState {
   t: T;
   /** Label for a shared enum value: the locale's `enums.<group>.<value>`, else the English label. */
   label: (group: string, value: string | null | undefined, english?: string) => string;
+  wording: Wording;
+  /** Fixed English text a screen writes out directly, in the member's wording. */
+  n: (text: string) => string;
 }
 
 const LocaleContext = createContext<LocaleState | null>(null);
@@ -65,22 +101,27 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => undefined);
   }, []);
 
+  const words = useSyncExternalStore(subscribe, getWording, getWording);
   const language: Language = !env.spanish ? 'en' : choice === 'system' ? device : choice;
+  // Neutral wording is English only, so Spanish keeps its own text.
+  const locale = words === 'neutral' && language === 'en' ? 'en-neutral' : language;
   // Screen readers on the web pick their voice from <html lang> (WCAG 3.1.1).
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined' && document.documentElement.lang !== language) document.documentElement.lang = language;
   }, [language]);
   const value = useMemo<LocaleState>(() => {
-    i18n.locale = language;
-    const t: T = (key, options) => i18n.t(key, { locale: language, ...options });
+    i18n.locale = locale;
+    const t: T = (key, options) => i18n.t(key, { locale, ...options });
     return {
       language,
       choice,
       setChoice,
       t,
-      label: (group, v, english) => (v ? i18n.t(`enums.${group}.${v}`, { locale: language, defaultValue: english ?? v }) : ''),
+      label: (group, v, english) => (v ? i18n.t(`enums.${group}.${v}`, { locale, defaultValue: english ?? v }) : ''),
+      wording: words,
+      n: (text) => (locale === 'en-neutral' ? (neutralLiterals[text] ?? text) : text),
     };
-  }, [language, choice, setChoice]);
+  }, [language, locale, words, choice, setChoice]);
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }

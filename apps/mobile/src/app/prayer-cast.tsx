@@ -11,7 +11,7 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function PrayerCastScreen() {
-  const { t } = useLocale();
+  const { t, n } = useLocale();
   const [data, setData] = useState<PrayerCast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,7 +29,7 @@ export default function PrayerCastScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Prayer Cast</Text>
+        <Text style={type.title}>{n('Prayer Cast')}</Text>
         <Text style={type.body}>
           {t('cast.intro')}
         </Text>

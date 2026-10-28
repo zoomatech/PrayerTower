@@ -21,6 +21,8 @@ import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
+// Open Circle (neutral wording) uses icons without a religious meaning.
+const NEUTRAL_ICONS: Record<string, string> = { prayerful_helper: '🤝', commit: '🤝' };
 // What a screen reader says instead of the tier emoji.
 const TIER_NAMES: Record<string, string> = { prayer_scout: 'Prayer Scout', prayerful_helper: 'Prayerful Helper', prayer_warrior: 'Prayer Warrior' };
 const ACTION_ICONS: Record<CardAction, string> = {
@@ -41,7 +43,8 @@ export interface CardHandlers {
 // Memoized: a feed re-render (a prompt or highlights arriving) skips cards whose data didn't change.
 export const PostCard = memo(function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
-  const { t, label } = useLocale();
+  const { t, label, n, wording } = useLocale();
+  const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
@@ -60,10 +63,10 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         <Text
           style={styles.author}
           numberOfLines={2}
-          accessibilityLabel={card.author.tier && TIER_NAMES[card.author.tier] ? `${card.author.displayName}, ${TIER_NAMES[card.author.tier]}` : card.author.displayName}
+          accessibilityLabel={card.author.tier && TIER_NAMES[card.author.tier] ? `${card.author.displayName}, ${n(TIER_NAMES[card.author.tier]!)}` : card.author.displayName}
           onPress={!card.author.anonymous && card.author.id && !card.isMine ? () => router.push(`/people/${card.author.id}`) : undefined}>
           {card.author.displayName}
-          {card.author.tier ? ` ${TIER_ICONS[card.author.tier] ?? ''}` : ''}
+          {card.author.tier ? ` ${icon(card.author.tier, TIER_ICONS)}` : ''}
         </Text>
         <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>
         {onHide && !card.isMine ? (
@@ -120,7 +123,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
               accessibilityLabel={label('action', action, ACTION_LABELS[action])}
               onPress={() => onAction(card, action)}
               style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
-              <Text style={styles.actionIcon}>{ACTION_ICONS[action]}</Text>
+              <Text style={styles.actionIcon}>{icon(action, ACTION_ICONS)}</Text>
               {/* Two lines, so labels aren't cut off at large text sizes. */}
               <Text style={[styles.actionLabel, active && { color: colors.primary }]} numberOfLines={2}>
                 {active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}

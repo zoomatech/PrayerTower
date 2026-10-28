@@ -105,7 +105,46 @@ const es: Record<string, Template> = {
   }),
 };
 
+// Open Circle, the non-religious community (migration 20261029002200): the same
+// notices in plain, warm English with no religious words. Keys left out here
+// (moderation, events, admin alerts) are already neutral and keep their text.
+const FREQUENCY: Record<string, string> = { weekly: 'every week', daily: 'every day', three_daily: 'three times a day' };
+const neutral: Record<string, Template> = {
+  praying_now: (p) => ({
+    title: `${s(p.who, 'Someone')} is thinking of you${p.poster ? `, ${p.poster},` : ''} right now`,
+    body: 'Someone stopped what they were doing to hold your request in their thoughts.',
+  }),
+  thanks: (p) => ({ title: 'Thank you for being there', body: s(p.body, 'Someone you supported sent thanks.') }),
+  pray_request: (p) => ({ title: `${s(p.who, 'Someone')} would like your support on this`, body: s(p.body) }),
+  commitment_made: (p) => ({ title: `${s(p.who, 'Someone')} promised to support you`, body: `${s(p.who, 'Someone')} will check in ${FREQUENCY[s(p.frequency)] ?? 'regularly'}.` }),
+  commitment_reminder: (p) => ({ title: 'Time to check in', body: `You promised to keep someone in mind: "${s(p.excerpt)}"` }),
+  power_prayer: (p) => ({ title: 'Will you send support to this request?', body: s(p.body) }),
+  answered: (p) => ({ title: 'Good news on a request you supported', body: `${s(p.who, 'Someone')} says things worked out. Thank you for being there.` }),
+  testimony: (p) => ({ title: 'Good news on a request you supported', body: `${s(p.who, 'Someone')} shared what happened: "${s(p.excerpt)}"` }),
+  weekly_review: (p) => ({ title: 'Your week of kindness', body: s(p.body) }),
+  milestone: (p) => {
+    const n = Number(p.amount ?? 0);
+    return { title: `Milestone: ${s(p.label)}`, body: `You received ${n} bonus ${p.priestly ? 'Lighthouse ' : ''}token${n === 1 ? '' : 's'}. Thank you for showing up for people.` };
+  },
+  care_request: (p) => ({ title: p.crisis ? 'Someone may be in danger and asked for support' : 'Someone asked for a listening partner', body: 'Open the care queue to reach out.' }),
+  care_claimed: (p) => ({ title: `${s(p.who, 'A listening partner')} is here for you`, body: 'Open the conversation to talk.' }),
+  group_invite: (p) => ({ title: 'You were invited to a group', body: `Join "${s(p.title)}" to cheer each other on.` }),
+  message: (p) => ({ title: p.prayer ? `${s(p.who)} thought of you and sent a message` : `New message from ${s(p.who)}`, body: s(p.body) }),
+  radio_prayer: () => ({ title: 'Your request went out by radio', body: 'Someone sent your words out on the air so more people could cheer you on.' }),
+  radio_not_sent: (p) => ({ title: "A radio message you sent didn't go out", body: p.refunded ? 'Your Lighthouse token is back in your balance.' : 'You can still support the request.' }),
+  witness_story: () => ({
+    title: 'May we share how you were helped?',
+    body: 'The Helpers team wrote a short story about the help you received. Nothing is shared unless you say yes, and it never shows your name.',
+  }),
+};
+
 const catalogs: Record<string, Record<string, Template>> = { es };
+
+/** The Open Circle wording for this notice, or null to keep the English text. */
+export function neutralize(key: string, params: Params = {}) {
+  const template = neutral[key];
+  return template ? template(params) : null;
+}
 
 /** The notification in `locale`, or null to keep the English text. */
 export function localize(locale: string | null | undefined, key: string, params: Params = {}) {
