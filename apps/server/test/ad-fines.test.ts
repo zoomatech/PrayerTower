@@ -32,7 +32,7 @@ describe('ad fines', () => {
   });
 
   it('when on, forfeits tokens, records the fine, suspends repeats, and an overturned appeal undoes it', async () => {
-    const [poster, reporter, mod, mod2, admin] = await Promise.all(['Seller', 'Reporter', 'Mod', 'Mod2', 'Admin'].map(createUser));
+    const [poster, reporter, mod, mod2, admin] = [await createUser('Seller'), await createUser('Reporter'), await createUser('Mod'), await createUser('Mod2'), await createUser('Admin')];
     await grantRole(db, mod, 'moderator', null);
     await grantRole(db, mod2, 'moderator', null);
     await tokens.earn(db, poster, 30, `test:${poster}`, 'test');
