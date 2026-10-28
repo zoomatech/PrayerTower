@@ -1013,10 +1013,12 @@ function NotebookSettingsSection() {
   const t = useT();
   const [s, setS] = useState<NotebookSettings | null>(null);
   const [days, setDays] = useState('');
+  const [upkeepDays, setUpkeepDays] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const show = (x: NotebookSettings) => {
     setS(x);
     setDays(String(x.thanks_card_days));
+    setUpkeepDays(String(x.tier_upkeep_days));
   };
   useFocusEffect(
     useCallback(() => {
@@ -1025,7 +1027,7 @@ function NotebookSettingsSection() {
   );
   const save = (patch: Parameters<typeof api.admin.updateNotebookSettings>[0] = {}) =>
     api.admin
-      .updateNotebookSettings({ thanksCardDays: toInt(days) ?? undefined, ...patch })
+      .updateNotebookSettings({ thanksCardDays: toInt(days) ?? undefined, tierUpkeepDays: toInt(upkeepDays) ?? undefined, ...patch })
       .then((r) => {
         show(r.settings);
         resetFeatures();
@@ -1052,6 +1054,8 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.waitlist')} hint={t('admin.toggle.waitlistHint')} value={s.waitlist_enabled} onChange={(v) => save({ waitlistEnabled: v })} />
       <Toggle label={t('admin.toggle.crossCommunity')} hint={t('admin.toggle.crossCommunityHint')} value={s.cross_community_enabled} onChange={(v) => save({ crossCommunityEnabled: v })} />
       <Toggle label={t('admin.toggle.postLines')} hint={t('admin.toggle.postLinesHint')} value={s.post_lines_enabled} onChange={(v) => save({ postLinesEnabled: v })} />
+      <Toggle label={t('admin.toggle.tierUpkeep')} hint={t('admin.toggle.tierUpkeepHint')} value={s.tier_upkeep_enabled} onChange={(v) => save({ tierUpkeepEnabled: v })} />
+      <Field label={t('admin.field.tierUpkeepDays')} keyboardType="number-pad" value={upkeepDays} onChangeText={setUpkeepDays} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />

@@ -429,6 +429,8 @@ export interface TierStatus {
   tier: { tier: string; label: string; weeklyAllotment: number | null } | null;
   prayers: number;
   next: { tier: string; label: string; prayersNeeded: number } | null;
+  /** While tier upkeep is on: days allowed between giving or spending a token, and the earned tier held back until one. */
+  upkeep?: { days: number; held: { tier: string; label: string } | null } | null;
 }
 
 export interface WeeklyReview {
