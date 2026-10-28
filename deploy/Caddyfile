@@ -1,0 +1,5 @@
+# HTTPS in front of the API. Replace the domain; point its DNS at this server
+# and open ports 80 and 443. Caddy fetches and renews the certificate itself.
+api.example.com
+
+reverse_proxy :3000

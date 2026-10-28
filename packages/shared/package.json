@@ -1,0 +1,11 @@
+{
+  "name": "@prayer-tower/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API types and product constants shared by the server and the app",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

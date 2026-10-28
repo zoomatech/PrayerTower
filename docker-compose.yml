@@ -4,9 +4,11 @@
 # Both processes are stateless; scale with `docker compose up --scale worker=2`.
 services:
   api:
-    build: .
-    command: ["node", "dist/src/server.js"]
-    env_file: .env
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    command: ["node", "apps/server/dist/src/server.js"]
+    env_file: apps/server/.env
     environment:
       PORT: "3000"
     ports:
@@ -16,9 +18,11 @@ services:
     restart: unless-stopped
 
   worker:
-    build: .
-    command: ["node", "dist/src/worker.js"]
-    env_file: .env
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    command: ["node", "apps/server/dist/src/worker.js"]
+    env_file: apps/server/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
