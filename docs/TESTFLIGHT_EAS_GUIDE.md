@@ -123,12 +123,9 @@ eas build --platform ios --auto-submit
 
 The build number goes up by itself. In TestFlight, add the new build to the **Pilot** group. Later builds of the same version usually skip Beta App Review, but the first build of a new version (for example 1.1.0) goes through it again. To change the version, edit `"version"` in `app.json`.
 
-## 10. Android (optional, if any pilot members use Android)
+## 10. Android
 
-1. You need a Google Play Developer account and the app created in Play Console.
-2. Run `eas build --platform android --profile production`.
-3. Run `eas submit --platform android`. EAS needs a Google service account key, which you can set up with `eas credentials --platform android`. The first release goes to the **internal testing** track. `eas.json` sets it to upload as a **draft**. ([Expo: Submit to Google Play](https://docs.expo.dev/submit/android/))
-4. Fill in **App content → Data safety** using `docs/store/APP_PRIVACY_ANSWERS.md`.
+See [ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md) for the full Google Play internal testing setup.
 
 ## If something goes wrong
 
