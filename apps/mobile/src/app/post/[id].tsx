@@ -1,7 +1,8 @@
 import { ENCOURAGEMENT_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
+import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
 import { useCelebration } from '@/components/celebration';
@@ -13,7 +14,7 @@ import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
 
 export default function PostScreen() {
-  const { id, celebrate: celebrateParam } = useLocalSearchParams<{ id: string; celebrate?: string }>();
+  const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
   const { celebrate, overlay } = useCelebration();
   const { profile } = useAuth();
   const [card, setCard] = useState<Card | null>(null);
@@ -200,7 +201,10 @@ export default function PostScreen() {
           <Text style={type.heading}>Comments</Text>
           {comments.length === 0 ? <Empty text="No comments yet." /> : null}
           {comments.map((c) => (
-            <View key={c.id} style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }]}>
+            <View
+              key={c.id}
+              style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }, c.id === sharedCommentId && styles.sharedComment]}
+            >
               <Text style={styles.commentAuthor}>
                 {c.isUpdate ? 'Update · ' : ''}
                 {c.author.displayName}
@@ -209,6 +213,18 @@ export default function PostScreen() {
               <View style={styles.row}>
                 <Text style={styles.reply} onPress={() => setReplyTo(c)}>
                   Reply
+                </Text>
+                <Text
+                  style={styles.reply}
+                  onPress={() =>
+                    // Shareable comments: the words plus a link that opens this request at the comment.
+                    Share.share({
+                      message: `“${c.body}” (${c.author.displayName}, on a Prayer Tower request) ${Linking.createURL(`/post/${id}`, { queryParams: { comment: c.id } })}`,
+                    }).catch(() => undefined)
+                  }
+                  accessibilityRole="button"
+                >
+                  Share
                 </Text>
                 {card && c.author.id !== profile?.id ? (
                   <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
@@ -244,6 +260,7 @@ const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   section: { gap: space.sm },
   comment: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, gap: 2 },
+  sharedComment: { borderLeftColor: colors.primary, backgroundColor: colors.primarySoft, paddingVertical: space.xs },
   commentAuthor: { fontWeight: '700', color: colors.text },
   reply: { color: colors.primary, fontSize: 13 },
   report: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
