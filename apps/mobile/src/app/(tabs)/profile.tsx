@@ -79,7 +79,10 @@ export default function Profile() {
           />
         ) : null}
         <Text style={type.small}>Tokens help requests reach more people. A lack of tokens never stops a request from being seen.</Text>
-        <Button small variant="secondary" label="Token pools" onPress={() => router.push('/pools')} />
+        <View style={styles.chips}>
+          <Button small variant="secondary" label="Token pools" onPress={() => router.push('/pools')} />
+          <Button small variant="secondary" label="Scheduled gifts" onPress={() => router.push('/scheduled')} />
+        </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (
           <View style={{ gap: space.sm }}>

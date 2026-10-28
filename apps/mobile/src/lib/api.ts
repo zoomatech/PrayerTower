@@ -104,6 +104,18 @@ export interface TokenPool {
   blockedReason?: string | null;
 }
 
+export interface ScheduledSpend {
+  id: string;
+  post_id: string;
+  amount: number;
+  next_run_at: string;
+  repeat_weeks: number;
+  runs: number;
+  status: 'active' | 'done' | 'cancelled' | 'failed';
+  error: string | null;
+  excerpt: string;
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -253,6 +265,10 @@ export const api = {
   fundTokenPool: (id: string, amount: number) => post(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
   closeTokenPool: (id: string) => post(`/token-pools/${id}/close`, {}),
   drawFromPool: (id: string, postId: string) => post<{ amount: number; reach: number }>(`/token-pools/${id}/draw`, { postId }),
+  scheduleSpend: (postId: string, input: { amount: number; runAt: string; repeatWeeks: number }) =>
+    post<{ schedule: ScheduledSpend }>(`/posts/${postId}/scheduled-spends`, input),
+  scheduledSpends: () => get<{ schedules: ScheduledSpend[] }>('/me/scheduled-spends'),
+  cancelScheduledSpend: (id: string) => request<{ ok: true }>('DELETE', `/scheduled-spends/${id}`),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

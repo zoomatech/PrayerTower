@@ -13,6 +13,7 @@ import * as posts from '../posts/index.js';
 import * as prayerActions from '../prayer-actions/index.js';
 import * as radio from '../radio/index.js';
 import * as reach from '../reach/index.js';
+import * as schedules from '../schedules/index.js';
 import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
@@ -172,7 +173,7 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     await requireAdmin(req);
     const { days } = z.object({ days: z.coerce.number().int().min(1).max(3650).default(7) }).parse(req.query);
     const since = new Date(Date.now() - days * 86_400_000);
-    const [members, content, prayer, promises, ledger, mod, radioPrayers, powerPrayers] = await Promise.all([
+    const [members, content, prayer, promises, ledger, mod, radioPrayers, powerPrayers, scheduled] = await Promise.all([
       accounts.metrics(db, since),
       posts.metrics(db, since),
       prayerActions.metrics(db, since),
@@ -181,7 +182,8 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
       moderation.metrics(db, since),
       radio.metrics(db, since),
       reach.metrics(db, since),
+      schedules.metrics(db, since),
     ]);
-    return { since, members, posts: content, prayer, commitments: promises, tokens: ledger, moderation: mod, radio: radioPrayers, power_prayer: powerPrayers };
+    return { since, members, posts: content, prayer, commitments: promises, tokens: ledger, moderation: mod, radio: radioPrayers, power_prayer: powerPrayers, schedules: scheduled };
   });
 }

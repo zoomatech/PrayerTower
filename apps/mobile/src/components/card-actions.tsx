@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { api, type TokenPool } from '@/lib/api';
+import { parseLocal, REPEAT_OPTIONS, WHEN_OPTIONS } from '@/lib/schedule';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
 import { Button, Chip, ErrorText, Field, RulesWarning } from './ui';
@@ -34,6 +35,9 @@ export function useCardActions(onChanged: () => void) {
   const [picked, setPicked] = useState<string[]>([]);
   const [warnedFor, setWarnedFor] = useState<string | null>(null);
   const [pools, setPools] = useState<TokenPool[]>([]);
+  const [when, setWhen] = useState('now');
+  const [customWhen, setCustomWhen] = useState('');
+  const [repeatWeeks, setRepeatWeeks] = useState(1);
 
   const close = () => {
     setSheet(null);
@@ -42,6 +46,9 @@ export function useCardActions(onChanged: () => void) {
     setReason(null);
     setPicked([]);
     setWarnedFor(null);
+    setWhen('now');
+    setCustomWhen('');
+    setRepeatWeeks(1);
   };
 
   /** Report a request or one of its comments to the moderators. */
@@ -197,12 +204,46 @@ export function useCardActions(onChanged: () => void) {
         <Text style={type.heading}>Gift Tokens</Text>
         <Text style={type.body}>Tokens help more people see this request. No one is ever hidden for lacking tokens.</Text>
         <Field label="How many tokens" value={text} onChangeText={setText} keyboardType="number-pad" maxLength={5} />
-        <Button
-          label="Give tokens"
-          busy={busy}
-          disabled={!(Number(text) > 0)}
-          onPress={() => run(() => api.boost(sheet.card.id, Number(text), `${sheet.card.id}:${Date.now()}`), 'Thank you. More people will see this request.')}
-        />
+        <Text style={styles.label}>When</Text>
+        <View style={styles.chips}>
+          <Chip label="Now" selected={when === 'now'} onPress={() => setWhen('now')} />
+          {WHEN_OPTIONS.map((o) => (
+            <Chip key={o.key} label={o.label} selected={when === o.key} onPress={() => setWhen(o.key)} />
+          ))}
+          <Chip label="Pick a time" selected={when === 'custom'} onPress={() => setWhen('custom')} />
+        </View>
+        {when === 'custom' ? (
+          <Field placeholder="YYYY-MM-DD HH:MM, e.g. game start" value={customWhen} onChangeText={setCustomWhen} maxLength={16} />
+        ) : null}
+        {when !== 'now' ? (
+          <View style={styles.chips}>
+            {REPEAT_OPTIONS.map((o) => (
+              <Chip key={o.weeks} label={o.label} selected={repeatWeeks === o.weeks} onPress={() => setRepeatWeeks(o.weeks)} />
+            ))}
+          </View>
+        ) : null}
+        {when === 'now' ? (
+          <Button
+            label="Give tokens"
+            busy={busy}
+            disabled={!(Number(text) > 0)}
+            onPress={() => run(() => api.boost(sheet.card.id, Number(text), `${sheet.card.id}:${Date.now()}`), 'Thank you. More people will see this request.')}
+          />
+        ) : (
+          <Button
+            label="Schedule gift"
+            busy={busy}
+            disabled={!(Number(text) > 0) || (when === 'custom' && !parseLocal(customWhen))}
+            onPress={() => {
+              const at = when === 'custom' ? parseLocal(customWhen)! : WHEN_OPTIONS.find((o) => o.key === when)!.at();
+              const label = at.toLocaleString(undefined, { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+              run(
+                () => api.scheduleSpend(sheet.card.id, { amount: Number(text), runAt: at.toISOString(), repeatWeeks }),
+                `Scheduled. ${text} tokens will go to this request on ${label}${repeatWeeks > 1 ? `, then weekly for ${repeatWeeks} weeks in all` : ''}. Tokens are taken then; see Scheduled gifts in your profile.`,
+              );
+            }}
+          />
+        )}
         {pools.length > 0 ? <Text style={styles.label}>Or use a donated pool</Text> : null}
         {pools.map((p) => (
           <Button

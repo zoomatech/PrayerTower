@@ -53,6 +53,7 @@ export function as(userId: string) {
     post: (url: string, payload?: object) => app.inject({ method: 'POST', url, headers, payload: payload ?? {} }),
     patch: (url: string, payload: object) => app.inject({ method: 'PATCH', url, headers, payload }),
     put: (url: string, payload?: object) => app.inject({ method: 'PUT', url, headers, ...(payload ? { payload } : {}) }),
+    delete: (url: string) => app.inject({ method: 'DELETE', url, headers }),
   };
 }
 

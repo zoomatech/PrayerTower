@@ -19,6 +19,7 @@ import { prayerActionRoutes } from './modules/prayer-actions/routes.js';
 import { radioRoutes } from './modules/radio/routes.js';
 import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
+import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
@@ -75,6 +76,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     radioRoutes(authed, db);
     reachRoutes(authed, db);
     poolRoutes(authed, db);
+    scheduleRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);
