@@ -70,6 +70,15 @@ export async function balanceOf(q: Queryable, userId: string, currency: Currency
   return Number(rows[0]?.balance ?? 0);
 }
 
+/** Reach for many posts in one query (feed cards); posts without an account have 0. */
+export async function reachOfMany(q: Queryable, postIds: string[]): Promise<Map<string, number>> {
+  const { rows } = await q.query<{ post_id: string; balance: string }>(
+    `select post_id, balance from public.token_accounts where kind = 'post_reach' and post_id = any($1::uuid[])`,
+    [postIds],
+  );
+  return new Map(rows.map((r) => [r.post_id, Number(r.balance)]));
+}
+
 export async function reachOf(q: Queryable, postId: string): Promise<number> {
   const { rows } = await q.query<{ balance: string }>(
     `select balance from public.token_accounts where kind = 'post_reach' and post_id = $1`,

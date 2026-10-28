@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 const Env = z.object({
   DATABASE_URL: z.string().default('postgresql://postgres:postgres@127.0.0.1:54322/postgres'),
+  // Postgres connections per process (API and worker each). Keep API + worker under the database's limit.
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(10),
   SUPABASE_URL: z.string().default('http://127.0.0.1:54321'),
   SUPABASE_SECRET_KEY: z.string().optional(),
   /** Publishable key, only for the public account-deletion page's sign-in. */
