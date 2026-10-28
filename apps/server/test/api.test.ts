@@ -338,9 +338,17 @@ describe('communities', () => {
     const { rows: p } = await db.query('select community_id = public.default_community_id() as is_default from public.posts where id = $1', [post.id]);
     expect(p[0].is_default).toBe(true);
 
-    const ids = (u: string) => as(u).get('/feed?pageSize=50').then((r) => r.json().posts.map((x: { id: string }) => x.id));
-    expect(await ids(a)).toContain(post.id);
-    expect(await ids(outsider)).not.toContain(post.id);
+    // Tests running in parallel fill the shared feed, so look through every page, not only the first 50.
+    const sees = async (u: string) => {
+      for (let page = 0; page < 100; page++) {
+        const posts = (await as(u).get(`/feed?pageSize=50&page=${page}`)).json().posts as { id: string }[];
+        if (posts.some((x) => x.id === post.id)) return true;
+        if (posts.length < 50) return false;
+      }
+      return false;
+    };
+    expect(await sees(a)).toBe(true);
+    expect(await sees(outsider)).toBe(false);
   });
 });
 
