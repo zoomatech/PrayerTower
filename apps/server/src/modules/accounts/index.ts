@@ -8,7 +8,7 @@ import { badRequest, conflict, notFound } from '../../errors.js';
 
 export const WHY_HERE = ['pray_for_others', 'prayer_for_myself', 'pray_without_ceasing', 'extend_reach'] as const;
 export const PRAY_FOR_SCOPE = ['family', 'friends', 'church', 'community', 'nation', 'world'] as const;
-export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner' | 'witness';
+export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness';
 
 export const ProfileUpdate = z
   .object({
@@ -318,6 +318,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'delete from public.events where created_by = $1',
     'delete from public.event_rsvps where user_id = $1',
     'delete from public.commitments where user_id = $1',
+    'delete from public.churches where applicant_id = $1',
     'delete from public.scheduled_spends where user_id = $1',
     'delete from public.care_requests where user_id = $1',
     'delete from public.prayer_prompts where user_id = $1',

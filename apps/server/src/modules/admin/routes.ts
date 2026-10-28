@@ -10,6 +10,7 @@ import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import * as activity from '../activity/index.js';
 import * as care from '../care/index.js';
+import { churchAdminRoutes } from '../churches/routes.js';
 import * as commitments from '../commitments/index.js';
 import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
@@ -34,7 +35,7 @@ import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
 import * as ledgerCheck from '../tokens/ledger-check.js';
 
-const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
+const ROLES = ['admin', 'moderator', 'pastor', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
 export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   const requireAdmin = async (req: FastifyRequest) => {
@@ -69,6 +70,9 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await withTx(db, (tx) => accounts.revokeRole(tx, req.params.id, role));
     return { roles: await accounts.roles(db, req.params.id) };
   });
+
+  // Church partner applications: verify, decline, revoke.
+  churchAdminRoutes(app, db, requireAdmin);
 
   app.get('/admin/tiers', async (req) => {
     await requireAdmin(req);

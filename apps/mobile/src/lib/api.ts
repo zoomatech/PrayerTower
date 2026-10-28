@@ -6,6 +6,10 @@ import type {
   CareKind,
   CareQueueItem,
   CareRequest,
+  Church,
+  ChurchApplicationInput,
+  ChurchForReview,
+  ChurchStatus,
   ChatMessage,
   Comment,
   Commitment,
@@ -575,4 +579,11 @@ export const api = {
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
+  myChurch: () => get<{ church: Church | null }>('/me/church'),
+  applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),
+  editChurch: (input: ChurchApplicationInput) => put<{ church: Church }>('/me/church', input),
+  withdrawChurch: () => request('DELETE', '/me/church'),
+  churchesForReview: (status: ChurchStatus = 'pending') => get<{ churches: ChurchForReview[] }>(`/admin/churches?status=${status}`),
+  decideChurch: (id: string, decision: 'verify' | 'decline' | 'revoke', note?: string) =>
+    post<{ church: Church }>(`/admin/churches/${id}/decision`, { decision, note }),
 };

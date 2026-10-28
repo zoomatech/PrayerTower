@@ -174,7 +174,8 @@ export interface Comment {
 export interface Card {
   id: string;
   cardType: CardType;
-  author: Identity & { tier: string | null };
+  /** pastor: a verified church pastor's badge; null on anonymous posts. */
+  author: Identity & { tier: string | null; pastor: PastorBadge | null };
   branchKey: string | null;
   isMine: boolean;
   myCommitment: { id: string; frequency: Frequency } | null;
@@ -244,9 +245,50 @@ export interface Person {
   whyHere: string[];
   following: boolean;
   followers: number;
+  pastor: PastorBadge | null;
 }
 
-export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner' | 'witness';
+/** A verified church pastor's badge: "Pastor · Grace Chapel". */
+export interface PastorBadge {
+  title: string;
+  church: string;
+}
+
+export type ChurchStatus = 'pending' | 'verified' | 'declined';
+export interface ChurchApplicationInput {
+  name: string;
+  denomination?: string;
+  pastorTitle?: string;
+  city: string;
+  region?: string;
+  country: string;
+  website?: string;
+  phone?: string;
+  about?: string;
+}
+export interface Church {
+  id: string;
+  name: string;
+  denomination: string | null;
+  pastorTitle: string;
+  city: string;
+  region: string | null;
+  country: string;
+  website: string | null;
+  phone: string | null;
+  about: string | null;
+  status: ChurchStatus;
+  /** The admin's note when declined or revoked. */
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+/** Admin review list: the application plus who applied. */
+export interface ChurchForReview extends Church {
+  applicant: { id: string; displayName: string; handle: string | null; email: string | null };
+}
+
+export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness';
 
 export interface ModerationItem {
   id: string;

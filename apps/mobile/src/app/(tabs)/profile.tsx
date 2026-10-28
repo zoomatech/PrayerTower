@@ -162,6 +162,7 @@ export default function Profile() {
         <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
+        <Button variant="secondary" label={roles.includes('pastor') ? t('profile.myChurch') : t('profile.churchApply')} onPress={() => router.push('/church')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
           <>
             <Button variant="secondary" label={t('profile.moderation')} onPress={() => router.push('/moderation')} />
