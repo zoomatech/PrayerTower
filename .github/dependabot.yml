@@ -1,0 +1,36 @@
+# Weekly dependency update pull requests against main.
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+version: 2
+updates:
+  - package-ecosystem: npm
+    directories:
+      - "/"
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # Expo SDK packages move together with `npx expo install --fix`, not one by one.
+    ignore:
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]

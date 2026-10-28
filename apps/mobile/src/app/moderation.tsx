@@ -8,13 +8,14 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 
 import { Button, Chip, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
-const SOURCE_LABEL = { ai: 'Flagged automatically', report: 'Reported by a member', crisis: 'May need support' } as const;
 const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter((r) => r !== 'safe_messaging');
-const TARGET_LABEL = { post: 'Request', comment: 'Comment', reaction: 'Encouragement', message: 'Private message', event: 'Event' } as const;
 
 export default function Moderation() {
+  const { t, label, language: locale } = useLocale();
+  const ruleLabel = (r: ModerationRule) => label('moderationRule', r, MODERATION_RULES[r]);
   const [items, setItems] = useState<ModerationItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,72 +65,72 @@ export default function Moderation() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Moderation</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Text style={type.title}>{t('profile.moderation')}</Text>
         <ErrorText error={error} />
-        {flags.length ? <Text style={type.heading}>Prayer taps that look automated</Text> : null}
+        {flags.length ? <Text style={type.heading}>{t('moderation.flagsTitle')}</Text> : null}
         {flags.map((f) => (
           <View key={f.id} style={styles.item}>
             <Text style={styles.meta}>
-              {f.name} · {f.reason === 'too_many' ? `${f.details.taps} prayer taps in an hour` : `${f.details.taps} taps spaced almost exactly alike`}
+              {f.name} · {f.reason === 'too_many' ? t('moderation.tooMany', { count: Number(f.details.taps) }) : t('moderation.regular', { count: Number(f.details.taps) })}
             </Text>
-            <Text style={type.small}>Nothing happens to them unless you act. Open their profile to look closer.</Text>
+            <Text style={type.small}>{t('moderation.flagHint')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-              <Button small variant="secondary" label="Looks human" onPress={() => api.decideActivityFlag(f.id, 'cleared').then(load).catch((e) => setError((e as Error).message))} />
-              <Button small variant="ghost" label="Likely automated" onPress={() => api.decideActivityFlag(f.id, 'confirmed').then(load).catch((e) => setError((e as Error).message))} />
-              <Button small variant="ghost" label="Profile" onPress={() => router.push(`/people/${f.userId}`)} />
+              <Button small variant="secondary" label={t('moderation.human')} onPress={() => api.decideActivityFlag(f.id, 'cleared').then(load).catch((e) => setError((e as Error).message))} />
+              <Button small variant="ghost" label={t('moderation.automated')} onPress={() => api.decideActivityFlag(f.id, 'confirmed').then(load).catch((e) => setError((e as Error).message))} />
+              <Button small variant="ghost" label={t('moderation.profile')} onPress={() => router.push(`/people/${f.userId}`)} />
             </View>
           </View>
         ))}
-        {appeals.length ? <Text style={type.heading}>Appeals</Text> : null}
+        {appeals.length ? <Text style={type.heading}>{t('moderation.appeals')}</Text> : null}
         {appeals.map((a) => (
           <View key={a.id} style={styles.item}>
             <Text style={type.small}>
-              {TARGET_LABEL[a.target_type]} removed for “{a.rule ? MODERATION_RULES[a.rule] : 'Community rules'}”
-              {a.suspended_until ? ` · suspended until ${new Date(a.suspended_until).toLocaleDateString()}` : ''}
+              {t('moderation.removedFor', { target: t(`moderation.target.${a.target_type}`), rule: ruleLabel(a.rule ?? 'other') })}
+              {a.suspended_until ? ` · ${t('moderation.suspendedUntil', { date: new Date(a.suspended_until).toLocaleDateString(locale) })}` : ''}
             </Text>
-            <Text style={type.body}>{a.content ?? '(content no longer available)'}</Text>
-            <Text style={styles.appeal}>Their appeal: {a.message}</Text>
+            <Text style={type.body}>{a.content ?? t('moderation.gone')}</Text>
+            <Text style={styles.appeal}>{t('moderation.theirAppeal', { message: a.message })}</Text>
             <View style={styles.row}>
-              <Button small variant="secondary" label="Keep the decision" onPress={() => decideAppeal(a, 'uphold')} />
-              <Button small label="Overturn and restore" onPress={() => decideAppeal(a, 'overturn')} />
+              <Button small variant="secondary" label={t('moderation.uphold')} onPress={() => decideAppeal(a, 'uphold')} />
+              <Button small label={t('moderation.overturn')} onPress={() => decideAppeal(a, 'overturn')} />
             </View>
           </View>
         ))}
-        {appeals.length ? <Text style={type.heading}>Queue</Text> : null}
-        {items.length === 0 && !refreshing ? <Empty text="Nothing waiting for review." /> : null}
+        {appeals.length ? <Text style={type.heading}>{t('moderation.queue')}</Text> : null}
+        {items.length === 0 && !refreshing ? <Empty text={t('moderation.empty')} /> : null}
         {items.map((item) => (
           <View key={item.id} style={styles.item}>
             <Text style={styles.meta}>
-              {TARGET_LABEL[item.target_type]} · {SOURCE_LABEL[item.source]} ·{' '}
-              {new Date(item.created_at).toLocaleString()}
+              {t(`moderation.target.${item.target_type}`)} · {t(`moderation.source.${item.source}`)} ·{' '}
+              {new Date(item.created_at).toLocaleString(locale)}
             </Text>
-            <Text style={type.body}>{item.content ?? '(content no longer available)'}</Text>
-            {item.reason ? <Text style={styles.reason}>Why: {item.reason}</Text> : null}
+            <Text style={type.body}>{item.content ?? t('moderation.gone')}</Text>
+            {item.reason ? <Text style={styles.reason}>{t('moderation.why', { reason: item.reason })}</Text> : null}
             {item.source === 'crisis' ? (
               // Someone may be in danger: reach out and keep it up; remove only method details. Never suspend.
               <View style={styles.row}>
-                <Button small variant="secondary" label="Reached out, keep it" onPress={() => decide(item, { action: 'dismiss', note: 'Crisis support offered' })} />
+                <Button small variant="secondary" label={t('moderation.reachedOut')} onPress={() => decide(item, { action: 'dismiss', note: 'Crisis support offered' })} />
                 <Button
                   small
-                  label="Remove method details"
+                  label={t('moderation.removeMethod')}
                   onPress={() => decide(item, { action: 'remove', rule: 'safe_messaging', note: 'Removed method details (safe messaging)' })}
                 />
               </View>
             ) : (
               <>
-                <Text style={type.small}>Rule broken (the member is told):</Text>
+                <Text style={type.small}>{t('moderation.ruleBroken')}</Text>
                 <View style={styles.row}>
                   {RULE_CHOICES.map((r) => (
-                    <Chip key={r} label={MODERATION_RULES[r]} selected={(rules[item.id] ?? 'other') === r} onPress={() => setRules((s) => ({ ...s, [item.id]: r }))} />
+                    <Chip key={r} label={ruleLabel(r)} selected={(rules[item.id] ?? 'other') === r} onPress={() => setRules((s) => ({ ...s, [item.id]: r }))} />
                   ))}
                 </View>
                 <View style={styles.row}>
-                  <Button small variant="secondary" label="Keep it" onPress={() => decide(item, { action: 'dismiss' })} />
-                  <Button small label="Remove" onPress={() => decide(item, { action: 'remove', rule: rules[item.id] ?? 'other' })} />
+                  <Button small variant="secondary" label={t('moderation.keep')} onPress={() => decide(item, { action: 'dismiss' })} />
+                  <Button small label={t('moderation.remove')} onPress={() => decide(item, { action: 'remove', rule: rules[item.id] ?? 'other' })} />
                   <Button
                     small
-                    label="Remove and suspend 7 days"
+                    label={t('moderation.removeSuspend')}
                     onPress={() =>
                       decide(item, { action: 'remove', rule: rules[item.id] ?? 'other', suspendDays: 7, note: 'Suspended from the moderation queue' })
                     }

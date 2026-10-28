@@ -8,16 +8,14 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type WitnessCase, type WitnessStatus } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
-const STATUS_LABELS: Record<WitnessStatus, string> = {
-  watching: 'Watching',
-  reaching_out: 'Reaching out',
-  helped: 'Helped',
-  closed: 'Closed',
-};
+const STATUSES: WitnessStatus[] = ['watching', 'reaching_out', 'helped', 'closed'];
 
 export default function Witness() {
+  const { t } = useLocale();
+  const statusLabel = (s: WitnessStatus) => t(`witness.status.${s}`);
   const [filter, setFilter] = useState<WitnessStatus | null>(null);
   const [cases, setCases] = useState<WitnessCase[]>([]);
   const [open, setOpen] = useState<string | null>(null);
@@ -59,50 +57,50 @@ export default function Witness() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
-        <Text style={type.title}>Witness team</Text>
-        <Text style={type.body}>Needs marked as sincere, from a request's page. Notes stay inside the team.</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
+        <Text style={type.title}>{t('profile.witness')}</Text>
+        <Text style={type.body}>{t('witness.intro')}</Text>
         <View style={styles.row}>
-          <Chip label="Open" selected={filter === null} onPress={() => setFilter(null)} />
-          {(Object.keys(STATUS_LABELS) as WitnessStatus[]).map((s) => (
-            <Chip key={s} label={STATUS_LABELS[s]} selected={filter === s} onPress={() => setFilter(s)} />
+          <Chip label={t('witness.open')} selected={filter === null} onPress={() => setFilter(null)} />
+          {STATUSES.map((s) => (
+            <Chip key={s} label={statusLabel(s)} selected={filter === s} onPress={() => setFilter(s)} />
           ))}
         </View>
         <ErrorText error={error} />
-        {cases.length === 0 ? <Empty text="No needs here yet. Open a request and mark it as a sincere need." /> : null}
+        {cases.length === 0 ? <Empty text={t('witness.empty')} /> : null}
         {cases.map((c) => (
           <View key={c.id} style={styles.card}>
             <Text style={type.small}>
-              {STATUS_LABELS[c.status]} · {c.posterName}
-              {c.anonymousPost ? ' (posted anonymously)' : ''}
-              {c.assignedTo ? ` · with ${c.assignedTo}` : ''}
-              {c.helpCount ? ` · help sent ${c.helpCount}×` : ''}
+              {statusLabel(c.status)} · {c.posterName}
+              {c.anonymousPost ? ` ${t('witness.anonymous')}` : ''}
+              {c.assignedTo ? ` · ${t('witness.with', { name: c.assignedTo })}` : ''}
+              {c.helpCount ? ` · ${t('witness.helpCount', { count: c.helpCount })}` : ''}
             </Text>
             <Text style={type.body} numberOfLines={open === c.id ? undefined : 3} onPress={() => router.push(`/post/${c.postId}`)}>
               {c.postBody}
             </Text>
-            {c.lastNote && open !== c.id ? <Text style={type.small}>Last note: {c.lastNote}</Text> : null}
+            {c.lastNote && open !== c.id ? <Text style={type.small}>{t('witness.lastNote', { note: c.lastNote })}</Text> : null}
             <View style={styles.row}>
-              <Button small variant="secondary" label={open === c.id ? 'Hide notes' : 'Notes'} onPress={() => expand(c.id)} />
+              <Button small variant="secondary" label={open === c.id ? t('witness.hideNotes') : t('witness.notes')} onPress={() => expand(c.id)} />
               {c.status === 'watching' ? (
-                <Button small variant="secondary" label="I'll reach out" onPress={() => run(() => api.witnessUpdate(c.id, { status: 'reaching_out', assignToMe: true }))} />
+                <Button small variant="secondary" label={t('witness.reachOut')} onPress={() => run(() => api.witnessUpdate(c.id, { status: 'reaching_out', assignToMe: true }))} />
               ) : null}
-              {c.status !== 'closed' ? <Button small variant="ghost" label="Close" onPress={() => run(() => api.witnessUpdate(c.id, { status: 'closed' }))} /> : null}
+              {c.status !== 'closed' ? <Button small variant="ghost" label={t('common.close')} onPress={() => run(() => api.witnessUpdate(c.id, { status: 'closed' }))} /> : null}
             </View>
             {open === c.id ? (
               <View style={styles.notes}>
                 {notes.map((n) => (
                   <Text key={n.id} style={type.body}>
                     <Text style={styles.noteAuthor}>{n.author}: </Text>
-                    {n.helpKind ? <Text style={styles.help}>[Help sent: {n.helpKind}] </Text> : null}
+                    {n.helpKind ? <Text style={styles.help}>[{t('witness.helpSent', { kind: n.helpKind })}] </Text> : null}
                     {n.body}
                   </Text>
                 ))}
-                <Field placeholder="Add a note" value={note} onChangeText={setNote} maxLength={2000} multiline />
-                <Field placeholder="Help sent (groceries, rent, a visit…), if any" value={helpKind} onChangeText={setHelpKind} maxLength={60} />
+                <Field placeholder={t('witness.notePlaceholder')} value={note} onChangeText={setNote} maxLength={2000} multiline />
+                <Field placeholder={t('witness.helpPlaceholder')} value={helpKind} onChangeText={setHelpKind} maxLength={60} />
                 <Button
                   small
-                  label={helpKind.trim() ? 'Log help sent' : 'Add note'}
+                  label={helpKind.trim() ? t('witness.logHelp') : t('witness.addNote')}
                   disabled={!note.trim()}
                   onPress={() =>
                     run(async () => {

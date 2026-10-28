@@ -22,6 +22,25 @@ jobs:
       # Back up the test database, restore it into a throwaway stack, compare.
       - run: scripts/restore-drill.sh
 
+  # Known vulnerabilities in dependencies. The server, station and shared
+  # packages run in production, so any high one fails the build; the app's
+  # build tooling (Expo CLI) fails only on critical. The full report is kept.
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Server, station and shared (high or worse)
+        run: npm audit --omit=dev --audit-level=high -w @prayer-tower/server -w @prayer-tower/station -w @prayer-tower/shared
+      - name: Whole repo (critical)
+        run: npm audit --audit-level=critical
+      - name: Full report
+        if: ${{ !cancelled() }}
+        run: npm audit || true
+
   # Checks that app.json and the config plugins still generate both native
   # projects, and that the JS bundles for iOS and Android build. No signing or
   # compiling, so it runs on Linux in about two minutes.

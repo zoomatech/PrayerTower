@@ -31,7 +31,7 @@ The app saves the member's language on their profile (`profiles.locale`, `PATCH 
 
 ## Still English (follow-up)
 
-- Other screens: post detail, Promises, Messages, Notices, events, care, pools, scheduled gifts, Prayer Cast, rules, delete account, feedback, . Admin and moderation screens stay English on purpose (staff only).
+- Every screen is translated, including the staff screens (Admin, Moderation, Witness team, Macro needs) and the weekly email digest. Metric names on Admin → Pilot metrics come from the server; the known ones are translated under `admin.metric`, and new ones show prettified English until added. The offline banner is still English.
 - **Text from the server:** error messages and tier names. (Notifications, pushes, moderation notices and prayer prompts are translated; see below.)
 - Members' own posts aren't translated.
 
