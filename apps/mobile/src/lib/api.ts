@@ -93,6 +93,7 @@ export interface NotebookSettings {
   reaction_tray_enabled: boolean;
   member_town_enabled: boolean;
   prize_choice_enabled: boolean;
+  waitlist_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -564,6 +565,16 @@ export interface Award {
   prizeChoice?: PrizeChoice;
   decidedAt: string | null;
 }
+export interface WaitlistEntry {
+  id: string;
+  email: string;
+  name: string;
+  note: string;
+  edition: 'prayer-tower' | 'open-circle';
+  inviteCode: string | null;
+  invitedAt: string | null;
+  createdAt: string;
+}
 export type PrizeChoice = 'keep' | 'donate' | 'split';
 export interface AwardSettings {
   enabled: boolean;
@@ -837,6 +848,9 @@ export const api = {
     updateMaterialMatch: (patch: { enabled?: boolean; centsPerToken?: number }) => request<{ settings: { enabled: boolean; centsPerToken: number } }>('PATCH', '/admin/material-match', patch),
     fulfillMaterialMatch: (input: { helpKind: string; publicNote?: string }) => post<{ fulfilled: number; cents: number }>('/admin/material-match/fulfill', input),
     podcasts: () => get<{ enabled: boolean; shows: PodcastShow[] }>('/admin/podcasts'),
+    waitlist: () => get<{ enabled: boolean; entries: WaitlistEntry[] }>('/admin/waitlist'),
+    inviteFromWaitlist: (id: string) => post<{ email: string; invite: { code: string } }>(`/admin/waitlist/${id}/invite`),
+    removeFromWaitlist: (id: string) => request<{ ok: true }>('DELETE', `/admin/waitlist/${id}`),
     createPodcast: (input: { slug: string; title: string; description: string; author: string; imageUrl?: string | null; community?: string | null }) =>
       post<{ show: PodcastShow }>('/admin/podcasts', input),
     updatePodcast: (id: string, patch: { published?: boolean }) => request<{ show: PodcastShow }>('PATCH', `/admin/podcasts/${id}`, patch),
@@ -908,7 +922,7 @@ export const api = {
     updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number; confessionRetentionDays: number }>) =>
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>

@@ -30,13 +30,14 @@ export interface NotebookSettings {
   reaction_tray_enabled: boolean;
   member_town_enabled: boolean;
   prize_choice_enabled: boolean;
+  waitlist_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
-            urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled from public.notebook_settings`,
+            urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -57,6 +58,7 @@ export const SettingsPatch = z.object({
   reactionTrayEnabled: z.boolean().optional(),
   memberTownEnabled: z.boolean().optional(),
   prizeChoiceEnabled: z.boolean().optional(),
+  waitlistEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -68,7 +70,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        pressure_rule_enabled = coalesce($7, pressure_rule_enabled), promise_page_enabled = coalesce($8, promise_page_enabled),
        podcasts_enabled = coalesce($9, podcasts_enabled), misleading_rule_enabled = coalesce($10, misleading_rule_enabled),
        automation_rule_enabled = coalesce($11, automation_rule_enabled),
-       urgency_glow_enabled = coalesce($12, urgency_glow_enabled), reaction_tray_enabled = coalesce($13, reaction_tray_enabled), member_town_enabled = coalesce($14, member_town_enabled), prize_choice_enabled = coalesce($15, prize_choice_enabled)`,
+       urgency_glow_enabled = coalesce($12, urgency_glow_enabled), reaction_tray_enabled = coalesce($13, reaction_tray_enabled), member_town_enabled = coalesce($14, member_town_enabled), prize_choice_enabled = coalesce($15, prize_choice_enabled),
+       waitlist_enabled = coalesce($16, waitlist_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -85,6 +88,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.reactionTrayEnabled ?? null,
       p.memberTownEnabled ?? null,
       p.prizeChoiceEnabled ?? null,
+      p.waitlistEnabled ?? null,
     ],
   );
   return settings(q);

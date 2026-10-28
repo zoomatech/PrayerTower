@@ -248,6 +248,7 @@ function Admin() {
             <Button variant="secondary" label={t('admin.ops')} onPress={() => router.push('/ops')} />
             <Button variant="secondary" label={t('admin.auditLog')} onPress={() => router.push('/audit-log')} />
             <Button variant="secondary" label={t('admin.invites')} onPress={() => router.push('/invites')} />
+            <Button variant="secondary" label={t('waitlist.title')} onPress={() => router.push('/waitlist')} />
             <Button variant="secondary" label={t('admin.churches')} onPress={() => router.push('/churches')} />
             <Button variant="secondary" label={t('admin.announcements')} onPress={() => router.push('/announcements')} />
             <Button variant="secondary" label={t('admin.surveys')} onPress={() => router.push('/surveys')} />
@@ -1007,6 +1008,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.reactionTray')} hint={t('admin.toggle.reactionTrayHint')} value={s.reaction_tray_enabled} onChange={(v) => save({ reactionTrayEnabled: v })} />
       <Toggle label={t('admin.toggle.memberTown')} hint={t('admin.toggle.memberTownHint')} value={s.member_town_enabled} onChange={(v) => save({ memberTownEnabled: v })} />
       <Toggle label={t('admin.toggle.prizeChoice')} hint={t('admin.toggle.prizeChoiceHint')} value={s.prize_choice_enabled} onChange={(v) => save({ prizeChoiceEnabled: v })} />
+      <Toggle label={t('admin.toggle.waitlist')} hint={t('admin.toggle.waitlistHint')} value={s.waitlist_enabled} onChange={(v) => save({ waitlistEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
