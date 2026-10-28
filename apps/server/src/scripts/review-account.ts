@@ -9,7 +9,6 @@
 // post the sample requests by hand (decision 2026-09-19). Unlike seed:demo, it is meant
 // for the hosted project, so it needs that project's DATABASE_URL,
 // SUPABASE_URL and SUPABASE_SECRET_KEY.
-import { randomBytes } from 'node:crypto';
 import { loadConfig, loadDotEnv } from '../config.js';
 import { createPool } from '../db.js';
 
@@ -25,8 +24,13 @@ if (!config.SUPABASE_SECRET_KEY) {
   console.error('Set SUPABASE_SECRET_KEY for the project the reviewers will use.');
   process.exit(1);
 }
-// Reviewers type it by hand: long, but no characters that are easy to misread.
-const password = process.env.REVIEW_PASSWORD || `Pray-${randomBytes(9).toString('base64url').replace(/[-_lIO0]/g, 'x')}`;
+// Chosen by staff and never printed or logged. Reviewers type it by hand, so
+// make it long but avoid characters that are easy to misread (l/I/1, O/0).
+const password = process.env.REVIEW_PASSWORD ?? '';
+if (password.length < 12) {
+  console.error('Set REVIEW_PASSWORD to the password reviewers will use (at least 12 characters).');
+  process.exit(1);
+}
 const name = process.env.REVIEW_NAME || 'App Review';
 
 const base = `${config.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`;
@@ -53,5 +57,5 @@ const { rows: limits } = await db.query<{ on: boolean; prayers: number }>(
 if (limits[0]?.on && limits[0].prayers > 0) {
   console.log(`Note: new-member limits are on. The reviewer is limited until they tap Praying Now on ${limits[0].prayers} other members' requests (say so in the review notes).`);
 }
-console.log(`${rows[0] ? 'Reset' : 'Created'} the review account.\n  Email:    ${email}\n  Password: ${password}\nPut both in App Store Connect (App Review Information) and Play Console (App content → App access).`);
+console.log(`${rows[0] ? 'Reset' : 'Created'} the review account ${email} with the password in REVIEW_PASSWORD.\nPut both in App Store Connect (App Review Information) and Play Console (App content → App access).`);
 await db.end();

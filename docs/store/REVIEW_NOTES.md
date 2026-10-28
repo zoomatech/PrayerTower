@@ -125,7 +125,7 @@ Choose **All or some functionality is restricted**, then add one set of instruct
 
 ## 6. Before each submission
 
-- [ ] Run `npm run review-account -- review@[YOUR DOMAIN]` on the hosted project, and paste the password into both stores.
+- [ ] Run `REVIEW_PASSWORD='…' npm run review-account -- review@[YOUR DOMAIN]` on the hosted project, and paste the password into both stores.
 - [ ] Staff sample requests, one message to the review account, and one upcoming event are in place.
 - [ ] Admin → Radio is set to **Log only**, and **Radio prayers are free** is on.
 - [ ] The reviewed privacy policy and terms are published, with no brackets and no DRAFT banner, in English (and in Spanish if the Spanish listing goes live).
