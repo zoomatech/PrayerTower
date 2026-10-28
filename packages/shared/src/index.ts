@@ -570,7 +570,7 @@ export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]>
   encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
-  tokens: ['mint', 'milestone', 'scheduled_spend'],
+  tokens: ['mint', 'milestone', 'scheduled_spend', 'radio_not_sent'],
 };
 export function notificationCategory(kind: string): NotificationCategory | null {
   for (const c of NOTIFICATION_CATEGORIES) if (NOTIFICATION_KINDS[c].includes(kind)) return c;

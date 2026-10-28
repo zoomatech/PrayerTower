@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { runMigrations } from 'graphile-worker';
 import { buildApp } from './app.js';
@@ -17,8 +17,12 @@ const db = createPool(config.DATABASE_URL, config.DATABASE_POOL_MAX);
 // The API enqueues jobs, so the job queue schema must exist before it serves.
 await runMigrations({ pgPool: db });
 
-// The version in the API docs follows apps/server/package.json (set by npm run release).
-const serverVersion = () => (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
+// The version in the API docs follows apps/server/package.json (set by npm run release). It is one
+// folder up from src/server.ts (development) and two up from dist/src/server.js (the built image).
+const serverVersion = () => {
+  const file = [new URL('../package.json', import.meta.url), new URL('../../package.json', import.meta.url)].find((u) => existsSync(u));
+  return file ? (JSON.parse(readFileSync(file, 'utf8')) as { version: string }).version : 'unknown';
+};
 
 const storage = config.SUPABASE_SECRET_KEY
   ? createClient(config.SUPABASE_URL, config.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
@@ -75,7 +79,6 @@ const makeAdmins = () =>
     (n) => n && app.log.info({ admins: n }, 'made admin from ADMIN_EMAILS'),
     (e) => app.log.error(e, 'ADMIN_EMAILS check failed'),
   );
-if (config.ADMIN_EMAILS.trim()) {
-  makeAdmins();
-  setInterval(makeAdmins, 5 * 60_000).unref();
-}
+// Always once, so removing an address from ADMIN_EMAILS also stops it skipping the invite code.
+makeAdmins();
+if (config.ADMIN_EMAILS.trim()) setInterval(makeAdmins, 5 * 60_000).unref();

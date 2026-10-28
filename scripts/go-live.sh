@@ -20,10 +20,14 @@ log() { printf '\n==> %s\n' "$*"; }
 die() { printf 'go-live: %s\n' "$*" >&2; exit 1; }
 
 [ -f "$env_file" ] || die "no $env_file (copy deploy/production.env.example)"
-set -a
-# shellcheck disable=SC1090
-. "$env_file"
-set +a
+# Read NAME=value lines as plain text (not shell), as Fly and Docker do, so a
+# value such as MAIL_FROM=Prayer Tower <hello@example.org> needs no quotes.
+while IFS= read -r line || [ -n "$line" ]; do
+  [[ "$line" =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]] || continue
+  name=${BASH_REMATCH[1]} value=${BASH_REMATCH[2]}
+  [[ "$value" =~ ^\"(.*)\"$ || "$value" =~ ^\'(.*)\'$ ]] && value=${BASH_REMATCH[1]}
+  export "$name=$value"
+done < "$env_file"
 
 # 1. Settings and tools.
 log "Checking settings in $env_file"
@@ -56,20 +60,20 @@ export EXPO_PUBLIC_LINK_URL=${EXPO_PUBLIC_LINK_URL:-${WEB_APP_URL:-}}
 echo "Settings look complete."
 
 # What's still open from STEVE_TODO.md (optional for go-live, each off until set).
-log "Optional settings (STEVE_TODO.md section in brackets)"
-for item in "SUPABASE_ACCESS_TOKEN|invite hook, auth settings and emails set for you [2]" \
-            "SMTP_URL|sign-up, invite and digest emails [1]" \
-            "WEB_APP_URL|invite links and the Supabase Site URL [2]" \
-            "ADMIN_EMAILS|makes you admin after you sign up [2]" \
-            "SUPPORT_EMAIL|contact address Apple requires [2]" \
-            "EXPO_ACCESS_TOKEN|push notifications [1]" \
-            "API_DOCS_PASSWORD|staff API docs [2]" \
-            "APPLE_TEAM_ID|iPhone shared links [3]" \
-            "ANDROID_CERT_SHA256|Android shared links [3]" \
-            "STATION_API_KEY|radio station [6]" \
-            "SENTRY_DSN|crash reports [2]" \
-            "OPENAI_API_KEY|AI moderation (or ANTHROPIC_API_KEY) [2]" \
-            "SPONSOR_REPORT_TO|weekly sponsor report [2]"; do
+log "Optional settings (STEVE_TODO.md step in brackets)"
+for item in "SUPABASE_ACCESS_TOKEN|invite hook, auth settings and emails set for you [A3]" \
+            "SMTP_URL|sign-up, invite and digest emails [A4]" \
+            "WEB_APP_URL|invite links and the Supabase Site URL [A5]" \
+            "ADMIN_EMAILS|you sign up without a code and become admin [A5]" \
+            "SUPPORT_EMAIL|contact address Apple requires [A5]" \
+            "EXPO_ACCESS_TOKEN|push notifications [A10]" \
+            "API_DOCS_PASSWORD|staff API docs [B5]" \
+            "APPLE_TEAM_ID|iPhone shared links [B7]" \
+            "ANDROID_CERT_SHA256|Android shared links, after the pilot [C8]" \
+            "STATION_API_KEY|radio station, after the pilot [C6]" \
+            "SENTRY_DSN|crash reports [B5]" \
+            "OPENAI_API_KEY|AI moderation (or ANTHROPIC_API_KEY) [B5]" \
+            "SPONSOR_REPORT_TO|weekly sponsor report [B5]"; do
   v=${item%%|*}; what=${item#*|}
   if [ -n "${!v:-}" ]; then printf '  [x] %-22s %s\n' "$v" "$what"; else printf '  [ ] %-22s %s\n' "$v" "$what"; fi
 done
@@ -101,10 +105,10 @@ if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
     | grep -q "\"hook_before_user_created_uri\":\"$hook_uri\"" || die "the hook did not save; check Dashboard → Authentication → Hooks"
   echo "Invite-code hook is on."
-  # The sign-up and password emails, in English or Spanish by the member's
-  # language (supabase/templates, the same files local development uses).
+  # The sign-up and password emails (supabase/templates, the same files local
+  # development uses). Members get English; the Spanish branch stays off.
   # https://supabase.com/docs/guides/auth/auth-email-templates
-  log "Uploading the bilingual sign-up and password emails"
+  log "Uploading the sign-up and password emails"
   node -e '
     const fs = require("fs");
     const toml = fs.readFileSync("supabase/config.toml", "utf8");
@@ -118,7 +122,7 @@ if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   ' | curl -fsS -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @- >/dev/null \
     || die "could not upload the email templates; paste supabase/templates/*.html into Dashboard → Authentication → Email Templates"
-  echo "Sign-up and password emails are bilingual."
+  echo "Sign-up and password emails are set."
   # Hosted Auth settings from PILOT_LAUNCH_CHECKLIST.md §2, and the SMTP sender
   # from SMTP_URL (smtp://user:pass@host:port). Field names:
   # https://supabase.com/docs/reference/api/v1-update-auth-service-config
@@ -184,5 +188,12 @@ for i in $(seq 1 20); do
   [ "$i" = 20 ] && die "API did not answer at $EXPO_PUBLIC_API_URL/health (fly logs -a $FLY_API_APP)"
   sleep 5
 done
-curl -fsSI "https://$FLY_WEB_APP.fly.dev/manifest.json" >/dev/null && echo "Web app is up: https://$FLY_WEB_APP.fly.dev"
+for i in $(seq 1 20); do
+  if curl -fsSI "https://$FLY_WEB_APP.fly.dev/manifest.json" >/dev/null 2>&1; then
+    echo "Web app is up: https://$FLY_WEB_APP.fly.dev"
+    break
+  fi
+  [ "$i" = 20 ] && die "the web app did not answer at https://$FLY_WEB_APP.fly.dev (fly logs -a $FLY_WEB_APP)"
+  sleep 5
+done
 log "Live. Next: docs/GO_LIVE.md → After go-live"

@@ -17,4 +17,15 @@ describe('ADMIN_EMAILS', () => {
     expect(await bootstrapAdmins(db, [email])).toBe(0); // already admin
     expect(await bootstrapAdmins(db, [])).toBe(0);
   });
+
+  it('lets the ADMIN_EMAILS addresses sign up without an invite code, and only while listed', async () => {
+    const hook = async (email: string) =>
+      (await db.query<{ r: { error?: unknown } }>(`select public.hook_before_user_created($1::jsonb) as r`, [{ user: { email, user_metadata: {}, app_metadata: {} } }])).rows[0]!.r;
+    expect((await hook('steve@pilot.example')).error).toBeDefined();
+    await bootstrapAdmins(db, ['Steve@Pilot.example']);
+    expect(await hook('STEVE@pilot.example ')).toEqual({});
+    expect((await hook('someone@pilot.example')).error).toBeDefined();
+    await bootstrapAdmins(db, []);
+    expect((await hook('steve@pilot.example')).error).toBeDefined();
+  });
 });

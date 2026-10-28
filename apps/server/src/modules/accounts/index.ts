@@ -204,6 +204,7 @@ export async function grantRole(q: Queryable, userId: string, role: Role, grante
  */
 export async function bootstrapAdmins(q: Queryable, emails: string[]): Promise<number> {
   const list = emails.map((e) => e.trim().toLowerCase()).filter(Boolean);
+  await syncInviteExempt(q, list);
   if (!list.length) return 0;
   const { rowCount } = await q.query(
     `insert into public.user_roles (user_id, role, granted_by)
@@ -214,6 +215,12 @@ export async function bootstrapAdmins(q: Queryable, emails: string[]): Promise<n
     [list],
   );
   return rowCount ?? 0;
+}
+
+/** The ADMIN_EMAILS addresses may sign up without an invite code (the invite hook reads this table). */
+async function syncInviteExempt(q: Queryable, list: string[]) {
+  await q.query(`delete from public.invite_exempt_emails where not (email = any($1::text[]))`, [list]);
+  await q.query(`insert into public.invite_exempt_emails (email) select unnest($1::text[]) on conflict do nothing`, [list]);
 }
 
 export async function follow(q: Queryable, userId: string, followeeId: string) {

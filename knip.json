@@ -21,5 +21,8 @@
       ]
     }
   },
-  "ignoreExportsUsedInFile": true
+  "ignoreExportsUsedInFile": true,
+  "ignore": [
+    "deploy/fly-web/site/**"
+  ]
 }

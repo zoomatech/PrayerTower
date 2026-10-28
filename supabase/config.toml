@@ -244,12 +244,14 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# English only (docs/LOCALIZATION.md). With Spanish on: "Confirm your email / Confirma tu correo · Prayer Tower"
 [auth.email.template.confirmation]
-subject = "Confirm your email / Confirma tu correo · Prayer Tower"
+subject = "Confirm your email · Prayer Tower"
 content_path = "./supabase/templates/confirmation.html"
 
+# English only. With Spanish on: "Reset your password / Restablece tu contraseña · Prayer Tower"
 [auth.email.template.recovery]
-subject = "Reset your password / Restablece tu contraseña · Prayer Tower"
+subject = "Reset your password · Prayer Tower"
 content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize email template
