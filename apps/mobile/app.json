@@ -47,6 +47,7 @@
         }
       ],
       "./plugins/with-mac-designed-for-ipad",
+      "./plugins/with-app-links",
       "expo-video",
       [
         "expo-image-picker",

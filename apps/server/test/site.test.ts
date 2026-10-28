@@ -51,4 +51,41 @@ describe('public website', () => {
     expect(support).toContain('Send feedback');
     await listed.close();
   });
+
+  it('verifies shared links for both apps and gives people without the app a way in', async () => {
+    const linked = buildApp({
+      db,
+      verifyToken: async () => 'x',
+      site: {
+        supportEmail: null,
+        legalDir: null,
+        appStoreUrl: null,
+        playStoreUrl: 'https://play.google.com/store/apps/details?id=com.zoomatech.prayertower',
+        crisisCountry: 'US',
+        appLinks: { appleAppIds: ['ABCDE12345.com.zoomatech.prayertower'], androidPackages: ['com.zoomatech.prayertower'], androidFingerprints: ['14:6D:E9'] },
+      },
+    });
+    const aasa = await linked.inject({ method: 'GET', url: '/.well-known/apple-app-site-association' });
+    expect(aasa.headers['content-type']).toContain('application/json');
+    expect(aasa.json().applinks.details).toEqual([
+      { appIDs: ['ABCDE12345.com.zoomatech.prayertower'], components: [{ '/': '/post/*' }] },
+      { appID: 'ABCDE12345.com.zoomatech.prayertower', paths: ['/post/*'] },
+    ]);
+    const assets = await linked.inject({ method: 'GET', url: '/.well-known/assetlinks.json' });
+    expect(assets.json()).toEqual([
+      { relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: 'com.zoomatech.prayertower', sha256_cert_fingerprints: ['14:6D:E9'] } },
+    ]);
+
+    const id = '6f1c2b0e-8a43-4c1f-9d2e-3b5a7c9d1e2f';
+    const page = await linked.inject({ method: 'GET', url: `/post/${id}?comment=${id}` });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain(`href="prayertower://post/${id}?comment=${id}"`);
+    expect(page.body).toContain('Get it on Google Play');
+    expect((await linked.inject({ method: 'GET', url: '/post/%3Cscript%3E' })).statusCode).toBe(404);
+    await linked.close();
+
+    // Not configured: no verification files.
+    expect((await app.inject({ method: 'GET', url: '/.well-known/apple-app-site-association' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/.well-known/assetlinks.json' })).statusCode).toBe(404);
+  });
 });

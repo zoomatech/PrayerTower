@@ -49,6 +49,9 @@ describe('endpoint auth', () => {
       'GET /',
       'GET /support',
       'GET /privacy',
+      'GET /post/:id',
+      'GET /.well-known/apple-app-site-association',
+      'GET /.well-known/assetlinks.json',
       'GET /terms',
     ]);
     await app.ready();

@@ -18,6 +18,16 @@ const storage = config.SUPABASE_SECRET_KEY
   ? createClient(config.SUPABASE_URL, config.SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
   : null;
 
+function appLinks(c: typeof config) {
+  const list = (v: string) => v.split(',').map((x) => x.trim()).filter(Boolean);
+  const ids = list(c.APP_LINK_APP_IDS);
+  return {
+    appleAppIds: c.APPLE_TEAM_ID ? ids.map((id) => `${c.APPLE_TEAM_ID}.${id}`) : [],
+    androidPackages: ids,
+    androidFingerprints: list(c.ANDROID_CERT_SHA256).map((f) => f.toUpperCase()),
+  };
+}
+
 const app = buildApp({
   db,
   verifyToken: supabaseJwksVerifier(config.SUPABASE_URL),
@@ -34,6 +44,7 @@ const app = buildApp({
     appStoreUrl: config.APP_STORE_URL ?? null,
     playStoreUrl: config.PLAY_STORE_URL ?? null,
     crisisCountry: config.CRISIS_COUNTRY,
+    appLinks: appLinks(config),
   },
   corsOrigins: config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
 });

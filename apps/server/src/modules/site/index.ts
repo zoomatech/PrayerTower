@@ -14,6 +14,40 @@ export interface SiteOptions {
   appStoreUrl: string | null;
   playStoreUrl: string | null;
   crisisCountry: string | null;
+  /** Universal links (iOS) and App Links (Android) for shared /post URLs; unset = not served. */
+  appLinks?: AppLinks;
+}
+
+export interface AppLinks {
+  /** "<TEAM_ID>.<bundle id>" for each app that may open the links. */
+  appleAppIds: string[];
+  androidPackages: string[];
+  /** SHA-256 signing-certificate fingerprints (AB:CD:...), from EAS credentials or Play App Signing. */
+  androidFingerprints: string[];
+}
+
+/** Paths the apps open. Kept in step with the app's /post/[id] route. */
+export const APP_LINK_PATHS = ['/post/*'];
+
+/** iOS: https://developer.apple.com/documentation/xcode/supporting-associated-domains */
+export function appleAppSiteAssociation(l: AppLinks) {
+  return {
+    applinks: {
+      details: [
+        // iOS 13+ (components) first, then the older paths form, as Apple and Expo advise.
+        { appIDs: l.appleAppIds, components: APP_LINK_PATHS.map((p) => ({ '/': p })) },
+        ...l.appleAppIds.map((appID) => ({ appID, paths: APP_LINK_PATHS })),
+      ],
+    },
+  };
+}
+
+/** Android: https://developer.android.com/training/app-links/verify-android-applinks */
+export function assetLinks(l: AppLinks) {
+  return l.androidPackages.map((package_name) => ({
+    relation: ['delegate_permission/common.handle_all_urls'],
+    target: { namespace: 'android_app', package_name, sha256_cert_fingerprints: l.androidFingerprints },
+  }));
 }
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -101,6 +135,27 @@ ${stores || '<p class="notice">Prayer Tower is in a small, invite-only pilot. Th
 <div class="card"><h2>Pray for others</h2><p>Read real requests from real people and tap "Praying Now" when you pray. Promise to keep praying, and Prayer Tower will gently remind you.</p></div>
 <div class="card"><h2>Pray together, safely</h2><p>Groups, prayer meetings and prayer partners, with clear community rules, reporting, blocking and real moderators. There are no ads, and we never sell your information.</p></div>`,
     '/',
+  );
+}
+
+/**
+ * What someone without the app sees when they open a shared request or comment
+ * link. It never shows the request itself (that needs a signed-in member), only
+ * a button that opens the app and the store links.
+ */
+export function sharedPost(o: SiteOptions, postId: string, commentId: string | null) {
+  const deep = `prayertower://post/${encodeURIComponent(postId)}${commentId ? `?comment=${encodeURIComponent(commentId)}` : ''}`;
+  const stores = [
+    o.appStoreUrl ? `<a class="button" href="${esc(o.appStoreUrl)}">Get it on the App Store</a>` : '',
+    o.playStoreUrl ? `<a class="button" href="${esc(o.playStoreUrl)}">Get it on Google Play</a>` : '',
+  ].join('');
+  return layout(
+    commentId ? 'A comment on Prayer Tower' : 'A prayer request on Prayer Tower',
+    `<h1>${commentId ? 'Someone shared a comment with you.' : 'Someone asked you to pray.'}</h1>
+<p class="lede">Open it in the Prayer Tower app to read it and pray.</p>
+<p><a class="button" href="${esc(deep)}">Open in Prayer Tower</a></p>
+${stores ? `<p>Don't have the app yet?</p>${stores}` : '<p class="notice">Prayer Tower is in a small, invite-only pilot. If you have been invited, install the app from your invitation, then open this link again.</p>'}`,
+    '',
   );
 }
 
