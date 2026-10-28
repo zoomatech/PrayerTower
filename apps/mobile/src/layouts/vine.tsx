@@ -15,6 +15,7 @@ import { Tr } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
+import { feedListTuning } from './list-tuning';
 import { vinePlacement } from './placement';
 
 const DEFAULTS = {
@@ -236,6 +237,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         onRefresh={onRefresh}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
+        {...feedListTuning}
         onScroll={onScroll}
         scrollEventThrottle={250}
       />

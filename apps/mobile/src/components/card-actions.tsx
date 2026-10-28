@@ -2,7 +2,7 @@
 // so the action row behaves the same everywhere.
 import { ENCOURAGEMENT_MAX_CHARS, FREQUENCIES, FREQUENCY_LABELS, type Card, type CardAction, type Frequency } from '@prayer-tower/shared';
 import * as Linking from 'expo-linking';
-import { useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { api, type TokenPool } from '@/lib/api';
@@ -303,7 +303,12 @@ export function useCardActions(onChanged: () => void) {
     </Modal>
   );
 
-  return { onAction, openReport, sheets };
+  // A stable handler that always runs the latest onAction, so memoized cards don't re-render.
+  const latest = useRef(onAction);
+  latest.current = onAction;
+  const stableOnAction = useCallback((card: Card, action: CardAction) => latest.current(card, action), []);
+
+  return { onAction: stableOnAction, openReport, sheets };
 }
 
 const styles = StyleSheet.create({

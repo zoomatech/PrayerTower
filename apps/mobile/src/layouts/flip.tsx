@@ -60,6 +60,10 @@ export function FlipLayout({ cards, pinnedId, renderCard, header, refreshing, on
           keyExtractor={(p, i) => (p.kind === 'card' ? p.card.id : `${p.kind}-${i}`)}
           renderItem={renderPage}
           pagingEnabled
+          // One page fills the screen: keep the pages either side ready, no more.
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          windowSize={3}
           showsVerticalScrollIndicator={false}
           getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
