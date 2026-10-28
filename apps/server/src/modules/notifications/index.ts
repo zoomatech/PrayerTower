@@ -20,13 +20,14 @@ export interface NewNotification {
 /** Write the in-app notification and queue its push, in the caller's transaction. */
 export async function notify(q: Queryable, userId: string, n: NewNotification): Promise<string | null> {
   if (n.t) {
-    const { rows: who } = await q.query<{ locale: string; tradition: string }>(
-      `select p.locale, c.tradition from public.profiles p, public.communities c
+    const { rows: who } = await q.query<{ locale: string; neutral: boolean }>(
+      `select p.locale, coalesce(c.vocabulary ->> 'wording', case when c.tradition = 'secular' then 'neutral' else 'faith' end) = 'neutral' as neutral
+         from public.profiles p, public.communities c
         where p.id = $1 and c.id = public.member_community_id($1)`,
       [userId],
     );
-    // Open Circle members get the non-religious wording; others their language.
-    const local = who[0]?.tradition === 'secular' ? neutralize(n.t.key, n.t.params) : localize(who[0]?.locale, n.t.key, n.t.params);
+    // Open Circle members (and any community with neutral wording) get the non-religious wording; others their language.
+    const local = who[0]?.neutral ? neutralize(n.t.key, n.t.params) : localize(who[0]?.locale, n.t.key, n.t.params);
     if (local) n = { ...n, ...local };
   }
   const { rows } = await q.query<{ id: string }>(

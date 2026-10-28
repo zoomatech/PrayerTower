@@ -26,6 +26,12 @@ export function communityRoutes(app: FastifyInstance, db: Db) {
     return { communities: await communities.all(db) };
   });
 
+  app.post('/admin/communities', async (req, reply) => {
+    await adminOnly(requireUser(req));
+    reply.code(201);
+    return { community: await communities.create(db, communities.Create.parse(req.body)) };
+  });
+
   app.patch<{ Params: { slug: string } }>('/admin/communities/:slug', async (req) => {
     await adminOnly(requireUser(req));
     return { community: await communities.update(db, req.params.slug, communities.Update.parse(req.body)) };

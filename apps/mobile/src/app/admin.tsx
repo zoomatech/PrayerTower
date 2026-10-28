@@ -250,6 +250,7 @@ function Admin() {
             <Button variant="secondary" label={t('admin.invites')} onPress={() => router.push('/invites')} />
             <Button variant="secondary" label={t('admin.churches')} onPress={() => router.push('/churches')} />
             <Button variant="secondary" label={t('admin.announcements')} onPress={() => router.push('/announcements')} />
+            <Button variant="secondary" label={t('admin.surveys')} onPress={() => router.push('/surveys')} />
           </View>
         ) : null}
 
@@ -723,6 +724,15 @@ function CommunitiesSection() {
               onChange={(v) => change(c, { status: v ? 'active' : 'hidden' })}
             />
           )}
+          {!c.isDefault ? (
+            <Toggle
+              label={t('admin.communityNeutral')}
+              hint={t('admin.communityNeutralHint')}
+              value={c.wording === 'neutral'}
+              onChange={(v) => change(c, { wording: v ? 'neutral' : 'faith' })}
+            />
+          ) : null}
+          {c.operatorName ? <Text style={type.small}>{t('admin.communityOperator', { name: c.operatorName })}</Text> : null}
           <Text style={type.small}>{t('admin.communityTypes')}</Text>
           <View style={styles.row}>
             {POST_TYPES.map((p) => {
@@ -739,7 +749,46 @@ function CommunitiesSection() {
           </View>
         </View>
       ))}
+      <NewCommunity onCreated={(c) => setList((l) => [...(l ?? []), { ...c, members: 0 }])} onNote={setNote} />
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/**
+ * A new community (Notes p16: a denomination's own space, or one run by a partner
+ * faith group). It starts hidden; turn it on above when it's ready.
+ */
+function NewCommunity({ onCreated, onNote }: { onCreated: (c: Community) => void; onNote: (n: string) => void }) {
+  const t = useT();
+  const [d, setD] = useState({ name: '', slug: '', tradition: '', operatorName: '', operatorContact: '', neutral: false });
+  const create = () =>
+    api.admin
+      .createCommunity({
+        name: d.name.trim(),
+        slug: d.slug.trim(),
+        tradition: d.tradition.trim() || 'christian',
+        wording: d.neutral ? 'neutral' : 'faith',
+        operatorName: d.operatorName.trim() || null,
+        operatorContact: d.operatorContact.trim() || null,
+      })
+      .then((r) => {
+        onCreated(r.community);
+        setD({ name: '', slug: '', tradition: '', operatorName: '', operatorContact: '', neutral: false });
+        onNote(t('admin.communityCreated', { name: r.community.name }));
+      })
+      .catch((e) => onNote((e as Error).message));
+  return (
+    <View style={{ gap: space.xs }}>
+      <Text style={type.heading}>{t('admin.newCommunity')}</Text>
+      <Text style={type.small}>{t('admin.newCommunityHint')}</Text>
+      <Field label={t('admin.field.communityName')} value={d.name} onChangeText={(name) => setD((x) => ({ ...x, name }))} />
+      <Field label={t('admin.field.communitySlug')} autoCapitalize="none" value={d.slug} onChangeText={(slug) => setD((x) => ({ ...x, slug }))} />
+      <Field label={t('admin.field.communityTradition')} autoCapitalize="none" value={d.tradition} onChangeText={(tradition) => setD((x) => ({ ...x, tradition }))} />
+      <Field label={t('admin.field.communityOperator')} value={d.operatorName} onChangeText={(operatorName) => setD((x) => ({ ...x, operatorName }))} />
+      <Field label={t('admin.field.communityContact')} autoCapitalize="none" value={d.operatorContact} onChangeText={(operatorContact) => setD((x) => ({ ...x, operatorContact }))} />
+      <Toggle label={t('admin.communityNeutral')} hint={t('admin.communityNeutralHint')} value={d.neutral} onChange={(neutral) => setD((x) => ({ ...x, neutral }))} />
+      <Button label={t('admin.btn.createCommunity')} disabled={!d.name.trim() || !d.slug.trim()} onPress={() => create()} />
     </View>
   );
 }

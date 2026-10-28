@@ -3,7 +3,7 @@ import type { Profile, Role } from '@prayer-tower/shared';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { api, ApiError, type Community } from './api';
-import { setWording, wordingForTradition } from './i18n';
+import { setWording, wordingFor } from './i18n';
 import { clearOffline } from './offline';
 import { supabase } from './supabase';
 
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(me.profile);
       setRoles(me.roles ?? []);
       setCommunity(me.community ?? null);
-      setWording(wordingForTradition(me.community?.tradition));
+      setWording(wordingFor(me.community));
       setProfileError(null);
     } catch (e) {
       // The account is gone or the sign-in no longer works: back to the sign-in screen.
