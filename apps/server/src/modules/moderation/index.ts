@@ -8,6 +8,7 @@ import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as adFines from '../ad-fines/index.js';
 import * as messages from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
@@ -258,7 +259,21 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
       await log('suspend', { suspendedUntil: until });
       suspendedUntil = until;
     }
-    await notifications.notify(q, item.user_id, removalNotice(item.target_type, rule, item.id, suspendedUntil));
+    // Ad fines (off by default): tokens forfeited, a fine recorded, longer suspensions for repeats.
+    const fine = rule === 'ads' ? await adFines.apply(q, item.id, item.user_id, moderatorId) : null;
+    if (fine?.transferId) await log('forfeit_tokens', { transferId: fine.transferId });
+    if (fine?.suspendDays) {
+      const until = new Date(Date.now() + fine.suspendDays * 86_400_000);
+      await q.query('update public.profiles set suspended_until = greatest(coalesce(suspended_until, now()), $2) where id = $1', [
+        item.user_id,
+        until,
+      ]);
+      await log('suspend', { suspendedUntil: until });
+      if (!suspendedUntil || until > suspendedUntil) suspendedUntil = until;
+    }
+    const notice = removalNotice(item.target_type, rule, item.id, suspendedUntil);
+    if (fine) notice.body += adFines.noticeLine(fine);
+    await notifications.notify(q, item.user_id, notice);
   }
   // One decision settles the item; a removal also settles every other pending report or flag on the
   // same content (otherwise dismissing one of them later would show the removed content again).
@@ -369,6 +384,7 @@ export async function decideAppeal(q: Queryable, moderatorId: string, appealId: 
       [a.item_id],
     );
     for (const f of forfeits) await tokens.clawback(q, f.token_transfer_id, moderatorId, 'Appeal overturned: tokens returned');
+    await adFines.waiveForItem(q, a.item_id, moderatorId);
     await q.query(
       `insert into public.moderation_actions (moderation_item_id, user_id, moderator_id, action, note) values ($1, $2, $3, 'restore', $4)`,
       [a.item_id, a.user_id, moderatorId, d.note ?? 'Appeal overturned'],

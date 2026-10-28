@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import { withTx, type Db } from '../../db.js';
 import { notFound } from '../../errors.js';
+import * as adFines from '../ad-fines/index.js';
 import { badgesOf } from '../churches/index.js';
 import * as posts from '../posts/index.js';
 import { prayerStats } from '../prayer-stats/index.js';
@@ -18,6 +19,9 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
     if (!profile) throw notFound('Profile');
     return { profile, roles: await accounts.roles(db, userId) };
   });
+
+  // A member's own ad fines (empty unless the switch was ever on).
+  app.get('/me/ad-fines', async (req) => ({ fines: await adFines.list(db, { limit: 50 }, requireUser(req)) }));
 
   // Gentle prayer stats for Me, counted by days in the member's time zone.
   app.get('/me/prayer-stats', async (req) => {

@@ -9,6 +9,7 @@ import { withTx } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import * as activity from '../activity/index.js';
+import * as adFines from '../ad-fines/index.js';
 import * as care from '../care/index.js';
 import { churchAdminRoutes } from '../churches/routes.js';
 import * as commitments from '../commitments/index.js';
@@ -246,6 +247,29 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/notebook-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await notebook.updateSettings(db, notebook.SettingsPatch.parse(req.body)) };
+  });
+
+  // Fines for using prayer requests as ads (off by default). Collecting money is not built:
+  // an admin records a fine as paid (outside the app) or waives it.
+  app.get('/admin/ad-fine-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await adFines.settings(db) };
+  });
+
+  app.patch('/admin/ad-fine-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await adFines.updateSettings(db, adFines.SettingsPatch.parse(req.body)) };
+  });
+
+  app.get('/admin/ad-fines', async (req) => {
+    await requireAdmin(req);
+    return { fines: await adFines.list(db, adFines.ListFilter.parse(req.query)) };
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/ad-fines/:id/resolve', async (req) => {
+    const adminId = await requireAdmin(req);
+    const id = z.uuid().parse(req.params.id);
+    return { fine: await withTx(db, (tx) => adFines.resolve(tx, id, adminId, adFines.Resolve.parse(req.body))) };
   });
 
   // Pilot feedback from members.
