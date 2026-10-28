@@ -169,6 +169,7 @@ export default function Profile() {
         ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label={t('profile.admin')} onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
+        <Button variant="ghost" label={t('profile.tour')} onPress={() => router.push('/tour')} />
         <Button variant="ghost" label={t('profile.feedback')} onPress={() => router.push('/feedback')} />
         <Button variant="ghost" label={t('profile.signOut')} onPress={signOut} />
         <Button variant="ghost" label={t('profile.deleteAccount')} onPress={() => router.push('/delete-account')} />

@@ -32,5 +32,8 @@ test('the main screens have no WCAG A/AA violations', async ({ page }) => {
   await page.goto('/feedback');
   await page.waitForLoadState('networkidle');
   found.feedback = await scan(page);
-  expect(found).toEqual({ feed: [], compose: [], post: [], profile: [], feedback: [] });
+  await page.goto('/tour');
+  await page.waitForLoadState('networkidle');
+  found.tour = await scan(page);
+  expect(found).toEqual({ feed: [], compose: [], post: [], profile: [], feedback: [], tour: [] });
 });

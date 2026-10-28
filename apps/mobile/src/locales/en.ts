@@ -100,6 +100,7 @@ const en = {
     macroNeeds: 'Macro needs',
     witness: 'Witness team',
     admin: 'Admin',
+    tour: 'How Prayer Tower works',
     feedback: 'Send feedback',
     signOut: 'Sign out',
     deleteAccount: 'Delete my account',

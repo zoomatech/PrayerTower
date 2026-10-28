@@ -102,6 +102,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     macroNeeds: 'Grandes necesidades',
     witness: 'Equipo de testigos',
     admin: 'Administración',
+    tour: 'Cómo funciona Prayer Tower',
     feedback: 'Enviar comentarios',
     signOut: 'Cerrar sesión',
     deleteAccount: 'Eliminar mi cuenta',

@@ -23,4 +23,4 @@ COPY --from=build /app/packages/shared ./packages/shared
 COPY docs/legal ./docs/legal
 USER node
 EXPOSE 3000
-CMD ["node", "apps/server/dist/src/server.js"]
+CMD ["node", "--import", "./apps/server/dist/src/instrument.js", "apps/server/dist/src/server.js"]

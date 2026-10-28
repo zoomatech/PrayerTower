@@ -33,6 +33,7 @@ import type {
 } from '@prayer-tower/shared';
 
 import { env } from './env';
+import { enqueue, flushQueue, isOffline, markOnline, OfflineError, readCached, saveCached } from './offline';
 import { supabase } from './supabase';
 
 export class ApiError extends Error {
@@ -45,17 +46,35 @@ export class ApiError extends Error {
   }
 }
 
+/** How long to wait on a slow connection before treating the request as offline. */
+const TIMEOUT_MS = 15_000;
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  const res = await fetch(`${env.apiUrl}${path}`, {
-    method,
-    headers: {
-      ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${env.apiUrl}${path}`, {
+      method,
+      headers: {
+        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: abort.signal,
+    });
+  } catch {
+    // fetch only rejects when the server can't be reached (or we gave up waiting).
+    markOnline(false);
+    throw new OfflineError();
+  } finally {
+    clearTimeout(timer);
+  }
+  markOnline(true);
+  // Back online: send anything that was waiting (not from inside the queue itself).
+  if (!sendingQueued) void sendQueued();
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const issue = json.issues?.[0]?.message;
@@ -65,6 +84,42 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 const get = <T>(path: string) => request<T>('GET', path);
+
+let sendingQueued = false;
+/** Send queued offline actions now (also called when the app comes back to the foreground). */
+export async function sendQueued() {
+  sendingQueued = true;
+  try {
+    await flushQueue((a) => request(a.method, a.path, a.body));
+  } finally {
+    sendingQueued = false;
+  }
+}
+
+/** A GET whose last good answer is kept on the device and returned, marked, when offline. */
+async function cachedGet<T extends object>(key: string, path: string): Promise<T & { savedAt?: number }> {
+  try {
+    const fresh = await get<T>(path);
+    void saveCached(key, fresh);
+    return fresh;
+  } catch (e) {
+    if (!isOffline(e)) throw e;
+    const saved = await readCached<T>(key);
+    if (!saved) throw e;
+    return { ...saved.value, savedAt: saved.savedAt };
+  }
+}
+
+/** A POST that waits in the offline queue when the server can't be reached. */
+async function postOrQueue<T>(path: string, body: unknown, label: string): Promise<T | { queued: true }> {
+  try {
+    return await post<T>(path, body);
+  } catch (e) {
+    if (!isOffline(e)) throw e;
+    await enqueue({ method: 'POST', path, body, label });
+    return { queued: true };
+  }
+}
 
 /** A plain-text download (e.g. CSV), with the same auth as JSON calls. */
 async function getText(path: string): Promise<string> {
@@ -241,9 +296,13 @@ export const api = {
     post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
-  feed: (page = 0) => get<FeedPage>(`/feed?page=${page}`),
+  /** Page 0 is saved for offline reading; when offline it comes back with `savedAt`. */
+  feed: (page = 0): Promise<FeedPage & { savedAt?: number }> =>
+    page === 0 ? cachedGet<FeedPage>('feed', '/feed?page=0') : get<FeedPage>(`/feed?page=${page}`),
   post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
   createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
+  /** Text-only posts made offline wait in the queue. */
+  createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card }>('/posts', input, 'Your post'),
   deletePost: (id: string) => request<{ deleted: true }>('DELETE', `/posts/${id}`),
   deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
   hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
@@ -254,7 +313,7 @@ export const api = {
     post<{ comment: { id: string; crisis: boolean } }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
-  prayingNow: (id: string) => post<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`),
+  prayingNow: (id: string) => postOrQueue<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`, {}, 'Praying Now'),
   commit: (id: string, input: { frequency: Frequency; vowText: string; durationDays?: number }) =>
     post<{ commitment: Commitment }>(`/posts/${id}/commitments`, input),
   encourage: (id: string, note: string) => post(`/posts/${id}/reactions`, { kind: 'encouragement', note }),

@@ -8,6 +8,7 @@ import {
   PRAYER_KIND_LABELS,
   PRAYER_REALMS,
   PRAYER_REALM_LABELS,
+  type Card,
   type PostBackground,
   type PostType,
   type PrayerKind,
@@ -47,12 +48,35 @@ export default function Compose() {
   const words = wordCount(body);
   const bg = background ? POST_BACKGROUND_STYLES[background] : null;
 
+  const afterCreate = (post: Card) => {
+    // A request that mentions suicide or self-harm opens with crisis support showing.
+    if (post.crisis) router.replace(`/post/${post.id}`);
+    // Praise opens with the thanksgiving celebration.
+    else if (postType === 'praise') router.replace(`/post/${post.id}?celebrate=1`);
+    else router.back();
+  };
+
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
       const media = [];
       for (const a of assets) media.push(await uploadAsset(a));
+      if (!assets.length) {
+        // Text-only posts can wait in the offline queue; photos need a connection to upload.
+        const result = await api.createPostOrQueue({
+          postType,
+          body: body.trim(),
+          urgency,
+          kind,
+          realm,
+          background,
+          isAnonymous: anonymous,
+          isSensitive: sensitive,
+        });
+        if ('queued' in result) return router.back();
+        return afterCreate(result.post);
+      }
       const created = await api.createPost({
         postType,
         body: body.trim(),
@@ -65,11 +89,7 @@ export default function Compose() {
         isSensitive: sensitive,
         media,
       });
-      // A request that mentions suicide or self-harm opens with crisis support showing.
-      if (created.post.crisis) router.replace(`/post/${created.post.id}`);
-      // Praise opens with the thanksgiving celebration.
-      else if (postType === 'praise') router.replace(`/post/${created.post.id}?celebrate=1`);
-      else router.back();
+      afterCreate(created.post);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);

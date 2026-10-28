@@ -7,7 +7,13 @@ export type Demo = 'admin' | 'carol' | 'ethel' | 'james' | 'ruth' | 'pastor';
 /** Read-only lookups (ids of things a test just made in the UI). */
 export const db = new pg.Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres', max: 2 });
 
-export async function signIn(page: Page, who: Demo) {
+/** Signs in a demo member. The first-run tour is marked seen unless `tour` is true (09-tour tests it). */
+export async function signIn(page: Page, who: Demo, { tour = false } = {}) {
+  if (!tour) {
+    const { rows } = await db.query<{ id: string }>('select id from auth.users where email = $1', [`${who}@demo.prayertower.local`]);
+    // The app keeps this flag in AsyncStorage, which is localStorage on the web.
+    if (rows[0]) await page.addInitScript((key) => window.localStorage.setItem(key, '1'), `tour:seen:v1:${rows[0].id}`);
+  }
   await page.goto('/sign-in');
   await page.locator('input').nth(0).fill(`${who}@demo.prayertower.local`);
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);

@@ -1,6 +1,6 @@
 import type { Card, FeedTheme, Prompt } from "@prayer-tower/shared";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -14,6 +14,7 @@ import { useCardActions } from "@/components/card-actions";
 import { Highlights } from "@/components/highlights";
 import { MacroNeeds } from "@/components/macro-needs";
 import { PostCard } from "@/components/post-card";
+import { OfflineBanner } from "@/components/offline-banner";
 import { Button, ErrorText, Screen } from "@/components/ui";
 import { layoutFor } from "@/layouts";
 import {
@@ -24,6 +25,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { colors, maxContentWidth, radius, space, type } from "@/lib/theme";
+import { tourSeen } from "@/lib/tour";
 
 /** Wide screens show the highlights in a right column; phones link to them. */
 const WIDE = 1000;
@@ -38,11 +40,20 @@ export default function Feed() {
   const [nextPage, setNextPage] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [needs, setNeeds] = useState<MacroNeed[]>([]);
   const [highlights, setHighlights] = useState<HighlightsData | null>(null);
   const wide = useWindowDimensions().width >= WIDE;
   const loadingMore = useRef(false);
+
+  // First time on this device: show the short tour once.
+  useEffect(() => {
+    if (!profile?.id) return;
+    tourSeen(profile.id).then((seen) => {
+      if (!seen) router.push("/tour");
+    });
+  }, [profile?.id]);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -56,7 +67,8 @@ export default function Feed() {
       setCards(page.posts);
       setTheme(page.theme ?? null);
       setPinnedId(page.pinnedId);
-      setNextPage(page.nextPage);
+      setNextPage(page.savedAt ? null : page.nextPage);
+      setSavedAt(page.savedAt ?? null);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -108,6 +120,7 @@ export default function Feed() {
 
   const header = (
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
+      <OfflineBanner savedAt={savedAt} />
       <Pressable
         style={styles.composer}
         onPress={() => router.push("/compose")}
