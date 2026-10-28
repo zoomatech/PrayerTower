@@ -28,6 +28,7 @@ import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as report from './report.js';
+import * as warriors from './warriors.js';
 
 const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
@@ -311,6 +312,13 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     if (format === 'json') return { weeks: rows };
     reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-pilot.csv"');
     return report.toCsv(rows);
+  });
+
+  // Private Prayer Warrior standings (no award is given yet).
+  app.get('/admin/prayer-warriors', async (req) => {
+    await requireAdmin(req);
+    const { days } = z.object({ days: z.coerce.number().int().min(1).max(366).default(365) }).parse(req.query);
+    return { days, standings: await warriors.standings(db, days) };
   });
 
   // Milestone bonus tokens: rules are placeholders (all off) until Steve sets them.
