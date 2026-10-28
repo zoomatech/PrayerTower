@@ -4,10 +4,10 @@ import { expect, test } from '@playwright/test';
 import { as, db, signIn, unique } from './helpers';
 
 test('a pastor applies for their church and an admin verifies it', async ({ page, browser }) => {
-  // Setup only: a rerun on the same database starts without James's earlier application.
-  await db.query(`delete from public.churches where applicant_id = (select id from auth.users where email = 'james@demo.prayertower.local')`);
+  // Setup only (05-account deletes James, so this uses Demo Pastor): a rerun on the same database starts without Demo Pastor's earlier application.
+  await db.query(`delete from public.churches where applicant_id = (select id from auth.users where email = 'pastor@demo.prayertower.local')`);
   const church = unique('Grace Chapel');
-  await signIn(page, 'james');
+  await signIn(page, 'pastor');
   await page.getByText('Me', { exact: true }).click();
   await page.getByText('Are you a pastor? Add your church').filter({ visible: true }).first().click();
   await page.getByLabel('Church name').fill(church);
@@ -21,7 +21,7 @@ test('a pastor applies for their church and an admin verifies it', async ({ page
   const admin = await as(browser, 'admin');
   await admin.goto('/churches');
   const entry = admin.locator('div').filter({ hasText: church }).filter({ has: admin.getByText('Verify church', { exact: true }) }).last();
-  await expect(entry.getByText(/Applied by Demo James \(Senior Pastor\)/)).toBeVisible();
+  await expect(entry.getByText(/Applied by Demo Pastor \(Senior Pastor\)/)).toBeVisible();
   await entry.getByText('Verify church', { exact: true }).click();
   await expect(admin.getByText(church)).toHaveCount(0);
 
