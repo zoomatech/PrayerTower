@@ -94,6 +94,7 @@ export default function Profile() {
           <Button small variant="secondary" label="Scheduled gifts" onPress={() => router.push('/scheduled')} />
           <Button small variant="secondary" label="Prayer Cast" onPress={() => router.push('/prayer-cast')} />
           <Button small variant="secondary" label="Messages" onPress={() => router.push('/messages')} />
+          <Button small variant="secondary" label="Prayer groups" onPress={() => router.push('/groups')} />
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (

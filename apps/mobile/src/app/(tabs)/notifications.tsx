@@ -40,18 +40,28 @@ export default function Notifications() {
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
         <View style={styles.header}>
           <Text style={type.title}>Notices</Text>
-          <Button small variant="secondary" label={unread ? `Messages (${unread})` : 'Messages'} onPress={() => router.push('/messages')} />
+          <View style={styles.headerButtons}>
+            <Button small variant="secondary" label="Groups" onPress={() => router.push('/groups')} />
+            <Button small variant="secondary" label={unread ? `Messages (${unread})` : 'Messages'} onPress={() => router.push('/messages')} />
+          </View>
         </View>
         <ErrorText error={error} />
         {items.length === 0 ? <Empty text="When someone prays for you, you will see it here." /> : null}
         {items.map((n) => {
           const postId = typeof n.data.postId === 'string' ? n.data.postId : null;
           const conversationId = typeof n.data.conversationId === 'string' ? n.data.conversationId : null;
+          const groupId = typeof n.data.groupId === 'string' ? n.data.groupId : null;
           return (
             <Pressable
               key={n.id}
               style={[styles.item, !n.read_at && styles.unread]}
-              onPress={() => (conversationId ? router.push(`/messages/${conversationId}`) : postId && router.push(`/post/${postId}`))}
+              onPress={() =>
+                conversationId
+                  ? router.push(`/messages/${conversationId}`)
+                  : groupId
+                    ? router.push(`/groups/${groupId}`)
+                    : postId && router.push(`/post/${postId}`)
+              }
               accessibilityRole={postId ? 'link' : undefined}>
               <Text style={styles.title}>{n.title}</Text>
               <Text style={type.body}>{n.body}</Text>
@@ -72,5 +82,6 @@ const styles = StyleSheet.create({
   item: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: 4 },
   unread: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   title: { fontWeight: '700', fontSize: 16, color: colors.text },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.md },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.md, flexWrap: 'wrap' },
+  headerButtons: { flexDirection: 'row', gap: space.sm },
 });

@@ -158,6 +158,24 @@ export interface Message {
   createdAt: string;
 }
 
+export interface PrayerGroup {
+  id: string;
+  name: string;
+  purpose: string;
+  isPrivate: boolean;
+  members: number;
+  role: 'leader' | 'member' | null;
+  inviteCode: string | null;
+  unread: boolean;
+}
+
+export interface GroupPage {
+  group: PrayerGroup;
+  members: { id: string; displayName: string; role: string }[];
+  prayerList: Card[];
+  messages: { id: string; mine: boolean; author: { displayName: string }; body: string; createdAt: string }[];
+}
+
 export interface PrayerCast {
   totals: { prayers: number; sends: number };
   cast: { id: string; post_id: string; text: string; repeats: number; transmitter: string | null; call_sign: string | null; transmitted_at: string }[];
@@ -341,6 +359,15 @@ export const api = {
   highlights: () => get<Highlights>('/highlights'),
   startConversation: (postId: string, withUserId?: string) =>
     post<{ id: string }>(`/posts/${postId}/conversations`, withUserId ? { withUserId } : {}),
+  groups: () => get<{ mine: PrayerGroup[]; discover: PrayerGroup[] }>('/groups'),
+  createGroup: (input: { name: string; purpose: string; isPrivate: boolean }) => post<{ id: string }>('/groups', input),
+  joinGroup: (id: string) => post(`/groups/${id}/join`, {}),
+  joinGroupByCode: (code: string) => post<{ id: string }>('/groups/join', { code }),
+  leaveGroup: (id: string) => post(`/groups/${id}/leave`, {}),
+  group: (id: string) => get<GroupPage>(`/groups/${id}`),
+  addToGroupList: (id: string, postId: string) => post(`/groups/${id}/prayer-list`, { postId }),
+  removeFromGroupList: (id: string, postId: string) => request('DELETE', `/groups/${id}/prayer-list/${postId}`),
+  sendGroupMessage: (id: string, body: string) => post<{ message: { id: string; crisis: boolean } }>(`/groups/${id}/messages`, { body }),
   conversations: () => get<{ conversations: Conversation[]; unread: number }>('/me/conversations'),
   conversation: (id: string) => get<{ conversation: Conversation & { blocked: boolean }; messages: Message[] }>(`/conversations/${id}`),
   sendMessage: (id: string, body: string) => post<{ message: { id: string; crisis: boolean } }>(`/conversations/${id}/messages`, { body }),

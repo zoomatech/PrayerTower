@@ -9,7 +9,7 @@ import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
-import { api, type PowerPrayerStatus } from '@/lib/api';
+import { api, type PowerPrayerStatus, type PrayerGroup } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
 
@@ -31,6 +31,8 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
+  const [groups, setGroups] = useState<PrayerGroup[] | null>(null);
+  const [addedTo, setAddedTo] = useState<string | null>(null);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
 
   const load = useCallback(async () => {
@@ -128,6 +130,41 @@ export default function PostScreen() {
 
         {card && !card.isMine ? (
           <Button small variant="secondary" label={`Message ${card.author.anonymous ? 'the person who asked' : card.author.displayName}`} onPress={() => openMessage()} />
+        ) : null}
+
+        {addedTo ? (
+          <Text style={type.small}>Added to {addedTo}'s prayer list.</Text>
+        ) : groups ? (
+          <View style={styles.row}>
+            {groups.length === 0 ? <Text style={type.small}>Join or start a prayer group first (Me › Prayer groups).</Text> : null}
+            {groups.map((g) => (
+              <Button
+                key={g.id}
+                small
+                variant="secondary"
+                label={g.name}
+                onPress={() =>
+                  api
+                    .addToGroupList(g.id, id)
+                    .then(() => setAddedTo(g.name))
+                    .catch((e) => setError((e as Error).message))
+                }
+              />
+            ))}
+          </View>
+        ) : card && (card.isMine || !card.isSensitive) ? (
+          <Text
+            style={styles.reply}
+            accessibilityRole="button"
+            onPress={() =>
+              api
+                .groups()
+                .then((r) => setGroups(r.mine))
+                .catch((e) => setError((e as Error).message))
+            }
+          >
+            Add to a group prayer list
+          </Text>
         ) : null}
 
         {card && !card.isMine ? (

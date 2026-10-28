@@ -121,11 +121,13 @@ export const Report = z.object({
 export async function report(q: Queryable, reporterId: string, input: z.infer<typeof Report>) {
   const subject = await posts.moderationSubject(q, input.targetType, input.targetId);
   if (!subject) throw notFound('Content');
-  // Only someone in a private conversation can report a message from it.
+  // Only someone in the conversation or group can report a message from it.
   if (input.targetType === 'message') {
     const { rowCount } = await q.query(
-      `select 1 from public.messages m join public.conversations c on c.id = m.conversation_id
-        where m.id = $1 and $2 in (c.user_low, c.user_high)`,
+      `select 1 from public.messages m
+         left join public.conversations c on c.id = m.conversation_id
+         left join public.prayer_group_members g on g.group_id = m.group_id and g.user_id = $2
+        where m.id = $1 and ($2 in (c.user_low, c.user_high) or g.user_id is not null)`,
       [input.targetId, reporterId],
     );
     if (!rowCount) throw notFound('Content');
