@@ -41,12 +41,40 @@ export async function flagCrisis(q: Queryable, target: 'post' | 'comment' | 'mes
     [id],
   );
   if (!rows[0]) return;
-  await q.query(
+  const { rows: item } = await q.query<{ id: string }>(
     `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, reason)
      values ($1, $2, $3, $4, 'crisis', $5)
-     on conflict (target_type, target_id) where source = 'crisis' do nothing`,
+     on conflict (target_type, target_id) where source = 'crisis' do nothing
+     returning id`,
     [target, id, rows[0].user_id, rows[0].community_id, CRISIS_REASON],
   );
+  if (item[0]) await alertCrisisReviewers(q, item[0].id, rows[0].user_id);
+}
+
+/**
+ * Tell the moderators (or the admins, when there are none) at once, so someone
+ * who may be in danger isn't left waiting for the next queue check. The
+ * crisis_flag kind is in no notification category, so it can't be turned off.
+ * The text says nothing about the member or what they wrote.
+ */
+async function alertCrisisReviewers(q: Queryable, itemId: string, authorId: string) {
+  const { rows: staff } = await q.query<{ user_id: string }>(
+    `select distinct user_id from public.user_roles
+      where user_id <> $1
+        and role = case when exists (select 1 from public.user_roles where role = 'moderator' and user_id <> $1)
+                        then 'moderator'::public.app_role else 'admin'::public.app_role end`,
+    [authorId],
+  );
+  for (const s of staff) {
+    await notifications.notify(q, s.user_id, {
+      kind: 'crisis_flag',
+      title: 'Someone may be in danger',
+      body: 'A post or message mentions suicide or self-harm. Open the moderation queue; it is at the top.',
+      data: { itemId },
+      dedupeKey: `crisis_flag:${itemId}`,
+      t: { key: 'crisis_flag' },
+    });
+  }
 }
 
 /** Crisis posts are not amplified (reach, radio) until a person has reviewed them. */

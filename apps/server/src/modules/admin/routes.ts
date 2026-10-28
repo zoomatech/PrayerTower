@@ -201,9 +201,23 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   });
 
   // Pilot feedback from members.
+  // ?status=open|closed|all&tag=bug filters; /admin/feedback/export downloads the same as CSV.
   app.get('/admin/feedback', async (req) => {
     await requireAdmin(req);
-    return { feedback: await feedback.open(db) };
+    return { feedback: await feedback.list(db, feedback.Filter.parse(req.query)) };
+  });
+
+  app.get('/admin/feedback/export', async (req, reply) => {
+    await requireAdmin(req);
+    const items = await feedback.list(db, { ...feedback.ExportFilter.parse(req.query), limit: 5000 });
+    reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-feedback.csv"');
+    return feedback.toCsv(items);
+  });
+
+  app.patch<{ Params: { id: string } }>('/admin/feedback/:id', async (req) => {
+    const adminId = await requireAdmin(req);
+    await feedback.triage(db, adminId, z.uuid().parse(req.params.id), feedback.Triage.parse(req.body));
+    return { ok: true };
   });
 
   app.post<{ Params: { id: string } }>('/admin/feedback/:id/close', async (req) => {

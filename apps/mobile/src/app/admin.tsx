@@ -652,35 +652,22 @@ function PrayerWarriorsSection() {
   );
 }
 
-// Pilot feedback from members, oldest first.
+// Pilot feedback from members: how many are open, and a way into triage.
 function FeedbackSection() {
-  const { t, language } = useLocale();
-  const [items, setItems] = useState<Awaited<ReturnType<typeof api.admin.feedback>>['feedback']>([]);
+  const { t } = useLocale();
+  const [open, setOpen] = useState<number | null>(null);
   const load = useCallback(() => {
     api.admin
-      .feedback()
-      .then((r) => setItems(r.feedback))
+      .feedback({ status: 'open' })
+      .then((r) => setOpen(r.feedback.length))
       .catch(() => undefined);
   }, []);
   useFocusEffect(load);
-  if (!items.length) return null;
+  if (open === null) return null;
   return (
     <View style={styles.section}>
-      <Text style={type.heading}>{t('admin.feedback', { count: items.length })}</Text>
-      {items.map((f) => (
-        <View key={f.id} style={styles.group}>
-          <Text style={styles.groupTitle}>
-            {t('admin.feedbackFrom', { kind: t(`admin.feedbackKind.${f.kind === 'bug' || f.kind === 'idea' ? f.kind : 'other'}`), name: f.name })}
-          </Text>
-          <Text style={type.small}>
-            {new Date(f.createdAt).toLocaleDateString(language)}
-            {f.platform ? ` · ${f.platform}` : ''}
-            {f.appVersion ? ` ${f.appVersion}` : ''}
-          </Text>
-          <Text style={type.body}>{f.body}</Text>
-          <Button small variant="ghost" label={t('admin.btn.handled')} onPress={() => api.admin.closeFeedback(f.id).then(load).catch(() => undefined)} />
-        </View>
-      ))}
+      <Text style={type.heading}>{t('admin.feedback', { count: open })}</Text>
+      <Button variant="secondary" label={t('admin.feedbackTriage')} onPress={() => router.push('/feedback-triage')} />
     </View>
   );
 }
