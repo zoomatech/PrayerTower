@@ -18,6 +18,14 @@ const en = {
     notices: 'Notices',
     me: 'Me',
   },
+  menu: {
+    go: 'Go',
+    newRequest: 'New Prayer Request',
+    back: 'Back',
+    notificationSettings: 'Notification Settings…',
+    tour: 'Prayer Tower Tour',
+    feedback: 'Send Feedback…',
+  },
   language: {
     heading: 'Language',
     system: 'Phone setting',

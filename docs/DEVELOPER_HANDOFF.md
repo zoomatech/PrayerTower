@@ -232,7 +232,7 @@ These are still open decisions, kept in one place each.
 | Feed ranking weights | `apps/server/src/modules/feed/index.ts` `weights` | Commitments > taps; tokens raise, never hide |
 | Offline queue lifetime | `apps/mobile/src/lib/offline.ts` `MAX_AGE_MS` | 3 days |
 | Request timeout | `apps/mobile/src/lib/api.ts` `TIMEOUT_MS` | 15 s |
-| Pilot device | `apps/mobile/app.json` `ios.supportsTablet` | false (iPhone only) |
+| Devices | `apps/mobile/app.json` `ios.supportsTablet` | true (iPhone, iPad, and a resizable Mac window); false makes it iPhone-only with a fixed Mac window |
 | Bundle ID | `apps/mobile/app.json` | com.zoomatech.prayertower |
 
 ## 7. Background jobs
