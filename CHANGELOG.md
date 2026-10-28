@@ -4,6 +4,9 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Dependency updates, pilot cost estimate, regression fixes ([#54](https://github.com/zoomatech/PrayerTower/pull/54))
+- Batch 12: store listing defaults to the Sample content screenshots ([#53](https://github.com/zoomatech/PrayerTower/pull/53))
+- Batch 11: App Store listing and review notes match the current app ([#52](https://github.com/zoomatech/PrayerTower/pull/52))
 - Privacy audit fixes, and abuse tests run against staging ([#51](https://github.com/zoomatech/PrayerTower/pull/51))
 - Batch 10: loading, empty and error states, large text and screen readers, pilot kit ([#50](https://github.com/zoomatech/PrayerTower/pull/50))
 - Pilot readiness: security review, rollback and restore rehearsal, alert test ([#49](https://github.com/zoomatech/PrayerTower/pull/49))
