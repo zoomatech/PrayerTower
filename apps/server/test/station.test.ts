@@ -105,5 +105,20 @@ describe('radio station', () => {
     await station(`/station/radio-prayers/${claim.id}/result`, { ok: true, callSign: 'N0CALL', pieces: 3 });
     const { rows } = await db.query('select state from public.posts where id = $1', [post.id]);
     expect(rows[0].state).toBe('amplified');
+    // Prayer Cast lists what went out: the text and the call sign, never names.
+    const cast = (await as(poster).get('/prayer-cast')).json();
+    const entry = cast.cast.find((c: { id: string }) => c.id === claim.id);
+    expect(entry).toMatchObject({ text: 'Pray for peace in our city.', repeats: 3, call_sign: 'N0CALL' });
+    expect(JSON.stringify(entry)).not.toMatch(/Amplify (Poster|Sender)/);
+    expect(cast.totals.sends).toBeGreaterThanOrEqual(3);
+    // A request that mentioned self-harm never appears in the public log.
+    const crisis = await newRequest(poster, 'Some nights I want to die.');
+    const sent = (await as(sender).post(`/posts/${crisis.id}/radio`, { idempotencyKey: 'amp-3' })).statusCode;
+    expect(sent).toBe(409); // waits for a moderator
+    await db.query(
+      `insert into public.radio_prayers (post_id, user_id, cost, idempotency_key, status, transmitted_at) values ($1, $2, 0, 'forced', 'transmitted', now())`,
+      [crisis.id, sender],
+    );
+    expect((await as(poster).get('/prayer-cast')).json().cast.some((c: { post_id: string }) => c.post_id === crisis.id)).toBe(false);
   });
 });

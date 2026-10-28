@@ -140,6 +140,11 @@ export interface MacroNeed {
   helped: boolean;
 }
 
+export interface PrayerCast {
+  totals: { prayers: number; sends: number };
+  cast: { id: string; post_id: string; text: string; repeats: number; transmitter: string | null; call_sign: string | null; transmitted_at: string }[];
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -306,6 +311,7 @@ export const api = {
     post<{ id: string; postId: string }>('/macro-needs', input),
   endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
+  prayerCast: () => get<PrayerCast>('/prayer-cast'),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

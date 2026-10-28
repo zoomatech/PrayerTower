@@ -219,6 +219,34 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
   }
 }
 
+/**
+ * Prayer Cast log: what actually went out, newest first. Only the request
+ * text (never names), and never sensitive, removed or crisis requests. Real records
+ * only: no estimated reach or distance (no-fake-functionality rule).
+ */
+export async function castLog(q: Queryable, limit = 50) {
+  const { rows } = await q.query<{
+    id: string;
+    post_id: string;
+    text: string;
+    repeats: number;
+    transmitter: string | null;
+    call_sign: string | null;
+    transmitted_at: Date;
+  }>(
+    `select r.id, r.post_id, left(regexp_replace(p.body, '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
+       from public.radio_prayers r join public.posts p on p.id = r.post_id
+      where r.status = 'transmitted' and p.moderation_status = 'visible' and not p.is_sensitive
+        and not exists (select 1 from public.moderation_items m where m.target_type = 'post' and m.target_id = p.id and m.source = 'crisis')
+      order by r.transmitted_at desc limit $1`,
+    [limit],
+  );
+  const { rows: totals } = await q.query<{ prayers: number; sends: number }>(
+    `select count(*)::int as prayers, coalesce(sum(repeats), 0)::int as sends from public.radio_prayers where status = 'transmitted'`,
+  );
+  return { totals: totals[0]!, cast: rows };
+}
+
 export async function metrics(q: Queryable, since: Date) {
   const { rows } = await q.query(
     `select count(*)::int as queued_total,

@@ -92,6 +92,7 @@ export default function Profile() {
         <View style={styles.chips}>
           <Button small variant="secondary" label="Token pools" onPress={() => router.push('/pools')} />
           <Button small variant="secondary" label="Scheduled gifts" onPress={() => router.push('/scheduled')} />
+          <Button small variant="secondary" label="Prayer Cast" onPress={() => router.push('/prayer-cast')} />
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (
