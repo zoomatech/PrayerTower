@@ -4,6 +4,7 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Monitoring: worker heartbeat, /health/ready, server-error log, ops alerts and Admin → Operations ([#45](https://github.com/zoomatech/PrayerTower/pull/45))
 - English only: hide Spanish everywhere members see it, behind a switch that is off ([#43](https://github.com/zoomatech/PrayerTower/pull/43))
 - Witness stories with consent, full "Will you pray for" list, one-value go-live settings, bug hunt 3 ([#42](https://github.com/zoomatech/PrayerTower/pull/42))
 - Notebook ideas behind switches: worldwide count, thanksgiving card, notes for event hosts; pastor defaults ([#41](https://github.com/zoomatech/PrayerTower/pull/41))

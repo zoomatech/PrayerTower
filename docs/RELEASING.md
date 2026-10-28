@@ -1,5 +1,7 @@
 # Releasing
 
+To build the iPhone app and send over-the-air updates from GitHub Actions, see [RELEASING_APPS.md](RELEASING_APPS.md).
+
 The changelog and release notes are generated from the pull requests merged into main, using git history only (no token needed). Each PR title becomes one line, so write PR titles for people.
 
 ## Commands
@@ -22,4 +24,4 @@ Build numbers are left alone. `eas.json` uses `"appVersionSource": "remote"` and
 | App Store Connect | What's New in This Version | 4,000 characters ([Apple: Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)) |
 | Google Play | Release notes | 500 Unicode characters per language, wrapped in language tags such as `<en-US>…</en-US>` ([Play Console Help: Prepare and roll out a release](https://support.google.com/googleplay/android-developer/answer/9859348?hl=en)) |
 
-The drafts are lists of PR titles. Before you paste them into the stores, rewrite them in plain language for members and add the Spanish text.
+The drafts are lists of PR titles. Before you paste them into the stores, rewrite them in plain language for members. The app is English only, so there is no Spanish text to add.
