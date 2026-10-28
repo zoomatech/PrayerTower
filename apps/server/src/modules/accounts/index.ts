@@ -66,6 +66,7 @@ export interface Profile {
   feed_mix: FeedMix;
   onboarded_at: Date | null;
   suspended_until: Date | null;
+  deleted_at: Date | null;
   created_at: Date;
 }
 
@@ -159,7 +160,13 @@ export async function grantRole(q: Queryable, userId: string, role: Role, grante
 
 export async function follow(q: Queryable, userId: string, followeeId: string) {
   if (userId === followeeId) throw badRequest('You cannot follow yourself');
-  const { rowCount } = await q.query('select 1 from public.profiles where id = $1', [followeeId]);
+  // Deleted members can't be followed, and a block (either way) ends following for good.
+  const { rowCount } = await q.query(
+    `select 1 from public.profiles p where p.id = $2 and p.deleted_at is null
+        and not exists (select 1 from public.user_blocks b
+                         where (b.user_id = $1 and b.blocked_id = $2) or (b.user_id = $2 and b.blocked_id = $1))`,
+    [userId, followeeId],
+  );
   if (!rowCount) throw notFound('Person');
   await q.query('insert into public.follows (user_id, followee_id) values ($1, $2) on conflict do nothing', [userId, followeeId]);
 }

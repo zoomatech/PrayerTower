@@ -1,17 +1,18 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { sendQueued } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { withMonitoring } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
-import { colors } from '@/lib/theme';
+import { Button } from '@/components/ui';
+import { colors, space, type } from '@/lib/theme';
 
 function RootStack() {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, profileError, refreshProfile, signOut } = useAuth();
   usePush(!!session && !!profile?.onboarded_at);
   // Send prayers and posts made offline when the app comes back to the foreground.
   useEffect(() => {
@@ -20,6 +21,15 @@ function RootStack() {
     const sub = AppState.addEventListener('change', (s) => s === 'active' && void sendQueued());
     return () => sub.remove();
   }, [session]);
+  if (!loading && session && !profile && profileError) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xl, backgroundColor: colors.background }}>
+        <Text style={[type.body, { textAlign: 'center' }]}>{profileError}</Text>
+        <Button label="Try again" onPress={() => void refreshProfile()} />
+        <Button variant="ghost" label="Sign out" onPress={() => void signOut()} />
+      </View>
+    );
+  }
   if (loading || (session && !profile)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
