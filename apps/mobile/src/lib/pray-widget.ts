@@ -1,5 +1,7 @@
-// Keeps the "Pray now" home-screen widget (src/widgets/pray-now.tsx) showing the
-// next request to pray for. iOS only; elsewhere these do nothing.
+// Keeps the "Pray now" home-screen widget showing the next request to pray for:
+// src/widgets/pray-now.tsx on iOS, src/widgets/pray-now-android.tsx on Android.
+// On the web these do nothing.
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Card, FeedPage } from '@prayer-tower/shared';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
@@ -38,9 +40,23 @@ export function widgetProps(card: Card | null, t: T): PrayNowProps {
 }
 
 export function updatePrayWidget(page: Pick<FeedPage, 'posts' | 'pinnedId'> | null, t: T) {
+  const props = widgetProps(page ? nextRequest(page) : null, t);
+  if (Platform.OS === 'android') return void updateAndroid(props);
   try {
-    widget()?.updateSnapshot(widgetProps(page ? nextRequest(page) : null, t));
+    widget()?.updateSnapshot(props);
   } catch {
     // A build without the widget extension: nothing to update.
+  }
+}
+
+/** Android draws from storage (the widget may redraw while the app is closed), so save, then redraw any placed widgets. */
+async function updateAndroid(props: PrayNowProps) {
+  try {
+    const { ANDROID_WIDGET_KEY, ANDROID_WIDGET_NAME, render } = require('@/widgets/pray-now-android') as typeof import('@/widgets/pray-now-android');
+    const { requestWidgetUpdate } = require('react-native-android-widget') as typeof import('react-native-android-widget');
+    await AsyncStorage.setItem(ANDROID_WIDGET_KEY, JSON.stringify(props));
+    await requestWidgetUpdate({ widgetName: ANDROID_WIDGET_NAME, renderWidget: () => render(props) });
+  } catch {
+    // Expo Go or a build without the widget: nothing to update.
   }
 }
