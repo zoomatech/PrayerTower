@@ -50,4 +50,23 @@ describe('staff audit log', () => {
     expect(auditedAction('POST', '/posts')).toBeNull();
     expect(auditedAction('POST', '/witness/cases/:id/notes')).toBe('POST /witness/cases/:id/notes');
   });
+
+  it('keeps invitees out of the log: no CSV member list and no email addresses', async () => {
+    const admin = await createUser('Phoebe');
+    await grantRole(db, admin, 'admin', null);
+    const csv = 'name,email\nRuth Moabite,ruth@example.org\nNaomi,naomi@example.org\n';
+    expect((await as(admin).post('/admin/import', { kind: 'members', csv, dryRun: true })).statusCode).toBe(200);
+    expect((await as(admin).post('/admin/invites', { note: 'For lydia@example.org', count: 1 })).statusCode).toBe(201);
+
+    const { rows } = await db.query<{ action: string; body: Record<string, unknown> }>(
+      `select action, body from public.staff_audit_log where actor_id = $1 order by created_at`,
+      [admin],
+    );
+    expect(rows.map((r) => r.action)).toEqual(['POST /admin/import', 'POST /admin/invites']);
+    expect(rows[0]!.body).toMatchObject({ kind: 'members', dryRun: true, csvLines: 3 });
+    expect(rows[0]!.body.csv).toBeUndefined();
+    expect(rows[1]!.body).toMatchObject({ note: 'For [email]', count: 1 });
+    expect(JSON.stringify(rows)).not.toMatch(/example\.org|Ruth/);
+  });
 });
+

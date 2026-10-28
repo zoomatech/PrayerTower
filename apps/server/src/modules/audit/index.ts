@@ -24,7 +24,16 @@ const STAFF_ROUTES = new Set([
 ]);
 /** Bodies that hold pastoral or private text: the action is logged, the text is not. */
 const NO_BODY = new Set(['POST /witness/cases/:id/notes', 'PATCH /witness/cases/:id']);
+/**
+ * Bodies that name people who may not be members (an invitee's email, a church's
+ * member list): the settings are logged, the people are not.
+ */
+const SHAPE_BODY: Record<string, (body: Record<string, unknown>) => Record<string, unknown>> = {
+  'POST /admin/import': ({ csv, ...rest }) => ({ ...rest, csvLines: typeof csv === 'string' ? csv.split(/\r?\n/).filter((l) => l.trim()).length : 0 }),
+  'POST /admin/invites/:code/email': ({ email: _email, ...rest }) => rest,
+};
 const MAX_BODY_CHARS = 4000;
+const EMAIL = /[^\s@"<>,;:]+@[^\s@"<>,;:]+\.[a-z]{2,}/gi;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function auditedAction(method: string, url: string | undefined): string | null {
@@ -33,10 +42,13 @@ export function auditedAction(method: string, url: string | undefined): string |
   return url.startsWith('/admin/') || STAFF_ROUTES.has(action) ? action : null;
 }
 
-const bodyOf = (action: string, body: unknown) => {
+export const bodyOf = (action: string, body: unknown) => {
   if (NO_BODY.has(action) || body === undefined || body === null) return null;
-  const json = JSON.stringify(body);
-  return json.length > MAX_BODY_CHARS ? { truncated: json.slice(0, MAX_BODY_CHARS) } : body;
+  const shape = SHAPE_BODY[action];
+  if (shape && typeof body === 'object' && !Array.isArray(body)) body = shape(body as Record<string, unknown>);
+  // Any other email address (an invite note, a free-text field) is blanked as well.
+  const json = JSON.stringify(body).replace(EMAIL, '[email]');
+  return json.length > MAX_BODY_CHARS ? { truncated: json.slice(0, MAX_BODY_CHARS) } : JSON.parse(json);
 };
 
 /** onSend hook: records successful staff changes before the reply goes out. Never fails the request. */

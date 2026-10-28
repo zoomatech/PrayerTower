@@ -148,6 +148,7 @@ If we make a material change, we will tell you in the app before it takes effect
 8. **COPPA.** It applies to general-audience apps once the operator has "actual knowledge" that a user is under 13. ([FTC](https://www.ftc.gov/node/60359)) The draft sets 18+ for the pilot.
 
 **Questions for counsel**
+- The privacy audit of 2026-10-28 lists the wording changes this draft needs (email provider, people who aren't members, the pre-post check, log and backup periods, what stays after deletion). See `docs/PRIVACY_AUDIT.md` → Policy changes for counsel.
 - Which entity operates the app (for-profit, non-profit, or ministry), and which state's law governs?
 - Is an explicit consent checkbox for sensitive information needed at sign-up, or is the current agreement line plus the posting action enough?
 - Does broadcasting request text by amateur radio need its own consent at the moment a member spends a radio token?

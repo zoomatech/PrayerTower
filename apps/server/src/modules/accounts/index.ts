@@ -384,8 +384,13 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     await q.query(sql, [userId]);
   }
   await q.query(
-    `update public.profiles set display_name = 'Deleted member', handle = null, bio = '', why_here = '{}', support_wanted = '{}',
-            support_offered = '{}', pray_for_scope = '{}', feed_mix = '{}', onboarded_at = null, deleted_at = now()
+    // Every setting goes back to its default too: quiet hours hold a time zone, a hint of where the member lives.
+    `update public.profiles set display_name = 'Deleted member', handle = null, bio = default, why_here = default,
+            support_wanted = default, support_offered = default, pray_for_scope = default, feed_mix = default,
+            trauma_content_opt_out = default, anonymous_by_default = default, updates_in_first_comment = default,
+            prompts_enabled = default, prompt_min_hours = default, prompt_tone = default, locale = default,
+            digest_enabled = default, digest_sent_week = default, notification_prefs = default,
+            show_prayer_stats = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
       where id = $1`,
     [userId],
   );

@@ -4,6 +4,8 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Pilot readiness: security review, rollback and restore rehearsal, alert test ([#49](https://github.com/zoomatech/PrayerTower/pull/49))
+- Batch 9: staff screen walk fixes, docs match the pilot, one-command Mac build ([#47](https://github.com/zoomatech/PrayerTower/pull/47))
 - Pilot launch rehearsal: fixes from following GO_LIVE and the day-one runbook ([#48](https://github.com/zoomatech/PrayerTower/pull/48))
 - iPhone release pipeline: tag builds to TestFlight, over-the-air updates from Actions ([#46](https://github.com/zoomatech/PrayerTower/pull/46))
 - Mobile unit tests in CI, plus fixes from a new-member screen walk ([#44](https://github.com/zoomatech/PrayerTower/pull/44))
