@@ -8,7 +8,7 @@ import { space, type } from '@/lib/theme';
 export function LanguagePicker({ heading = true }: { heading?: boolean }) {
   const { choice, setChoice, t } = useLocale();
   return (
-    <View style={styles.wrap} role="radiogroup" aria-label={t('language.heading')}>
+    <View style={styles.wrap} role="group" aria-label={t('language.heading')}>
       {heading ? <Text style={type.heading}>{t('language.heading')}</Text> : null}
       <View style={styles.chips}>
         <Chip label={t('language.system')} selected={choice === 'system'} onPress={() => setChoice('system')} />
