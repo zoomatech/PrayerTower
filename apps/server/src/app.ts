@@ -15,6 +15,7 @@ import { postRoutes } from './modules/posts/routes.js';
 import { promptRoutes } from './modules/prompts/routes.js';
 import { tierRoutes } from './modules/tiers/routes.js';
 import { prayerActionRoutes } from './modules/prayer-actions/routes.js';
+import { radioRoutes } from './modules/radio/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
 export interface AppDeps {
@@ -60,6 +61,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     prayerActionRoutes(authed, db);
     commitmentRoutes(authed, db);
     tokenRoutes(authed, db);
+    radioRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db);
     promptRoutes(authed, db);

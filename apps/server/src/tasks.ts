@@ -5,9 +5,10 @@ import { sendDueRemindersTask, weeklyReviewTask } from './modules/commitments/in
 import { openAiClassifier, scanTask, type Classifier } from './modules/moderation/index.js';
 import { sendPushTask } from './modules/notifications/index.js';
 import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
+import { transmitTask, type Transmitter } from './modules/radio/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 
-export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch } = {}): TaskList {
+export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter } = {}): TaskList {
   return {
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
@@ -15,6 +16,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     commitments_send_due_reminders: sendDueRemindersTask(db),
     commitments_weekly_review: weeklyReviewTask(db),
     tiers_weekly_resupply: weeklyResupplyTask(db),
+    radio_transmit: transmitTask(db, overrides.transmit),
   };
 }
 

@@ -17,7 +17,7 @@ describe('priestly tokens', () => {
     await grantRole(db, admin, 'admin', admin);
     expect((await as(member).patch('/admin/token-settings', { priestlyPrayersPerToken: 3 })).statusCode).toBe(403);
     const res = await as(admin).patch('/admin/token-settings', { priestlyPrayersPerToken: 3, verifiedPrayerMinGapSeconds: 0 });
-    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0 });
+    expect(res.json().settings).toEqual({ priestly_prayers_per_token: 3, verified_prayer_min_gap_seconds: 0, radio_prayer_cost: 1 });
   });
 
   it('earns one Priestly token per N verified prayers for other people, then gifts and donates it', async () => {
@@ -35,7 +35,7 @@ describe('priestly tokens', () => {
 
     const me = (await as(pray).get('/me/tokens')).json();
     expect(me.balance).toBe(4); // one regular token per prayer for someone else
-    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3 });
+    expect(me.priestly).toEqual({ balance: 1, verifiedPrayers: 4, towardNext: 1, prayersPerToken: 3, radioPrayerCost: 1 });
 
     // Re-running the follow-up job does not double count.
     const { rows } = await db.query<{ id: string }>('select id from public.prayer_events where user_id = $1', [pray]);
@@ -62,6 +62,29 @@ describe('priestly tokens', () => {
     const { priestly } = (await as(pray).get('/me/tokens')).json();
     expect(priestly.verifiedPrayers).toBe(1);
     expect(priestly.balance).toBe(1);
+  });
+
+  it('spends a Priestly token to send a request out by radio, once per key', async () => {
+    await tokens.updateSettings(db, { priestly_prayers_per_token: 1, verified_prayer_min_gap_seconds: 0 });
+    const asker = await createUser('Radio Asker');
+    const sender = await createUser('Radio Sender');
+    const post = await newRequest(asker, 'Please pray for rain.');
+    expect((await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'r1' })).statusCode).toBe(409); // no Priestly tokens yet
+    await as(sender).post(`/posts/${post.id}/praying-now`);
+    await drainJobs();
+    expect(await tokens.balanceOf(db, sender, 'priestly')).toBe(1);
+
+    const first = await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'r1' });
+    expect(first.statusCode).toBe(201);
+    const again = await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'r1' });
+    expect(again.json().radioPrayer.id).toBe(first.json().radioPrayer.id);
+    expect(await tokens.balanceOf(db, sender, 'priestly')).toBe(0);
+    await drainJobs();
+
+    const [sent] = (await as(sender).get('/me/radio-prayers')).json().radioPrayers;
+    expect(sent.status).toBe('transmitted');
+    const notes = (await as(asker).get('/me/notifications')).json().notifications;
+    expect(notes.map((n: { kind: string }) => n.kind)).toContain('radio_prayer');
   });
 
   it('never mixes currencies in one transfer', async () => {

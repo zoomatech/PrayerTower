@@ -1,4 +1,4 @@
-import type { Card, Comment } from '@prayer-tower/shared';
+import type { Card, Comment, TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,10 +18,13 @@ export default function PostScreen() {
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [tokens, setTokens] = useState<TokenSummary | null>(null);
+  const [radioSent, setRadioSent] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [p, c, pr] = await Promise.all([api.post(id), api.comments(id), api.prayers(id)]);
+      const [p, c, pr, t] = await Promise.all([api.post(id), api.comments(id), api.prayers(id), api.tokens()]);
+      setTokens(t);
       setCard(p.post);
       setComments(c.comments);
       setPrayers(pr);
@@ -51,6 +54,16 @@ export default function PostScreen() {
     }
   };
 
+  const sendRadio = async () => {
+    try {
+      await api.sendRadioPrayer(id);
+      setRadioSent(true);
+      setTokens(await api.tokens());
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   const markAnswered = async () => {
     await api.markAnswered(id).catch((e) => setError((e as Error).message));
     load();
@@ -65,6 +78,16 @@ export default function PostScreen() {
 
         {card?.isMine && card.state !== 'answered' ? (
           <Button variant="secondary" label="Mark this prayer answered" onPress={markAnswered} />
+        ) : null}
+
+        {radioSent ? (
+          <Text style={type.small}>Sent. This request is going out as a radio prayer.</Text>
+        ) : tokens && tokens.priestly.balance >= tokens.priestly.radioPrayerCost ? (
+          <Button
+            variant="secondary"
+            label={`Send as a radio prayer (${tokens.priestly.radioPrayerCost} Priestly token${tokens.priestly.radioPrayerCost === 1 ? '' : 's'})`}
+            onPress={sendRadio}
+          />
         ) : null}
 
         {prayers ? (

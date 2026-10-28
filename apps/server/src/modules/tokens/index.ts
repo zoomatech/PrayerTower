@@ -5,7 +5,7 @@ import type { DatabaseError } from 'pg';
 import type { Queryable } from '../../db.js';
 import { AppError, badRequest } from '../../errors.js';
 
-export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus';
+export type TransferKind = 'earn' | 'gift' | 'spend_reach' | 'resupply' | 'forfeit' | 'clawback' | 'donate' | 'bonus' | 'spend_radio';
 /** Regular tokens are earned per prayer; Priestly tokens per N verified prayers and fund the infrastructure. */
 export type Currency = 'regular' | 'priestly';
 
@@ -100,6 +100,14 @@ export async function donatePriestly(q: Queryable, userId: string, amount: numbe
   );
 }
 
+/** Spend Priestly tokens on a radio prayer; they go to the infrastructure fund. */
+export async function spendOnRadio(q: Queryable, userId: string, amount: number, key: string) {
+  return transfer(
+    q, `radio:${userId}:${key}`, 'spend_radio',
+    await userAccount(q, userId, 'priestly'), await systemAccount(q, 'infrastructure', 'priestly'), amount, userId, 'Radio prayer',
+  );
+}
+
 /** Count a verified prayer toward Priestly tokens; returns tokens credited (usually 0). Idempotent per event. */
 export async function creditPriestlyProgress(q: Queryable, eventId: string): Promise<number> {
   const { rows } = await q.query<{ n: number }>('select public.credit_priestly_progress($1) as n', [eventId]);
@@ -120,11 +128,12 @@ export async function awardBonus(q: Queryable, userId: string, milestone: string
 export interface TokenSettings {
   priestly_prayers_per_token: number;
   verified_prayer_min_gap_seconds: number;
+  radio_prayer_cost: number;
 }
 
 export async function settings(q: Queryable): Promise<TokenSettings> {
   const { rows } = await q.query<TokenSettings>(
-    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds from public.token_settings',
+    'select priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost from public.token_settings',
   );
   return rows[0]!;
 }
@@ -133,9 +142,10 @@ export async function updateSettings(q: Queryable, patch: Partial<TokenSettings>
   const { rows } = await q.query<TokenSettings>(
     `update public.token_settings
         set priestly_prayers_per_token = coalesce($1, priestly_prayers_per_token),
-            verified_prayer_min_gap_seconds = coalesce($2, verified_prayer_min_gap_seconds)
-      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds`,
-    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null],
+            verified_prayer_min_gap_seconds = coalesce($2, verified_prayer_min_gap_seconds),
+            radio_prayer_cost = coalesce($3, radio_prayer_cost)
+      returning priestly_prayers_per_token, verified_prayer_min_gap_seconds, radio_prayer_cost`,
+    [patch.priestly_prayers_per_token ?? null, patch.verified_prayer_min_gap_seconds ?? null, patch.radio_prayer_cost ?? null],
   );
   return rows[0]!;
 }
@@ -155,6 +165,7 @@ export async function priestlyStatus(q: Queryable, userId: string) {
     verifiedPrayers: rows[0]?.verified_total ?? 0,
     towardNext: rows[0]?.verified_pending ?? 0,
     prayersPerToken: s.priestly_prayers_per_token,
+    radioPrayerCost: s.radio_prayer_cost,
   };
 }
 
@@ -199,6 +210,7 @@ export async function metrics(q: Queryable, since: Date) {
     `select coalesce(sum(t.amount) filter (where t.kind = 'earn' and a.currency = 'regular'), 0)::int as earned,
             coalesce(sum(t.amount) filter (where t.kind = 'earn' and a.currency = 'priestly'), 0)::int as priestly_earned,
             coalesce(sum(t.amount) filter (where t.kind = 'donate'), 0)::int as priestly_donated,
+            coalesce(sum(t.amount) filter (where t.kind = 'spend_radio'), 0)::int as priestly_spent_on_radio,
             coalesce(sum(t.amount) filter (where t.kind = 'resupply'), 0)::int as resupplied,
             coalesce(sum(t.amount) filter (where t.kind = 'gift'), 0)::int as gifted,
             coalesce(sum(t.amount) filter (where t.kind = 'spend_reach'), 0)::int as spent_on_reach,

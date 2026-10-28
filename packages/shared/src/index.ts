@@ -105,6 +105,8 @@ export interface PriestlyStatus {
   verifiedPrayers: number;
   towardNext: number;
   prayersPerToken: number;
+  /** Priestly tokens it costs to send a request out as a radio prayer. */
+  radioPrayerCost: number;
 }
 
 export interface TokenSummary {

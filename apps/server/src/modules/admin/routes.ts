@@ -11,6 +11,7 @@ import * as commitments from '../commitments/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
 import * as prayerActions from '../prayer-actions/index.js';
+import * as radio from '../radio/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
@@ -65,12 +66,14 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
       .object({
         priestlyPrayersPerToken: z.number().int().min(1).max(10_000).optional(),
         verifiedPrayerMinGapSeconds: z.number().int().min(0).max(86_400).optional(),
+        radioPrayerCost: z.number().int().min(1).max(10_000).optional(),
       })
       .parse(req.body);
     return {
       settings: await tokens.updateSettings(db, {
         priestly_prayers_per_token: input.priestlyPrayersPerToken,
         verified_prayer_min_gap_seconds: input.verifiedPrayerMinGapSeconds,
+        radio_prayer_cost: input.radioPrayerCost,
       }),
     };
   });
@@ -81,14 +84,15 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     await requireAdmin(req);
     const { days } = z.object({ days: z.coerce.number().int().min(1).max(3650).default(7) }).parse(req.query);
     const since = new Date(Date.now() - days * 86_400_000);
-    const [members, content, prayer, promises, ledger, mod] = await Promise.all([
+    const [members, content, prayer, promises, ledger, mod, radioPrayers] = await Promise.all([
       accounts.metrics(db, since),
       posts.metrics(db, since),
       prayerActions.metrics(db, since),
       commitments.metrics(db, since),
       tokens.metrics(db, since),
       moderation.metrics(db, since),
+      radio.metrics(db, since),
     ]);
-    return { since, members, posts: content, prayer, commitments: promises, tokens: ledger, moderation: mod };
+    return { since, members, posts: content, prayer, commitments: promises, tokens: ledger, moderation: mod, radio: radioPrayers };
   });
 }

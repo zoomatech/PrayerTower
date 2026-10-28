@@ -87,6 +87,8 @@ export const api = {
     post<{ recorded: boolean }>(`/me/prompts/${id}/response`, { response }),
   tier: () => get<TierStatus>('/me/tier'),
   tokens: () => get<TokenSummary>('/me/tokens'),
+  sendRadioPrayer: (postId: string) =>
+    post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };
