@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Linking, StyleSheet, Text } from 'react-native';
 
 import { env } from '@/lib/env';
-import { useT } from '@/lib/i18n';
+import { useLocale } from '@/lib/i18n';
 import { colors, type } from '@/lib/theme';
 
 function Link({ label, url }: { label: string; url: string }) {
@@ -15,12 +15,26 @@ function Link({ label, url }: { label: string; url: string }) {
   );
 }
 
+/** Our own site serves Spanish under /es (for example /es/privacy); other addresses are left alone. */
+export function localizedUrl(url: string, language: string) {
+  if (!url || language !== 'es') return url;
+  try {
+    const u = new URL(url);
+    if (!['/privacy', '/terms', '/support', '/account-deletion'].includes(u.pathname)) return url;
+    u.pathname = `/es${u.pathname}`;
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export function LegalLinks({ prefix, contact = false }: { prefix?: string; contact?: boolean }) {
-  const t = useT();
+  const { t, language } = useLocale();
   return (
     <Text style={[type.small, styles.center]}>
       {prefix ? `${prefix} ` : ''}
-      <Link label={t('legal.terms')} url={env.termsUrl} /> {t('legal.and')} <Link label={t('legal.privacy')} url={env.privacyUrl} />.
+      <Link label={t('legal.terms')} url={localizedUrl(env.termsUrl, language)} /> {t('legal.and')}{' '}
+      <Link label={t('legal.privacy')} url={localizedUrl(env.privacyUrl, language)} />.
       {contact && env.supportEmail ? (
         <>
           {` ${t('legal.questions')} `}

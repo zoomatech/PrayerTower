@@ -53,6 +53,13 @@ describe('endpoint auth', () => {
       'GET /.well-known/apple-app-site-association',
       'GET /.well-known/assetlinks.json',
       'GET /terms',
+      // The same public pages in Spanish.
+      'GET /es',
+      'GET /es/',
+      'GET /es/support',
+      'GET /es/privacy',
+      'GET /es/terms',
+      'GET /es/account-deletion',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);
