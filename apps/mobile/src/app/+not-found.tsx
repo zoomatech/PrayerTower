@@ -10,7 +10,7 @@ export default function NotFound() {
   return (
     <Screen>
       <View style={styles.wrap}>
-        <Text style={type.title}>We couldn't find that page</Text>
+        <Text style={type.title}>{"We couldn't find that page"}</Text>
         <Text style={[type.body, { color: colors.textMuted }]}>The link may be old, or the request may have been taken down.</Text>
         <Button label="Go to Prayers" onPress={() => router.replace('/')} />
       </View>
