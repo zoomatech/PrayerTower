@@ -217,7 +217,7 @@ export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize
     };
   }
   // Featured Macro Needs show above the feed, so they aren't repeated in it.
-  const featured = new Set(await macroNeeds.featuredPostIds(q));
+  const featured = new Set(await macroNeeds.featuredPostIds(q, viewerId));
   const all = (await candidates(q, viewerId)).filter((c) => !featured.has(c.id));
   const pinned = pickPinned(all);
   const mix = (await getProfile(q, viewerId))?.feed_mix ?? {};

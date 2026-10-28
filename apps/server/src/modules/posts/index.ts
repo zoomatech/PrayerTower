@@ -143,10 +143,23 @@ export async function blockedBetween(q: Queryable, a: string, b: string): Promis
   return !!rowCount;
 }
 
-/** A visible post the member may act on: never one between people where either blocked the other. */
+/** True when the member belongs to the community. Communities are separate: Open Circle and the faith edition never mix. */
+export async function inCommunity(q: Queryable, userId: string, communityId: string): Promise<boolean> {
+  const { rowCount } = await q.query('select 1 from public.community_memberships where user_id = $1 and community_id = $2', [userId, communityId]);
+  return !!rowCount;
+}
+
+/** A visible post the member may read: their own, or one in a community they belong to. */
+export async function getViewable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
+  const post = await getVisible(q, postId);
+  return post && (post.user_id === userId || (await inCommunity(q, userId, post.community_id))) ? post : null;
+}
+
+/** A visible post the member may act on: only in their own communities, never one between people where either blocked the other. */
 export async function getActionable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
   const post = await getVisible(q, postId);
-  return post && !(await blockedBetween(q, userId, post.user_id)) ? post : null;
+  if (!post || (await blockedBetween(q, userId, post.user_id))) return null;
+  return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) ? post : null;
 }
 
 /** Request state machine. Answered is poster-only and final; amplified waits for the broadcast. */

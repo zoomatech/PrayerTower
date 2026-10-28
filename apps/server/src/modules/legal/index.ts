@@ -58,7 +58,8 @@ async function resolveMember(q: Queryable, who: string): Promise<string> {
 }
 
 const CASE = `c.id, c.kind, c.status, c.agency, c.reference, c.received_at as "receivedAt", c.subject_user_id as "subjectId",
-  (select coalesce(p.display_name, 'Deleted account') from public.profiles p where p.id = c.subject_user_id) as "subjectName",
+  case when c.subject_user_id is not null
+       then coalesce((select p.display_name from public.profiles p where p.id = c.subject_user_id), 'Deleted account') end as "subjectName",
   c.moderation_item_id as "moderationItemId", c.summary, c.created_at as "createdAt", c.closed_at as "closedAt",
   (select count(*)::int from public.evidence_holds h where h.case_id = c.id and h.released_at is null) as "activeHolds"`;
 

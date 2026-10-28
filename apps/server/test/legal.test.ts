@@ -48,6 +48,11 @@ describe('Legal requests', () => {
       expect(out.items.find((i: { kind: string; sourceId: string }) => i.kind === 'post' && i.sourceId === post.id).data.body).toBe('Please pray for my court date.');
       expect(out.items.some((i: { kind: string }) => i.kind === 'profile')).toBe(true);
 
+      // The case still names the member after their account is gone.
+      await c.query('delete from public.profiles where id = $1', [subject]);
+      expect((await legal.get(c, caseId)).case).toMatchObject({ subjectId: subject, subjectName: 'Deleted account' });
+      expect((await legal.exportHold(c, hold.id)).items.some((i: { kind: string }) => i.kind === 'profile')).toBe(true);
+
       const closed = await legal.close(c, caseId);
       expect((closed.case as { status: string }).status).toBe('closed');
       expect((closed.holds[0] as { releasedAt: Date | null }).releasedAt).not.toBeNull();

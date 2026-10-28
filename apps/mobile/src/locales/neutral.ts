@@ -175,6 +175,7 @@ export const keys: Tree = named({
     warriors: 'Top kindness champions',
     beFirst: 'Be the first to lift someone up this week.',
     window: 'Support for others in the last %{count} days.',
+    anonymous: 'Anonymous helper',
   },
   conversation: { invited: 'You were invited to this group. Join to talk and cheer each other on.' },
   groups: { intro: 'Talk and cheer each other on about a need, a place, or a topic.', namePlaceholder: 'Morning walking group', topicPlaceholder: 'We meet up at 7am' },

@@ -510,6 +510,7 @@ const en = {
     beFirst: "Be the first to pray this week.",
     window: "Prayers for others in the last %{count} days.",
     thisWeek: "This week",
+    anonymous: "Anonymous prayer warrior",
   },
   conversation: {
     about: "About the request",
@@ -781,6 +782,7 @@ const en = {
       pools: 'Pools',
       highlights: 'Highlights',
       surveys: 'Surveys',
+      podcasts: 'Podcasts',
     },
     communityTypes: "Kinds of post members can make. Discussion, News and Blog Post are posts that aren't prayed for: people comment, encourage and share.",
     award: "Prayer Warrior Award",

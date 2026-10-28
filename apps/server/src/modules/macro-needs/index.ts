@@ -54,7 +54,7 @@ export async function end(q: Queryable, userId: string, id: string) {
   if (!rowCount) throw notFound('Macro need');
 }
 
-/** Featured needs, newest first, with the viewer's card for the request and what others have done. */
+/** Featured needs in the viewer's communities (so the two editions never mix), newest first, with the viewer's card for the request and what others have done. */
 export async function featured(q: Queryable, viewerId: string) {
   const { rows } = await q.query<{
     id: string;
@@ -94,7 +94,11 @@ export async function featured(q: Queryable, viewerId: string) {
 
 /** The member says they gave material help. Idempotent. */
 export async function markHelped(q: Queryable, userId: string, id: string) {
-  const { rows } = await q.query<{ id: string }>('select id from public.macro_needs where id = $1 and ended_at is null', [id]);
+  const { rows } = await q.query<{ id: string }>(
+    `select n.id from public.macro_needs n join public.posts p on p.id = n.post_id
+      where n.id = $1 and n.ended_at is null and p.community_id = any($2::uuid[])`,
+    [id, await accounts.communityIds(q, userId)],
+  );
   if (!rows[0]) throw notFound('Macro need');
   await q.query('insert into public.macro_need_helpers (need_id, user_id) values ($1, $2) on conflict do nothing', [id, userId]);
   const { rows: n } = await q.query<{ n: number }>('select count(*)::int as n from public.macro_need_helpers where need_id = $1', [id]);
@@ -102,10 +106,12 @@ export async function markHelped(q: Queryable, userId: string, id: string) {
 }
 
 /** Post ids of featured needs, so the feed doesn't show them twice. */
-export async function featuredPostIds(q: Queryable): Promise<string[]> {
+export async function featuredPostIds(q: Queryable, viewerId: string): Promise<string[]> {
   const { rows } = await q.query<{ post_id: string }>(
-    `select post_id from public.macro_needs where ended_at is null and (ends_at is null or ends_at > now()) order by created_at desc limit $1`,
-    [MAX_FEATURED],
+    `select n.post_id from public.macro_needs n join public.posts p on p.id = n.post_id
+      where n.ended_at is null and (n.ends_at is null or n.ends_at > now()) and p.community_id = any($2::uuid[])
+      order by n.created_at desc limit $1`,
+    [MAX_FEATURED, await accounts.communityIds(q, viewerId)],
   );
   return rows.map((r) => r.post_id);
 }

@@ -1,6 +1,8 @@
 // Member surveys (migration 20261029004600_surveys.sql; docs/SURVEYS.md).
 // Admins write a survey as a draft and open it when it's ready; members see
-// only open surveys for their community, and answer each once. On an anonymous
+// only open surveys for their community, and answer each once. A survey for
+// "everyone" skips neutral-wording communities (Open Circle), which see only
+// surveys made for them, so no religious wording reaches them. On an anonymous
 // survey the answers carry no member id, and the record of who answered is
 // kept apart. Results are totals only, and are held back until enough people
 // have answered that no one can be picked out.
@@ -50,7 +52,9 @@ export async function forMember(q: Queryable, userId: string): Promise<Survey[]>
   if (!(await featureOn(q, userId, 'surveys'))) return [];
   const { rows } = await q.query<Survey>(
     `select ${SURVEY} ${FROM}
-      where ${OPEN} and (s.community_id is null or s.community_id = public.member_community_id($1))
+      where ${OPEN} and (s.community_id = public.member_community_id($1) or (s.community_id is null and not exists (
+          select 1 from public.communities mc where mc.id = public.member_community_id($1)
+             and coalesce(mc.vocabulary->>'wording', case when mc.tradition = 'secular' then 'neutral' else 'faith' end) = 'neutral')))
         and not exists (select 1 from public.survey_respondents r where r.survey_id = s.id and r.user_id = $1)
       order by s.opened_at desc nulls last limit 20`,
     [userId],
@@ -74,7 +78,9 @@ export const Answers = z.object({
 /** Record a member's answers, once per survey. */
 export async function answer(q: Queryable, userId: string, surveyId: string, input: z.infer<typeof Answers>): Promise<{ ok: true }> {
   const { rows } = await q.query<Survey>(
-    `select ${SURVEY} ${FROM} where s.id = $1 and ${OPEN} and (s.community_id is null or s.community_id = public.member_community_id($2))`,
+    `select ${SURVEY} ${FROM} where s.id = $1 and ${OPEN} and (s.community_id = public.member_community_id($2) or (s.community_id is null and not exists (
+          select 1 from public.communities mc where mc.id = public.member_community_id($2)
+             and coalesce(mc.vocabulary->>'wording', case when mc.tradition = 'secular' then 'neutral' else 'faith' end) = 'neutral')))`,
     [surveyId, userId],
   );
   const survey = rows[0];

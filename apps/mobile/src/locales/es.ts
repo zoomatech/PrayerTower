@@ -512,6 +512,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     beFirst: "Sé el primero en orar esta semana.",
     window: "Oraciones por otros en los últimos %{count} días.",
     thisWeek: "Esta semana",
+    anonymous: "Anonymous prayer warrior",
   },
   conversation: {
     about: "Sobre la petición",
@@ -783,6 +784,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
       pools: 'Fondos',
       highlights: 'Destacados',
       surveys: 'Encuestas',
+      podcasts: 'Podcasts',
     },
     communityTypes: 'Tipos de publicación que pueden hacer los miembros. Debate, Noticias y Blog no son para orar: se comentan, se animan y se comparten.',
     award: 'Premio Guerrero de Oración',

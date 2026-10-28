@@ -37,6 +37,7 @@ export default function Profile() {
   const { t, label, n, wording } = useLocale();
   const poolsOn = useFeature('pools');
   const radioOn = useFeature('radio');
+  const podcastsOn = useFeature('podcasts');
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -161,7 +162,7 @@ export default function Profile() {
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
-          {features.podcasts ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
+          {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (
