@@ -9,7 +9,8 @@ import es from '../../apps/mobile/src/locales/es.js';
 type Tree = { [k: string]: string | Tree };
 const flat = (t: Tree, prefix = ''): [string, string][] =>
   Object.entries(t).flatMap(([k, v]) => (typeof v === 'string' ? [[prefix + k, v] as [string, string]] : flat(v, `${prefix}${k}.`)));
-const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+// Markdown table cell: escape backslashes first, then pipes; newlines become <br>.
+const cell = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, '<br>');
 
 const enMap = new Map(flat(en as unknown as Tree));
 const { enums, ...esApp } = es as unknown as Tree & { enums: Record<string, Record<string, string>> };
