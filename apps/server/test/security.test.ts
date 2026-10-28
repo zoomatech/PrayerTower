@@ -42,6 +42,8 @@ describe('endpoint auth', () => {
   it('refuses every route without a sign-in, except health and the station key routes', async () => {
     const open = new Set([
       'GET /health',
+      // Uptime monitors: only ok and problem names (worker_down, jobs_overdue).
+      'GET /health/ready',
       'POST /station/claim',
       'POST /station/radio-prayers/:id/result',
       'GET /account-deletion',

@@ -33,6 +33,26 @@ export function registerMetrics(app: FastifyInstance, db: Db, token: string) {
     },
   });
   new client.Gauge({
+    name: 'worker_heartbeat_age_seconds',
+    help: 'Seconds since the background worker last checked in (-1 = never)',
+    registers: [registry],
+    async collect() {
+      const { rows } = await db
+        .query<{ s: number | null }>(`select extract(epoch from now() - seen_at)::int as s from public.ops_heartbeats where name = 'worker'`)
+        .catch(() => ({ rows: [] as { s: number | null }[] }));
+      this.set(rows[0]?.s ?? -1);
+    },
+  });
+  new client.Gauge({
+    name: 'radio_prayers_queued',
+    help: 'Radio prayers waiting to be sent',
+    registers: [registry],
+    async collect() {
+      const { rows } = await db.query<{ n: number }>(`select count(*)::int as n from public.radio_prayers where status = 'queued'`).catch(() => ({ rows: [{ n: -1 }] }));
+      this.set(rows[0]!.n);
+    },
+  });
+  new client.Gauge({
     name: 'db_pool_waiting',
     help: 'Queries waiting for a database connection',
     registers: [registry],

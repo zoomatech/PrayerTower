@@ -296,6 +296,25 @@ export interface RetryingTask {
   lastError: string | null;
 }
 
+export type OpsProblem = 'worker_down' | 'jobs_overdue' | 'jobs_failed' | 'server_errors' | 'station_silent';
+export interface OpsStatus {
+  checkedAt: string;
+  database: { ms: number };
+  worker: { lastSeen: string | null; ok: boolean };
+  queue: { waiting: number; running: number; overdue: number; oldestOverdueSeconds: number; failed: number; retrying: number };
+  errors: { lastHour: number; last24h: number; recent: { at: string; method: string; route: string; status: number }[] };
+  radio: {
+    mode: 'log' | 'station';
+    queued: number;
+    sending: number;
+    sentToday: number;
+    failedToday: number;
+    lastSentAt: string | null;
+    station: { lastSeen: string | null; ok: boolean | null };
+  };
+  problems: OpsProblem[];
+}
+
 export interface LedgerCheck {
   id: string;
   checkedAt: string;
@@ -540,6 +559,7 @@ export const api = {
     importCsv: (input: { kind: 'members' | 'requests'; csv: string; dryRun: boolean; note?: string; sendEmails?: boolean; message?: string }) =>
       post<ImportResult>('/admin/import', input),
     jobs: () => get<{ failed: FailedJob[]; retrying: RetryingTask[] }>('/admin/jobs'),
+    ops: () => get<{ status: OpsStatus }>('/admin/ops'),
     retryJob: (id: string) => post<{ retried: boolean }>(`/admin/jobs/${id}/retry`),
     discardJob: (id: string) => post<{ discarded: boolean }>(`/admin/jobs/${id}/discard`),
     announcements: () => get<{ announcements: (Announcement & { active: boolean; dismissals: number })[] }>('/admin/announcements'),

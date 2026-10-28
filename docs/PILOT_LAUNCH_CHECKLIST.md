@@ -33,7 +33,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 - [ ] Set `RATE_LIMIT_PER_MINUTE` (default 300 per member).
 - [ ] Set `CORS_ORIGINS` if a web build is hosted. Native apps don't need it.
 - [ ] Make sure the worker is running. Reminders, prompts, moderation scans, activity flags and push notifications depend on it.
-- [ ] Check that `GET /health` returns `{"ok":true}`, and set up the uptime check (DEPLOY.md §4).
+- [ ] Check that `GET /health` returns `{"ok":true}`, and set up the two uptime checks, `/health` and `/health/ready` ([MONITORING.md](MONITORING.md)).
 
 ## 4. People and roles
 

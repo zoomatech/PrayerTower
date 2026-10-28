@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { AppError } from '../../errors.js';
+import * as ops from '../ops/index.js';
 import * as radio from './index.js';
 
 export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string | null) {
@@ -18,6 +19,7 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
   // Claim the next prayer to send; 204 when there is nothing to send.
   app.post('/station/claim', async (req, reply) => {
     await requireStation(req);
+    await ops.beat(db, 'station');
     const next = await withTx(db, (tx) => radio.claimNext(tx));
     if (!next) return reply.code(204).send();
     return { radioPrayer: next };
