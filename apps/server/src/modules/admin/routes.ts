@@ -13,6 +13,7 @@ import * as care from '../care/index.js';
 import * as commitments from '../commitments/index.js';
 import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
+import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
@@ -177,6 +178,18 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/future-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await future.updateSettings(db, future.SettingsPatch.parse(req.body)) };
+  });
+
+  // Pilot feedback from members.
+  app.get('/admin/feedback', async (req) => {
+    await requireAdmin(req);
+    return { feedback: await feedback.open(db) };
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/feedback/:id/close', async (req) => {
+    const adminId = await requireAdmin(req);
+    await feedback.close(db, adminId, req.params.id);
+    return { ok: true };
   });
 
   // Account deletion requests from the public web page.

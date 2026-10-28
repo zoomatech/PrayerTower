@@ -23,7 +23,8 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
 
   app.get('/moderation/queue', async (req) => {
     await requireModerator(req);
-    return { items: await moderation.pending(db) };
+    const { targetId } = z.object({ targetId: z.uuid().optional() }).parse(req.query);
+    return { items: await moderation.pending(db, 100, targetId) };
   });
 
   // Prayer taps that look automated: flags only, a moderator decides.

@@ -185,6 +185,7 @@ export default function Admin() {
         <ErrorText error={error} />
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
         <DeletionRequestsSection />
+        <FeedbackSection />
         <PrayerWarriorsSection />
 
         <View style={styles.section}>
@@ -642,6 +643,38 @@ function PrayerWarriorsSection() {
       ) : (
         <Text style={type.small}>No verified prayers yet.</Text>
       )}
+    </View>
+  );
+}
+
+// Pilot feedback from members, oldest first.
+function FeedbackSection() {
+  const [items, setItems] = useState<Awaited<ReturnType<typeof api.admin.feedback>>['feedback']>([]);
+  const load = useCallback(() => {
+    api.admin
+      .feedback()
+      .then((r) => setItems(r.feedback))
+      .catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  if (!items.length) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Member feedback ({items.length})</Text>
+      {items.map((f) => (
+        <View key={f.id} style={styles.group}>
+          <Text style={styles.groupTitle}>
+            {f.kind === 'bug' ? 'Bug' : f.kind === 'idea' ? 'Idea' : 'Feedback'} from {f.name}
+          </Text>
+          <Text style={type.small}>
+            {new Date(f.createdAt).toLocaleDateString()}
+            {f.platform ? ` · ${f.platform}` : ''}
+            {f.appVersion ? ` ${f.appVersion}` : ''}
+          </Text>
+          <Text style={type.body}>{f.body}</Text>
+          <Button small variant="ghost" label="Mark handled" onPress={() => api.admin.closeFeedback(f.id).then(load).catch(() => undefined)} />
+        </View>
+      ))}
     </View>
   );
 }

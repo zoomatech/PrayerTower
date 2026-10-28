@@ -8,4 +8,6 @@ export const env = {
   termsUrl: process.env.EXPO_PUBLIC_TERMS_URL ?? '',
   /** Published contact address (Apple 1.2 asks apps with user content for one). */
   supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? '',
+  /** Which country's crisis line to show (US, CA, GB or IE). Defaults to the US. */
+  crisisCountry: process.env.EXPO_PUBLIC_CRISIS_COUNTRY ?? 'US',
 };

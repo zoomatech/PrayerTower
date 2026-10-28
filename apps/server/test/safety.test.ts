@@ -26,7 +26,7 @@ describe('safe messaging', () => {
     expect(post.crisis).toBe(true);
     expect((await as(moderator).get(`/posts/${post.id}`)).json().post.crisis).toBe(true);
 
-    const item = (await as(moderator).get('/moderation/queue')).json().items.find((i: { target_id: string }) => i.target_id === post.id);
+    const item = (await as(moderator).get(`/moderation/queue?targetId=${post.id}`)).json().items.find((i: { target_id: string }) => i.target_id === post.id);
     expect(item).toMatchObject({ source: 'crisis', reason: 'Someone may be in danger' });
 
     expect((await as(poster).post(`/posts/${post.id}/radio`, { idempotencyKey: 'crisis-1' })).statusCode).toBe(409);

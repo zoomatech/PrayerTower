@@ -2,6 +2,7 @@
 // queue. AI never penalizes anyone; it can only auto-hide the most severe
 // content until a moderator decides. Every decision is logged.
 import type { Task } from 'graphile-worker';
+import { crisisLine } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
@@ -143,8 +144,8 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
   return rows[0]!;
 }
 
-/** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. */
-export async function pending(q: Queryable, limit = 100) {
+/** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. Optionally only one target's items. */
+export async function pending(q: Queryable, limit = 100, targetId?: string) {
   const { rows } = await q.query(
     `select m.*, coalesce(po.body, c.body, r.note, x.body, ev.title || E'\n' || ev.description) as content
        from public.moderation_items m
@@ -153,10 +154,10 @@ export async function pending(q: Queryable, limit = 100) {
        left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
        left join public.messages x on m.target_type = 'message' and x.id = m.target_id
        left join public.events ev on m.target_type = 'event' and ev.id = m.target_id
-      where m.status = 'pending'
+      where m.status = 'pending' and ($2::uuid is null or m.target_id = $2)
       order by (m.source = 'crisis') desc, m.auto_hidden desc, m.id
       limit $1`,
-    [limit],
+    [limit, targetId ?? null],
   );
   return rows;
 }
@@ -231,7 +232,7 @@ export function removalNotice(target: Target, rule: Rule, itemId: string, suspen
   const noun = NOUN[target];
   const body =
     rule === 'safe_messaging'
-      ? `We removed your ${noun} because it described ways of self-harm, which can put others at risk. Your prayer matters, and you are welcome to post it again without those details. If you are struggling, call or text 988 any time.`
+      ? `We removed your ${noun} because it described ways of self-harm, which can put others at risk. Your prayer matters, and you are welcome to post it again without those details. If you are struggling, ${crisisLine(process.env.CRISIS_COUNTRY).reach}.`
       : `We removed your ${noun} because it broke a community rule: ${RULES[rule]}.` +
         (suspendedUntil ? ` Your account can't post until ${suspendedUntil.toDateString()}.` : '') +
         ' If you think we got this wrong, you can appeal.';

@@ -55,6 +55,7 @@ eas env:set --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value sb_publishable_Y
 eas env:set --name EXPO_PUBLIC_PRIVACY_URL --value https://YOURDOMAIN/privacy --environment production --visibility plaintext
 eas env:set --name EXPO_PUBLIC_TERMS_URL --value https://YOURDOMAIN/terms --environment production --visibility plaintext
 eas env:set --name EXPO_PUBLIC_SUPPORT_EMAIL --value help@YOURDOMAIN --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_CRISIS_COUNTRY --value US --environment production --visibility plaintext
 ```
 
 ## 5. Build the iOS app in the cloud

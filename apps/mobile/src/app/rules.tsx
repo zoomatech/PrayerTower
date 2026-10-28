@@ -26,7 +26,7 @@ const RULES: { title: string; body: string }[] = [
   },
   {
     title: 'No details of suicide or self-harm methods',
-    body: 'If you are struggling, please post: you will see the 988 Lifeline and people will pray with you. Details of methods are removed to keep others safe, and you are welcome to post again without them.',
+    body: 'If you are struggling, please post: you will see a crisis line you can reach any time, and people will pray with you. Details of methods are removed to keep others safe, and you are welcome to post again without them.',
   },
   {
     title: 'No ads',

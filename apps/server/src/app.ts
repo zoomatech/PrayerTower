@@ -29,6 +29,7 @@ import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
+import { feedbackRoutes } from './modules/feedback/routes.js';
 import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
@@ -125,6 +126,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);
     tierRoutes(authed, db);
+    feedbackRoutes(authed, db);
     adminRoutes(authed, db, storage);
   });
 

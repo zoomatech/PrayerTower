@@ -40,7 +40,7 @@ Definitions: "Collect" means data sent off the device and kept longer than real-
 | Sensitive Info → **Sensitive Info** | App Functionality | Apple's definition names "religious or philosophical beliefs". Prayer requests and the community imply them. |
 | User Content → **Emails or Text Messages** | App Functionality | In-app messages and group chats |
 | User Content → **Photos or Videos** | App Functionality | Media attached to posts |
-| User Content → **Customer Support** | App Functionality | Reports and appeals |
+| User Content → **Customer Support** | App Functionality | Reports, appeals and in-app feedback (with platform and app version) |
 | User Content → **Other User Content** | App Functionality | Requests, comments, encouragements, event details, care requests |
 | Identifiers → **User ID** | App Functionality | Account ID |
 | Usage Data → **Product Interaction** | App Functionality, Analytics, Product Personalization | Prayer taps, follows, hidden posts (feed ranking), pilot totals |

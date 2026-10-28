@@ -297,7 +297,7 @@ describe('moderation', () => {
     expect((await as(member).get(`/posts/${mild.id}`)).statusCode).toBe(200);
 
     expect((await as(member).get('/moderation/queue')).statusCode).toBe(403);
-    const queue = (await as(moderator).get('/moderation/queue')).json().items;
+    const queue = (await as(moderator).get(`/moderation/queue?targetId=${severe.id}`)).json().items;
     const item = queue.find((i: { target_id: string }) => i.target_id === severe.id);
     expect(item.auto_hidden).toBe(true);
     expect(await tokens.balanceOf(db, author)).toBe(5);
