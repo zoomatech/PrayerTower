@@ -126,6 +126,7 @@ export async function powerPrayer(q: Queryable, userId: string, postId: string, 
       kind: 'power_prayer',
       title: 'Will you pray for this request?',
       body: post.body.length > 120 ? `${post.body.slice(0, 117)}...` : post.body,
+      t: { key: 'power_prayer', params: { body: post.body.length > 120 ? `${post.body.slice(0, 117)}...` : post.body } },
       data: { postId: post.id },
     });
   }

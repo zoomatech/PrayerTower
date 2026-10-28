@@ -1,7 +1,7 @@
 // Accounts module: profiles, onboarding answers, roles, follows, and how a
 // person is presented to others (anonymity is applied here, at output time;
 // the author link is always stored).
-import { FEED_MIX_KEYS, type FeedMix, type FeedMixKey } from '@prayer-tower/shared';
+import { FEED_MIX_KEYS, LOCALES, type FeedMix, type FeedMixKey, type Locale } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
@@ -27,6 +27,8 @@ export const ProfileUpdate = z
     /** null = the app default (admin setting). */
     promptTone: z.enum(['gentle', 'firm']).nullable(),
     feedMix: z.partialRecord(z.enum(FEED_MIX_KEYS as [FeedMixKey, ...FeedMixKey[]]), z.enum(['less', 'more'])),
+    /** App language, for notification text. */
+    locale: z.enum(LOCALES),
     completeOnboarding: z.boolean(),
   })
   .partial();
@@ -46,6 +48,7 @@ const columns: Record<string, string> = {
   promptMinHours: 'prompt_min_hours',
   promptTone: 'prompt_tone',
   feedMix: 'feed_mix',
+  locale: 'locale',
 };
 
 export interface Profile {
@@ -64,6 +67,7 @@ export interface Profile {
   prompt_min_hours: number | null;
   prompt_tone: 'gentle' | 'firm' | null;
   feed_mix: FeedMix;
+  locale: Locale;
   onboarded_at: Date | null;
   suspended_until: Date | null;
   created_at: Date;

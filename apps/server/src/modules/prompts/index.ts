@@ -56,13 +56,22 @@ export async function next(q: Queryable, userId: string, now = new Date()): Prom
     [userId, postId, commitmentId, now, tone],
   );
   const who = await posts.promptSubject(q, postId, userId);
-  return { id: rows[0]!.id, postId, commitmentId, question: question(tone, who, !!commitmentId), tone };
+  return { id: rows[0]!.id, postId, commitmentId, question: question(tone, who, !!commitmentId, profile.locale), tone };
 }
 
 export type Tone = 'gentle' | 'firm';
 
 /** Firm copy is Steve's own wording from notebook Page 14. */
-export function question(tone: Tone, who: string, committed: boolean): string {
+export function question(tone: Tone, who: string, committed: boolean, locale = 'en'): string {
+  if (locale === 'es') {
+    if (who === 'this request') who = 'esta petición';
+    if (tone === 'firm') {
+      return committed
+        ? `Recuerda que te comprometiste ante Dios a orar por ${who}. ¿Te tomarías un momento ahora?`
+        : `No defraudes a tus hermanos y hermanas. ¿Orarías por ${who} ahora?`;
+    }
+    return committed ? `¿Cuándo fue la última vez que oraste por ${who}?` : `¿Orarías por ${who} hoy?`;
+  }
   if (tone === 'firm') {
     return committed
       ? `Remember, you made a commitment before God to pray for ${who}. Won't you take just a moment now?`

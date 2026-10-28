@@ -23,12 +23,16 @@ Add the key to `en.ts`, then to `es.ts`.
 
 ## What's translated now
 
-Tabs, sign-in, onboarding, feed header, all four feed layouts' pinned label, post cards, compose, the Me screen and legal links.
+Tabs, sign-in, onboarding, feed header, all four feed layouts' pinned label, post cards, the card action sheets (pray, commit, encourage, share, gift, report), compose, the Me screen and legal links.
+
+## Notifications and prompts
+
+The app saves the member's language on their profile (`profiles.locale`, `PATCH /me {locale}`) whenever it changes. `notify()` takes an optional `t: { key, params }`; if the recipient's language isn't English and `apps/server/src/modules/notifications/i18n.ts` has that key, the Spanish title and body are used (in-app and push). All 20 notification types have Spanish. Prayer prompts (`prompts.question`) are translated too. Text members wrote (request previews, messages, notes) is passed through as written.
 
 ## Still English (follow-up)
 
-- Other screens: post detail, Promises, Messages, Notices, events, care, pools, scheduled gifts, Prayer Cast, rules, delete account, feedback, and the card action sheets (`card-actions.tsx`). Admin and moderation screens stay English on purpose (staff only).
-- **Text from the server:** error messages, notification text, push notifications, prompts and tier names. These need the member's language saved on the profile so the server can choose. Not built yet.
+- Other screens: post detail, Promises, Messages, Notices, events, care, pools, scheduled gifts, Prayer Cast, rules, delete account, feedback, . Admin and moderation screens stay English on purpose (staff only).
+- **Text from the server:** error messages and tier names. (Notifications, pushes, moderation notices and prayer prompts are translated; see below.)
 - Members' own posts aren't translated.
 
 ## Open questions (defaults chosen)

@@ -4,16 +4,21 @@ import { useEffect } from 'react';
 import { ActivityIndicator, AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { sendQueued } from '@/lib/api';
+import { api, sendQueued } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { LocaleProvider } from '@/lib/i18n';
+import { LocaleProvider, useLocale } from '@/lib/i18n';
 import { withMonitoring } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
 import { colors } from '@/lib/theme';
 
 function RootStack() {
   const { session, profile, loading } = useAuth();
+  const { language } = useLocale();
   usePush(!!session && !!profile?.onboarded_at);
+  // The server sends notifications in the member's language.
+  useEffect(() => {
+    if (profile && profile.locale !== language) api.updateMe({ locale: language }).catch(() => undefined);
+  }, [profile?.id, profile?.locale, language]); // eslint-disable-line react-hooks/exhaustive-deps
   // Send prayers and posts made offline when the app comes back to the foreground.
   useEffect(() => {
     if (!session) return;
