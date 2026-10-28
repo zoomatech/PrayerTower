@@ -24,6 +24,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
+import { updatePrayWidget } from "@/lib/pray-widget";
 import { colors, maxContentWidth, radius, space, type } from "@/lib/theme";
 import { tourSeen } from "@/lib/tour";
 
@@ -67,6 +68,7 @@ export default function Feed() {
       setCards(page.posts);
       setTheme(page.theme ?? null);
       setPinnedId(page.pinnedId);
+      updatePrayWidget(page, t);
       setNextPage(page.savedAt ? null : page.nextPage);
       setSavedAt(page.savedAt ?? null);
       setError(null);
@@ -75,7 +77,7 @@ export default function Feed() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   const loadMore = async () => {
     if (nextPage === null || loadingMore.current) return;

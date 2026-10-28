@@ -8,6 +8,7 @@ import { api, sendQueued } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { LocaleProvider, useLocale } from '@/lib/i18n';
 import { useMenuCommands } from '@/lib/menu-commands';
+import { updatePrayWidget } from '@/lib/pray-widget';
 import { withMonitoring } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
 import { Button } from '@/components/ui';
@@ -15,13 +16,17 @@ import { colors, space, type } from '@/lib/theme';
 
 function RootStack() {
   const { session, profile, loading, profileError, refreshProfile, signOut } = useAuth();
-  const { language } = useLocale();
+  const { language, t } = useLocale();
   usePush(!!session && !!profile?.onboarded_at);
   useMenuCommands(!!session && !!profile?.onboarded_at);
   // The server sends notifications in the member's language.
   useEffect(() => {
     if (profile && profile.locale !== language) api.updateMe({ locale: language }).catch(() => undefined);
   }, [profile?.id, profile?.locale, language]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Signed out: the home-screen widget stops showing requests.
+  useEffect(() => {
+    if (!loading && !session) updatePrayWidget(null, t);
+  }, [loading, session, t]);
   // Send prayers and posts made offline when the app comes back to the foreground.
   useEffect(() => {
     if (!session) return;

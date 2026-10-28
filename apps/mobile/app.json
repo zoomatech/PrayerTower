@@ -63,6 +63,24 @@
             "es"
           ]
         }
+      ],
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "PrayNow",
+              "displayName": "Pray Now",
+              "description": "The next prayer request to pray for.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ]
+              }
+            }
+          ]
+        }
       ]
     ],
     "experiments": {
