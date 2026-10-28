@@ -56,6 +56,9 @@ describe('endpoint auth', () => {
       'GET /.well-known/assetlinks.json',
       'GET /terms',
       'GET /signup-config',
+      // The Common Prayer Fund's public report (404 while switched off; names no one).
+      'GET /common-prayer-fund/report',
+      'GET /fund',
       // The same public pages in Spanish.
       'GET /es',
       'GET /es/',

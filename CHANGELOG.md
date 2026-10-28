@@ -4,6 +4,10 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Amplify paid with Priestly tokens; confession with clergy (both off by default) ([#60](https://github.com/zoomatech/PrayerTower/pull/60))
+- Spoken prayers: voice prayers, free with an optional token offer ([#59](https://github.com/zoomatech/PrayerTower/pull/59))
+- Open Circle: ad-free, non-religious edition (community + branded build) ([#57](https://github.com/zoomatech/PrayerTower/pull/57))
+- Fines for using prayer requests as ads (off by default) ([#56](https://github.com/zoomatech/PrayerTower/pull/56))
 - Safety check on your own Mac: MODERATION_PROVIDER=local (Ollama) ([#55](https://github.com/zoomatech/PrayerTower/pull/55))
 - Dependency updates, pilot cost estimate, regression fixes ([#54](https://github.com/zoomatech/PrayerTower/pull/54))
 - Batch 12: store listing defaults to the Sample content screenshots ([#53](https://github.com/zoomatech/PrayerTower/pull/53))

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
-import { as, createUser, db } from './helpers.js';
+import { app, as, createUser, db } from './helpers.js';
 
 afterAll(async () => {
   await db.query('update public.future_settings set purchases_enabled = false, common_fund_page_enabled = false, ai_chat_enabled = false');
@@ -14,6 +14,8 @@ describe('switched-off groundwork for blocked features', () => {
     const buy = await as(member).post('/token-store/purchases', { sku: 'tokens_100', platform: 'ios', receipt: 'x' });
     expect(buy.statusCode).toBe(403);
     expect((await as(member).get('/common-prayer-fund')).json()).toEqual({ enabled: false });
+    expect((await app.inject({ method: 'GET', url: '/common-prayer-fund/report' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/fund' })).statusCode).toBe(404);
     expect((await as(member).get('/ai-chat')).json().enabled).toBe(false);
     expect((await as(member).post('/ai-chat', { message: 'Hello' })).statusCode).toBe(403);
   });
@@ -26,7 +28,11 @@ describe('switched-off groundwork for blocked features', () => {
     await as(admin).patch('/admin/future-settings', { purchasesEnabled: true, commonFundPageEnabled: true, aiChatEnabled: true });
     expect((await as(member).post('/token-store/purchases', { sku: 'tokens_100', platform: 'ios', receipt: 'x' })).statusCode).toBe(501);
     const fund = (await as(member).get('/common-prayer-fund')).json();
-    expect(fund).toMatchObject({ enabled: true, percent: 10 });
+    expect(fund).toMatchObject({ enabled: true, percent: 10, totals: { inCents: expect.any(Number) } });
+    expect((await app.inject({ method: 'GET', url: '/common-prayer-fund/report' })).json()).toMatchObject({ enabled: true });
+    const page = await app.inject({ method: 'GET', url: '/fund' });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('Common Prayer Fund');
     const chat = (await as(member).post('/ai-chat', { message: 'Are you God?' })).json();
     expect(chat.warning).toMatch(/It is not God/);
     await as(admin).patch('/admin/future-settings', { purchasesEnabled: false, commonFundPageEnabled: false, aiChatEnabled: false });

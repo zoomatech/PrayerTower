@@ -10,9 +10,11 @@ import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import * as activity from '../activity/index.js';
 import * as adFines from '../ad-fines/index.js';
+import * as amplifier from '../amplifier/index.js';
 import * as care from '../care/index.js';
 import { churchAdminRoutes } from '../churches/routes.js';
 import * as commitments from '../commitments/index.js';
+import * as commonFund from '../common-fund/index.js';
 import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
@@ -273,6 +275,50 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     const adminId = await requireAdmin(req);
     const id = z.uuid().parse(req.params.id);
     return { fine: await withTx(db, (tx) => adFines.resolve(tx, id, adminId, adFines.Resolve.parse(req.body))) };
+  });
+
+  // Common Prayer Fund bookkeeping: money in and help sent, shown on the public report once it's switched on.
+  app.get('/admin/common-fund/entries', async (req) => {
+    await requireAdmin(req);
+    return { entries: await commonFund.list(db, commonFund.ListFilter.parse(req.query)) };
+  });
+
+  app.post('/admin/common-fund/entries', async (req, reply) => {
+    const adminId = await requireAdmin(req);
+    return reply.code(201).send({ entry: await commonFund.record(db, adminId, commonFund.NewEntry.parse(req.body)) });
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/common-fund/entries/:id/void', async (req) => {
+    const adminId = await requireAdmin(req);
+    return { entry: await withTx(db, (tx) => commonFund.voidEntry(tx, adminId, z.uuid().parse(req.params.id))) };
+  });
+
+  // LIVE AMPLIFIER (off by default): add licensed operators by call sign, and see what was read on the air.
+  app.get('/admin/amplifier-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await amplifier.settings(db) };
+  });
+
+  app.patch('/admin/amplifier-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await amplifier.updateSettings(db, amplifier.SettingsPatch.parse(req.body)) };
+  });
+
+  app.get('/admin/amplifier/operators', async (req) => {
+    await requireAdmin(req);
+    return { operators: await amplifier.operators(db), readings: await amplifier.recentReadings(db) };
+  });
+
+  app.put<{ Params: { id: string } }>('/admin/amplifier/operators/:id', async (req) => {
+    const adminId = await requireAdmin(req);
+    const userId = z.uuid().parse(req.params.id);
+    return { operator: await amplifier.setOperator(db, adminId, userId, amplifier.OperatorInput.parse(req.body)) };
+  });
+
+  app.delete<{ Params: { id: string } }>('/admin/amplifier/operators/:id', async (req) => {
+    await requireAdmin(req);
+    await withTx(db, (tx) => amplifier.deactivate(tx, z.uuid().parse(req.params.id)));
+    return { ok: true };
   });
 
   // Pilot feedback from members.
