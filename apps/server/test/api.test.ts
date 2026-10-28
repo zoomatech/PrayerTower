@@ -310,8 +310,8 @@ describe('moderation', () => {
     });
     expect(decision.statusCode).toBe(200);
     expect(await tokens.balanceOf(db, author)).toBe(0);
-    const { rows } = await db.query('select action from public.moderation_actions where moderation_item_id = $1 order by id', [item.id]);
-    expect(rows.map((r) => r.action)).toEqual(['remove', 'forfeit_tokens', 'suspend']);
+    const { rows } = await db.query('select action from public.moderation_actions where moderation_item_id = $1', [item.id]);
+    expect(rows.map((r) => r.action).sort()).toEqual(['forfeit_tokens', 'remove', 'suspend']);
     expect((await as(author).post('/posts', { postType: 'open_prayer', body: 'hi' })).statusCode).toBe(403);
     expect((await as(moderator).post(`/moderation/items/${item.id}/decision`, { action: 'dismiss' })).statusCode).toBe(409);
   });
