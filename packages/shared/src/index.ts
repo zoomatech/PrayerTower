@@ -251,6 +251,8 @@ export interface Profile {
   anonymous_by_default: boolean;
   updates_in_first_comment: boolean;
   prompts_enabled: boolean;
+  /** null = the app default. */
+  prompt_tone: 'gentle' | 'firm' | null;
   prompt_min_hours: number | null;
   feed_mix: FeedMix;
   onboarded_at: string | null;
@@ -285,6 +287,7 @@ export interface Prompt {
   postId: string;
   commitmentId: string | null;
   question: string;
+  tone: 'gentle' | 'firm';
 }
 
 export interface TierStatus {

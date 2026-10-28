@@ -270,6 +270,7 @@ export default function Admin() {
 
         <MessagingSettingsSection />
         <CareAndEventSettingsSection />
+        <ReminderToneSection />
 
         {radio ? (
           <View style={styles.section}>
@@ -398,6 +399,32 @@ const METRIC_LABELS: Record<MilestoneRule['metric'], string> = {
   commitment_checkins: 'Commitment check-ins',
   answered_requests: 'Answered requests',
 };
+
+/** Reminder popups: gentle or firm by default, with 30-day results for each tone. */
+function ReminderToneSection() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof api.admin.promptSettings>> | null>(null);
+  const load = useCallback(() => {
+    api.admin.promptSettings().then(setData).catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  if (!data) return null;
+  const set = (t: 'gentle' | 'firm') => api.admin.setDefaultTone(t).then(load).catch(() => undefined);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Reminder tone</Text>
+      <Text style={type.small}>Members can choose for themselves; this is the default for everyone else.</Text>
+      <View style={styles.row}>
+        <Chip label="Gentle" selected={data.defaultTone === 'gentle'} onPress={() => set('gentle')} />
+        <Chip label="Firm" selected={data.defaultTone === 'firm'} onPress={() => set('firm')} />
+      </View>
+      {data.results.map((r) => (
+        <Text key={r.tone} style={type.small}>
+          {r.tone === 'firm' ? 'Firm' : 'Gentle'}: {r.prayed} of {r.shown} reminders led to a prayer (last 30 days)
+        </Text>
+      ))}
+    </View>
+  );
+}
 
 /** Prayer partners on call, and events. Confession stays off until a lawyer reviews it. */
 function CareAndEventSettingsSection() {

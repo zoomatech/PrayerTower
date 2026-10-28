@@ -14,6 +14,7 @@ import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
 import * as prayerActions from '../prayer-actions/index.js';
+import * as prompts from '../prompts/index.js';
 import * as radio from '../radio/index.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
@@ -159,6 +160,19 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_links_allowed: input.newMemberLinksAllowed,
       }),
     };
+  });
+
+  // Reminder popups: gentle (default) or firm tone, and how each is doing.
+  app.get('/admin/prompt-settings', async (req) => {
+    await requireAdmin(req);
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    return { defaultTone: await prompts.defaultTone(db), results: await prompts.toneResults(db, since) };
+  });
+
+  app.patch('/admin/prompt-settings', async (req) => {
+    await requireAdmin(req);
+    const { defaultTone } = z.object({ defaultTone: z.enum(['gentle', 'firm']) }).parse(req.body);
+    return { defaultTone: await prompts.setDefaultTone(db, defaultTone) };
   });
 
   // Prayer partners and pastors on call; confession stays off until a lawyer reviews it.

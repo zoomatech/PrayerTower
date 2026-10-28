@@ -24,6 +24,8 @@ export const ProfileUpdate = z
     updatesInFirstComment: z.boolean(),
     promptsEnabled: z.boolean(),
     promptMinHours: z.number().int().min(1).max(168).nullable(),
+    /** null = the app default (admin setting). */
+    promptTone: z.enum(['gentle', 'firm']).nullable(),
     feedMix: z.partialRecord(z.enum(FEED_MIX_KEYS as [FeedMixKey, ...FeedMixKey[]]), z.enum(['less', 'more'])),
     completeOnboarding: z.boolean(),
   })
@@ -42,6 +44,7 @@ const columns: Record<string, string> = {
   updatesInFirstComment: 'updates_in_first_comment',
   promptsEnabled: 'prompts_enabled',
   promptMinHours: 'prompt_min_hours',
+  promptTone: 'prompt_tone',
   feedMix: 'feed_mix',
 };
 
@@ -59,6 +62,7 @@ export interface Profile {
   updates_in_first_comment: boolean;
   prompts_enabled: boolean;
   prompt_min_hours: number | null;
+  prompt_tone: 'gentle' | 'firm' | null;
   feed_mix: FeedMix;
   onboarded_at: Date | null;
   suspended_until: Date | null;

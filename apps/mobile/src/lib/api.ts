@@ -347,6 +347,9 @@ export const api = {
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
       request<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('PATCH', '/admin/event-settings', patch),
+    promptSettings: () =>
+      get<{ defaultTone: 'gentle' | 'firm'; results: { tone: 'gentle' | 'firm'; shown: number; prayed: number }[] }>('/admin/prompt-settings'),
+    setDefaultTone: (defaultTone: 'gentle' | 'firm') => request<{ defaultTone: 'gentle' | 'firm' }>('PATCH', '/admin/prompt-settings', { defaultTone }),
     tiers: () => get<{ tiers: AdminTier[] }>('/admin/tiers'),
     updateTier: (tier: string, patch: { minPrayerEvents?: number | null; weeklyAllotment?: number | null }) =>
       request<{ tier: AdminTier }>('PATCH', `/admin/tiers/${tier}`, patch),

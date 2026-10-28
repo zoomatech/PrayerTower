@@ -144,6 +144,14 @@ export default function Profile() {
         <Toggle label="Hide graphic or trauma-related requests" value={profile.trauma_content_opt_out} onChange={(v) => update({ traumaContentOptOut: v })} />
         <Toggle label="Pray and post anonymously by default" value={profile.anonymous_by_default} onChange={(v) => update({ anonymousByDefault: v })} />
         <Toggle label="Occasional prayer reminders" value={profile.prompts_enabled} onChange={(v) => update({ promptsEnabled: v })} />
+        {profile.prompts_enabled ? (
+          <Toggle
+            label="Firmer reminders"
+            hint={'For example: "Remember, you made a commitment before God to pray for Billy."'}
+            value={profile.prompt_tone === 'firm'}
+            onChange={(v) => update({ promptTone: v ? 'firm' : 'gentle' })}
+          />
+        ) : null}
         <Toggle label="Show my updates as the first comment" value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
         <Button variant="ghost" label="Community rules" onPress={() => router.push('/rules')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
