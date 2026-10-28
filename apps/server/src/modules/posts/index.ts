@@ -149,17 +149,35 @@ export async function inCommunity(q: Queryable, userId: string, communityId: str
   return !!rowCount;
 }
 
+/**
+ * Praying across lines (switched off by default): a prayer request from another faith community
+ * whose author and the viewer both opted in. Never Open Circle or any neutral-wording community.
+ */
+export async function acrossAllowed(q: Queryable, userId: string, post: PostRow): Promise<boolean> {
+  if (post.post_type !== 'prayer_request' || post.is_sensitive || post.crisis) return false;
+  const { rowCount } = await q.query(
+    `select 1 from public.notebook_settings ns, public.communities pc, public.profiles a, public.profiles v
+      where ns.cross_community_enabled and pc.id = $2 and public.community_is_faith(pc)
+        and a.id = $3 and a.open_to_other_communities and v.id = $1 and v.open_to_other_communities and v.deleted_at is null
+        and exists (select 1 from public.community_memberships m join public.communities c on c.id = m.community_id
+                     where m.user_id = $1 and m.is_primary and c.id <> pc.id and public.community_is_faith(c))`,
+    [userId, post.community_id, post.user_id],
+  );
+  return !!rowCount;
+}
+
 /** A visible post the member may read: their own, or one in a community they belong to. */
 export async function getViewable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
   const post = await getVisible(q, postId);
-  return post && (post.user_id === userId || (await inCommunity(q, userId, post.community_id))) ? post : null;
+  if (!post) return null;
+  return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) || (await acrossAllowed(q, userId, post)) ? post : null;
 }
 
 /** A visible post the member may act on: only in their own communities, never one between people where either blocked the other. */
 export async function getActionable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
   const post = await getVisible(q, postId);
   if (!post || (await blockedBetween(q, userId, post.user_id))) return null;
-  return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) ? post : null;
+  return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) || (await acrossAllowed(q, userId, post)) ? post : null;
 }
 
 /** Request state machine. Answered is poster-only and final; amplified waits for the broadcast. */

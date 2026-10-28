@@ -234,6 +234,9 @@ export default function Profile() {
           onChange={(v) => update({ showPrayerStats: v }).then(loadStats)}
         />
         <Toggle label={t('settings.digest')} hint={t('settings.digestHint')} value={!!profile.digest_enabled} onChange={(v) => update({ digestEnabled: v })} />
+        {features.crossCommunity && wording === 'faith' ? (
+          <Toggle label={t('across.toggle')} hint={t('across.toggleHint')} value={!!profile.open_to_other_communities} onChange={(v) => update({ openToOtherCommunities: v })} />
+        ) : null}
         {features.memberTown ? <TownField town={profile.town} onSave={(town) => update({ town })} /> : null}
         <CommunityPicker />
         <LanguagePicker />

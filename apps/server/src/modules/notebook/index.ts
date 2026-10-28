@@ -32,13 +32,14 @@ export interface NotebookSettings {
   member_town_enabled: boolean;
   prize_choice_enabled: boolean;
   waitlist_enabled: boolean;
+  cross_community_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
-            urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled from public.notebook_settings`,
+            urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -60,6 +61,7 @@ export const SettingsPatch = z.object({
   memberTownEnabled: z.boolean().optional(),
   prizeChoiceEnabled: z.boolean().optional(),
   waitlistEnabled: z.boolean().optional(),
+  crossCommunityEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -72,7 +74,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        podcasts_enabled = coalesce($9, podcasts_enabled), misleading_rule_enabled = coalesce($10, misleading_rule_enabled),
        automation_rule_enabled = coalesce($11, automation_rule_enabled),
        urgency_glow_enabled = coalesce($12, urgency_glow_enabled), reaction_tray_enabled = coalesce($13, reaction_tray_enabled), member_town_enabled = coalesce($14, member_town_enabled), prize_choice_enabled = coalesce($15, prize_choice_enabled),
-       waitlist_enabled = coalesce($16, waitlist_enabled)`,
+       waitlist_enabled = coalesce($16, waitlist_enabled),
+       cross_community_enabled = coalesce($17, cross_community_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -90,6 +93,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.memberTownEnabled ?? null,
       p.prizeChoiceEnabled ?? null,
       p.waitlistEnabled ?? null,
+      p.crossCommunityEnabled ?? null,
     ],
   );
   return settings(q);
@@ -113,6 +117,7 @@ export async function features(q: Queryable) {
     reactionTray: s.reaction_tray_enabled,
     memberTown: s.member_town_enabled,
     prizeChoice: s.prize_choice_enabled,
+    crossCommunity: s.cross_community_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,

@@ -15,6 +15,7 @@ import { Highlights } from "@/components/highlights";
 import { MacroNeeds } from "@/components/macro-needs";
 import { ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
+import { AcrossCard } from "@/components/across-card";
 import { Announcements } from "@/components/announcements";
 import { LiveNow } from "@/components/live-now";
 import { SurveyPrompts } from "@/components/survey-prompts";
@@ -204,6 +205,7 @@ export default function Feed() {
         </View>
       ) : null}
       {filter === "all" ? <ThanksCard /> : null}
+      {filter === "all" ? <AcrossCard onAction={onAction} /> : null}
       <ErrorText error={error} />
     </View>
   );
