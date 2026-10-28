@@ -16,6 +16,7 @@ import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
+import * as notebook from '../notebook/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
@@ -227,6 +228,17 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/future-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await future.updateSettings(db, future.SettingsPatch.parse(req.body)) };
+  });
+
+  // Notebook ideas' switches (Batch 7): worldwide count, thanksgiving card, sermon inputs, support label.
+  app.get('/admin/notebook-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await notebook.settings(db) };
+  });
+
+  app.patch('/admin/notebook-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await notebook.updateSettings(db, notebook.SettingsPatch.parse(req.body)) };
   });
 
   // Pilot feedback from members.

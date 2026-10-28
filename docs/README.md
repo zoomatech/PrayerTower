@@ -19,7 +19,8 @@ Every doc, grouped by who it's for. The same files are in the repo under `docs/`
 | [INVITES.md](INVITES.md) | Invite-only sign-up and invite codes |
 | [CSV_IMPORT.md](CSV_IMPORT.md) | Loading a church's members (as invites) and starter requests from a spreadsheet |
 | [CHURCH_PARTNERS.md](CHURCH_PARTNERS.md) | Church partners and pastor badges |
-| TESTIMONIES_AND_STATS.md (project files) | Answered-prayer testimonies and prayer stats on Me |
+| [TESTIMONIES_AND_STATS.md](TESTIMONIES_AND_STATS.md) | Answered-prayer testimonies and prayer stats on Me |
+| [NOTEBOOK_FEATURES.md](NOTEBOOK_FEATURES.md) | Notebook ideas with their own switches: worldwide count, thanksgiving card, notes for event hosts, "positive thoughts welcome" |
 | [RADIO_STATION.md](RADIO_STATION.md) | How radio prayers go out, and the radio rules |
 | [RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md) | Installing the station on a Raspberry Pi or Debian laptop |
 | [PILOT_RESULTS_TEMPLATE.md](PILOT_RESULTS_TEMPLATE.md) | Pilot results for the sponsorship ask |
@@ -77,7 +78,7 @@ The product plans are in the project files under `roadmap/`: the product roadmap
 | [BACKGROUND_JOBS.md](BACKGROUND_JOBS.md) | Job retries, the failed-jobs list and alerts |
 | [APP_LINKS.md](APP_LINKS.md) | Shared links that open the app |
 | [LOCALIZATION.md](LOCALIZATION.md) | English and Spanish in the app and in emails |
-| SPANISH_REVIEW_CHECKLIST.md (project files) | Every Spanish string beside the English, for a native speaker |
+| [SPANISH_REVIEW_CHECKLIST.md](SPANISH_REVIEW_CHECKLIST.md) | Every Spanish string beside the English, for a native speaker |
 | [SECURITY_SCANNING.md](SECURITY_SCANNING.md) | Dependabot, npm audit and CodeQL |
 | [CODE_HEALTH.md](CODE_HEALTH.md) | Strict TypeScript, ESLint and the test coverage report |
 | [QUERY_AUDIT.md](QUERY_AUDIT.md) | Slow-query audit at 1,000 members ([full results](QUERY_AUDIT_RESULTS.md)) |

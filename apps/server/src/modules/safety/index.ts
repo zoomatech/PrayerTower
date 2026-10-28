@@ -53,12 +53,13 @@ export async function updateSettings(q: Queryable, patch: Partial<SafetySettings
 }
 
 /** New until both the waiting period has passed and they have prayed for others enough times. Staff are never new. */
+/** Staff and verified church pastors (vetted by an admin) skip the new-member limits. */
 export async function isNewMember(q: Queryable, userId: string, s: SafetySettings): Promise<boolean> {
   const { rows } = await q.query<{ age_hours: number; prayers: number; staff: boolean }>(
     `select extract(epoch from now() - p.created_at) / 3600 as age_hours,
             (select count(*)::int from public.prayer_events e join public.posts po on po.id = e.post_id
               where e.user_id = p.id and po.user_id <> p.id) as prayers,
-            exists (select 1 from public.user_roles r where r.user_id = p.id and r.role in ('admin', 'moderator')) as staff
+            exists (select 1 from public.user_roles r where r.user_id = p.id and r.role in ('admin', 'moderator', 'pastor')) as staff
        from public.profiles p where p.id = $1`,
     [userId],
   );
@@ -111,7 +112,7 @@ export async function checkFlood(q: Queryable, userId: string, action: keyof typ
     `select (select count(*)::int from public.${f.table} where user_id = $1 and created_at > now() - interval '${f.window}') as n,
             $2 <> '' and exists (select 1 from public.${f.table} where user_id = $1 and created_at > now() - interval '1 day'
                                   and lower(btrim(body)) = lower(btrim($2))) as dup,
-            exists (select 1 from public.user_roles r where r.user_id = $1 and r.role in ('admin', 'moderator')) as staff`,
+            exists (select 1 from public.user_roles r where r.user_id = $1 and r.role in ('admin', 'moderator', 'pastor')) as staff`,
     [userId, action === 'message' ? '' : text],
   );
   const r = rows[0]!;

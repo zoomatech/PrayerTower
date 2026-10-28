@@ -43,6 +43,35 @@ import { env } from './env';
 import { enqueue, flushQueue, isOffline, markOnline, OfflineError, readCached, saveCached } from './offline';
 import { supabase } from './supabase';
 
+
+/** Switches for the notebook ideas built in Batch 7. */
+export interface Features {
+  worldwideCount: boolean;
+  thanksCard: boolean;
+  sermonInputs: boolean;
+  supportLabel: boolean;
+}
+
+export type WorldwideStats =
+  | { enabled: false }
+  | { enabled: true; prayersToday: number; prayersAllTime: number; peopleToday: number; peoplePrayedForYou: number };
+
+export interface EventInput {
+  id: string;
+  body: string;
+  createdAt: string;
+  mine: boolean;
+  from: { id: string; name: string };
+}
+
+export interface NotebookSettings {
+  worldwide_count_enabled: boolean;
+  thanks_card_enabled: boolean;
+  thanks_card_days: number;
+  sermon_inputs_enabled: boolean;
+  support_label_enabled: boolean;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -386,6 +415,8 @@ export interface NewPost {
   background?: PostBackground;
   isAnonymous?: boolean;
   isSensitive?: boolean;
+  /** "Prayer and positive thoughts welcome" from people of any faith or none. */
+  allSupportWelcome?: boolean;
   media?: { kind: 'image' | 'video'; storagePath: string }[];
 }
 
@@ -557,6 +588,9 @@ export const api = {
     careSettings: () => get<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('/admin/care-settings'),
     updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number }>) =>
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('PATCH', '/admin/care-settings', patch),
+    notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean }>) =>
+      request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
       request<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('PATCH', '/admin/event-settings', patch),
@@ -646,6 +680,13 @@ export const api = {
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
+  features: () => get<{ features: Features }>('/features'),
+  worldwide: () => get<{ stats: WorldwideStats }>('/stats/worldwide'),
+  thanksCard: () => get<{ card: { show: boolean; answeredYouPrayedFor: number } }>('/me/thanks-card'),
+  dismissThanksCard: () => post<{ dismissed: true }>('/me/thanks-card/dismiss'),
+  eventInputs: (id: string) => get<{ canSeeAll: boolean; inputs: EventInput[] }>(`/events/${id}/inputs`),
+  addEventInput: (id: string, body: string) => post<{ input: { id: string; crisis: boolean } }>(`/events/${id}/inputs`, { body }),
+  removeEventInput: (id: string, inputId: string) => request<{ removed: true }>('DELETE', `/events/${id}/inputs/${inputId}`),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),

@@ -1,12 +1,24 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/i18n/*.ts"
+      ]
+    },
     "apps/mobile": {
-      "entry": ["workbox-config.js", "src/widgets/*.tsx"],
-      "ignoreDependencies": ["expo-glass-effect"]
+      "entry": [
+        "workbox-config.js",
+        "src/widgets/*.tsx"
+      ],
+      "ignoreDependencies": [
+        "expo-glass-effect"
+      ]
     },
     "apps/server": {
-      "entry": ["src/scripts/*.ts"]
+      "entry": [
+        "src/scripts/*.ts"
+      ]
     }
   },
   "ignoreExportsUsedInFile": true

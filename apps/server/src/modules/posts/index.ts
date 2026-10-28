@@ -37,6 +37,8 @@ export const NewPost = z.object({
   background: z.enum(POST_BACKGROUNDS).optional(),
   isAnonymous: z.boolean().optional(),
   isSensitive: z.boolean().default(false),
+  /** "Prayer and positive thoughts welcome": support from people of any faith or none. */
+  allSupportWelcome: z.boolean().default(false),
   media: z
     .array(z.object({ kind: z.enum(['image', 'video']), storagePath: z.string().min(1).max(500) }))
     .max(10)
@@ -54,6 +56,7 @@ export interface PostRow {
   background: string | null;
   is_anonymous: boolean;
   is_sensitive: boolean;
+  all_support_welcome: boolean;
   crisis: boolean;
   state: PostState;
   answered_at: Date | null;
@@ -74,8 +77,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     if (!m.storagePath.startsWith(`${userId}/`) || !/^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(m.storagePath.slice(userId.length + 1))) throw badRequest('Media must be uploaded through /media/upload-url');
   }
   const { rows } = await q.query<PostRow>(
-    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,
+    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id, all_support_welcome)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
     [
       userId,
       input.postType,
@@ -87,6 +90,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
       isAnonymous,
       input.isSensitive,
       await primaryCommunityId(q, userId),
+      input.allSupportWelcome,
     ],
   );
   const post = rows[0]!;
@@ -561,6 +565,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         body: r.body,
         background: r.background,
         isSensitive: r.is_sensitive,
+        allSupportWelcome: r.all_support_welcome,
         crisis: r.crisis,
         media: r.media,
         counts: r.counts,

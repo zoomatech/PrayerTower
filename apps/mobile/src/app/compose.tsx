@@ -16,13 +16,14 @@ import {
 } from '@prayer-tower/shared';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { uploadAsset } from '@/lib/media';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -34,7 +35,9 @@ const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 export default function Compose() {
   const { profile } = useAuth();
   const { t, label } = useLocale();
-  const [postType, setPostType] = useState<PostType>('prayer_request');
+  // The thanksgiving card opens the composer as a praise post.
+  const params = useLocalSearchParams<{ type?: string }>();
+  const [postType, setPostType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
   const [body, setBody] = useState('');
   const [urgency, setUrgency] = useState(0);
   const [kind, setKind] = useState<PrayerKind | undefined>();
@@ -42,6 +45,8 @@ export default function Compose() {
   const [background, setBackground] = useState<PostBackground | undefined>();
   const [anonymous, setAnonymous] = useState(profile?.anonymous_by_default ?? false);
   const [sensitive, setSensitive] = useState(false);
+  const [allSupport, setAllSupport] = useState(false);
+  const features = useFeatures();
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +78,7 @@ export default function Compose() {
           background,
           isAnonymous: anonymous,
           isSensitive: sensitive,
+          allSupportWelcome: features.supportLabel && allSupport,
         });
         if ('queued' in result) return router.back();
         return afterCreate(result.post);
@@ -87,6 +93,7 @@ export default function Compose() {
         background: assets.length ? undefined : background,
         isAnonymous: anonymous,
         isSensitive: sensitive,
+        allSupportWelcome: features.supportLabel && allSupport,
         media,
       });
       afterCreate(created.post);
@@ -207,6 +214,9 @@ export default function Compose() {
           value={sensitive}
           onChange={setSensitive}
         />
+        {features.supportLabel ? (
+          <Toggle label={t('notebook.supportToggle')} hint={t('notebook.supportHint')} value={allSupport} onChange={setAllSupport} />
+        ) : null}
       </ScrollView>
     </Screen>
   );

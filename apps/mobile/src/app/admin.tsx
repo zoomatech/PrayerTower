@@ -10,7 +10,8 @@ import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-nativ
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type PilotWeek } from '@/lib/api';
+import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -297,6 +298,7 @@ export default function Admin() {
 
         <MessagingSettingsSection />
         <CareAndEventSettingsSection />
+        <NotebookSettingsSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -557,6 +559,45 @@ function CareAndEventSettingsSection() {
           <Button label={t('admin.btn.saveEvents')} onPress={() => saveEv()} />
         </>
       ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Notebook ideas (Batch 7): each on by default, each with its own switch. */
+function NotebookSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<NotebookSettings | null>(null);
+  const [days, setDays] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: NotebookSettings) => {
+    setS(x);
+    setDays(String(x.thanks_card_days));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.notebookSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateNotebookSettings>[0] = {}) =>
+    api.admin
+      .updateNotebookSettings({ thanksCardDays: toInt(days) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('admin.saved.notebook'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.notebook')}</Text>
+      <Toggle label={t('admin.toggle.worldwide')} hint={t('admin.toggle.worldwideHint')} value={s.worldwide_count_enabled} onChange={(v) => save({ worldwideCountEnabled: v })} />
+      <Toggle label={t('admin.toggle.thanksCard')} hint={t('admin.toggle.thanksCardHint')} value={s.thanks_card_enabled} onChange={(v) => save({ thanksCardEnabled: v })} />
+      <Field label={t('admin.field.thanksDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
+      <Toggle label={t('admin.toggle.sermonInputs')} hint={t('admin.toggle.sermonInputsHint')} value={s.sermon_inputs_enabled} onChange={(v) => save({ sermonInputsEnabled: v })} />
+      <Toggle label={t('admin.toggle.supportLabel')} hint={t('admin.toggle.supportLabelHint')} value={s.support_label_enabled} onChange={(v) => save({ supportLabelEnabled: v })} />
+      <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
