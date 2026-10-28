@@ -43,6 +43,7 @@ import { stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
+import { growthPublicRoutes, growthRoutes } from './modules/growth/routes.js';
 import { registerMetrics } from './metrics.js';
 import { announcementRoutes } from './modules/announcements/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
@@ -188,6 +189,11 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
       if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
       siteRoutes(open, site, db);
     });
+    // Guest prayer and prayer-chain pages (each a 404 while its switch is off), limited per IP address.
+    app.register(async (open) => {
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 20, timeWindow: '1 minute' });
+      growthPublicRoutes(open, db, site);
+    });
   }
 
   // The Common Prayer Fund's public report (switched off by default), limited per IP address.
@@ -232,6 +238,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     witnessRoutes(authed, db);
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
+    growthRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
     aiRoutes(authed, db, converse);
     liveRoutes(authed, db);

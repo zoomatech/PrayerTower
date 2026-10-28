@@ -52,6 +52,7 @@ function openFrom(response: Notifications.NotificationResponse | null) {
   else if (typeof data?.storyId === 'string') router.push('/help-stories');
   else if (typeof data?.eventId === 'string') router.push(`/event/${data.eventId}`);
   else if (typeof data?.postId === 'string') router.push(`/post/${data.postId}`);
+  else if (data?.screen === 'prayer-minute') router.push('/prayer-minute');
 }
 
 /** Call once the member is signed in and onboarded. */

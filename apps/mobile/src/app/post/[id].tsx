@@ -6,6 +6,7 @@ import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useCardActions } from '@/components/card-actions';
 import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
+import { GuestShare } from '@/components/guest-share';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
@@ -258,6 +259,8 @@ export default function PostScreen() {
             ) : null}
           </View>
         ) : null}
+
+        {card && prayable ? <GuestShare card={card} /> : null}
 
         {card && prayable && spokenOn ? <SpokenPrayers postId={id} /> : null}
 
