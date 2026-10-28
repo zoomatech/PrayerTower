@@ -22,6 +22,7 @@ import {
   type MacroNeed,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useT } from "@/lib/i18n";
 import { colors, maxContentWidth, radius, space, type } from "@/lib/theme";
 
 /** Wide screens show the highlights in a right column; phones link to them. */
@@ -29,6 +30,7 @@ const WIDE = 1000;
 const SIDE_WIDTH = 320;
 
 export default function Feed() {
+  const t = useT();
   const { profile } = useAuth();
   const [cards, setCards] = useState<Card[]>([]);
   const [theme, setTheme] = useState<FeedTheme | null>(null);
@@ -112,10 +114,9 @@ export default function Feed() {
         accessibilityRole="button"
       >
         <Text style={styles.greeting}>
-          Welcome, {profile?.display_name || "friend"}! Let&apos;s talk to the
-          Lord.
+          {t("compose.greeting", { name: profile?.display_name || t("common.friend") })}
         </Text>
-        <Text style={styles.placeholder}>Type your prayer here…</Text>
+        <Text style={styles.placeholder}>{t("feed.composer")}</Text>
       </Pressable>
       {!wide ? (
         <Text
@@ -123,7 +124,7 @@ export default function Feed() {
           onPress={() => router.push("/highlights")}
           accessibilityRole="link"
         >
-          This week&apos;s most prayed requests and prayer warriors ›
+          {t("feed.weekLink")}
         </Text>
       ) : null}
       <MacroNeeds
@@ -141,19 +142,19 @@ export default function Feed() {
           <View style={styles.promptActions}>
             <Button
               small
-              label="I prayed"
+              label={t("feed.prayed")}
               onPress={() => answerPrompt("prayed")}
             />
             <Button
               small
               variant="secondary"
-              label="Open request"
+              label={t("feed.openRequest")}
               onPress={() => router.push(`/post/${prompt.postId}`)}
             />
             <Button
               small
               variant="ghost"
-              label="Not now"
+              label={t("feed.notNow")}
               onPress={() => answerPrompt("dismissed")}
             />
           </View>

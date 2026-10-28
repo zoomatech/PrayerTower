@@ -10,7 +10,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.zoomatech.prayertower",
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
     },
     "android": {
       "package": "com.zoomatech.prayertower",
@@ -50,11 +53,23 @@
         {
           "photosPermission": "Allow Prayer Tower to add your photos and videos to prayer posts."
         }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": [
+            "en",
+            "es"
+          ]
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "locales": {
+      "es": "./languages/es.json"
     }
   }
 }

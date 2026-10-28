@@ -1,6 +1,7 @@
 // V1 layout: the familiar single column, newest request pinned first.
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { Tr } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -12,7 +13,7 @@ export function ColumnLayout({ cards, pinnedId, renderCard, header, refreshing, 
       keyExtractor={(c) => c.id}
       renderItem={({ item }) => (
         <View>
-          {item.id === pinnedId ? <Text style={styles.pinned}>Pray for this first</Text> : null}
+          {item.id === pinnedId ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
           {renderCard(item)}
         </View>
       )}

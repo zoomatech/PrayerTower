@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/ui';
+import { Tr } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -67,7 +68,7 @@ export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing
       {header}
       {card ? (
         <>
-          {card.id === pinnedId ? <Text style={styles.pinned}>Pray for this first</Text> : null}
+          {card.id === pinnedId ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
           <View>
             <Animated.View style={[styles.hint, styles.hintPray, { opacity: prayHint }]} pointerEvents="none">
               <Text style={styles.hintText}>Pray 💜</Text>
