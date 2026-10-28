@@ -70,5 +70,6 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 ## 8. During the pilot (weekly)
 
 - [ ] Read the admin pilot report (`/admin/pilot-report`) and the metrics.
+- [ ] Fill in [PILOT_RESULTS_TEMPLATE.md](PILOT_RESULTS_TEMPLATE.md) from the pilot report CSV for the sponsorship ask.
 - [ ] Clear the moderation queue, appeals and activity flags.
 - [ ] Collect member feedback and answer the open questions listed in the PR.
