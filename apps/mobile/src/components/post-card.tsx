@@ -16,6 +16,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
+import { SparkleWords } from './sparkle-words';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 const ACTION_ICONS: Record<CardAction, string> = {
@@ -68,6 +69,7 @@ export function PostCard({ card, onAction, expanded: startExpanded = false }: { 
             </Text>
           ) : null}
         </Text>
+        {card.truncated && !expanded ? <SparkleWords body={card.body} /> : null}
       </Pressable>
 
       <CardMedia media={card.media} expanded={expanded} />

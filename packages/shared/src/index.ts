@@ -301,3 +301,34 @@ export interface WeeklyReview {
   kept: number;
   message: string;
 }
+
+// Long-post preview: the few words that carry a long request, shown under the
+// preview as a sparkling reveal. A simple keyword heuristic (frequency, length,
+// names), placeholder until a better extractor is chosen.
+const STOP_WORDS = new Set(
+  ('about above after again against all also and any are because been before being below between both but can could did does doing down during each ' +
+    'even ever every few for from further had has have having her here hers herself him himself his how into its itself just know like made make many ' +
+    'more most much must myself need never now off once only other our ours ourselves out over own please pray prayer prayers praying really same she ' +
+    'should some still such than that the their theirs them themselves then there these they thing things this those through too under until upon very ' +
+    'want was were what when where which while who whom why will with would you your yours yourself yourselves lord god jesus amen thank thanks today ' +
+    'going been another little that’s it’s i’m don’t can’t')
+    .split(/\s+/),
+);
+
+/** Up to `n` important words from a post, most important first. */
+export function importantWords(body: string, n = 4): string[] {
+  const scores = new Map<string, { word: string; score: number }>();
+  const sentenceStart = new Set<number>();
+  const tokens = [...body.matchAll(/[A-Za-z][A-Za-z’'-]{3,}/g)];
+  for (const m of body.matchAll(/(^|[.!?]\s+)([A-Za-z])/g)) sentenceStart.add((m.index ?? 0) + m[1]!.length);
+  for (const t of tokens) {
+    const word = t[0].replace(/[’'-]+$/, '');
+    const key = word.toLowerCase();
+    if (word.length < 4 || STOP_WORDS.has(key)) continue;
+    const isName = /^[A-Z]/.test(word) && !sentenceStart.has(t.index ?? -1);
+    const prev = scores.get(key);
+    const score = (prev?.score ?? 0) + 2 + word.length / 4 + (isName ? 2 : 0);
+    scores.set(key, { word: prev?.word ?? word, score });
+  }
+  return [...scores.values()].sort((a, b) => b.score - a.score).slice(0, n).map((s) => s.word);
+}
