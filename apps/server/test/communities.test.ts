@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
 import { buildDigest, renderDigest } from '../src/modules/digest/index.js';
+import * as prompts from '../src/modules/prompts/index.js';
 import { as, createUser, db, drainJobs, newRequest } from './helpers.js';
 
 afterAll(async () => {
@@ -164,5 +165,18 @@ describe('Open Circle, the non-religious community', () => {
       { display_name: 'Too Soon Sam', community: 'open-circle' },
     ]);
     expect((await as(later).get('/me')).json().community.slug).toBe('christian-ecumenical');
+  });
+
+  it('never prompts an Open Circle member to pray for a followed faith request', async () => {
+    const friend = await createUser('Faith Fran');
+    const circle = await createUser('Circle Cal');
+    await db.query('insert into public.follows (user_id, followee_id) values ($1, $2)', [circle, friend]);
+    await newRequest(friend, 'Pray for my surgery.');
+    await db.query('delete from public.community_memberships where user_id = $1', [circle]);
+    await db.query(
+      `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+      [circle],
+    );
+    expect(await prompts.next(db, circle, new Date(Date.now() + 60_000))).toBeNull();
   });
 });
