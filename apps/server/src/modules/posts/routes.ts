@@ -7,6 +7,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { AppError, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
+import { isBlocked } from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
@@ -26,6 +27,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const viewerId = requireUser(req);
     const post = await posts.get(db, req.params.id);
     if (!post || (post.moderation_status !== 'visible' && post.user_id !== viewerId)) throw notFound('Post');
+    if (post.user_id !== viewerId && (await isBlocked(db, viewerId, post.user_id))) throw notFound('Post');
     return { post: (await signMedia(storage, await posts.cards(db, [post.id], viewerId)))[0] };
   });
 

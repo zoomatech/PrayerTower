@@ -3,10 +3,13 @@ import type {
   Appeal,
   AppNotification,
   Card,
+  ChatMessage,
   Comment,
   Commitment,
   FeedPage,
   FeedThemeChoices,
+  ConversationSummary,
+  ConversationView,
   ModerationItem,
   ModerationRule,
   Person,
@@ -18,6 +21,7 @@ import type {
   PrayerRealm,
   Profile,
   Prompt,
+  PublicGroup,
   TierStatus,
   TokenSummary,
   WeeklyReview,
@@ -173,6 +177,18 @@ export interface AdminSafetySettings {
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
 }
+export interface AdminMessagingSettings {
+  prayer_messages_enabled: boolean;
+  prayer_messages_any_prayer: boolean;
+  direct_messages_enabled: boolean;
+  direct_requires_mutual_follow: boolean;
+  groups_enabled: boolean;
+  request_message_limit: number;
+  new_members_can_start: boolean;
+  new_member_messages_per_day: number;
+  group_max_members: number;
+}
+
 export interface AdminTier {
   tier: string;
   label: string;
@@ -250,7 +266,7 @@ export const api = {
     post<{ sent: number }>(`/posts/${postId}/ask`, { recipientIds, note: note || undefined }),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
-  report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>
+  report: (targetType: 'post' | 'comment' | 'message', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
@@ -289,6 +305,20 @@ export const api = {
         newMemberLinksAllowed: boolean;
       }>,
     ) => request<{ settings: AdminSafetySettings }>('PATCH', '/admin/safety-settings', patch),
+    messagingSettings: () => get<{ settings: AdminMessagingSettings }>('/admin/messaging-settings'),
+    updateMessagingSettings: (
+      patch: Partial<{
+        prayerMessagesEnabled: boolean;
+        prayerMessagesAnyPrayer: boolean;
+        directMessagesEnabled: boolean;
+        directRequiresMutualFollow: boolean;
+        groupsEnabled: boolean;
+        requestMessageLimit: number;
+        newMembersCanStart: boolean;
+        newMemberMessagesPerDay: number;
+        groupMaxMembers: number;
+      }>,
+    ) => request<{ settings: AdminMessagingSettings }>('PATCH', '/admin/messaging-settings', patch),
     tiers: () => get<{ tiers: AdminTier[] }>('/admin/tiers'),
     updateTier: (tier: string, patch: { minPrayerEvents?: number | null; weeklyAllotment?: number | null }) =>
       request<{ tier: AdminTier }>('PATCH', `/admin/tiers/${tier}`, patch),
@@ -319,6 +349,24 @@ export const api = {
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
   highlights: () => get<Highlights>('/highlights'),
+  conversations: () => get<{ conversations: ConversationSummary[] }>('/me/conversations'),
+  conversation: (id: string, before?: string) => get<ConversationView>(`/conversations/${id}${before ? `?before=${before}` : ''}`),
+  sendMessage: (id: string, body: string) => post<{ message: Pick<ChatMessage, 'id' | 'createdAt' | 'crisis'> }>(`/conversations/${id}/messages`, { body }),
+  messageRequester: (postId: string, body: string, isAnonymous = false) =>
+    post<{ conversationId: string; message: { crisis: boolean } }>(`/posts/${postId}/messages`, { body, isAnonymous }),
+  messagePerson: (userId: string, body: string) =>
+    post<{ conversationId: string; message: { crisis: boolean } }>('/conversations/direct', { userId, body }),
+  createGroup: (input: { title: string; topic?: string; isPublic: boolean; memberIds: string[] }) =>
+    post<{ conversationId: string; invited: number }>('/conversations/groups', input),
+  groups: () => get<{ groups: PublicGroup[] }>('/groups'),
+  joinGroup: (id: string) => post(`/conversations/${id}/join`),
+  inviteToGroup: (id: string, userIds: string[]) => post<{ invited: number }>(`/conversations/${id}/invite`, { userIds }),
+  acceptConversation: (id: string) => post(`/conversations/${id}/accept`),
+  leaveConversation: (id: string) => post(`/conversations/${id}/decline`),
+  markConversationRead: (id: string) => post(`/conversations/${id}/read`),
+  blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
+  block: (userId: string) => put(`/people/${userId}/block`),
+  unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

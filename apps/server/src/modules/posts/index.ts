@@ -142,7 +142,7 @@ export async function markAnswered(q: Queryable, userId: string, postId: string)
 }
 
 export async function setModerationStatus(q: Queryable, target: moderation.Target, id: string, status: ModerationStatus) {
-  const table = { post: 'posts', comment: 'comments', reaction: 'reactions' }[target];
+  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages' }[target];
   await q.query(`update public.${table} set moderation_status = $2 where id = $1`, [id, status]);
 }
 
@@ -152,6 +152,7 @@ export async function moderationSubject(q: Queryable, target: moderation.Target,
     post: 'select user_id, community_id, body as text from public.posts where id = $1',
     comment: 'select user_id, community_id, body as text from public.comments where id = $1',
     reaction: 'select user_id, community_id, note as text from public.reactions where id = $1',
+    message: 'select user_id, community_id, body as text from public.messages where id = $1',
   }[target];
   const { rows } = await q.query<{ user_id: string; community_id: string; text: string | null }>(sql, [id]);
   return rows[0] ?? null;
@@ -216,9 +217,13 @@ function presentComment(c: CommentRow, viewerId: string | null) {
 
 /** Comments in thread order: each reply follows its parent, with its depth for indenting. */
 export async function listComments(q: Queryable, postId: string, viewerId: string | null) {
-  const { rows } = await q.query<CommentRow>(`${commentSelect} where c.post_id = $1 and c.moderation_status = 'visible' order by c.id`, [
-    postId,
-  ]);
+  // Comments from anyone the viewer blocked are left out.
+  const { rows } = await q.query<CommentRow>(
+    `${commentSelect} where c.post_id = $1 and c.moderation_status = 'visible'
+       and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)
+     order by c.id`,
+    [postId, viewerId],
+  );
   const children = new Map<string | null, CommentRow[]>();
   for (const c of rows) {
     const key = c.parent_id && rows.some((r) => r.id === c.parent_id) ? c.parent_id : null;

@@ -15,6 +15,7 @@ import * as prayerActions from '../prayer-actions/index.js';
 import * as radio from '../radio/index.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
+import * as messages from '../messages/index.js';
 import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
@@ -154,6 +155,42 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_posts_per_day: input.newMemberPostsPerDay,
         new_member_comments_per_day: input.newMemberCommentsPerDay,
         new_member_links_allowed: input.newMemberLinksAllowed,
+      }),
+    };
+  });
+
+  // Messages (Features Set 2): switches and limits, placeholders until Steve decides.
+  app.get('/admin/messaging-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await messages.settings(db) };
+  });
+
+  app.patch('/admin/messaging-settings', async (req) => {
+    await requireAdmin(req);
+    const input = z
+      .object({
+        prayerMessagesEnabled: z.boolean().optional(),
+        prayerMessagesAnyPrayer: z.boolean().optional(),
+        directMessagesEnabled: z.boolean().optional(),
+        directRequiresMutualFollow: z.boolean().optional(),
+        groupsEnabled: z.boolean().optional(),
+        requestMessageLimit: z.number().int().min(1).max(20).optional(),
+        newMembersCanStart: z.boolean().optional(),
+        newMemberMessagesPerDay: z.number().int().min(0).max(10_000).optional(),
+        groupMaxMembers: z.number().int().min(2).max(100_000).optional(),
+      })
+      .parse(req.body);
+    return {
+      settings: await messages.updateSettings(db, {
+        prayer_messages_enabled: input.prayerMessagesEnabled,
+        prayer_messages_any_prayer: input.prayerMessagesAnyPrayer,
+        direct_messages_enabled: input.directMessagesEnabled,
+        direct_requires_mutual_follow: input.directRequiresMutualFollow,
+        groups_enabled: input.groupsEnabled,
+        request_message_limit: input.requestMessageLimit,
+        new_members_can_start: input.newMembersCanStart,
+        new_member_messages_per_day: input.newMemberMessagesPerDay,
+        group_max_members: input.groupMaxMembers,
       }),
     };
   });

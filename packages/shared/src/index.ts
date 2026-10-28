@@ -206,7 +206,7 @@ export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner'
 
 export interface ModerationItem {
   id: string;
-  target_type: 'post' | 'comment' | 'reaction';
+  target_type: 'post' | 'comment' | 'reaction' | 'message';
   target_id: string;
   source: 'report' | 'ai' | 'crisis';
   reason: string | null;
@@ -332,3 +332,62 @@ export function importantWords(body: string, n = 4): string[] {
   }
   return [...scores.values()].sort((a, b) => b.score - a.score).slice(0, n).map((s) => s.word);
 }
+
+// Messages (Features Set 2: pray-er-to-prayee, direct, group chats) ------------
+
+export type ConversationKind = 'prayer' | 'direct' | 'group';
+
+/** A row in the Messages tab. */
+export interface ConversationSummary {
+  id: string;
+  kind: ConversationKind;
+  postId: string | null;
+  title: string;
+  topic: string | null;
+  isPublic: boolean;
+  /** A message request or group invite waiting on me. */
+  isRequest: boolean;
+  isOwner: boolean;
+  memberCount: number;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  unread: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  mine: boolean;
+  author: string;
+  body: string;
+  crisis: boolean;
+  createdAt: string;
+}
+
+export interface ConversationView {
+  conversation: {
+    id: string;
+    kind: ConversationKind;
+    title: string;
+    topic: string | null;
+    isPublic: boolean;
+    isRequest: boolean;
+    isOwner: boolean;
+    /** I started it and the other person hasn't replied yet. */
+    awaitingReply: boolean;
+    post: { id: string; excerpt: string } | null;
+    /** Everyone but me; id is null for anonymous members. */
+    members: { id: string | null; name: string; invited: boolean; isOwner: boolean }[];
+  };
+  messages: ChatMessage[];
+}
+
+export interface PublicGroup {
+  id: string;
+  title: string;
+  topic: string | null;
+  memberCount: number;
+  joined: boolean;
+  lastMessageAt: string | null;
+}
+
+export const MESSAGE_MAX_CHARS = 2000;
