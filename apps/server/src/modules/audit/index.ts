@@ -33,7 +33,12 @@ const SHAPE_BODY: Record<string, (body: Record<string, unknown>) => Record<strin
   'POST /admin/invites/:code/email': ({ email: _email, ...rest }) => rest,
 };
 const MAX_BODY_CHARS = 4000;
-const EMAIL = /[^\s@"<>,;:]+@[^\s@"<>,;:]+\.[a-z]{2,}/gi;
+/** Runs of text between separators; each run is checked for an email address without backtracking. */
+const WORD = /[^\s"<>,;:]+/g;
+const looksLikeEmail = (w: string) => {
+  const at = w.indexOf('@');
+  return at > 0 && w.indexOf('.', at + 2) !== -1;
+};
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function auditedAction(method: string, url: string | undefined): string | null {
@@ -47,7 +52,7 @@ export const bodyOf = (action: string, body: unknown) => {
   const shape = SHAPE_BODY[action];
   if (shape && typeof body === 'object' && !Array.isArray(body)) body = shape(body as Record<string, unknown>);
   // Any other email address (an invite note, a free-text field) is blanked as well.
-  const json = JSON.stringify(body).replace(EMAIL, '[email]');
+  const json = JSON.stringify(body).replace(WORD, (w) => (looksLikeEmail(w) ? '[email]' : w));
   return json.length > MAX_BODY_CHARS ? { truncated: json.slice(0, MAX_BODY_CHARS) } : JSON.parse(json);
 };
 
