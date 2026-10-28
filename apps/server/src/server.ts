@@ -9,7 +9,7 @@ import { defaultLegalDir } from './modules/site/index.js';
 
 loadDotEnv();
 const config = loadConfig();
-const db = createPool(config.DATABASE_URL);
+const db = createPool(config.DATABASE_URL, config.DATABASE_POOL_MAX);
 
 // The API enqueues jobs, so the job queue schema must exist before it serves.
 await runMigrations({ pgPool: db });

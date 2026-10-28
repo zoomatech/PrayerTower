@@ -436,8 +436,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
     [postIds],
   );
   const topByPost = new Map(tops.map((t) => [t.post_id, t]));
-  const reach = await Promise.all(postIds.map((id) => tokens.reachOf(q, id)));
-  const reachByPost = new Map(postIds.map((id, i) => [id, reach[i]!]));
+  // One query, not one per card: parallel per-card queries took every pool connection (load test 2026-10-28).
+  const reachByPost = await tokens.reachOfMany(q, postIds);
 
   // The viewer's own active commitment on each post (vine tendrils, "Committed" state).
   const { rows: mine } = await q.query<{ post_id: string; id: string; frequency: string }>(

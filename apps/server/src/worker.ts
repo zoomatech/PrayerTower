@@ -5,7 +5,7 @@ import { buildTaskList, crontab } from './tasks.js';
 
 loadDotEnv();
 const config = loadConfig();
-const db = createPool(config.DATABASE_URL);
+const db = createPool(config.DATABASE_URL, config.DATABASE_POOL_MAX);
 
 // Stateless: run as many worker processes as needed against the same database.
 const runner = await run({
