@@ -47,6 +47,8 @@ What the script does, in order:
 - it waits until the project is healthy, then saves the address, the publishable and secret keys, and the session-pooler `DATABASE_URL` ([pooler config](https://supabase.com/docs/reference/api/v1-get-pooler-config)) into `deploy/production.env`, which is gitignored and readable only by its owner;
 - it runs `scripts/go-live.sh --migrate-only`, which pushes the migrations and sets up sign-in.
 
+A project made by hand in the dashboard works too: name it **Prayer Tower** and keep the defaults (Data API on; "Automatically expose new tables" and "Enable automatic RLS" off, because the migrations revoke all Data API access and the API server talks to Postgres directly). Click **Copy** next to the database password and save it in your password manager. The script finds the project by name. When it asks for the password, copy it again, and it reads it from the clipboard.
+
 The token must be able to create projects, read API keys and their secrets, read the pooler config, and change Auth settings. A full-access token works. If the dashboard only offers scoped tokens, give it Read-write on everything. Free projects pause after a week with too little database activity, which the running API and worker prevent ([pausing](https://supabase.com/kb/faqs/platform/free-project-pausing)).
 
 **By hand instead:**

@@ -6,17 +6,20 @@
 # scripts/go-live.sh --migrate-only. Never runs the demo seed.
 #
 #   scripts/supabase-setup.sh           # token from SUPABASE_ACCESS_TOKEN, the env file, or the Mac clipboard
-#   PROJECT_NAME=prayer-tower REGION=americas scripts/supabase-setup.sh
+#   PROJECT_NAME="Prayer Tower" REGION=americas scripts/supabase-setup.sh
 #
 # Steve's part is only signing up and copying a token (docs/GO_LIVE.md → Supabase Cloud).
-# Re-running is safe: an existing project with the same name is reused.
+# Re-running is safe: an existing project with the same name is reused. For a project made by
+# hand in the dashboard, the script asks for its database password: copy it (from your
+# password manager) and run again, and the script reads it from the clipboard. Never paste
+# the token or the password into a chat.
 # APIs: https://supabase.com/docs/guides/integrations/supabase-for-platforms
 #       https://supabase.com/docs/reference/api/v1-get-pooler-config
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 env_file=${ENV_FILE:-$root/deploy/production.env}
-name=${PROJECT_NAME:-prayer-tower}
+name=${PROJECT_NAME:-Prayer Tower}
 region=${REGION:-americas}
 api=https://api.supabase.com/v1
 log() { printf '\n==> %s\n' "$*"; }
@@ -76,7 +79,11 @@ if [ -z "$ref" ]; then
   echo "Created project $ref."
 else
   echo "Reusing project $ref."
-  [ -n "$pass" ] || die "project $name exists but SUPABASE_DB_PASSWORD is not in $env_file; reset it in Project Settings → Database"
+  if [ -z "$pass" ] && command -v pbpaste >/dev/null; then
+    clip=$(pbpaste | tr -d '\r\n')
+    case "$clip" in ''|sbp_*) ;; *) pass=$clip; put SUPABASE_DB_PASSWORD "$pass"; echo "Read the database password from the clipboard." ;; esac
+  fi
+  [ -n "$pass" ] || die "project \"$name\" exists: copy its database password (from your password manager), then run this again"
 fi
 put SUPABASE_PROJECT_REF "$ref"
 
