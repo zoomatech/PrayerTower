@@ -20,6 +20,14 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     notices: 'Avisos',
     me: 'Yo',
   },
+  menu: {
+    go: 'Ir',
+    newRequest: 'Nueva petición de oración',
+    back: 'Atrás',
+    notificationSettings: 'Ajustes de notificaciones…',
+    tour: 'Recorrido por Prayer Tower',
+    feedback: 'Enviar comentarios…',
+  },
   language: {
     heading: 'Idioma',
     system: 'Según el teléfono',

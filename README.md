@@ -30,7 +30,7 @@ On a phone, set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_SUPABASE_URL` to your com
 
 Push notifications need a development or store build on a real device (not simulators, web, or Expo Go on Android) and an EAS project ID: run `npx eas init` in `apps/mobile` once, then the app registers its push token after onboarding and a tapped notice opens its request. The server sends through the Expo Push Service; set `PUSH_ENABLED=1` (and optionally `EXPO_ACCESS_TOKEN`) in `apps/server/.env`.
 
-The pilot build is iPhone only (`ios.supportsTablet: false` in `apps/mobile/app.json`). Expo generates the Xcode project, so settings live in `app.json` and `apps/mobile/plugins/`, not in `ios/`. On a Mac with Xcode: `cd apps/mobile && npx expo prebuild -p ios && xed ios`.
+The app runs on iPhone, iPad and Mac ("Designed for iPad"), with menu bar commands and keyboard shortcuts on Mac and iPad; see [docs/MAC_AND_IPAD.md](docs/MAC_AND_IPAD.md). Expo generates the Xcode project, so settings live in `app.json` and `apps/mobile/plugins/`, not in `ios/`. On a Mac with Xcode: `cd apps/mobile && npx expo prebuild -p ios && xed ios`.
 
 Make yourself the first admin after signing up: `npm run grant-role -- you@example.com admin`.
 

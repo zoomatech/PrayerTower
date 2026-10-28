@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { api, sendQueued } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { LocaleProvider, useLocale } from '@/lib/i18n';
+import { useMenuCommands } from '@/lib/menu-commands';
 import { withMonitoring } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
 import { Button } from '@/components/ui';
@@ -16,6 +17,7 @@ function RootStack() {
   const { session, profile, loading, profileError, refreshProfile, signOut } = useAuth();
   const { language } = useLocale();
   usePush(!!session && !!profile?.onboarded_at);
+  useMenuCommands(!!session && !!profile?.onboarded_at);
   // The server sends notifications in the member's language.
   useEffect(() => {
     if (profile && profile.locale !== language) api.updateMe({ locale: language }).catch(() => undefined);
