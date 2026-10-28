@@ -422,6 +422,11 @@ export const api = {
   witnessNotes: (id: string) => get<{ notes: { id: string; body: string; helpKind: string | null; author: string; createdAt: string }[] }>(`/witness/cases/${id}/notes`),
   witnessNote: (id: string, body: string, helpKind?: string) => post(`/witness/cases/${id}/notes`, { body, helpKind }),
   witnessUpdate: (id: string, patch: { status?: WitnessStatus; assignToMe?: boolean }) => request('PATCH', `/witness/cases/${id}`, patch),
+  activityFlags: () =>
+    get<{ flags: { id: string; userId: string; name: string; reason: 'too_many' | 'too_regular'; details: { taps: number; gapStddevSeconds: number | null }; createdAt: string }[] }>(
+      '/moderation/activity-flags',
+    ),
+  decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),

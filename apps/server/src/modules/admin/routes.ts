@@ -7,6 +7,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
+import * as activity from '../activity/index.js';
 import * as care from '../care/index.js';
 import * as commitments from '../commitments/index.js';
 import * as events from '../events/index.js';
@@ -160,6 +161,17 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_links_allowed: input.newMemberLinksAllowed,
       }),
     };
+  });
+
+  // Bot signals on prayer taps.
+  app.get('/admin/activity-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await activity.settings(db) };
+  });
+
+  app.patch('/admin/activity-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await activity.updateSettings(db, activity.SettingsPatch.parse(req.body)) };
   });
 
   // Reminder popups: gentle (default) or firm tone, and how each is doing.
