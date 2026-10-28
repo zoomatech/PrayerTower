@@ -119,13 +119,15 @@ describe('priestly tokens', () => {
 });
 
 describe('feed styles', () => {
-  it('offers Classic by default and lets a member switch to Vine or Flip and back', async () => {
+  it('offers Classic by default and lets a member switch to Vine, Flip or Swipe to pray and back', async () => {
     const u = await createUser('Styler');
     const choices = (await as(u).get('/me/feed-themes')).json();
     expect(choices.current).toBe('column');
-    expect(choices.themes.map((t: { slug: string }) => t.slug).sort()).toEqual(['column', 'flip', 'vine']);
+    expect(choices.themes.map((t: { slug: string }) => t.slug).sort()).toEqual(['column', 'flip', 'swipe', 'vine']);
     expect((await as(u).put('/me/feed-theme', { slug: 'vine' })).json().current).toBe('vine');
     expect((await as(u).get('/feed')).json().theme.layout).toBe('vine');
+    expect((await as(u).put('/me/feed-theme', { slug: 'swipe' })).json().current).toBe('swipe');
+    expect((await as(u).get('/feed')).json().theme.layout).toBe('carousel');
     expect((await as(u).put('/me/feed-theme', { slug: 'nope' })).statusCode).toBe(404);
     expect((await as(u).put('/me/feed-theme', { slug: null })).json().current).toBe('column');
   });

@@ -170,6 +170,7 @@ export default function Feed() {
           onRefresh={load}
           onEndReached={loadMore}
           atEnd={nextPage === null}
+          onAction={onAction}
         />
       </View>
       {wide ? (
