@@ -99,13 +99,17 @@ describe('guest prayer', () => {
     const asker = await createUser('Joseph Answered');
     const post = await newRequest(asker);
     const { path } = (await as(asker).post(`/posts/${post.id}/guest-link`)).json().link;
-    await form(path, { firstName: 'Lee', email: 'lee@example.org', notify: 'on' });
+    await form(path, { firstName: 'Lee <i>', email: 'lee@example.org', notify: 'on' });
     await form(path, { firstName: 'Kim', email: 'kim@example.org' }, '198.51.100.20'); // no tick: not kept
     expect((await as(asker).post(`/posts/${post.id}/answered`, { testimony: 'Surgery went well!' })).statusCode).toBe(200);
     await job('growth_guest_answered', { postId: post.id });
     expect(outbox.map((m) => m.to)).toEqual(['lee@example.org']);
     expect(outbox[0]!.text).toContain('Surgery went well!');
     expect(outbox[0]!.text).toContain('ask Joseph for an invite');
+    // The text email is plain; the HTML one escapes what people typed.
+    expect(outbox[0]!.text).toContain('Hi Lee <i>,');
+    expect(outbox[0]!.html).toContain('Hi Lee &lt;i&gt;,');
+    expect(outbox[0]!.html).not.toContain('<i>');
     const { rows } = await db.query('select email, answered_sent_at is not null as sent from public.guest_prayers where post_id = $1 order by created_at', [post.id]);
     expect(rows).toEqual([
       { email: null, sent: true },
@@ -186,6 +190,7 @@ describe('prayer chain', () => {
     expect(outbox[0]!.text).toContain('church picnic');
     expect(outbox[0]!.text).toContain('https://api.example.org/pray/');
     expect(outbox[0]!.text).toContain(`https://api.example.org/chain/${token}`);
+    expect(outbox[0]!.html).toContain(`<a href="https://api.example.org/chain/${token}">`);
 
     await form(`/chain/${token}`, { join: 'no' });
     expect((await as(owner).get('/me/prayer-chain')).json().people[0].status).toBe('left');

@@ -255,7 +255,11 @@ export interface MailContext {
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-const html = (paras: string[]) => paras.map((p) => `<p>${p}</p>`).join('\n');
+/** Plain-text lines in, the email's text and HTML out: everything escaped, and web addresses made links. */
+const message = (lines: string[]) => ({
+  text: lines.join('\n\n'),
+  html: lines.map((l) => `<p>${esc(l).replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}">${u}</a>`)}</p>`).join('\n'),
+});
 
 /** Each guest who left an address hears once; the address is erased as it goes out. */
 export function guestAnsweredTask(q: Queryable, ctx: MailContext): Task {
@@ -273,19 +277,18 @@ export function guestAnsweredTask(q: Queryable, ctx: MailContext): Task {
     );
     for (const g of rows) {
       const lines = [
-        `${g.first_name ? `Hi ${esc(g.first_name)},` : 'Hello,'}`,
+        `${g.first_name ? `Hi ${g.first_name},` : 'Hello,'}`,
         secular
-          ? `Good news: ${name ? esc(name) : 'the person you supported'} says things worked out. Thank you for thinking of them.`
-          : `Good news: ${name ? esc(name) : 'the person you prayed for'} marked their prayer request answered. Thank you for praying.`,
-        ...(post.testimony ? [`In their words: “${esc(post.testimony.slice(0, 600))}”`] : []),
-        `${brand} is a small, ad-free, invite-only community. If you'd like to join, ask ${name ? esc(name) : 'the person who shared the link'} for an invite${ctx.siteUrl ? `, or read about it at ${esc(ctx.siteUrl)}` : ''}.`,
+          ? `Good news: ${name ? name : 'the person you supported'} says things worked out. Thank you for thinking of them.`
+          : `Good news: ${name ? name : 'the person you prayed for'} marked their prayer request answered. Thank you for praying.`,
+        ...(post.testimony ? [`In their words: “${post.testimony.slice(0, 600)}”`] : []),
+        `${brand} is a small, ad-free, invite-only community. If you'd like to join, ask ${name ? name : 'the person who shared the link'} for an invite${ctx.siteUrl ? `, or read about it at ${ctx.siteUrl}` : ''}.`,
         'You will not get any more email from us about this request.',
       ];
       await ctx.mailer({
         to: g.email,
         subject: secular ? 'Good news from someone you supported' : 'Good news: a prayer you prayed was answered',
-        html: html(lines),
-        text: lines.map((l) => l.replace(/<[^>]+>/g, '')).join('\n\n'),
+        ...message(lines),
       });
       await q.query('update public.guest_prayers set answered_sent_at = now(), email = null where id = $1', [g.id]);
     }
@@ -390,20 +393,19 @@ export function chainConfirmTask(q: Queryable, ctx: MailContext): Task {
     const url = `${ctx.siteUrl}/chain/${m.token}`;
     const lines = entry.secular
       ? [
-          `${esc(entry.ownerName)} would like to send you their requests for support by email, so you can let them know you're thinking of them.`,
-          `To say yes or no, open: <a href="${esc(url)}">${esc(url)}</a>`,
+          `${entry.ownerName} would like to send you their requests for support by email, so you can let them know you're thinking of them.`,
+          `To say yes or no, open: ${url}`,
           "If you do nothing, you won't get any more email.",
         ]
       : [
-          `${esc(entry.ownerName)} would like to add you to their prayer chain, so their prayer requests reach you by email.`,
-          `To say yes or no, open: <a href="${esc(url)}">${esc(url)}</a>`,
+          `${entry.ownerName} would like to add you to their prayer chain, so their prayer requests reach you by email.`,
+          `To say yes or no, open: ${url}`,
           "If you do nothing, you won't get any more email.",
         ];
     await ctx.mailer({
       to: m.email,
       subject: entry.secular ? `${entry.ownerName} asked to keep you posted` : `${entry.ownerName} asked you to join their prayer chain`,
-      html: html(lines),
-      text: lines.map((l) => l.replace(/<[^>]+>/g, '')).join('\n\n'),
+      ...message(lines),
     });
   };
 }
@@ -426,18 +428,17 @@ export function chainSendTask(q: Queryable, ctx: MailContext): Task {
     for (const m of rows) {
       const leave = `${ctx.siteUrl}/chain/${m.token}`;
       const lines = [
-        secular ? `${esc(name)} shared a request with you:` : `${esc(name)} asks for your prayers:`,
-        `“${esc(post.body.slice(0, 1500))}”`,
+        secular ? `${name} shared a request with you:` : `${name} asks for your prayers:`,
+        `“${post.body.slice(0, 1500)}”`,
         secular
-          ? `Let them know you're thinking of them (no app or account needed): <a href="${esc(prayUrl)}">${esc(prayUrl)}</a>`
-          : `Tap here once you've prayed (no app or account needed): <a href="${esc(prayUrl)}">${esc(prayUrl)}</a>`,
-        `To stop these emails: <a href="${esc(leave)}">${esc(leave)}</a>`,
+          ? `Let them know you're thinking of them (no app or account needed): ${prayUrl}`
+          : `Tap here once you've prayed (no app or account needed): ${prayUrl}`,
+        `To stop these emails: ${leave}`,
       ];
       await ctx.mailer({
         to: m.email,
         subject: secular ? `${name} shared a request with you` : `${name} asks for your prayers`,
-        html: html(lines),
-        text: lines.map((l) => l.replace(/<[^>]+>/g, '')).join('\n\n'),
+        ...message(lines),
       });
     }
   };
