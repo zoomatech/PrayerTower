@@ -32,6 +32,13 @@ describe('radio station', () => {
     const amateur = await station('/station/claim');
     expect(amateur.statusCode).toBe(409);
     expect(amateur.json().message).toMatch(/Amateur rules/);
+    // So members can't pay for a prayer the station would never send.
+    const payer = await createUser('Paying Sender');
+    const paid = await newRequest(payer, 'Pray for my exams.');
+    const refused = await as(payer).post(`/posts/${paid.id}/radio`, { idempotencyKey: 'st-paid' });
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().message).toMatch(/Radio prayers are paused/);
+    expect((await db.query('select 1 from public.radio_prayers where post_id = $1', [paid.id])).rowCount).toBe(0);
     await tokens.updateSettings(db, { radio_funding: 'free' });
     expect((await station('/station/claim', {}, 'wrong-key-wrong-key-wrong-key-00')).statusCode).toBe(401);
     expect((await app.inject({ method: 'POST', url: '/station/claim' })).statusCode).toBe(401);

@@ -50,7 +50,12 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   if (amplify && s.radio_funding !== 'free') {
     throw conflict('Amplify is only available while radio prayers are free: amateur radio rules forbid tying a transmission to payment.');
   }
-  const repeats = amplify ? (await stationSettings(q)).radio_amplify_repeats : 1;
+  const station = await stationSettings(q);
+  // The station won't send paid prayers (claimNext), so don't take tokens for one it would never send.
+  if (station.radio_transmitter === 'station' && station.radio_station_requires_free && s.radio_funding !== 'free') {
+    throw conflict('Radio prayers are paused: the station only sends while they are free. An admin can turn on “Radio prayers are free” on the Admin screen.');
+  }
+  const repeats = amplify ? station.radio_amplify_repeats : 1;
   const cost = s.radio_funding === 'free' ? 0 : s.radio_prayer_cost;
   const t = cost > 0 ? await tokens.spendOnRadio(q, userId, cost, key) : null;
   const { rows } = await q.query<RadioPrayer>(
@@ -86,12 +91,22 @@ type QueuedPrayer = { id: string; post_id: string; body: string; poster_id: stri
 
 /** A prayer that will never go out gives back the Priestly tokens spent on it. */
 async function failAndRefund(q: Queryable, id: string, error: string) {
-  const { rows } = await q.query<{ transfer_id: string | null; user_id: string }>(
-    `update public.radio_prayers set status = 'failed', error = $2 where id = $1 returning transfer_id, user_id`,
+  const { rows } = await q.query<{ transfer_id: string | null; user_id: string; post_id: string }>(
+    `update public.radio_prayers set status = 'failed', error = $2 where id = $1 returning transfer_id, user_id, post_id`,
     [id, error.slice(0, 500)],
   );
-  const transferId = rows[0]?.transfer_id;
-  if (transferId) await tokens.clawback(q, transferId, rows[0]!.user_id, 'Radio prayer not sent: refunded');
+  const r = rows[0];
+  if (!r) return;
+  if (r.transfer_id) await tokens.clawback(q, r.transfer_id, r.user_id, 'Radio prayer not sent: refunded');
+  // Tell the sender, without the reason: it can name a moderator's decision or the station's fault.
+  await notifications.notify(q, r.user_id, {
+    kind: 'radio_not_sent',
+    title: "A radio prayer you sent didn't go out",
+    body: r.transfer_id ? 'Your Priestly token is back in your balance.' : 'You can still pray for the request.',
+    t: { key: 'radio_not_sent', params: { refunded: !!r.transfer_id } },
+    data: { postId: r.post_id },
+    dedupeKey: `radio_not_sent:${id}`,
+  });
 }
 
 export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitter): Task {

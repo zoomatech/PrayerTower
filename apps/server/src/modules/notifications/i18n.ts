@@ -76,6 +76,10 @@ const es: Record<string, Template> = {
     title: 'Tu petición salió como oración por radio',
     body: 'Alguien la envió para que más personas puedan orar contigo.',
   }),
+  radio_not_sent: (p) => ({
+    title: 'Una oración por radio que enviaste no salió',
+    body: p.refunded ? 'Tu ficha sacerdotal volvió a tu saldo.' : 'Todavía puedes orar por la petición.',
+  }),
   scheduled_spend_failed: (p) => ({ title: 'Un regalo programado no se envió', body: s(p.body) }),
   weekly_review: (p) => ({ title: 'Tu semana en oración', body: s(p.body) }),
   answered: (p) => ({ title: 'Una oración que hiciste fue contestada', body: `${s(p.who, 'Alguien')} marcó su petición como contestada. Gracias por orar.` }),
