@@ -14,6 +14,7 @@ import { useCardActions } from "@/components/card-actions";
 import { Highlights } from "@/components/highlights";
 import { MacroNeeds } from "@/components/macro-needs";
 import { PostCard } from "@/components/post-card";
+import { Announcements } from "@/components/announcements";
 import { OfflineBanner } from "@/components/offline-banner";
 import { Button, ErrorText, Screen } from "@/components/ui";
 import { layoutFor } from "@/layouts";
@@ -135,6 +136,7 @@ export default function Feed() {
   const header = (
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
       <OfflineBanner savedAt={savedAt} />
+      <Announcements />
       <Pressable
         style={styles.composer}
         onPress={() => router.push("/compose")}

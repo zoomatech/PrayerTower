@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
 import { useLocale, useT, type T } from '@/lib/i18n';
@@ -236,12 +237,14 @@ export default function Admin() {
             <Button variant="secondary" label={t('admin.auditLog')} onPress={() => router.push('/audit-log')} />
             <Button variant="secondary" label={t('admin.invites')} onPress={() => router.push('/invites')} />
             <Button variant="secondary" label={t('admin.churches')} onPress={() => router.push('/churches')} />
+            <Button variant="secondary" label={t('admin.announcements')} onPress={() => router.push('/announcements')} />
           </View>
         ) : null}
 
         {tokens ? (
           <View style={styles.section}>
             <Text style={type.heading}>{t('admin.tokens')}</Text>
+            <LedgerCheckPanel />
             <Toggle
               label={t('admin.radioFree')}
               hint={t('admin.radioFreeHint')}

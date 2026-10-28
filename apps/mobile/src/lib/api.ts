@@ -219,6 +219,28 @@ export interface Highlights {
   topWarriors: { id: string | null; displayName: string; prayers: number }[];
 }
 
+export interface LedgerCheck {
+  id: string;
+  checkedAt: string;
+  ok: boolean;
+  accountsChecked: number;
+  transfersChecked: number;
+  problems: ({ check: 'balance_mismatch' | 'currency_total' | 'negative_balance' | 'clawback_mismatch' } & Record<string, string>)[];
+  triggeredBy: string | null;
+}
+
+export interface Announcement {
+  id: string;
+  kind: 'banner' | 'notice';
+  title: string;
+  body: string;
+  titleEs: string | null;
+  bodyEs: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  createdAt: string;
+}
+
 export interface Invite {
   code: string;
   note: string;
@@ -321,6 +343,8 @@ export interface NewPost {
 export const api = {
   /** Public: whether sign-up needs an invite code. */
   signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
+  announcements: () => get<{ announcements: Announcement[] }>('/announcements'),
+  dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
   me: () => cachedGet<{ profile: Profile; roles: Role[] }>('me', '/me'),
   sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
@@ -421,6 +445,12 @@ export const api = {
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
+    ledgerChecks: () => get<{ checks: LedgerCheck[] }>('/admin/ledger-checks'),
+    runLedgerCheck: () => post<{ check: LedgerCheck }>('/admin/ledger-checks'),
+    announcements: () => get<{ announcements: (Announcement & { active: boolean; dismissals: number })[] }>('/admin/announcements'),
+    createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
+      post<{ announcement: Announcement }>('/admin/announcements', input),
+    endAnnouncement: (id: string) => post<{ announcement: Announcement }>(`/admin/announcements/${id}/end`),
     invites: () => get<{ inviteOnly: boolean; invites: Invite[] }>('/admin/invites'),
     createInvites: (input: { note?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
       post<{ invites: Invite[] }>('/admin/invites', input),
