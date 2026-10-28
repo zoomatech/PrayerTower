@@ -39,6 +39,8 @@ test('an Open Circle member never sees religious wording', async ({ page }) => {
   // Ruth moves to Open Circle, leaving her Christian-feed requests behind.
   await db.query('delete from public.community_memberships where user_id = $1', [ruth]);
   await db.query("insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'", [ruth]);
+  // Earlier tests post as Ruth; age those posts so the new-member limit (3 a day) leaves room for one more.
+  await db.query("update public.posts set created_at = created_at - interval '2 days' where user_id = $1", [ruth]);
   const { rows: written } = await db.query<{ body: string }>('select body from public.posts where user_id = $1', [ruth]);
 
   // Tall enough to show most of each screen in one screenshot.
