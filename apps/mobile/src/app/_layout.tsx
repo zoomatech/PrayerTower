@@ -52,6 +52,8 @@ function RootStack() {
   }
   const signedIn = !!session;
   const onboarded = !!profile?.onboarded_at;
+  // Every screen must be listed in one of the groups below. A screen left out is
+  // open to everyone, and Expo Router sends a signed-out visitor to it.
   // On the web every screen sits in one main landmark, so screen readers can jump to it (axe "region").
   return (
     <View role={Platform.OS === 'web' ? 'main' : undefined} style={{ flex: 1 }}>
@@ -91,6 +93,9 @@ function RootStack() {
           <Stack.Screen name="care" />
           <Stack.Screen name="witness" />
           <Stack.Screen name="event/[id]" />
+          <Stack.Screen name="church" />
+          <Stack.Screen name="churches" />
+          <Stack.Screen name="help-stories" />
         </Stack.Protected>
       </Stack>
     </View>
