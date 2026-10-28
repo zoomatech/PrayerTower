@@ -10,8 +10,7 @@ create table public.milestone_rules (
   amount int not null check (amount between 1 and 100000),
   currency public.token_currency not null default 'regular',
   enabled boolean not null default false,
-  created_at timestamptz not null default now(),
-  unique (metric, threshold, currency)
+  created_at timestamptz not null default now()
 );
 
 create table public.milestone_awards (
