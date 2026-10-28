@@ -59,7 +59,7 @@ Rehearsed 2026-10-28 on the staging stack. A release broke the feed, and its mig
 
 ## Last result
 
-Local stack, 2026-10-28: backup 4 s, restore 1 s, 101 tables with matching counts, ledger balanced. CI runs the drill after the server tests on every pull request.
+Local stack, 2026-10-28 (batch 14 regression): backup 4 s, restore 1 s, 116 tables with matching counts, ledger balanced. CI runs the drill after the server tests on every pull request.
 
 ## Schedule (default)
 
