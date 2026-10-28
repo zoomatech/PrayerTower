@@ -1,12 +1,12 @@
 // Small shared building blocks.
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 import { useT } from '@/lib/i18n';
 
-export function Screen({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+export function Screen({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <View style={[styles.inner, style]}>{children}</View>

@@ -26,11 +26,10 @@ import { useAuth } from "@/lib/auth";
 import { useT } from "@/lib/i18n";
 import { useOffline } from "@/lib/offline";
 import { updatePrayWidget } from "@/lib/pray-widget";
-import { colors, maxContentWidth, radius, space, type } from "@/lib/theme";
+import { breakpoints, colors, maxContentWidth, radius, space, type } from "@/lib/theme";
 import { tourSeen } from "@/lib/tour";
 
 /** Wide screens show the highlights in a right column; phones link to them. */
-const WIDE = 1000;
 const SIDE_WIDTH = 320;
 
 export default function Feed() {
@@ -46,7 +45,9 @@ export default function Feed() {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [needs, setNeeds] = useState<MacroNeed[]>([]);
   const [highlights, setHighlights] = useState<HighlightsData | null>(null);
-  const wide = useWindowDimensions().width >= WIDE;
+  const width = useWindowDimensions().width;
+  const wide = width >= breakpoints.split;
+  const columns = width >= breakpoints.twoColumnFeed ? 2 : 1;
   const loadingMore = useRef(false);
 
   // First time on this device: show the short tour once.
@@ -191,8 +192,8 @@ export default function Feed() {
   );
 
   return (
-    <Screen style={wide ? styles.wideScreen : undefined}>
-      <View style={wide ? styles.feedColumn : styles.fill}>
+    <Screen style={wide ? [styles.wideScreen, { maxWidth: columns * maxContentWidth + (columns - 1) * space.lg + SIDE_WIDTH + space.lg }] : undefined}>
+      <View style={wide ? [styles.feedColumn, { maxWidth: columns * maxContentWidth + (columns - 1) * space.lg }] : styles.fill}>
         <Layout
           cards={cards}
           theme={theme}
@@ -204,6 +205,7 @@ export default function Feed() {
           onEndReached={loadMore}
           atEnd={nextPage === null}
           onAction={onAction}
+          columns={columns}
         />
       </View>
       {wide ? (
@@ -240,11 +242,10 @@ const styles = StyleSheet.create({
   weekLink: { ...type.small, color: colors.primary, fontWeight: "600" },
   fill: { flex: 1 },
   wideScreen: {
-    maxWidth: maxContentWidth + SIDE_WIDTH + space.lg,
     flexDirection: "row",
     gap: space.lg,
   },
-  feedColumn: { flex: 1, maxWidth: maxContentWidth },
+  feedColumn: { flex: 1 },
   side: { width: SIDE_WIDTH, flexGrow: 0 },
   sideContent: { paddingVertical: space.lg },
 });
