@@ -4,6 +4,8 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Privacy audit fixes, and abuse tests run against staging ([#51](https://github.com/zoomatech/PrayerTower/pull/51))
+- Batch 10: loading, empty and error states, large text and screen readers, pilot kit ([#50](https://github.com/zoomatech/PrayerTower/pull/50))
 - Pilot readiness: security review, rollback and restore rehearsal, alert test ([#49](https://github.com/zoomatech/PrayerTower/pull/49))
 - Batch 9: staff screen walk fixes, docs match the pilot, one-command Mac build ([#47](https://github.com/zoomatech/PrayerTower/pull/47))
 - Pilot launch rehearsal: fixes from following GO_LIVE and the day-one runbook ([#48](https://github.com/zoomatech/PrayerTower/pull/48))

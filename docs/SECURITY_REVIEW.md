@@ -66,3 +66,17 @@ These live in the Supabase dashboard (Authentication), not in code. They are als
 - **CORS allows any origin when `CORS_ORIGINS` is unset.** The API uses bearer tokens, not cookies, so another site can't act as a signed-in member. Set `CORS_ORIGINS` anyway if a web build is hosted.
 - **Moderation and Witness staff can see who wrote an anonymous request**, so help can reach that person. The app labels these requests as anonymous.
 - **Message bodies are stored in plain text** in Postgres, readable by database administrators. End-to-end encryption is a post-pilot item.
+
+## Dependency audit (2026-10-28)
+
+`npm audit` before: 4 high and 19 low. After: 3 high and 16 low. All of what is left is in build tools on the developer's Mac, never in the server or the app.
+
+- **Updated** to the latest patch and minor versions:
+  - Server: `@sentry/node` 11.9.0, `marked` 18.1.2, `nodemailer` 10.2.1.
+  - App: the Expo SDK 58 patch versions that Expo's own `bundledNativeModules.json` names: `expo` 58.0.20, `expo-router` 58.0.27, `expo-web-browser` 58.0.7, `@expo/ui` 58.0.24, `react-native-screens` 4.30.1.
+  - Tests: `@axe-core/playwright` 4.14.0.
+  - Held back, because Expo pins their versions for SDK 58: `react`, `react-native`, `@sentry/react-native` and the other native libraries. Major versions (ESLint 10, TypeScript 7) and Playwright (its browser is installed separately) are also held.
+- **Removed:** the high `tmp` path-traversal finding ([GHSA-ph9p-34f9-6g65](https://github.com/advisories/GHSA-ph9p-34f9-6g65)). It came in through `workbox-cli`'s setup wizard. The web build now calls `workbox-build` directly (`node workbox-config.js`), which makes the same service worker.
+- **Left, with no fix available:** `zod` 3.25.76 inside `@expo/cli` ([GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5), fixed only in zod 4.6.6). Every `@expo/cli` 58 release asks for zod 3. It only validates Expo's own config files during a build. The server uses zod 4.6.7, which has the fix. The CI audit for the server, station and shared packages (`--omit=dev --audit-level=high`) is clean.
+- **Low:** `deepmerge` prototype poisoning, inside Expo's config tooling. It also needs an Expo release to fix.
+- **CodeQL:** the one alert raised this week (a slow email pattern in the staff audit log, PR #51) was fixed before merging.

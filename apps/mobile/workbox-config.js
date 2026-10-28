@@ -1,6 +1,6 @@
 // Service worker for the web build (PWA), generated after `expo export -p web`
-// by `npx workbox-cli generateSW workbox-config.js`, as in
-// https://docs.expo.dev/guides/progressive-web-apps/ . It precaches the app
+// by `node workbox-config.js` (workbox-build's generateSW, which the
+// workbox-cli in https://docs.expo.dev/guides/progressive-web-apps/ wraps). It precaches the app
 // shell (hashed JS, fonts, icons, index.html). API calls go to another origin
 // and are never cached here; the app's own offline queue and saved feed
 // (src/lib/offline.ts) work on the web as they do on phones.
@@ -18,3 +18,16 @@ module.exports = {
   cleanupOutdatedCaches: true,
   ignoreURLParametersMatching: [/^utm_/, /^fbclid$/],
 };
+
+if (require.main === module) {
+  require('workbox-build')
+    .generateSW(module.exports)
+    .then(({ count, size, warnings }) => {
+      for (const w of warnings) console.warn(w);
+      console.log(`Service worker: ${count} files precached, ${(size / 1024 / 1024).toFixed(1)} MB.`);
+    })
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}
