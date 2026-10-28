@@ -4,6 +4,7 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Bug hunt: keep the two editions apart; name deleted legal subjects ([#69](https://github.com/zoomatech/PrayerTower/pull/69))
 - Vine 2.0, AI companions, live video, and Open Circle complete ([#62](https://github.com/zoomatech/PrayerTower/pull/62))
 - Podcasts with RSS feeds; equal material help for paid radio prayers ([#68](https://github.com/zoomatech/PrayerTower/pull/68))
 - Pressure rule, ad-free promise page, legal requests and evidence holds ([#67](https://github.com/zoomatech/PrayerTower/pull/67))

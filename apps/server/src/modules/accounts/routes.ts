@@ -65,7 +65,7 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
     const viewerId = requireUser(req);
     const p = await accounts.getProfile(db, req.params.id);
     if (!p || p.deleted_at || (p.id !== viewerId && (await posts.blockedBetween(db, viewerId, p.id)))) throw notFound('Person');
-    const [status, ids, badges] = await Promise.all([accounts.followStatus(db, viewerId, p.id), posts.namedPostIds(db, p.id), badgesOf(db, [p.id])]);
+    const [status, ids, badges] = await Promise.all([accounts.followStatus(db, viewerId, p.id), posts.namedPostIds(db, p.id, viewerId), badgesOf(db, [p.id])]);
     return {
       person: { id: p.id, displayName: p.display_name, handle: p.handle, bio: p.bio, whyHere: p.why_here, pastor: badges.get(p.id) ?? null, ...status },
       posts: await posts.cards(db, ids, viewerId),

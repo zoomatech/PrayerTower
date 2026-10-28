@@ -97,7 +97,14 @@ export function weeklyResupplyTask(q: Queryable): Task {
     for (const id of ids) {
       const amount = tiers.get(id)?.weekly_allotment ?? 0;
       if (amount <= 0) continue;
-      await tokens.resupply(q, id, amount, `resupply:${id}:${week}`);
+      try {
+        await tokens.resupply(q, id, amount, `resupply:${id}:${week}`);
+      } catch (err) {
+        // Already credited this week at a different allotment (an admin changed it mid-week): keep that
+        // credit and go on, so one member never stops everyone else's resupply.
+        if ((err as { code?: string }).code === 'idempotency_conflict') continue;
+        throw err;
+      }
       credited++;
     }
     helpers.logger.info(`weekly resupply ${week}: credited ${credited} members`);
