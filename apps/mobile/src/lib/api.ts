@@ -59,6 +59,7 @@ export interface NewPost {
   urgency?: number;
   isAnonymous?: boolean;
   isSensitive?: boolean;
+  media?: { kind: 'image' | 'video'; storagePath: string }[];
 }
 
 export const api = {
@@ -95,6 +96,8 @@ export const api = {
     post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
+  mediaUploadUrl: (contentType: string) =>
+    post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
   report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>

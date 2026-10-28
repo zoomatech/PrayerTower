@@ -57,7 +57,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     authed.addHook('preHandler', makeAuthHook(verifyToken, db));
     accountRoutes(authed, db);
     postRoutes(authed, db, storage);
-    feedRoutes(authed, db);
+    feedRoutes(authed, db, storage);
     prayerActionRoutes(authed, db);
     commitmentRoutes(authed, db);
     tokenRoutes(authed, db);

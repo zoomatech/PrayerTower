@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, space, type } from '@/lib/theme';
+import { CardMedia } from './media';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 const ACTION_ICONS: Record<CardAction, string> = {
@@ -49,6 +50,8 @@ export function PostCard({ card, onAction, expanded: startExpanded = false }: { 
           ) : null}
         </Text>
       </Pressable>
+
+      <CardMedia media={card.media} expanded={expanded} />
 
       <Text style={styles.counts}>
         {card.counts.prayers > 0 ? `${card.counts.prayers} praying` : 'Be the first to pray'}

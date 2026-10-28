@@ -42,7 +42,14 @@
           "imageWidth": 76
         }
       ],
-      "./plugins/with-mac-designed-for-ipad"
+      "./plugins/with-mac-designed-for-ipad",
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Prayer Tower to add your photos and videos to prayer posts."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

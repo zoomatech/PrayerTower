@@ -84,7 +84,8 @@ export interface Card {
   body: string;
   background: string | null;
   isSensitive: boolean;
-  media: { kind: 'image' | 'video'; storagePath: string }[];
+  /** `url` is a signed, short-lived read URL. */
+  media: { kind: 'image' | 'video'; storagePath: string; url?: string | null }[];
   counts: {
     prayingNow: number;
     prayers: number;

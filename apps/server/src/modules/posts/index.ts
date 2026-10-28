@@ -466,3 +466,5 @@ export async function promptSubject(q: Queryable, postId: string, viewerId: stri
   if (!r || (r.is_anonymous && r.user_id !== viewerId) || !r.display_name) return 'this request';
   return r.display_name;
 }
+
+export { MEDIA_BUCKET, signMedia } from './media.js';

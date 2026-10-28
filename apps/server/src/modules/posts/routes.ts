@@ -9,8 +9,8 @@ import { AppError, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from './index.js';
+import { MEDIA_BUCKET, signMedia } from './media.js';
 
-const MEDIA_BUCKET = 'post-media';
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
 export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null) {
@@ -26,7 +26,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const viewerId = requireUser(req);
     const post = await posts.get(db, req.params.id);
     if (!post || (post.moderation_status !== 'visible' && post.user_id !== viewerId)) throw notFound('Post');
-    return { post: (await posts.cards(db, [post.id], viewerId))[0] };
+    return { post: (await signMedia(storage, await posts.cards(db, [post.id], viewerId)))[0] };
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/answered', async (req) => {
