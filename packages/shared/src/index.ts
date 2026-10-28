@@ -303,6 +303,8 @@ export interface Profile {
   locale?: Locale;
   /** Weekly email digest; off by default. */
   digest_enabled?: boolean;
+  /** Missing on profiles fetched before the setting existed. */
+  notification_prefs?: NotificationPrefs;
   onboarded_at: string | null;
   suspended_until: string | null;
 }
@@ -504,4 +506,29 @@ export interface PrayerEvent {
   cancelled: boolean;
   /** From 10 minutes before the start until the end. */
   live: boolean;
+}
+
+/**
+ * Notification settings: members turn push off per group of kinds and can set
+ * quiet hours. Safety notices (moderation, appeals) are always sent.
+ */
+export const NOTIFICATION_CATEGORIES = ['prayers', 'promises', 'encouragement', 'messages', 'community', 'tokens'] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
+  prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer'],
+  promises: ['commitment_made', 'commitment_reminder'],
+  encouragement: ['encouragement', 'thanks', 'weekly_review'],
+  messages: ['message', 'meetup', 'care_request'],
+  community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite'],
+  tokens: ['mint', 'milestone', 'scheduled_spend'],
+};
+export function notificationCategory(kind: string): NotificationCategory | null {
+  for (const c of NOTIFICATION_CATEGORIES) if (NOTIFICATION_KINDS[c].includes(kind)) return c;
+  return null;
+}
+export interface NotificationPrefs {
+  /** Categories whose pushes are off. They still appear under Notices. */
+  off: NotificationCategory[];
+  /** Pushes due inside this window wait until it ends. Times are HH:MM in timeZone (IANA). */
+  quietHours: { start: string; end: string; timeZone: string } | null;
 }

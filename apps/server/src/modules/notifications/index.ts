@@ -1,4 +1,5 @@
 // Notifications module: in-app rows plus push through the Expo Push Service.
+import { notificationCategory, type NotificationPrefs } from '@prayer-tower/shared';
 import type { Task } from 'graphile-worker';
 import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
@@ -60,6 +61,37 @@ export async function registerPushToken(q: Queryable, userId: string, token: str
   );
 }
 
+/** Minutes since midnight at `now` in an IANA time zone. */
+function localMinutes(now: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  return get('hour') * 60 + get('minute');
+}
+const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+/**
+ * When quiet hours are on and `now` falls inside them, the time they end;
+ * otherwise null. A window may cross midnight (22:00 to 07:00).
+ */
+export function quietUntil(prefs: NotificationPrefs | null | undefined, now = new Date()): Date | null {
+  const quiet = prefs?.quietHours;
+  if (!quiet) return null;
+  const start = toMinutes(quiet.start);
+  const end = toMinutes(quiet.end);
+  if (start === end) return null;
+  const at = localMinutes(now, quiet.timeZone);
+  const inside = start < end ? at >= start && at < end : at >= start || at < end;
+  if (!inside) return null;
+  const wait = (end - at + 24 * 60) % (24 * 60);
+  return new Date(Math.floor(now.getTime() / 60_000) * 60_000 + wait * 60_000);
+}
+
+/** Whether this member wants a push for this kind (in-app notices are always kept). */
+export function wantsPush(prefs: NotificationPrefs | null | undefined, kind: string): boolean {
+  const category = notificationCategory(kind);
+  return !category || !prefs?.off?.includes(category);
+}
+
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 interface ExpoTicket {
@@ -72,14 +104,21 @@ interface ExpoTicket {
 export function sendPushTask(q: Queryable, config: Config, fetchImpl: typeof fetch = fetch): Task {
   return async (payload, helpers) => {
     const { notificationId } = payload as { notificationId: string };
-    const { rows } = await q.query<{ title: string; body: string; data: object; token: string }>(
-      `select n.title, n.body, n.data, p.token
+    const { rows } = await q.query<{ title: string; body: string; data: object; token: string; kind: string; prefs: NotificationPrefs; read: boolean }>(
+      `select n.title, n.body, n.data, p.token, n.kind, pr.notification_prefs as prefs, n.read_at is not null as read
          from public.notifications n
+         join public.profiles pr on pr.id = n.user_id
          join public.push_tokens p on p.user_id = n.user_id and p.disabled_at is null
         where n.id = $1`,
       [notificationId],
     );
     if (rows.length === 0 || config.PUSH_ENABLED === '0') return;
+    const { kind, prefs, read } = rows[0]!;
+    if (!wantsPush(prefs, kind)) return;
+    // Quiet hours: send when they end, unless it was read in the app meanwhile.
+    const until = quietUntil(prefs);
+    if (until) return enqueue(q, 'notifications_send_push', { notificationId, held: true }, { runAt: until, jobKey: `push-held:${notificationId}` });
+    if (read && (payload as { held?: boolean }).held) return;
 
     // Expo accepts up to 100 messages per request.
     for (let i = 0; i < rows.length; i += 100) {
