@@ -3,9 +3,11 @@
 // non-religious edition (migration 20261029002200), hidden until an admin
 // turns it on. A member belongs to one community at a time: it decides their
 // feed, where their new posts go, and which wording the app uses.
+// Admins can add more (denomination sandboxes, or a community run by a partner
+// faith group: migration 20261029004500). New ones start hidden.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { badRequest, notFound } from '../../errors.js';
+import { badRequest, conflict, notFound } from '../../errors.js';
 import { POST_TYPES } from '../posts/index.js';
 
 export interface Community {
@@ -15,9 +17,16 @@ export interface Community {
   status: 'active' | 'hidden' | 'archived';
   isDefault: boolean;
   enabledPostTypes: string[];
+  /** 'faith' = Prayer Tower's wording; 'neutral' = Open Circle's, with no religious words. */
+  wording: 'faith' | 'neutral';
+  description: string | null;
+  /** Who runs it, for a community leased to a partner; null = Prayer Tower. */
+  operatorName: string | null;
 }
 
-const COLUMNS = `slug, name, tradition, status, is_default as "isDefault", enabled_post_types::text[] as "enabledPostTypes"`;
+const COLUMNS = `slug, name, tradition, status, is_default as "isDefault", enabled_post_types::text[] as "enabledPostTypes",
+  coalesce(vocabulary ->> 'wording', case when tradition = 'secular' then 'neutral' else 'faith' end) as wording,
+  description, operator_name as "operatorName"`;
 
 /** The member's own community (their primary membership, else the default). */
 export async function mine(q: Queryable, userId: string): Promise<Community> {
@@ -27,7 +36,7 @@ export async function mine(q: Queryable, userId: string): Promise<Community> {
 
 /** Whether the member reads Open Circle's non-religious wording. */
 export async function isSecular(q: Queryable, userId: string): Promise<boolean> {
-  return (await mine(q, userId)).tradition === 'secular';
+  return (await mine(q, userId)).wording === 'neutral';
 }
 
 /** Communities a member may choose: the active ones. */
@@ -57,12 +66,49 @@ export async function choose(q: Queryable, userId: string, slug: string): Promis
 
 // Admin -------------------------------------------------------------------------
 
-export async function all(q: Queryable): Promise<(Community & { members: number })[]> {
-  const { rows } = await q.query<Community & { members: number }>(
-    `select ${COLUMNS}, (select count(*)::int from public.community_memberships m where m.community_id = c.id) as members
+type AdminCommunity = Community & { members: number; operatorContact: string | null };
+
+export async function all(q: Queryable): Promise<AdminCommunity[]> {
+  const { rows } = await q.query<AdminCommunity>(
+    `select ${COLUMNS}, operator_contact as "operatorContact",
+            (select count(*)::int from public.community_memberships m where m.community_id = c.id) as members
        from public.communities c order by is_default desc, name`,
   );
   return rows;
+}
+
+const Details = {
+  description: z.string().trim().max(500).nullable().optional(),
+  operatorName: z.string().trim().min(1).max(120).nullable().optional(),
+  operatorContact: z.string().trim().max(200).nullable().optional(),
+};
+
+export const Create = z.object({
+  slug: z.string().regex(/^[a-z0-9-]{3,40}$/),
+  name: z.string().trim().min(1).max(80),
+  /** Free text: "christian", "catholic", "jewish", "secular"… */
+  tradition: z.string().trim().toLowerCase().min(1).max(60),
+  wording: z.enum(['faith', 'neutral']).default('faith'),
+  enabledPostTypes: z.array(z.enum(POST_TYPES)).min(1).max(POST_TYPES.length).default(['prayer_request', 'praise', 'open_prayer', 'testimony']),
+  ...Details,
+});
+
+/** A new community, hidden until an admin turns it on. Members join it only by choosing it. */
+export async function create(q: Queryable, input: z.infer<typeof Create>): Promise<Community> {
+  // Confession is pastors-only and built for the Christian feed; a neutral community never offers it.
+  const types = [...new Set(input.enabledPostTypes)].filter((t) => input.wording === 'faith' || t !== 'confessional');
+  if (!types.length) throw badRequest('Choose at least one kind of post');
+  try {
+    const { rows } = await q.query<Community>(
+      `insert into public.communities (slug, name, tradition, status, enabled_post_types, vocabulary, description, operator_name, operator_contact)
+       values ($1, $2, $3, 'hidden', $4::public.post_type[], jsonb_build_object('wording', $5::text), $6, $7, $8) returning ${COLUMNS}`,
+      [input.slug, input.name, input.tradition, types, input.wording, input.description ?? null, input.operatorName ?? null, input.operatorContact ?? null],
+    );
+    return rows[0]!;
+  } catch (err) {
+    if ((err as { code?: string }).code === '23505') throw conflict('A community with that short name already exists');
+    throw err;
+  }
 }
 
 export const Update = z.object({
@@ -70,17 +116,37 @@ export const Update = z.object({
   status: z.enum(['active', 'hidden']).optional(),
   /** The kinds of post members of this community can make (e.g. turn on discussion, news and blog posts). */
   enabledPostTypes: z.array(z.enum(POST_TYPES)).min(1).max(POST_TYPES.length).optional(),
+  wording: z.enum(['faith', 'neutral']).optional(),
+  ...Details,
 });
 
 export async function update(q: Queryable, slug: string, input: z.infer<typeof Update>): Promise<Community> {
   const { rows: found } = await q.query<{ is_default: boolean }>('select is_default from public.communities where slug = $1', [slug]);
   if (!found[0]) throw notFound('Community');
   if (found[0].is_default && input.status === 'hidden') throw badRequest('The default community cannot be hidden');
+  // A field left out stays as it is; null clears a detail.
+  const keep = (v: string | null | undefined) => (v === undefined ? null : v);
   const { rows } = await q.query<Community>(
     `update public.communities set name = coalesce($2, name), status = coalesce($3::public.community_status, status),
-            enabled_post_types = coalesce($4::public.post_type[], enabled_post_types)
+            enabled_post_types = coalesce($4::public.post_type[], enabled_post_types),
+            vocabulary = case when $5::text is null then vocabulary else vocabulary || jsonb_build_object('wording', $5::text) end,
+            description = case when $6 then $7 else description end,
+            operator_name = case when $8 then $9 else operator_name end,
+            operator_contact = case when $10 then $11 else operator_contact end
       where slug = $1 returning ${COLUMNS}`,
-    [slug, input.name ?? null, input.status ?? null, input.enabledPostTypes ? [...new Set(input.enabledPostTypes)] : null],
+    [
+      slug,
+      input.name ?? null,
+      input.status ?? null,
+      input.enabledPostTypes ? [...new Set(input.enabledPostTypes)] : null,
+      input.wording ?? null,
+      input.description !== undefined,
+      keep(input.description),
+      input.operatorName !== undefined,
+      keep(input.operatorName),
+      input.operatorContact !== undefined,
+      keep(input.operatorContact),
+    ],
   );
   return rows[0]!;
 }

@@ -339,6 +339,40 @@ export interface Announcement {
   createdAt: string;
 }
 
+export interface SurveyQuestion {
+  id: string;
+  position: number;
+  kind: 'single' | 'multi' | 'scale' | 'text';
+  prompt: string;
+  /** Choices; for a scale, its two end labels (or none). */
+  options: string[];
+  required: boolean;
+}
+export interface Survey {
+  id: string;
+  title: string;
+  intro: string | null;
+  status: 'draft' | 'open' | 'closed';
+  anonymous: boolean;
+  community: string | null;
+  closesAt: string | null;
+  questions: SurveyQuestion[];
+}
+export interface SurveyAnswer {
+  questionId: string;
+  choices?: string[];
+  value?: number;
+  text?: string;
+}
+export type NewSurveyQuestion = Pick<SurveyQuestion, 'kind' | 'prompt' | 'options' | 'required'>;
+export interface SurveyResults {
+  survey: Survey;
+  responses: number;
+  /** False while an anonymous survey has too few answers to show. */
+  shown: boolean;
+  questions: { id: string; prompt: string; kind: SurveyQuestion['kind']; answered: number; counts?: Record<string, number>; average?: number | null; texts?: string[] }[];
+}
+
 export interface Invite {
   code: string;
   note: string;
@@ -492,7 +526,7 @@ export type SpokenPrayerStatus =
   | { enabled: true; mine: true; invited: boolean; offerTokens: number; maxSeconds: number; maxOfferTokens: number; received: SpokenPrayer[] }
   | { enabled: true; mine: false; invited: boolean; offerTokens: number; maxSeconds: number; sent: boolean; prayed: boolean };
 
-/** A community members belong to; "secular" ones (Open Circle) use neutral wording. */
+/** A community members belong to; "neutral" wording (Open Circle) has no religious words. */
 export interface Community {
   slug: string;
   name: string;
@@ -500,6 +534,11 @@ export interface Community {
   status: 'active' | 'hidden';
   isDefault: boolean;
   enabledPostTypes: string[];
+  wording?: 'faith' | 'neutral';
+  description?: string | null;
+  /** Who runs it, for a community run by a partner; null = Prayer Tower. */
+  operatorName?: string | null;
+  operatorContact?: string | null;
   members?: number;
 }
 
@@ -532,6 +571,8 @@ export const api = {
   signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
   announcements: () => get<{ announcements: Announcement[] }>('/announcements'),
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
+  surveys: () => get<{ surveys: Survey[] }>('/surveys'),
+  answerSurvey: (id: string, answers: SurveyAnswer[]) => post<{ ok: true }>(`/surveys/${id}/responses`, { answers }),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
   me: () => cachedGet<{ profile: Profile; roles: Role[]; community?: Community | null }>('me', '/me'),
   spokenPrayers: (postId: string) => get<SpokenPrayerStatus>(`/posts/${postId}/spoken-prayers`),
@@ -639,8 +680,10 @@ export const api = {
     spokenPrayerSettings: () => get<{ settings: SpokenPrayerSettings }>('/admin/spoken-prayers'),
     updateSpokenPrayerSettings: (patch: { enabled?: boolean; maxSeconds?: number; maxOfferTokens?: number }) =>
       request<{ settings: SpokenPrayerSettings }>('PATCH', '/admin/spoken-prayers', patch),
-    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden'; enabledPostTypes?: string[] }) =>
+    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden'; enabledPostTypes?: string[]; wording?: 'faith' | 'neutral' }) =>
       request<{ community: Community }>('PATCH', `/admin/communities/${slug}`, patch),
+    createCommunity: (c: { slug: string; name: string; tradition: string; wording: 'faith' | 'neutral'; operatorName?: string | null; operatorContact?: string | null }) =>
+      post<{ community: Community }>('/admin/communities', c),
     deletionRequests: () =>
       get<{ requests: { id: string; email: string; note: string | null; createdAt: string; accountFound: boolean }[] }>('/admin/deletion-requests'),
     prayerWarriors: (days = 365) =>
@@ -679,6 +722,12 @@ export const api = {
     createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
       post<{ announcement: Announcement }>('/admin/announcements', input),
     endAnnouncement: (id: string) => post<{ announcement: Announcement }>(`/admin/announcements/${id}/end`),
+    surveys: () => get<{ surveys: (Survey & { responses: number })[] }>('/admin/surveys'),
+    createSurvey: (input: { title: string; intro?: string | null; anonymous?: boolean; community?: string | null; questions: NewSurveyQuestion[] }) =>
+      post<{ survey: Survey }>('/admin/surveys', input),
+    setSurveyStatus: (id: string, status: Survey['status']) => request<{ survey: Survey }>('PATCH', `/admin/surveys/${id}`, { status }),
+    deleteSurvey: (id: string) => request<{ ok: true }>('DELETE', `/admin/surveys/${id}`),
+    surveyResults: (id: string) => get<SurveyResults>(`/admin/surveys/${id}/results`),
     invites: () => get<{ inviteOnly: boolean; invites: Invite[] }>('/admin/invites'),
     createInvites: (input: { note?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
       post<{ invites: Invite[] }>('/admin/invites', input),

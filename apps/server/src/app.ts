@@ -23,6 +23,7 @@ import { radioRoutes } from './modules/radio/routes.js';
 import { awardRoutes } from './modules/admin/award-routes.js';
 import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
+import { surveyRoutes } from './modules/surveys/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
@@ -219,6 +220,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     notebookRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
     communityRoutes(authed, db);
+    surveyRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);
     notificationRoutes(authed, db);
