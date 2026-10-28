@@ -251,6 +251,7 @@ function Admin() {
             <Button variant="secondary" label={t('admin.churches')} onPress={() => router.push('/churches')} />
             <Button variant="secondary" label={t('admin.announcements')} onPress={() => router.push('/announcements')} />
             <Button variant="secondary" label={t('admin.surveys')} onPress={() => router.push('/surveys')} />
+            <Button variant="secondary" label={t('admin.legal')} onPress={() => router.push('/legal')} />
           </View>
         ) : null}
 
@@ -827,6 +828,8 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.sermonInputs')} hint={t('admin.toggle.sermonInputsHint')} value={s.sermon_inputs_enabled} onChange={(v) => save({ sermonInputsEnabled: v })} />
       <Toggle label={t('admin.toggle.supportLabel')} hint={t('admin.toggle.supportLabelHint')} value={s.support_label_enabled} onChange={(v) => save({ supportLabelEnabled: v })} />
       <Toggle label={t('admin.toggle.witnessStories')} hint={t('admin.toggle.witnessStoriesHint')} value={s.witness_stories_enabled} onChange={(v) => save({ witnessStoriesEnabled: v })} />
+      <Toggle label={t('admin.toggle.pressureRule')} hint={t('admin.toggle.pressureRuleHint')} value={s.pressure_rule_enabled} onChange={(v) => save({ pressureRuleEnabled: v })} />
+      <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

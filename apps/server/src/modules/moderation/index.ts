@@ -26,6 +26,8 @@ export const RULES = {
   ads: 'No ads',
   abuse: 'No harassment or abuse',
   safe_messaging: 'No details of suicide or self-harm methods',
+  /** Off until Admin → Notebook ideas turns the rule on (docs/policy/PROSELYTIZING_RULE_DRAFT.md). */
+  pressure: "Share your beliefs freely. Don't pressure people.",
   other: 'Community rules',
 } as const;
 export type Rule = keyof typeof RULES;
@@ -220,6 +222,10 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
   }
 
   const rule: Rule = d.rule ?? 'other';
+  if (rule === 'pressure') {
+    const { rows: on } = await q.query<{ on: boolean }>('select pressure_rule_enabled as on from public.notebook_settings');
+    if (!on[0]?.on) throw badRequest('The "don\'t pressure people" rule is switched off (Admin → Notebook ideas)');
+  }
   let suspendedUntil: Date | null = null;
   const log = (action: string, extra: { transferId?: string; suspendedUntil?: Date } = {}) =>
     q.query(

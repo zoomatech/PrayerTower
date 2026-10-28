@@ -1,11 +1,14 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { Db } from '../../db.js';
 import { languages } from '../../language.js';
 import * as site from './index.js';
 import * as openCircle from './open-circle.js';
+import { promisePage } from './promise.js';
 
 /** Public pages: no sign-in. Built once at start-up; restart to pick up a new policy file. */
-export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions) {
+export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db) {
   const html = 'text/html; charset=utf-8';
+  const notFound = () => site.layout('Not found', '<h1>This page is not available.</h1>', '');
   // Open Circle's own pages: at the root on its own domains, and always under /open-circle.
   const oc = opts.openCircle ?? null;
   const ocRoot = oc ? openCircle.pages(opts, oc, '') : null;
@@ -49,6 +52,21 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions) {
   else {
     for (const page of ['/', '/support', '/privacy', '/terms']) app.get(site.pathFor('es', page), async (_req, reply) => reply.redirect(page, 302));
     app.get('/es/', async (_req, reply) => reply.redirect('/', 302));
+  }
+
+  // The ad-free promise, only while Admin → Notebook ideas has it on.
+  const promiseOn = async () => (db ? (await db.query<{ on: boolean }>('select promise_page_enabled as on from public.notebook_settings')).rows[0]?.on === true : false);
+  const prayerPromise = promisePage('Prayer Tower');
+  const ocPromise = oc ? promisePage(oc.name, openCircle.brand(oc, '')) : null;
+  app.get('/promise', async (req, reply) => {
+    if (!(await promiseOn())) return reply.code(404).type(html).send(notFound());
+    return reply.type(html).send(ocHere(req) ? ocPromise : prayerPromise);
+  });
+  if (oc) {
+    const prefixed = promisePage(oc.name, openCircle.brand(oc, openCircle.PREFIX));
+    app.get(`${openCircle.PREFIX}/promise`, async (_req, reply) =>
+      (await promiseOn()) ? reply.type(html).send(prefixed) : reply.code(404).type(html).send(notFound()),
+    );
   }
 
   // Shared links: the apps open https://<host>/post/:id themselves once these files verify the domain.

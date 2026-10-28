@@ -20,6 +20,7 @@ import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
 import { publishDueTask as seedPrayersTask } from './modules/seed-prayers/index.js';
 import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
+import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
 
 export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null } = {}): TaskList {
   return {
@@ -47,6 +48,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     ops_heartbeat: heartbeatTask(db),
     ops_check: opsCheckTask(db),
     seed_prayers_publish: seedPrayersTask(),
+    legal_holds_expire: legalHoldsExpireTask(db),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
   };
 }
@@ -84,4 +86,6 @@ export const crontab = [
   '*/5 * * * * ops_check ?max=3&jobKey=ops_check',
   // Every 15 minutes: post approved seed prayers that are due (only while the switch is on).
   '*/15 * * * * seed_prayers_publish ?max=3&fill=1h&jobKey=seed_prayers_publish',
+  // Daily 03:10: release evidence holds past their end date, erasing the copies.
+  '10 3 * * * legal_holds_expire ?max=10&fill=1d&jobKey=legal_holds_expire',
 ].join('\n');
