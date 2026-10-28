@@ -692,6 +692,7 @@ const en = {
     help: "Help in person or with a gift",
     thanks: "Thank you for helping.",
     gave: "I gave material help",
+    stats: "%{people} praying · %{tokens} tokens given · %{helpers} gave material help",
   },
   moderation: {
     escalate: 'Ask the admins for a law-enforcement review',

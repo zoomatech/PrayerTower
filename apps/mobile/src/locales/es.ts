@@ -694,6 +694,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     help: "Ayuda en persona o con un donativo",
     thanks: "Gracias por ayudar.",
     gave: "Di ayuda material",
+    stats: "%{people} praying · %{tokens} tokens given · %{helpers} gave material help",
   },
   moderation: {
     escalate: 'Ask the admins for a law-enforcement review',

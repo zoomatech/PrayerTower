@@ -32,7 +32,7 @@ export function MacroNeeds({
             </Text>
           ) : null}
           <Text style={type.small}>
-            {n.prayers} praying · {n.tokens} tokens given · {n.helpers} gave material help
+            {t('macro.stats', { people: n.prayers, tokens: n.tokens, helpers: n.helpers })}
           </Text>
           <Text style={styles.label}>{t('macro.pray')}</Text>
           <View style={styles.row}>
