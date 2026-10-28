@@ -1,16 +1,14 @@
 // Features an admin can hide for one community (Admin → Communities), such as
 // radio for Open Circle. Outside the auth provider every feature is on.
 import type { CommunityFeature } from '@prayer-tower/shared';
+import { createContext, useContext } from 'react';
 
-import { useAuth } from './auth';
+import * as auth from './auth';
+
+// Tests that mock '@/lib/auth' leave out the context: fall back to an empty one.
+const Context = auth.AuthContext ?? createContext(null);
 
 /** Whether a feature is on for the member's community. */
 export function useFeature(feature: CommunityFeature): boolean {
-  let hidden: readonly string[] | undefined;
-  try {
-    hidden = useAuth().community?.hiddenFeatures;
-  } catch {
-    // No auth provider (a screen rendered on its own): show everything.
-  }
-  return !hidden?.includes(feature);
+  return !useContext(Context)?.community?.hiddenFeatures?.includes(feature);
 }
