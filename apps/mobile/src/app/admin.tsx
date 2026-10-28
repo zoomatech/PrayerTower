@@ -8,7 +8,7 @@ import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminPerson, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type PilotWeek } from '@/lib/api';
+import { api, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type PilotWeek } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
@@ -36,6 +36,7 @@ export default function Admin() {
   const [days, setDays] = useState(7);
   const [metrics, setMetrics] = useState<Record<string, Record<string, number | string | null>> | null>(null);
   const [weeks, setWeeks] = useState<PilotWeek[]>([]);
+  const [radio, setRadio] = useState<AdminRadioSettings | null>(null);
   const [tokens, setTokens] = useState<AdminTokenSettings | null>(null);
   const [tokenDraft, setTokenDraft] = useState({ perToken: '', gap: '', cost: '' });
   const [safety, setSafety] = useState<AdminSafetySettings | null>(null);
@@ -77,15 +78,17 @@ export default function Admin() {
   const load = useCallback(
     () =>
       run(async () => {
-        const [m, s, t, sf, w] = await Promise.all([
+        const [m, s, t, sf, w, rs] = await Promise.all([
           api.admin.metrics(days),
           api.admin.tokenSettings(),
           api.admin.tiers(),
           api.admin.safetySettings(),
           api.admin.pilotReport(REPORT_WEEKS),
+          api.admin.radioSettings(),
         ]);
         setMetrics(m);
         setWeeks(w.weeks);
+        setRadio(rs.settings);
         showTokens(s.settings);
         showSafety(sf.settings);
         showTiers(t.tiers);
@@ -113,6 +116,9 @@ export default function Admin() {
         await Share.share({ title: 'Prayer Tower pilot report', message: csv });
       }
     });
+
+  const saveRadio = (patch: Parameters<typeof api.admin.updateRadioSettings>[0]) =>
+    run(async () => setRadio((await api.admin.updateRadioSettings(patch)).settings), 'Radio settings saved.');
 
   const saveTokens = () =>
     run(async () => {
@@ -249,6 +255,25 @@ export default function Admin() {
             <Field label="Requests a day" keyboardType="number-pad" value={safetyDraft.posts} onChangeText={(posts) => setSafetyDraft((d) => ({ ...d, posts }))} />
             <Field label="Comments a day" keyboardType="number-pad" value={safetyDraft.comments} onChangeText={(comments) => setSafetyDraft((d) => ({ ...d, comments }))} />
             <Button label="Save new-member limits" onPress={() => saveSafety()} />
+          </View>
+        ) : null}
+
+        {radio ? (
+          <View style={styles.section}>
+            <Text style={type.heading}>Radio</Text>
+            <View style={styles.row}>
+              <Chip label="Log only (no radio)" selected={radio.radio_transmitter === 'log'} onPress={() => saveRadio({ transmitter: 'log' })} />
+              <Chip label="Radio station" selected={radio.radio_transmitter === 'station'} onPress={() => saveRadio({ transmitter: 'station' })} />
+            </View>
+            <Toggle
+              label="Station sends only while radio prayers are free"
+              hint="Amateur radio rules (47 CFR 97.113) forbid tying a transmission to payment. Keep this on for an amateur station."
+              value={radio.radio_station_requires_free}
+              onChange={(v) => saveRadio({ stationRequiresFree: v })}
+            />
+            {radio.radio_transmitter === 'station' && radio.radio_station_requires_free && tokens?.radio_funding !== 'free' ? (
+              <Text style={[type.small, { color: colors.danger }]}>The station is paused: turn on “Radio prayers are free” above.</Text>
+            ) : null}
           </View>
         ) : null}
 

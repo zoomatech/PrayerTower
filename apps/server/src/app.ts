@@ -17,6 +17,7 @@ import { promptRoutes } from './modules/prompts/routes.js';
 import { tierRoutes } from './modules/tiers/routes.js';
 import { prayerActionRoutes } from './modules/prayer-actions/routes.js';
 import { radioRoutes } from './modules/radio/routes.js';
+import { stationRoutes } from './modules/radio/station-routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
 export interface AppDeps {
@@ -28,9 +29,11 @@ export interface AppDeps {
   corsOrigins?: string[];
   /** AI classifier for the warn-before-posting check; null = no warnings. */
   classify?: Classifier | null;
+  /** Radio station worker's key; null = station API off. */
+  stationKey?: string | null;
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null }: AppDeps) {
   const app = Fastify({ logger });
   app.register(cors, {
     origin: corsOrigins.length ? corsOrigins : true,
@@ -54,6 +57,9 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     await db.query('select 1');
     return { ok: true };
   });
+
+  // The radio station authenticates with its own key, not a member login.
+  app.register(async (station) => stationRoutes(station, db, stationKey));
 
   // Everything else requires a signed-in member.
   app.register(async (authed) => {

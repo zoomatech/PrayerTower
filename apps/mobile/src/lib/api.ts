@@ -74,6 +74,12 @@ export interface AdminTokenSettings {
   radio_prayer_cost: number;
   radio_funding: 'tokens' | 'free';
 }
+export interface AdminRadioSettings {
+  radio_transmitter: 'log' | 'station';
+  radio_station_requires_free: boolean;
+  radio_max_chars: number;
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -190,6 +196,9 @@ export const api = {
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
+    radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number }>) =>
+      request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
       patch: Partial<{

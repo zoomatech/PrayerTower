@@ -6,6 +6,8 @@ const Env = z.object({
   SUPABASE_SECRET_KEY: z.string().optional(),
   PORT: z.coerce.number().int().default(3000),
   OPENAI_API_KEY: z.string().optional(),
+  /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */
+  STATION_API_KEY: z.string().min(24).optional(),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
   /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */

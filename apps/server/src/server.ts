@@ -23,6 +23,7 @@ const app = buildApp({
   storage,
   logger: true,
   classify: openAiClassifier(config),
+  stationKey: config.STATION_API_KEY ?? null,
   corsOrigins: config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
 });
 

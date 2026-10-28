@@ -1,0 +1,89 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { grantRole } from '../src/modules/accounts/index.js';
+import * as radio from '../src/modules/radio/index.js';
+import * as tokens from '../src/modules/tokens/index.js';
+import { app, as, createUser, db, drainJobs, newRequest, STATION_KEY } from './helpers.js';
+
+const tokenDefaults = await tokens.settings(db);
+const stationDefaults = await radio.stationSettings(db);
+const station = (path: string, body: object = {}, key = STATION_KEY) =>
+  app.inject({ method: 'POST', url: path, headers: { 'x-station-key': key }, payload: body });
+
+let admin: string;
+beforeAll(async () => {
+  admin = await createUser('Radio Admin');
+  await grantRole(db, admin, 'admin', null);
+  // Start from an empty queue so other tests' prayers don't interleave.
+  await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+});
+afterAll(async () => {
+  await radio.updateStationSettings(db, stationDefaults);
+  await tokens.updateSettings(db, tokenDefaults);
+  await db.end();
+});
+
+describe('radio station', () => {
+  it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000 });
+    expect((await station('/station/claim')).statusCode).toBe(409); // log mode
+    const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
+    expect(s.json().settings.radio_transmitter).toBe('station');
+    await tokens.updateSettings(db, { radio_funding: 'tokens' });
+    const amateur = await station('/station/claim');
+    expect(amateur.statusCode).toBe(409);
+    expect(amateur.json().message).toMatch(/Amateur rules/);
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    expect((await station('/station/claim', {}, 'wrong-key-wrong-key-wrong-key-00')).statusCode).toBe(401);
+    expect((await app.inject({ method: 'POST', url: '/station/claim' })).statusCode).toBe(401);
+    expect((await station('/station/claim')).statusCode).toBe(204); // empty queue
+  });
+
+  it('sends only the request text, records the call sign, and tells the poster', async () => {
+    const poster = await createUser('Martha Poster');
+    const sender = await createUser('Lazarus');
+    const post = await newRequest(poster, 'Pray   for rain on the farms,\nLord.');
+    expect((await as(sender).post(`/posts/${post.id}/radio`, { idempotencyKey: 'st-1' })).statusCode).toBe(201);
+    await drainJobs(); // station mode: the job leaves it queued
+
+    const claim = await station('/station/claim');
+    expect(claim.statusCode).toBe(200);
+    const { radioPrayer } = claim.json();
+    expect(radioPrayer.text).toBe('Pray for rain on the farms, Lord.');
+    expect(JSON.stringify(radioPrayer)).not.toMatch(/Martha|Lazarus/);
+    expect((await station('/station/claim')).statusCode).toBe(204); // it's being sent
+
+    expect((await station(`/station/radio-prayers/${radioPrayer.id}/result`, { ok: true, callSign: 'N0CALL', pieces: 1 })).statusCode).toBe(200);
+    const [mine] = (await as(sender).get('/me/radio-prayers')).json().radioPrayers;
+    expect(mine.status).toBe('transmitted');
+    const { rows } = await db.query('select call_sign, pieces from public.radio_prayers where id = $1', [radioPrayer.id]);
+    expect(rows[0]).toEqual({ call_sign: 'N0CALL', pieces: 1 });
+    const notes = (await as(poster).get('/me/notifications')).json().notifications;
+    expect(notes.some((n: { kind: string }) => n.kind === 'radio_prayer')).toBe(true);
+    // Reporting twice is refused.
+    expect((await station(`/station/radio-prayers/${radioPrayer.id}/result`, { ok: true, callSign: 'N0CALL' })).statusCode).toBe(400);
+  });
+
+  it('skips sensitive requests, re-offers stale claims, and records failures', async () => {
+    const poster = await createUser('Poster');
+    const sender = await createUser('Sender');
+    const sensitive = await newRequest(poster, 'Graphic details.', { isSensitive: true });
+    const plain = await newRequest(poster, 'Pray for peace.');
+    await as(sender).post(`/posts/${sensitive.id}/radio`, { idempotencyKey: 'st-2' });
+    await as(sender).post(`/posts/${plain.id}/radio`, { idempotencyKey: 'st-3' });
+
+    const first = (await station('/station/claim')).json().radioPrayer;
+    expect(first.text).toBe('Pray for peace.');
+    const { rows } = await db.query(
+      `select r.status, r.error from public.radio_prayers r where r.post_id = $1`,
+      [sensitive.id],
+    );
+    expect(rows[0]).toEqual({ status: 'failed', error: 'not sent: sensitive request' });
+
+    await db.query(`update public.radio_prayers set claimed_at = now() - interval '20 minutes' where id = $1`, [first.id]);
+    const again = (await station('/station/claim')).json().radioPrayer;
+    expect(again.id).toBe(first.id);
+    await station(`/station/radio-prayers/${again.id}/result`, { ok: false, callSign: 'N0CALL', error: 'transmit timed out' });
+    const after = await db.query('select status, error from public.radio_prayers where id = $1', [again.id]);
+    expect(after.rows[0]).toEqual({ status: 'failed', error: 'transmit timed out' });
+  });
+});

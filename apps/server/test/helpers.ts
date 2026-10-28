@@ -9,6 +9,7 @@ import { buildTaskList } from '../src/tasks.js';
 // Integration tests run against the local Supabase stack (`npm run db:start`).
 export const config = { ...loadConfig(), PUSH_ENABLED: '0' as const };
 export const db = createPool(config.DATABASE_URL);
+export const STATION_KEY = 'test-station-key-0123456789abcdef';
 await runMigrations({ pgPool: db });
 // New-member limits would trip most tests, which use brand-new accounts; safety.test.ts turns them on.
 await db.query('update public.safety_settings set new_member_limits_enabled = false');
@@ -21,6 +22,7 @@ export const app = buildApp({
     return token.slice(5);
   },
   classify: (text) => classifier(text),
+  stationKey: STATION_KEY,
 });
 
 export let classifier: Classifier = async () => null;

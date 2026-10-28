@@ -88,6 +88,30 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     };
   });
 
+  // Radio transmitter: 'log' (placeholder) or 'station' (Pi/laptop + fldigi + transceiver).
+  app.get('/admin/radio-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await radio.stationSettings(db) };
+  });
+
+  app.patch('/admin/radio-settings', async (req) => {
+    await requireAdmin(req);
+    const input = z
+      .object({
+        transmitter: z.enum(['log', 'station']).optional(),
+        stationRequiresFree: z.boolean().optional(),
+        maxChars: z.number().int().min(50).max(2800).optional(),
+      })
+      .parse(req.body);
+    return {
+      settings: await radio.updateStationSettings(db, {
+        radio_transmitter: input.transmitter,
+        radio_station_requires_free: input.stationRequiresFree,
+        radio_max_chars: input.maxChars,
+      }),
+    };
+  });
+
   // New-member limits (troll prevention).
   app.get('/admin/safety-settings', async (req) => {
     await requireAdmin(req);
