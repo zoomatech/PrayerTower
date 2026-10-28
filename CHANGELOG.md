@@ -4,6 +4,14 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- App tests: announcements, live rooms, community choice and circle requests ([#80](https://github.com/zoomatech/PrayerTower/pull/80))
+- App tests: ledger check panel and guest prayer link ([#79](https://github.com/zoomatech/PrayerTower/pull/79))
+- Bug hunt: token pools and scheduled gifts stay inside the community ([#72](https://github.com/zoomatech/PrayerTower/pull/72))
+- App tests: town field, crisis box, offline banner and Pray across lines card ([#78](https://github.com/zoomatech/PrayerTower/pull/78))
+- App tests: long-press quick reactions and the author's town on the feed card ([#77](https://github.com/zoomatech/PrayerTower/pull/77))
+- Pray across lines: one request a day from another faith community (off by default) ([#76](https://github.com/zoomatech/PrayerTower/pull/76))
+- Notebook ideas from the plan cross-check, each behind an off switch ([#75](https://github.com/zoomatech/PrayerTower/pull/75))
+- Growth ideas: pray from a link, email prayer chain, prayed-for widget line, prayer minute ([#73](https://github.com/zoomatech/PrayerTower/pull/73))
 - Bug hunt: power prayer, ask-to-pray and profile pages stay inside the community; resupply survives a mid-week change ([#71](https://github.com/zoomatech/PrayerTower/pull/71))
 - Open Circle walk: accessibility scan with switches off and on ([#70](https://github.com/zoomatech/PrayerTower/pull/70))
 - Bug hunt: keep the two editions apart; name deleted legal subjects ([#69](https://github.com/zoomatech/PrayerTower/pull/69))
