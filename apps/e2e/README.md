@@ -17,6 +17,7 @@ Playwright drives the app's web build against the local API and Supabase, signed
 | `07-accessibility` | axe-core WCAG 2.1 A/AA scans of sign-in, the feed, compose, a request, the profile and feedback |
 | `08-offline` | Offline: the saved feed shows with a banner; a Praying Now tap and a text post made offline are sent once back online |
 | `09-tour` | The first-run tour shows once, steps through five cards, and reopens from Me |
+| `10-export` | A member downloads their data from Me as a JSON file |
 
 ## Running it
 

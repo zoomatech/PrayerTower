@@ -6,6 +6,7 @@ import { withTx, type Db } from '../../db.js';
 import { notFound } from '../../errors.js';
 import * as posts from '../posts/index.js';
 import { MEDIA_BUCKET } from '../posts/media.js';
+import { exportData } from './export.js';
 import * as accounts from './index.js';
 
 export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
@@ -19,6 +20,16 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
   app.patch('/me', async (req) => {
     const input = accounts.ProfileUpdate.parse(req.body);
     return { profile: await accounts.updateProfile(db, requireUser(req), input) };
+  });
+
+  // Download my data: one JSON file with everything on the member's account.
+  app.get('/me/export', async (req, reply) => {
+    const userId = requireUser(req);
+    const data = await exportData(db, userId);
+    const day = data.exportedAt.slice(0, 10);
+    reply.header('content-disposition', `attachment; filename="prayer-tower-data-${day}.json"`);
+    reply.header('cache-control', 'no-store');
+    return data;
   });
 
   // Delete my account. The app asks the member to type DELETE first.

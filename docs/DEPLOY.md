@@ -42,6 +42,10 @@ The API runs migrations for the job queue on start. Scale the worker with `docke
 - Free or self-hosted: run `scripts/backup-db.sh` daily from cron and copy the folder off the server.
 - Test a restore before the pilot starts, and monthly after: `scripts/restore-drill.sh` (see [BACKUP_RESTORE.md](BACKUP_RESTORE.md)). CI runs the same drill on every pull request.
 
+## Weekly email digest
+
+Members can turn on a Sunday email (Me → Weekly email; off by default) listing prayers answered that week on requests they prayed for, plus how their promises went. Set `SMTP_URL` (for example `smtps://user:pass@smtp.example.com:465`) and `MAIL_FROM` on the worker; without `SMTP_URL` nothing is sent. Any SMTP provider works. The worker sends at 19:00 UTC on Sundays, once per member per ISO week, and skips members with nothing to report. URL format: [Nodemailer SMTP transport](https://nodemailer.com/smtp/). Supabase's own SMTP setting only covers sign-in emails.
+
 ## Staging
 
 A second Supabase project plus a second API on the same server. See [STAGING.md](STAGING.md).

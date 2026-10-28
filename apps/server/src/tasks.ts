@@ -10,9 +10,11 @@ import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
 import { transmitTask, type Transmitter } from './modules/radio/index.js';
 import { awardDueTask } from './modules/milestones/index.js';
 import { runDueTask } from './modules/schedules/index.js';
+import { weeklyDigestTask } from './modules/digest/index.js';
+import { createMailer, type Mailer } from './modules/digest/mailer.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 
-export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter } = {}): TaskList {
+export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null } = {}): TaskList {
   return {
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
@@ -25,6 +27,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     milestones_award_due: awardDueTask(),
     events_send_reminders: remindTask(db),
     activity_scan: activityScanTask(db),
+    digest_weekly: weeklyDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
   };
 }
 
@@ -43,4 +46,6 @@ export const crontab = [
   '5 0 * * 1 tiers_weekly_resupply ?fill=2d',
   // Sunday 18:00: positively framed weekly commitment review.
   '0 18 * * 0 commitments_weekly_review ?fill=6h',
+  // Sunday 19:00: weekly email digest for members who turned it on (once per ISO week).
+  '0 19 * * 0 digest_weekly ?fill=6h',
 ].join('\n');

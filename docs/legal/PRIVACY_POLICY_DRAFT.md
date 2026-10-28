@@ -21,7 +21,7 @@ Prayer Tower is a community where people ask for prayer and pray for one another
 
 | What | Examples | Why |
 |---|---|---|
-| Account | Email address, password (stored in hashed form by our sign-in provider), display name | To create your account and sign you in |
+| Account | Email address, password (stored in hashed form by our sign-in provider), display name | To create your account and sign you in, and, only if you turn on the weekly email, to send it to you |
 | Profile | Handle, short bio, why you're here, the support you want or can offer, your feed and reminder preferences | To show your profile and personalize your feed |
 | Prayer requests and posts | The text of requests, praises and testimonies, the kind and urgency you choose, and photos or videos you attach | To share them with the community |
 | Comments, encouragements and thanks | The text you write | To share them with the person and the community |
@@ -93,14 +93,14 @@ We may also disclose information when the law requires it, to protect someone's 
 
   None of these is linked to your name or email.
 - **Server logs** are deleted after [30] days. Database backups roll off within [7 / 30] days.
-- You can hide posts, block people, or leave a conversation at any time. Deleting a single post isn't in the app yet. Until it is, email [PRIVACY EMAIL] and we will remove the post.
+- You can hide posts, block people, or leave a conversation at any time. You can delete any of your own requests or comments from the request screen.
 
 ## 6. Your choices
 - Post or pray anonymously, and make anonymous your default.
 - Turn notifications and prayer reminders on or off. Choose gentle or firmer reminders.
 - Hide trauma-related content.
 - Block anyone. Blocking hides their posts, comments and messages from you.
-- Ask us at [PRIVACY EMAIL] for a copy of your information, or to correct it.
+- Download a copy of your information any time from Me → Download my data (a JSON file), or ask us at [PRIVACY EMAIL] for a copy or a correction.
 
 ## 7. Your rights under state law
 

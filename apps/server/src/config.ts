@@ -37,6 +37,10 @@ const Env = z.object({
   SENTRY_DSN: z.string().optional(),
   /** Bearer token for GET /metrics; unset = no metrics endpoint. */
   METRICS_TOKEN: z.string().min(24).optional(),
+  /** Outgoing email (weekly digest), e.g. smtps://user:pass@smtp.example.com:465. Unset = no email. */
+  SMTP_URL: z.string().optional(),
+  /** Sender for outgoing email, e.g. "Prayer Tower <hello@example.org>". */
+  MAIL_FROM: z.string().optional(),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
 });
 

@@ -29,6 +29,8 @@ export const ProfileUpdate = z
     feedMix: z.partialRecord(z.enum(FEED_MIX_KEYS as [FeedMixKey, ...FeedMixKey[]]), z.enum(['less', 'more'])),
     /** App language, for notification text. */
     locale: z.enum(LOCALES),
+    /** Weekly email digest (off by default). */
+    digestEnabled: z.boolean(),
     completeOnboarding: z.boolean(),
   })
   .partial();
@@ -49,6 +51,7 @@ const columns: Record<string, string> = {
   promptTone: 'prompt_tone',
   feedMix: 'feed_mix',
   locale: 'locale',
+  digestEnabled: 'digest_enabled',
 };
 
 export interface Profile {
@@ -68,6 +71,8 @@ export interface Profile {
   prompt_tone: 'gentle' | 'firm' | null;
   feed_mix: FeedMix;
   locale: Locale;
+  digest_enabled: boolean;
+  digest_sent_week: string | null;
   onboarded_at: Date | null;
   suspended_until: Date | null;
   deleted_at: Date | null;
