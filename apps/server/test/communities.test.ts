@@ -52,31 +52,35 @@ describe('Open Circle, the non-religious community', () => {
     const admin = await createUser('Sandbox Admin');
     await grantRole(db, admin, 'admin', null);
     const member = await createUser('Sandbox Sam');
-    const input = { slug: 'grace-lutheran', name: 'Grace Lutheran', tradition: 'Lutheran', operatorName: 'Grace Lutheran Church', operatorContact: 'office@grace.example' };
+    // Unique short names, so the test passes again on a database that wasn't reset.
+    const tag = randomUUID().slice(0, 8);
+    const grace = `grace-lutheran-${tag}`;
+    const kind = `kind-town-${tag}`;
+    const input = { slug: grace, name: 'Grace Lutheran', tradition: 'Lutheran', operatorName: 'Grace Lutheran Church', operatorContact: 'office@grace.example' };
     expect((await as(member).post('/admin/communities', input)).statusCode).toBe(403);
     const made = await as(admin).post('/admin/communities', input);
     expect(made.statusCode).toBe(201);
-    expect(made.json().community).toMatchObject({ slug: 'grace-lutheran', tradition: 'lutheran', status: 'hidden', wording: 'faith', operatorName: 'Grace Lutheran Church' });
+    expect(made.json().community).toMatchObject({ slug: grace, tradition: 'lutheran', status: 'hidden', wording: 'faith', operatorName: 'Grace Lutheran Church' });
     expect((await as(admin).post('/admin/communities', input)).statusCode).toBe(409);
     // Hidden until turned on: members can't pick it.
-    expect((await as(member).post('/me/community', { slug: 'grace-lutheran' })).statusCode).toBe(404);
-    const listed = (await as(admin).get('/admin/communities')).json().communities.find((c: { slug: string }) => c.slug === 'grace-lutheran');
+    expect((await as(member).post('/me/community', { slug: grace })).statusCode).toBe(404);
+    const listed = (await as(admin).get('/admin/communities')).json().communities.find((c: { slug: string }) => c.slug === grace);
     expect(listed).toMatchObject({ members: 0, operatorContact: 'office@grace.example' });
 
     // A neutral community never offers confession, and its members read the neutral wording.
-    const kind = (
-      await as(admin).post('/admin/communities', { slug: 'kind-town', name: 'Kind Town', tradition: 'humanist', wording: 'neutral', enabledPostTypes: ['prayer_request', 'confessional'] })
+    const made2 = (
+      await as(admin).post('/admin/communities', { slug: kind, name: 'Kind Town', tradition: 'humanist', wording: 'neutral', enabledPostTypes: ['prayer_request', 'confessional'] })
     ).json().community;
-    expect(kind).toMatchObject({ wording: 'neutral', enabledPostTypes: ['prayer_request'] });
-    await as(admin).patch('/admin/communities/kind-town', { status: 'active' });
-    await as(member).post('/me/community', { slug: 'kind-town' });
-    expect((await as(member).get('/me')).json().community).toMatchObject({ slug: 'kind-town', wording: 'neutral' });
+    expect(made2).toMatchObject({ wording: 'neutral', enabledPostTypes: ['prayer_request'] });
+    await as(admin).patch(`/admin/communities/${kind}`, { status: 'active' });
+    await as(member).post('/me/community', { slug: kind });
+    expect((await as(member).get('/me')).json().community).toMatchObject({ slug: kind, wording: 'neutral' });
     expect((await as(member).get('/me/commitments/review')).json().message).not.toMatch(/pray/i);
 
     // Wording and details can change later; null clears a detail.
-    const changed = (await as(admin).patch('/admin/communities/grace-lutheran', { wording: 'neutral', operatorName: null })).json().community;
+    const changed = (await as(admin).patch(`/admin/communities/${grace}`, { wording: 'neutral', operatorName: null })).json().community;
     expect(changed).toMatchObject({ wording: 'neutral', operatorName: null, name: 'Grace Lutheran' });
-    await db.query(`update public.communities set status = 'archived' where slug in ('grace-lutheran', 'kind-town')`);
+    await db.query(`update public.communities set status = 'archived' where slug = any($1)`, [[grace, kind]]);
   });
 
   it('sums up the week without religious words for Open Circle members', async () => {

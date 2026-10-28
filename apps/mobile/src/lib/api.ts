@@ -51,6 +51,10 @@ export interface Features {
   sermonInputs: boolean;
   supportLabel: boolean;
   witnessStories: boolean;
+  /** The "don't pressure people" community rule. */
+  pressureRule: boolean;
+  /** Moderators can escalate a report for a law-enforcement review. */
+  legalReview: boolean;
 }
 
 export type WorldwideStats =
@@ -72,6 +76,8 @@ export interface NotebookSettings {
   sermon_inputs_enabled: boolean;
   support_label_enabled: boolean;
   witness_stories_enabled: boolean;
+  pressure_rule_enabled: boolean;
+  promise_page_enabled: boolean;
 }
 
 export class ApiError extends Error {
@@ -373,6 +379,27 @@ export interface SurveyResults {
   questions: { id: string; prompt: string; kind: SurveyQuestion['kind']; answered: number; counts?: Record<string, number>; average?: number | null; texts?: string[] }[];
 }
 
+export interface LegalCase {
+  id: string;
+  kind: 'preservation' | 'legal_process' | 'emergency' | 'referral';
+  status: 'open' | 'closed';
+  agency: string | null;
+  reference: string | null;
+  receivedAt: string | null;
+  subjectId: string | null;
+  subjectName: string | null;
+  moderationItemId: string | null;
+  summary: string;
+  createdAt: string;
+  closedAt: string | null;
+  activeHolds: number;
+}
+export interface LegalCaseDetail {
+  case: LegalCase;
+  notes: { id: string; body: string; createdAt: string; author: string | null }[];
+  holds: { id: string; userId: string; createdAt: string; expiresAt: string; releasedAt: string | null; items: number }[];
+}
+
 export interface Invite {
   code: string;
   note: string;
@@ -660,6 +687,7 @@ export const api = {
   report: (targetType: 'post' | 'comment' | 'message' | 'event' | 'spoken_prayer', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
+  escalate: (itemId: string, note: string) => post<unknown>(`/moderation/items/${itemId}/escalate`, { note }),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
@@ -722,6 +750,19 @@ export const api = {
     createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
       post<{ announcement: Announcement }>('/admin/announcements', input),
     endAnnouncement: (id: string) => post<{ announcement: Announcement }>(`/admin/announcements/${id}/end`),
+    legalSettings: () => get<{ settings: { enabled: boolean; defaultHoldDays: number } }>('/admin/legal/settings'),
+    updateLegalSettings: (patch: { enabled?: boolean; defaultHoldDays?: number }) =>
+      request<{ settings: { enabled: boolean; defaultHoldDays: number } }>('PATCH', '/admin/legal/settings', patch),
+    legalCases: () => get<{ cases: LegalCase[] }>('/admin/legal/cases'),
+    legalCase: (id: string) => get<LegalCaseDetail>(`/admin/legal/cases/${id}`),
+    createLegalCase: (input: { kind: LegalCase['kind']; agency?: string | null; reference?: string | null; subject?: string | null; summary: string }) =>
+      post<LegalCaseDetail>('/admin/legal/cases', input),
+    addLegalNote: (id: string, body: string) => post<LegalCaseDetail>(`/admin/legal/cases/${id}/notes`, { body }),
+    closeLegalCase: (id: string) => post<LegalCaseDetail>(`/admin/legal/cases/${id}/close`),
+    placeHold: (id: string, input: { member?: string; days?: number } = {}) => post<LegalCaseDetail>(`/admin/legal/cases/${id}/holds`, input),
+    refreshHold: (id: string) => post<LegalCaseDetail>(`/admin/legal/holds/${id}/refresh`),
+    releaseHold: (id: string) => post<LegalCaseDetail>(`/admin/legal/holds/${id}/release`),
+    exportHold: (id: string) => getText(`/admin/legal/holds/${id}/export`),
     surveys: () => get<{ surveys: (Survey & { responses: number })[] }>('/admin/surveys'),
     createSurvey: (input: { title: string; intro?: string | null; anonymous?: boolean; community?: string | null; questions: NewSurveyQuestion[] }) =>
       post<{ survey: Survey }>('/admin/surveys', input),
@@ -773,7 +814,7 @@ export const api = {
     updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number; confessionRetentionDays: number }>) =>
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>

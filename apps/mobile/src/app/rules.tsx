@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LegalLinks } from '@/components/legal-links';
 import { Button, Screen } from '@/components/ui';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -49,6 +50,7 @@ const RULES: { title: string; body: string }[] = [
 
 export default function Rules() {
   const { t } = useLocale();
+  const { pressureRule } = useFeatures();
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -60,6 +62,12 @@ export default function Rules() {
             <Text style={type.body}>{t(`rulesPage.items.${i}.body`, { defaultValue: r.body })}</Text>
           </View>
         ))}
+        {pressureRule ? (
+          <View style={styles.rule}>
+            <Text style={type.heading}>{t('rulesPage.pressure.title')}</Text>
+            <Text style={type.body}>{t('rulesPage.pressure.body')}</Text>
+          </View>
+        ) : null}
         <Text style={type.body}>
           {t('rulesPage.howTo')}
         </Text>

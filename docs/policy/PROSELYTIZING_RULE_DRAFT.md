@@ -29,7 +29,7 @@ Disagreeing kindly about beliefs is fine in comments that invite discussion. Moc
 | Recruiting for money | Handled under the existing "spam, sell, recruit for money" rule. |
 | Hate against a religion or group | Handled under the existing hate rule, and the account can be suspended. |
 
-There are no new switches or code. If adopted, the text goes in the Community Rules screen and in Terms section 5.
+**Built, off by default (2026-10-28).** Admin → Notebook ideas → "Don't pressure people" rule adds the rule (titled "Share your beliefs freely. Don't pressure people.") to the Community rules screen, with Open Circle wording for neutral communities, and lets moderators cite it on a removal. While it is off, the server refuses a removal under it. If adopted, also add the text to Terms section 5.
 
 ## Why the line sits here (current store policies)
 

@@ -4,6 +4,7 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Admin-created communities and member surveys ([#66](https://github.com/zoomatech/PrayerTower/pull/66))
 - Open Circle public face: website, icon, listing, privacy answers ([#65](https://github.com/zoomatech/PrayerTower/pull/65))
 - App Store token purchase with server-side verification (off by default) ([#64](https://github.com/zoomatech/PrayerTower/pull/64))
 - Seed prayers admin tool (off by default); fix colliding migration versions ([#63](https://github.com/zoomatech/PrayerTower/pull/63))

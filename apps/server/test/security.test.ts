@@ -75,6 +75,9 @@ describe('endpoint auth', () => {
       'GET /open-circle/privacy',
       'GET /open-circle/terms',
       'GET /open-circle/account-deletion',
+      // The ad-free promise (404 while switched off).
+      'GET /promise',
+      'GET /open-circle/promise',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

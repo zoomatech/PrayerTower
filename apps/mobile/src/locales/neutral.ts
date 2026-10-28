@@ -147,6 +147,9 @@ export const keys: Tree = named({
     text: 'This may go against our community rules: wish people well, never harm, and no harassment. It may be hidden or removed. Would you like to edit it?',
   },
   rulesPage: {
+    pressure: {
+      body: 'You\u2019re welcome to share what you believe and what helps you, and to invite someone to talk or join a group. Please don\u2019t keep pushing after someone says "no thanks", ignores you or blocks you; tell anyone their beliefs are worthless; use someone\u2019s request, or their crisis, to argue or recruit them; or ask for money, sign-ups or contact details. Disagreeing kindly is fine. Mocking or attacking anyone\u2019s beliefs is not.',
+    },
     items: {
       '0': { body: 'Bring any need, in any state. Big worries, small worries and things you are not sure how to say are all welcome here.' },
       '1': { title: 'Wish people well, never harm', body: '“Keep my son safe” and “Let this war end” are good wishes. Posts that call for harm to anyone are forbidden and will be removed.' },

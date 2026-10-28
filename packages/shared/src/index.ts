@@ -69,6 +69,8 @@ export const MODERATION_RULES = {
   ads: 'No ads',
   abuse: 'No harassment or abuse',
   safe_messaging: 'No details of suicide or self-harm methods',
+  /** Only while Admin → Notebook ideas has the rule on. */
+  pressure: "Share your beliefs freely. Don't pressure people.",
   other: 'Community rules',
 } as const;
 export type ModerationRule = keyof typeof MODERATION_RULES;
