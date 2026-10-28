@@ -65,7 +65,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const language = choice === 'system' ? device : choice;
   // Screen readers on the web pick their voice from <html lang> (WCAG 3.1.1).
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') document.documentElement.lang = language;
+    if (Platform.OS === 'web' && typeof document !== 'undefined' && document.documentElement.lang !== language) document.documentElement.lang = language;
   }, [language]);
   const value = useMemo<LocaleState>(() => {
     i18n.locale = language;
