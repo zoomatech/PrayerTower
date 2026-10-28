@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
-import type { Profile } from '@prayer-tower/shared';
+import type { Profile, Role } from '@prayer-tower/shared';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { api } from './api';
@@ -8,6 +8,7 @@ import { supabase } from './supabase';
 interface AuthState {
   session: Session | null;
   profile: Profile | null;
+  roles: Role[];
   loading: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -18,13 +19,17 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = useCallback(async () => {
     try {
-      setProfile((await api.me()).profile);
+      const me = await api.me();
+      setProfile(me.profile);
+      setRoles(me.roles ?? []);
     } catch {
       setProfile(null);
+      setRoles([]);
     }
   }, []);
 
@@ -47,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, refreshProfile, signOut }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ session, profile, roles, loading, refreshProfile, signOut }}>{children}</AuthContext.Provider>
   );
 }
 

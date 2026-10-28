@@ -9,7 +9,15 @@ import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
 import { Button, Chip, ErrorText, Field } from './ui';
 
-type Sheet = { kind: 'praying' | 'commit' | 'encourage' | 'share' | 'gift' | 'done'; card: Card; message?: string } | null;
+type ReportTarget = { type: 'post' | 'comment'; id: string };
+type Sheet = {
+  kind: 'praying' | 'commit' | 'encourage' | 'share' | 'gift' | 'report' | 'done';
+  card: Card;
+  message?: string;
+  target?: ReportTarget;
+} | null;
+
+const REPORT_REASONS = ['Harmful or abusive', 'Spam or selling', 'Not a prayer or praise', 'Someone may be in danger', 'Something else'];
 
 const INTEGRITY_TEXT = 'Tapping means you are bringing this request before the Lord right now.';
 
@@ -20,12 +28,17 @@ export function useCardActions(onChanged: () => void) {
   const [text, setText] = useState('');
   const [frequency, setFrequency] = useState<Frequency>('daily');
   const [days, setDays] = useState('30');
+  const [reason, setReason] = useState<string | null>(null);
 
   const close = () => {
     setSheet(null);
     setError(null);
     setText('');
+    setReason(null);
   };
+
+  /** Report a request or one of its comments to the moderators. */
+  const openReport = (card: Card, target: ReportTarget = { type: 'post', id: card.id }) => setSheet({ kind: 'report', card, target });
 
   const run = async (fn: () => Promise<unknown>, done: string) => {
     if (!sheet) return;
@@ -130,6 +143,31 @@ export function useCardActions(onChanged: () => void) {
         />
       </>
     );
+  } else if (sheet?.kind === 'report' && sheet.target) {
+    const target = sheet.target;
+    body = (
+      <>
+        <Text style={type.heading}>Report this {target.type === 'post' ? 'request' : 'comment'}</Text>
+        <Text style={type.body}>A moderator will look at it. The person is not told who reported it.</Text>
+        <View style={styles.row}>
+          {REPORT_REASONS.map((r) => (
+            <Chip key={r} label={r} selected={reason === r} onPress={() => setReason(r)} />
+          ))}
+        </View>
+        <Field placeholder="Anything the moderator should know (optional)" value={text} onChangeText={setText} multiline maxLength={800} />
+        <Button
+          label="Send report"
+          busy={busy}
+          disabled={!reason}
+          onPress={() =>
+            run(
+              () => api.report(target.type, target.id, [reason, text.trim()].filter(Boolean).join(': ')),
+              'Thank you. A moderator will review this.',
+            )
+          }
+        />
+      </>
+    );
   } else if (sheet?.kind === 'done') {
     body = (
       <>
@@ -151,7 +189,7 @@ export function useCardActions(onChanged: () => void) {
     </Modal>
   );
 
-  return { onAction, sheets };
+  return { onAction, openReport, sheets };
 }
 
 const styles = StyleSheet.create({

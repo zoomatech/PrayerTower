@@ -1,5 +1,5 @@
 import { WHY_HERE_LABELS, type FeedThemeChoices, type TierStatus, type TokenSummary } from '@prayer-tower/shared';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Profile() {
-  const { profile, refreshProfile, signOut } = useAuth();
+  const { profile, roles, refreshProfile, signOut } = useAuth();
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +106,9 @@ export default function Profile() {
         <Toggle label="Pray and post anonymously by default" value={profile.anonymous_by_default} onChange={(v) => update({ anonymousByDefault: v })} />
         <Toggle label="Occasional prayer reminders" value={profile.prompts_enabled} onChange={(v) => update({ promptsEnabled: v })} />
         <Toggle label="Show my updates as the first comment" value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
+        {roles.some((r) => r === 'moderator' || r === 'admin') ? (
+          <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
+        ) : null}
         <ErrorText error={error} />
         <Button variant="ghost" label="Sign out" onPress={signOut} />
       </ScrollView>

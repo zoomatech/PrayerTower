@@ -6,6 +6,8 @@ import type {
   Commitment,
   FeedPage,
   FeedThemeChoices,
+  ModerationItem,
+  Role,
   Frequency,
   PostType,
   Profile,
@@ -60,7 +62,7 @@ export interface NewPost {
 }
 
 export const api = {
-  me: () => get<{ profile: Profile }>('/me'),
+  me: () => get<{ profile: Profile; roles: Role[] }>('/me'),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
   feed: (page = 0) => get<FeedPage>(`/feed?page=${page}`),
   post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
@@ -93,6 +95,11 @@ export const api = {
     post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
+  report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>
+    post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
+  moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
+  decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string }) =>
+    post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),

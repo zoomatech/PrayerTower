@@ -31,6 +31,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
         <Stack.Screen name="post/[id]" />
+        <Stack.Screen name="moderation" />
       </Stack.Protected>
     </Stack>
   );

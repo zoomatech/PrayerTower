@@ -7,10 +7,12 @@ import { useCardActions } from '@/components/card-actions';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { profile } = useAuth();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -37,7 +39,7 @@ export default function PostScreen() {
     load();
   }, [load]);
 
-  const { onAction, sheets } = useCardActions(load);
+  const { onAction, openReport, sheets } = useCardActions(load);
 
   const send = async (isUpdate = false) => {
     setBusy(true);
@@ -76,6 +78,12 @@ export default function PostScreen() {
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
         <ErrorText error={error} />
 
+        {card && !card.isMine ? (
+          <Text style={styles.report} onPress={() => openReport(card)} accessibilityRole="button">
+            Report this request
+          </Text>
+        ) : null}
+
         {card?.isMine && card.state !== 'answered' ? (
           <Button variant="secondary" label="Mark this prayer answered" onPress={markAnswered} />
         ) : null}
@@ -111,9 +119,16 @@ export default function PostScreen() {
                 {c.author.displayName}
               </Text>
               <Text style={type.body}>{c.body}</Text>
-              <Text style={styles.reply} onPress={() => setReplyTo(c)}>
-                Reply
-              </Text>
+              <View style={styles.row}>
+                <Text style={styles.reply} onPress={() => setReplyTo(c)}>
+                  Reply
+                </Text>
+                {card && c.author.id !== profile?.id ? (
+                  <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
+                    Report
+                  </Text>
+                ) : null}
+              </View>
             </View>
           ))}
         </View>
@@ -142,5 +157,6 @@ const styles = StyleSheet.create({
   comment: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, gap: 2 },
   commentAuthor: { fontWeight: '700', color: colors.text },
   reply: { color: colors.primary, fontSize: 13 },
+  report: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
   row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
 });

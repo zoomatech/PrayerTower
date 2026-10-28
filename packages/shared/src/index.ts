@@ -125,6 +125,19 @@ export interface FeedTheme {
   tokens: Record<string, unknown>;
 }
 
+export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner';
+
+export interface ModerationItem {
+  id: string;
+  target_type: 'post' | 'comment' | 'reaction';
+  target_id: string;
+  source: 'report' | 'ai';
+  reason: string | null;
+  status: string;
+  content: string | null;
+  created_at: string;
+}
+
 export interface FeedThemeChoices {
   themes: { slug: string; name: string; layout: FeedLayoutKind; status: 'active' | 'beta'; is_default: boolean }[];
   current: string | null;

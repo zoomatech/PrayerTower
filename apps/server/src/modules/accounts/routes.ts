@@ -6,9 +6,10 @@ import * as accounts from './index.js';
 
 export function accountRoutes(app: FastifyInstance, db: Db) {
   app.get('/me', async (req) => {
-    const profile = await accounts.getProfile(db, requireUser(req));
+    const userId = requireUser(req);
+    const profile = await accounts.getProfile(db, userId);
     if (!profile) throw notFound('Profile');
-    return { profile };
+    return { profile, roles: await accounts.roles(db, userId) };
   });
 
   app.patch('/me', async (req) => {
