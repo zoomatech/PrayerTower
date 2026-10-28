@@ -15,16 +15,18 @@ function publishableKey(): string {
 }
 
 describe('Supabase Auth end to end', () => {
-  it('signs up through Supabase Auth and calls the API with the real access token', async () => {
-    const res = await fetch(`${config.SUPABASE_URL}/auth/v1/signup`, {
+  // Works whether or not invite-only is on (a valid code passes either way).
+  const signUp = (data: Record<string, string>) =>
+    fetch(`${config.SUPABASE_URL}/auth/v1/signup`, {
       method: 'POST',
       headers: { apikey: publishableKey(), 'content-type': 'application/json' },
-      body: JSON.stringify({
-        email: `${randomUUID()}@example.com`,
-        password: 'a-long-test-password-1',
-        data: { display_name: 'Dana' },
-      }),
+      body: JSON.stringify({ email: `${randomUUID()}@example.com`, password: 'a-long-test-password-1', data }),
     });
+
+  it('signs up through Supabase Auth and calls the API with the real access token', async () => {
+    const code = `T${randomUUID().replace(/-/g, '').slice(0, 11).toUpperCase()}`;
+    await db.query('insert into public.invite_codes (code) values ($1)', [code]);
+    const res = await signUp({ display_name: 'Dana', invite_code: code.toLowerCase() });
     expect(res.status).toBe(200);
     const session = (await res.json()) as { access_token: string; user: { id: string } };
 

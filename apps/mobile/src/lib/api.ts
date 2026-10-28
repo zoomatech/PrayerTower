@@ -215,6 +215,18 @@ export interface Highlights {
   topWarriors: { id: string | null; displayName: string; prayers: number }[];
 }
 
+export interface Invite {
+  code: string;
+  note: string;
+  maxUses: number;
+  uses: number;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  status: 'active' | 'used' | 'expired' | 'revoked';
+}
+
 export interface AuditEntry {
   id: string;
   actor_id: string | null;
@@ -303,6 +315,8 @@ export interface NewPost {
 }
 
 export const api = {
+  /** Public: whether sign-up needs an invite code. */
+  signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
   me: () => cachedGet<{ profile: Profile; roles: Role[] }>('me', '/me'),
   sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
@@ -403,6 +417,11 @@ export const api = {
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
     pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
     pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
+    invites: () => get<{ inviteOnly: boolean; invites: Invite[] }>('/admin/invites'),
+    createInvites: (input: { note?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
+      post<{ invites: Invite[] }>('/admin/invites', input),
+    revokeInvite: (code: string) => post<{ invite: Invite }>(`/admin/invites/${encodeURIComponent(code)}/revoke`, {}),
+    setInviteOnly: (inviteOnly: boolean) => request<{ inviteOnly: boolean }>('PATCH', '/admin/invite-settings', { inviteOnly }),
     auditLog: (q: { before?: string; limit?: number } = {}) =>
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),

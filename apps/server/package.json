@@ -11,6 +11,7 @@
     "test": "vitest run",
     "grant-role": "tsx src/scripts/grant-role.ts",
     "seed:demo": "tsx src/scripts/seed-demo.ts",
+    "review-account": "tsx src/scripts/review-account.ts",
     "load-test": "tsx src/scripts/load-test.ts"
   },
   "devDependencies": {

@@ -54,7 +54,7 @@ Prayer Tower is in a small pilot. Features may change as we learn together. Pray
 **Category:** Lifestyle (primary), Social Networking (secondary). Steve to confirm.
 **Copyright:** `2026 [LEGAL NAME OF OPERATOR]`
 
-**App Review notes**
+**App Review notes.** Use the fuller version in [REVIEW_NOTES.md](REVIEW_NOTES.md), which also has the review account plan, Play's App access text and answers to likely questions. Short version:
 ```
 Prayer Tower is a prayer-request community for adults (18+). To review:
 Sign in with the review account below (it has sample requests from staff test accounts).
