@@ -12,6 +12,7 @@ import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle 
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useFeature } from '@/lib/community-features';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
 import { colors, space, type } from '@/lib/theme';
@@ -21,6 +22,7 @@ export default function PostScreen() {
   const { celebrate, overlay } = useCelebration();
   const { profile, roles } = useAuth();
   const { t } = useLocale();
+  const { materialMatch } = useFeatures();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -272,6 +274,7 @@ export default function PostScreen() {
             onPress={() => sendRadio()}
           />
         ) : null}
+        {prayable && !radioSent && materialMatch && (tokens?.priestly.radioPrayerCost ?? 0) > 0 ? <Text style={type.small}>{t('post.materialMatch')}</Text> : null}
         {prayable && radioOn && !radioSent && tokens?.priestly.amplifyRepeats && tokens.priestly.balance >= (tokens.priestly.amplifyCost ?? 0) ? (
           <Button
             variant="secondary"

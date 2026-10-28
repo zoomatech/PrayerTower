@@ -27,6 +27,7 @@ import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useFeature } from '@/lib/community-features';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { saveJson } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -44,6 +45,7 @@ export default function Profile() {
   const [stats, setStats] = useState<PrayerStats | null>(null);
   // "Buy tokens" shows only while an admin has turned purchases on.
   const [storeOn, setStoreOn] = useState(false);
+  const features = useFeatures();
 
   // If the counts can't load, say so instead of showing zeros that look real.
   const [countsError, setCountsError] = useState<string | null>(null);
@@ -159,6 +161,7 @@ export default function Profile() {
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
+          {features.podcasts ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (

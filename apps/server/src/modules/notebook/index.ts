@@ -22,12 +22,13 @@ export interface NotebookSettings {
   witness_stories_enabled: boolean;
   pressure_rule_enabled: boolean;
   promise_page_enabled: boolean;
+  podcasts_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
-            pressure_rule_enabled, promise_page_enabled from public.notebook_settings`,
+            pressure_rule_enabled, promise_page_enabled, podcasts_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -41,6 +42,7 @@ export const SettingsPatch = z.object({
   witnessStoriesEnabled: z.boolean().optional(),
   pressureRuleEnabled: z.boolean().optional(),
   promisePageEnabled: z.boolean().optional(),
+  podcastsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -49,7 +51,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        worldwide_count_enabled = coalesce($1, worldwide_count_enabled), thanks_card_enabled = coalesce($2, thanks_card_enabled),
        thanks_card_days = coalesce($3, thanks_card_days), sermon_inputs_enabled = coalesce($4, sermon_inputs_enabled),
        support_label_enabled = coalesce($5, support_label_enabled), witness_stories_enabled = coalesce($6, witness_stories_enabled),
-       pressure_rule_enabled = coalesce($7, pressure_rule_enabled), promise_page_enabled = coalesce($8, promise_page_enabled)`,
+       pressure_rule_enabled = coalesce($7, pressure_rule_enabled), promise_page_enabled = coalesce($8, promise_page_enabled),
+       podcasts_enabled = coalesce($9, podcasts_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -59,6 +62,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.witnessStoriesEnabled ?? null,
       p.pressureRuleEnabled ?? null,
       p.promisePageEnabled ?? null,
+      p.podcastsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -68,6 +72,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
 export async function features(q: Queryable) {
   const s = await settings(q);
   const { rows: legal } = await q.query<{ enabled: boolean }>('select enabled from public.legal_settings');
+  const { rows: match } = await q.query<{ enabled: boolean }>('select enabled from public.material_match_settings');
   return {
     worldwideCount: s.worldwide_count_enabled,
     thanksCard: s.thanks_card_enabled,
@@ -77,6 +82,9 @@ export async function features(q: Queryable) {
     pressureRule: s.pressure_rule_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
+    podcasts: s.podcasts_enabled,
+    /** Paid radio prayers are matched with equal material help (modules/material-match). */
+    materialMatch: match[0]?.enabled === true,
   };
 }
 

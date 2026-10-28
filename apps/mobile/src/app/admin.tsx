@@ -252,6 +252,7 @@ function Admin() {
             <Button variant="secondary" label={t('admin.announcements')} onPress={() => router.push('/announcements')} />
             <Button variant="secondary" label={t('admin.surveys')} onPress={() => router.push('/surveys')} />
             <Button variant="secondary" label={t('admin.legal')} onPress={() => router.push('/legal')} />
+            <Button variant="secondary" label={t('admin.podcasts')} onPress={() => router.push('/podcasts-admin')} />
           </View>
         ) : null}
 
@@ -307,6 +308,7 @@ function Admin() {
         <NotebookSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
+        <MaterialMatchSection />
         <AwardSection />
         <AiSection />
         <LiveSection />
@@ -782,6 +784,68 @@ function SpokenPrayerSection() {
   );
 }
 
+/** Equal material help for paid radio prayers (Notes p3), off by default. */
+function MaterialMatchSection() {
+  const t = useT();
+  const [s, setS] = useState<Awaited<ReturnType<typeof api.admin.materialMatch>> | null>(null);
+  const [rate, setRate] = useState('');
+  const [kind, setKind] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const load = useCallback(
+    () =>
+      api.admin.materialMatch().then(
+        (r) => {
+          setS(r);
+          setRate(String(r.settings.centsPerToken));
+        },
+        (e) => setNote((e as Error).message),
+      ),
+    [],
+  );
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+  const save = (patch: { enabled?: boolean; centsPerToken?: number }) =>
+    api.admin
+      .updateMaterialMatch(patch)
+      .then(() => {
+        resetFeatures();
+        setNote(t('admin.saved.materialMatch'));
+        return load();
+      })
+      .catch((e) => setNote((e as Error).message));
+  const fulfill = () =>
+    api.admin
+      .fulfillMaterialMatch({ helpKind: kind.trim() })
+      .then((r) => {
+        setKind('');
+        setNote(t('admin.materialMatch.recorded', { amount: (r.cents / 100).toFixed(2) }));
+        return load();
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.materialMatch.title')}</Text>
+      <Toggle label={t('admin.materialMatch.toggle')} hint={t('admin.materialMatch.hint')} value={s.settings.enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('admin.materialMatch.rate')} keyboardType="number-pad" value={rate} onChangeText={setRate} />
+      <Button small variant="secondary" label={t('admin.materialMatch.saveRate')} disabled={!toInt(rate)} onPress={() => save({ centsPerToken: toInt(rate) ?? undefined })} />
+      <Text style={type.body}>
+        {t('admin.materialMatch.owed', { count: s.owed.count, amount: (s.owed.cents / 100).toFixed(2) })} · {t('admin.materialMatch.sent', { amount: (s.fulfilled.cents / 100).toFixed(2) })}
+      </Text>
+      {s.owed.count ? (
+        <>
+          <Field label={t('admin.materialMatch.kind')} value={kind} onChangeText={setKind} maxLength={60} />
+          <Button small label={t('admin.materialMatch.fulfill')} disabled={!kind.trim()} onPress={fulfill} />
+        </>
+      ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Communities (Open Circle, 2026-10-28): a non-default community is hidden until an admin turns it on. */
 function CommunitiesSection() {
   const t = useT();
@@ -938,6 +1002,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.witnessStories')} hint={t('admin.toggle.witnessStoriesHint')} value={s.witness_stories_enabled} onChange={(v) => save({ witnessStoriesEnabled: v })} />
       <Toggle label={t('admin.toggle.pressureRule')} hint={t('admin.toggle.pressureRuleHint')} value={s.pressure_rule_enabled} onChange={(v) => save({ pressureRuleEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
+      <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

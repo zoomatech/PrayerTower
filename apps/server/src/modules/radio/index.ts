@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as materialMatch from '../material-match/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
@@ -69,6 +70,8 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
      returning id, post_id, cost, repeats, status, created_at, transmitted_at`,
     [post.id, userId, t?.id ?? null, cost, key, repeats],
   );
+  // Equal material help for the afflicted, when that switch is on (modules/material-match).
+  if (t) await materialMatch.onRadioSpend(q, rows[0]!.id, userId, cost);
   await enqueue(q, 'radio_transmit', { radioPrayerId: rows[0]!.id }, { jobKey: `radio_transmit:${rows[0]!.id}` });
   return rows[0]!;
 }
@@ -103,7 +106,10 @@ async function failAndRefund(q: Queryable, id: string, error: string) {
   );
   const r = rows[0];
   if (!r) return;
-  if (r.transfer_id) await tokens.clawback(q, r.transfer_id, r.user_id, 'Radio prayer not sent: refunded');
+  if (r.transfer_id) {
+    await tokens.clawback(q, r.transfer_id, r.user_id, 'Radio prayer not sent: refunded');
+    await materialMatch.onRadioRefund(q, id);
+  }
   // Tell the sender, without the reason: it can name a moderator's decision or the station's fault.
   await notifications.notify(q, r.user_id, {
     kind: 'radio_not_sent',

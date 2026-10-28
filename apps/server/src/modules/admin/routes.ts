@@ -15,6 +15,7 @@ import * as care from '../care/index.js';
 import { churchAdminRoutes } from '../churches/routes.js';
 import * as commitments from '../commitments/index.js';
 import * as commonFund from '../common-fund/index.js';
+import * as materialMatch from '../material-match/index.js';
 import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
@@ -279,6 +280,21 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   });
 
   // Common Prayer Fund bookkeeping: money in and help sent, shown on the public report once it's switched on.
+  // Equal material help for paid radio prayers (off by default).
+  app.get('/admin/material-match', async (req) => {
+    await requireAdmin(req);
+    return materialMatch.summary(db);
+  });
+  app.patch('/admin/material-match', async (req) => {
+    await requireAdmin(req);
+    return { settings: await materialMatch.updateSettings(db, materialMatch.SettingsPatch.parse(req.body)) };
+  });
+  app.post('/admin/material-match/fulfill', async (req) => {
+    const adminId = await requireAdmin(req);
+    const input = materialMatch.Fulfill.parse(req.body);
+    return withTx(db, (tx) => materialMatch.fulfill(tx, adminId, input));
+  });
+
   app.get('/admin/common-fund/entries', async (req) => {
     await requireAdmin(req);
     return { entries: await commonFund.list(db, commonFund.ListFilter.parse(req.query)) };
