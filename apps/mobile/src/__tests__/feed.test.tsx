@@ -26,9 +26,18 @@ beforeEach(async () => {
   mocked.prompt.mockResolvedValue({ prompt: null });
   mocked.features.mockResolvedValue({ features: {} });
   mocked.announcements.mockResolvedValue({ announcements: [] });
+  mocked.surveys.mockResolvedValue({ surveys: [] });
 });
 
 describe('Feed', () => {
+  it('shows an open survey and opens it', async () => {
+    mocked.surveys.mockResolvedValue({ surveys: [{ id: 's1', title: 'How are we doing?', intro: 'Two minutes.', status: 'open', anonymous: true, community: null, closesAt: null, questions: [] }] });
+    await renderApp(<Feed />);
+    expect(await screen.findByText('A short survey: How are we doing?')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Take the survey' }));
+    expect(router.push).toHaveBeenCalledWith('/survey/s1');
+  });
+
   it('greets the member and shows the requests', async () => {
     await renderApp(<Feed />);
     expect(await screen.findByText('Pray for peace in our town.')).toBeTruthy();

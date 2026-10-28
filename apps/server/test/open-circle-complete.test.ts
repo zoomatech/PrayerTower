@@ -53,6 +53,13 @@ describe('Open Circle complete', () => {
     expect((await as(member).post('/care-requests', { kind: 'pray_with_me', body: 'Could use someone to talk to.' })).statusCode).toBe(403);
     const event = { kind: 'meetup', title: 'Walk', startsAt: new Date(Date.now() + 86_400_000).toISOString(), durationMinutes: 60, location: 'The park' };
     expect((await as(member).post('/events', event)).statusCode).toBe(403);
+    // A survey for everyone stays out of a community that hides surveys.
+    const created = await as(admin).post('/admin/surveys', { title: 'How are we doing?', anonymous: true, community: null, questions: [{ kind: 'text', prompt: 'Anything to tell us?' }] });
+    const surveyId = created.json().survey.id;
+    await as(admin).patch(`/admin/surveys/${surveyId}`, { status: 'open' });
+    await as(admin).patch('/admin/communities/open-circle', { hiddenFeatures: ['care', 'events', 'pools', 'surveys'] });
+    expect((await as(member).get('/surveys')).json().surveys).toEqual([]);
+    expect((await as(faith).get('/surveys')).json().surveys.map((x: { id: string }) => x.id)).toContain(surveyId);
     // The default community still has them.
     expect((await as(faith).post('/events', event)).statusCode).not.toBe(403);
     await as(admin).patch('/admin/communities/open-circle', { hiddenFeatures: [] });

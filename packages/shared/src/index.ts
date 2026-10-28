@@ -14,7 +14,7 @@ export const isPrayable = (t: PostType) => !DISCUSSION_TYPES.includes(t);
  * for Open Circle. Hidden features disappear from the app for that community's
  * members, and the server refuses them.
  */
-export const COMMUNITY_FEATURES = ['radio', 'spoken', 'care', 'events', 'groups', 'awards', 'live', 'circles', 'pools', 'highlights'] as const;
+export const COMMUNITY_FEATURES = ['radio', 'spoken', 'care', 'events', 'groups', 'awards', 'live', 'circles', 'pools', 'highlights', 'surveys'] as const;
 export type CommunityFeature = (typeof COMMUNITY_FEATURES)[number];
 
 export const POST_TYPE_LABELS: Record<PostType, string> = {
@@ -77,6 +77,8 @@ export const MODERATION_RULES = {
   ads: 'No ads',
   abuse: 'No harassment or abuse',
   safe_messaging: 'No details of suicide or self-harm methods',
+  /** Only while Admin → Notebook ideas has the rule on. */
+  pressure: "Share your beliefs freely. Don't pressure people.",
   other: 'Community rules',
 } as const;
 export type ModerationRule = keyof typeof MODERATION_RULES;

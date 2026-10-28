@@ -48,6 +48,55 @@ describe('Open Circle, the non-religious community', () => {
     expect(confession.statusCode).toBe(400);
   });
 
+  it('lets admins add a hidden community for a denomination or a partner, with its own wording', async () => {
+    const admin = await createUser('Sandbox Admin');
+    await grantRole(db, admin, 'admin', null);
+    const member = await createUser('Sandbox Sam');
+    // Unique short names, so the test passes again on a database that wasn't reset.
+    const tag = randomUUID().slice(0, 8);
+    const grace = `grace-lutheran-${tag}`;
+    const kind = `kind-town-${tag}`;
+    const input = { slug: grace, name: 'Grace Lutheran', tradition: 'Lutheran', operatorName: 'Grace Lutheran Church', operatorContact: 'office@grace.example' };
+    expect((await as(member).post('/admin/communities', input)).statusCode).toBe(403);
+    const made = await as(admin).post('/admin/communities', input);
+    expect(made.statusCode).toBe(201);
+    expect(made.json().community).toMatchObject({ slug: grace, tradition: 'lutheran', status: 'hidden', wording: 'faith', operatorName: 'Grace Lutheran Church' });
+    expect((await as(admin).post('/admin/communities', input)).statusCode).toBe(409);
+    // Hidden until turned on: members can't pick it.
+    expect((await as(member).post('/me/community', { slug: grace })).statusCode).toBe(404);
+    const listed = (await as(admin).get('/admin/communities')).json().communities.find((c: { slug: string }) => c.slug === grace);
+    expect(listed).toMatchObject({ members: 0, operatorContact: 'office@grace.example' });
+
+    // A neutral community never offers confession, and its members read the neutral wording.
+    const made2 = (
+      await as(admin).post('/admin/communities', { slug: kind, name: 'Kind Town', tradition: 'humanist', wording: 'neutral', enabledPostTypes: ['prayer_request', 'confessional'] })
+    ).json().community;
+    expect(made2).toMatchObject({ wording: 'neutral', enabledPostTypes: ['prayer_request'] });
+    await as(admin).patch(`/admin/communities/${kind}`, { status: 'active' });
+    await as(member).post('/me/community', { slug: kind });
+    expect((await as(member).get('/me')).json().community).toMatchObject({ slug: kind, wording: 'neutral' });
+    expect((await as(member).get('/me/commitments/review')).json().message).not.toMatch(/pray/i);
+
+    // Wording and details can change later; null clears a detail.
+    const changed = (await as(admin).patch(`/admin/communities/${grace}`, { wording: 'neutral', operatorName: null })).json().community;
+    expect(changed).toMatchObject({ wording: 'neutral', operatorName: null, name: 'Grace Lutheran' });
+    await db.query(`update public.communities set status = 'archived' where slug = any($1)`, [[grace, kind]]);
+  });
+
+  it('sums up the week without religious words for Open Circle members', async () => {
+    const circle = await createUser('Weekly Wren');
+    const friend = await createUser('Weekly Will');
+    await db.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
+    await as(circle).post('/me/community', { slug: 'open-circle' });
+    expect((await as(circle).get('/me/commitments/review')).json().message).toBe('When you are ready, there are people who could use some support.');
+    const post = await newRequest(friend, 'A long week ahead.');
+    await as(circle).post(`/posts/${post.id}/praying-now`, {});
+    const review = (await as(circle).get('/me/commitments/review')).json();
+    expect(review.message).toBe('This week you supported people 1 time on 1 request. Thank you for being there for them.');
+    expect(review.message).not.toMatch(/pray/i);
+    expect((await as(friend).get('/me/commitments/review')).json().message).toContain('people waiting for prayer');
+  });
+
   it('uses plain, warm wording in notices to Open Circle members', async () => {
     const circle = await createUser('Notice Nia');
     const friend = await createUser('Friendly Fay');

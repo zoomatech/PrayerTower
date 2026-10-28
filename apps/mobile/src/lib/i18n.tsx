@@ -54,6 +54,9 @@ export function setWording(next: Wording) {
   listeners.forEach((l) => l());
 }
 export const wordingForTradition = (tradition: string | null | undefined): Wording => (tradition === 'secular' ? 'neutral' : 'faith');
+/** The wording the member's community asks for (an admin can set any community to neutral); else by its tradition. */
+export const wordingFor = (community: { tradition?: string | null; wording?: Wording | null } | null | undefined): Wording =>
+  community?.wording ?? wordingForTradition(community?.tradition);
 const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => listeners.delete(l);

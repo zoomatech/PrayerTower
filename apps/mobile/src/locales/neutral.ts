@@ -11,9 +11,15 @@
 //   pray-er → supporter · praise → good news · testimony → story · prayer partner → listening partner
 //   pastor → mentor · Priestly token → Lighthouse token · prayer warriors → kindness champions
 
+import { env } from '@/lib/env';
+
 type Tree = { [key: string]: string | Tree };
 
-export const keys: Tree = {
+// "Open Circle" below is the placeholder name; EXPO_PUBLIC_OPEN_CIRCLE_NAME renames it everywhere.
+const named = (tree: Tree): Tree =>
+  Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
+
+export const keys: Tree = named({
   common: { praiseGod: 'Wonderful news!' },
   tabs: { prayers: 'Support' },
   menu: { newRequest: 'New Request', tour: 'How Open Circle Works' },
@@ -147,6 +153,9 @@ export const keys: Tree = {
     text: 'This may go against our community rules: wish people well, never harm, and no harassment. It may be hidden or removed. Would you like to edit it?',
   },
   rulesPage: {
+    pressure: {
+      body: 'You\u2019re welcome to share what you believe and what helps you, and to invite someone to talk or join a group. Please don\u2019t keep pushing after someone says "no thanks", ignores you or blocks you; tell anyone their beliefs are worthless; use someone\u2019s request, or their crisis, to argue or recruit them; or ask for money, sign-ups or contact details. Disagreeing kindly is fine. Mocking or attacking anyone\u2019s beliefs is not.',
+    },
     items: {
       '0': { body: 'Bring any need, in any state. Big worries, small worries and things you are not sure how to say are all welcome here.' },
       '1': { title: 'Wish people well, never harm', body: '“Keep my son safe” and “Let this war end” are good wishes. Posts that call for harm to anyone are forbidden and will be removed.' },
@@ -274,10 +283,10 @@ export const keys: Tree = {
     eventKind: { prayer_meeting: 'Support meetup' },
     tier: { prayer_scout: 'Kindness Scout', prayerful_helper: 'Kind Helper', prayer_warrior: 'Kindness Champion' },
   },
-};
+});
 
 /** Text the screens write out directly, mapped to its Open Circle version. */
-export const literals: Record<string, string> = {
+export const literals = named({
   'Each prayer you offer for someone else earns a token.': 'Each time you support someone else, you earn a token.',
   'Prayer Scout': 'Kindness Scout',
   'Prayerful Helper': 'Kind Helper',
@@ -292,4 +301,4 @@ export const literals: Record<string, string> = {
   'Prayer Cast': 'Goodwill Cast',
   'Swipe to pray': 'Swipe through',
   'Go to Prayers': 'Go to Support',
-};
+}) as Record<string, string>;

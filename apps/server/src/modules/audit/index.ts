@@ -11,6 +11,7 @@ import type { Queryable } from '../../db.js';
  */
 const STAFF_ROUTES = new Set([
   'POST /moderation/items/:id/decision',
+  'POST /moderation/items/:id/escalate',
   'POST /moderation/appeals/:id/decision',
   'POST /moderation/activity-flags/:id',
   'POST /posts/:id/witness',
@@ -22,8 +23,8 @@ const STAFF_ROUTES = new Set([
   'POST /macro-needs/:id/end',
   'POST /macro-needs/:id/helped',
 ]);
-/** Bodies that hold pastoral or private text: the action is logged, the text is not. */
-const NO_BODY = new Set(['POST /witness/cases/:id/notes', 'PATCH /witness/cases/:id']);
+/** Bodies that hold pastoral, private or legal-case text: the action is logged, the text is not. */
+const NO_BODY = new Set(['POST /witness/cases/:id/notes', 'PATCH /witness/cases/:id', 'POST /admin/legal/cases', 'POST /admin/legal/cases/:id/notes', 'POST /moderation/items/:id/escalate']);
 /**
  * Bodies that name people who may not be members (an invitee's email, a church's
  * member list): the settings are logged, the people are not.

@@ -4,7 +4,8 @@
 //   * the thanksgiving card in the feed (Notes Page 14);
 //   * sermon and meeting inputs on events (Notes Page 12);
 //   * the "Prayer and positive thoughts welcome" label (note of 2026-09-19);
-//   * Witness stories, off by default (the switch lives here; the code is in witness/).
+//   * Witness stories, off by default (the switch lives here; the code is in witness/);
+//   * the "don't pressure people" rule and the public ad-free promise page (20261029004700).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
@@ -19,11 +20,14 @@ export interface NotebookSettings {
   sermon_inputs_enabled: boolean;
   support_label_enabled: boolean;
   witness_stories_enabled: boolean;
+  pressure_rule_enabled: boolean;
+  promise_page_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
-    'select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled from public.notebook_settings',
+    `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
+            pressure_rule_enabled, promise_page_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -35,6 +39,8 @@ export const SettingsPatch = z.object({
   sermonInputsEnabled: z.boolean().optional(),
   supportLabelEnabled: z.boolean().optional(),
   witnessStoriesEnabled: z.boolean().optional(),
+  pressureRuleEnabled: z.boolean().optional(),
+  promisePageEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -42,7 +48,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
     `update public.notebook_settings set
        worldwide_count_enabled = coalesce($1, worldwide_count_enabled), thanks_card_enabled = coalesce($2, thanks_card_enabled),
        thanks_card_days = coalesce($3, thanks_card_days), sermon_inputs_enabled = coalesce($4, sermon_inputs_enabled),
-       support_label_enabled = coalesce($5, support_label_enabled), witness_stories_enabled = coalesce($6, witness_stories_enabled)`,
+       support_label_enabled = coalesce($5, support_label_enabled), witness_stories_enabled = coalesce($6, witness_stories_enabled),
+       pressure_rule_enabled = coalesce($7, pressure_rule_enabled), promise_page_enabled = coalesce($8, promise_page_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -50,6 +57,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.sermonInputsEnabled ?? null,
       p.supportLabelEnabled ?? null,
       p.witnessStoriesEnabled ?? null,
+      p.pressureRuleEnabled ?? null,
+      p.promisePageEnabled ?? null,
     ],
   );
   return settings(q);
@@ -58,12 +67,16 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
 /** The switches the app needs to show or hide these features. */
 export async function features(q: Queryable) {
   const s = await settings(q);
+  const { rows: legal } = await q.query<{ enabled: boolean }>('select enabled from public.legal_settings');
   return {
     worldwideCount: s.worldwide_count_enabled,
     thanksCard: s.thanks_card_enabled,
     sermonInputs: s.sermon_inputs_enabled,
     supportLabel: s.support_label_enabled,
     witnessStories: s.witness_stories_enabled,
+    pressureRule: s.pressure_rule_enabled,
+    /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
+    legalReview: legal[0]?.enabled === true,
   };
 }
 

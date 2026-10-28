@@ -50,6 +50,7 @@ In **Admin → Communities**, each community has a row of feature chips. Tap one
 | AI circle prep | Prepare for a circle, and circle requests |
 | Pools | Token pools |
 | Highlights | This week's highlights |
+| Surveys | Member surveys in the feed |
 
 ## Inviting people straight into Open Circle
 
@@ -78,13 +79,45 @@ Set `EXPO_PUBLIC_EDITION=open-circle` for the build. That build gets:
 | App name | Open Circle |
 | Bundle ID | `com.zoomatech.opencircle` |
 | Link scheme | `opencircle://` |
-| Icon | `assets/images/open-circle-icon.png` if that file exists, else the Prayer Tower icon |
+| Name | `EXPO_PUBLIC_OPEN_CIRCLE_NAME` (default "Open Circle"). It renames the app and every "Open Circle" in its wording. |
+| Icon, splash, favicon | `assets/images/open-circle-icon.png`, `open-circle-splash-icon.png`, `open-circle-favicon.png`: a placeholder circle of people with one open place, in teal and peach. Redraw with `npm run brand -- --edition open-circle` (`scripts/branding/marks.mjs`). |
+| Colors | Teal (`#1D6F6A`) in place of Prayer Tower's purple, in the app, splash, notifications and website |
+| Home-screen widget | "Lift Someone Up", with no prayer words |
 
 In that build:
 - The wording is always neutral, and there is no community chooser.
 - New sign-ups ask to join Open Circle. Open Circle must be switched on in Admin first, or new members land in the default community.
 
 The branded app shares the server and database with Prayer Tower. Its App Store listing, screenshots and EAS project are separate. Those are the items in STEVE_TODO.
+
+## Its public website
+
+The same server serves Open Circle's own pages, in plain English with no religious words:
+
+| Page | On Open Circle's domain | Before it has one |
+|---|---|---|
+| Landing | `/` | `/open-circle` |
+| Support | `/support` | `/open-circle/support` |
+| Privacy policy | `/privacy` | `/open-circle/privacy` |
+| Terms of use | `/terms` | `/open-circle/terms` |
+| Account deletion | `/account-deletion` | `/open-circle/account-deletion` |
+| Shared request links | `/post/<id>`, opening `opencircle://` | (shared links use the app's link domain) |
+
+Server settings: `OPEN_CIRCLE_HOSTS` (its domains, comma-separated; any other host gets the Prayer Tower pages), `OPEN_CIRCLE_NAME` (placeholder "Open Circle"), `OPEN_CIRCLE_APP_STORE_URL` and `OPEN_CIRCLE_SUPPORT_EMAIL` (else `SUPPORT_EMAIL`).
+
+The privacy policy and terms are drafts in `docs/legal/open-circle/`, with `{{NAME}}` where the name goes. As with Prayer Tower, a reviewed `PRIVACY_POLICY.md` or `TERMS_OF_USE.md` in that folder wins over the draft.
+
+Build the Open Circle app with `EXPO_PUBLIC_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_URL` pointing at these pages.
+
+## App Store
+
+- Listing draft, review notes and TestFlight text: [store/open-circle/STORE_LISTING.md](store/open-circle/STORE_LISTING.md)
+- Privacy answers (what differs from Prayer Tower): [store/open-circle/APP_PRIVACY_ANSWERS.md](store/open-circle/APP_PRIVACY_ANSWERS.md)
+- Screenshots: project files `store-screenshots/open-circle/` (upload `sample-labeled/`), made from the Open Circle web build with `npm run seed:demo -- --edition open-circle` on a local database.
+
+## Renaming it
+
+When Steve picks the real name, change it in four places: `EXPO_PUBLIC_OPEN_CIRCLE_NAME` (the build), `OPEN_CIRCLE_NAME` (the server), Admin → Communities (the community's name), and the App Store listing.
 
 ## Where the code is
 
@@ -93,6 +126,7 @@ The branded app shares the server and database with Prayer Tower. Its App Store 
 | Database | `supabase/migrations/20261029002200_open_circle_community.sql`: the community, placing new rows in the author's community, and the sign-up `community` choice. `20261029004200_open_circle_complete.sql`: hidden features and invite codes for a community |
 | Server | `apps/server/src/modules/communities/`, the neutral notice catalog in `notifications/i18n.ts`, and the neutral reminder lines in `prompts/index.ts` |
 | App wording | `apps/mobile/src/locales/neutral.ts`, which `lib/i18n.tsx` uses when the member's community is "secular" |
-| Branded build | `apps/mobile/app.config.js` |
+| Branded build | `apps/mobile/app.config.js`, and the teal in `lib/theme.ts` |
+| Website | `apps/server/src/modules/site/open-circle.ts`, `docs/legal/open-circle/` |
 
 **Rule for new features:** put every religious word in `en.ts` and give it a neutral line in `neutral.ts`. The `open-circle` test fails if neutral text contains a religious word, or overrides a key that English doesn't have.

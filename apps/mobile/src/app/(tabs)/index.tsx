@@ -17,6 +17,7 @@ import { ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
 import { Announcements } from "@/components/announcements";
 import { LiveNow } from "@/components/live-now";
+import { SurveyPrompts } from "@/components/survey-prompts";
 import { OfflineBanner } from "@/components/offline-banner";
 import { Button, Chip, ErrorText, Screen } from "@/components/ui";
 import { layoutFor } from "@/layouts";
@@ -143,6 +144,7 @@ export default function Feed() {
       <OfflineBanner savedAt={savedAt} />
       <Announcements />
       <LiveNow />
+      <SurveyPrompts />
       <Pressable
         style={styles.composer}
         onPress={() => router.push("/compose")}

@@ -68,6 +68,16 @@ describe('endpoint auth', () => {
       'GET /es/privacy',
       'GET /es/terms',
       'GET /es/account-deletion',
+      // Open Circle's public pages under the Prayer Tower domain.
+      'GET /open-circle',
+      'GET /open-circle/',
+      'GET /open-circle/support',
+      'GET /open-circle/privacy',
+      'GET /open-circle/terms',
+      'GET /open-circle/account-deletion',
+      // The ad-free promise (404 while switched off).
+      'GET /promise',
+      'GET /open-circle/promise',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);
