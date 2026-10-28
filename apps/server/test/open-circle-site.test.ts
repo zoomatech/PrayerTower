@@ -7,8 +7,8 @@ afterAll(() => db.end());
 
 // Nothing religious anywhere an Open Circle visitor looks (docs/OPEN_CIRCLE.md).
 const RELIGIOUS = /pray|prayer tower|\bgod\b|church|faith|scripture|bible|jesus|christ|pastor|spiritual|bless|ministry|worship/i;
-// Our own pages (not untrusted input): drop style and script blocks, then the tags, to check the words people read.
-const visible = (html: string) => html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1[^>]*>/gi, '').replace(/<[^>]+>/g, ' ');
+// Everything after <head> (which holds only the title and CSS): the words, links and script on each page.
+const visible = (html: string) => html.slice(html.indexOf('<body'));
 const onHost = (url: string, host = 'opencircle.example') => app.inject({ method: 'GET', url, headers: { host } });
 
 describe('Open Circle website', () => {
