@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type MacroNeed } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const BLANK = { label: '', url: '' };
@@ -13,6 +14,7 @@ const BLANK = { label: '', url: '' };
 export default function MacroNeedsScreen() {
   const [needs, setNeeds] = useState<MacroNeed[]>([]);
   const [title, setTitle] = useState('');
+  const { t } = useLocale();
   const [body, setBody] = useState('');
   const [options, setOptions] = useState([BLANK, BLANK, BLANK]);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export default function MacroNeedsScreen() {
       setTitle('');
       setBody('');
       setOptions([BLANK, BLANK, BLANK]);
-      setSaved('Featured above the feed.');
+      setSaved(t('macroAdmin.saved'));
       load();
     } catch (e) {
       setError((e as Error).message);
@@ -45,23 +47,20 @@ export default function MacroNeedsScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Macro needs</Text>
-        <Text style={type.body}>
-          Feature a large need, such as a disaster, above everyone&apos;s feed. Members can pray for it and give tokens, and you can add up to five
-          relief partners where they can give material help. Prayer Tower never handles the money.
-        </Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Text style={type.title}>{t('profile.macroNeeds')}</Text>
+        <Text style={type.body}>{t('macroAdmin.intro')}</Text>
         <ErrorText error={error} />
         {saved ? <Text style={type.small}>{saved}</Text> : null}
 
         <View style={styles.card}>
-          <Field label="Title" value={title} onChangeText={setTitle} maxLength={100} placeholder="e.g. Hurricane relief" />
-          <Field label="Prayer request" value={body} onChangeText={setBody} maxLength={2000} multiline />
-          <Text style={type.small}>Material-help partners (https links)</Text>
+          <Field label={t('macroAdmin.title')} value={title} onChangeText={setTitle} maxLength={100} placeholder={t('macroAdmin.titlePlaceholder')} />
+          <Field label={t('macroAdmin.body')} value={body} onChangeText={setBody} maxLength={2000} multiline />
+          <Text style={type.small}>{t('macroAdmin.partners')}</Text>
           {options.map((o, i) => (
             <View key={i} style={styles.row}>
               <Field
-                placeholder="Partner name"
+                placeholder={t('macroAdmin.partnerName')}
                 value={o.label}
                 onChangeText={(label) => setOptions((all) => all.map((x, j) => (j === i ? { ...x, label } : x)))}
                 maxLength={60}
@@ -74,18 +73,18 @@ export default function MacroNeedsScreen() {
               />
             </View>
           ))}
-          <Button label="Feature this need" busy={busy} disabled={!title.trim() || !body.trim()} onPress={create} />
+          <Button label={t('macroAdmin.feature')} busy={busy} disabled={!title.trim() || !body.trim()} onPress={create} />
         </View>
 
-        <Text style={type.heading}>Featured now</Text>
-        {needs.length === 0 ? <Text style={type.small}>None.</Text> : null}
+        <Text style={type.heading}>{t('macroAdmin.featured')}</Text>
+        {needs.length === 0 ? <Text style={type.small}>{t('macroAdmin.none')}</Text> : null}
         {needs.map((n) => (
           <View key={n.id} style={styles.card}>
             <Text style={styles.name}>{n.title}</Text>
             <Text style={type.small}>
-              {n.prayers} praying · {n.tokens} tokens · {n.helpers} gave material help
+              {t('macroAdmin.stats', { prayers: n.prayers, tokens: n.tokens, helpers: n.helpers })}
             </Text>
-            <Button small variant="ghost" label="Stop featuring" onPress={() => api.endMacroNeed(n.id).then(load, (e) => setError((e as Error).message))} />
+            <Button small variant="ghost" label={t('macroAdmin.stop')} onPress={() => api.endMacroNeed(n.id).then(load, (e) => setError((e as Error).message))} />
           </View>
         ))}
       </ScrollView>

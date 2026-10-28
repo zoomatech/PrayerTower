@@ -9,29 +9,22 @@ import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-nativ
 
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
+import { useLocale, useT, type T } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
 const REPORT_WEEKS = 12;
-const TREND: { key: keyof PilotWeek; label: string }[] = [
-  { key: 'requests_posted', label: 'Requests' },
-  { key: 'praying_now_taps', label: 'Prayers' },
-  { key: 'commitments_made', label: 'Promises' },
-  { key: 'commitment_checkins', label: 'Kept' },
-];
-const ROLES: { role: Role; label: string }[] = [
-  { role: 'admin', label: 'Admin' },
-  { role: 'moderator', label: 'Moderator' },
-  { role: 'pastor_counselor', label: 'Pastor / counselor' },
-  { role: 'witness', label: 'Witness team' },
-  { role: 'prayer_partner', label: 'Prayer partner' },
-];
+const TREND: (keyof PilotWeek)[] = ['requests_posted', 'praying_now_taps', 'commitments_made', 'commitment_checkins'];
+const ROLES: Role[] = ['admin', 'moderator', 'pastor_counselor', 'witness', 'prayer_partner'];
 
+// Metric names come from the server; known ones are translated, the rest are prettified.
 const LABELS: Record<string, string> = { ai_flags: 'AI flags', active_pray_ers: 'Active pray-ers', checkins: 'Check-ins' };
-const label = (key: string) => LABELS[key] ?? key.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+const label = (t: T, key: string) =>
+  t(`admin.metric.${key}`, { defaultValue: LABELS[key] ?? key.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()) });
 const toInt = (s: string) => (s.trim() === '' ? null : Number.parseInt(s, 10));
 
 export default function Admin() {
+  const { t, language } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [days, setDays] = useState(7);
@@ -78,15 +71,15 @@ export default function Admin() {
       comments: String(s.new_member_comments_per_day),
     });
   };
-  const showTiers = (t: AdminTier[]) => {
-    setTiers(t);
-    setTierDraft(Object.fromEntries(t.map((x) => [x.tier, { min: x.min_prayer_events?.toString() ?? '', weekly: x.weekly_allotment?.toString() ?? '' }])));
+  const showTiers = (list: AdminTier[]) => {
+    setTiers(list);
+    setTierDraft(Object.fromEntries(list.map((x) => [x.tier, { min: x.min_prayer_events?.toString() ?? '', weekly: x.weekly_allotment?.toString() ?? '' }])));
   };
 
   const load = useCallback(
     () =>
       run(async () => {
-        const [m, s, t, sf, w, rs, ms] = await Promise.all([
+        const [m, s, tr, sf, w, rs, ms] = await Promise.all([
           api.admin.metrics(days),
           api.admin.tokenSettings(),
           api.admin.tiers(),
@@ -101,7 +94,7 @@ export default function Admin() {
         setRadio(rs.settings);
         showTokens(s.settings);
         showSafety(sf.settings);
-        showTiers(t.tiers);
+        showTiers(tr.tiers);
       }),
     [days],
   );
@@ -123,12 +116,12 @@ export default function Admin() {
         a.click();
         URL.revokeObjectURL(a.href);
       } else {
-        await Share.share({ title: 'Prayer Tower pilot report', message: csv });
+        await Share.share({ title: t('admin.reportTitle'), message: csv });
       }
     });
 
   const saveRadio = (patch: Parameters<typeof api.admin.updateRadioSettings>[0]) =>
-    run(async () => setRadio((await api.admin.updateRadioSettings(patch)).settings), 'Radio settings saved.');
+    run(async () => setRadio((await api.admin.updateRadioSettings(patch)).settings), t('admin.saved.radio'));
 
   const saveTokens = () =>
     run(async () => {
@@ -138,10 +131,10 @@ export default function Admin() {
         radioPrayerCost: toInt(tokenDraft.cost) ?? undefined,
       });
       showTokens(r.settings);
-    }, 'Token settings saved.');
+    }, t('admin.saved.tokens'));
 
   const setFunding = (free: boolean) =>
-    run(async () => showTokens((await api.admin.updateTokenSettings({ radioFunding: free ? 'free' : 'tokens' })).settings), 'Radio funding saved.');
+    run(async () => showTokens((await api.admin.updateTokenSettings({ radioFunding: free ? 'free' : 'tokens' })).settings), t('admin.saved.funding'));
 
   const saveSafety = (patch: Parameters<typeof api.admin.updateSafetySettings>[0] = {}) =>
     run(async () => {
@@ -153,21 +146,21 @@ export default function Admin() {
         ...patch,
       });
       showSafety(r.settings);
-    }, 'New-member limits saved.');
+    }, t('admin.saved.safety'));
 
   const saveTiers = () =>
     run(async () => {
-      for (const t of tiers) {
-        const d = tierDraft[t.tier];
+      for (const tier of tiers) {
+        const d = tierDraft[tier.tier];
         if (!d) continue;
         const min = toInt(d.min);
         const weekly = toInt(d.weekly);
-        if (min !== t.min_prayer_events || weekly !== t.weekly_allotment) {
-          await api.admin.updateTier(t.tier, { minPrayerEvents: min, weeklyAllotment: weekly });
+        if (min !== tier.min_prayer_events || weekly !== tier.weekly_allotment) {
+          await api.admin.updateTier(tier.tier, { minPrayerEvents: min, weeklyAllotment: weekly });
         }
       }
       showTiers((await api.admin.tiers()).tiers);
-    }, 'Tiers saved.');
+    }, t('admin.saved.tiers'));
 
   const search = () => run(async () => setPeople((await api.admin.people(query)).people));
 
@@ -180,8 +173,8 @@ export default function Admin() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Admin</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Text style={type.title}>{t('profile.admin')}</Text>
         <ErrorText error={error} />
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
         <DeletionRequestsSection />
@@ -189,10 +182,10 @@ export default function Admin() {
         <PrayerWarriorsSection />
 
         <View style={styles.section}>
-          <Text style={type.heading}>Pilot metrics</Text>
+          <Text style={type.heading}>{t('admin.metrics')}</Text>
           <View style={styles.row}>
             {PERIODS.map((d) => (
-              <Chip key={d} label={`${d} days`} selected={days === d} onPress={() => setDays(d)} />
+              <Chip key={d} label={t('admin.days', { count: d })} selected={days === d} onPress={() => setDays(d)} />
             ))}
           </View>
           {metrics
@@ -200,10 +193,10 @@ export default function Admin() {
                 .filter(([, v]) => v && typeof v === 'object')
                 .map(([group, values]) => (
                   <View key={group} style={styles.group}>
-                    <Text style={styles.groupTitle}>{label(group)}</Text>
+                    <Text style={styles.groupTitle}>{label(t, group)}</Text>
                     {Object.entries(values).map(([k, v]) => (
                       <View key={k} style={styles.stat}>
-                        <Text style={type.body}>{label(k)}</Text>
+                        <Text style={type.body}>{label(t, k)}</Text>
                         <Text style={styles.value}>{v ?? '—'}</Text>
                       </View>
                     ))}
@@ -214,12 +207,12 @@ export default function Admin() {
 
         {weeks.length ? (
           <View style={styles.section}>
-            <Text style={type.heading}>Pilot results by week</Text>
+            <Text style={type.heading}>{t('admin.byWeek')}</Text>
             <View style={styles.trendRow}>
-              <Text style={[styles.trendCell, styles.trendWeek, styles.trendHead]}>Week of</Text>
+              <Text style={[styles.trendCell, styles.trendWeek, styles.trendHead]}>{t('admin.weekOf')}</Text>
               {TREND.map((c) => (
-                <Text key={c.key} style={[styles.trendCell, styles.trendHead]}>
-                  {c.label}
+                <Text key={c} style={[styles.trendCell, styles.trendHead]}>
+                  {t(`admin.trend.${c}`)}
                 </Text>
               ))}
             </View>
@@ -227,47 +220,47 @@ export default function Admin() {
               <View key={w.week_start} style={styles.trendRow}>
                 <Text style={[styles.trendCell, styles.trendWeek]}>{w.week_start.slice(5)}</Text>
                 {TREND.map((c) => (
-                  <Text key={c.key} style={styles.trendCell}>
-                    {w[c.key]}
+                  <Text key={c} style={styles.trendCell}>
+                    {w[c]}
                   </Text>
                 ))}
               </View>
             ))}
-            <Button variant="secondary" label={`Download ${REPORT_WEEKS}-week report (CSV)`} onPress={downloadCsv} />
+            <Button variant="secondary" label={t('admin.downloadCsv', { weeks: REPORT_WEEKS })} onPress={downloadCsv} />
           </View>
         ) : null}
 
         {tokens ? (
           <View style={styles.section}>
-            <Text style={type.heading}>Tokens</Text>
+            <Text style={type.heading}>{t('admin.tokens')}</Text>
             <Toggle
-              label="Radio prayers are free"
-              hint="On: radio prayers cost nothing and Priestly tokens are donations only. Off: each radio prayer spends Priestly tokens."
+              label={t('admin.radioFree')}
+              hint={t('admin.radioFreeHint')}
               value={tokens.radio_funding === 'free'}
               onChange={setFunding}
             />
-            <Field label="Verified prayers per Priestly token" keyboardType="number-pad" value={tokenDraft.perToken} onChangeText={(perToken) => setTokenDraft((d) => ({ ...d, perToken }))} />
-            <Field label="Minimum seconds between verified prayers" keyboardType="number-pad" value={tokenDraft.gap} onChangeText={(gap) => setTokenDraft((d) => ({ ...d, gap }))} />
-            <Field label="Priestly tokens per radio prayer" keyboardType="number-pad" value={tokenDraft.cost} onChangeText={(cost) => setTokenDraft((d) => ({ ...d, cost }))} />
-            <Button label="Save token settings" onPress={saveTokens} />
+            <Field label={t('admin.field.perToken')} keyboardType="number-pad" value={tokenDraft.perToken} onChangeText={(perToken) => setTokenDraft((d) => ({ ...d, perToken }))} />
+            <Field label={t('admin.field.gap')} keyboardType="number-pad" value={tokenDraft.gap} onChangeText={(gap) => setTokenDraft((d) => ({ ...d, gap }))} />
+            <Field label={t('admin.field.cost')} keyboardType="number-pad" value={tokenDraft.cost} onChangeText={(cost) => setTokenDraft((d) => ({ ...d, cost }))} />
+            <Button label={t('admin.btn.saveTokens')} onPress={saveTokens} />
           </View>
         ) : null}
 
         {safety ? (
           <View style={styles.section}>
-            <Text style={type.heading}>New members</Text>
+            <Text style={type.heading}>{t('admin.newMembers')}</Text>
             <Toggle
-              label="Limit new members"
-              hint="New until they have been here long enough and prayed for others enough times. Admins and moderators are exempt."
+              label={t('admin.toggle.limitNew')}
+              hint={t('admin.toggle.limitNewHint')}
               value={safety.new_member_limits_enabled}
               onChange={(v) => saveSafety({ newMemberLimitsEnabled: v })}
             />
-            <Toggle label="New members can post links" value={safety.new_member_links_allowed} onChange={(v) => saveSafety({ newMemberLinksAllowed: v })} />
-            <Field label="Hours as a new member" keyboardType="number-pad" value={safetyDraft.hours} onChangeText={(hours) => setSafetyDraft((d) => ({ ...d, hours }))} />
-            <Field label="Prayers for others to lift limits" keyboardType="number-pad" value={safetyDraft.prayers} onChangeText={(prayers) => setSafetyDraft((d) => ({ ...d, prayers }))} />
-            <Field label="Requests a day" keyboardType="number-pad" value={safetyDraft.posts} onChangeText={(posts) => setSafetyDraft((d) => ({ ...d, posts }))} />
-            <Field label="Comments a day" keyboardType="number-pad" value={safetyDraft.comments} onChangeText={(comments) => setSafetyDraft((d) => ({ ...d, comments }))} />
-            <Button label="Save new-member limits" onPress={() => saveSafety()} />
+            <Toggle label={t('admin.toggle.links')} value={safety.new_member_links_allowed} onChange={(v) => saveSafety({ newMemberLinksAllowed: v })} />
+            <Field label={t('admin.field.hours')} keyboardType="number-pad" value={safetyDraft.hours} onChangeText={(hours) => setSafetyDraft((d) => ({ ...d, hours }))} />
+            <Field label={t('admin.field.prayers')} keyboardType="number-pad" value={safetyDraft.prayers} onChangeText={(prayers) => setSafetyDraft((d) => ({ ...d, prayers }))} />
+            <Field label={t('admin.field.posts')} keyboardType="number-pad" value={safetyDraft.posts} onChangeText={(posts) => setSafetyDraft((d) => ({ ...d, posts }))} />
+            <Field label={t('admin.field.comments')} keyboardType="number-pad" value={safetyDraft.comments} onChangeText={(comments) => setSafetyDraft((d) => ({ ...d, comments }))} />
+            <Button label={t('admin.btn.saveSafety')} onPress={() => saveSafety()} />
           </View>
         ) : null}
 
@@ -277,20 +270,19 @@ export default function Admin() {
 
         {radio ? (
           <View style={styles.section}>
-            <Text style={type.heading}>Radio</Text>
+            <Text style={type.heading}>{t('admin.radio')}</Text>
             <View style={styles.row}>
-              <Chip label="Log only (no radio)" selected={radio.radio_transmitter === 'log'} onPress={() => saveRadio({ transmitter: 'log' })} />
-              <Chip label="Radio station" selected={radio.radio_transmitter === 'station'} onPress={() => saveRadio({ transmitter: 'station' })} />
+              <Chip label={t('admin.logOnly')} selected={radio.radio_transmitter === 'log'} onPress={() => saveRadio({ transmitter: 'log' })} />
+              <Chip label={t('admin.station')} selected={radio.radio_transmitter === 'station'} onPress={() => saveRadio({ transmitter: 'station' })} />
             </View>
             <Toggle
-              label="Station sends only while radio prayers are free"
-              hint="Amateur radio rules (47 CFR 97.113) forbid tying a transmission to payment. Keep this on for an amateur station."
+              label={t('admin.toggle.stationFree')}
+              hint={t('admin.toggle.stationFreeHint')}
               value={radio.radio_station_requires_free}
               onChange={(v) => saveRadio({ stationRequiresFree: v })}
             />
             <Text style={type.small}>
-              Amplify sends a prayer {radio.radio_amplify_repeats} times (free only). “1,000x a second” is not possible on PSK31, about one prayer a
-              minute.
+              {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
             <View style={styles.row}>
               {[2, 3, 5, 10].map((n) => (
@@ -298,66 +290,66 @@ export default function Admin() {
               ))}
             </View>
             {radio.radio_transmitter === 'station' && radio.radio_station_requires_free && tokens?.radio_funding !== 'free' ? (
-              <Text style={[type.small, { color: colors.danger }]}>The station is paused: turn on “Radio prayers are free” above.</Text>
+              <Text style={[type.small, { color: colors.danger }]}>{t('admin.paused')}</Text>
             ) : null}
           </View>
         ) : null}
 
         {tiers.length ? (
           <View style={styles.section}>
-            <Text style={type.heading}>Tiers</Text>
-            <Text style={type.small}>Leave a box empty to keep it undecided.</Text>
-            {tiers.map((t) => (
-              <View key={t.tier} style={styles.group}>
-                <Text style={styles.groupTitle}>{t.label}</Text>
+            <Text style={type.heading}>{t('admin.tiers')}</Text>
+            <Text style={type.small}>{t('admin.tiersHint')}</Text>
+            {tiers.map((tier) => (
+              <View key={tier.tier} style={styles.group}>
+                <Text style={styles.groupTitle}>{tier.label}</Text>
                 <Field
-                  label="Prayers to reach this tier"
+                  label={t('admin.field.tierMin')}
                   keyboardType="number-pad"
-                  value={tierDraft[t.tier]?.min ?? ''}
-                  onChangeText={(min) => setTierDraft((d) => ({ ...d, [t.tier]: { weekly: d[t.tier]?.weekly ?? '', min } }))}
+                  value={tierDraft[tier.tier]?.min ?? ''}
+                  onChangeText={(min) => setTierDraft((d) => ({ ...d, [tier.tier]: { weekly: d[tier.tier]?.weekly ?? '', min } }))}
                 />
                 <Field
-                  label="Weekly token allotment"
+                  label={t('admin.field.tierWeekly')}
                   keyboardType="number-pad"
-                  value={tierDraft[t.tier]?.weekly ?? ''}
-                  onChangeText={(weekly) => setTierDraft((d) => ({ ...d, [t.tier]: { min: d[t.tier]?.min ?? '', weekly } }))}
+                  value={tierDraft[tier.tier]?.weekly ?? ''}
+                  onChangeText={(weekly) => setTierDraft((d) => ({ ...d, [tier.tier]: { min: d[tier.tier]?.min ?? '', weekly } }))}
                 />
               </View>
             ))}
-            <Button label="Save tiers" onPress={saveTiers} />
+            <Button label={t('admin.btn.saveTiers')} onPress={saveTiers} />
           </View>
         ) : null}
 
         <View style={styles.section}>
-          <Text style={type.heading}>Milestone bonuses</Text>
-          <Text style={type.small}>Bonus tokens for reaching a milestone, given once per member. Every rule is off until you turn it on.</Text>
+          <Text style={type.heading}>{t('admin.milestones')}</Text>
+          <Text style={type.small}>{t('admin.milestonesHint')}</Text>
           {rules.map((r) => (
             <View key={r.id} style={styles.group}>
               <Toggle
                 label={r.label}
-                hint={`${METRIC_LABELS[r.metric]}: ${r.threshold} → ${r.amount} ${r.currency === 'priestly' ? 'Priestly ' : ''}token${r.amount === 1 ? '' : 's'} · given ${r.awarded} time${r.awarded === 1 ? '' : 's'}`}
+                hint={`${t(`admin.ruleMetric.${r.metric}`)}: ${r.threshold} → ${t(r.currency === 'priestly' ? 'admin.priestlyTokens' : 'admin.regularTokens', { count: r.amount })} · ${t('admin.given', { count: r.awarded })}`}
                 value={r.enabled}
                 onChange={(enabled) =>
                   run(async () => {
                     const { rule } = await api.admin.updateMilestone(r.id, { enabled });
                     setRules((all) => all.map((x) => (x.id === r.id ? { ...x, ...rule } : x)));
-                  }, enabled ? 'Milestone on.' : 'Milestone off.')
+                  }, enabled ? t('admin.saved.ruleOn') : t('admin.saved.ruleOff'))
                 }
               />
             </View>
           ))}
           <View style={styles.group}>
-            <Text style={styles.groupTitle}>Add a milestone (starts off)</Text>
+            <Text style={styles.groupTitle}>{t('admin.addRuleTitle')}</Text>
             <View style={styles.row}>
-              {(Object.keys(METRIC_LABELS) as MilestoneRule['metric'][]).map((m) => (
-                <Chip key={m} label={METRIC_LABELS[m]} selected={ruleDraft.metric === m} onPress={() => setRuleDraft((d) => ({ ...d, metric: m }))} />
+              {METRICS.map((m) => (
+                <Chip key={m} label={t(`admin.ruleMetric.${m}`)} selected={ruleDraft.metric === m} onPress={() => setRuleDraft((d) => ({ ...d, metric: m }))} />
               ))}
             </View>
-            <Field label="Name" value={ruleDraft.label} onChangeText={(label) => setRuleDraft((d) => ({ ...d, label }))} maxLength={80} />
-            <Field label="Reached at" keyboardType="number-pad" value={ruleDraft.threshold} onChangeText={(threshold) => setRuleDraft((d) => ({ ...d, threshold }))} />
-            <Field label="Bonus tokens" keyboardType="number-pad" value={ruleDraft.amount} onChangeText={(amount) => setRuleDraft((d) => ({ ...d, amount }))} />
+            <Field label={t('admin.field.ruleName')} value={ruleDraft.label} onChangeText={(label) => setRuleDraft((d) => ({ ...d, label }))} maxLength={80} />
+            <Field label={t('admin.field.ruleAt')} keyboardType="number-pad" value={ruleDraft.threshold} onChangeText={(threshold) => setRuleDraft((d) => ({ ...d, threshold }))} />
+            <Field label={t('admin.field.ruleAmount')} keyboardType="number-pad" value={ruleDraft.amount} onChangeText={(amount) => setRuleDraft((d) => ({ ...d, amount }))} />
             <Button
-              label="Add milestone"
+              label={t('admin.btn.addRule')}
               disabled={!ruleDraft.label.trim() || !(Number(ruleDraft.threshold) > 0) || !(Number(ruleDraft.amount) > 0)}
               onPress={() =>
                 run(async () => {
@@ -369,24 +361,24 @@ export default function Admin() {
                   });
                   setRules((all) => [...all, { ...rule, awarded: 0 }]);
                   setRuleDraft((d) => ({ ...d, label: '', threshold: '', amount: '' }));
-                }, 'Milestone added. Turn it on when ready.')
+                }, t('admin.saved.ruleAdded'))
               }
             />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={type.heading}>People and roles</Text>
-          <Field placeholder="Name or email" value={query} onChangeText={setQuery} onSubmitEditing={search} autoCapitalize="none" />
-          <Button variant="secondary" label="Find" disabled={!query.trim()} onPress={search} />
-          {people?.length === 0 ? <Text style={type.small}>No one matches.</Text> : null}
+          <Text style={type.heading}>{t('admin.people')}</Text>
+          <Field placeholder={t('admin.search')} value={query} onChangeText={setQuery} onSubmitEditing={search} autoCapitalize="none" />
+          <Button variant="secondary" label={t('admin.btn.find')} disabled={!query.trim()} onPress={search} />
+          {people?.length === 0 ? <Text style={type.small}>{t('admin.noMatch')}</Text> : null}
           {people?.map((p) => (
             <View key={p.id} style={styles.group}>
               <Text style={styles.groupTitle}>{p.display_name}</Text>
               {p.email ? <Text style={type.small}>{p.email}</Text> : null}
               <View style={styles.row}>
                 {ROLES.map((r) => (
-                  <Chip key={r.role} label={r.label} selected={p.roles.includes(r.role)} onPress={() => toggleRole(p, r.role)} />
+                  <Chip key={r} label={t(`admin.role.${r}`)} selected={p.roles.includes(r)} onPress={() => toggleRole(p, r)} />
                 ))}
               </View>
             </View>
@@ -397,17 +389,14 @@ export default function Admin() {
   );
 }
 
-const METRIC_LABELS: Record<MilestoneRule['metric'], string> = {
-  prayers_for_others: 'Prayers for others',
-  commitment_checkins: 'Commitment check-ins',
-  answered_requests: 'Answered requests',
-};
+const METRICS: MilestoneRule['metric'][] = ['prayers_for_others', 'commitment_checkins', 'answered_requests'];
 
 /**
  * Requests from the public account-deletion web page. Email the person from
  * the account's address first to confirm it's them; then delete.
  */
 function DeletionRequestsSection() {
+  const { t, language } = useLocale();
   const [requests, setRequests] = useState<Awaited<ReturnType<typeof api.admin.deletionRequests>>['requests']>([]);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -429,25 +418,25 @@ function DeletionRequestsSection() {
       .catch((e) => setError((e as Error).message));
   return (
     <View style={styles.section}>
-      <Text style={type.heading}>Account deletion requests</Text>
-      <Text style={type.small}>From the web page. Confirm with the person by email before deleting.</Text>
+      <Text style={type.heading}>{t('admin.deletion')}</Text>
+      <Text style={type.small}>{t('admin.deletionHint')}</Text>
       <ErrorText error={error} />
       {requests.map((r) => (
         <View key={r.id} style={styles.group}>
           <Text style={styles.groupTitle}>{r.email}</Text>
           <Text style={type.small}>
-            {new Date(r.createdAt).toLocaleDateString()} · {r.accountFound ? 'account found' : 'no account with this email'}
+            {new Date(r.createdAt).toLocaleDateString(language)} · {r.accountFound ? t('admin.found') : t('admin.notFound')}
           </Text>
           {r.note ? <Text style={type.body}>{r.note}</Text> : null}
           <View style={styles.row}>
             {r.accountFound ? (
               <Button
                 small
-                label={confirm === r.id ? 'Tap again to delete for good' : 'Delete account'}
+                label={confirm === r.id ? t('admin.confirmDelete') : t('admin.deleteAccount')}
                 onPress={() => (confirm === r.id ? decide(r.id, 'delete') : setConfirm(r.id))}
               />
             ) : null}
-            <Button small variant="ghost" label="Dismiss" onPress={() => decide(r.id, 'dismiss')} />
+            <Button small variant="ghost" label={t('admin.btn.dismiss')} onPress={() => decide(r.id, 'dismiss')} />
           </View>
         </View>
       ))}
@@ -457,24 +446,25 @@ function DeletionRequestsSection() {
 
 /** Reminder popups: gentle or firm by default, with 30-day results for each tone. */
 function ReminderToneSection() {
+  const t = useT();
   const [data, setData] = useState<Awaited<ReturnType<typeof api.admin.promptSettings>> | null>(null);
   const load = useCallback(() => {
     api.admin.promptSettings().then(setData).catch(() => undefined);
   }, []);
   useFocusEffect(load);
   if (!data) return null;
-  const set = (t: 'gentle' | 'firm') => api.admin.setDefaultTone(t).then(load).catch(() => undefined);
+  const set = (tone: 'gentle' | 'firm') => api.admin.setDefaultTone(tone).then(load).catch(() => undefined);
   return (
     <View style={styles.section}>
-      <Text style={type.heading}>Reminder tone</Text>
-      <Text style={type.small}>Members can choose for themselves; this is the default for everyone else.</Text>
+      <Text style={type.heading}>{t('admin.tone')}</Text>
+      <Text style={type.small}>{t('admin.toneHint')}</Text>
       <View style={styles.row}>
-        <Chip label="Gentle" selected={data.defaultTone === 'gentle'} onPress={() => set('gentle')} />
-        <Chip label="Firm" selected={data.defaultTone === 'firm'} onPress={() => set('firm')} />
+        <Chip label={t('admin.gentle')} selected={data.defaultTone === 'gentle'} onPress={() => set('gentle')} />
+        <Chip label={t('admin.firm')} selected={data.defaultTone === 'firm'} onPress={() => set('firm')} />
       </View>
       {data.results.map((r) => (
         <Text key={r.tone} style={type.small}>
-          {r.tone === 'firm' ? 'Firm' : 'Gentle'}: {r.prayed} of {r.shown} reminders led to a prayer (last 30 days)
+          {t('admin.toneResult', { tone: r.tone === 'firm' ? t('admin.firm') : t('admin.gentle'), prayed: r.prayed, shown: r.shown })}
         </Text>
       ))}
     </View>
@@ -483,6 +473,7 @@ function ReminderToneSection() {
 
 /** Prayer partners on call, and events. Confession stays off until a lawyer reviews it. */
 function CareAndEventSettingsSection() {
+  const t = useT();
   const [care, setCare] = useState<{ care_enabled: boolean; confession_enabled: boolean } | null>(null);
   const [ev, setEv] = useState<{ events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } | null>(null);
   const [hosts, setHosts] = useState('');
@@ -513,26 +504,26 @@ function CareAndEventSettingsSection() {
       })
       .then((r) => {
         showEv(r.settings);
-        setNote('Event settings saved.');
+        setNote(t('admin.saved.events'));
       })
       .catch((e) => setNote((e as Error).message));
 
   return (
     <View style={styles.section}>
-      <Text style={type.heading}>Prayer partners and events</Text>
+      <Text style={type.heading}>{t('admin.careEvents')}</Text>
       {care ? (
         <>
-          <Toggle label="Members can ask for a prayer partner" value={care.care_enabled} onChange={(v) => saveCare({ careEnabled: v })} />
-          <Toggle label="Confession to a pastor" hint="Off until a lawyer reviews confidentiality and reporting duties." value={care.confession_enabled} onChange={(v) => saveCare({ confessionEnabled: v })} />
+          <Toggle label={t('admin.toggle.care')} value={care.care_enabled} onChange={(v) => saveCare({ careEnabled: v })} />
+          <Toggle label={t('admin.toggle.confession')} hint={t('admin.toggle.confessionHint')} value={care.confession_enabled} onChange={(v) => saveCare({ confessionEnabled: v })} />
         </>
       ) : null}
       {ev ? (
         <>
-          <Toggle label="Events" value={ev.events_enabled} onChange={(v) => saveEv({ eventsEnabled: v })} />
-          <Toggle label="New members can host events" value={ev.new_members_can_host} onChange={(v) => saveEv({ newMembersCanHost: v })} />
-          <Field label="Allowed video meeting sites" value={hosts} onChangeText={setHosts} autoCapitalize="none" multiline />
-          <Field label="Reminder, minutes before" keyboardType="number-pad" value={reminder} onChangeText={setReminder} />
-          <Button label="Save event settings" onPress={() => saveEv()} />
+          <Toggle label={t('admin.toggle.events')} value={ev.events_enabled} onChange={(v) => saveEv({ eventsEnabled: v })} />
+          <Toggle label={t('admin.toggle.host')} value={ev.new_members_can_host} onChange={(v) => saveEv({ newMembersCanHost: v })} />
+          <Field label={t('admin.field.hosts')} value={hosts} onChangeText={setHosts} autoCapitalize="none" multiline />
+          <Field label={t('admin.field.reminder')} keyboardType="number-pad" value={reminder} onChangeText={setReminder} />
+          <Button label={t('admin.btn.saveEvents')} onPress={() => saveEv()} />
         </>
       ) : null}
       {note ? <Text style={type.small}>{note}</Text> : null}
@@ -542,6 +533,7 @@ function CareAndEventSettingsSection() {
 
 /** Messages (Features Set 2): switches and limits. Defaults are placeholders until Steve decides. */
 function MessagingSettingsSection() {
+  const t = useT();
   const [s, setS] = useState<AdminMessagingSettings | null>(null);
   const [draft, setDraft] = useState({ requests: '', perDay: '', groupMax: '' });
   const [note, setNote] = useState<string | null>(null);
@@ -567,34 +559,34 @@ function MessagingSettingsSection() {
       })
       .then((r) => {
         show(r.settings);
-        setNote('Message settings saved.');
+        setNote(t('admin.saved.messages'));
       })
       .catch((e) => setNote((e as Error).message));
 
   if (!s) return null;
   return (
     <View style={styles.section}>
-      <Text style={type.heading}>Messages</Text>
-      <Toggle label="Pray-ers can write to people they prayed for" value={s.prayer_messages_enabled} onChange={(v) => save({ prayerMessagesEnabled: v })} />
+      <Text style={type.heading}>{t('admin.messages')}</Text>
+      <Toggle label={t('admin.toggle.prayerMessages')} value={s.prayer_messages_enabled} onChange={(v) => save({ prayerMessagesEnabled: v })} />
       <Toggle
-        label="Anyone who prayed can write"
-        hint="Off: only people who committed to pray."
+        label={t('admin.toggle.anyPrayer')}
+        hint={t('admin.toggle.anyPrayerHint')}
         value={s.prayer_messages_any_prayer}
         onChange={(v) => save({ prayerMessagesAnyPrayer: v })}
       />
-      <Toggle label="Direct messages" value={s.direct_messages_enabled} onChange={(v) => save({ directMessagesEnabled: v })} />
+      <Toggle label={t('admin.toggle.direct')} value={s.direct_messages_enabled} onChange={(v) => save({ directMessagesEnabled: v })} />
       <Toggle
-        label="Only between people who follow each other"
-        hint="Off: anyone can send a message request."
+        label={t('admin.toggle.mutual')}
+        hint={t('admin.toggle.mutualHint')}
         value={s.direct_requires_mutual_follow}
         onChange={(v) => save({ directRequiresMutualFollow: v })}
       />
-      <Toggle label="Group chats" value={s.groups_enabled} onChange={(v) => save({ groupsEnabled: v })} />
-      <Toggle label="New members can start conversations" value={s.new_members_can_start} onChange={(v) => save({ newMembersCanStart: v })} />
-      <Field label="Messages before the other person replies" keyboardType="number-pad" value={draft.requests} onChangeText={(requests) => setDraft((d) => ({ ...d, requests }))} />
-      <Field label="Messages a day for new members" keyboardType="number-pad" value={draft.perDay} onChangeText={(perDay) => setDraft((d) => ({ ...d, perDay }))} />
-      <Field label="Most members in a group" keyboardType="number-pad" value={draft.groupMax} onChangeText={(groupMax) => setDraft((d) => ({ ...d, groupMax }))} />
-      <Button label="Save message limits" onPress={() => save()} />
+      <Toggle label={t('admin.toggle.groups')} value={s.groups_enabled} onChange={(v) => save({ groupsEnabled: v })} />
+      <Toggle label={t('admin.toggle.newStart')} value={s.new_members_can_start} onChange={(v) => save({ newMembersCanStart: v })} />
+      <Field label={t('admin.field.requests')} keyboardType="number-pad" value={draft.requests} onChangeText={(requests) => setDraft((d) => ({ ...d, requests }))} />
+      <Field label={t('admin.field.perDay')} keyboardType="number-pad" value={draft.perDay} onChangeText={(perDay) => setDraft((d) => ({ ...d, perDay }))} />
+      <Field label={t('admin.field.groupMax')} keyboardType="number-pad" value={draft.groupMax} onChangeText={(groupMax) => setDraft((d) => ({ ...d, groupMax }))} />
+      <Button label={t('admin.btn.saveMessages')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
@@ -616,6 +608,7 @@ const styles = StyleSheet.create({
 
 // Private standings for the Annual Prayer Warrior Award. Not shown to members.
 function PrayerWarriorsSection() {
+  const t = useT();
   const [days, setDays] = useState(365);
   const [rows, setRows] = useState<Awaited<ReturnType<typeof api.admin.prayerWarriors>>['standings']>([]);
   const load = useCallback(() => {
@@ -627,21 +620,21 @@ function PrayerWarriorsSection() {
   useFocusEffect(load);
   return (
     <View style={styles.section}>
-      <Text style={type.heading}>Prayer Warrior standings</Text>
-      <Text style={type.small}>Verified prayers for others and kept promises. Private to admins until award rules are approved.</Text>
+      <Text style={type.heading}>{t('admin.warriors')}</Text>
+      <Text style={type.small}>{t('admin.warriorsHint')}</Text>
       <View style={styles.row}>
         {[30, 90, 365].map((d) => (
-          <Button key={d} small variant={d === days ? 'primary' : 'ghost'} label={d === 365 ? 'Year' : `${d} days`} onPress={() => setDays(d)} />
+          <Button key={d} small variant={d === days ? 'primary' : 'ghost'} label={d === 365 ? t('admin.year') : t('admin.days', { count: d })} onPress={() => setDays(d)} />
         ))}
       </View>
       {rows.length ? (
         rows.map((r) => (
           <Text key={r.userId} style={type.body}>
-            {r.rank}. {r.name}: {r.prayers} prayers, {r.checkins} promise check-ins, {r.peoplePrayedFor} people
+            {r.rank}. {r.name}: {t('admin.standing', { prayers: r.prayers, checkins: r.checkins, people: r.peoplePrayedFor })}
           </Text>
         ))
       ) : (
-        <Text style={type.small}>No verified prayers yet.</Text>
+        <Text style={type.small}>{t('admin.noWarriors')}</Text>
       )}
     </View>
   );
@@ -649,6 +642,7 @@ function PrayerWarriorsSection() {
 
 // Pilot feedback from members, oldest first.
 function FeedbackSection() {
+  const { t, language } = useLocale();
   const [items, setItems] = useState<Awaited<ReturnType<typeof api.admin.feedback>>['feedback']>([]);
   const load = useCallback(() => {
     api.admin
@@ -660,19 +654,19 @@ function FeedbackSection() {
   if (!items.length) return null;
   return (
     <View style={styles.section}>
-      <Text style={type.heading}>Member feedback ({items.length})</Text>
+      <Text style={type.heading}>{t('admin.feedback', { count: items.length })}</Text>
       {items.map((f) => (
         <View key={f.id} style={styles.group}>
           <Text style={styles.groupTitle}>
-            {f.kind === 'bug' ? 'Bug' : f.kind === 'idea' ? 'Idea' : 'Feedback'} from {f.name}
+            {t('admin.feedbackFrom', { kind: t(`admin.feedbackKind.${f.kind === 'bug' || f.kind === 'idea' ? f.kind : 'other'}`), name: f.name })}
           </Text>
           <Text style={type.small}>
-            {new Date(f.createdAt).toLocaleDateString()}
+            {new Date(f.createdAt).toLocaleDateString(language)}
             {f.platform ? ` · ${f.platform}` : ''}
             {f.appVersion ? ` ${f.appVersion}` : ''}
           </Text>
           <Text style={type.body}>{f.body}</Text>
-          <Button small variant="ghost" label="Mark handled" onPress={() => api.admin.closeFeedback(f.id).then(load).catch(() => undefined)} />
+          <Button small variant="ghost" label={t('admin.btn.handled')} onPress={() => api.admin.closeFeedback(f.id).then(load).catch(() => undefined)} />
         </View>
       ))}
     </View>
