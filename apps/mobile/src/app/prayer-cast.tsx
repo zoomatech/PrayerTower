@@ -7,9 +7,11 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 
 import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api, type PrayerCast } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function PrayerCastScreen() {
+  const { t } = useLocale();
   const [data, setData] = useState<PrayerCast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,22 +28,21 @@ export default function PrayerCastScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <Text style={type.title}>Prayer Cast</Text>
         <Text style={type.body}>
-          Prayers that went out by radio. Only the words of the request are sent, never a name. Send one from any request with “Send as a radio
-          prayer”.
+          {t('cast.intro')}
         </Text>
         <ErrorText error={error} />
         {data ? (
           <View style={styles.totals}>
             <Text style={styles.total}>{data.totals.prayers}</Text>
-            <Text style={type.small}>prayers sent</Text>
+            <Text style={type.small}>{t('cast.sent')}</Text>
             <Text style={[styles.total, { marginLeft: space.lg }]}>{data.totals.sends}</Text>
-            <Text style={type.small}>transmissions</Text>
+            <Text style={type.small}>{t('cast.transmissions')}</Text>
           </View>
         ) : null}
-        {data?.cast.length === 0 ? <Empty text="No prayers have gone out yet." /> : null}
+        {data?.cast.length === 0 ? <Empty text={t('cast.empty')} /> : null}
         {data?.cast.map((c) => (
           <View key={c.id} style={styles.card}>
             <Text style={type.body} onPress={() => router.push(`/post/${c.post_id}`)}>
@@ -49,8 +50,8 @@ export default function PrayerCastScreen() {
             </Text>
             <Text style={type.small}>
               {new Date(c.transmitted_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-              {c.repeats > 1 ? ` · amplified, sent ${c.repeats} times` : ''}
-              {c.call_sign ? ` · ${c.call_sign}` : c.transmitter === 'log' ? ' · test log (no radio yet)' : ''}
+              {c.repeats > 1 ? ` · ${t('cast.amplified', { count: c.repeats })}` : ''}
+              {c.call_sign ? ` · ${c.call_sign}` : c.transmitter === 'log' ? ` · ${t('cast.testLog')}` : ''}
             </Text>
           </View>
         ))}

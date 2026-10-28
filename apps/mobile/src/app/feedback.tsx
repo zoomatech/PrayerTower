@@ -7,6 +7,7 @@ import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 const KINDS = [
@@ -16,6 +17,7 @@ const KINDS = [
 ] as const;
 
 export default function FeedbackScreen() {
+  const { t } = useLocale();
   const [kind, setKind] = useState<(typeof KINDS)[number]['value']>('bug');
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -39,17 +41,17 @@ export default function FeedbackScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>Send feedback</Text>
-        <Text style={type.body}>Tell us what broke, what confused you, or what you wish Prayer Tower did. The pilot team reads every note.</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <Text style={type.title}>{t('profile.feedback')}</Text>
+        <Text style={type.body}>{t('feedback.intro')}</Text>
         <View style={styles.row}>
           {KINDS.map((k) => (
-            <Chip key={k.value} label={k.label} selected={kind === k.value} onPress={() => setKind(k.value)} />
+            <Chip key={k.value} label={t(`feedback.kinds.${k.value}`)} selected={kind === k.value} onPress={() => setKind(k.value)} />
           ))}
         </View>
         <Field
-          label="Your feedback"
-          placeholder={kind === 'bug' ? 'What happened, and what did you expect?' : 'Tell us more'}
+          label={t('feedback.label')}
+          placeholder={kind === 'bug' ? t('feedback.bugPlaceholder') : t('feedback.placeholder')}
           value={body}
           onChangeText={(t) => {
             setBody(t);
@@ -59,8 +61,8 @@ export default function FeedbackScreen() {
           maxLength={2000}
         />
         <ErrorText error={error} />
-        {sent ? <Text style={[type.small, { color: colors.primary }]}>Thank you! Your feedback was sent.</Text> : null}
-        <Button label="Send" onPress={send} busy={busy} disabled={!body.trim()} />
+        {sent ? <Text style={[type.small, { color: colors.primary }]}>{t('feedback.sent')}</Text> : null}
+        <Button label={t('actions.send')} onPress={send} busy={busy} disabled={!body.trim()} />
       </ScrollView>
     </Screen>
   );

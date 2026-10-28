@@ -10,11 +10,13 @@ import { CrisisSupport } from '@/components/crisis';
 import { Button, Chip, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
-const STATUS = { open: 'Waiting for a prayer partner', claimed: 'Someone is with you', closed: 'Closed' } as const;
 
 export default function Care() {
+  const { t, label } = useLocale();
+  const kindLabel = (k: keyof typeof CARE_KIND_LABELS) => label('careKind', k, CARE_KIND_LABELS[k]);
   const { roles } = useAuth();
   const staff = roles.some((r) => r === 'prayer_partner' || r === 'pastor_counselor');
   const [kinds, setKinds] = useState<CareKind[]>([]);
@@ -75,60 +77,60 @@ export default function Care() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
-        <Text style={type.title}>Pray with someone</Text>
-        <Text style={type.body}>Ask, and one of our prayer partners or pastors will reach out to you privately to pray with you.</Text>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/messages'))} />
+        <Text style={type.title}>{t('care.title')}</Text>
+        <Text style={type.body}>{t('care.intro')}</Text>
         <ErrorText error={error} />
         {crisis ? <CrisisSupport /> : null}
 
         {!enabled ? (
-          <Text style={type.small}>Prayer partners aren't available right now. Please try again later.</Text>
+          <Text style={type.small}>{t('care.unavailable')}</Text>
         ) : sent ? (
           <View style={styles.card}>
-            <Text style={type.heading}>Your request is in</Text>
-            <Text style={type.body}>A prayer partner will message you. You'll get a notice when they do.</Text>
-            <Button small variant="ghost" label="Ask for something else" onPress={() => setSent(false)} />
+            <Text style={type.heading}>{t('care.sentTitle')}</Text>
+            <Text style={type.body}>{t('care.sent')}</Text>
+            <Button small variant="ghost" label={t('care.askElse')} onPress={() => setSent(false)} />
           </View>
         ) : (
           <View style={styles.card}>
             <View style={styles.row}>
               {kinds.map((k) => (
-                <Chip key={k} label={CARE_KIND_LABELS[k]} selected={kind === k} onPress={() => setKind(k)} />
+                <Chip key={k} label={kindLabel(k)} selected={kind === k} onPress={() => setKind(k)} />
               ))}
             </View>
-            <Field placeholder="What would you like prayer for?" value={body} onChangeText={setBody} maxLength={2000} multiline />
-            <Button label="Ask for a prayer partner" onPress={ask} busy={busy} disabled={!body.trim()} />
+            <Field placeholder={t('care.placeholder')} value={body} onChangeText={setBody} maxLength={2000} multiline />
+            <Button label={t('care.ask')} onPress={ask} busy={busy} disabled={!body.trim()} />
           </View>
         )}
 
-        {mine.length ? <Text style={type.heading}>Your requests</Text> : null}
+        {mine.length ? <Text style={type.heading}>{t('care.yours')}</Text> : null}
         {mine.map((r) => (
           <View key={r.id} style={styles.card}>
             <Text style={type.small}>
-              {CARE_KIND_LABELS[r.kind]} · {STATUS[r.status]}
+              {kindLabel(r.kind)} · {t(`care.status.${r.status}`)}
             </Text>
             <Text style={type.body} numberOfLines={3}>
               {r.body}
             </Text>
             <View style={styles.row}>
-              {r.conversationId ? <Button small label="Open conversation" onPress={() => router.push(`/conversation/${r.conversationId}`)} /> : null}
-              {r.status !== 'closed' ? <Button small variant="ghost" label="Close" onPress={() => api.closeCare(r.id).then(load).catch((e) => setError((e as Error).message))} /> : null}
+              {r.conversationId ? <Button small label={t('care.open')} onPress={() => router.push(`/conversation/${r.conversationId}`)} /> : null}
+              {r.status !== 'closed' ? <Button small variant="ghost" label={t('common.close')} onPress={() => api.closeCare(r.id).then(load).catch((e) => setError((e as Error).message))} /> : null}
             </View>
           </View>
         ))}
 
         {staff ? (
           <>
-            <Text style={type.heading}>Care queue</Text>
-            {queue.length === 0 ? <Text style={type.small}>No one is waiting right now.</Text> : null}
+            <Text style={type.heading}>{t('care.queue')}</Text>
+            {queue.length === 0 ? <Text style={type.small}>{t('care.noneWaiting')}</Text> : null}
             {queue.map((r) => (
               <View key={r.id} style={[styles.card, r.crisis && styles.crisis]}>
                 <Text style={type.small}>
-                  {r.crisis ? 'May be in danger · ' : ''}
-                  {CARE_KIND_LABELS[r.kind]} · {r.name} · {new Date(r.createdAt).toLocaleString()}
+                  {r.crisis ? t('care.danger') : ''}
+                  {kindLabel(r.kind)} · {r.name} · {new Date(r.createdAt).toLocaleString()}
                 </Text>
                 <Text style={type.body}>{r.body}</Text>
-                <Button small label="Reach out" onPress={() => claim(r.id)} />
+                <Button small label={t('care.reachOut')} onPress={() => claim(r.id)} />
               </View>
             ))}
           </>
