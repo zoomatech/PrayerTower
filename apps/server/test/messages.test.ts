@@ -223,7 +223,7 @@ describe('message safety', () => {
     expect((await as(outsider).post('/reports', { targetType: 'message', targetId: sent.id, reason: 'spam' })).statusCode).toBe(404);
     expect((await as(owner).post('/reports', { targetType: 'message', targetId: sent.id, reason: 'This is an ad' })).statusCode).toBe(201);
 
-    const item = (await as(mod).get('/moderation/queue')).json().items.find((i: { target_id: string }) => i.target_id === sent.id);
+    const item = (await as(mod).get(`/moderation/queue?targetId=${sent.id}`)).json().items.find((i: { target_id: string }) => i.target_id === sent.id);
     expect(item).toMatchObject({ target_type: 'message', content: 'Buy my product at a discount' });
     expect((await as(mod).post(`/moderation/items/${item.id}/decision`, { action: 'remove', rule: 'ads' })).statusCode).toBe(200);
     expect((await as(owner).get(`/conversations/${conversationId}`)).json().messages).toEqual([]);

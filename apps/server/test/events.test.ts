@@ -78,7 +78,7 @@ describe('events', () => {
     expect((await as(member).post('/reports', { targetType: 'event', targetId: event.id, reason: 'suspicious' })).statusCode).toBe(201);
     const mod = await createUser('Event Mod');
     await grantRole(db, mod, 'moderator', null);
-    const item = (await as(mod).get('/moderation/queue')).json().items.find((i: { target_id: string }) => i.target_id === event.id);
+    const item = (await as(mod).get(`/moderation/queue?targetId=${event.id}`)).json().items.find((i: { target_id: string }) => i.target_id === event.id);
     expect(item.content).toContain('Restorative circle');
   });
 

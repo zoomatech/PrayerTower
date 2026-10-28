@@ -144,8 +144,8 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
   return rows[0]!;
 }
 
-/** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. */
-export async function pending(q: Queryable, limit = 100) {
+/** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. Optionally only one target's items. */
+export async function pending(q: Queryable, limit = 100, targetId?: string) {
   const { rows } = await q.query(
     `select m.*, coalesce(po.body, c.body, r.note, x.body, ev.title || E'\n' || ev.description) as content
        from public.moderation_items m
@@ -154,10 +154,10 @@ export async function pending(q: Queryable, limit = 100) {
        left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
        left join public.messages x on m.target_type = 'message' and x.id = m.target_id
        left join public.events ev on m.target_type = 'event' and ev.id = m.target_id
-      where m.status = 'pending'
+      where m.status = 'pending' and ($2::uuid is null or m.target_id = $2)
       order by (m.source = 'crisis') desc, m.auto_hidden desc, m.id
       limit $1`,
-    [limit],
+    [limit, targetId ?? null],
   );
   return rows;
 }
