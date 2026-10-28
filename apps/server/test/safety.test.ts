@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
+import * as moderation from '../src/modules/moderation/index.js';
 import * as safety from '../src/modules/safety/index.js';
 import * as tokens from '../src/modules/tokens/index.js';
 import { as, createUser, db, drainJobs, newRequest, setClassifier } from './helpers.js';
@@ -84,5 +85,49 @@ describe('new-member limits', () => {
     const brandNew = await createUser('Brand New');
     expect((await as(brandNew).post('/posts', { postType: 'prayer_request', body: 'See https://spam.example' })).statusCode).toBe(403);
     expect((await as(admin).post('/posts', { postType: 'prayer_request', body: 'Admins can link: https://prayertower.app' })).statusCode).toBe(201);
+  });
+});
+
+describe('moderation notices and appeals', () => {
+  it('tells the member which rule applied, lets a suspended member appeal once, and restores on overturn', async () => {
+    const author = await createUser('Zealot');
+    const reporter = await createUser('Reporter');
+    const moderator = await createUser('Elder');
+    await grantRole(db, moderator, 'moderator', null);
+    const post = await newRequest(author, 'Lord, smite my enemies and their families.');
+    await as(reporter).post('/reports', { targetType: 'post', targetId: post.id, reason: 'Harmful or abusive' });
+    const item = (await as(moderator).get('/moderation/queue')).json().items.find((i: { target_id: string }) => i.target_id === post.id);
+    await as(moderator).post(`/moderation/items/${item.id}/decision`, { action: 'remove', rule: 'harm', suspendDays: 3 });
+
+    const notice = (await as(author).get('/me/notifications')).json().notifications.find((n: { kind: string }) => n.kind === 'moderation_notice');
+    expect(notice.title).toBe('Your request was removed');
+    expect(notice.body).toContain('Pray for good, never for harm');
+    expect(notice.body).toContain('appeal');
+    expect(notice.data).toMatchObject({ itemId: item.id, rule: 'harm', appealable: true });
+
+    // Suspended: can't post, can appeal, only once, and only their own decisions.
+    const blocked = await as(author).post('/posts', { postType: 'prayer_request', body: 'hi' });
+    expect(blocked.statusCode).toBe(403);
+    expect(blocked.json().message).toMatch(/appeal/);
+    expect((await as(reporter).post(`/moderation/items/${item.id}/appeal`, { message: 'Not me' })).statusCode).toBe(404);
+    expect((await as(author).post(`/moderation/items/${item.id}/appeal`, { message: 'It was a psalm, not a threat.' })).statusCode).toBe(201);
+    expect((await as(author).post(`/moderation/items/${item.id}/appeal`, { message: 'Again' })).statusCode).toBe(409);
+
+    const appeal = (await as(moderator).get('/moderation/appeals')).json().appeals.find((a: { moderation_item_id: string }) => a.moderation_item_id === item.id);
+    expect(appeal).toMatchObject({ rule: 'harm', message: 'It was a psalm, not a threat.' });
+    expect(appeal.suspended_until).not.toBeNull();
+    expect((await as(author).get('/moderation/appeals')).statusCode).toBe(403);
+
+    await as(moderator).post(`/moderation/appeals/${appeal.id}/decision`, { action: 'overturn' });
+    expect((await as(reporter).get(`/posts/${post.id}`)).statusCode).toBe(200);
+    expect((await as(author).post('/posts', { postType: 'prayer_request', body: 'Thank you.' })).statusCode).toBe(201);
+    const outcome = (await as(author).get('/me/notifications')).json().notifications.find((n: { kind: string }) => n.kind === 'appeal_decision');
+    expect(outcome.title).toBe('Your appeal was accepted');
+  });
+
+  it('words a safe-messaging removal gently, with support and an invitation to repost', async () => {
+    const notice = moderation.removalNotice('post', 'safe_messaging', 'x', null);
+    expect(notice.body).toContain('988');
+    expect(notice.body).toContain('welcome to post it again');
   });
 });

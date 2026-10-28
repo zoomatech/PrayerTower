@@ -43,6 +43,17 @@ export const POST_BACKGROUND_STYLES: Record<PostBackground, { label: string; col
   night: { label: 'Night', color: '#2E2A4F', text: '#F4EFFF' },
 };
 
+/** The community rules a moderator can cite when removing content (see the Community rules screen). */
+export const MODERATION_RULES = {
+  harm: 'Pray for good, never for harm',
+  flooding: 'No flooding for a side',
+  ads: 'No ads',
+  abuse: 'No harassment or abuse',
+  safe_messaging: 'No details of suicide or self-harm methods',
+  other: 'Community rules',
+} as const;
+export type ModerationRule = keyof typeof MODERATION_RULES;
+
 /** Shown when a post or comment mentions suicide or self-harm (Samaritans guidance; 988 is the US line). */
 export const CRISIS_SUPPORT = {
   title: 'You are not alone',
@@ -189,6 +200,17 @@ export interface ModerationItem {
   reason: string | null;
   status: string;
   content: string | null;
+  created_at: string;
+}
+
+export interface Appeal {
+  id: string;
+  moderation_item_id: string;
+  target_type: 'post' | 'comment' | 'reaction';
+  rule: ModerationRule | null;
+  message: string;
+  content: string | null;
+  suspended_until: string | null;
   created_at: string;
 }
 

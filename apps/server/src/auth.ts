@@ -53,8 +53,10 @@ export function makeAuthHook(verify: TokenVerifier, db: Queryable) {
     const profile = rows[0];
     if (!profile) throw new AppError(401, 'unauthenticated', 'No profile for this user');
     const suspended = profile.suspended_until && profile.suspended_until > new Date();
-    if (suspended && req.method !== 'GET') {
-      throw new AppError(403, 'suspended', 'Your account is suspended');
+    // Suspended members can still read and appeal.
+    if (suspended && req.method !== 'GET' && !/^\/moderation\/items\/[^/]+\/appeal$/.test(req.url.split('?')[0]!)) {
+      const until = profile.suspended_until!.toDateString();
+      throw new AppError(403, 'suspended', `Your account can't post until ${until}. You can appeal from your notifications.`);
     }
     req.auth = { userId };
   };

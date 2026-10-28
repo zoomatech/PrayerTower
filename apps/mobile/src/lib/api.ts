@@ -1,5 +1,6 @@
 // Typed client for the Prayer Tower API. Every call sends the Supabase access token.
 import type {
+  Appeal,
   AppNotification,
   Card,
   Comment,
@@ -7,6 +8,7 @@ import type {
   FeedPage,
   FeedThemeChoices,
   ModerationItem,
+  ModerationRule,
   Person,
   Role,
   Frequency,
@@ -148,8 +150,12 @@ export const api = {
   report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
-  decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string }) =>
+  decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
+  appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
+  appeals: () => get<{ appeals: Appeal[] }>('/moderation/appeals'),
+  decideAppeal: (id: string, action: 'uphold' | 'overturn', note?: string) =>
+    post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
     metrics: (days: number) => get<Record<string, Record<string, number | string | null>>>(`/admin/metrics?days=${days}`),

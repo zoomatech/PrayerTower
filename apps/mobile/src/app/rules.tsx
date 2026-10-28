@@ -20,6 +20,14 @@ const RULES: { title: string; body: string }[] = [
     body: 'Tokens can help a request reach more people, but no one may flood the feed to push one side of a conflict. Coordinated pile-ons are removed.',
   },
   {
+    title: 'No harassment or abuse',
+    body: 'Disagree in love. Insults, threats, mockery and pile-ons against anyone, in requests, comments or encouragements, are removed.',
+  },
+  {
+    title: 'No details of suicide or self-harm methods',
+    body: 'If you are struggling, please post: you will see the 988 Lifeline and people will pray with you. Details of methods are removed to keep others safe, and you are welcome to post again without them.',
+  },
+  {
     title: 'No ads',
     body: 'Prayer Tower has no ads. A prayer request used to sell something or promote a business is an ad, and is penalized.',
   },
@@ -33,7 +41,7 @@ const RULES: { title: string; body: string }[] = [
   },
   {
     title: 'How moderation works',
-    body: 'Anyone can report a request or comment. Automated checks only flag content; they hide it right away only in the most severe cases, until a person reviews it. A human moderator decides every penalty: removing the post, forfeiting tokens, suspension or reversing token transfers. Every decision is logged.',
+    body: 'Anyone can report a request or comment. Automated checks only flag content; they hide it right away only in the most severe cases, until a person reviews it. A human moderator decides every penalty: removing the post, forfeiting tokens, suspension or reversing token transfers. Every decision is logged, you are told which rule applied, and you can appeal once from your notices.',
   },
 ];
 

@@ -7,12 +7,27 @@ import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from '../tokens/index.js';
 
 export type Target = 'post' | 'comment' | 'reaction';
 
 export const CRISIS_REASON = 'Someone may be in danger';
+
+/** Rules a removal can cite; titles match the app's Community rules (labels in packages/shared). */
+export const RULES = {
+  harm: 'Pray for good, never for harm',
+  flooding: 'No flooding for a side',
+  ads: 'No ads',
+  abuse: 'No harassment or abuse',
+  safe_messaging: 'No details of suicide or self-harm methods',
+  other: 'Community rules',
+} as const;
+export type Rule = keyof typeof RULES;
+const RULE_KEYS = Object.keys(RULES) as [Rule, ...Rule[]];
+
+const NOUN = { post: 'request', comment: 'comment', reaction: 'encouragement' } as const;
 
 /**
  * A post or comment that mentions suicide or self-harm stays up, is marked so
@@ -135,6 +150,8 @@ export const Decision = z.object({
   suspendDays: z.number().int().min(1).max(3650).optional(),
   clawbackTransferIds: z.array(z.uuid()).max(50).default([]),
   note: z.string().max(1000).optional(),
+  /** The rule a removal applies. Defaults to the general community rules. */
+  rule: z.enum(RULE_KEYS).optional(),
 });
 
 /** A moderator's decision on a queue item, with any penalties, all logged. */
@@ -150,6 +167,8 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
     throw badRequest('Penalties require removing the content');
   }
 
+  const rule: Rule = d.rule ?? 'other';
+  let suspendedUntil: Date | null = null;
   const log = (action: string, extra: { transferId?: string; suspendedUntil?: Date } = {}) =>
     q.query(
       `insert into public.moderation_actions (moderation_item_id, user_id, moderator_id, action, token_transfer_id, suspended_until, note)
@@ -178,13 +197,108 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
         until,
       ]);
       await log('suspend', { suspendedUntil: until });
+      suspendedUntil = until;
     }
+    await notifications.notify(q, item.user_id, removalNotice(item.target_type, rule, item.id, suspendedUntil));
   }
-  await q.query(`update public.moderation_items set status = $2, decided_by = $3, decided_at = now() where id = $1`, [
+  await q.query(`update public.moderation_items set status = $2, decided_by = $3, decided_at = now(), rule = $4 where id = $1`, [
     item.id,
     d.action === 'dismiss' ? 'dismissed' : 'actioned',
     moderatorId,
+    d.action === 'dismiss' ? null : rule,
   ]);
+}
+
+/** What the member is told: which rule, any suspension, and that they can appeal. Kind, never shaming. */
+export function removalNotice(target: Target, rule: Rule, itemId: string, suspendedUntil: Date | null): notifications.NewNotification {
+  const noun = NOUN[target];
+  const body =
+    rule === 'safe_messaging'
+      ? `We removed your ${noun} because it described ways of self-harm, which can put others at risk. Your prayer matters, and you are welcome to post it again without those details. If you are struggling, call or text 988 any time.`
+      : `We removed your ${noun} because it broke a community rule: ${RULES[rule]}.` +
+        (suspendedUntil ? ` Your account can't post until ${suspendedUntil.toDateString()}.` : '') +
+        ' If you think we got this wrong, you can appeal.';
+  return { kind: 'moderation_notice', title: `Your ${noun} was removed`, body, data: { itemId, rule, appealable: true } };
+}
+
+// Appeals ------------------------------------------------------------------------
+
+export const NewAppeal = z.object({ message: z.string().trim().min(1).max(1000) });
+
+/** One appeal per removal, by the member it was applied to. */
+export async function appeal(q: Queryable, userId: string, itemId: string, input: z.infer<typeof NewAppeal>) {
+  const { rows } = await q.query<{ user_id: string; status: string }>('select user_id, status from public.moderation_items where id = $1', [itemId]);
+  const item = rows[0];
+  if (!item || item.user_id !== userId) throw notFound('Moderation decision');
+  if (item.status !== 'actioned') throw badRequest('Only removals can be appealed');
+  const res = await q.query<{ id: string }>(
+    `insert into public.moderation_appeals (moderation_item_id, user_id, message) values ($1, $2, $3)
+     on conflict (moderation_item_id) do nothing returning id`,
+    [itemId, userId, input.message],
+  );
+  if (!res.rows[0]) throw conflict('You already appealed this decision');
+  return res.rows[0];
+}
+
+export async function pendingAppeals(q: Queryable, limit = 50) {
+  const { rows } = await q.query(
+    `select a.id, a.moderation_item_id, m.target_type, m.rule, a.message, a.created_at,
+            coalesce(po.body, c.body, r.note) as content,
+            (select max(suspended_until) from public.moderation_actions x where x.moderation_item_id = m.id) as suspended_until
+       from public.moderation_appeals a
+       join public.moderation_items m on m.id = a.moderation_item_id
+       left join public.posts po on m.target_type = 'post' and po.id = m.target_id
+       left join public.comments c on m.target_type = 'comment' and c.id = m.target_id
+       left join public.reactions r on m.target_type = 'reaction' and r.id = m.target_id
+      where a.status = 'pending' order by a.id limit $1`,
+    [limit],
+  );
+  return rows;
+}
+
+export const AppealDecision = z.object({ action: z.enum(['uphold', 'overturn']), note: z.string().trim().max(1000).optional() });
+
+/** Overturning restores the content and lifts that decision's suspension; either way the member is told. */
+export async function decideAppeal(q: Queryable, moderatorId: string, appealId: string, d: z.infer<typeof AppealDecision>) {
+  const { rows } = await q.query<{ id: string; status: string; user_id: string; item_id: string; target_type: Target; target_id: string }>(
+    `select a.id, a.status, a.user_id, m.id as item_id, m.target_type, m.target_id
+       from public.moderation_appeals a join public.moderation_items m on m.id = a.moderation_item_id
+      where a.id = $1 for update of a`,
+    [appealId],
+  );
+  const a = rows[0];
+  if (!a) throw notFound('Appeal');
+  if (a.status !== 'pending') throw conflict('This appeal was already decided');
+  await q.query(`update public.moderation_appeals set status = $2, decided_by = $3, decided_at = now(), decision_note = $4 where id = $1`, [
+    a.id,
+    d.action === 'overturn' ? 'overturned' : 'upheld',
+    moderatorId,
+    d.note ?? null,
+  ]);
+  const noun = NOUN[a.target_type];
+  if (d.action === 'overturn') {
+    await posts.setModerationStatus(q, a.target_type, a.target_id, 'visible');
+    const { rows: s } = await q.query<{ until: Date | null }>(
+      `select max(suspended_until) as until from public.moderation_actions where moderation_item_id = $1`,
+      [a.item_id],
+    );
+    if (s[0]?.until) {
+      await q.query('update public.profiles set suspended_until = null where id = $1 and suspended_until <= $2', [a.user_id, s[0].until]);
+    }
+    await q.query(
+      `insert into public.moderation_actions (moderation_item_id, user_id, moderator_id, action, note) values ($1, $2, $3, 'restore', $4)`,
+      [a.item_id, a.user_id, moderatorId, d.note ?? 'Appeal overturned'],
+    );
+  }
+  await notifications.notify(q, a.user_id, {
+    kind: 'appeal_decision',
+    title: d.action === 'overturn' ? 'Your appeal was accepted' : 'Your appeal was reviewed',
+    body:
+      d.action === 'overturn'
+        ? `A moderator looked again and restored your ${noun}. Thank you for your patience.`
+        : `A moderator looked again and the decision stands.${d.note ? ` ${d.note}` : ''}`,
+    data: { itemId: a.item_id },
+  });
 }
 
 export async function metrics(q: Queryable, since: Date) {

@@ -30,4 +30,24 @@ export function moderationRoutes(app: FastifyInstance, db: Db) {
     await withTx(db, (tx) => moderation.decide(tx, moderatorId, req.params.id, decision));
     return { ok: true };
   });
+
+  // Members appeal a removal of their own content; suspended members can still do this.
+  app.post<{ Params: { id: string } }>('/moderation/items/:id/appeal', async (req, reply) => {
+    const input = moderation.NewAppeal.parse(req.body);
+    const appeal = await moderation.appeal(db, requireUser(req), req.params.id, input);
+    reply.code(201);
+    return { appealId: appeal.id };
+  });
+
+  app.get('/moderation/appeals', async (req) => {
+    await requireModerator(req);
+    return { appeals: await moderation.pendingAppeals(db) };
+  });
+
+  app.post<{ Params: { id: string } }>('/moderation/appeals/:id/decision', async (req) => {
+    const moderatorId = await requireModerator(req);
+    const decision = moderation.AppealDecision.parse(req.body);
+    await withTx(db, (tx) => moderation.decideAppeal(tx, moderatorId, req.params.id, decision));
+    return { ok: true };
+  });
 }

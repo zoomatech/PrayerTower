@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 
-import { Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -50,6 +50,9 @@ export default function Notifications() {
               <Text style={styles.title}>{n.title}</Text>
               <Text style={type.body}>{n.body}</Text>
               <Text style={type.small}>{new Date(n.created_at).toLocaleString()}</Text>
+              {n.kind === 'moderation_notice' && typeof n.data.itemId === 'string' ? (
+                <Button small variant="secondary" label="Appeal this decision" onPress={() => router.push(`/appeal/${n.data.itemId}`)} />
+              ) : null}
             </Pressable>
           );
         })}

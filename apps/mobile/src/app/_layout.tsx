@@ -33,6 +33,7 @@ function RootStack() {
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="moderation" />
         <Stack.Screen name="admin" />
+        <Stack.Screen name="appeal/[id]" />
         <Stack.Screen name="people/[id]" />
         <Stack.Screen name="rules" />
       </Stack.Protected>
