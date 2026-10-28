@@ -11,6 +11,7 @@ import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
 import * as safety from '../safety/index.js';
 import * as tokens from '../tokens/index.js';
+import { requireFeature } from '../communities/index.js';
 
 const noLinks = (s: string) => !safety.hasLink(s);
 const NO_ADS = 'Pools carry no links or ads.';
@@ -66,6 +67,7 @@ async function get(q: Queryable, poolId: string, lock = false) {
 }
 
 export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPool>) {
+  await requireFeature(q, userId, 'pools');
   const blocked = await safety.newMemberBlock(q, userId, 'start a token pool');
   if (blocked) throw forbidden(blocked);
   const existing = await q.query<{ id: string }>(
@@ -84,6 +86,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
 }
 
 export async function fund(q: Queryable, userId: string, poolId: string, amount: number, key: string) {
+  await requireFeature(q, userId, 'pools');
   const pool = await get(q, poolId, true);
   if (pool.owner_id !== userId) throw forbidden('Only the donor can add to this pool. You can gift tokens to a request instead.');
   if (pool.closed_at) throw conflict('This pool is closed');
@@ -131,6 +134,7 @@ export async function list(q: Queryable, viewerId: string, opts: { postId?: stri
 }
 
 export async function draw(q: Queryable, userId: string, poolId: string, postId: string) {
+  await requireFeature(q, userId, 'pools');
   const pool = await get(q, poolId, true);
   const post = await posts.getVisible(q, postId);
   if (!post) throw notFound('Post');

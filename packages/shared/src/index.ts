@@ -9,6 +9,14 @@ export type PostType = (typeof POST_TYPES)[number];
 export const DISCUSSION_TYPES: readonly PostType[] = ['discussion', 'news', 'blog'];
 export const isPrayable = (t: PostType) => !DISCUSSION_TYPES.includes(t);
 
+/**
+ * Features an admin can hide for one community (Admin → Communities), e.g. radio
+ * for Open Circle. Hidden features disappear from the app for that community's
+ * members, and the server refuses them.
+ */
+export const COMMUNITY_FEATURES = ['radio', 'spoken', 'care', 'events', 'groups', 'awards', 'live', 'circles', 'pools', 'highlights'] as const;
+export type CommunityFeature = (typeof COMMUNITY_FEATURES)[number];
+
 export const POST_TYPE_LABELS: Record<PostType, string> = {
   prayer_request: 'Prayer Request',
   praise: 'Praise & Thanks',

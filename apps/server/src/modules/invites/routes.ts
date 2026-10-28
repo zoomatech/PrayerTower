@@ -54,7 +54,9 @@ export function inviteRoutes(app: FastifyInstance, db: Db, mailer: Mailer | null
       [userId],
     );
     const lang = memberLang(body.language ?? rows[0]?.locale);
-    await mailer(renderInviteEmail({ to: body.email, code: invite.code, lang, from: rows[0]?.name ?? 'Prayer Tower', message: body.message, links }));
+    await mailer(
+      renderInviteEmail({ to: body.email, code: invite.code, lang, from: rows[0]?.name ?? 'Prayer Tower', message: body.message, links, community: invite.community }),
+    );
     return { sent: true, language: lang };
   });
 

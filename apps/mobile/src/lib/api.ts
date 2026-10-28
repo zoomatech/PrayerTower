@@ -1,6 +1,7 @@
 // Typed client for the Prayer Tower API. Every call sends the Supabase access token.
 import type {
   Appeal,
+  CommunityFeature,
   AppNotification,
   Card,
   CareKind,
@@ -349,6 +350,8 @@ export interface Invite {
   createdAt: string;
   createdBy: string | null;
   status: 'active' | 'used' | 'expired' | 'revoked';
+  /** The community a new member joins with this code; null means the default. */
+  community: { slug: string; name: string; secular: boolean } | null;
 }
 
 export interface AuditEntry {
@@ -506,6 +509,8 @@ export interface Community {
   status: 'active' | 'hidden';
   isDefault: boolean;
   enabledPostTypes: string[];
+  /** Features an admin hid for this community (Admin → Communities). */
+  hiddenFeatures?: CommunityFeature[];
   members?: number;
 }
 
@@ -642,7 +647,7 @@ export const api = {
     spokenPrayerSettings: () => get<{ settings: SpokenPrayerSettings }>('/admin/spoken-prayers'),
     updateSpokenPrayerSettings: (patch: { enabled?: boolean; maxSeconds?: number; maxOfferTokens?: number }) =>
       request<{ settings: SpokenPrayerSettings }>('PATCH', '/admin/spoken-prayers', patch),
-    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden'; enabledPostTypes?: string[] }) =>
+    updateCommunity: (slug: string, patch: { name?: string; status?: 'active' | 'hidden'; enabledPostTypes?: string[]; hiddenFeatures?: CommunityFeature[] }) =>
       request<{ community: Community }>('PATCH', `/admin/communities/${slug}`, patch),
     deletionRequests: () =>
       get<{ requests: { id: string; email: string; note: string | null; createdAt: string; accountFound: boolean }[] }>('/admin/deletion-requests'),
@@ -683,7 +688,7 @@ export const api = {
       post<{ announcement: Announcement }>('/admin/announcements', input),
     endAnnouncement: (id: string) => post<{ announcement: Announcement }>(`/admin/announcements/${id}/end`),
     invites: () => get<{ inviteOnly: boolean; invites: Invite[] }>('/admin/invites'),
-    createInvites: (input: { note?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
+    createInvites: (input: { note?: string; community?: string; maxUses?: number; expiresInDays?: number | null; count?: number }) =>
       post<{ invites: Invite[] }>('/admin/invites', input),
     revokeInvite: (code: string) => post<{ invite: Invite }>(`/admin/invites/${encodeURIComponent(code)}/revoke`, {}),
     emailInvite: (code: string, input: { email: string; language?: 'en' | 'es'; message?: string }) =>

@@ -174,11 +174,14 @@ export async function withdrawStory(q: Queryable, userId: string, storyId: strin
 }
 
 /** Approved stories, newest first, with no names. Empty while the switch is off. */
-export async function shownStories(q: Queryable, limit = 20) {
+export async function shownStories(q: Queryable, viewerId: string, limit = 20) {
   if (!(await storiesEnabled(q))) return { enabled: false, stories: [] };
+  // Only stories from the viewer's own community (Open Circle never sees the Christian feed's).
   const { rows } = await q.query<{ id: string; body: string; decided_at: Date }>(
-    `select id, body, decided_at from public.witness_stories where status = 'approved' order by decided_at desc limit $1`,
-    [limit],
+    `select s.id, s.body, s.decided_at from public.witness_stories s join public.witness_cases c on c.id = s.case_id
+      where s.status = 'approved' and c.community_id = public.member_community_id($2)
+      order by s.decided_at desc limit $1`,
+    [limit, viewerId],
   );
   return { enabled: true, stories: rows.map((r) => ({ id: r.id, body: r.body, sharedAt: r.decided_at })) };
 }

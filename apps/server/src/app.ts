@@ -25,6 +25,8 @@ import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { aiRoutes } from './modules/ai/routes.js';
+import { isSecular } from './modules/communities/index.js';
+import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
 import { liveRoutes } from './modules/live/routes.js';
 import type { Converse } from './modules/ai/provider.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
@@ -114,8 +116,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
-  app.setErrorHandler((err, req, reply) => {
-    if (err instanceof AppError) return reply.code(err.statusCode).send({ error: err.code, message: err.message });
+  app.setErrorHandler(async (err, req, reply) => {
+    if (err instanceof AppError) {
+      // Open Circle members never read religious words, even in an error.
+      const secular = RELIGIOUS_WORDS.test(err.message) && req.auth?.userId ? await isSecular(db, req.auth.userId).catch(() => false) : false;
+      return reply.code(err.statusCode).send({ error: err.code, message: secular ? neutralText(err.message) : err.message });
+    }
     if (err instanceof ZodError) return reply.code(400).send({ error: 'invalid_request', issues: err.issues });
     const pgCode = (err as { code?: string }).code;
     if (pgCode === '22P02') return reply.code(400).send({ error: 'invalid_request', message: 'Malformed id or value' });

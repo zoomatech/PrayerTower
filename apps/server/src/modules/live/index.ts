@@ -8,6 +8,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import { allowedVideoUrl, settings as eventSettings } from '../events/index.js';
+import { featureOn, requireFeature } from '../communities/index.js';
 
 export interface LiveSettings {
   enabled: boolean;
@@ -56,7 +57,7 @@ export interface LiveRoom {
 /** Rooms live now in the member's community, newest first. */
 export async function liveNow(q: Queryable, userId: string) {
   const s = await settings(q);
-  if (!s.enabled) return { enabled: false, canHost: false, canCreateRoom: false, rooms: [] as LiveRoom[] };
+  if (!s.enabled || !(await featureOn(q, userId, 'live'))) return { enabled: false, canHost: false, canCreateRoom: false, rooms: [] as LiveRoom[] };
   const { rows } = await q.query<LiveRoom>(
     `select r.id, r.title, r.room_url as "roomUrl", p.display_name as "hostName", r.host_id = $1 as "isMine", r.started_at as "startedAt"
        from public.live_rooms r join public.profiles p on p.id = r.host_id
@@ -75,6 +76,7 @@ export const Start = z.object({
 });
 
 export async function start(q: Queryable, userId: string, input: z.infer<typeof Start>) {
+  await requireFeature(q, userId, 'live');
   const s = await settings(q);
   if (!s.enabled) throw forbidden('Live video is not available');
   if (!(await canHost(q, userId))) throw forbidden('Only staff can start a live room');

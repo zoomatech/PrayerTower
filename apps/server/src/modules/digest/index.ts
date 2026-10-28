@@ -74,9 +74,23 @@ const TEXT = {
   },
 } satisfies Record<Locale, unknown>;
 
-export function renderDigest(d: Digest, saved: Locale, to: string): Mail {
-  const locale = memberLang(saved);
-  const t = TEXT[locale] ?? TEXT.en;
+/** Open Circle (secular) members: the same email with no religious words. */
+const NEUTRAL: (typeof TEXT)['en'] = {
+  subject: 'Your week of kindness',
+  hello: (n: string) => (n ? `Dear ${n},` : 'Hello,'),
+  answered: 'Requests that worked out this week',
+  mine: '(your request)',
+  week: (d: Digest) =>
+    d.prayers > 0
+      ? `You showed up ${d.prayers} ${d.prayers === 1 ? 'time' : 'times'} for ${d.people} ${d.people === 1 ? 'request' : 'requests'}.`
+      : 'There are people waiting for support whenever you are ready.',
+  promises: (d: Digest) => (d.active > 0 ? `You kept ${d.kept} of your ${d.active} active promises to check in.` : ''),
+  off: TEXT.en.off,
+};
+
+export function renderDigest(d: Digest, saved: Locale, to: string, secular = false): Mail {
+  const locale = secular ? 'en' : memberLang(saved);
+  const t = secular ? NEUTRAL : (TEXT[locale] ?? TEXT.en);
   const lines = [t.hello(d.name), '', t.week(d), t.promises(d)].filter((l, i) => i < 2 || l);
   const answered = d.answered.map((a) => `• ${a.body}${a.mine ? ` ${t.mine}` : ''}`);
   const text = [...lines, ...(answered.length ? ['', t.answered, ...answered] : []), '', '—', t.off].join('\n');
@@ -99,8 +113,10 @@ export function isoWeek(d = new Date()) {
 /** Sends the digest to every member who turned it on. Without a mailer it does nothing. */
 export async function sendDigests(q: Queryable, mailer: Mailer | null, week = isoWeek()) {
   if (!mailer) return { sent: 0, skipped: 0 };
-  const { rows } = await q.query<{ id: string; email: string; locale: Locale }>(
-    `select p.id, u.email, p.locale from public.profiles p join auth.users u on u.id = p.id
+  const { rows } = await q.query<{ id: string; email: string; locale: Locale; secular: boolean }>(
+    `select p.id, u.email, p.locale,
+            (select c.tradition = 'secular' from public.communities c where c.id = public.member_community_id(p.id)) as secular
+       from public.profiles p join auth.users u on u.id = p.id
       where p.digest_enabled and p.deleted_at is null and u.email is not null
         and (p.digest_sent_week is distinct from $1)
         and (p.suspended_until is null or p.suspended_until < now())`,
@@ -115,7 +131,7 @@ export async function sendDigests(q: Queryable, mailer: Mailer | null, week = is
       skipped++;
       continue;
     }
-    await mailer(renderDigest(d, m.locale, m.email));
+    await mailer(renderDigest(d, m.locale, m.email, !!m.secular));
     await q.query('update public.profiles set digest_sent_week = $2 where id = $1', [m.id, week]);
     sent++;
   }

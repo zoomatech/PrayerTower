@@ -4,6 +4,7 @@ import type { Task } from 'graphile-worker';
 import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { enqueue } from '../../jobs.js';
+import { neutralText } from '../communities/neutral-text.js';
 import { localize, neutralize, type Params } from './i18n.js';
 
 export interface NewNotification {
@@ -19,16 +20,19 @@ export interface NewNotification {
 
 /** Write the in-app notification and queue its push, in the caller's transaction. */
 export async function notify(q: Queryable, userId: string, n: NewNotification): Promise<string | null> {
+  const { rows: who } = await q.query<{ locale: string; tradition: string }>(
+    `select p.locale, c.tradition from public.profiles p, public.communities c
+      where p.id = $1 and c.id = public.member_community_id($1)`,
+    [userId],
+  );
+  const secular = who[0]?.tradition === 'secular';
   if (n.t) {
-    const { rows: who } = await q.query<{ locale: string; tradition: string }>(
-      `select p.locale, c.tradition from public.profiles p, public.communities c
-        where p.id = $1 and c.id = public.member_community_id($1)`,
-      [userId],
-    );
     // Open Circle members get the non-religious wording; others their language.
-    const local = who[0]?.tradition === 'secular' ? neutralize(n.t.key, n.t.params) : localize(who[0]?.locale, n.t.key, n.t.params);
+    const local = secular ? neutralize(n.t.key, n.t.params) : localize(who[0]?.locale, n.t.key, n.t.params);
     if (local) n = { ...n, ...local };
   }
+  // A notice with no hand-written neutral wording still loses its religious words.
+  if (secular) n = { ...n, title: neutralText(n.title), body: neutralText(n.body) };
   const { rows } = await q.query<{ id: string }>(
     `insert into public.notifications (user_id, kind, title, body, data, dedupe_key)
      values ($1, $2, $3, $4, $5, $6)

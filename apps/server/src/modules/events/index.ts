@@ -11,6 +11,7 @@ import { badgesOf } from '../churches/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as safety from '../safety/index.js';
+import { requireFeature } from '../communities/index.js';
 
 export interface EventSettings {
   events_enabled: boolean;
@@ -81,6 +82,7 @@ async function isGroupMember(q: Queryable, conversationId: string, userId: strin
 }
 
 export async function create(q: Queryable, userId: string, input: z.infer<typeof NewEvent>) {
+  await requireFeature(q, userId, 'events');
   const s = await settings(q);
   if (!s.events_enabled) throw forbidden('Events are turned off for now');
   if (!s.new_members_can_host) {

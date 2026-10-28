@@ -13,6 +13,7 @@ import { AppError, badRequest, conflict, forbidden, notFound } from '../../error
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from '../tokens/index.js';
+import { requireFeature } from '../communities/index.js';
 
 export const SPOKEN_BUCKET = 'spoken-prayers';
 const READ_URL_SECONDS = 60 * 60;
@@ -57,6 +58,7 @@ export const Invite = z.object({ offerTokens: z.number().int().min(0).max(1000).
 
 /** The requester turns spoken prayers on for their own request, with an optional token offer. */
 export async function invite(q: Queryable, userId: string, postId: string, input: z.infer<typeof Invite>) {
+  await requireFeature(q, userId, 'spoken');
   const s = await requireOn(q);
   const post = await posts.getVisible(q, postId);
   if (!post || post.user_id !== userId) throw notFound('Request');
@@ -112,6 +114,7 @@ export const NewSpoken = z.object({
 });
 
 export async function create(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewSpoken>) {
+  await requireFeature(q, userId, 'spoken');
   const s = await requireOn(q);
   const { post, offer } = await senderCheck(q, userId, postId);
   if (!input.storagePath.startsWith(`${userId}/`)) throw badRequest('That recording is not yours');

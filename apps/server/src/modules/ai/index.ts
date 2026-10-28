@@ -9,7 +9,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { AppError, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
-import { isSecular } from '../communities/index.js';
+import { featureOn, isSecular, requireFeature } from '../communities/index.js';
 import { settings as futureSettings } from '../future/index.js';
 import { mentionsCrisis } from '../safety/index.js';
 import type { Converse, Turn } from './provider.js';
@@ -152,13 +152,14 @@ How to help:
 - Keep replies short and warm, in plain English.`;
 }
 
-export async function facilitatorInfo(q: Queryable) {
-  return { enabled: (await settings(q)).facilitator_enabled, questions: QUESTIONS };
+export async function facilitatorInfo(q: Queryable, userId: string) {
+  return { enabled: (await settings(q)).facilitator_enabled && (await featureOn(q, userId, 'circles')), questions: QUESTIONS };
 }
 
 export const FacilitateInput = z.object({ role: z.enum(ROLES), message: z.string().trim().min(1).max(2000), history: History });
 
 export async function facilitate(q: Queryable, converse: Converse | null, userId: string, input: z.infer<typeof FacilitateInput>) {
+  await requireFeature(q, userId, 'circles');
   const s = await settings(q);
   if (!s.facilitator_enabled) throw forbidden('This feature is not available');
   const crisis = mentionsCrisis(input.message);
@@ -176,6 +177,7 @@ export async function facilitate(q: Queryable, converse: Converse | null, userId
 export const CircleRequest = z.object({ role: z.enum(ROLES), summary: z.string().trim().min(1).max(2000) });
 
 export async function requestCircle(q: Queryable, userId: string, input: z.infer<typeof CircleRequest>) {
+  await requireFeature(q, userId, 'circles');
   if (!(await settings(q)).facilitator_enabled) throw forbidden('This feature is not available');
   const { rows: open } = await q.query(`select 1 from public.circle_requests where user_id = $1 and status = 'open'`, [userId]);
   if (open.length) throw new AppError(429, 'circle_request_open', 'You already asked for a circle. A moderator will contact you.');

@@ -26,6 +26,7 @@ import { PrayedForYou } from '@/components/notebook';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useFeature } from '@/lib/community-features';
 import { useLocale } from '@/lib/i18n';
 import { saveJson } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -33,6 +34,8 @@ import { colors, radius, space, type } from '@/lib/theme';
 export default function Profile() {
   const { profile, roles, community, refreshProfile, signOut } = useAuth();
   const { t, label, n, wording } = useLocale();
+  const poolsOn = useFeature('pools');
+  const radioOn = useFeature('radio');
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,12 +149,12 @@ export default function Profile() {
         <AwardCard />
         <PrayedForYou />
         <View style={styles.chips}>
-          <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} />
+          {poolsOn ? <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} /> : null}
           <Button small variant="secondary" label={t('vine.branchLink')} onPress={() => router.push('/branch')} />
           <AiLinks />
           <LiveHostLink />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
-          <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} />
+          {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (

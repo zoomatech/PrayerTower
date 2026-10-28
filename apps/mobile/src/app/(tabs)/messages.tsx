@@ -9,6 +9,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimen
 import { ConversationPane } from '@/components/conversation-pane';
 import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useFeature } from '@/lib/community-features';
 import { useLocale } from '@/lib/i18n';
 import { breakpoints, colors, radius, space, type } from '@/lib/theme';
 
@@ -18,6 +19,9 @@ const LIST_WIDTH = 360;
 
 export default function Messages() {
   const { t } = useLocale();
+  const groupsOn = useFeature('groups');
+  const eventsOn = useFeature('events');
+  const careOn = useFeature('care');
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,9 +90,9 @@ export default function Messages() {
       <Text style={type.title}>{t('tabs.messages')}</Text>
       <Text style={type.small}>{t('messages.privacy')}</Text>
       <View style={styles.links}>
-        <Button variant="secondary" label={t('messages.groups')} onPress={() => router.push('/groups')} />
-        <Button variant="secondary" label={t('messages.events')} onPress={() => router.push('/events')} />
-        <Button variant="secondary" label={t('messages.care')} onPress={() => router.push('/care')} />
+        {groupsOn ? <Button variant="secondary" label={t('messages.groups')} onPress={() => router.push('/groups')} /> : null}
+        {eventsOn ? <Button variant="secondary" label={t('messages.events')} onPress={() => router.push('/events')} /> : null}
+        {careOn ? <Button variant="secondary" label={t('messages.care')} onPress={() => router.push('/care')} /> : null}
       </View>
       <ErrorText error={error} onRetry={load} />
       {!loaded && !error ? <Loading /> : null}

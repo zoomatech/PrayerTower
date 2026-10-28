@@ -2,7 +2,7 @@
 // (including whether radio prayers spend Priestly tokens or are free), tier
 // thresholds and weekly allotments, and finding people to grant or revoke
 // roles. The server checks the admin role on every call.
-import { POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
+import { COMMUNITY_FEATURES, POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -825,6 +825,22 @@ function CommunitiesSection() {
                   label={POST_TYPE_LABELS[p]}
                   selected={on}
                   onPress={() => change(c, { enabledPostTypes: on ? c.enabledPostTypes.filter((x) => x !== p) : [...c.enabledPostTypes, p] })}
+                />
+              );
+            })}
+          </View>
+          <Text style={type.small}>{t('admin.communityFeatures')}</Text>
+          <View style={styles.row}>
+            {COMMUNITY_FEATURES.map((f) => {
+              const hidden = c.hiddenFeatures?.includes(f) ?? false;
+              return (
+                <Chip
+                  key={f}
+                  label={t(`admin.feature.${f}`)}
+                  selected={!hidden}
+                  onPress={() =>
+                    change(c, { hiddenFeatures: hidden ? (c.hiddenFeatures ?? []).filter((x) => x !== f) : [...(c.hiddenFeatures ?? []), f] })
+                  }
                 />
               );
             })}

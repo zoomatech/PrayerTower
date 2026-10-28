@@ -12,10 +12,7 @@ export function aiRoutes(app: FastifyInstance, db: Db, converse: Converse | null
   app.get('/ai-chat', async (req) => ai.chatInfo(db, requireUser(req)));
   app.post('/ai-chat', async (req) => ai.chat(db, converse, requireUser(req), ai.ChatInput.parse(req.body)));
 
-  app.get('/ai-facilitator', async (req) => {
-    requireUser(req);
-    return ai.facilitatorInfo(db);
-  });
+  app.get('/ai-facilitator', async (req) => ai.facilitatorInfo(db, requireUser(req)));
   app.post('/ai-facilitator', async (req) => ai.facilitate(db, converse, requireUser(req), ai.FacilitateInput.parse(req.body)));
   app.post('/circle-requests', async (req, reply) => {
     const r = await ai.requestCircle(db, requireUser(req), ai.CircleRequest.parse(req.body));

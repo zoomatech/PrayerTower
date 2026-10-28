@@ -201,6 +201,7 @@ export async function markRead(q: Queryable, userId: string, id: string, input: 
     kind: 'live_amplifier_read',
     title: 'Your request was read aloud on the air',
     body: 'A licensed ham radio operator read your prayer request aloud so more people could pray with you.',
+    t: { key: 'live_amplifier_read' },
     data: { postId: p[0].post_id },
     dedupeKey: `live_amplifier_read:${id}`,
   });

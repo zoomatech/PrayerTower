@@ -218,6 +218,7 @@ export const keys: Tree = {
     bird: 'Uh-uh! No ads here. Just people and kindness.',
     branchIntro: 'Every request you have shared, on one branch of the vine. Tendrils show the people who promised to check in.',
   },
+  witness: { storyPlaceholder: 'For example: a family behind on rent got two months covered by a neighbor.' },
   macro: { pray: 'Support', prayingNow: 'Thinking of them', commit: 'Promise to check in' },
   helpStories: {
     aboutYouHint: 'The Helpers team would like to share this. It never shows your name. You can take back a yes at any time.',
@@ -245,7 +246,7 @@ export const keys: Tree = {
     toggle: 'Show my kindness stats',
     toggleHint: 'Days you showed up and people supported, on this page only. There are no rankings.',
   },
-  card: { answered: '✨ Worked out', praying: '%{count} thinking of this', firstToPray: 'Be the first to lift this up', testimony: 'Story' },
+  card: { pastorBadge: '%{title}, a verified mentor', answered: '✨ Worked out', praying: '%{count} thinking of this', firstToPray: 'Be the first to lift this up', testimony: 'Story' },
   enums: {
     action: { praying_now: 'Thinking of You', commit: 'Promise to Check In' },
     postType: { prayer_request: 'Request', praise: 'Good News', open_prayer: 'Kind Thoughts', testimony: 'Story' },
