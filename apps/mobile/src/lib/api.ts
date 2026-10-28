@@ -145,6 +145,12 @@ export interface PrayerCast {
   cast: { id: string; post_id: string; text: string; repeats: number; transmitter: string | null; call_sign: string | null; transmitted_at: string }[];
 }
 
+export interface Highlights {
+  days: number;
+  topPrayers: { prayers: number; card: Card }[];
+  topWarriors: { id: string | null; displayName: string; prayers: number }[];
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -312,6 +318,7 @@ export const api = {
   endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
+  highlights: () => get<Highlights>('/highlights'),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

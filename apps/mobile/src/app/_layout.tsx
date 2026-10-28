@@ -40,6 +40,7 @@ function RootStack() {
         <Stack.Screen name="scheduled" />
         <Stack.Screen name="macro-needs" />
         <Stack.Screen name="prayer-cast" />
+        <Stack.Screen name="highlights" />
       </Stack.Protected>
     </Stack>
   );
