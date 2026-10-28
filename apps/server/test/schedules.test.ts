@@ -51,4 +51,19 @@ describe('scheduled token spending', () => {
     expect(notes.some((n: { kind: string }) => n.kind === 'scheduled_spend')).toBe(true);
     expect((await as(member).post(`/posts/${post.id}/scheduled-spends`, { amount: 1, runAt: '2020-01-01T00:00:00Z' })).statusCode).toBe(400);
   });
+
+  it('cancels a scheduled gift when the giver and the poster have since blocked each other', async () => {
+    const member = await createUser('Blocked Giver');
+    await tokens.earn(db, member, 5, `t:${member}:b`, 'test');
+    const poster = await createUser('Blocked Poster');
+    const post = await newRequest(poster, 'Pray for my week.');
+    const id = (await as(member).post(`/posts/${post.id}/scheduled-spends`, { amount: 2, runAt: soon(), repeatWeeks: 1 })).json().schedule.id;
+    await db.query('insert into public.user_blocks (user_id, blocked_id) values ($1, $2)', [poster, member]);
+    await db.query(`update public.scheduled_spends set next_run_at = now() - interval '1 second' where id = $1`, [id]);
+    await runDue();
+    expect(await tokens.reachOf(db, post.id)).toBe(0);
+    expect(await tokens.balanceOf(db, member)).toBe(5);
+    const [s] = (await as(member).get('/me/scheduled-spends')).json().schedules;
+    expect(s).toMatchObject({ status: 'cancelled' });
+  });
 });

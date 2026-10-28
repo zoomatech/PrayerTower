@@ -82,6 +82,8 @@ export interface AppDeps {
   stationKey?: string | null;
   /** Requests per member per minute; 0 = no limit (tests). */
   rateLimitPerMinute?: number;
+  /** The header the host's proxy puts the visitor's address in (Fly: fly-client-ip). Unset: the connection's address. */
+  clientIpHeader?: string | null;
   /** The public account-deletion page (Google Play); null = page off. */
   deletionPage?: DeletionPageOptions | null;
   /** Bearer token for GET /metrics (Prometheus); null = no metrics endpoint. */
@@ -109,7 +111,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -153,6 +155,15 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   });
 
   app.decorateRequest('auth', null);
+  // Behind a proxy every connection comes from the proxy, so per-address limits use the
+  // visitor's address from the proxy's header instead (one value only; a list is not trusted).
+  app.decorateRequest('clientIp', '');
+  const ipHeader = clientIpHeader?.toLowerCase() || null;
+  app.addHook('onRequest', async (req) => {
+    const v = ipHeader ? req.headers[ipHeader] : undefined;
+    const ip = typeof v === 'string' ? v.trim() : '';
+    req.clientIp = ip && !ip.includes(',') ? ip : req.ip;
+  });
   if (metricsToken) registerMetrics(app, db, metricsToken);
   app.get('/health', async () => {
     await db.query('select 1');
@@ -173,47 +184,47 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   // The API description, for developers (staff-only in production).
   if (apiDocs) {
     app.register(async (open) => {
-      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 30, timeWindow: '1 minute' });
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 30, timeWindow: '1 minute' });
       docsRoutes(open, { catalog, ...apiDocs, verifyToken, db });
     });
   }
 
   // What the sign-up screen needs to know before anyone is signed in.
   app.register(async (open) => {
-    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 60, timeWindow: '1 minute' });
     signupConfigRoutes(open, db);
   });
 
   // The public account-deletion page, limited per IP address.
   if (deletionPage) {
     app.register(async (open) => {
-      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 10, timeWindow: '1 minute' });
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 10, timeWindow: '1 minute' });
       deletionPageRoutes(open, db, { ...deletionPage, openCircle: site?.openCircle ?? null });
     });
   }
 
   // Joining the waitlist (switched off by default), limited per IP address.
   app.register(async (open) => {
-    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 10, timeWindow: '1 minute' });
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 10, timeWindow: '1 minute' });
     waitlistJoinRoutes(open, db);
   });
 
   // The public website, limited per IP address.
   if (site) {
     app.register(async (open) => {
-      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 60, timeWindow: '1 minute' });
       siteRoutes(open, site, db);
     });
     // Guest prayer and prayer-chain pages (each a 404 while its switch is off), limited per IP address.
     app.register(async (open) => {
-      if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 20, timeWindow: '1 minute' });
+      if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 20, timeWindow: '1 minute' });
       growthPublicRoutes(open, db, site);
     });
   }
 
   // The Common Prayer Fund's public report (switched off by default), limited per IP address.
   app.register(async (open) => {
-    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 60, timeWindow: '1 minute' });
     commonFundPublicRoutes(open, db);
     podcastPublicRoutes(open, db);
     storeNotificationRoutes(open, db, appleVerifier);
@@ -243,7 +254,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
         hook: 'preHandler',
         max: rateLimitPerMinute,
         timeWindow: '1 minute',
-        keyGenerator: (req) => req.auth?.userId ?? req.ip,
+        keyGenerator: (req) => req.auth?.userId ?? req.clientIp,
       });
     }
     accountRoutes(authed, db, storage);

@@ -725,6 +725,7 @@ export async function unprayedRequestsFrom(q: Queryable, userId: string, authorI
       where p.user_id = any($2::uuid[]) and p.post_type = 'prayer_request' and p.moderation_status = 'visible'
         and p.state in ('open', 'actively_prayed') and not (p.id = any($3::uuid[]))
         and p.created_at > now() - interval '30 days'
+        and exists (select 1 from public.community_memberships m where m.user_id = $1 and m.community_id = p.community_id)
         and not exists (select 1 from public.prayer_events e where e.post_id = p.id and e.user_id = $1)
       order by p.id desc limit 1`,
     [userId, authorIds, excludePostIds],

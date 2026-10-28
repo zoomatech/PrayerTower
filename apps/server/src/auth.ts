@@ -33,6 +33,8 @@ export interface AuthContext {
 declare module 'fastify' {
   interface FastifyRequest {
     auth: AuthContext | null;
+    /** The visitor's address (see clientIpHeader in app.ts). */
+    clientIp: string;
   }
 }
 

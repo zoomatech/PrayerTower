@@ -142,6 +142,7 @@ The feedback feature is a small, complete example to copy. It came in with PR #5
 | `PORT` | 3000 | API port |
 | `CORS_ORIGINS` | any | Comma-separated browser origins; **set in production** |
 | `RATE_LIMIT_PER_MINUTE` | 300 | Requests per member per minute (0 = off) |
+| `CLIENT_IP_HEADER` | (none) | Proxy header with the visitor's address for per-address limits; `fly-client-ip` on Fly (set in fly.toml) |
 | `MODERATION_PROVIDER` | `openai` | AI moderation: `openai`, `claude` or `off`. Off until that provider's key is set. |
 | `OPENAI_API_KEY` | unset | Key for `MODERATION_PROVIDER=openai` |
 | `ANTHROPIC_API_KEY` | unset | Key for `MODERATION_PROVIDER=claude` |

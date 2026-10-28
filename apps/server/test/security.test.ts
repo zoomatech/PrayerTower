@@ -150,4 +150,21 @@ describe('rate limit', () => {
     expect((await hit(b)).statusCode).toBe(200);
     await limited.close();
   });
+
+  it('counts public pages per visitor behind a proxy, not per proxy', async () => {
+    const limited = buildApp({ db, verifyToken: async (t) => t.slice(5), rateLimitPerMinute: 3, clientIpHeader: 'Fly-Client-IP' });
+    const hit = (ip: string) => limited.inject({ method: 'POST', url: '/waitlist/join', headers: { 'fly-client-ip': ip }, payload: {} });
+    for (let i = 0; i < 10; i++) expect((await hit('203.0.113.7')).statusCode).not.toBe(429);
+    expect((await hit('203.0.113.7')).statusCode).toBe(429);
+    expect((await hit('198.51.100.20')).statusCode).not.toBe(429);
+    await limited.close();
+  });
+
+  it('uses one shared count when no proxy header is set', async () => {
+    const limited = buildApp({ db, verifyToken: async (t) => t.slice(5), rateLimitPerMinute: 3 });
+    const hit = (ip: string) => limited.inject({ method: 'POST', url: '/waitlist/join', headers: { 'fly-client-ip': ip }, payload: {} });
+    for (let i = 0; i < 10; i++) await hit(`203.0.113.${i}`);
+    expect((await hit('198.51.100.20')).statusCode).toBe(429);
+    await limited.close();
+  });
 });

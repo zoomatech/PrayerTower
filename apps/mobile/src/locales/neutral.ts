@@ -260,7 +260,7 @@ export const keys: Tree = named({
     branchIntro: 'Every request you have shared, on one branch of the vine. Tendrils show the people who promised to check in.',
   },
   witness: { storyPlaceholder: 'For example: a family behind on rent got two months covered by a neighbor.' },
-  macro: { pray: 'Support', prayingNow: 'Thinking of them', commit: 'Promise to check in' },
+  macro: { pray: 'Support', prayingNow: 'Thinking of them', commit: 'Promise to check in', stats: '%{people} thinking of them · %{tokens} tokens given · %{helpers} gave material help' },
   helpStories: {
     aboutYouHint: 'The Helpers team would like to share this. It never shows your name. You can take back a yes at any time.',
     intro: 'How the Helpers team helped people who asked for support, shared with their permission and without names.',
