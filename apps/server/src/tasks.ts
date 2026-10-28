@@ -13,6 +13,7 @@ import { awardDueTask } from './modules/milestones/index.js';
 import { runDueTask } from './modules/schedules/index.js';
 import { weeklyDigestTask } from './modules/digest/index.js';
 import { createMailer, type Mailer } from './modules/digest/mailer.js';
+import { weeklySponsorReportTask } from './modules/admin/sponsor-report.js';
 import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 
@@ -30,6 +31,11 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     events_send_reminders: remindTask(db),
     activity_scan: activityScanTask(db),
     digest_weekly: weeklyDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
+    sponsor_report_weekly: weeklySponsorReportTask(
+      db,
+      overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
+      config.SPONSOR_REPORT_TO.split(',').map((s) => s.trim()).filter(Boolean),
+    ),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
   };
 }
@@ -51,6 +57,8 @@ export const crontab = [
   '0 18 * * 0 commitments_weekly_review ?fill=6h',
   // Sunday 19:00: weekly email digest for members who turned it on (once per ISO week).
   '0 19 * * 0 digest_weekly ?fill=6h',
+  // Monday 08:00: pilot report to SPONSOR_REPORT_TO.
+  '0 8 * * 1 sponsor_report_weekly ?fill=1d',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
   '30 3 * * * retention_purge ?fill=1d&jobKey=retention_purge',
 ].join('\n');

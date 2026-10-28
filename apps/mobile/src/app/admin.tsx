@@ -10,6 +10,7 @@ import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-nativ
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
 import { useLocale, useT, type T } from '@/lib/i18n';
+import { saveText } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
@@ -120,6 +121,10 @@ export default function Admin() {
       }
     });
 
+  // The printable sponsor report (open it in a browser and print to PDF).
+  const downloadSponsorReport = () =>
+    run(async () => saveText('prayer-tower-pilot-report.html', await api.admin.pilotHtml(REPORT_WEEKS, language === 'es' ? 'es' : 'en'), 'text/html', 'public.html'));
+
   const saveRadio = (patch: Parameters<typeof api.admin.updateRadioSettings>[0]) =>
     run(async () => setRadio((await api.admin.updateRadioSettings(patch)).settings), t('admin.saved.radio'));
 
@@ -227,6 +232,7 @@ export default function Admin() {
               </View>
             ))}
             <Button variant="secondary" label={t('admin.downloadCsv', { weeks: REPORT_WEEKS })} onPress={downloadCsv} />
+            <Button variant="secondary" label={t('admin.downloadSponsor', { weeks: REPORT_WEEKS })} onPress={downloadSponsorReport} />
           </View>
         ) : null}
 

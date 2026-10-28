@@ -42,6 +42,10 @@ The API runs migrations for the job queue on start. Scale the worker with `docke
 - Free or self-hosted: run `scripts/backup-db.sh` daily from cron and copy the folder off the server.
 - Test a restore before the pilot starts, and monthly after: `scripts/restore-drill.sh` (see [BACKUP_RESTORE.md](BACKUP_RESTORE.md)). CI runs the same drill on every pull request.
 
+## Pilot report for sponsors
+
+Admin → Pilot metrics → **Sponsor report** downloads a one-page HTML report of the last 12 weeks: headline numbers for the last full week against the week before, a weekly prayer chart and the week-by-week table. Open it in any browser and print or "Save as PDF". It holds counts only, with no names or request text. The same report is at `GET /admin/pilot-report?weeks=12&format=html&lang=en|es` (admin token). To email it every Monday at 08:00 UTC, set `SPONSOR_REPORT_TO` (comma-separated) with `SMTP_URL` on the worker.
+
 ## AI moderation
 
 `MODERATION_PROVIDER` picks who checks new posts, comments, encouragements, messages and events: `openai` (default; [moderation endpoint](https://developers.openai.com/api/docs/guides/moderation), `omni-moderation-latest`, needs `OPENAI_API_KEY`), `claude` (needs `ANTHROPIC_API_KEY`) or `off`. With no key for the chosen provider nothing is sent and moderation is people-only. The Claude provider asks `MODERATION_CLAUDE_MODEL` (default `claude-opus-5-5`, effort `low`) for a JSON verdict with [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) in the same category names OpenAI uses, so auto-hide and crisis routing work the same. It opts into server-side [refusal fallbacks](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) (`fallbacks: "default"`); text that every model declines goes to the moderation queue as "refused". OpenAI's endpoint is free; Claude bills per token, so for volume set `MODERATION_CLAUDE_MODEL=claude-haiku-5-5`.

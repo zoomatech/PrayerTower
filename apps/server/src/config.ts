@@ -46,6 +46,8 @@ const Env = z.object({
   SMTP_URL: z.string().optional(),
   /** Sender for outgoing email, e.g. "Prayer Tower <hello@example.org>". */
   MAIL_FROM: z.string().optional(),
+  /** Comma-separated emails that get the pilot report every Monday (needs SMTP_URL). Unset = none. */
+  SPONSOR_REPORT_TO: z.string().default(''),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
   /** Days after a moderator removes content before its text and photos are erased (0 = never). */
   RETENTION_REMOVED_DAYS: z.coerce.number().int().min(0).default(90),
