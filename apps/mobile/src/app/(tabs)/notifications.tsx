@@ -41,12 +41,14 @@ export default function Notifications() {
         {items.length === 0 ? <Empty text="When someone prays for you, you will see it here." /> : null}
         {items.map((n) => {
           const postId = typeof n.data.postId === 'string' ? n.data.postId : null;
+          const conversationId = typeof n.data.conversationId === 'string' ? n.data.conversationId : null;
+          const target = conversationId ? `/conversation/${conversationId}` : postId ? `/post/${postId}` : null;
           return (
             <Pressable
               key={n.id}
               style={[styles.item, !n.read_at && styles.unread]}
-              onPress={() => postId && router.push(`/post/${postId}`)}
-              accessibilityRole={postId ? 'link' : undefined}>
+              onPress={() => target && router.push(target)}
+              accessibilityRole={target ? 'link' : undefined}>
               <Text style={styles.title}>{n.title}</Text>
               <Text style={type.body}>{n.body}</Text>
               <Text style={type.small}>{new Date(n.created_at).toLocaleString()}</Text>

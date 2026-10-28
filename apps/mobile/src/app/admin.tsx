@@ -8,7 +8,7 @@ import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
@@ -267,6 +267,8 @@ export default function Admin() {
           </View>
         ) : null}
 
+        <MessagingSettingsSection />
+
         {radio ? (
           <View style={styles.section}>
             <Text style={type.heading}>Radio</Text>
@@ -394,6 +396,66 @@ const METRIC_LABELS: Record<MilestoneRule['metric'], string> = {
   commitment_checkins: 'Commitment check-ins',
   answered_requests: 'Answered requests',
 };
+
+/** Messages (Features Set 2): switches and limits. Defaults are placeholders until Steve decides. */
+function MessagingSettingsSection() {
+  const [s, setS] = useState<AdminMessagingSettings | null>(null);
+  const [draft, setDraft] = useState({ requests: '', perDay: '', groupMax: '' });
+  const [note, setNote] = useState<string | null>(null);
+
+  const show = (x: AdminMessagingSettings) => {
+    setS(x);
+    setDraft({ requests: String(x.request_message_limit), perDay: String(x.new_member_messages_per_day), groupMax: String(x.group_max_members) });
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.messagingSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+
+  const save = (patch: Parameters<typeof api.admin.updateMessagingSettings>[0] = {}) =>
+    api.admin
+      .updateMessagingSettings({
+        requestMessageLimit: toInt(draft.requests) ?? undefined,
+        newMemberMessagesPerDay: toInt(draft.perDay) ?? undefined,
+        groupMaxMembers: toInt(draft.groupMax) ?? undefined,
+        ...patch,
+      })
+      .then((r) => {
+        show(r.settings);
+        setNote('Message settings saved.');
+      })
+      .catch((e) => setNote((e as Error).message));
+
+  if (!s) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Messages</Text>
+      <Toggle label="Pray-ers can write to people they prayed for" value={s.prayer_messages_enabled} onChange={(v) => save({ prayerMessagesEnabled: v })} />
+      <Toggle
+        label="Anyone who prayed can write"
+        hint="Off: only people who committed to pray."
+        value={s.prayer_messages_any_prayer}
+        onChange={(v) => save({ prayerMessagesAnyPrayer: v })}
+      />
+      <Toggle label="Direct messages" value={s.direct_messages_enabled} onChange={(v) => save({ directMessagesEnabled: v })} />
+      <Toggle
+        label="Only between people who follow each other"
+        hint="Off: anyone can send a message request."
+        value={s.direct_requires_mutual_follow}
+        onChange={(v) => save({ directRequiresMutualFollow: v })}
+      />
+      <Toggle label="Group chats" value={s.groups_enabled} onChange={(v) => save({ groupsEnabled: v })} />
+      <Toggle label="New members can start conversations" value={s.new_members_can_start} onChange={(v) => save({ newMembersCanStart: v })} />
+      <Field label="Messages before the other person replies" keyboardType="number-pad" value={draft.requests} onChangeText={(requests) => setDraft((d) => ({ ...d, requests }))} />
+      <Field label="Messages a day for new members" keyboardType="number-pad" value={draft.perDay} onChangeText={(perDay) => setDraft((d) => ({ ...d, perDay }))} />
+      <Field label="Most members in a group" keyboardType="number-pad" value={draft.groupMax} onChangeText={(groupMax) => setDraft((d) => ({ ...d, groupMax }))} />
+      <Button label="Save message limits" onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },

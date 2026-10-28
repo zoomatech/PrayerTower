@@ -1,15 +1,15 @@
 // Someone's profile: who they are, follow or unfollow, and the requests they
 // posted under their name. Anonymous posts never appear here.
-import { WHY_HERE_LABELS, type Card, type Person } from '@prayer-tower/shared';
+import { MESSAGE_MAX_CHARS, WHY_HERE_LABELS, type Card, type Person } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
 import { PostCard } from '@/components/post-card';
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
-import { space, type } from '@/lib/theme';
+import { colors, space, type } from '@/lib/theme';
 
 export default function PersonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,6 +32,31 @@ export default function PersonScreen() {
   }, [load]);
 
   const { onAction, sheets } = useCardActions(load);
+
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [blocked, setBlocked] = useState(false);
+
+  const sendMessage = async () => {
+    try {
+      const r = await api.messagePerson(id, message.trim());
+      setMessage('');
+      setMessageOpen(false);
+      router.push(`/conversation/${r.conversationId}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const toggleBlock = async () => {
+    try {
+      await (blocked ? api.unblock(id) : api.block(id));
+      setBlocked(!blocked);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
 
   const toggleFollow = async () => {
     if (!person) return;
@@ -62,6 +87,21 @@ export default function PersonScreen() {
               label={person.following ? 'Following' : 'Follow'}
               onPress={toggleFollow}
             />
+            {messageOpen ? (
+              <View style={styles.head}>
+                <Field placeholder={`Write to ${person.displayName}`} value={message} onChangeText={setMessage} maxLength={MESSAGE_MAX_CHARS} multiline />
+                <View style={styles.row}>
+                  <Button small label="Send" onPress={sendMessage} disabled={!message.trim()} />
+                  <Button small variant="ghost" label="Cancel" onPress={() => setMessageOpen(false)} />
+                </View>
+              </View>
+            ) : (
+              <Button variant="secondary" label="Message" onPress={() => setMessageOpen(true)} />
+            )}
+            <Text style={styles.block} onPress={toggleBlock} accessibilityRole="button">
+              {blocked ? `Unblock ${person.displayName}` : `Block ${person.displayName}`}
+            </Text>
+            {blocked ? <Text style={type.small}>You won't see their requests, comments or messages, and they can't message you.</Text> : null}
           </View>
         ) : null}
         {person && cards.length === 0 ? <Empty text={`${person.displayName} has not posted under their name yet.`} /> : null}
@@ -77,4 +117,6 @@ export default function PersonScreen() {
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   head: { gap: space.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  block: { fontSize: 14, color: colors.textMuted, textDecorationLine: 'underline' },
 });

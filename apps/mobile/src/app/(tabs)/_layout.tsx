@@ -26,6 +26,9 @@ export default function TabsLayout() {
           <TabTrigger name="commitments" href="/commitments" asChild>
             <TabButton icon="🙏" label="My Promises" />
           </TabTrigger>
+          <TabTrigger name="messages" href="/messages" asChild>
+            <TabButton icon="💬" label="Messages" />
+          </TabTrigger>
           <TabTrigger name="notifications" href="/notifications" asChild>
             <TabButton icon="🔔" label="Notices" />
           </TabTrigger>
