@@ -12,6 +12,35 @@ import * as tokens from '../tokens/index.js';
 
 export type Target = 'post' | 'comment' | 'reaction';
 
+export const CRISIS_REASON = 'Someone may be in danger';
+
+/**
+ * A post or comment that mentions suicide or self-harm stays up, is marked so
+ * readers see crisis support, and goes to a person for review (once).
+ */
+export async function flagCrisis(q: Queryable, target: 'post' | 'comment', id: string) {
+  const { rows } = await q.query<{ user_id: string; community_id: string }>(
+    `update public.${target === 'post' ? 'posts' : 'comments'} set crisis = true where id = $1 returning user_id, community_id`,
+    [id],
+  );
+  if (!rows[0]) return;
+  await q.query(
+    `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, reason)
+     values ($1, $2, $3, $4, 'crisis', $5)
+     on conflict (target_type, target_id) where source = 'crisis' do nothing`,
+    [target, id, rows[0].user_id, rows[0].community_id, CRISIS_REASON],
+  );
+}
+
+/** Crisis posts are not amplified (reach, radio) until a person has reviewed them. */
+export async function awaitingCrisisReview(q: Queryable, postId: string): Promise<boolean> {
+  const { rowCount } = await q.query(
+    `select 1 from public.moderation_items where target_type = 'post' and target_id = $1 and source = 'crisis' and status = 'pending'`,
+    [postId],
+  );
+  return !!rowCount;
+}
+
 /** Categories severe enough to hide content until a human reviews it. */
 export const AUTO_HIDE_CATEGORIES = [
   'sexual/minors',
@@ -57,6 +86,7 @@ export function scanTask(q: Queryable, classify: Classifier): Task {
     const result = await classify(subject.text);
     if (!result?.flagged) return;
     const flagged = Object.entries(result.categories).filter(([, v]) => v).map(([k]) => k);
+    if ((target === 'post' || target === 'comment') && flagged.some((c) => c.startsWith('self-harm'))) await flagCrisis(q, target, id);
     const autoHide = flagged.some((c) => AUTO_HIDE_CATEGORIES.includes(c));
     await q.query(
       `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, ai_categories, auto_hidden)

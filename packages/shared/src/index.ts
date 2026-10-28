@@ -43,6 +43,15 @@ export const POST_BACKGROUND_STYLES: Record<PostBackground, { label: string; col
   night: { label: 'Night', color: '#2E2A4F', text: '#F4EFFF' },
 };
 
+/** Shown when a post or comment mentions suicide or self-harm (Samaritans guidance; 988 is the US line). */
+export const CRISIS_SUPPORT = {
+  title: 'You are not alone',
+  body: 'If you or someone you love is thinking about suicide or self-harm, talk to someone now. The 988 Suicide & Crisis Lifeline is free, confidential and open 24/7.',
+  call: 'tel:988',
+  text: 'sms:988',
+  chat: 'https://988lifeline.org/chat/',
+} as const;
+
 export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
 export type CardType = PostType | 'scripture_leaf' | 'feed_end';
 
@@ -116,6 +125,8 @@ export interface Card {
   body: string;
   background: string | null;
   isSensitive: boolean;
+  /** Mentions suicide or self-harm: readers see crisis support. */
+  crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
   media: { kind: 'image' | 'video'; storagePath: string; url?: string | null }[];
   counts: {
@@ -174,7 +185,7 @@ export interface ModerationItem {
   id: string;
   target_type: 'post' | 'comment' | 'reaction';
   target_id: string;
-  source: 'report' | 'ai';
+  source: 'report' | 'ai' | 'crisis';
   reason: string | null;
   status: string;
   content: string | null;

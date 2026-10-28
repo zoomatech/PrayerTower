@@ -10,6 +10,8 @@ import { buildTaskList } from '../src/tasks.js';
 export const config = { ...loadConfig(), PUSH_ENABLED: '0' as const };
 export const db = createPool(config.DATABASE_URL);
 await runMigrations({ pgPool: db });
+// New-member limits would trip most tests, which use brand-new accounts; safety.test.ts turns them on.
+await db.query('update public.safety_settings set new_member_limits_enabled = false');
 
 /** Tests authenticate with "Bearer test:<userId>"; the real JWKS verifier is covered in auth.test.ts. */
 export const app = buildApp({
@@ -54,5 +56,5 @@ export function as(userId: string) {
 export async function newRequest(userId: string, body = 'Please pray for my father, surgery on Tuesday.', extra: object = {}) {
   const res = await as(userId).post('/posts', { postType: 'prayer_request', body, ...extra });
   if (res.statusCode !== 201) throw new Error(`create post failed: ${res.body}`);
-  return res.json().post as { id: string };
+  return res.json().post as { id: string; crisis: boolean };
 }

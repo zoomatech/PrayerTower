@@ -3,8 +3,9 @@
 // one transaction; the worker transmits and tells the requester.
 import type { Task } from 'graphile-worker';
 import type { Queryable } from '../../db.js';
-import { notFound } from '../../errors.js';
+import { conflict, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from '../tokens/index.js';
@@ -37,6 +38,7 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   );
   if (existing.rows[0]) return existing.rows[0];
   // 'free' mode: no tokens move; Priestly tokens are donations only.
+  if (await moderation.awaitingCrisisReview(q, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
   const cost = s.radio_funding === 'free' ? 0 : s.radio_prayer_cost;
   const t = cost > 0 ? await tokens.spendOnRadio(q, userId, cost, key) : null;
   const { rows } = await q.query<RadioPrayer>(

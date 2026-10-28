@@ -10,6 +10,7 @@ import { Button, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
+const SOURCE_LABEL = { ai: 'Flagged automatically', report: 'Reported by a member', crisis: 'May need support' } as const;
 const TARGET_LABEL = { post: 'Request', comment: 'Comment', reaction: 'Encouragement' } as const;
 
 export default function Moderation() {
@@ -54,20 +55,28 @@ export default function Moderation() {
         {items.map((item) => (
           <View key={item.id} style={styles.item}>
             <Text style={styles.meta}>
-              {TARGET_LABEL[item.target_type]} · {item.source === 'ai' ? 'Flagged automatically' : 'Reported by a member'} ·{' '}
+              {TARGET_LABEL[item.target_type]} · {SOURCE_LABEL[item.source]} ·{' '}
               {new Date(item.created_at).toLocaleString()}
             </Text>
             <Text style={type.body}>{item.content ?? '(content no longer available)'}</Text>
             {item.reason ? <Text style={styles.reason}>Why: {item.reason}</Text> : null}
-            <View style={styles.row}>
-              <Button small variant="secondary" label="Keep it" onPress={() => decide(item, { action: 'dismiss' })} />
-              <Button small label="Remove" onPress={() => decide(item, { action: 'remove' })} />
-              <Button
-                small
-                label="Remove and suspend 7 days"
-                onPress={() => decide(item, { action: 'remove', suspendDays: 7, note: 'Suspended from the moderation queue' })}
-              />
-            </View>
+            {item.source === 'crisis' ? (
+              // Someone may be in danger: reach out and keep it up; remove only method details. Never suspend.
+              <View style={styles.row}>
+                <Button small variant="secondary" label="Reached out, keep it" onPress={() => decide(item, { action: 'dismiss', note: 'Crisis support offered' })} />
+                <Button small label="Remove method details" onPress={() => decide(item, { action: 'remove', note: 'Removed method details (safe messaging)' })} />
+              </View>
+            ) : (
+              <View style={styles.row}>
+                <Button small variant="secondary" label="Keep it" onPress={() => decide(item, { action: 'dismiss' })} />
+                <Button small label="Remove" onPress={() => decide(item, { action: 'remove' })} />
+                <Button
+                  small
+                  label="Remove and suspend 7 days"
+                  onPress={() => decide(item, { action: 'remove', suspendDays: 7, note: 'Suspended from the moderation queue' })}
+                />
+              </View>
+            )}
           </View>
         ))}
       </ScrollView>

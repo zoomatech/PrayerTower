@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -24,6 +25,7 @@ export default function PostScreen() {
   const [radioSent, setRadioSent] = useState(false);
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
+  const [support, setSupport] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -47,7 +49,8 @@ export default function PostScreen() {
     setBusy(true);
     setError(null);
     try {
-      await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
+      const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
+      if (r.comment.crisis) setSupport(true);
       setText('');
       setReplyTo(null);
       await load();
@@ -78,6 +81,7 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
+        {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} />
 
         {card && !card.isMine ? (

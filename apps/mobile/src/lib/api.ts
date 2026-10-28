@@ -63,6 +63,14 @@ export interface AdminTokenSettings {
   radio_prayer_cost: number;
   radio_funding: 'tokens' | 'free';
 }
+export interface AdminSafetySettings {
+  new_member_limits_enabled: boolean;
+  new_member_hours: number;
+  new_member_min_prayers: number;
+  new_member_posts_per_day: number;
+  new_member_comments_per_day: number;
+  new_member_links_allowed: boolean;
+}
 export interface AdminTier {
   tier: string;
   label: string;
@@ -98,7 +106,7 @@ export const api = {
   markAnswered: (id: string) => post<{ post: Card }>(`/posts/${id}/answered`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
-    post<{ comment: { id: string } }>(`/posts/${id}/comments`, { body, ...opts }),
+    post<{ comment: { id: string; crisis: boolean } }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
   prayingNow: (id: string) => post<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`),
@@ -149,6 +157,17 @@ export const api = {
     updateTokenSettings: (
       patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free' }>,
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
+    safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
+    updateSafetySettings: (
+      patch: Partial<{
+        newMemberLimitsEnabled: boolean;
+        newMemberHours: number;
+        newMemberMinPrayers: number;
+        newMemberPostsPerDay: number;
+        newMemberCommentsPerDay: number;
+        newMemberLinksAllowed: boolean;
+      }>,
+    ) => request<{ settings: AdminSafetySettings }>('PATCH', '/admin/safety-settings', patch),
     tiers: () => get<{ tiers: AdminTier[] }>('/admin/tiers'),
     updateTier: (tier: string, patch: { minPrayerEvents?: number | null; weeklyAllotment?: number | null }) =>
       request<{ tier: AdminTier }>('PATCH', `/admin/tiers/${tier}`, patch),

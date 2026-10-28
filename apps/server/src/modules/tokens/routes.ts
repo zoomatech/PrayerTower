@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
-import { notFound } from '../../errors.js';
+import { conflict, notFound } from '../../errors.js';
+import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
 import * as tokens from './index.js';
 
@@ -44,6 +45,7 @@ export function tokenRoutes(app: FastifyInstance, db: Db) {
     const body = Amount.parse(req.body);
     const post = await posts.getVisible(db, req.params.id);
     if (!post) throw notFound('Post');
+    if (await moderation.awaitingCrisisReview(db, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
     const t = await withTx(db, (tx) => tokens.spendOnReach(tx, userId, post.id, body.amount, body.idempotencyKey));
     return { transferId: t.id, reach: await tokens.reachOf(db, post.id), balance: await tokens.balanceOf(db, userId) };
   });

@@ -8,7 +8,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminPerson, type AdminTier, type AdminTokenSettings } from '@/lib/api';
+import { api, type AdminPerson, type AdminSafetySettings, type AdminTier, type AdminTokenSettings } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
@@ -30,6 +30,8 @@ export default function Admin() {
   const [metrics, setMetrics] = useState<Record<string, Record<string, number | string | null>> | null>(null);
   const [tokens, setTokens] = useState<AdminTokenSettings | null>(null);
   const [tokenDraft, setTokenDraft] = useState({ perToken: '', gap: '', cost: '' });
+  const [safety, setSafety] = useState<AdminSafetySettings | null>(null);
+  const [safetyDraft, setSafetyDraft] = useState({ hours: '', prayers: '', posts: '', comments: '' });
   const [tiers, setTiers] = useState<AdminTier[]>([]);
   const [tierDraft, setTierDraft] = useState<Record<string, { min: string; weekly: string }>>({});
   const [query, setQuery] = useState('');
@@ -50,6 +52,15 @@ export default function Admin() {
     setTokens(s);
     setTokenDraft({ perToken: String(s.priestly_prayers_per_token), gap: String(s.verified_prayer_min_gap_seconds), cost: String(s.radio_prayer_cost) });
   };
+  const showSafety = (s: AdminSafetySettings) => {
+    setSafety(s);
+    setSafetyDraft({
+      hours: String(s.new_member_hours),
+      prayers: String(s.new_member_min_prayers),
+      posts: String(s.new_member_posts_per_day),
+      comments: String(s.new_member_comments_per_day),
+    });
+  };
   const showTiers = (t: AdminTier[]) => {
     setTiers(t);
     setTierDraft(Object.fromEntries(t.map((x) => [x.tier, { min: x.min_prayer_events?.toString() ?? '', weekly: x.weekly_allotment?.toString() ?? '' }])));
@@ -58,9 +69,10 @@ export default function Admin() {
   const load = useCallback(
     () =>
       run(async () => {
-        const [m, s, t] = await Promise.all([api.admin.metrics(days), api.admin.tokenSettings(), api.admin.tiers()]);
+        const [m, s, t, sf] = await Promise.all([api.admin.metrics(days), api.admin.tokenSettings(), api.admin.tiers(), api.admin.safetySettings()]);
         setMetrics(m);
         showTokens(s.settings);
+        showSafety(sf.settings);
         showTiers(t.tiers);
       }),
     [days],
@@ -84,6 +96,18 @@ export default function Admin() {
 
   const setFunding = (free: boolean) =>
     run(async () => showTokens((await api.admin.updateTokenSettings({ radioFunding: free ? 'free' : 'tokens' })).settings), 'Radio funding saved.');
+
+  const saveSafety = (patch: Parameters<typeof api.admin.updateSafetySettings>[0] = {}) =>
+    run(async () => {
+      const r = await api.admin.updateSafetySettings({
+        newMemberHours: toInt(safetyDraft.hours) ?? undefined,
+        newMemberMinPrayers: toInt(safetyDraft.prayers) ?? undefined,
+        newMemberPostsPerDay: toInt(safetyDraft.posts) ?? undefined,
+        newMemberCommentsPerDay: toInt(safetyDraft.comments) ?? undefined,
+        ...patch,
+      });
+      showSafety(r.settings);
+    }, 'New-member limits saved.');
 
   const saveTiers = () =>
     run(async () => {
@@ -152,6 +176,24 @@ export default function Admin() {
             <Field label="Minimum seconds between verified prayers" keyboardType="number-pad" value={tokenDraft.gap} onChangeText={(gap) => setTokenDraft((d) => ({ ...d, gap }))} />
             <Field label="Priestly tokens per radio prayer" keyboardType="number-pad" value={tokenDraft.cost} onChangeText={(cost) => setTokenDraft((d) => ({ ...d, cost }))} />
             <Button label="Save token settings" onPress={saveTokens} />
+          </View>
+        ) : null}
+
+        {safety ? (
+          <View style={styles.section}>
+            <Text style={type.heading}>New members</Text>
+            <Toggle
+              label="Limit new members"
+              hint="New until they have been here long enough and prayed for others enough times. Admins and moderators are exempt."
+              value={safety.new_member_limits_enabled}
+              onChange={(v) => saveSafety({ newMemberLimitsEnabled: v })}
+            />
+            <Toggle label="New members can post links" value={safety.new_member_links_allowed} onChange={(v) => saveSafety({ newMemberLinksAllowed: v })} />
+            <Field label="Hours as a new member" keyboardType="number-pad" value={safetyDraft.hours} onChangeText={(hours) => setSafetyDraft((d) => ({ ...d, hours }))} />
+            <Field label="Prayers for others to lift limits" keyboardType="number-pad" value={safetyDraft.prayers} onChangeText={(prayers) => setSafetyDraft((d) => ({ ...d, prayers }))} />
+            <Field label="Requests a day" keyboardType="number-pad" value={safetyDraft.posts} onChangeText={(posts) => setSafetyDraft((d) => ({ ...d, posts }))} />
+            <Field label="Comments a day" keyboardType="number-pad" value={safetyDraft.comments} onChangeText={(comments) => setSafetyDraft((d) => ({ ...d, comments }))} />
+            <Button label="Save new-member limits" onPress={() => saveSafety()} />
           </View>
         ) : null}
 

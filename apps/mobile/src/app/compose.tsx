@@ -51,7 +51,7 @@ export default function Compose() {
     try {
       const media = [];
       for (const a of assets) media.push(await uploadAsset(a));
-      await api.createPost({
+      const created = await api.createPost({
         postType,
         body: body.trim(),
         urgency,
@@ -63,7 +63,9 @@ export default function Compose() {
         isSensitive: sensitive,
         media,
       });
-      router.back();
+      // A request that mentions suicide or self-harm opens with crisis support showing.
+      if (created.post.crisis) router.replace(`/post/${created.post.id}`);
+      else router.back();
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -87,6 +89,7 @@ export default function Compose() {
           <Button small variant="ghost" label="Cancel" onPress={() => router.back()} />
           <Button small label="Post" onPress={submit} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
         </View>
+        <ErrorText error={error} />
         <Text style={styles.greeting}>Welcome, {profile?.display_name || 'friend'}! Let&apos;s talk to the Lord.</Text>
         <View style={styles.chips}>
           {POST_TYPES.map((t) => (
@@ -179,7 +182,6 @@ export default function Compose() {
           value={sensitive}
           onChange={setSensitive}
         />
-        <ErrorText error={error} />
       </ScrollView>
     </Screen>
   );

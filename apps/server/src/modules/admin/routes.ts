@@ -12,6 +12,7 @@ import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
 import * as prayerActions from '../prayer-actions/index.js';
 import * as radio from '../radio/index.js';
+import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
@@ -82,6 +83,36 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         verified_prayer_min_gap_seconds: input.verifiedPrayerMinGapSeconds,
         radio_prayer_cost: input.radioPrayerCost,
         radio_funding: input.radioFunding,
+      }),
+    };
+  });
+
+  // New-member limits (troll prevention).
+  app.get('/admin/safety-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await safety.settings(db) };
+  });
+
+  app.patch('/admin/safety-settings', async (req) => {
+    await requireAdmin(req);
+    const input = z
+      .object({
+        newMemberLimitsEnabled: z.boolean().optional(),
+        newMemberHours: z.number().int().min(0).max(8760).optional(),
+        newMemberMinPrayers: z.number().int().min(0).max(10_000).optional(),
+        newMemberPostsPerDay: z.number().int().min(0).max(1000).optional(),
+        newMemberCommentsPerDay: z.number().int().min(0).max(1000).optional(),
+        newMemberLinksAllowed: z.boolean().optional(),
+      })
+      .parse(req.body);
+    return {
+      settings: await safety.updateSettings(db, {
+        new_member_limits_enabled: input.newMemberLimitsEnabled,
+        new_member_hours: input.newMemberHours,
+        new_member_min_prayers: input.newMemberMinPrayers,
+        new_member_posts_per_day: input.newMemberPostsPerDay,
+        new_member_comments_per_day: input.newMemberCommentsPerDay,
+        new_member_links_allowed: input.newMemberLinksAllowed,
       }),
     };
   });

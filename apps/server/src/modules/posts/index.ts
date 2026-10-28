@@ -7,6 +7,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { getProfile, presentIdentity, primaryCommunityId } from '../accounts/index.js';
 import * as moderation from '../moderation/index.js';
+import * as safety from '../safety/index.js';
 import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
@@ -52,6 +53,7 @@ export interface PostRow {
   background: string | null;
   is_anonymous: boolean;
   is_sensitive: boolean;
+  crisis: boolean;
   state: PostState;
   answered_at: Date | null;
   moderation_status: ModerationStatus;
@@ -60,6 +62,7 @@ export interface PostRow {
 }
 
 export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPost>): Promise<PostRow> {
+  await safety.checkNewMember(q, userId, 'post', input.body);
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
   for (const m of input.media) {
@@ -92,6 +95,10 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     ]);
   }
   await moderation.queueScan(q, 'post', post.id);
+  if (safety.mentionsCrisis(input.body)) {
+    await moderation.flagCrisis(q, 'post', post.id);
+    post.crisis = true;
+  }
   return post;
 }
 
@@ -167,6 +174,7 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
     const { rowCount } = await q.query('select 1 from public.comments where id = $1 and post_id = $2', [input.parentId, postId]);
     if (!rowCount) throw badRequest('Reply target is not on this post');
   }
+  await safety.checkNewMember(q, userId, 'comment', input.body);
   const isAnonymous = input.isAnonymous ?? (input.isUpdate ? post.is_anonymous : false);
   const { rows } = await q.query<{ id: string }>(
     `insert into public.comments (post_id, user_id, parent_id, body, is_update, is_anonymous)
@@ -174,7 +182,9 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
     [postId, userId, input.parentId ?? null, input.body, input.isUpdate, isAnonymous],
   );
   await moderation.queueScan(q, 'comment', rows[0]!.id);
-  return rows[0]!;
+  const crisis = safety.mentionsCrisis(input.body);
+  if (crisis) await moderation.flagCrisis(q, 'comment', rows[0]!.id);
+  return { ...rows[0]!, crisis };
 }
 
 interface CommentRow {
@@ -260,6 +270,7 @@ export const AskToPray = z.object({
 export async function askToPray(q: Queryable, senderId: string, postId: string, input: z.infer<typeof AskToPray>) {
   const post = await getVisible(q, postId);
   if (!post) throw notFound('Post');
+  await safety.checkNewMember(q, senderId, 'ask');
   const { rows } = await q.query<{ id: string }>(
     `select distinct id from (
        select followee_id as id from public.follows where user_id = $1
@@ -438,6 +449,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         body: r.body,
         background: r.background,
         isSensitive: r.is_sensitive,
+        crisis: r.crisis,
         media: r.media,
         counts: r.counts,
         reach: reachByPost.get(id) ?? 0,
