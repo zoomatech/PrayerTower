@@ -39,10 +39,12 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   const s = await tokens.settings(q);
   const existing = await q.query<RadioPrayer>(
     `select id, post_id, cost, repeats, status, created_at, transmitted_at
-       from public.radio_prayers where user_id = $1 and (idempotency_key = $2 or (cost = 0 and post_id = $3 and (repeats > 1) = $4))`,
+       from public.radio_prayers where user_id = $1 and (idempotency_key = $2 or (cost = 0 and status <> 'failed' and post_id = $3 and (repeats > 1) = $4))`,
     [userId, key, post.id, amplify],
   );
   if (existing.rows[0]) return existing.rows[0];
+  // Sensitive requests never go out (the transmit job would refuse them), so don't take tokens for one.
+  if (post.is_sensitive) throw conflict("Sensitive requests aren't sent by radio.");
   // 'free' mode: no tokens move; Priestly tokens are donations only.
   if (await moderation.awaitingCrisisReview(q, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
   if (amplify && s.radio_funding !== 'free') {

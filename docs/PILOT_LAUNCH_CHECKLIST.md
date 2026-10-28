@@ -37,7 +37,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 
 ## 4. People and roles
 
-- [ ] Give the first admin their role: `npm run grant-role -- <email> admin`.
+- [ ] Give the first admin their role: put their email in `ADMIN_EMAILS` on the server (made admin within 5 minutes of signing up and confirming the address), or run `npm run grant-role -- <email> admin`.
 - [ ] Assign at least one **moderator** who checks the queue daily, and name a backup.
 - [ ] Assign a **pastor_counselor** and at least one **prayer_partner** if prayer partners stay on. Assign **witness** members if the Witness team is used.
 - [ ] Agree who answers crisis flags, and how quickly. Give every moderator, pastor and prayer partner [STAFF_HANDBOOK.md](STAFF_HANDBOOK.md).

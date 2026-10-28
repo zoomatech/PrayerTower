@@ -1,13 +1,12 @@
 // Accounts module: profiles, onboarding answers, roles, follows, and how a
 // person is presented to others (anonymity is applied here, at output time;
 // the author link is always stored).
-import { FEED_MIX_KEYS, LOCALES, NOTIFICATION_CATEGORIES, type FeedMix, type FeedMixKey, type Locale, type NotificationPrefs } from '@prayer-tower/shared';
+import { FEED_MIX_KEYS, LOCALES, NOTIFICATION_CATEGORIES, PRAY_FOR_SCOPE, type FeedMix, type FeedMixKey, type Locale, type NotificationPrefs } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
 
 export const WHY_HERE = ['pray_for_others', 'prayer_for_myself', 'pray_without_ceasing', 'extend_reach'] as const;
-export const PRAY_FOR_SCOPE = ['family', 'friends', 'church', 'community', 'nation', 'world'] as const;
 export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness';
 
 export const ProfileUpdate = z
@@ -198,6 +197,25 @@ export async function grantRole(q: Queryable, userId: string, role: Role, grante
   ]);
 }
 
+/**
+ * ADMIN_EMAILS: make the listed people admin once their account exists and
+ * the address is confirmed (so nobody can claim it by signing up first).
+ * Returns how many new admins were made.
+ */
+export async function bootstrapAdmins(q: Queryable, emails: string[]): Promise<number> {
+  const list = emails.map((e) => e.trim().toLowerCase()).filter(Boolean);
+  if (!list.length) return 0;
+  const { rowCount } = await q.query(
+    `insert into public.user_roles (user_id, role, granted_by)
+     select u.id, 'admin', null from auth.users u
+      where lower(u.email) = any($1::text[]) and u.email_confirmed_at is not null
+        and exists (select 1 from public.profiles p where p.id = u.id and p.deleted_at is null)
+     on conflict do nothing`,
+    [list],
+  );
+  return rowCount ?? 0;
+}
+
 export async function follow(q: Queryable, userId: string, followeeId: string) {
   if (userId === followeeId) throw badRequest('You cannot follow yourself');
   // Deleted members can't be followed, and a block (either way) ends following for good.
@@ -320,6 +338,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'delete from public.user_blocks where user_id = $1 or blocked_id = $1',
     'delete from public.thanks where user_id = $1 or recipient_id = $1',
     'delete from public.event_inputs where user_id = $1',
+    'delete from public.witness_stories where recipient_id = $1',
     'delete from public.events where created_by = $1',
     'delete from public.event_rsvps where user_id = $1',
     'delete from public.commitments where user_id = $1',

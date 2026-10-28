@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { api, type Features } from './api';
 
-const OFF: Features = { worldwideCount: false, thanksCard: false, sermonInputs: false, supportLabel: false };
+const OFF: Features = { worldwideCount: false, thanksCard: false, sermonInputs: false, supportLabel: false, witnessStories: false };
 let cached: Promise<Features> | null = null;
 
 export function loadFeatures(): Promise<Features> {

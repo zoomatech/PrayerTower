@@ -5,6 +5,7 @@ import { buildApp } from './app.js';
 import { supabaseJwksVerifier } from './auth.js';
 import { loadConfig, loadDotEnv } from './config.js';
 import { createPool } from './db.js';
+import { bootstrapAdmins } from './modules/accounts/index.js';
 import { createMailer } from './modules/digest/mailer.js';
 import { createClassifier } from './modules/moderation/providers.js';
 import { defaultLegalDir } from './modules/site/index.js';
@@ -66,3 +67,15 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 await app.listen({ port: config.PORT, host: '0.0.0.0' });
+
+// First admins from ADMIN_EMAILS, once they've signed up and confirmed their address.
+const adminEmails = config.ADMIN_EMAILS.split(',');
+const makeAdmins = () =>
+  bootstrapAdmins(db, adminEmails).then(
+    (n) => n && app.log.info({ admins: n }, 'made admin from ADMIN_EMAILS'),
+    (e) => app.log.error(e, 'ADMIN_EMAILS check failed'),
+  );
+if (config.ADMIN_EMAILS.trim()) {
+  makeAdmins();
+  setInterval(makeAdmins, 5 * 60_000).unref();
+}

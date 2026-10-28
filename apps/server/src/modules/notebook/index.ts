@@ -3,7 +3,8 @@
 //   * the worldwide count and "people have prayed for you" (real counts only);
 //   * the thanksgiving card in the feed (Notes Page 14);
 //   * sermon and meeting inputs on events (Notes Page 12);
-//   * the "Prayer and positive thoughts welcome" label (note of 2026-09-19).
+//   * the "Prayer and positive thoughts welcome" label (note of 2026-09-19);
+//   * Witness stories, off by default (the switch lives here; the code is in witness/).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
@@ -17,11 +18,12 @@ export interface NotebookSettings {
   thanks_card_days: number;
   sermon_inputs_enabled: boolean;
   support_label_enabled: boolean;
+  witness_stories_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
-    'select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled from public.notebook_settings',
+    'select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled from public.notebook_settings',
   );
   return rows[0]!;
 }
@@ -32,6 +34,7 @@ export const SettingsPatch = z.object({
   thanksCardDays: z.number().int().min(1).max(60).optional(),
   sermonInputsEnabled: z.boolean().optional(),
   supportLabelEnabled: z.boolean().optional(),
+  witnessStoriesEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -39,8 +42,15 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
     `update public.notebook_settings set
        worldwide_count_enabled = coalesce($1, worldwide_count_enabled), thanks_card_enabled = coalesce($2, thanks_card_enabled),
        thanks_card_days = coalesce($3, thanks_card_days), sermon_inputs_enabled = coalesce($4, sermon_inputs_enabled),
-       support_label_enabled = coalesce($5, support_label_enabled)`,
-    [p.worldwideCountEnabled ?? null, p.thanksCardEnabled ?? null, p.thanksCardDays ?? null, p.sermonInputsEnabled ?? null, p.supportLabelEnabled ?? null],
+       support_label_enabled = coalesce($5, support_label_enabled), witness_stories_enabled = coalesce($6, witness_stories_enabled)`,
+    [
+      p.worldwideCountEnabled ?? null,
+      p.thanksCardEnabled ?? null,
+      p.thanksCardDays ?? null,
+      p.sermonInputsEnabled ?? null,
+      p.supportLabelEnabled ?? null,
+      p.witnessStoriesEnabled ?? null,
+    ],
   );
   return settings(q);
 }
@@ -53,6 +63,7 @@ export async function features(q: Queryable) {
     thanksCard: s.thanks_card_enabled,
     sermonInputs: s.sermon_inputs_enabled,
     supportLabel: s.support_label_enabled,
+    witnessStories: s.witness_stories_enabled,
   };
 }
 

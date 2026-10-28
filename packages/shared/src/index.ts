@@ -136,7 +136,8 @@ export const WHY_HERE_LABELS: Record<(typeof WHY_HERE)[number], string> = {
   extend_reach: 'To extend the reach of prayer',
 };
 
-export const PRAY_FOR_SCOPE = ['family', 'friends', 'church', 'community', 'nation', 'world'] as const;
+/** "Will you pray for" (Idea Snippets mockup): Family, Friends, Loved Ones, Neighbors of all kinds, Enemies, Towns, Cities, Countries, The World. */
+export const PRAY_FOR_SCOPE = ['family', 'friends', 'loved_ones', 'neighbors', 'church', 'community', 'enemies', 'towns', 'cities', 'nation', 'countries', 'world'] as const;
 
 export const FREQUENCIES = ['weekly', 'daily', 'three_daily'] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
@@ -568,7 +569,7 @@ export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]>
   promises: ['commitment_made', 'commitment_reminder'],
   encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered'],
   messages: ['message', 'meetup', 'care_request'],
-  community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite'],
+  community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
   tokens: ['mint', 'milestone', 'scheduled_spend'],
 };
 export function notificationCategory(kind: string): NotificationCategory | null {

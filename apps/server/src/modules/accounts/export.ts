@@ -24,6 +24,7 @@ const SECTIONS: Record<string, Section> = {
   eventsCreated: { table: 'events', where: 'created_by = $1' },
   rsvps: { table: 'event_rsvps', where: 'user_id = $1' },
   eventNotes: { table: 'event_inputs', where: 'user_id = $1' },
+  witnessStoriesAboutYou: { table: 'witness_stories', where: 'recipient_id = $1', omit: ['author_id'] },
   careRequests: { table: 'care_requests', where: 'user_id = $1', omit: ['claimed_by'] },
   churchApplications: { table: 'churches', where: 'applicant_id = $1', omit: ['reviewed_by'] },
   feedback: { table: 'feedback', where: 'user_id = $1', omit: ['closed_by'] },

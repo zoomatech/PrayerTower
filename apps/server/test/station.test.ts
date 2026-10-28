@@ -66,9 +66,13 @@ describe('radio station', () => {
   it('skips sensitive requests, re-offers stale claims, and records failures', async () => {
     const poster = await createUser('Poster');
     const sender = await createUser('Sender');
-    const sensitive = await newRequest(poster, 'Graphic details.', { isSensitive: true });
+    const sensitive = await newRequest(poster, 'Graphic details.');
     const plain = await newRequest(poster, 'Pray for peace.');
     await as(sender).post(`/posts/${sensitive.id}/radio`, { idempotencyKey: 'st-2' });
+    // Marked sensitive after it was queued (a request already sensitive is refused up front).
+    await db.query('update public.posts set is_sensitive = true where id = $1', [sensitive.id]);
+    const upfront = await newRequest(poster, 'More graphic details.', { isSensitive: true });
+    expect((await as(sender).post(`/posts/${upfront.id}/radio`, { idempotencyKey: 'st-2b' })).statusCode).toBe(409);
     await as(sender).post(`/posts/${plain.id}/radio`, { idempotencyKey: 'st-3' });
 
     const first = (await station('/station/claim')).json().radioPrayer;

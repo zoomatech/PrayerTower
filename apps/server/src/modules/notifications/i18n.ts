@@ -77,6 +77,7 @@ const es: Record<string, Template> = {
   scheduled_spend_failed: (p) => ({ title: 'Un regalo programado no se envió', body: s(p.body) }),
   weekly_review: (p) => ({ title: 'Tu semana en oración', body: s(p.body) }),
   answered: (p) => ({ title: 'Una oración que hiciste fue contestada', body: `${s(p.who, 'Alguien')} marcó su petición como contestada. Gracias por orar.` }),
+  witness_story: () => ({ title: '¿Podemos contar cómo recibiste ayuda?', body: 'El equipo de Testigos escribió una breve historia sobre la ayuda que recibiste. No se comparte nada a menos que digas que sí, y nunca muestra tu nombre.' }),
   testimony: (p) => ({ title: 'Una oración que hiciste fue contestada', body: `${s(p.who, 'Alguien')} contó lo que Dios hizo: "${s(p.excerpt)}"` }),
   church_verified: (p) => ({
     title: `${s(p.church, 'Tu iglesia')} está verificada`,
