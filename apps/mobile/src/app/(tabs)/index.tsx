@@ -4,10 +4,11 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { MacroNeeds } from '@/components/macro-needs';
 import { PostCard } from '@/components/post-card';
 import { Button, ErrorText, Screen } from '@/components/ui';
 import { layoutFor } from '@/layouts';
-import { api } from '@/lib/api';
+import { api, type MacroNeed } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -20,12 +21,14 @@ export default function Feed() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const [needs, setNeeds] = useState<MacroNeed[]>([]);
   const loadingMore = useRef(false);
 
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const page = await api.feed(0);
+      const [page, mn] = await Promise.all([api.feed(0), api.macroNeeds().catch(() => ({ needs: [] }))]);
+      setNeeds(mn.needs);
       setCards(page.posts);
       setTheme(page.theme ?? null);
       setPinnedId(page.pinnedId);
@@ -73,6 +76,11 @@ export default function Feed() {
         <Text style={styles.greeting}>Welcome, {profile?.display_name || 'friend'}! Let&apos;s talk to the Lord.</Text>
         <Text style={styles.placeholder}>Type your prayer here…</Text>
       </Pressable>
+      <MacroNeeds
+        needs={needs}
+        onAction={onAction}
+        onHelped={(id) => api.helpedMacroNeed(id).then(load, (e) => setError((e as Error).message))}
+      />
       {prompt ? (
         <View style={styles.prompt}>
           <Text style={type.heading}>{prompt.question}</Text>

@@ -127,6 +127,18 @@ export interface MilestoneRule {
   awarded: number;
 }
 
+export interface MacroNeed {
+  id: string;
+  title: string;
+  helpOptions: { label: string; url: string }[];
+  endsAt: string | null;
+  card: Card | null;
+  prayers: number;
+  tokens: number;
+  helpers: number;
+  helped: boolean;
+}
+
 export interface PilotWeek {
   week_start: string;
   new_members: number;
@@ -285,6 +297,11 @@ export const api = {
     post<{ schedule: ScheduledSpend }>(`/posts/${postId}/scheduled-spends`, input),
   scheduledSpends: () => get<{ schedules: ScheduledSpend[] }>('/me/scheduled-spends'),
   cancelScheduledSpend: (id: string) => request<{ ok: true }>('DELETE', `/scheduled-spends/${id}`),
+  macroNeeds: () => get<{ needs: MacroNeed[] }>('/macro-needs'),
+  createMacroNeed: (input: { title: string; body: string; helpOptions: { label: string; url: string }[] }) =>
+    post<{ id: string; postId: string }>('/macro-needs', input),
+  endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
+  helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

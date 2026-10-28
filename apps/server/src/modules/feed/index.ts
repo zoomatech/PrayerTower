@@ -6,6 +6,7 @@ import { FEED_MIX_MULTIPLIER, type FeedMix, type FeedMixKey } from '@prayer-towe
 import type { Queryable } from '../../db.js';
 import { notFound } from '../../errors.js';
 import { communityIds, getProfile } from '../accounts/index.js';
+import * as macroNeeds from '../macro-needs/index.js';
 import * as posts from '../posts/index.js';
 
 export interface Candidate {
@@ -172,7 +173,9 @@ export async function chooseTheme(q: Queryable, viewerId: string, slug: string |
 }
 
 export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize = 20) {
-  const all = await candidates(q, viewerId);
+  // Featured Macro Needs show above the feed, so they aren't repeated in it.
+  const featured = new Set(await macroNeeds.featuredPostIds(q));
+  const all = (await candidates(q, viewerId)).filter((c) => !featured.has(c.id));
   const pinned = pickPinned(all);
   const mix = (await getProfile(q, viewerId))?.feed_mix ?? {};
   const ranked = rankFeed(all.filter((c) => c.id !== pinned?.id), new Date(), mix);

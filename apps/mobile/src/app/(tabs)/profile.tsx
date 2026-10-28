@@ -146,7 +146,10 @@ export default function Profile() {
         <Toggle label="Show my updates as the first comment" value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
         <Button variant="ghost" label="Community rules" onPress={() => router.push('/rules')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
-          <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
+          <>
+            <Button variant="secondary" label="Moderation queue" onPress={() => router.push('/moderation')} />
+            <Button variant="secondary" label="Macro needs" onPress={() => router.push('/macro-needs')} />
+          </>
         ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label="Admin" onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
