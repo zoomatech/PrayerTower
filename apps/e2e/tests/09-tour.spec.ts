@@ -12,6 +12,8 @@ test('the tour shows once, can be stepped through, and reopens from Me', async (
   }
   await page.getByRole('button', { name: 'Start praying' }).click();
   await expect(page.getByText('Ask for prayer', { exact: true })).toHaveCount(0);
+  // Leaving the tour updates the address a moment later; reloading before that reopens /tour.
+  await expect(page).not.toHaveURL(/\/tour/);
 
   // Not shown again on the next visit.
   await page.reload();
