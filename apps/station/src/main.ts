@@ -13,6 +13,13 @@ const env = (name: string, fallback?: string) => {
   return v;
 };
 
+/** A whole number setting within [min, max]; a typo would otherwise break the piece splitter or the poll loop. */
+const int = (name: string, fallback: string, min: number, max: number) => {
+  const n = Number(env(name, fallback));
+  if (!Number.isInteger(n) || n < min || n > max) throw new Error(`${name} must be a whole number from ${min} to ${max}`);
+  return n;
+};
+
 const callSign = env('CALL_SIGN').toUpperCase();
 if (!/^[A-Z0-9]{1,3}[0-9][A-Z0-9]{0,3}[A-Z](\/[A-Z0-9]+)?$/.test(callSign)) throw new Error(`CALL_SIGN "${callSign}" does not look like a call sign`);
 if (callSign === 'N0CALL') console.warn('[station] CALL_SIGN is the N0CALL placeholder: only use it with a dummy load');
@@ -23,11 +30,11 @@ const extra = process.env.BLOCKLIST_FILE
 const cfg = {
   callSign,
   modem: env('MODEM', 'BPSK31'),
-  maxPieceChars: Number(env('MAX_PIECE_CHARS', '500')),
-  txTimeoutMs: Number(env('TX_TIMEOUT_SECONDS', '180')) * 1000,
+  maxPieceChars: int('MAX_PIECE_CHARS', '500', 20, 2800),
+  txTimeoutMs: int('TX_TIMEOUT_SECONDS', '180', 10, 3600) * 1000,
   blocklist: [...DEFAULT_BLOCKLIST, ...extra],
 };
-const pollMs = Number(env('POLL_SECONDS', '10')) * 1000;
+const pollMs = int('POLL_SECONDS', '10', 1, 3600) * 1000;
 const api = httpApi(env('PRAYER_TOWER_API_URL'), env('STATION_API_KEY'));
 const fldigi = fldigiClient(env('FLDIGI_URL', 'http://127.0.0.1:7362/RPC2'));
 

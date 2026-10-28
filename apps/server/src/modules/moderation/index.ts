@@ -6,7 +6,7 @@ import { crisisLine } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
-import { badRequest, conflict, notFound } from '../../errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
 import * as messages from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
@@ -181,6 +181,7 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
   const item = rows[0];
   if (!item) throw notFound('Moderation item');
   if (item.status !== 'pending') throw conflict('This item was already decided');
+  if (item.user_id === moderatorId) throw forbidden('Another moderator must decide reports about your own posts');
   if (d.action === 'dismiss' && (d.forfeitTokens || d.suspendDays || d.clawbackTransferIds.length)) {
     throw badRequest('Penalties require removing the content');
   }
@@ -307,6 +308,7 @@ export async function decideAppeal(q: Queryable, moderatorId: string, appealId: 
   const a = rows[0];
   if (!a) throw notFound('Appeal');
   if (a.status !== 'pending') throw conflict('This appeal was already decided');
+  if (a.user_id === moderatorId) throw forbidden('Another moderator must decide your own appeal');
   await q.query(`update public.moderation_appeals set status = $2, decided_by = $3, decided_at = now(), decision_note = $4 where id = $1`, [
     a.id,
     d.action === 'overturn' ? 'overturned' : 'upheld',
@@ -323,6 +325,12 @@ export async function decideAppeal(q: Queryable, moderatorId: string, appealId: 
     if (s[0]?.until) {
       await q.query('update public.profiles set suspended_until = null where id = $1 and suspended_until <= $2', [a.user_id, s[0].until]);
     }
+    // Tokens taken as a penalty go back. (Clawed-back earnings stay reversed: a reversal can't be reversed.)
+    const { rows: forfeits } = await q.query<{ token_transfer_id: string }>(
+      `select token_transfer_id from public.moderation_actions where moderation_item_id = $1 and action = 'forfeit_tokens' and token_transfer_id is not null`,
+      [a.item_id],
+    );
+    for (const f of forfeits) await tokens.clawback(q, f.token_transfer_id, moderatorId, 'Appeal overturned: tokens returned');
     await q.query(
       `insert into public.moderation_actions (moderation_item_id, user_id, moderator_id, action, note) values ($1, $2, $3, 'restore', $4)`,
       [a.item_id, a.user_id, moderatorId, d.note ?? 'Appeal overturned'],

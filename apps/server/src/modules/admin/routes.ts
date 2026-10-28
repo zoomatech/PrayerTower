@@ -55,14 +55,16 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.put<{ Params: { id: string; role: string } }>('/admin/people/:id/roles/:role', async (req) => {
     const adminId = await requireAdmin(req);
     const role = z.enum(ROLES).parse(req.params.role);
-    if (!(await accounts.getProfile(db, req.params.id))) throw notFound('Person');
+    const person = await accounts.getProfile(db, req.params.id);
+    if (!person || person.deleted_at) throw notFound('Person');
     await accounts.grantRole(db, req.params.id, role, adminId);
     return { roles: await accounts.roles(db, req.params.id) };
   });
 
   app.delete<{ Params: { id: string; role: string } }>('/admin/people/:id/roles/:role', async (req) => {
     await requireAdmin(req);
-    await accounts.revokeRole(db, req.params.id, z.enum(ROLES).parse(req.params.role));
+    const role = z.enum(ROLES).parse(req.params.role);
+    await withTx(db, (tx) => accounts.revokeRole(tx, req.params.id, role));
     return { roles: await accounts.roles(db, req.params.id) };
   });
 
