@@ -3,10 +3,16 @@ import type {
   Appeal,
   AppNotification,
   Card,
+  CareKind,
+  CareQueueItem,
+  CareRequest,
+  ChatMessage,
   Comment,
   Commitment,
   FeedPage,
   FeedThemeChoices,
+  ConversationSummary,
+  ConversationView,
   ModerationItem,
   ModerationRule,
   Person,
@@ -18,6 +24,9 @@ import type {
   PrayerRealm,
   Profile,
   Prompt,
+  PrayerEvent,
+  EventKind,
+  PublicGroup,
   TierStatus,
   TokenSummary,
   WeeklyReview,
@@ -173,6 +182,33 @@ export interface AdminSafetySettings {
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
 }
+export type WitnessStatus = 'watching' | 'reaching_out' | 'helped' | 'closed';
+
+export interface WitnessCase {
+  id: string;
+  postId: string;
+  status: WitnessStatus;
+  postBody: string;
+  posterName: string;
+  anonymousPost: boolean;
+  assignedTo: string | null;
+  helpCount: number;
+  lastNote: string | null;
+  updatedAt: string;
+}
+
+export interface AdminMessagingSettings {
+  prayer_messages_enabled: boolean;
+  prayer_messages_any_prayer: boolean;
+  direct_messages_enabled: boolean;
+  direct_requires_mutual_follow: boolean;
+  groups_enabled: boolean;
+  request_message_limit: number;
+  new_members_can_start: boolean;
+  new_member_messages_per_day: number;
+  group_max_members: number;
+}
+
 export interface AdminTier {
   tier: string;
   label: string;
@@ -201,10 +237,15 @@ export interface NewPost {
 
 export const api = {
   me: () => get<{ profile: Profile; roles: Role[] }>('/me'),
+  deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
   feed: (page = 0) => get<FeedPage>(`/feed?page=${page}`),
   post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
   createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
+  deletePost: (id: string) => request<{ deleted: true }>('DELETE', `/posts/${id}`),
+  deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
+  hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
+  unhidePost: (id: string) => request<{ hidden: boolean }>('DELETE', `/posts/${id}/hide`),
   markAnswered: (id: string) => post<{ post: Card }>(`/posts/${id}/answered`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
@@ -250,7 +291,7 @@ export const api = {
     post<{ sent: number }>(`/posts/${postId}/ask`, { recipientIds, note: note || undefined }),
   thankEveryone: (postId: string, message?: string) =>
     post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
-  report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>
+  report: (targetType: 'post' | 'comment' | 'message' | 'event', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
@@ -263,6 +304,13 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
   admin: {
+    deletionRequests: () =>
+      get<{ requests: { id: string; email: string; note: string | null; createdAt: string; accountFound: boolean }[] }>('/admin/deletion-requests'),
+    prayerWarriors: (days = 365) =>
+      get<{ standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(
+        `/admin/prayer-warriors?days=${days}`,
+      ),
+    decideDeletionRequest: (id: string, action: 'delete' | 'dismiss') => post<{ ok: true }>(`/admin/deletion-requests/${id}`, { action }),
     milestones: () => get<{ rules: MilestoneRule[] }>('/admin/milestones'),
     addMilestone: (input: Pick<MilestoneRule, 'label' | 'metric' | 'threshold' | 'amount'>) =>
       post<{ rule: MilestoneRule }>('/admin/milestones', input),
@@ -289,6 +337,29 @@ export const api = {
         newMemberLinksAllowed: boolean;
       }>,
     ) => request<{ settings: AdminSafetySettings }>('PATCH', '/admin/safety-settings', patch),
+    messagingSettings: () => get<{ settings: AdminMessagingSettings }>('/admin/messaging-settings'),
+    updateMessagingSettings: (
+      patch: Partial<{
+        prayerMessagesEnabled: boolean;
+        prayerMessagesAnyPrayer: boolean;
+        directMessagesEnabled: boolean;
+        directRequiresMutualFollow: boolean;
+        groupsEnabled: boolean;
+        requestMessageLimit: number;
+        newMembersCanStart: boolean;
+        newMemberMessagesPerDay: number;
+        groupMaxMembers: number;
+      }>,
+    ) => request<{ settings: AdminMessagingSettings }>('PATCH', '/admin/messaging-settings', patch),
+    careSettings: () => get<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('/admin/care-settings'),
+    updateCareSettings: (patch: Partial<{ careEnabled: boolean; confessionEnabled: boolean; maxOpenPerMember: number }>) =>
+      request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number } }>('PATCH', '/admin/care-settings', patch),
+    eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
+    updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
+      request<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('PATCH', '/admin/event-settings', patch),
+    promptSettings: () =>
+      get<{ defaultTone: 'gentle' | 'firm'; results: { tone: 'gentle' | 'firm'; shown: number; prayed: number }[] }>('/admin/prompt-settings'),
+    setDefaultTone: (defaultTone: 'gentle' | 'firm') => request<{ defaultTone: 'gentle' | 'firm' }>('PATCH', '/admin/prompt-settings', { defaultTone }),
     tiers: () => get<{ tiers: AdminTier[] }>('/admin/tiers'),
     updateTier: (tier: string, patch: { minPrayerEvents?: number | null; weeklyAllotment?: number | null }) =>
       request<{ tier: AdminTier }>('PATCH', `/admin/tiers/${tier}`, patch),
@@ -319,6 +390,57 @@ export const api = {
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
   highlights: () => get<Highlights>('/highlights'),
+  conversations: () => get<{ conversations: ConversationSummary[] }>('/me/conversations'),
+  conversation: (id: string, before?: string) => get<ConversationView>(`/conversations/${id}${before ? `?before=${before}` : ''}`),
+  sendMessage: (id: string, body: string) => post<{ message: Pick<ChatMessage, 'id' | 'createdAt' | 'crisis'> }>(`/conversations/${id}/messages`, { body }),
+  messageRequester: (postId: string, body: string, isAnonymous = false) =>
+    post<{ conversationId: string; message: { crisis: boolean } }>(`/posts/${postId}/messages`, { body, isAnonymous }),
+  messagePerson: (userId: string, body: string) =>
+    post<{ conversationId: string; message: { crisis: boolean } }>('/conversations/direct', { userId, body }),
+  createGroup: (input: { title: string; topic?: string; isPublic: boolean; memberIds: string[] }) =>
+    post<{ conversationId: string; invited: number }>('/conversations/groups', input),
+  groups: () => get<{ groups: PublicGroup[] }>('/groups'),
+  joinGroup: (id: string) => post(`/conversations/${id}/join`),
+  inviteToGroup: (id: string, userIds: string[]) => post<{ invited: number }>(`/conversations/${id}/invite`, { userIds }),
+  acceptConversation: (id: string) => post(`/conversations/${id}/accept`),
+  leaveConversation: (id: string) => post(`/conversations/${id}/decline`),
+  markConversationRead: (id: string) => post(`/conversations/${id}/read`),
+  events: (groupId?: string) => get<{ events: PrayerEvent[] }>(groupId ? `/events?groupId=${groupId}` : '/events'),
+  myEvents: () => get<{ events: PrayerEvent[] }>('/me/events'),
+  event: (id: string) => get<{ event: PrayerEvent }>(`/events/${id}`),
+  createEvent: (input: {
+    kind: EventKind;
+    title: string;
+    description?: string;
+    startsAt: string;
+    durationMinutes?: number;
+    videoUrl?: string;
+    location?: string;
+    groupId?: string;
+  }) => post<{ event: PrayerEvent }>('/events', input),
+  rsvp: (id: string, status: 'going' | 'maybe') => put<{ event: PrayerEvent }>(`/events/${id}/rsvp`, { status }),
+  unrsvp: (id: string) => request<{ event: PrayerEvent }>('DELETE', `/events/${id}/rsvp`),
+  cancelEvent: (id: string) => post(`/events/${id}/cancel`),
+  care: () => get<{ enabled: boolean; kinds: CareKind[] }>('/care'),
+  myCareRequests: () => get<{ requests: CareRequest[] }>('/me/care-requests'),
+  askForCare: (kind: CareKind, body: string) => post<{ id: string; crisis: boolean }>('/care-requests', { kind, body }),
+  careQueue: () => get<{ requests: CareQueueItem[] }>('/care/queue'),
+  claimCare: (id: string) => post<{ conversationId: string }>(`/care-requests/${id}/claim`),
+  closeCare: (id: string) => post(`/care-requests/${id}/close`),
+  witnessFlag: (postId: string, note: string) => post<{ caseId: string }>(`/posts/${postId}/witness`, { note }),
+  witnessCases: (status?: WitnessStatus) => get<{ cases: WitnessCase[] }>(status ? `/witness/cases?status=${status}` : '/witness/cases'),
+  witnessNotes: (id: string) => get<{ notes: { id: string; body: string; helpKind: string | null; author: string; createdAt: string }[] }>(`/witness/cases/${id}/notes`),
+  witnessNote: (id: string, body: string, helpKind?: string) => post(`/witness/cases/${id}/notes`, { body, helpKind }),
+  witnessUpdate: (id: string, patch: { status?: WitnessStatus; assignToMe?: boolean }) => request('PATCH', `/witness/cases/${id}`, patch),
+  activityFlags: () =>
+    get<{ flags: { id: string; userId: string; name: string; reason: 'too_many' | 'too_regular'; details: { taps: number; gapStddevSeconds: number | null }; createdAt: string }[] }>(
+      '/moderation/activity-flags',
+    ),
+  decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  scriptureLeaves: () => get<{ leaves: { id: string; reference: string; text: string; translation: string | null }[] }>('/scripture-leaves'),
+  blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
+  block: (userId: string) => put(`/people/${userId}/block`),
+  unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
 };

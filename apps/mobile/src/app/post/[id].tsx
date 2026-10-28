@@ -1,4 +1,4 @@
-import { ENCOURAGEMENT_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
+import { ENCOURAGEMENT_MAX_CHARS, MESSAGE_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -8,7 +8,7 @@ import { useCardActions } from '@/components/card-actions';
 import { useCelebration } from '@/components/celebration';
 import { CrisisSupport } from '@/components/crisis';
 import { PostCard } from '@/components/post-card';
-import { Button, Empty, ErrorText, Field, RulesWarning, Screen } from '@/components/ui';
+import { Button, Empty, ErrorText, Field, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { colors, space, type } from '@/lib/theme';
@@ -16,13 +16,15 @@ import { colors, space, type } from '@/lib/theme';
 export default function PostScreen() {
   const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
   const { celebrate, overlay } = useCelebration();
-  const { profile } = useAuth();
+  const { profile, roles } = useAuth();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Two taps to delete: the first asks "Tap again to delete".
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
@@ -32,6 +34,12 @@ export default function PostScreen() {
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [witnessNote, setWitnessNote] = useState('');
+  const [witnessed, setWitnessed] = useState(false);
+  const isWitness = roles.some((r) => r === 'witness' || r === 'moderator' || r === 'admin');
+  const [note, setNote] = useState('');
+  const [noteAnonymous, setNoteAnonymous] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -98,6 +106,18 @@ export default function PostScreen() {
     }
   };
 
+  // A private note to the requester; the server checks that the viewer prayed first.
+  const sendNote = async () => {
+    try {
+      const r = await api.messageRequester(id, note.trim(), noteAnonymous);
+      setNote('');
+      setNoteOpen(false);
+      router.push(`/conversation/${r.conversationId}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   const markAnswered = async () => {
     try {
       await api.markAnswered(id);
@@ -120,6 +140,61 @@ export default function PostScreen() {
           <Text style={styles.report} onPress={() => openReport(card)} accessibilityRole="button">
             Report this request
           </Text>
+        ) : null}
+        {card?.isMine ? (
+          <Text
+            style={styles.report}
+            accessibilityRole="button"
+            onPress={() =>
+              confirmDelete === card.id
+                ? api
+                    .deletePost(card.id)
+                    .then(() => (router.canGoBack() ? router.back() : router.replace('/')))
+                    .catch((e) => setError((e as Error).message))
+                : setConfirmDelete(card.id)
+            }>
+            {confirmDelete === card.id ? 'Tap again to delete this request for good' : 'Delete this request'}
+          </Text>
+        ) : null}
+
+        {card && !card.isMine ? (
+          noteOpen ? (
+            <View style={styles.section}>
+              <Text style={type.heading}>Write to them privately</Text>
+              <Text style={type.small}>Only they will see it. They can reply, say no thanks, or block.</Text>
+              <Field placeholder="I prayed for you today…" value={note} onChangeText={setNote} maxLength={MESSAGE_MAX_CHARS} multiline />
+              <Toggle label="Send anonymously" value={noteAnonymous} onChange={setNoteAnonymous} />
+              <View style={styles.noteRow}>
+                <Button small label="Send" onPress={sendNote} disabled={!note.trim()} />
+                <Button small variant="ghost" label="Cancel" onPress={() => setNoteOpen(false)} />
+              </View>
+            </View>
+          ) : (
+            <Button variant="secondary" label="Write to them privately" onPress={() => setNoteOpen(true)} />
+          )
+        ) : null}
+
+        {isWitness && card && !card.isMine ? (
+          witnessed ? (
+            <Text style={type.small}>Added to the Witness team's list.</Text>
+          ) : (
+            <View style={styles.section}>
+              <Text style={type.small}>Witness team (staff only)</Text>
+              <Field placeholder="Why this looks like a sincere need" value={witnessNote} onChangeText={setWitnessNote} maxLength={2000} />
+              <Button
+                small
+                variant="secondary"
+                label="Mark as a sincere need"
+                disabled={!witnessNote.trim()}
+                onPress={() =>
+                  api
+                    .witnessFlag(id, witnessNote.trim())
+                    .then(() => setWitnessed(true))
+                    .catch((e) => setError((e as Error).message))
+                }
+              />
+            </View>
+          )
         ) : null}
 
         {card?.isMine && card.state !== 'answered' ? (
@@ -226,9 +301,27 @@ export default function PostScreen() {
                 >
                   Share
                 </Text>
-                {card && c.author.id !== profile?.id ? (
+                {card && !c.isMine && c.author.id !== profile?.id ? (
                   <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
                     Report
+                  </Text>
+                ) : null}
+                {c.isMine ? (
+                  <Text
+                    style={styles.report}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      confirmDelete === c.id
+                        ? api
+                            .deleteComment(c.id)
+                            .then(() => {
+                              setConfirmDelete(null);
+                              load();
+                            })
+                            .catch((e) => setError((e as Error).message))
+                        : setConfirmDelete(c.id)
+                    }>
+                    {confirmDelete === c.id ? 'Tap again to delete' : 'Delete'}
                   </Text>
                 ) : null}
               </View>
@@ -257,6 +350,7 @@ export default function PostScreen() {
 }
 
 const styles = StyleSheet.create({
+  noteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   section: { gap: space.sm },
   comment: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, gap: 2 },

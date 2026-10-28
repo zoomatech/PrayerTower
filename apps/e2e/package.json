@@ -1,0 +1,14 @@
+{
+  "name": "@prayer-tower/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests: the web build of the app against the local API and Supabase",
+  "scripts": {
+    "test": "playwright test",
+    "build:web": "cd ../mobile && EXPO_OFFLINE=1 npx expo export --platform web --output-dir ../e2e/.web-dist"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

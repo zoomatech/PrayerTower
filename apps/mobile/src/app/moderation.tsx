@@ -12,7 +12,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const SOURCE_LABEL = { ai: 'Flagged automatically', report: 'Reported by a member', crisis: 'May need support' } as const;
 const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter((r) => r !== 'safe_messaging');
-const TARGET_LABEL = { post: 'Request', comment: 'Comment', reaction: 'Encouragement' } as const;
+const TARGET_LABEL = { post: 'Request', comment: 'Comment', reaction: 'Encouragement', message: 'Private message', event: 'Event' } as const;
 
 export default function Moderation() {
   const [items, setItems] = useState<ModerationItem[]>([]);
@@ -20,11 +20,13 @@ export default function Moderation() {
   const [error, setError] = useState<string | null>(null);
   const [rules, setRules] = useState<Record<string, ModerationRule>>({});
   const [appeals, setAppeals] = useState<Appeal[]>([]);
+  const [flags, setFlags] = useState<Awaited<ReturnType<typeof api.activityFlags>>['flags']>([]);
 
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [q, a] = await Promise.all([api.moderationQueue(), api.appeals()]);
+      const [q, a, f] = await Promise.all([api.moderationQueue(), api.appeals(), api.activityFlags()]);
+      setFlags(f.flags);
       setItems(q.items);
       setAppeals(a.appeals);
       setError(null);
@@ -65,6 +67,20 @@ export default function Moderation() {
         <Button small variant="ghost" label="‹ Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <Text style={type.title}>Moderation</Text>
         <ErrorText error={error} />
+        {flags.length ? <Text style={type.heading}>Prayer taps that look automated</Text> : null}
+        {flags.map((f) => (
+          <View key={f.id} style={styles.item}>
+            <Text style={styles.meta}>
+              {f.name} · {f.reason === 'too_many' ? `${f.details.taps} prayer taps in an hour` : `${f.details.taps} taps spaced almost exactly alike`}
+            </Text>
+            <Text style={type.small}>Nothing happens to them unless you act. Open their profile to look closer.</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+              <Button small variant="secondary" label="Looks human" onPress={() => api.decideActivityFlag(f.id, 'cleared').then(load).catch((e) => setError((e as Error).message))} />
+              <Button small variant="ghost" label="Likely automated" onPress={() => api.decideActivityFlag(f.id, 'confirmed').then(load).catch((e) => setError((e as Error).message))} />
+              <Button small variant="ghost" label="Profile" onPress={() => router.push(`/people/${f.userId}`)} />
+            </View>
+          </View>
+        ))}
         {appeals.length ? <Text style={type.heading}>Appeals</Text> : null}
         {appeals.map((a) => (
           <View key={a.id} style={styles.item}>

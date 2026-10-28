@@ -1,11 +1,14 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireUser } from '../../auth.js';
-import type { Db } from '../../db.js';
+import { withTx, type Db } from '../../db.js';
 import { notFound } from '../../errors.js';
 import * as posts from '../posts/index.js';
+import { MEDIA_BUCKET } from '../posts/media.js';
 import * as accounts from './index.js';
 
-export function accountRoutes(app: FastifyInstance, db: Db) {
+export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   app.get('/me', async (req) => {
     const userId = requireUser(req);
     const profile = await accounts.getProfile(db, userId);
@@ -16,6 +19,15 @@ export function accountRoutes(app: FastifyInstance, db: Db) {
   app.patch('/me', async (req) => {
     const input = accounts.ProfileUpdate.parse(req.body);
     return { profile: await accounts.updateProfile(db, requireUser(req), input) };
+  });
+
+  // Delete my account. The app asks the member to type DELETE first.
+  app.delete('/me', async (req) => {
+    const userId = requireUser(req);
+    z.object({ confirm: z.literal('DELETE') }).parse(req.body ?? {});
+    const paths = await withTx(db, (tx) => accounts.deleteAccount(tx, userId));
+    if (storage && paths.length) await storage.storage.from(MEDIA_BUCKET).remove(paths);
+    return { deleted: true };
   });
 
   app.get<{ Params: { id: string } }>('/people/:id', async (req) => {

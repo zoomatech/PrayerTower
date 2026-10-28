@@ -5,6 +5,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
+import * as activity from '../activity/index.js';
 import * as moderation from './index.js';
 
 export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderation.Classifier | null = null) {
@@ -23,6 +24,18 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   app.get('/moderation/queue', async (req) => {
     await requireModerator(req);
     return { items: await moderation.pending(db) };
+  });
+
+  // Prayer taps that look automated: flags only, a moderator decides.
+  app.get('/moderation/activity-flags', async (req) => {
+    await requireModerator(req);
+    return { flags: await activity.pending(db) };
+  });
+
+  app.post<{ Params: { id: string } }>('/moderation/activity-flags/:id', async (req) => {
+    const moderatorId = await requireModerator(req);
+    await activity.decide(db, moderatorId, req.params.id, activity.Decision.parse(req.body));
+    return { ok: true };
   });
 
   app.post<{ Params: { id: string } }>('/moderation/items/:id/decision', async (req) => {

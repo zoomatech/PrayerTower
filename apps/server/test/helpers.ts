@@ -14,8 +14,12 @@ await runMigrations({ pgPool: db });
 // New-member limits would trip most tests, which use brand-new accounts; safety.test.ts turns them on.
 await db.query('update public.safety_settings set new_member_limits_enabled = false');
 
+/** Every route the app registers, for the security test. */
+export const routes: { method: string; url: string }[] = [];
+
 /** Tests authenticate with "Bearer test:<userId>"; the real JWKS verifier is covered in auth.test.ts. */
 export const app = buildApp({
+  onRoute: (r) => routes.push(r),
   db,
   verifyToken: async (token) => {
     if (!token.startsWith('test:')) throw new Error('bad token');
@@ -23,6 +27,7 @@ export const app = buildApp({
   },
   classify: (text) => classifier(text),
   stationKey: STATION_KEY,
+  deletionPage: { supabaseUrl: 'http://127.0.0.1:54321', publishableKey: 'sb_publishable_test', supportEmail: 'help@example.com' },
 });
 
 export let classifier: Classifier = async () => null;
@@ -54,6 +59,7 @@ export function as(userId: string) {
     patch: (url: string, payload: object) => app.inject({ method: 'PATCH', url, headers, payload }),
     put: (url: string, payload?: object) => app.inject({ method: 'PUT', url, headers, ...(payload ? { payload } : {}) }),
     delete: (url: string) => app.inject({ method: 'DELETE', url, headers }),
+    inject: (method: 'DELETE' | 'POST' | 'PUT' | 'PATCH', url: string, payload: object) => app.inject({ method, url, headers, payload }),
   };
 }
 

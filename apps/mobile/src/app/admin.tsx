@@ -8,7 +8,7 @@ import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
+import { api, type AdminMessagingSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type PilotWeek } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
@@ -23,6 +23,7 @@ const ROLES: { role: Role; label: string }[] = [
   { role: 'admin', label: 'Admin' },
   { role: 'moderator', label: 'Moderator' },
   { role: 'pastor_counselor', label: 'Pastor / counselor' },
+  { role: 'witness', label: 'Witness team' },
   { role: 'prayer_partner', label: 'Prayer partner' },
 ];
 
@@ -183,6 +184,8 @@ export default function Admin() {
         <Text style={type.title}>Admin</Text>
         <ErrorText error={error} />
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
+        <DeletionRequestsSection />
+        <PrayerWarriorsSection />
 
         <View style={styles.section}>
           <Text style={type.heading}>Pilot metrics</Text>
@@ -266,6 +269,10 @@ export default function Admin() {
             <Button label="Save new-member limits" onPress={() => saveSafety()} />
           </View>
         ) : null}
+
+        <MessagingSettingsSection />
+        <CareAndEventSettingsSection />
+        <ReminderToneSection />
 
         {radio ? (
           <View style={styles.section}>
@@ -395,6 +402,203 @@ const METRIC_LABELS: Record<MilestoneRule['metric'], string> = {
   answered_requests: 'Answered requests',
 };
 
+/**
+ * Requests from the public account-deletion web page. Email the person from
+ * the account's address first to confirm it's them; then delete.
+ */
+function DeletionRequestsSection() {
+  const [requests, setRequests] = useState<Awaited<ReturnType<typeof api.admin.deletionRequests>>['requests']>([]);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(() => {
+    api.admin
+      .deletionRequests()
+      .then((r) => setRequests(r.requests))
+      .catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  if (!requests.length) return null;
+  const decide = (id: string, action: 'delete' | 'dismiss') =>
+    api.admin
+      .decideDeletionRequest(id, action)
+      .then(() => {
+        setConfirm(null);
+        load();
+      })
+      .catch((e) => setError((e as Error).message));
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Account deletion requests</Text>
+      <Text style={type.small}>From the web page. Confirm with the person by email before deleting.</Text>
+      <ErrorText error={error} />
+      {requests.map((r) => (
+        <View key={r.id} style={styles.group}>
+          <Text style={styles.groupTitle}>{r.email}</Text>
+          <Text style={type.small}>
+            {new Date(r.createdAt).toLocaleDateString()} · {r.accountFound ? 'account found' : 'no account with this email'}
+          </Text>
+          {r.note ? <Text style={type.body}>{r.note}</Text> : null}
+          <View style={styles.row}>
+            {r.accountFound ? (
+              <Button
+                small
+                label={confirm === r.id ? 'Tap again to delete for good' : 'Delete account'}
+                onPress={() => (confirm === r.id ? decide(r.id, 'delete') : setConfirm(r.id))}
+              />
+            ) : null}
+            <Button small variant="ghost" label="Dismiss" onPress={() => decide(r.id, 'dismiss')} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Reminder popups: gentle or firm by default, with 30-day results for each tone. */
+function ReminderToneSection() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof api.admin.promptSettings>> | null>(null);
+  const load = useCallback(() => {
+    api.admin.promptSettings().then(setData).catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  if (!data) return null;
+  const set = (t: 'gentle' | 'firm') => api.admin.setDefaultTone(t).then(load).catch(() => undefined);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Reminder tone</Text>
+      <Text style={type.small}>Members can choose for themselves; this is the default for everyone else.</Text>
+      <View style={styles.row}>
+        <Chip label="Gentle" selected={data.defaultTone === 'gentle'} onPress={() => set('gentle')} />
+        <Chip label="Firm" selected={data.defaultTone === 'firm'} onPress={() => set('firm')} />
+      </View>
+      {data.results.map((r) => (
+        <Text key={r.tone} style={type.small}>
+          {r.tone === 'firm' ? 'Firm' : 'Gentle'}: {r.prayed} of {r.shown} reminders led to a prayer (last 30 days)
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+/** Prayer partners on call, and events. Confession stays off until a lawyer reviews it. */
+function CareAndEventSettingsSection() {
+  const [care, setCare] = useState<{ care_enabled: boolean; confession_enabled: boolean } | null>(null);
+  const [ev, setEv] = useState<{ events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } | null>(null);
+  const [hosts, setHosts] = useState('');
+  const [reminder, setReminder] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+
+  const showEv = (s: NonNullable<typeof ev>) => {
+    setEv(s);
+    setHosts(s.allowed_video_hosts.join(', '));
+    setReminder(String(s.reminder_minutes));
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.careSettings().then((r) => setCare(r.settings)).catch((e) => setNote((e as Error).message));
+      api.admin.eventSettings().then((r) => showEv(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+
+  const saveCare = (patch: Parameters<typeof api.admin.updateCareSettings>[0]) =>
+    api.admin.updateCareSettings(patch).then((r) => setCare(r.settings)).catch((e) => setNote((e as Error).message));
+  const saveEv = (patch: Parameters<typeof api.admin.updateEventSettings>[0] = {}) =>
+    api.admin
+      .updateEventSettings({
+        allowedVideoHosts: hosts.split(',').map((h) => h.trim()).filter(Boolean),
+        reminderMinutes: toInt(reminder) ?? undefined,
+        ...patch,
+      })
+      .then((r) => {
+        showEv(r.settings);
+        setNote('Event settings saved.');
+      })
+      .catch((e) => setNote((e as Error).message));
+
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Prayer partners and events</Text>
+      {care ? (
+        <>
+          <Toggle label="Members can ask for a prayer partner" value={care.care_enabled} onChange={(v) => saveCare({ careEnabled: v })} />
+          <Toggle label="Confession to a pastor" hint="Off until a lawyer reviews confidentiality and reporting duties." value={care.confession_enabled} onChange={(v) => saveCare({ confessionEnabled: v })} />
+        </>
+      ) : null}
+      {ev ? (
+        <>
+          <Toggle label="Events" value={ev.events_enabled} onChange={(v) => saveEv({ eventsEnabled: v })} />
+          <Toggle label="New members can host events" value={ev.new_members_can_host} onChange={(v) => saveEv({ newMembersCanHost: v })} />
+          <Field label="Allowed video meeting sites" value={hosts} onChangeText={setHosts} autoCapitalize="none" multiline />
+          <Field label="Reminder, minutes before" keyboardType="number-pad" value={reminder} onChangeText={setReminder} />
+          <Button label="Save event settings" onPress={() => saveEv()} />
+        </>
+      ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Messages (Features Set 2): switches and limits. Defaults are placeholders until Steve decides. */
+function MessagingSettingsSection() {
+  const [s, setS] = useState<AdminMessagingSettings | null>(null);
+  const [draft, setDraft] = useState({ requests: '', perDay: '', groupMax: '' });
+  const [note, setNote] = useState<string | null>(null);
+
+  const show = (x: AdminMessagingSettings) => {
+    setS(x);
+    setDraft({ requests: String(x.request_message_limit), perDay: String(x.new_member_messages_per_day), groupMax: String(x.group_max_members) });
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.messagingSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+
+  const save = (patch: Parameters<typeof api.admin.updateMessagingSettings>[0] = {}) =>
+    api.admin
+      .updateMessagingSettings({
+        requestMessageLimit: toInt(draft.requests) ?? undefined,
+        newMemberMessagesPerDay: toInt(draft.perDay) ?? undefined,
+        groupMaxMembers: toInt(draft.groupMax) ?? undefined,
+        ...patch,
+      })
+      .then((r) => {
+        show(r.settings);
+        setNote('Message settings saved.');
+      })
+      .catch((e) => setNote((e as Error).message));
+
+  if (!s) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Messages</Text>
+      <Toggle label="Pray-ers can write to people they prayed for" value={s.prayer_messages_enabled} onChange={(v) => save({ prayerMessagesEnabled: v })} />
+      <Toggle
+        label="Anyone who prayed can write"
+        hint="Off: only people who committed to pray."
+        value={s.prayer_messages_any_prayer}
+        onChange={(v) => save({ prayerMessagesAnyPrayer: v })}
+      />
+      <Toggle label="Direct messages" value={s.direct_messages_enabled} onChange={(v) => save({ directMessagesEnabled: v })} />
+      <Toggle
+        label="Only between people who follow each other"
+        hint="Off: anyone can send a message request."
+        value={s.direct_requires_mutual_follow}
+        onChange={(v) => save({ directRequiresMutualFollow: v })}
+      />
+      <Toggle label="Group chats" value={s.groups_enabled} onChange={(v) => save({ groupsEnabled: v })} />
+      <Toggle label="New members can start conversations" value={s.new_members_can_start} onChange={(v) => save({ newMembersCanStart: v })} />
+      <Field label="Messages before the other person replies" keyboardType="number-pad" value={draft.requests} onChangeText={(requests) => setDraft((d) => ({ ...d, requests }))} />
+      <Field label="Messages a day for new members" keyboardType="number-pad" value={draft.perDay} onChangeText={(perDay) => setDraft((d) => ({ ...d, perDay }))} />
+      <Field label="Most members in a group" keyboardType="number-pad" value={draft.groupMax} onChangeText={(groupMax) => setDraft((d) => ({ ...d, groupMax }))} />
+      <Button label="Save message limits" onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   section: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.md },
@@ -408,3 +612,36 @@ const styles = StyleSheet.create({
   trendWeek: { flex: 1.2, textAlign: 'left' },
   trendHead: { ...type.small, fontWeight: '700' },
 });
+
+// Private standings for the Annual Prayer Warrior Award. Not shown to members.
+function PrayerWarriorsSection() {
+  const [days, setDays] = useState(365);
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof api.admin.prayerWarriors>>['standings']>([]);
+  const load = useCallback(() => {
+    api.admin
+      .prayerWarriors(days)
+      .then((r) => setRows(r.standings.slice(0, 10)))
+      .catch(() => undefined);
+  }, [days]);
+  useFocusEffect(load);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>Prayer Warrior standings</Text>
+      <Text style={type.small}>Verified prayers for others and kept promises. Private to admins until award rules are approved.</Text>
+      <View style={styles.row}>
+        {[30, 90, 365].map((d) => (
+          <Button key={d} small variant={d === days ? 'primary' : 'ghost'} label={d === 365 ? 'Year' : `${d} days`} onPress={() => setDays(d)} />
+        ))}
+      </View>
+      {rows.length ? (
+        rows.map((r) => (
+          <Text key={r.userId} style={type.body}>
+            {r.rank}. {r.name}: {r.prayers} prayers, {r.checkins} promise check-ins, {r.peoplePrayedFor} people
+          </Text>
+        ))
+      ) : (
+        <Text style={type.small}>No verified prayers yet.</Text>
+      )}
+    </View>
+  );
+}

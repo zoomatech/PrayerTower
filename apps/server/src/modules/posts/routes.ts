@@ -7,6 +7,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { AppError, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
+import { isBlocked } from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
@@ -26,7 +27,34 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const viewerId = requireUser(req);
     const post = await posts.get(db, req.params.id);
     if (!post || (post.moderation_status !== 'visible' && post.user_id !== viewerId)) throw notFound('Post');
+    if (post.user_id !== viewerId && (await isBlocked(db, viewerId, post.user_id))) throw notFound('Post');
     return { post: (await signMedia(storage, await posts.cards(db, [post.id], viewerId)))[0] };
+  });
+
+  // The poster deletes their request.
+  app.delete<{ Params: { id: string } }>('/posts/:id', async (req) => {
+    const userId = requireUser(req);
+    const paths = await withTx(db, (tx) => posts.remove(tx, userId, req.params.id));
+    if (storage && paths.length) await storage.storage.from(MEDIA_BUCKET).remove(paths);
+    return { deleted: true };
+  });
+
+  app.delete<{ Params: { id: string } }>('/comments/:id', async (req) => {
+    await posts.removeComment(db, requireUser(req), req.params.id);
+    return { deleted: true };
+  });
+
+  // "Not for me": hide a post from my feed, or bring it back.
+  app.put<{ Params: { id: string } }>('/posts/:id/hide', async (req) => {
+    const userId = requireUser(req);
+    if (!(await posts.get(db, req.params.id))) throw notFound('Post');
+    await db.query('insert into public.hidden_posts (user_id, post_id) values ($1, $2) on conflict do nothing', [userId, req.params.id]);
+    return { hidden: true };
+  });
+
+  app.delete<{ Params: { id: string } }>('/posts/:id/hide', async (req) => {
+    await db.query('delete from public.hidden_posts where user_id = $1 and post_id = $2', [requireUser(req), req.params.id]);
+    return { hidden: false };
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/answered', async (req) => {

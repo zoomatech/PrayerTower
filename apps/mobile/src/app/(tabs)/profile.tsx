@@ -13,6 +13,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { LegalLinks } from '@/components/legal-links';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -144,6 +145,14 @@ export default function Profile() {
         <Toggle label="Hide graphic or trauma-related requests" value={profile.trauma_content_opt_out} onChange={(v) => update({ traumaContentOptOut: v })} />
         <Toggle label="Pray and post anonymously by default" value={profile.anonymous_by_default} onChange={(v) => update({ anonymousByDefault: v })} />
         <Toggle label="Occasional prayer reminders" value={profile.prompts_enabled} onChange={(v) => update({ promptsEnabled: v })} />
+        {profile.prompts_enabled ? (
+          <Toggle
+            label="Firmer reminders"
+            hint={'For example: "Remember, you made a commitment before God to pray for Billy."'}
+            value={profile.prompt_tone === 'firm'}
+            onChange={(v) => update({ promptTone: v ? 'firm' : 'gentle' })}
+          />
+        ) : null}
         <Toggle label="Show my updates as the first comment" value={profile.updates_in_first_comment} onChange={(v) => update({ updatesInFirstComment: v })} />
         <Button variant="ghost" label="Community rules" onPress={() => router.push('/rules')} />
         {roles.some((r) => r === 'moderator' || r === 'admin') ? (
@@ -152,9 +161,14 @@ export default function Profile() {
             <Button variant="secondary" label="Macro needs" onPress={() => router.push('/macro-needs')} />
           </>
         ) : null}
+        {roles.some((r) => r === 'witness' || r === 'moderator' || r === 'admin') ? (
+          <Button variant="secondary" label="Witness team" onPress={() => router.push('/witness')} />
+        ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label="Admin" onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
         <Button variant="ghost" label="Sign out" onPress={signOut} />
+        <Button variant="ghost" label="Delete my account" onPress={() => router.push('/delete-account')} />
+        <LegalLinks contact />
       </ScrollView>
     </Screen>
   );

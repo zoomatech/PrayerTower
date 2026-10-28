@@ -31,6 +31,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
         <Stack.Screen name="post/[id]" />
+        <Stack.Screen name="delete-account" />
         <Stack.Screen name="moderation" />
         <Stack.Screen name="admin" />
         <Stack.Screen name="appeal/[id]" />
@@ -41,6 +42,12 @@ function RootStack() {
         <Stack.Screen name="macro-needs" />
         <Stack.Screen name="prayer-cast" />
         <Stack.Screen name="highlights" />
+        <Stack.Screen name="conversation/[id]" />
+        <Stack.Screen name="groups" />
+        <Stack.Screen name="events" />
+        <Stack.Screen name="care" />
+        <Stack.Screen name="witness" />
+        <Stack.Screen name="event/[id]" />
       </Stack.Protected>
     </Stack>
   );

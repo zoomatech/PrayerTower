@@ -4,6 +4,10 @@ const Env = z.object({
   DATABASE_URL: z.string().default('postgresql://postgres:postgres@127.0.0.1:54322/postgres'),
   SUPABASE_URL: z.string().default('http://127.0.0.1:54321'),
   SUPABASE_SECRET_KEY: z.string().optional(),
+  /** Publishable key, only for the public account-deletion page's sign-in. */
+  SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
+  /** Shown on the account-deletion page as the contact address. */
+  SUPPORT_EMAIL: z.string().optional(),
   PORT: z.coerce.number().int().default(3000),
   OPENAI_API_KEY: z.string().optional(),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */
@@ -12,6 +16,8 @@ const Env = z.object({
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
   /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */
   CORS_ORIGINS: z.string().default(''),
+  /** API requests allowed per signed-in member per minute; 0 turns the limit off. */
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).default(300),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
 });
 

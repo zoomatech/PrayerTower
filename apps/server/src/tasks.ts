@@ -2,6 +2,8 @@ import type { TaskList } from 'graphile-worker';
 import type { Config } from './config.js';
 import type { Queryable } from './db.js';
 import { sendDueRemindersTask, weeklyReviewTask } from './modules/commitments/index.js';
+import { scanTask as activityScanTask } from './modules/activity/index.js';
+import { remindTask } from './modules/events/index.js';
 import { openAiClassifier, scanTask, type Classifier } from './modules/moderation/index.js';
 import { sendPushTask } from './modules/notifications/index.js';
 import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
@@ -21,6 +23,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     radio_transmit: transmitTask(db, overrides.transmit),
     schedules_run_due: runDueTask(),
     milestones_award_due: awardDueTask(),
+    events_send_reminders: remindTask(db),
+    activity_scan: activityScanTask(db),
   };
 }
 
@@ -29,6 +33,10 @@ export const crontab = [
   '* * * * * commitments_send_due_reminders ?fill=10m&jobKey=commitments_send_due_reminders',
   // Scheduled token gifts (Friday evening, game start).
   '* * * * * schedules_run_due ?fill=10m&jobKey=schedules_run_due',
+  // Event reminders, shortly before each event starts.
+  '*/5 * * * * events_send_reminders ?fill=10m&jobKey=events_send_reminders',
+  // Prayer taps that look automated (flags only; a moderator decides).
+  '*/15 * * * * activity_scan ?fill=1h&jobKey=activity_scan',
   // Milestone bonus tokens (only rules an admin has enabled).
   '*/5 * * * * milestones_award_due ?fill=1h&jobKey=milestones_award_due',
   // Monday 00:05: weekly token resupply by tier (idempotent per ISO week).

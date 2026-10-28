@@ -1,5 +1,6 @@
 // Admin routes: roles, tier settings, token settings, and pilot metrics. Admin-only; each
 // area's data comes from that module's public functions.
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { requireUser } from '../../auth.js';
@@ -7,22 +8,31 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
+import * as activity from '../activity/index.js';
+import * as care from '../care/index.js';
 import * as commitments from '../commitments/index.js';
+import * as deletion from '../deletion-page/index.js';
+import * as events from '../events/index.js';
+import * as future from '../future/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
+import { MEDIA_BUCKET } from '../posts/media.js';
 import * as prayerActions from '../prayer-actions/index.js';
+import * as prompts from '../prompts/index.js';
 import * as radio from '../radio/index.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
+import * as messages from '../messages/index.js';
 import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as report from './report.js';
+import * as warriors from './warriors.js';
 
-const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner'] as const;
+const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
-export function adminRoutes(app: FastifyInstance, db: Db) {
+export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   const requireAdmin = async (req: FastifyRequest) => {
     const userId = requireUser(req);
     if (!(await accounts.hasRole(db, userId, 'admin'))) throw forbidden('Admins only');
@@ -158,6 +168,140 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     };
   });
 
+  // Blocked features' switches (all off): token purchase, Common Prayer Fund page, AI conversation.
+  app.get('/admin/future-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await future.settings(db) };
+  });
+
+  app.patch('/admin/future-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await future.updateSettings(db, future.SettingsPatch.parse(req.body)) };
+  });
+
+  // Account deletion requests from the public web page.
+  app.get('/admin/deletion-requests', async (req) => {
+    await requireAdmin(req);
+    return { requests: await deletion.pending(db) };
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/deletion-requests/:id', async (req) => {
+    const adminId = await requireAdmin(req);
+    const paths = await withTx(db, (tx) => deletion.decide(tx, adminId, req.params.id, deletion.Decision.parse(req.body)));
+    if (storage && paths.length) await storage.storage.from(MEDIA_BUCKET).remove(paths);
+    return { ok: true };
+  });
+
+  // Scripture leaves on the Vine feed.
+  app.get('/admin/scripture-leaves', async (req) => {
+    await requireAdmin(req);
+    const { rows } = await db.query('select id, reference, text, translation, active from public.scripture_leaves order by id');
+    return { leaves: rows };
+  });
+
+  app.post('/admin/scripture-leaves', async (req, reply) => {
+    await requireAdmin(req);
+    const input = z
+      .object({ reference: z.string().trim().min(1).max(80), text: z.string().trim().min(1).max(1000), translation: z.string().trim().max(40).optional() })
+      .parse(req.body);
+    const { rows } = await db.query(
+      `insert into public.scripture_leaves (community_id, reference, text, translation) values (public.default_community_id(), $1, $2, $3) returning id`,
+      [input.reference, input.text, input.translation ?? null],
+    );
+    reply.code(201);
+    return rows[0];
+  });
+
+  app.patch<{ Params: { id: string } }>('/admin/scripture-leaves/:id', async (req) => {
+    await requireAdmin(req);
+    const { active } = z.object({ active: z.boolean() }).parse(req.body);
+    const { rowCount } = await db.query('update public.scripture_leaves set active = $2 where id = $1', [req.params.id, active]);
+    if (!rowCount) throw notFound('Leaf');
+    return { ok: true };
+  });
+
+  // Bot signals on prayer taps.
+  app.get('/admin/activity-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await activity.settings(db) };
+  });
+
+  app.patch('/admin/activity-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await activity.updateSettings(db, activity.SettingsPatch.parse(req.body)) };
+  });
+
+  // Reminder popups: gentle (default) or firm tone, and how each is doing.
+  app.get('/admin/prompt-settings', async (req) => {
+    await requireAdmin(req);
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    return { defaultTone: await prompts.defaultTone(db), results: await prompts.toneResults(db, since) };
+  });
+
+  app.patch('/admin/prompt-settings', async (req) => {
+    await requireAdmin(req);
+    const { defaultTone } = z.object({ defaultTone: z.enum(['gentle', 'firm']) }).parse(req.body);
+    return { defaultTone: await prompts.setDefaultTone(db, defaultTone) };
+  });
+
+  // Prayer partners and pastors on call; confession stays off until a lawyer reviews it.
+  app.get('/admin/care-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await care.settings(db) };
+  });
+
+  app.patch('/admin/care-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await care.updateSettings(db, care.SettingsPatch.parse(req.body)) };
+  });
+
+  // Events: on/off, who can host, allowed video meeting sites, reminder lead time.
+  app.get('/admin/event-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await events.settings(db) };
+  });
+
+  app.patch('/admin/event-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await events.updateSettings(db, events.SettingsPatch.parse(req.body)) };
+  });
+
+  // Messages (Features Set 2): switches and limits, placeholders until Steve decides.
+  app.get('/admin/messaging-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await messages.settings(db) };
+  });
+
+  app.patch('/admin/messaging-settings', async (req) => {
+    await requireAdmin(req);
+    const input = z
+      .object({
+        prayerMessagesEnabled: z.boolean().optional(),
+        prayerMessagesAnyPrayer: z.boolean().optional(),
+        directMessagesEnabled: z.boolean().optional(),
+        directRequiresMutualFollow: z.boolean().optional(),
+        groupsEnabled: z.boolean().optional(),
+        requestMessageLimit: z.number().int().min(1).max(20).optional(),
+        newMembersCanStart: z.boolean().optional(),
+        newMemberMessagesPerDay: z.number().int().min(0).max(10_000).optional(),
+        groupMaxMembers: z.number().int().min(2).max(100_000).optional(),
+      })
+      .parse(req.body);
+    return {
+      settings: await messages.updateSettings(db, {
+        prayer_messages_enabled: input.prayerMessagesEnabled,
+        prayer_messages_any_prayer: input.prayerMessagesAnyPrayer,
+        direct_messages_enabled: input.directMessagesEnabled,
+        direct_requires_mutual_follow: input.directRequiresMutualFollow,
+        groups_enabled: input.groupsEnabled,
+        request_message_limit: input.requestMessageLimit,
+        new_members_can_start: input.newMembersCanStart,
+        new_member_messages_per_day: input.newMemberMessagesPerDay,
+        group_max_members: input.groupMaxMembers,
+      }),
+    };
+  });
+
   // Week-by-week pilot results; ?format=csv downloads a spreadsheet.
   app.get('/admin/pilot-report', async (req, reply) => {
     await requireAdmin(req);
@@ -168,6 +312,13 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
     if (format === 'json') return { weeks: rows };
     reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-pilot.csv"');
     return report.toCsv(rows);
+  });
+
+  // Private Prayer Warrior standings (no award is given yet).
+  app.get('/admin/prayer-warriors', async (req) => {
+    await requireAdmin(req);
+    const { days } = z.object({ days: z.coerce.number().int().min(1).max(366).default(365) }).parse(req.query);
+    return { days, standings: await warriors.standings(db, days) };
   });
 
   // Milestone bonus tokens: rules are placeholders (all off) until Steve sets them.

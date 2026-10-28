@@ -15,6 +15,18 @@ export function feedRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     return { ...feed, posts: await signMedia(storage, feed.posts) };
   });
 
+  // Scripture leaves for the Vine feed, from the viewer's communities.
+  app.get('/scripture-leaves', async (req) => {
+    const userId = requireUser(req);
+    const { rows } = await db.query(
+      `select id, reference, text, translation from public.scripture_leaves
+        where active and community_id = any (select community_id from public.community_memberships where user_id = $1)
+        order by id`,
+      [userId],
+    );
+    return { leaves: rows };
+  });
+
   app.get('/me/feed-themes', async (req) => themeChoices(db, requireUser(req)));
 
   app.put('/me/feed-theme', async (req) => {

@@ -123,6 +123,7 @@ export interface Comment {
   body: string;
   isUpdate: boolean;
   createdAt: string;
+  isMine?: boolean;
   author: Identity;
   depth?: number;
 }
@@ -202,11 +203,11 @@ export interface Person {
   followers: number;
 }
 
-export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner';
+export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner' | 'witness';
 
 export interface ModerationItem {
   id: string;
-  target_type: 'post' | 'comment' | 'reaction';
+  target_type: 'post' | 'comment' | 'reaction' | 'message' | 'event';
   target_id: string;
   source: 'report' | 'ai' | 'crisis';
   reason: string | null;
@@ -251,6 +252,8 @@ export interface Profile {
   anonymous_by_default: boolean;
   updates_in_first_comment: boolean;
   prompts_enabled: boolean;
+  /** null = the app default. */
+  prompt_tone: 'gentle' | 'firm' | null;
   prompt_min_hours: number | null;
   feed_mix: FeedMix;
   onboarded_at: string | null;
@@ -285,6 +288,7 @@ export interface Prompt {
   postId: string;
   commitmentId: string | null;
   question: string;
+  tone: 'gentle' | 'firm';
 }
 
 export interface TierStatus {
@@ -331,4 +335,126 @@ export function importantWords(body: string, n = 4): string[] {
     scores.set(key, { word: prev?.word ?? word, score });
   }
   return [...scores.values()].sort((a, b) => b.score - a.score).slice(0, n).map((s) => s.word);
+}
+
+// Messages (Features Set 2: pray-er-to-prayee, direct, group chats) ------------
+
+export type ConversationKind = 'prayer' | 'direct' | 'group' | 'care';
+
+/** A row in the Messages tab. */
+export interface ConversationSummary {
+  id: string;
+  kind: ConversationKind;
+  postId: string | null;
+  title: string;
+  topic: string | null;
+  isPublic: boolean;
+  /** A message request or group invite waiting on me. */
+  isRequest: boolean;
+  isOwner: boolean;
+  memberCount: number;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  unread: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  mine: boolean;
+  author: string;
+  body: string;
+  crisis: boolean;
+  createdAt: string;
+}
+
+export interface ConversationView {
+  conversation: {
+    id: string;
+    kind: ConversationKind;
+    title: string;
+    topic: string | null;
+    isPublic: boolean;
+    isRequest: boolean;
+    isOwner: boolean;
+    /** I started it and the other person hasn't replied yet. */
+    awaitingReply: boolean;
+    post: { id: string; excerpt: string } | null;
+    /** Everyone but me; id is null for anonymous members. */
+    members: { id: string | null; name: string; invited: boolean; isOwner: boolean }[];
+  };
+  messages: ChatMessage[];
+}
+
+export interface PublicGroup {
+  id: string;
+  title: string;
+  topic: string | null;
+  memberCount: number;
+  joined: boolean;
+  lastMessageAt: string | null;
+}
+
+export const MESSAGE_MAX_CHARS = 2000;
+
+// Talk to a prayer partner or pastor (notebook Page 4) ---------------------------
+
+export type CareKind = 'pray_with_me' | 'pastor' | 'confession';
+
+export const CARE_KIND_LABELS: Record<CareKind, string> = {
+  pray_with_me: 'Pray with me now',
+  pastor: 'Talk with a pastor',
+  confession: 'Confession',
+};
+
+export interface CareRequest {
+  id: string;
+  kind: CareKind;
+  body: string;
+  status: 'open' | 'claimed' | 'closed';
+  conversationId: string | null;
+  createdAt: string;
+}
+
+export interface CareQueueItem {
+  id: string;
+  kind: CareKind;
+  body: string;
+  crisis: boolean;
+  name: string;
+  createdAt: string;
+}
+
+// Events: prayer meetings, meet-ups, seminars, outreach, restorative circles -----
+
+export const EVENT_KINDS = ['prayer_meeting', 'meetup', 'seminar', 'outreach', 'circle'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
+export const EVENT_KIND_LABELS: Record<EventKind, string> = {
+  prayer_meeting: 'Prayer meeting',
+  meetup: 'Local meet-up',
+  seminar: 'Seminar',
+  outreach: 'Outreach',
+  circle: 'Restorative circle',
+};
+
+export interface PrayerEvent {
+  id: string;
+  kind: EventKind;
+  title: string;
+  description: string;
+  startsAt: string;
+  durationMinutes: number;
+  /** Shown only once you RSVP (or host). */
+  videoUrl: string | null;
+  hasVideo: boolean;
+  location: string | null;
+  groupId: string | null;
+  groupTitle: string | null;
+  host: { id: string; name: string };
+  isHost: boolean;
+  going: number;
+  myRsvp: 'going' | 'maybe' | null;
+  cancelled: boolean;
+  /** From 10 minutes before the start until the end. */
+  live: boolean;
 }

@@ -66,7 +66,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
   for (const m of input.media) {
-    if (!m.storagePath.startsWith(`${userId}/`)) throw badRequest('Media must be uploaded through /media/upload-url');
+    // Exactly the shape /media/upload-url hands out: <user id>/<uuid>.<ext>, no other folders.
+    if (!m.storagePath.startsWith(`${userId}/`) || !/^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(m.storagePath.slice(userId.length + 1))) throw badRequest('Media must be uploaded through /media/upload-url');
   }
   const { rows } = await q.query<PostRow>(
     `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id)
@@ -141,8 +142,39 @@ export async function markAnswered(q: Queryable, userId: string, postId: string)
   return rows[0]!;
 }
 
+/**
+ * The poster deletes their own request. It's erased with its comments, prayers
+ * and media, unless the token ledger points at it (tokens were given to it);
+ * then it's emptied and taken down instead. Returns media paths to remove.
+ */
+export async function remove(q: Queryable, userId: string, postId: string): Promise<string[]> {
+  const post = await get(q, postId);
+  if (!post || post.user_id !== userId) throw notFound('Post');
+  const { rows: media } = await q.query<{ storage_path: string }>('select storage_path from public.post_media where post_id = $1', [postId]);
+  const { rowCount } = await q.query(
+    `delete from public.posts p where p.id = $1 and not exists (select 1 from public.token_accounts a where a.post_id = p.id)`,
+    [postId],
+  );
+  if (!rowCount) {
+    await q.query(`update public.posts set body = '(deleted)', moderation_status = 'removed' where id = $1`, [postId]);
+    await q.query('delete from public.post_media where post_id = $1', [postId]);
+  }
+  return media.map((m) => m.storage_path);
+}
+
+/** The author deletes their comment. Replies from others stay, under a "(deleted)" placeholder. */
+export async function removeComment(q: Queryable, userId: string, commentId: string) {
+  const { rows } = await q.query<{ user_id: string }>('select user_id from public.comments where id = $1', [commentId]);
+  if (!rows[0] || rows[0].user_id !== userId) throw notFound('Comment');
+  const { rowCount } = await q.query(
+    `delete from public.comments c where c.id = $1 and not exists (select 1 from public.comments r where r.parent_id = c.id)`,
+    [commentId],
+  );
+  if (!rowCount) await q.query(`update public.comments set body = '(deleted)' where id = $1`, [commentId]);
+}
+
 export async function setModerationStatus(q: Queryable, target: moderation.Target, id: string, status: ModerationStatus) {
-  const table = { post: 'posts', comment: 'comments', reaction: 'reactions' }[target];
+  const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events' }[target];
   await q.query(`update public.${table} set moderation_status = $2 where id = $1`, [id, status]);
 }
 
@@ -152,6 +184,8 @@ export async function moderationSubject(q: Queryable, target: moderation.Target,
     post: 'select user_id, community_id, body as text from public.posts where id = $1',
     comment: 'select user_id, community_id, body as text from public.comments where id = $1',
     reaction: 'select user_id, community_id, note as text from public.reactions where id = $1',
+    message: 'select user_id, community_id, body as text from public.messages where id = $1',
+    event: `select created_by as user_id, community_id, title || E'\n' || description || coalesce(E'\n' || location, '') as text from public.events where id = $1`,
   }[target];
   const { rows } = await q.query<{ user_id: string; community_id: string; text: string | null }>(sql, [id]);
   return rows[0] ?? null;
@@ -210,15 +244,20 @@ function presentComment(c: CommentRow, viewerId: string | null) {
     body: c.body,
     isUpdate: c.is_update,
     createdAt: c.created_at,
+    isMine: c.user_id === viewerId,
     author: presentIdentity({ id: c.user_id, display_name: c.display_name, handle: c.handle }, c.is_anonymous, viewerId),
   };
 }
 
 /** Comments in thread order: each reply follows its parent, with its depth for indenting. */
 export async function listComments(q: Queryable, postId: string, viewerId: string | null) {
-  const { rows } = await q.query<CommentRow>(`${commentSelect} where c.post_id = $1 and c.moderation_status = 'visible' order by c.id`, [
-    postId,
-  ]);
+  // Comments from anyone the viewer blocked are left out.
+  const { rows } = await q.query<CommentRow>(
+    `${commentSelect} where c.post_id = $1 and c.moderation_status = 'visible'
+       and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)
+     order by c.id`,
+    [postId, viewerId],
+  );
   const children = new Map<string | null, CommentRow[]>();
   for (const c of rows) {
     const key = c.parent_id && rows.some((r) => r.id === c.parent_id) ? c.parent_id : null;

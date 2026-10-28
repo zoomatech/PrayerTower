@@ -1,8 +1,9 @@
 // Community rules, from Steve's policy notes (Donor Influence page, chat 10).
-// Pilot draft: the terms of service and privacy policy still need a lawyer.
+// Pilot draft; the full terms and privacy policy drafts are in docs/legal/ (lawyer review pending).
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { LegalLinks } from '@/components/legal-links';
 import { Button, Screen } from '@/components/ui';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -57,7 +58,10 @@ export default function Rules() {
             <Text style={type.body}>{r.body}</Text>
           </View>
         ))}
-        <Text style={type.small}>Pilot draft. The full terms of service and privacy policy are being prepared.</Text>
+        <Text style={type.body}>
+          To report something, tap Report on the request, comment, message or event. To stop someone reaching you, open their profile and tap Block.
+        </Text>
+        <LegalLinks prefix="These rules are part of our" contact />
       </ScrollView>
     </Screen>
   );

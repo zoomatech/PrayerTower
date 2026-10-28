@@ -18,6 +18,7 @@ export interface Prompt {
   postId: string;
   commitmentId: string | null;
   question: string;
+  tone: 'gentle' | 'firm';
 }
 
 /** Returns a prompt to show now, or null when the member is within their cap. */
@@ -49,17 +50,45 @@ export async function next(q: Queryable, userId: string, now = new Date()): Prom
   }
   if (!postId) return null;
 
+  const tone = profile.prompt_tone ?? (await defaultTone(q));
   const { rows } = await q.query<{ id: string }>(
-    'insert into public.prayer_prompts (user_id, post_id, commitment_id, shown_at) values ($1, $2, $3, $4) returning id',
-    [userId, postId, commitmentId, now],
+    'insert into public.prayer_prompts (user_id, post_id, commitment_id, shown_at, tone) values ($1, $2, $3, $4, $5) returning id',
+    [userId, postId, commitmentId, now, tone],
   );
   const who = await posts.promptSubject(q, postId, userId);
-  return {
-    id: rows[0]!.id,
-    postId,
-    commitmentId,
-    question: commitmentId ? `When was the last time you prayed for ${who}?` : `Would you pray for ${who} today?`,
-  };
+  return { id: rows[0]!.id, postId, commitmentId, question: question(tone, who, !!commitmentId), tone };
+}
+
+export type Tone = 'gentle' | 'firm';
+
+/** Firm copy is Steve's own wording from notebook Page 14. */
+export function question(tone: Tone, who: string, committed: boolean): string {
+  if (tone === 'firm') {
+    return committed
+      ? `Remember, you made a commitment before God to pray for ${who}. Won't you take just a moment now?`
+      : `Don't let your brothers and sisters down. Would you pray for ${who} now?`;
+  }
+  return committed ? `When was the last time you prayed for ${who}?` : `Would you pray for ${who} today?`;
+}
+
+export async function defaultTone(q: Queryable): Promise<Tone> {
+  const { rows } = await q.query<{ default_tone: Tone }>('select default_tone from public.prompt_settings');
+  return rows[0]!.default_tone;
+}
+
+export async function setDefaultTone(q: Queryable, tone: Tone): Promise<Tone> {
+  await q.query('update public.prompt_settings set default_tone = $1', [tone]);
+  return tone;
+}
+
+/** How often each tone's prompts led to a prayer, for comparing them. */
+export async function toneResults(q: Queryable, since: Date) {
+  const { rows } = await q.query<{ tone: Tone; shown: number; prayed: number }>(
+    `select tone, count(*)::int as shown, count(*) filter (where response = 'prayed')::int as prayed
+       from public.prayer_prompts where shown_at >= $1 group by tone order by tone`,
+    [since],
+  );
+  return rows;
 }
 
 export const Response = z.object({ response: z.enum(['prayed', 'dismissed', 'snoozed']) });
