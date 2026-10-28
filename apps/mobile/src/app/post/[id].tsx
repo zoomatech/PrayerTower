@@ -1,4 +1,4 @@
-import type { Card, Comment, TokenSummary } from '@prayer-tower/shared';
+import { ENCOURAGEMENT_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -22,6 +22,8 @@ export default function PostScreen() {
   const [busy, setBusy] = useState(false);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
+  const [thanks, setThanks] = useState('');
+  const [thanked, setThanked] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -105,6 +107,33 @@ export default function PostScreen() {
             </Text>
             {prayers.people.length > 0 ? (
               <Text style={type.body}>{prayers.people.map((p) => p.displayName).join(', ')}</Text>
+            ) : null}
+            {card?.isMine && prayers.count > 0 ? (
+              thanked !== null ? (
+                <Text style={type.small}>
+                  Your thanks went to {thanked} {thanked === 1 ? 'person' : 'people'}.
+                </Text>
+              ) : (
+                <View style={styles.section}>
+                  <Field
+                    placeholder="A short thank-you (optional)"
+                    value={thanks}
+                    onChangeText={setThanks}
+                    maxLength={ENCOURAGEMENT_MAX_CHARS}
+                  />
+                  <Button
+                    small
+                    variant="secondary"
+                    label="Thank everyone who prayed"
+                    onPress={() =>
+                      api
+                        .thankEveryone(id, thanks.trim())
+                        .then((r) => setThanked(r.sent))
+                        .catch((e) => setError((e as Error).message))
+                    }
+                  />
+                </View>
+              )
             ) : null}
           </View>
         ) : null}

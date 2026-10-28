@@ -244,7 +244,8 @@ export async function react(q: Queryable, userId: string, postId: string, input:
 }
 
 export const NewThanks = z.object({
-  recipientIds: z.array(z.uuid()).min(1).max(100),
+  /** Omit to thank everyone who prayed or committed, anonymous pray-ers included. */
+  recipientIds: z.array(z.uuid()).min(1).max(100).optional(),
   icon: z.string().max(30).default('heart'),
   message: z.string().trim().max(77).optional(),
 });
@@ -258,8 +259,8 @@ export async function thank(q: Queryable, userId: string, postId: string, input:
     `select distinct user_id from (
        select user_id from public.prayer_events where post_id = $1
        union select user_id from public.commitments where post_id = $1
-     ) s where user_id = any($2::uuid[])`,
-    [postId, input.recipientIds],
+     ) s where user_id <> $2 and ($3::uuid[] is null or user_id = any($3::uuid[]))`,
+    [postId, userId, input.recipientIds ?? null],
   );
   for (const r of rows) {
     await q.query('insert into public.thanks (post_id, user_id, recipient_id, icon, message) values ($1, $2, $3, $4, $5)', [

@@ -180,6 +180,20 @@ describe('prayer loop', () => {
     const res = await as(poster).post(`/posts/${post.id}/thanks`, { recipientIds: [prayer, bystander], message: 'Thank you!' });
     expect(res.json().sent).toBe(1);
   });
+
+  it('thanks everyone who prayed, anonymous pray-ers included, without revealing them', async () => {
+    const poster = await createUser('Grateful');
+    const named = await createUser('Named');
+    const hidden = await createUser('Hidden');
+    const post = await newRequest(poster);
+    await as(named).post(`/posts/${post.id}/praying-now`);
+    await as(hidden).post(`/posts/${post.id}/praying-now`, { isAnonymous: true });
+    await as(poster).post(`/posts/${post.id}/praying-now`);
+    const res = await as(poster).post(`/posts/${post.id}/thanks`, { message: 'Thank you all.' });
+    expect(res.json()).toEqual({ sent: 2 });
+    const notes = (await as(hidden).get('/me/notifications')).json().notifications;
+    expect(notes.some((n: { kind: string }) => n.kind === 'thanks')).toBe(true);
+  });
 });
 
 describe('feed', () => {

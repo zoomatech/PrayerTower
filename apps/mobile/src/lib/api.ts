@@ -95,6 +95,8 @@ export const api = {
     post<{ radioPrayer: { id: string; status: string } }>(`/posts/${postId}/radio`, { idempotencyKey: `radio-${postId}-${Date.now()}` }),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
+  thankEveryone: (postId: string, message?: string) =>
+    post<{ sent: number }>(`/posts/${postId}/thanks`, { message: message || undefined }),
   report: (targetType: 'post' | 'comment', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
