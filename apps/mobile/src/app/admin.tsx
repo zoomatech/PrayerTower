@@ -5,13 +5,20 @@
 import type { Role } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminPerson, type AdminSafetySettings, type AdminTier, type AdminTokenSettings } from '@/lib/api';
+import { api, type AdminPerson, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type PilotWeek } from '@/lib/api';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const PERIODS = [7, 30, 90];
+const REPORT_WEEKS = 12;
+const TREND: { key: keyof PilotWeek; label: string }[] = [
+  { key: 'requests_posted', label: 'Requests' },
+  { key: 'praying_now_taps', label: 'Prayers' },
+  { key: 'commitments_made', label: 'Promises' },
+  { key: 'commitment_checkins', label: 'Kept' },
+];
 const ROLES: { role: Role; label: string }[] = [
   { role: 'admin', label: 'Admin' },
   { role: 'moderator', label: 'Moderator' },
@@ -28,6 +35,7 @@ export default function Admin() {
   const [saved, setSaved] = useState<string | null>(null);
   const [days, setDays] = useState(7);
   const [metrics, setMetrics] = useState<Record<string, Record<string, number | string | null>> | null>(null);
+  const [weeks, setWeeks] = useState<PilotWeek[]>([]);
   const [tokens, setTokens] = useState<AdminTokenSettings | null>(null);
   const [tokenDraft, setTokenDraft] = useState({ perToken: '', gap: '', cost: '' });
   const [safety, setSafety] = useState<AdminSafetySettings | null>(null);
@@ -69,8 +77,15 @@ export default function Admin() {
   const load = useCallback(
     () =>
       run(async () => {
-        const [m, s, t, sf] = await Promise.all([api.admin.metrics(days), api.admin.tokenSettings(), api.admin.tiers(), api.admin.safetySettings()]);
+        const [m, s, t, sf, w] = await Promise.all([
+          api.admin.metrics(days),
+          api.admin.tokenSettings(),
+          api.admin.tiers(),
+          api.admin.safetySettings(),
+          api.admin.pilotReport(REPORT_WEEKS),
+        ]);
         setMetrics(m);
+        setWeeks(w.weeks);
         showTokens(s.settings);
         showSafety(sf.settings);
         showTiers(t.tiers);
@@ -83,6 +98,21 @@ export default function Admin() {
       load();
     }, [load]),
   );
+
+  // Web downloads a file; phones hand the CSV to the share sheet (mail, Files, Drive).
+  const downloadCsv = () =>
+    run(async () => {
+      const csv = await api.admin.pilotCsv(REPORT_WEEKS);
+      if (Platform.OS === 'web') {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        a.download = 'prayer-tower-pilot.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } else {
+        await Share.share({ title: 'Prayer Tower pilot report', message: csv });
+      }
+    });
 
   const saveTokens = () =>
     run(async () => {
@@ -162,6 +192,31 @@ export default function Admin() {
                 ))
             : null}
         </View>
+
+        {weeks.length ? (
+          <View style={styles.section}>
+            <Text style={type.heading}>Pilot results by week</Text>
+            <View style={styles.trendRow}>
+              <Text style={[styles.trendCell, styles.trendWeek, styles.trendHead]}>Week of</Text>
+              {TREND.map((c) => (
+                <Text key={c.key} style={[styles.trendCell, styles.trendHead]}>
+                  {c.label}
+                </Text>
+              ))}
+            </View>
+            {[...weeks].reverse().map((w) => (
+              <View key={w.week_start} style={styles.trendRow}>
+                <Text style={[styles.trendCell, styles.trendWeek]}>{w.week_start.slice(5)}</Text>
+                {TREND.map((c) => (
+                  <Text key={c.key} style={styles.trendCell}>
+                    {w[c.key]}
+                  </Text>
+                ))}
+              </View>
+            ))}
+            <Button variant="secondary" label={`Download ${REPORT_WEEKS}-week report (CSV)`} onPress={downloadCsv} />
+          </View>
+        ) : null}
 
         {tokens ? (
           <View style={styles.section}>
@@ -252,4 +307,8 @@ const styles = StyleSheet.create({
   groupTitle: { ...type.body, fontWeight: '700' },
   stat: { flexDirection: 'row', justifyContent: 'space-between' },
   value: { ...type.body, fontWeight: '600' },
+  trendRow: { flexDirection: 'row', gap: space.xs },
+  trendCell: { ...type.body, flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  trendWeek: { flex: 1.2, textAlign: 'left' },
+  trendHead: { ...type.small, fontWeight: '700' },
 });

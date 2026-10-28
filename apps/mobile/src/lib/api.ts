@@ -56,6 +56,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 const get = <T>(path: string) => request<T>('GET', path);
+
+/** A plain-text download (e.g. CSV), with the same auth as JSON calls. */
+async function getText(path: string): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const res = await fetch(`${env.apiUrl}${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, 'error', 'Download failed');
+  return res.text();
+}
 const post = <T>(path: string, body: unknown = {}) => request<T>('POST', path, body);
 const put = <T>(path: string, body: unknown = {}) => request<T>('PUT', path, body);
 
@@ -65,6 +74,20 @@ export interface AdminTokenSettings {
   radio_prayer_cost: number;
   radio_funding: 'tokens' | 'free';
 }
+export interface PilotWeek {
+  week_start: string;
+  new_members: number;
+  requests_posted: number;
+  prayers_answered: number;
+  praying_now_taps: number;
+  active_pray_ers: number;
+  commitments_made: number;
+  commitment_checkins: number;
+  encouragements: number;
+  moderation_items: number;
+  removals: number;
+}
+
 export interface AdminSafetySettings {
   new_member_limits_enabled: boolean;
   new_member_hours: number;
@@ -165,6 +188,8 @@ export const api = {
     updateTokenSettings: (
       patch: Partial<{ priestlyPrayersPerToken: number; verifiedPrayerMinGapSeconds: number; radioPrayerCost: number; radioFunding: 'tokens' | 'free' }>,
     ) => request<{ settings: AdminTokenSettings }>('PATCH', '/admin/token-settings', patch),
+    pilotReport: (weeks: number) => get<{ weeks: PilotWeek[] }>(`/admin/pilot-report?weeks=${weeks}`),
+    pilotCsv: (weeks: number) => getText(`/admin/pilot-report?weeks=${weeks}&format=csv`),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
       patch: Partial<{

@@ -144,6 +144,16 @@ describe('weekly review and pilot metrics', () => {
     expect(granted.json().roles).toEqual(['moderator']);
     expect((await as(member).get('/moderation/queue')).statusCode).toBe(200);
     expect((await as(admin).put(`/admin/people/${member}/roles/king`)).statusCode).toBe(400);
+
+    const weekly = (await as(admin).get('/admin/pilot-report?weeks=4')).json().weeks;
+    expect(weekly).toHaveLength(4);
+    expect(weekly.at(-1).requests_posted).toBeGreaterThan(0);
+    const csv = await as(admin).get('/admin/pilot-report?weeks=2&format=csv');
+    expect(csv.headers['content-type']).toMatch(/text\/csv/);
+    expect(csv.body.split('\n')[0]).toBe(
+      'week_start,new_members,requests_posted,prayers_answered,praying_now_taps,active_pray_ers,commitments_made,commitment_checkins,encouragements,moderation_items,removals',
+    );
+    expect((await as(member).get('/admin/pilot-report')).statusCode).toBe(403);
     const found = (await as(admin).get('/admin/people?q=volunt')).json().people;
     expect(found.map((p: { id: string }) => p.id)).toContain(member);
     expect(found.find((p: { id: string }) => p.id === member).roles).toEqual(['moderator']);

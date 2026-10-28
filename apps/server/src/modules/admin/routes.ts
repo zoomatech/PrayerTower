@@ -15,6 +15,7 @@ import * as radio from '../radio/index.js';
 import * as safety from '../safety/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
+import * as report from './report.js';
 
 const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner'] as const;
 
@@ -115,6 +116,18 @@ export function adminRoutes(app: FastifyInstance, db: Db) {
         new_member_links_allowed: input.newMemberLinksAllowed,
       }),
     };
+  });
+
+  // Week-by-week pilot results; ?format=csv downloads a spreadsheet.
+  app.get('/admin/pilot-report', async (req, reply) => {
+    await requireAdmin(req);
+    const { weeks, format } = z
+      .object({ weeks: z.coerce.number().int().min(1).max(104).default(12), format: z.enum(['json', 'csv']).default('json') })
+      .parse(req.query);
+    const rows = await report.weekly(db, weeks);
+    if (format === 'json') return { weeks: rows };
+    reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-pilot.csv"');
+    return report.toCsv(rows);
   });
 
   // Pilot metrics: requests posted, Praying Now taps, commitments made vs kept,
