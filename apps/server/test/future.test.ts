@@ -11,7 +11,7 @@ describe('switched-off groundwork for blocked features', () => {
   it('keeps token purchase, the fund page and the AI conversation off by default', async () => {
     const member = await createUser('Future Member');
     expect((await as(member).get('/token-store')).json()).toEqual({ enabled: false, products: [] });
-    const buy = await as(member).post('/token-store/purchases', { sku: 'tokens_100', platform: 'ios', receipt: 'x' });
+    const buy = await as(member).post('/token-store/purchases', { platform: 'ios', signedTransaction: 'eyJhbGciOiJFUzI1NiJ9.e30.x' });
     expect(buy.statusCode).toBe(403);
     expect((await as(member).get('/common-prayer-fund')).json()).toEqual({ enabled: false });
     expect((await app.inject({ method: 'GET', url: '/common-prayer-fund/report' })).statusCode).toBe(404);
@@ -20,13 +20,14 @@ describe('switched-off groundwork for blocked features', () => {
     expect((await as(member).post('/ai-chat', { message: 'Hello' })).statusCode).toBe(403);
   });
 
-  it('never credits tokens from a purchase until receipt checking exists, and always shows the not-God warning', async () => {
+  it('never credits tokens from a purchase while the App Store connection is not set up, and always shows the not-God warning', async () => {
     const admin = await createUser('Future Admin');
     await grantRole(db, admin, 'admin', null);
     const member = await createUser('Future Buyer');
     expect((await as(member).patch('/admin/future-settings', { purchasesEnabled: true })).statusCode).toBe(403);
     await as(admin).patch('/admin/future-settings', { purchasesEnabled: true, commonFundPageEnabled: true, aiChatEnabled: true });
-    expect((await as(member).post('/token-store/purchases', { sku: 'tokens_100', platform: 'ios', receipt: 'x' })).statusCode).toBe(501);
+    // No Apple root certificate configured here, so nothing can be verified or credited.
+    expect((await as(member).post('/token-store/purchases', { platform: 'ios', signedTransaction: 'eyJhbGciOiJFUzI1NiJ9.e30.x' })).statusCode).toBe(503);
     const fund = (await as(member).get('/common-prayer-fund')).json();
     expect(fund).toMatchObject({ enabled: true, percent: 10, totals: { inCents: expect.any(Number) } });
     expect((await app.inject({ method: 'GET', url: '/common-prayer-fund/report' })).json()).toMatchObject({ enabled: true });

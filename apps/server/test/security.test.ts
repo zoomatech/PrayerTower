@@ -59,6 +59,8 @@ describe('endpoint auth', () => {
       // The Common Prayer Fund's public report (404 while switched off; names no one).
       'GET /common-prayer-fund/report',
       'GET /fund',
+      // App Store Server Notifications: Apple's signature on the payload is the check.
+      'POST /store/apple/notifications',
       // The same public pages in Spanish.
       'GET /es',
       'GET /es/',

@@ -42,6 +42,8 @@ import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
+import type { AppleVerifier } from './modules/store/index.js';
+import { storeNotificationRoutes } from './modules/store/routes.js';
 import { amplifierRoutes } from './modules/amplifier/routes.js';
 import { deletionPageRoutes, type DeletionPageOptions } from './modules/deletion-page/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
@@ -74,6 +76,8 @@ export interface AppDeps {
   webAppUrl?: string | null;
   /** OpenAPI JSON and Swagger UI at /api/docs; null = off. Staff-only when restricted (production). */
   apiDocs?: { restricted: boolean; password: string | null; version: string } | null;
+  /** Checks App Store signed transactions (token purchase); null = purchases can't be verified. */
+  appleVerifier?: AppleVerifier | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
@@ -85,7 +89,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, stationKey = null, rateLimitPerMinute = 0, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -176,6 +180,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (open) => {
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 60, timeWindow: '1 minute' });
     commonFundPublicRoutes(open, db);
+    storeNotificationRoutes(open, db, appleVerifier);
   });
 
   // Everything else requires a signed-in member.
@@ -212,7 +217,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     witnessRoutes(authed, db);
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
-    futureRoutes(authed, db);
+    futureRoutes(authed, db, appleVerifier);
     communityRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);

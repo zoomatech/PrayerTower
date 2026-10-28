@@ -228,6 +228,11 @@ export const keys: Tree = {
     toggle: 'Show my kindness stats',
     toggleHint: 'Days you showed up and people supported, on this page only. There are no rankings.',
   },
+  tokenStore: {
+    off: "Buying tokens isn't available yet. You can earn tokens by supporting others.",
+    intro: 'Tokens you buy work just like tokens you earn. %{percent}% of every purchase goes to the Common Fund, which pays for direct help to people in real need.',
+    priestly: '%{count} Lighthouse tokens',
+  },
   card: { answered: '✨ Worked out', praying: '%{count} thinking of this', firstToPray: 'Be the first to lift this up', testimony: 'Story' },
   enums: {
     action: { praying_now: 'Thinking of You', commit: 'Promise to Check In' },
