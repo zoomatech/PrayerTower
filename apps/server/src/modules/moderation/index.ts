@@ -195,7 +195,9 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
     );
 
   if (d.action === 'dismiss') {
-    await posts.setModerationStatus(q, item.target_type, item.target_id, 'visible');
+    // Dismissing un-hides content an AI flag hid; it never brings back content that was
+    // removed (by an earlier decision, or deleted by its author).
+    await posts.unhide(q, item.target_type, item.target_id);
     await log('dismiss');
   } else {
     await posts.setModerationStatus(q, item.target_type, item.target_id, 'removed');
@@ -219,6 +221,13 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
     }
     await notifications.notify(q, item.user_id, removalNotice(item.target_type, rule, item.id, suspendedUntil));
   }
+  // One decision settles the item; a removal also settles every other pending report or flag on the
+  // same content (otherwise dismissing one of them later would show the removed content again).
+  await q.query(
+    `update public.moderation_items set status = 'actioned', decided_by = $3, decided_at = now(), rule = $4
+      where target_type = $1 and target_id = $2 and status = 'pending' and $5`,
+    [item.target_type, item.target_id, moderatorId, rule, d.action === 'remove'],
+  );
   await q.query(`update public.moderation_items set status = $2, decided_by = $3, decided_at = now(), rule = $4 where id = $1`, [
     item.id,
     d.action === 'dismiss' ? 'dismissed' : 'actioned',

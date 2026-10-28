@@ -291,7 +291,8 @@ export interface NewPost {
 }
 
 export const api = {
-  me: () => get<{ profile: Profile; roles: Role[] }>('/me'),
+  // Kept on the device so a signed-in member who opens the app with no signal still gets in.
+  me: () => cachedGet<{ profile: Profile; roles: Role[] }>('me', '/me'),
   sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
     post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),

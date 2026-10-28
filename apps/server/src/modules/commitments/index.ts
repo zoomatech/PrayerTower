@@ -42,7 +42,7 @@ export interface CommitmentRow {
 }
 
 export async function create(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewCommitment>) {
-  const post = await posts.getVisible(q, postId);
+  const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
@@ -99,7 +99,9 @@ export async function checkIn(q: Queryable, userId: string, commitmentId: string
     'update public.commitments set completed_count = completed_count + 1 where id = $1 returning *',
     [c.id],
   );
-  await tokens.earn(q, userId, product.prayingNowTokens, `earn:checkin:${c.id}:${rows[0]!.day}`, 'Commitment check-in');
+  // Tokens are for praying for others, as with Praying Now: no token for your own request.
+  const { rows: own } = await q.query<{ own: boolean }>('select user_id = $2 as own from public.posts where id = $1', [c.post_id, userId]);
+  if (!own[0]?.own) await tokens.earn(q, userId, product.prayingNowTokens, `earn:checkin:${c.id}:${rows[0]!.day}`, 'Commitment check-in');
   await tokens.creditPriestlyProgress(q, rows[0]!.id);
   return updated[0]!;
 }

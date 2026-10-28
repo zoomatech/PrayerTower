@@ -18,7 +18,7 @@ export const PrayingNow = z.object({
 });
 
 export async function prayingNow(q: Queryable, userId: string, postId: string, input: z.infer<typeof PrayingNow>) {
-  const post = await posts.getVisible(q, postId);
+  const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   const profile = await getProfile(q, userId);
   const { rows } = await q.query<{ id: string }>(
