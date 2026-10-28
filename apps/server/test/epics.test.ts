@@ -72,6 +72,13 @@ describe('tiers', () => {
     await db.query(`select graphile_worker.add_job('tiers_weekly_resupply', '{}')`);
     await drainJobs();
     expect(await tokens.balanceOf(db, u)).toBe(3);
+    // A mid-week change keeps this week's credit and still reaches members not yet credited.
+    await db.query('update public.tier_settings set weekly_allotment = 5 where tier = $1', ['prayer_scout']);
+    const later = await createUser('Resupplied Later');
+    await db.query(`select graphile_worker.add_job('tiers_weekly_resupply', '{}')`);
+    await drainJobs();
+    expect(await tokens.balanceOf(db, u)).toBe(3);
+    expect(await tokens.balanceOf(db, later)).toBe(5);
     await db.query('update public.tier_settings set weekly_allotment = null');
   });
 });

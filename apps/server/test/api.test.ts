@@ -85,6 +85,15 @@ describe('posts', () => {
     const r = await as(carol).post(`/posts/${post.id}/ask`, { recipientIds: [friend, fan], note: 'Would mean a lot.' });
     expect(r.json().sent).toBe(2);
     expect((await as(carol).post(`/posts/${post.id}/ask`, { recipientIds: [friend] })).json().sent).toBe(0);
+    // A follower in another community (Open Circle) isn't asked: they couldn't open the post.
+    const circle = await createUser('Circle Fan');
+    await as(circle).put(`/people/${carol}/follow`);
+    await db.query('delete from public.community_memberships where user_id = $1', [circle]);
+    await db.query(
+      `insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`,
+      [circle],
+    );
+    expect((await as(carol).post(`/posts/${post.id}/ask`, { recipientIds: [circle] })).json().sent).toBe(0);
     const note = (await as(friend).get('/me/notifications')).json().notifications.find((n: { kind: string }) => n.kind === 'pray_request');
     expect(note.title).toBe('Someone would like you to pray for this');
     expect(note.body).toBe('Would mean a lot.');
