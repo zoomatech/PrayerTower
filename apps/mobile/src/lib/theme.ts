@@ -9,6 +9,8 @@ export const colors = {
   primarySoft: '#EFE9F8',
   gold: '#C9A227',
   goldSoft: '#FBF3D9',
+  /** Gold for text: at least 4.5:1 on white, the background and goldSoft (WCAG AA). Plain gold is for fills only. */
+  goldText: '#7D6308',
   danger: '#B3261E',
   // Urgency light: calm → urgent.
   urgency: ['#9BC59D', '#E6C35C', '#E8964A', '#D9534F'] as const,

@@ -6,8 +6,10 @@ import { colors, space } from '@/lib/theme';
 
 function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSlotProps & { icon: string; label: string }) {
   return (
-    <Pressable {...props} style={styles.tab} accessibilityRole="tab" accessibilityState={{ selected: isFocused }}>
-      <Text style={styles.icon}>{icon}</Text>
+    <Pressable {...props} style={styles.tab} role="tab" aria-label={label} aria-selected={!!isFocused}>
+      <Text style={styles.icon} importantForAccessibility="no" accessibilityElementsHidden>
+        {icon}
+      </Text>
       <Text style={StyleSheet.flatten([styles.label, isFocused && styles.labelActive])}>{label}</Text>
     </Pressable>
   );
@@ -19,7 +21,7 @@ export default function TabsLayout() {
     <Tabs style={styles.root}>
       <TabSlot style={styles.root} />
       <TabList asChild>
-        <View style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
+        <View role="tablist" style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
           <TabTrigger name="index" href="/" asChild>
             <TabButton icon="🕊" label="Prayers" />
           </TabTrigger>

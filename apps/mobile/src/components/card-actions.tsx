@@ -292,8 +292,8 @@ export function useCardActions(onChanged: () => void) {
 
   const sheets = (
     <Modal visible={!!sheet} transparent animationType="fade" onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close}>
-        <Pressable style={styles.sheet} onPress={() => undefined}>
+      <Pressable style={styles.backdrop} onPress={close} accessible={false}>
+        <Pressable style={styles.sheet} onPress={() => undefined} accessible={false} accessibilityViewIsModal>
           {body}
           <ErrorText error={error} />
           {sheet?.kind !== 'done' ? <Button label="Cancel" variant="ghost" onPress={close} /> : null}

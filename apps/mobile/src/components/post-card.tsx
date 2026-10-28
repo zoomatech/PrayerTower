@@ -107,7 +107,7 @@ export function PostCard({ card, onAction, onHide, expanded: startExpanded = fal
       </View>
 
       {card.topComment ? (
-        <Pressable onPress={open} style={styles.comment}>
+        <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint="Opens the request and all comments">
           <Text style={styles.commentAuthor}>
             {card.topComment.isUpdate ? 'Update · ' : ''}
             {card.topComment.author.displayName}
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   answered: { borderColor: colors.gold, backgroundColor: colors.goldSoft },
-  answeredBanner: { color: colors.gold, fontWeight: '700' },
+  answeredBanner: { color: colors.goldText, fontWeight: '700' },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   urgency: { width: 10, height: 10, borderRadius: 5 },
   tags: { ...type.small, marginTop: -space.sm },

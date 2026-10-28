@@ -9,6 +9,7 @@
     "build:web": "cd ../mobile && EXPO_OFFLINE=1 npx expo export --platform web --output-dir ../e2e/.web-dist"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.63.0"
   }
 }
