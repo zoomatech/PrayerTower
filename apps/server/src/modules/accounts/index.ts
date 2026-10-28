@@ -34,6 +34,8 @@ export const ProfileUpdate = z
     showPrayerStats: z.boolean(),
     /** Optional town ("Carol in Albuquerque"); shown only within the member's community, while switched on. */
     town: z.string().trim().min(1).max(60).nullable(),
+    /** Praying across lines: see, and be seen by, one member of another faith community a day (while switched on). */
+    openToOtherCommunities: z.boolean(),
     notificationPrefs: z.object({
       off: z.array(z.enum(NOTIFICATION_CATEGORIES)).max(NOTIFICATION_CATEGORIES.length),
       quietHours: z
@@ -68,6 +70,7 @@ const columns: Record<string, string> = {
   showPrayerStats: 'show_prayer_stats',
   notificationPrefs: 'notification_prefs',
   town: 'town',
+  openToOtherCommunities: 'open_to_other_communities',
 };
 
 export function validTimeZone(tz: string) {
@@ -99,6 +102,7 @@ export interface Profile {
   digest_enabled: boolean;
   show_prayer_stats: boolean;
   town: string | null;
+  open_to_other_communities: boolean;
   digest_sent_week: string | null;
   notification_prefs: NotificationPrefs;
   onboarded_at: Date | null;
@@ -398,7 +402,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
             trauma_content_opt_out = default, anonymous_by_default = default, updates_in_first_comment = default,
             prompts_enabled = default, prompt_min_hours = default, prompt_tone = default, locale = default,
             digest_enabled = default, digest_sent_week = default, notification_prefs = default,
-            show_prayer_stats = default, town = null, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
+            show_prayer_stats = default, town = null, open_to_other_communities = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
       where id = $1`,
     [userId],
   );

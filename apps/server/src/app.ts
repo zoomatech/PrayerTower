@@ -51,6 +51,7 @@ import { feedbackRoutes } from './modules/feedback/routes.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
+import { acrossRoutes } from './modules/across/routes.js';
 import { waitlistAdminRoutes, waitlistJoinRoutes } from './modules/waitlist/routes.js';
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
 import type { AppleVerifier } from './modules/store/index.js';
@@ -254,6 +255,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     surveyRoutes(authed, db);
     quickReactionRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
+    acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
     spokenPrayerRoutes(authed, db, storage);

@@ -387,6 +387,7 @@ export interface Profile {
   /** Gentle prayer stats on Me (on by default). */
   show_prayer_stats?: boolean;
   town?: string | null;
+  open_to_other_communities?: boolean;
   /** Missing on profiles fetched before the setting existed. */
   notification_prefs?: NotificationPrefs;
   onboarded_at: string | null;
