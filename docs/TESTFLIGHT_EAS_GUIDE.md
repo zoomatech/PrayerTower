@@ -124,10 +124,6 @@ eas build --platform ios --auto-submit
 
 The build number goes up by itself. In TestFlight, add the new build to the **Pilot** group. Later builds of the same version usually skip Beta App Review, but the first build of a new version (for example 1.1.0) goes through it again. To change the version, edit `"version"` in `app.json`.
 
-## 10. Android
-
-See [ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md) for the full Google Play internal testing setup.
-
 ## If something goes wrong
 
 | Problem | What to do |

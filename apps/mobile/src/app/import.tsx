@@ -97,7 +97,7 @@ function Import() {
           autoCapitalize="none"
           autoCorrect={false}
           style={{ minHeight: 140, fontFamily: 'monospace' }}
-          placeholder={kind === 'members' ? 'email,name,language' : 'request,anonymous'}
+          placeholder={kind === 'members' ? 'email,name' : 'request,anonymous'}
         />
         {kind === 'members' ? (
           <>

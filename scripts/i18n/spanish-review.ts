@@ -1,4 +1,4 @@
-// Writes docs/SPANISH_REVIEW_CHECKLIST.md: every Spanish string in the app,
+// Writes docs/archive/SPANISH_REVIEW_CHECKLIST.md: every Spanish string in the app,
 // beside its English, for a native speaker to check. Run after adding strings:
 //   npx tsx scripts/i18n/spanish-review.ts
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -130,5 +130,5 @@ out.push(
   '- [ ] Store listing in Spanish, if it goes live: `docs/store/STORE_LISTING.md`',
   '',
 );
-writeFileSync('docs/SPANISH_REVIEW_CHECKLIST.md', out.join('\n'));
-console.log(`docs/SPANISH_REVIEW_CHECKLIST.md: ${total} items`);
+writeFileSync('docs/archive/SPANISH_REVIEW_CHECKLIST.md', out.join('\n'));
+console.log(`docs/archive/SPANISH_REVIEW_CHECKLIST.md: ${total} items`);

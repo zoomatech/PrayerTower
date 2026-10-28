@@ -127,7 +127,7 @@ export default function Care() {
               <View key={r.id} style={[styles.card, r.crisis && styles.crisis]}>
                 <Text style={type.small}>
                   {r.crisis ? t('care.danger') : ''}
-                  {kindLabel(r.kind)} · {r.name} · {new Date(r.createdAt).toLocaleString()}
+                  {kindLabel(r.kind)} · {r.name} · {new Date(r.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                 </Text>
                 <Text style={type.body}>{r.body}</Text>
                 <Button small label={t('care.reachOut')} onPress={() => claim(r.id)} />

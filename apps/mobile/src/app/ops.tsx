@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { staffOnly } from '@/components/staff-only';
 import { Button, ErrorText, Screen } from '@/components/ui';
 import { api, type OpsStatus } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -12,7 +13,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 const REFRESH_MS = 30_000;
 
-export default function Ops() {
+function Ops() {
   const { t, language } = useLocale();
   const [status, setStatus] = useState<OpsStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -135,3 +136,5 @@ const styles = StyleSheet.create({
   bad: { color: colors.danger, fontWeight: '700' },
   label: { ...type.body, fontWeight: '700', marginTop: space.sm },
 });
+
+export default staffOnly(Ops, ['admin']);

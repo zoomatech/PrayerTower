@@ -22,14 +22,13 @@ If someone may be in immediate danger, call 911 (or the local emergency number) 
 | Fly.io (API, worker, web app) | [status.flyio.net](https://status.flyio.net/) | [community.fly.io](https://community.fly.io) for everyone. Email and the dashboard Support tab need a paid support plan. ([Fly.io support](https://docs.fly.io/about/support)) |
 | Supabase (database, sign-in, photos) | [status.supabase.com](https://status.supabase.com/) | Dashboard → Support, or [supabase.com/dashboard/support/new](https://supabase.com/dashboard/support/new). Paid projects only. You don't need a ticket while a listed incident is open. ([Supabase support policy](https://supabase.com/support-policy)) |
 | Apple (TestFlight) | [Apple Developer system status](https://developer.apple.com/system-status/) | App Store Connect → Help |
-| Google Play | Play Console → Help | Play Console → Help |
 
 ## The day before (T − 1 day)
 
 - [ ] Take a fresh backup: `scripts/backup-db.sh` ([BACKUP_RESTORE.md](BACKUP_RESTORE.md)). Write down the time.
 - [ ] Write down the current Fly image, so you can roll back to it: `fly releases --app prayertower-api --image` ([Fly rollback guide](https://docs.fly.io/blueprints/rollback-guide)).
 - [ ] Freeze changes. No deploys or migrations after this point unless they fix a launch problem.
-- [ ] Sign in on one iPhone and one Android phone (or the web app) with a staff account. Post, pray, comment, message, and check that the push arrives.
+- [ ] Sign in on two iPhones (or one iPhone and the web app) with a staff account. Post, pray, comment, message, and check that the push arrives.
 - [ ] Check that sign-up without an invite code is refused.
 - [ ] Send the "who to call" table above to everyone on it.
 

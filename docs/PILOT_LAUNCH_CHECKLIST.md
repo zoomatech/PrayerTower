@@ -6,7 +6,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 
 - [x] **In-app account deletion** (Me → Delete my account; `DELETE /me`). Apple requires apps that let people create accounts to "also let people initiate deletion of their account within the app". Deleting the account has to remove the user's content too, including "text posts". ([App Review: 5.1.1(v)](https://developer.apple.com/help/app-review/guideline-reference/5-1-1-account-deletion)) External TestFlight builds go through Beta App Review first. ([TestFlight](https://developer.apple.com/testflight/)) The feature erases the sign-in, profile, content and activity at once. It keeps only the append-only token ledger and moderators' decisions, under "Deleted member". Check that the privacy policy says this.
 - [ ] **Privacy policy and terms.** Drafts are in `docs/legal/` and need a lawyer's review. The server publishes them at `/privacy` and `/terms`, showing the draft warning until the reviewed `PRIVACY_POLICY.md` and `TERMS_OF_USE.md` are added. Then set `EXPO_PUBLIC_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_URL` to those URLs. The app links to them at sign-up and on the profile. Add the privacy URL in App Store Connect and Play Console.
-- [x] **A web page for deletion requests**, which Google Play requires. It's at `https://<API host>/account-deletion` and is served by the API. Set `SUPABASE_PUBLISHABLE_KEY` and `SUPPORT_EMAIL` on the server. Check Admin → Account deletion requests weekly.
+- [x] **A web page for deletion requests**. It's at `https://<API host>/account-deletion` and is served by the API. Set `SUPABASE_PUBLISHABLE_KEY` and `SUPPORT_EMAIL` on the server. Check Admin → Account deletion requests weekly.
 - [x] **Members can delete their own requests and comments.** It's in the post screen, with two taps to confirm.
 - [ ] **Contact address in the app and on the web** (Apple 1.2). Set `EXPO_PUBLIC_SUPPORT_EMAIL` in the app and `SUPPORT_EMAIL` on the server, which shows it at `/support`. It shows on the profile and with the rules.
 - [ ] **A real app icon.** Three drawn options are in [BRANDING.md](BRANDING.md), with "tower" as the default. Switch with `npm run brand -- <name>`. Have a designer finalize it before App Store review.
@@ -59,7 +59,6 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 
 - [ ] Point the iOS build at the hosted API and Supabase (`EXPO_PUBLIC_*`). Use bundle ID `com.zoomatech.prayertower`.
 - [ ] Upload to TestFlight. Step by step: [TESTFLIGHT_EAS_GUIDE.md](TESTFLIGHT_EAS_GUIDE.md). Internal testers (up to 100 team members) need no review. External testers need a build approved by Beta App Review, a beta description and review notes. Give the reviewer a demo login on the hosted project, created by hand and not with the seed. ([TestFlight](https://developer.apple.com/testflight/))
-- [ ] Put the Android build on a Play internal testing track, if Android members are included ([ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md)).
 - [ ] Make sure push notifications arrive on a real device for a prayer, a message and an event reminder.
 
 ## 7. Final checks

@@ -12,7 +12,7 @@ The test runs for **4 weeks, from [START DATE] to [END DATE]**. It takes about 5
 
 **How to join**
 
-1. Watch for a second email from **[Apple TestFlight / Google Play]** with the subject "[You're invited to test Prayer Tower / You've been invited to test an app]". It may land in Promotions or Spam.
+1. Watch for a second email from **Apple TestFlight** with the subject "You're invited to test Prayer Tower". It may land in Promotions or Spam.
 2. Follow the steps in the tester page: [TESTER INSTRUCTIONS LINK]
 3. Sign in with this email address: **[THEIR EMAIL]**
 
@@ -37,7 +37,7 @@ In Christ,
 
 Hi [FIRST NAME],
 
-Just checking in. Your Prayer Tower invitation is still waiting. If the [TestFlight / Google Play] email didn't arrive, reply and I'll send it again. The steps are here: [TESTER INSTRUCTIONS LINK].
+Just checking in. Your Prayer Tower invitation is still waiting. If the TestFlight email didn't arrive, reply and I'll send it again. The steps are here: [TESTER INSTRUCTIONS LINK].
 
 If now isn't a good time, no problem at all. Just let me know so I can offer your place to someone else.
 

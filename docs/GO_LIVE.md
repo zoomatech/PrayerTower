@@ -10,7 +10,7 @@ Prayer Tower in production is three pieces:
 | API + worker (one Docker image, two processes) | **Fly.io** (default) or Render | `fly.toml` / `render.yaml` |
 | Web app testers open in a browser (installable PWA) | Fly.io (`deploy/fly-web`) or a Render static site | built from `apps/mobile` |
 
-The phone apps (TestFlight, Play) point at the same API; see TESTFLIGHT_EAS_GUIDE.md and ANDROID_PLAY_GUIDE.md.
+The iPhone app (TestFlight) points at the same API; see TESTFLIGHT_EAS_GUIDE.md.
 
 ## One command (Fly.io)
 
@@ -36,7 +36,7 @@ What the script does, in order:
 - One app, two **process groups** from the same image: `app` (the API) and `worker` (jobs). Only `app` gets the public `[http_service]`. ([Fly config: processes, http_service](https://docs.fly.io/reference/configuration))
 - `auto_stop_machines = "off"` and `min_machines_running = 1` for the API, so push and the station worker always reach it. The web app's `fly.toml` uses `"stop"` with `min_machines_running = 0`, so Fly stops it when idle and starts it on the next visit.
 - Health check: `GET /health` every 30 s.
-- `[[vm]] size = "shared-cpu-1x"`, `memory = "512mb"`. The load test (LOAD_TEST.md) ran 100 members at under 20 ms p95 on far less than this.
+- `[[vm]] size = "shared-cpu-1x"`, `memory = "512mb"`. That is plenty for the 10-member pilot.
 - Region `iad` (US East). Change `primary_region` in both `fly.toml` files to move it nearer the pilot.
 
 ## Supabase Cloud
@@ -52,7 +52,7 @@ What the script does, in order:
 `render.yaml` is a Render Blueprint for the same three pieces: a Docker **web service** (API, health check `/health`), a Docker **background worker** (same image, `dockerCommand` runs the worker) and a **static site** for the web app with a rewrite of every path to `/index.html`. ([Blueprint spec](https://render.com/docs/blueprint-spec))
 
 1. Push the migrations first: `scripts/go-live.sh --migrate-only`.
-2. Open https://render.com/deploy?repo=https://github.com/zoomatech/PrayerTower/tree/main . This is Render's Deploy button URL; `/tree/main` picks the branch, because this repo's default branch is not `main` yet. ([Deploy to Render button](https://render.com/docs/deploy-to-render))
+2. Open https://render.com/deploy?repo=https://github.com/zoomatech/PrayerTower/tree/main . This is Render's Deploy button URL; `/tree/main` picks the `main` branch, which is the default branch. ([Deploy to Render button](https://render.com/docs/deploy-to-render))
 3. Render asks for every value marked `sync: false` (the secrets) when it first creates the Blueprint. Use the same values as `deploy/production.env`.
 4. The API and the worker use the `0.5c-512mb` plan. Change `plan:` in `render.yaml` to resize them.
 5. Put the static site's address in `CORS_ORIGINS` on the API and in Supabase's Site URL.
@@ -61,7 +61,7 @@ What the script does, in order:
 
 Testers who can't use TestFlight open the web app's address in a browser. It is the same app as on phones, built for the web with a [web app manifest and a Workbox service worker](https://docs.expo.dev/guides/progressive-web-apps/):
 
-- **Install it:** Chrome or Edge on Android or a computer shows "Install app" in the address bar or menu. On iPhone, open it in Safari, tap Share, then "Add to Home Screen". It then opens full screen with the Prayer Tower icon.
+- **Install it:** Chrome or Edge on a computer shows "Install app" in the address bar or menu. On iPhone, open it in Safari, tap Share, then "Add to Home Screen". It then opens full screen with the Prayer Tower icon.
 - **Offline:** the app itself (code, fonts, icons) is saved on the device, so it opens without a connection. The last feed and the offline queue for "Praying now" and text posts work as they do on phones (`src/lib/offline.ts`). API calls are never cached by the service worker.
 - **Updates:** a new deploy takes over on the next visit (`skipWaiting`, and `sw.js` and `index.html` are served with `no-cache`).
 - **Push notifications** stay phone-only for now; the web app shows them in the in-app list.

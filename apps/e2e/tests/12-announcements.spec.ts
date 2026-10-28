@@ -9,7 +9,7 @@ test('an admin posts an announcement, members see it and dismiss it', async ({ p
   await admin.goto('/announcements');
   await admin.getByRole('checkbox', { name: 'Notice' }).click();
   const title = `Prayer night ${Date.now()}`;
-  await admin.getByLabel('Title (English)').fill(title);
+  await admin.getByLabel('Title', { exact: true }).fill(title);
   await admin.getByLabel('Text (English)').fill('Join us Friday at 7pm.');
   // English only: no Spanish fields.
   await expect(admin.getByLabel('Title in Spanish (optional)')).toHaveCount(0);

@@ -25,7 +25,7 @@ apps/station    Radio station worker (Raspberry Pi/laptop + fldigi), see docs/RA
 apps/e2e        Playwright end-to-end tests against the web build of the app.
 packages/shared Types, labels and constants used by both server and app (e.g. CRISIS_LINES, POST_TYPES).
 supabase/       Database migrations (one file per change, applied in order) and local Supabase config.
-docs/           Deploy, TestFlight, Android, branding, security review, legal drafts, store answers, this file.
+docs/           Deploy, TestFlight, branding, security review, legal drafts, store answers, this file.
 scripts/        Icon/splash renderer (npm run brand).
 ```
 
@@ -157,7 +157,7 @@ The feedback feature is a small, complete example to copy. It came in with PR #5
 | `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE` | `NODE_ENV`, unset, 0 | Sentry labels and tracing (0 = no traces) |
 | `SMTP_URL`, `MAIL_FROM` | unset | Email for invites, the weekly digest and the sponsor report; unset = no email |
 | `SPONSOR_REPORT_TO`, `SPONSOR_REPORT_LANG` | unset, en | Who gets the Monday pilot report, and its language (English while Spanish is off) |
-| `SPANISH_ENABLED` | unset | `1` brings back Spanish notifications, emails and `/es` pages. Off: English only ([LOCALIZATION.md](LOCALIZATION.md)) |
+| `SPANISH_ENABLED` | unset | `1` brings back Spanish notifications, emails and `/es` pages. Off: English only ([archive/LOCALIZATION.md](archive/LOCALIZATION.md)) |
 | `WEB_APP_URL` | unset | Web app address; invite emails link to sign-up with the code filled in |
 | `APPLE_TEAM_ID`, `APP_LINK_APP_IDS`, `ANDROID_CERT_SHA256` | unset, both bundle IDs, unset | Shared links that open the app (APP_LINKS.md) |
 | `API_DOCS_PASSWORD` | unset | Basic-auth password (16+ chars) for `/api/docs` in production; staff tokens also work (API.md) |
@@ -278,4 +278,4 @@ Failed jobs retry with backoff and then show in Admin → Background jobs, with 
 - **Crisis posts** (suicide or self-harm wording) stay up, show the crisis line, and can't be amplified until a person reviews them.
 - **Suspended members** can read, appeal, block, report, ask for care and delete their account. Nothing else.
 - **The web build** exists for tests and previews. Lazy screens can't load offline on web, so the offline e2e test visits screens before it cuts the connection.
-- **Locked work.** Another thread owns Android, load testing, Spanish, CI, backups and staging. Check the project chat before you change those areas.
+- **Pilot scope.** English only, iPhone only, about 10 members. Spanish and Android code stays in the repo, switched off; do no Spanish, Android or load-test work unless Steve asks. Old Android, Spanish and load-test docs are in `docs/archive/`.

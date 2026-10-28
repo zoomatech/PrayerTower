@@ -12,21 +12,12 @@ Thank you for helping. This page tells you how to install the test app, what to 
 
 Test builds expire after 90 days. TestFlight will offer updates; tap **Update** when it does.
 
-**Android**
-
-1. Open the invitation email on your phone and tap the link. Sign in with the same Google account the invitation was sent to.
-2. Tap **Become a tester** (or **Accept invitation**), then **Download it on Google Play**.
-3. Install **Prayer Tower** from the Play Store page that opens.
-
-If the Play Store says the app isn't available, wait 10 minutes and try the link again. New testers can take a little while to be added.
 
 ## 2. Sign in
 
 1. Tap **Create account** and use the email address the invitation was sent to.
 2. Confirm your email from the message Prayer Tower sends you.
 3. Answer the few welcome questions. A short tour shows how things work; you can see it again any time from **Me → How Prayer Tower works**.
-
-To use the app in Spanish, choose **Español** on the sign-in screen or under **Me → Language**.
 
 ## 3. What to try
 
@@ -55,7 +46,7 @@ Please do a little each day rather than everything at once.
 - Something harmful or unsafe in a request or comment: open the request and tap **Report**. A moderator reviews every report.
 - Can't open the app at all: email **[SUPPORT EMAIL]**.
 
-A screenshot helps a lot. On iPhone press the side button and volume-up together; on most Android phones press power and volume-down together.
+A screenshot helps a lot. On iPhone press the side button and volume-up together.
 
 ## 5. Your privacy
 

@@ -1,5 +1,7 @@
 # Store listing copy (draft)
 
+App Store only: the pilot is iPhone only. The Google Play text is archived in [archive/GOOGLE_PLAY_DRAFTS.md](../archive/GOOGLE_PLAY_DRAFTS.md).
+
 > Drafted 2026-10-28 for the pilot, for Steve to edit. Character counts are checked against each field's limit. App Store limits: Promotional Text 170 characters, Description 4,000, Keywords 100 bytes ([Apple](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)). App name and subtitle are 30 characters each; check these in App Store Connect. Google Play limits: title 30, short description 80, full description 4,000. Google also bans ranking claims, prices or promotions, unattributed testimonials and keyword lists in these fields ([Google Play](https://support.google.com/googleplay/android-developer/answer/13393723?hl=en)).
 >
 > Keep both listings honest about the pilot. Don't promise radio prayers or features that are switched off when the build goes in for review.
@@ -76,40 +78,6 @@ Thank you for testing Prayer Tower! Please try: posting a request, praying for o
 ```
 Prayer Tower is a small community for asking for prayer and praying for one another. This pilot tests posting requests, praying, prayer promises, private notes, groups, events and safety tools.
 ```
-
-## Google Play
-
-**App name** (27/30). Google bans promotional words such as "Free" or "No Ads" in titles.
-```
-Prayer Tower: Pray Together
-```
-
-**Short description** (64/80)
-```
-Ask for prayer, pray for others, and keep your promises to pray.
-```
-
-**Full description.** Same as the App Store description, minus the "NO ADS" heading, because Google bans promotional claims in descriptions:
-```
-Prayer Tower is a quiet, caring place to ask for prayer and to pray for others.
-
-ASK FOR PRAYER
-Share what's on your heart in a few words: an illness, a job, a family need, a praise. Post with your name or anonymously. You'll see when people are praying for you, and you can thank them.
-
-PRAY FOR OTHERS
-Read real requests from real people and tap "Praying Now" when you pray. Promise to keep praying daily or weekly, and Prayer Tower will gently remind you. Write a private note to say you prayed.
-
-PRAY TOGETHER
-Join prayer groups, message the people you pray with, and find prayer meetings and meet-ups, in person or by video. Ask for a prayer partner or a pastor when you'd rather not carry something alone.
-
-A SAFE COMMUNITY
-Clear community rules, reporting and blocking, and real moderators. If someone is in crisis, Prayer Tower shows help right away, including the 988 Suicide & Crisis Lifeline. You can delete your account at any time from inside the app.
-
-Prayer Tower is in a small pilot. Features may change as we learn together. Prayer Tower is not an emergency service. If you are in danger, call 911 or 988.
-```
-
-**Category:** Lifestyle. **Tags:** Faith, Community. Choose them in the Play Console tag picker.
-**Contact email:** [SUPPORT EMAIL] (required) · **Website:** `https://<API host>/` · **Privacy policy:** `https://<API host>/privacy`
 
 ## Screenshots to capture (both stores)
 

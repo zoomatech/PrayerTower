@@ -34,7 +34,7 @@ The commands show only after sign-in and onboarding.
 
 How it works: `modules/mac-menu` is a local Expo module [6]. JavaScript (`src/lib/menu-commands.ts`) sends the command list; the module builds the menus with `UIKeyCommand`s; choosing one sends `onCommand` back, and the app navigates with Expo Router. To add a command, add a line to `commands()` in `src/lib/menu-commands.ts` and its title to both locale files. Native changes need a new build.
 
-On Android, the web and older systems, the module is absent and nothing happens.
+On the web and older systems, the module is absent and nothing happens.
 
 ## Sources
 

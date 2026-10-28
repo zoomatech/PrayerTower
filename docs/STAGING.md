@@ -39,7 +39,7 @@ eas env:set --environment preview --name EXPO_PUBLIC_SENTRY_ENVIRONMENT --value 
 eas build --profile staging --platform all
 ```
 
-The new bundle ID needs its own signing: EAS offers to create the Android keystore and iOS provisioning profile on the first build. Android push on the staging app needs the staging package added to the Firebase project and its FCM V1 key uploaded, as in [ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md).
+The new bundle ID needs its own signing: EAS offers to create the iOS provisioning profile on the first build.
 
 ## Release flow (default)
 

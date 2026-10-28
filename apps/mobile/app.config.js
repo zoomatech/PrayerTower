@@ -6,7 +6,7 @@
 // Android push (Firebase Cloud Messaging) stays off until Firebase's
 // google-services.json exists: either the file in this folder, or an EAS file
 // environment variable GOOGLE_SERVICES_JSON (its path on the build server).
-// docs/ANDROID_PUSH.md; https://docs.expo.dev/push-notifications/fcm-credentials/
+// docs/archive/ANDROID_PUSH.md; https://docs.expo.dev/push-notifications/fcm-credentials/
 const fs = require('node:fs');
 const path = require('node:path');
 

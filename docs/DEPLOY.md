@@ -83,10 +83,10 @@ A second Supabase project plus a second API on the same server. See [STAGING.md]
 
 ## 5. The app
 
-Point `apps/mobile/.env` at the production API and Supabase project (`EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Run `npx eas init` once for push notifications, then build with EAS or Xcode. Store accounts: Apple Developer Program and Google Play Console.
+Point `apps/mobile/.env` at the production API and Supabase project (`EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`). Run `npx eas init` once for push notifications, then build with EAS or Xcode. Store account: Apple Developer Program (the pilot is iPhone only).
 
 ## Public website
 
-The API also serves the public pages the app stores ask for: `/` (landing), `/support`, `/privacy`, `/terms` and `/account-deletion`. Use these URLs in App Store Connect and Play Console. The privacy and terms pages come from `docs/legal/`, which is copied into the Docker image. Until reviewed `PRIVACY_POLICY.md` and `TERMS_OF_USE.md` files are added, the drafts are shown with their warning. Set `SUPPORT_EMAIL` for the contact address, `CRISIS_COUNTRY` for the crisis line, and `APP_STORE_URL` and `PLAY_STORE_URL` once the app is listed.
+The API also serves the public pages the app stores ask for: `/` (landing), `/support`, `/privacy`, `/terms` and `/account-deletion`. Use these URLs in App Store Connect. The privacy and terms pages come from `docs/legal/`, which is copied into the Docker image. Until reviewed `PRIVACY_POLICY.md` and `TERMS_OF_USE.md` files are added, the drafts are shown with their warning. Set `SUPPORT_EMAIL` for the contact address, `CRISIS_COUNTRY` for the crisis line, and `APP_STORE_URL` once the app is listed.
 
-Every page also has a Spanish version under `/es`: `/es`, `/es/support`, `/es/privacy`, `/es/terms` and `/es/account-deletion`, with a language link in the header. The Spanish policy pages come from `PRIVACY_POLICY_DRAFT.es.md` and `TERMS_OF_USE_DRAFT.es.md` (with the same draft warning), or from `PRIVACY_POLICY.es.md` and `TERMS_OF_USE.es.md` once reviewed. A Spanish draft is never shown over a reviewed English policy: until the Spanish one is reviewed too, `/es/privacy` shows the English text with a note. The app opens the `/es` pages when it is set to Spanish. Use the Spanish URLs for the Spanish store listings.
+The app is English only. The Spanish `/es` pages stay switched off (`SPANISH_ENABLED` unset) until Steve asks for Spanish.

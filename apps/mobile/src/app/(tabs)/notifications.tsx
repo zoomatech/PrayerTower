@@ -56,7 +56,7 @@ export default function Notifications() {
               accessibilityRole={target ? 'link' : undefined}>
               <Text style={styles.title}>{n.title}</Text>
               <Text style={type.body}>{n.body}</Text>
-              <Text style={type.small}>{new Date(n.created_at).toLocaleString()}</Text>
+              <Text style={type.small}>{new Date(n.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</Text>
               {n.kind === 'moderation_notice' && typeof n.data.itemId === 'string' ? (
                 <Button small variant="secondary" label={t('notices.appeal')} onPress={() => router.push(`/appeal/${n.data.itemId}`)} />
               ) : null}

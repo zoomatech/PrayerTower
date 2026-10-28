@@ -6,7 +6,7 @@
 
 - **Google Sheets:** File → Download → Comma-separated values (.csv).
 - **Excel:** File → Save As → CSV UTF-8.
-  - In Spanish, Excel may separate columns with semicolons; those work too.
+  - Columns separated by semicolons (some Excel settings do this) work too.
 
 On the web you can pick the file. On a phone, copy the cells and paste them into the box.
 

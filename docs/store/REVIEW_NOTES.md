@@ -64,7 +64,7 @@ Radio prayers: a member can choose to have the words of a request (never a name)
 
 "Help in person or with a gift" on some requests opens the website of an outside charity in the browser. Prayer Tower collects no money.
 
-Privacy policy: [PRIVACY URL]. Terms: [TERMS URL]. Spanish versions are at /es/privacy and /es/terms.
+Privacy policy: [PRIVACY URL]. Terms: [TERMS URL].
 ```
 
 ### Play Console → App content → App access
@@ -128,6 +128,6 @@ Choose **All or some functionality is restricted**, then add one set of instruct
 - [ ] Run `REVIEW_PASSWORD='…' npm run review-account -- review@[YOUR DOMAIN]` on the hosted project, and paste the password into both stores.
 - [ ] Staff sample requests, one message to the review account, and one upcoming event are in place.
 - [ ] Admin → Radio is set to **Log only**, and **Radio prayers are free** is on.
-- [ ] The reviewed privacy policy and terms are published, with no brackets and no DRAFT banner, in English (and in Spanish if the Spanish listing goes live).
+- [ ] The reviewed privacy policy and terms are published, with no brackets and no DRAFT banner, in English.
 - [ ] The API and worker are running, and `/health` answers.
 - [ ] The notes above match the build. Update them if a feature moved or was switched off.
