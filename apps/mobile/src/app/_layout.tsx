@@ -45,6 +45,7 @@ function RootStack() {
         <Stack.Screen name="groups" />
         <Stack.Screen name="events" />
         <Stack.Screen name="care" />
+        <Stack.Screen name="witness" />
         <Stack.Screen name="event/[id]" />
       </Stack.Protected>
     </Stack>

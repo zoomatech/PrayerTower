@@ -23,7 +23,7 @@ import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as report from './report.js';
 
-const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner'] as const;
+const ROLES = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
 
 export function adminRoutes(app: FastifyInstance, db: Db) {
   const requireAdmin = async (req: FastifyRequest) => {

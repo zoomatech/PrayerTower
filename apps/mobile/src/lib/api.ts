@@ -182,6 +182,21 @@ export interface AdminSafetySettings {
   new_member_comments_per_day: number;
   new_member_links_allowed: boolean;
 }
+export type WitnessStatus = 'watching' | 'reaching_out' | 'helped' | 'closed';
+
+export interface WitnessCase {
+  id: string;
+  postId: string;
+  status: WitnessStatus;
+  postBody: string;
+  posterName: string;
+  anonymousPost: boolean;
+  assignedTo: string | null;
+  helpCount: number;
+  lastNote: string | null;
+  updatedAt: string;
+}
+
 export interface AdminMessagingSettings {
   prayer_messages_enabled: boolean;
   prayer_messages_any_prayer: boolean;
@@ -399,6 +414,11 @@ export const api = {
   careQueue: () => get<{ requests: CareQueueItem[] }>('/care/queue'),
   claimCare: (id: string) => post<{ conversationId: string }>(`/care-requests/${id}/claim`),
   closeCare: (id: string) => post(`/care-requests/${id}/close`),
+  witnessFlag: (postId: string, note: string) => post<{ caseId: string }>(`/posts/${postId}/witness`, { note }),
+  witnessCases: (status?: WitnessStatus) => get<{ cases: WitnessCase[] }>(status ? `/witness/cases?status=${status}` : '/witness/cases'),
+  witnessNotes: (id: string) => get<{ notes: { id: string; body: string; helpKind: string | null; author: string; createdAt: string }[] }>(`/witness/cases/${id}/notes`),
+  witnessNote: (id: string, body: string, helpKind?: string) => post(`/witness/cases/${id}/notes`, { body, helpKind }),
+  witnessUpdate: (id: string, patch: { status?: WitnessStatus; assignToMe?: boolean }) => request('PATCH', `/witness/cases/${id}`, patch),
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),

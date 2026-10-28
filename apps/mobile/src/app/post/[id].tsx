@@ -16,7 +16,7 @@ import { colors, space, type } from '@/lib/theme';
 export default function PostScreen() {
   const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
   const { celebrate, overlay } = useCelebration();
-  const { profile } = useAuth();
+  const { profile, roles } = useAuth();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -33,6 +33,9 @@ export default function PostScreen() {
   const [support, setSupport] = useState(false);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [witnessNote, setWitnessNote] = useState('');
+  const [witnessed, setWitnessed] = useState(false);
+  const isWitness = roles.some((r) => r === 'witness' || r === 'moderator' || r === 'admin');
   const [note, setNote] = useState('');
   const [noteAnonymous, setNoteAnonymous] = useState(false);
 
@@ -151,6 +154,29 @@ export default function PostScreen() {
             </View>
           ) : (
             <Button variant="secondary" label="Write to them privately" onPress={() => setNoteOpen(true)} />
+          )
+        ) : null}
+
+        {isWitness && card && !card.isMine ? (
+          witnessed ? (
+            <Text style={type.small}>Added to the Witness team's list.</Text>
+          ) : (
+            <View style={styles.section}>
+              <Text style={type.small}>Witness team (staff only)</Text>
+              <Field placeholder="Why this looks like a sincere need" value={witnessNote} onChangeText={setWitnessNote} maxLength={2000} />
+              <Button
+                small
+                variant="secondary"
+                label="Mark as a sincere need"
+                disabled={!witnessNote.trim()}
+                onPress={() =>
+                  api
+                    .witnessFlag(id, witnessNote.trim())
+                    .then(() => setWitnessed(true))
+                    .catch((e) => setError((e as Error).message))
+                }
+              />
+            </View>
           )
         ) : null}
 

@@ -5,7 +5,7 @@ import { createPool } from '../db.js';
 import { grantRole, type Role } from '../modules/accounts/index.js';
 
 const [email, role] = process.argv.slice(2);
-const ROLES: Role[] = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner'];
+const ROLES: Role[] = ['admin', 'moderator', 'pastor_counselor', 'prayer_partner', 'witness'];
 if (!email || !role || !ROLES.includes(role as Role)) {
   console.error(`usage: npm run grant-role -- <email> <${ROLES.join('|')}>`);
   process.exit(1);

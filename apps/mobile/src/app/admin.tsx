@@ -23,6 +23,7 @@ const ROLES: { role: Role; label: string }[] = [
   { role: 'admin', label: 'Admin' },
   { role: 'moderator', label: 'Moderator' },
   { role: 'pastor_counselor', label: 'Pastor / counselor' },
+  { role: 'witness', label: 'Witness team' },
   { role: 'prayer_partner', label: 'Prayer partner' },
 ];
 

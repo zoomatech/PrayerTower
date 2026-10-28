@@ -26,6 +26,7 @@ import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
 import { stationRoutes } from './modules/radio/station-routes.js';
+import { witnessRoutes } from './modules/witness/routes.js';
 import { tokenRoutes } from './modules/tokens/routes.js';
 
 export interface AppDeps {
@@ -87,6 +88,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     messageRoutes(authed, db);
     eventRoutes(authed, db);
     careRoutes(authed, db);
+    witnessRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     promptRoutes(authed, db);

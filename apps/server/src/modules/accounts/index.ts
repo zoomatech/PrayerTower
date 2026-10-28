@@ -8,7 +8,7 @@ import { badRequest, conflict, notFound } from '../../errors.js';
 
 export const WHY_HERE = ['pray_for_others', 'prayer_for_myself', 'pray_without_ceasing', 'extend_reach'] as const;
 export const PRAY_FOR_SCOPE = ['family', 'friends', 'church', 'community', 'nation', 'world'] as const;
-export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner';
+export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner' | 'witness';
 
 export const ProfileUpdate = z
   .object({

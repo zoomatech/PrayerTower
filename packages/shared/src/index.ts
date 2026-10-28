@@ -202,7 +202,7 @@ export interface Person {
   followers: number;
 }
 
-export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner';
+export type Role = 'admin' | 'moderator' | 'pastor_counselor' | 'prayer_partner' | 'witness';
 
 export interface ModerationItem {
   id: string;

@@ -152,6 +152,9 @@ export default function Profile() {
             <Button variant="secondary" label="Macro needs" onPress={() => router.push('/macro-needs')} />
           </>
         ) : null}
+        {roles.some((r) => r === 'witness' || r === 'moderator' || r === 'admin') ? (
+          <Button variant="secondary" label="Witness team" onPress={() => router.push('/witness')} />
+        ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label="Admin" onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
         <Button variant="ghost" label="Sign out" onPress={signOut} />
