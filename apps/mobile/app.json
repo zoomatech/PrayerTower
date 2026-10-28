@@ -13,6 +13,7 @@
       "icon": "./assets/images/icon.png"
     },
     "android": {
+      "package": "com.zoomatech.prayertower",
       "adaptiveIcon": {
         "backgroundColor": "#5B3E96",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

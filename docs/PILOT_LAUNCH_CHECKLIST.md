@@ -56,7 +56,7 @@ Work through this list top to bottom before inviting anyone. The setup steps the
 
 - [ ] Point the iOS build at the hosted API and Supabase (`EXPO_PUBLIC_*`). Use bundle ID `com.zoomatech.prayertower`.
 - [ ] Upload to TestFlight. Step by step: [TESTFLIGHT_EAS_GUIDE.md](TESTFLIGHT_EAS_GUIDE.md). Internal testers (up to 100 team members) need no review. External testers need a build approved by Beta App Review, a beta description and review notes. Give the reviewer a demo login on the hosted project, created by hand and not with the seed. ([TestFlight](https://developer.apple.com/testflight/))
-- [ ] Put the Android build on a Play internal testing track, if Android members are included.
+- [ ] Put the Android build on a Play internal testing track, if Android members are included ([ANDROID_PLAY_GUIDE.md](ANDROID_PLAY_GUIDE.md)).
 - [ ] Make sure push notifications arrive on a real device for a prayer, a message and an event reminder.
 
 ## 7. Final checks
