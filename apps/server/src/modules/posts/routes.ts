@@ -28,6 +28,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const post = await posts.get(db, req.params.id);
     if (!post || (post.moderation_status !== 'visible' && post.user_id !== viewerId)) throw notFound('Post');
     if (post.user_id !== viewerId && (await isBlocked(db, viewerId, post.user_id))) throw notFound('Post');
+    if (post.user_id !== viewerId && !(await posts.inCommunity(db, viewerId, post.community_id))) throw notFound('Post');
     return { post: (await signMedia(storage, await posts.cards(db, [post.id], viewerId)))[0] };
   });
 

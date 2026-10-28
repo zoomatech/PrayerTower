@@ -89,13 +89,15 @@ describe('Open Circle, the non-religious community', () => {
     const friend = await createUser('Weekly Will');
     await db.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
     await as(circle).post('/me/community', { slug: 'open-circle' });
+    await as(friend).post('/me/community', { slug: 'open-circle' });
     expect((await as(circle).get('/me/commitments/review')).json().message).toBe('When you are ready, there are people who could use some support.');
     const post = await newRequest(friend, 'A long week ahead.');
     await as(circle).post(`/posts/${post.id}/praying-now`, {});
     const review = (await as(circle).get('/me/commitments/review')).json();
     expect(review.message).toBe('This week you supported people 1 time on 1 request. Thank you for being there for them.');
     expect(review.message).not.toMatch(/pray/i);
-    expect((await as(friend).get('/me/commitments/review')).json().message).toContain('people waiting for prayer');
+    const faith = await createUser('Weekly Faith');
+    expect((await as(faith).get('/me/commitments/review')).json().message).toContain('people waiting for prayer');
   });
 
   it('sends Open Circle members the weekly email without religious words', async () => {
@@ -103,11 +105,23 @@ describe('Open Circle, the non-religious community', () => {
     const friend = await createUser('Digest Dan');
     await db.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
     await as(circle).post('/me/community', { slug: 'open-circle' });
+    await as(friend).post('/me/community', { slug: 'open-circle' });
     const post = await newRequest(friend, 'Starting a new job.');
     await as(circle).post(`/posts/${post.id}/praying-now`, {});
     const mail = renderDigest(await buildDigest(db, circle), 'en', 'dot@example.com', true);
     for (const text of [mail.subject, mail.text, mail.html]) expect(text).not.toMatch(/pray|\bgod\b|bless|faith/i);
     expect(mail.text).toContain('You showed up 1 time for 1 request.');
+  });
+
+  it('keeps a post from another community out of reach, even by its link', async () => {
+    const circle = await createUser('Sandbox Sam');
+    const faith = await createUser('Sandbox Faith');
+    await db.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
+    await as(circle).post('/me/community', { slug: 'open-circle' });
+    const post = await newRequest(faith, 'A faith request.');
+    expect((await as(circle).get(`/posts/${post.id}`)).statusCode).toBe(404);
+    expect((await as(circle).post(`/posts/${post.id}/praying-now`, {})).statusCode).toBe(404);
+    expect((await as(faith).get(`/posts/${post.id}`)).statusCode).toBe(200);
   });
 
   it('uses plain, warm wording in notices to Open Circle members', async () => {
