@@ -2,8 +2,7 @@
 // members with requests, prayers, a promise, a conversation, a group, an event
 // and a care request, so the app can be shown and tested end to end.
 //
-//   npm run seed:demo            add the demo members (skips if they exist)
-//   npm run seed:demo -- --reset remove the demo members and everything they made, then add them again
+//   npm run seed:demo    add the demo members (skips if they already exist)
 //
 // It refuses to run unless both DATABASE_URL and SUPABASE_URL point at this
 // machine. Real pilot content comes from real people (decision 2026-09-19);
@@ -41,14 +40,11 @@ const authUrl = `${config.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`;
 const authHeaders = { apikey: config.SUPABASE_SECRET_KEY, authorization: `Bearer ${config.SUPABASE_SECRET_KEY}`, 'content-type': 'application/json' };
 
 const existing = await db.query<{ id: string }>(`select id from auth.users where email like $1`, [`%@${DEMO_DOMAIN}`]);
-if (existing.rows.length && !process.argv.includes('--reset')) {
-  console.log(`Demo members already exist (${existing.rows.length}). Use --reset to recreate them.`);
+if (existing.rows.length) {
+  // The token ledger is append-only, so members who earned tokens can't be deleted; start from a clean database instead.
+  console.log(`Demo members already exist (${existing.rows.length}). To start over: npm run db:reset, then npm run seed:demo.`);
   await db.end();
   process.exit(0);
-}
-for (const { id } of existing.rows) {
-  const r = await fetch(`${authUrl}/${id}`, { method: 'DELETE', headers: authHeaders });
-  if (!r.ok) throw new Error(`could not remove demo member ${id}: ${await r.text()}`);
 }
 
 // New-member limits would stop brand-new demo members from messaging; pause them while seeding.
@@ -99,14 +95,20 @@ const mother = await request(ids.carol, 'Please pray for my mother, who starts t
 const job = await request(ids.james, 'Pray for wisdom as I look for a new job.');
 const roof = await request(ids.ruth, 'Our church needs a fair roofer before winter.');
 const family = await request(ids.ethel, 'Pray for peace in our family over the holidays.', { isAnonymous: true });
+const travel = await request(ids.james, 'Pray for safe travel as I drive to see my parents this weekend.');
+const grandson = await request(ids.ruth, 'Pray for my grandson as he starts at a new school.');
+const neighbor = await request(ids.carol, 'Pray for my neighbor, who lives alone and has been unwell.');
 await call(ids.carol, 'POST', '/posts', { postType: 'praise', body: '[Demo] Thank you all for praying. My sister is home from the hospital.' });
 
-// Everyone prays for everyone else's requests.
+// Everyone prays for everyone else's requests, enough to count as a settled member.
 const requests = [
   [ids.carol, mother],
   [ids.james, job],
   [ids.ruth, roof],
   [ids.ethel, family],
+  [ids.james, travel],
+  [ids.ruth, grandson],
+  [ids.carol, neighbor],
 ] as const;
 for (const prayer of [ids.carol, ids.ethel, ids.james, ids.ruth]) {
   for (const [owner, post] of requests) if (owner !== prayer) await call(prayer, 'POST', `/posts/${post.post.id}/praying-now`, { durationSeconds: 45 });

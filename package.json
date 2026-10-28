@@ -20,7 +20,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test -w @prayer-tower/server && npm test -w @prayer-tower/station",
     "station": "npm run dev -w @prayer-tower/station",
-    "seed:demo": "npm run seed:demo -w @prayer-tower/server --"
+    "seed:demo": "npm run seed:demo -w @prayer-tower/server --",
+    "test:e2e": "npm test -w @prayer-tower/e2e"
   },
   "devDependencies": {
     "supabase": "^2.122.0"
