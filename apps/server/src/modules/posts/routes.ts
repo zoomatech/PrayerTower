@@ -31,6 +31,19 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     return { post: (await signMedia(storage, await posts.cards(db, [post.id], viewerId)))[0] };
   });
 
+  // "Not for me": hide a post from my feed, or bring it back.
+  app.put<{ Params: { id: string } }>('/posts/:id/hide', async (req) => {
+    const userId = requireUser(req);
+    if (!(await posts.get(db, req.params.id))) throw notFound('Post');
+    await db.query('insert into public.hidden_posts (user_id, post_id) values ($1, $2) on conflict do nothing', [userId, req.params.id]);
+    return { hidden: true };
+  });
+
+  app.delete<{ Params: { id: string } }>('/posts/:id/hide', async (req) => {
+    await db.query('delete from public.hidden_posts where user_id = $1 and post_id = $2', [requireUser(req), req.params.id]);
+    return { hidden: false };
+  });
+
   app.post<{ Params: { id: string } }>('/posts/:id/answered', async (req) => {
     const userId = requireUser(req);
     await posts.markAnswered(db, userId, req.params.id);

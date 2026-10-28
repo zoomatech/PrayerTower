@@ -99,6 +99,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
         and (not $3 or not p.is_sensitive)
         and p.community_id = any($5::uuid[])
         and not exists (select 1 from public.user_blocks b where b.user_id = $1 and b.blocked_id = p.user_id)
+        and not exists (select 1 from public.hidden_posts h where h.user_id = $1 and h.post_id = p.id)
       order by p.created_at desc
       limit $4`,
     [viewerId, CANDIDATE_WINDOW_DAYS, viewer?.trauma_content_opt_out ?? false, CANDIDATE_LIMIT, communities],

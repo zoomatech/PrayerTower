@@ -221,6 +221,8 @@ export const api = {
   feed: (page = 0) => get<FeedPage>(`/feed?page=${page}`),
   post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
   createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
+  hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
+  unhidePost: (id: string) => request<{ hidden: boolean }>('DELETE', `/posts/${id}/hide`),
   markAnswered: (id: string) => post<{ post: Card }>(`/posts/${id}/answered`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>

@@ -91,6 +91,12 @@ export default function Feed() {
   const { onAction, sheets } = useCardActions(load);
   const Layout = layoutFor(theme);
 
+  // "Not for me": the post leaves this feed and never comes back.
+  const hide = (card: Card) => {
+    setCards((prev) => prev.filter((c) => c.id !== card.id));
+    api.hidePost(card.id).catch((e) => setError((e as Error).message));
+  };
+
   const answerPrompt = async (response: "prayed" | "dismissed") => {
     if (!prompt) return;
     setPrompt(null);
@@ -164,7 +170,7 @@ export default function Feed() {
           cards={cards}
           theme={theme}
           pinnedId={pinnedId}
-          renderCard={(card) => <PostCard card={card} onAction={onAction} />}
+          renderCard={(card) => <PostCard card={card} onAction={onAction} onHide={hide} />}
           header={header}
           refreshing={refreshing}
           onRefresh={load}

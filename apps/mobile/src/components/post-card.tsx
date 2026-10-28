@@ -30,9 +30,11 @@ const ACTION_ICONS: Record<CardAction, string> = {
 
 export interface CardHandlers {
   onAction: (card: Card, action: CardAction) => void;
+  /** "Not for me": hide this post from my feed. */
+  onHide?: (card: Card) => void;
 }
 
-export function PostCard({ card, onAction, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
+export function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
@@ -56,6 +58,11 @@ export function PostCard({ card, onAction, expanded: startExpanded = false }: { 
           {card.author.tier ? ` ${TIER_ICONS[card.author.tier] ?? ''}` : ''}
         </Text>
         <Text style={type.script}>{POST_TYPE_LABELS[card.postType]}</Text>
+        {onHide && !card.isMine ? (
+          <Text style={styles.hide} onPress={() => onHide(card)} accessibilityRole="button" accessibilityLabel="Not for me: hide this post">
+            ✕
+          </Text>
+        ) : null}
       </View>
 
       {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
@@ -116,6 +123,7 @@ export function PostCard({ card, onAction, expanded: startExpanded = false }: { 
 }
 
 const styles = StyleSheet.create({
+  hide: { fontSize: 15, color: colors.textMuted, paddingHorizontal: space.xs },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
