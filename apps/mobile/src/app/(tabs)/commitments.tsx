@@ -68,7 +68,7 @@ export default function Commitments() {
             <Text style={styles.vow}>“{c.vow_text}”</Text>
             <Text style={type.small}>
               {t('promises.progress', { done: c.completed_count, total: c.committed_count })}
-              {c.next_reminder_at ? ` · ${t('promises.next', { when: new Date(c.next_reminder_at).toLocaleString() })}` : ''}
+              {c.next_reminder_at ? ` · ${t('promises.next', { when: new Date(c.next_reminder_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) })}` : ''}
             </Text>
             {editing?.id === c.id ? (
               <View style={styles.editor}>

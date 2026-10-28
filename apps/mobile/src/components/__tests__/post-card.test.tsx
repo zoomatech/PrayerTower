@@ -59,3 +59,17 @@ describe('PostCard', () => {
     expect(await screen.findByText(/positive thoughts welcome/i)).toBeTruthy();
   });
 });
+
+describe('the prayer count line', () => {
+  it('does not ask the poster to be the first to pray for their own request', async () => {
+    await renderApp(<PostCard card={sampleCard({ isMine: true })} onAction={jest.fn()} />);
+    expect(await screen.findByText('No one has prayed yet')).toBeTruthy();
+    expect(screen.queryByText(/first to pray/i)).toBeNull();
+  });
+
+  it('says nothing about praying on a praise nobody has prayed over', async () => {
+    await renderApp(<PostCard card={sampleCard({ postType: 'praise' })} onAction={jest.fn()} />);
+    await screen.findByText('Ruth');
+    expect(screen.queryByText(/first to pray/i)).toBeNull();
+  });
+});

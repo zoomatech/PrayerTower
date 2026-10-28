@@ -47,4 +47,9 @@ describe('FeedRanker', () => {
     ];
     expect(pickPinned(list)!.id).toBe('praise');
   });
+
+  it("never pins the viewer's own request as \"Pray for this first\"", () => {
+    const list = [base('mine', { createdAt: now, mine: true }), base('theirs', { createdAt: new Date(now.getTime() - 60_000) })];
+    expect(pickPinned(list)!.id).toBe('theirs');
+  });
 });

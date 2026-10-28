@@ -19,6 +19,8 @@ export interface Candidate {
   commitments: number;
   prayingNowTaps: number;
   reach: number;
+  /** The viewer's own post: never pinned as "Pray for this first". */
+  mine?: boolean;
 }
 
 export const weights = {
@@ -66,7 +68,7 @@ export function rankFeed(candidates: Candidate[], now = new Date(), mix: FeedMix
 export function pickPinned(candidates: Candidate[]): Candidate | null {
   return (
     candidates
-      .filter((c) => c.postType === 'prayer_request' || c.postType === 'praise')
+      .filter((c) => !c.mine && (c.postType === 'prayer_request' || c.postType === 'praise'))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null
   );
 }
@@ -87,8 +89,9 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
     commitments: number;
     taps: number;
     reach: string | null;
+    mine: boolean;
   }>(
-    `select p.id, p.post_type, p.realm, p.created_at, p.urgency,
+    `select p.id, p.post_type, p.realm, p.created_at, p.urgency, p.user_id = $1 as mine,
             exists (select 1 from public.follows f where f.user_id = $1 and f.followee_id = p.user_id) as followed,
             (select count(*)::int from public.commitments c where c.post_id = p.id and c.status <> 'cancelled') as commitments,
             (select count(*)::int from public.prayer_events e where e.post_id = p.id and e.kind = 'praying_now') as taps,
@@ -115,6 +118,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
     commitments: r.commitments,
     prayingNowTaps: r.taps,
     reach: Number(r.reach ?? 0),
+    mine: r.mine,
   }));
 }
 
