@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
+import { cmCompress, cmDecompress } from '../src/burst/cm.js';
 import { decodeBatch, encodeBatch } from '../src/burst/codec.js';
 import { fft } from '../src/burst/fft.js';
 import { frameSeconds, modulate } from '../src/burst/ofdm.js';
@@ -121,10 +122,29 @@ describe('Reed-Solomon', () => {
 });
 
 describe('batch compression', () => {
-  it('round-trips and shrinks a batch of real-looking requests by more than 2.5x', () => {
+  it('round-trips and shrinks a batch of real-looking requests by more than 4x', () => {
     const batch = encodeBatch(SAMPLE_PRAYERS);
     expect(decodeBatch(batch)).toEqual(SAMPLE_PRAYERS);
-    expect(SAMPLE_PRAYERS.join('\n').length / batch.length).toBeGreaterThan(2.5);
+    expect(SAMPLE_PRAYERS.join('\n').length / batch.length).toBeGreaterThan(4);
+  });
+
+  it('context mixing (codec 3) round-trips any bytes and gives the same output every time', () => {
+    const rand = rng(21);
+    const primer = Buffer.from('pray for my mom and dad');
+    for (const len of [0, 1, 7, 300, 5000]) {
+      const data = Uint8Array.from({ length: len }, () => Math.floor(rand() * 256));
+      const packed = cmCompress(data, primer, 'test');
+      expect(Array.from(cmDecompress(packed, primer, 'test'))).toEqual(Array.from(data));
+      expect(Array.from(cmCompress(data, primer, 'test'))).toEqual(Array.from(packed));
+    }
+  });
+
+  it('codec 3 wins on prayer text: about 20 bytes a prayer in a batch, about 25 for one alone', () => {
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    expect(batch[0]).toBe(3);
+    expect(batch.length / SAMPLE_PRAYERS.length).toBeLessThan(23);
+    expect(encodeBatch(SAMPLE_PRAYERS.slice(0, 1)).length).toBeLessThan(30);
+    expect(decodeBatch(encodeBatch(samplePrayers(100, 9)))).toEqual(samplePrayers(100, 9));
   });
 
   it('round-trips one short prayer and an empty batch', () => {
@@ -163,9 +183,10 @@ describe('burst modem through a simulated FM radio', () => {
 
   it('fm-fast: a long frame (over 12 s) survives a 300 ppm sound card clock difference', () => {
     const preset = presetByName('fm-fast');
-    const prayers = samplePrayers(1500, 5);
-    const [batch] = planFrames(prayers, preset, 20);
-    const audio = modulate(batch!, preset, 'KD9XYZ');
+    // Codec 0 (plain text) of random letters: nothing to compress, so the frame is long.
+    const rand = rng(5);
+    const batch = Uint8Array.from({ length: 9000 }, (_, i) => (i ? 97 + Math.floor(rand() * 26) : 0));
+    const audio = modulate(batch, preset, 'KD9XYZ');
     expect(audio.length / 48_000).toBeGreaterThan(12);
     for (const ratio of [1.0003, 0.9997]) {
       const rx = new Float32Array(Math.floor(audio.length / ratio));

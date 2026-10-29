@@ -3,26 +3,30 @@
 Burst mode sends many prayers at once. The station claims a batch, compresses
 the whole batch together, and sends it as one short burst of audio in a single
 key-up. A one-prayer PSK31 piece takes about a minute; a burst carries 30
-prayers in under 2 seconds on an ordinary FM radio.
+prayers in 1.2 seconds on an ordinary FM radio, and 100 in about 2.
 
 It is **off by default** (`BURST_MODE=off`), and the station keeps working as
 the PSK31 sender described in [RADIO_STATION.md](RADIO_STATION.md).
 
 ## Measured speed
 
-From `node dist/src/burst/cli.js bench` and the tests in
+From `npm run burst -w @prayer-tower/station -- bench` and the tests in
 `apps/station/test/burst.test.ts`. The 30 hand-written sample requests
-(`test/fixtures/sample-prayers.ts`, 2,724 characters) compress to 967 bytes, or
-about 32 bytes a prayer.
+(`test/fixtures/sample-prayers.ts`, 2,724 characters) compress to 624 bytes,
+about 21 bytes a prayer (4.4x). One prayer on its own takes about 24 bytes.
 
-| Preset | Radio hookup | Raw rate | 30 sample prayers | Works down to (SNR in 2.5 kHz) |
-| --- | --- | --- | --- | --- |
-| `fm-robust` | Any FM radio's mic and speaker audio | 2.0 kbit/s | 5.0 s | about 6 dB |
-| `fm-standard` (default) | Any FM radio's mic and speaker audio | 4.0 kbit/s | 2.5 s | about 10-12 dB |
-| `fm-fast` | FM audio, strong clean signal | 6.0 kbit/s | 1.7 s | about 16 dB |
-| `fm-turbo` | FM audio, full-quieting signal, audio level set well | 9.2 kbit/s | 1.2 s | about 22 dB |
-| `dataport-fast` | The radio's 9600 data port, or an SDR | 13 kbit/s | 0.9 s | about 18-20 dB |
-| `dataport-turbo` | 9600 data port or SDR, strong signal | 17 kbit/s | 0.7 s | about 24 dB |
+| Preset | Radio hookup | Raw rate | 30 sample prayers | 100 prayers | Works down to (SNR in 2.5 kHz) |
+| --- | --- | --- | --- | --- | --- |
+| `fm-robust` | Any FM radio's mic and speaker audio | 2.0 kbit/s | 3.5 s | 6.1 s | about 6 dB |
+| `fm-standard` (default) | Any FM radio's mic and speaker audio | 4.0 kbit/s | 1.7 s | 3.1 s | about 10-12 dB |
+| `fm-fast` | FM audio, strong clean signal | 6.0 kbit/s | 1.2 s | 2.1 s | about 16 dB |
+| `fm-turbo` | FM audio, full-quieting signal, audio level set well | 9.2 kbit/s | 0.8 s | 1.5 s | about 22 dB |
+| `dataport-fast` | The radio's 9600 data port, or an SDR | 13 kbit/s | 0.65 s | 1.2 s | about 18-20 dB |
+| `dataport-turbo` | 9600 data port or SDR, strong signal | 17 kbit/s | 0.5 s | 1.0 s | about 24 dB |
+
+The 100-prayer column uses the benchmark's generated requests
+(`src/burst/sample.ts`) and includes the 0.1 s lead-in. Each frame also has a
+fixed 0.19 s of sync and header, so bigger batches are more efficient.
 
 The receiver follows a sound card clock difference of up to ±300 ppm through
 frames of 20 seconds or more, and an SSB tuning error of up to about ±10 Hz
@@ -37,14 +41,18 @@ in about 3.7 s on `fm-standard` and 2.6 s on `fm-fast` in the benchmark.
 ## How it fits that much
 
 1. **Batch compression.** The prayers are folded to ASCII, joined with
-   newlines, and compressed together. The station tries three openly published
-   formats and keeps the smallest: plain text, raw DEFLATE
+   newlines, and compressed together. The station tries four formats and keeps
+   the smallest. The usual winner is a small context-mixing (CM) compressor,
+   an independent implementation in the style of the lpaq family listed on
+   [Matt Mahoney's Large Text Compression Benchmark](https://mattmahoney.net/dc/text.html). It is primed
+   with a published sample of prayer-request English, so it already knows the
+   words before the first prayer. The others are plain text, raw DEFLATE
    ([RFC 1951](https://www.rfc-editor.org/rfc/rfc1951)) primed with a preset
    dictionary of common prayer words (the technique in
    [Cloudflare's write-up](https://blog.cloudflare.com/improving-compression-with-preset-deflate-dictionary/)),
    and Brotli ([RFC 7932](https://www.rfc-editor.org/rfc/rfc7932)), which has
-   a built-in English dictionary. The dictionary is published in
-   `apps/station/src/burst/dictionary.ts`.
+   a built-in English dictionary. The dictionary and primer are published in
+   `apps/station/src/burst/dictionary.ts` and `primer.ts`.
 2. **Error correction.** The compressed batch gets a CRC-32 and is cut into
    Reed-Solomon blocks over GF(256) (the RS(255,223) family), interleaved so a
    noise burst is spread over all blocks.
@@ -118,6 +126,7 @@ batch:
     0  plain ASCII
     1  raw DEFLATE (RFC 1951), with DICTIONARY_V1 as the preset dictionary
     2  Brotli (RFC 7932)
+    3  context mixing (below), primed with PRIMER_V1 followed by DICTIONARY_V1
   the decoded text is the prayers separated by "\n"
 payload:
   the message cut into B = ceil(L / (255 - P)) blocks of near-equal size
@@ -128,6 +137,26 @@ payload:
 Reed-Solomon: GF(2^8) with primitive polynomial 0x11d, generator roots
 alpha^0 ... alpha^(P-1), parity appended after the data. P is the preset's
 parity (48 for fm-robust, 32 otherwise).
+
+### Codec 3: context mixing
+
+The reference is `apps/station/src/burst/cm.ts`. It uses only integer
+arithmetic, so it gives the same bits on every machine. In outline:
+
+- Data: the text length as a little-endian base-128 varint, then the output of
+  a 32-bit binary arithmetic coder (the lpaq kind: 12-bit probabilities, bytes
+  shifted out while the top bytes of the low and high bounds agree, one flush
+  byte, and the reader pads with 0xFF).
+- Each byte is coded most significant bit first. Seven models give a
+  probability from a 2^18-slot table, indexed by a hash of their context and
+  the bits of the byte so far. The contexts are: none; the last 1, 2, 3, 4 and
+  6 bytes; and the current word plus the previous word (letters, lower-cased).
+- Slot update: p += (bit - p) x 2/(2n + 3), where n is how often the slot was
+  seen, capped at 60.
+- Mixer: the stretched predictions and a bias are weighted (one weight set
+  per partial byte) and squashed. Weights learn from the coding error.
+- Before coding, encoder and decoder both run the model over the primer text,
+  without output.
 
 ### Waveform
 
@@ -188,3 +217,4 @@ receiver choices, not part of the format.
 - Preset DEFLATE dictionaries: [Cloudflare blog](https://blog.cloudflare.com/improving-compression-with-preset-deflate-dictionary/)
 - DEFLATE: [RFC 1951](https://www.rfc-editor.org/rfc/rfc1951). Brotli: [RFC 7932](https://www.rfc-editor.org/rfc/rfc7932).
 - Short-string compressors considered (Unishox2, Smaz, Shoco): [Unishox2](https://github.com/siara-cc/Unishox2)
+- Context mixing and the lpaq family: [Matt Mahoney, Large Text Compression Benchmark](https://mattmahoney.net/dc/text.html)

@@ -3,7 +3,9 @@
 // so a newline can separate them. The first byte names the codec, so a
 // receiver never has to guess; every codec is an openly published standard.
 import { brotliCompressSync, brotliDecompressSync, constants, deflateRawSync, inflateRawSync } from 'node:zlib';
+import { cmCompress, cmDecompress, cmFit } from './cm.js';
 import { DICTIONARY_V1 } from './dictionary.js';
+import { PRIMER_V1 } from './primer.js';
 
 export enum Codec {
   /** The prayers as plain ASCII, newline separated. */
@@ -12,9 +14,12 @@ export enum Codec {
   DeflateDict1 = 1,
   /** Brotli (RFC 7932), which has its own built-in English dictionary. */
   Brotli = 2,
+  /** Context mixing (cm.ts) primed with PRIMER_V1 then DICTIONARY_V1: usually a third smaller than DEFLATE. */
+  ContextMix1 = 3,
 }
 
 const dictionary = Buffer.from(DICTIONARY_V1, 'latin1');
+const primer = Buffer.from(PRIMER_V1 + DICTIONARY_V1, 'latin1');
 
 function compress(codec: Codec, text: Buffer): Buffer {
   switch (codec) {
@@ -30,18 +35,27 @@ function compress(codec: Codec, text: Buffer): Buffer {
           [constants.BROTLI_PARAM_SIZE_HINT]: text.length,
         },
       });
+    case Codec.ContextMix1:
+      return Buffer.from(cmCompress(text, primer, 'v1'));
   }
 }
 
-/** Compress a batch with every codec and keep the smallest. Byte 0 is the codec. */
-export function encodeBatch(prayers: readonly string[]): Uint8Array {
+const ALL = [Codec.Plain, Codec.DeflateDict1, Codec.Brotli, Codec.ContextMix1];
+
+/** Compress a batch with every codec (or the ones given) and keep the smallest. Byte 0 is the codec. */
+export function encodeBatch(prayers: readonly string[], codecs: readonly Codec[] = ALL): Uint8Array {
   const text = Buffer.from(prayers.join('\n'), 'latin1');
   let best: Buffer | null = null;
-  for (const codec of [Codec.Plain, Codec.DeflateDict1, Codec.Brotli]) {
+  for (const codec of codecs) {
     const body = compress(codec, text);
     if (!best || body.length + 1 < best.length) best = Buffer.concat([Buffer.from([codec]), body]);
   }
   return new Uint8Array(best!);
+}
+
+/** How many of the prayers fit in a batch of at most maxBytes (codec 3's size, which the final encode can only beat). */
+export function fitBatch(prayers: readonly string[], maxBytes: number): number {
+  return cmFit(prayers.map((p) => Buffer.from(p, 'latin1')), primer, 'v1', maxBytes - 1);
 }
 
 export function decodeBatch(bytes: Uint8Array): string[] {
@@ -51,6 +65,7 @@ export function decodeBatch(bytes: Uint8Array): string[] {
   if (codec === Codec.Plain) text = body;
   else if (codec === Codec.DeflateDict1) text = inflateRawSync(body, { dictionary });
   else if (codec === Codec.Brotli) text = brotliDecompressSync(body);
+  else if (codec === Codec.ContextMix1) text = Buffer.from(cmDecompress(body, primer, 'v1'));
   else throw new Error(`unknown codec ${codec}`);
   const s = text.toString('latin1');
   return s ? s.split('\n') : [];

@@ -1,6 +1,6 @@
 // Burst batches: many prayers compressed into as few frames as fit the
 // longest allowed key-up, and the frames joined into one audio clip.
-import { decodeBatch, encodeBatch } from './codec.js';
+import { decodeBatch, encodeBatch, fitBatch } from './codec.js';
 import { demodulate, frameSeconds, modulate, SAMPLE_RATE } from './ofdm.js';
 import type { BurstPreset } from './presets.js';
 
@@ -8,27 +8,25 @@ import type { BurstPreset } from './presets.js';
 const GAP_SECONDS = 0.05;
 
 /**
- * Split prayers into batches whose frame stays under maxFrameSeconds: the
- * most prayers that fit, found by binary search. A single prayer too long on
- * its own still gets its own frame.
+ * Split prayers into batches whose frame stays under maxFrameSeconds: as many
+ * prayers as fit, measured in one compression pass per frame. A single prayer
+ * too long on its own still gets its own frame.
  */
 export function planFrames(prayers: readonly string[], preset: BurstPreset, maxFrameSeconds: number): Uint8Array[] {
+  // The largest batch (in bytes) whose frame, with its CRC-32, fits the limit.
+  let lo = 0;
+  let hi = 1 << 24;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (frameSeconds(preset, mid + 4) <= maxFrameSeconds) lo = mid;
+    else hi = mid - 1;
+  }
   const out: Uint8Array[] = [];
-  const fits = (b: Uint8Array) => frameSeconds(preset, b.length + 4) <= maxFrameSeconds;
   for (let i = 0; i < prayers.length; ) {
-    let lo = 1; // known to be sent (even if it does not fit)
-    let best = encodeBatch(prayers.slice(i, i + 1));
-    let hi = prayers.length - i;
-    while (lo < hi) {
-      const mid = Math.ceil((lo + hi) / 2);
-      const b = encodeBatch(prayers.slice(i, i + mid));
-      if (fits(b)) {
-        lo = mid;
-        best = b;
-      } else hi = mid - 1;
-    }
-    out.push(best);
-    i += lo;
+    // Always send at least one prayer, even one too long for a frame on its own.
+    const n = Math.max(1, fitBatch(prayers.slice(i), lo));
+    out.push(encodeBatch(prayers.slice(i, i + n)));
+    i += n;
   }
   return out;
 }
