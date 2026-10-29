@@ -25,6 +25,7 @@ import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
 import * as talkCounts from '../conversation-helpers/counts.js';
+import * as kindnessWeather from '../kindness-weather/index.js';
 import * as meaningProposals from '../meaning-reactions/proposals.js';
 import * as kindnessHighlights from '../kindness-highlights/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
@@ -557,6 +558,19 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/practice-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await practices.updateSettings(db, practices.SettingsPatch.parse(req.body)) };
+  });
+
+  // Encourager check-ins: totals by answer only, never who said what.
+  app.get('/admin/encourager-checkins', async (req) => {
+    await requireAdmin(req);
+    return { totals: await practices.checkInTotals(db) };
+  });
+
+  // Kindness weather report: weekly totals only, quiet weeks folded (modules/kindness-weather).
+  app.get('/admin/kindness-weather', async (req) => {
+    await requireAdmin(req);
+    const { weeks } = z.object({ weeks: z.coerce.number().int().min(4).max(52).default(12) }).parse(req.query);
+    return kindnessWeather.report(db, weeks);
   });
 
   // Growth ideas (docs/GROWTH.md): each off until switched on here.

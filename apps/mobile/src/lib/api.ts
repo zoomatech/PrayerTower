@@ -207,6 +207,8 @@ export interface Features {
   kindMilestones: boolean;
   thankNote: boolean;
   calmThreads: boolean;
+  prayerCircles: boolean;
+  encouragerCheckin: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -306,6 +308,10 @@ export interface PracticeSettings {
   kind_milestones_enabled: boolean;
   thank_note_enabled: boolean;
   calm_threads_enabled: boolean;
+  prayer_circles_enabled: boolean;
+  encourager_checkin_enabled: boolean;
+  encourager_checkin_days: number;
+  kindness_weather_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -367,6 +373,44 @@ export interface EncouragerMatch {
   role: 'newcomer' | 'encourager';
   other: { id: string; displayName: string };
   endsAt: string;
+  /** Present while check-ins are on: the two-week "How is it going?" is waiting for this member. */
+  checkInDue?: boolean;
+}
+export type CheckInAnswer = 'good' | 'okay' | 'change';
+export interface CircleSummary {
+  id: string;
+  name: string;
+  about: string | null;
+  isOwner: boolean;
+  members: number;
+  lastPostAt: string | null;
+}
+export interface CircleReply {
+  id: string;
+  author: { id: string; displayName: string | null };
+  body: string;
+  createdAt: string;
+}
+export interface CirclePost extends CircleReply {
+  prayedByMe: boolean;
+  /** Only on the viewer's own posts. */
+  prayed?: number;
+  replies: CircleReply[];
+}
+export interface CircleView {
+  circle: { id: string; name: string; about: string | null; isOwner: boolean; ownerId: string; full: boolean };
+  members: { id: string; displayName: string | null }[];
+  invite: { code: string; expiresAt: string } | null;
+  posts: CirclePost[];
+}
+export type Weather = 'sunny' | 'fair' | 'cloudy' | 'stormy' | 'quiet';
+export interface WeatherWeek {
+  weekStart: string;
+  weather: Weather;
+  comments: number | null;
+  warm: number | null;
+  heated: number | null;
+  prayers: number | null;
 }
 export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
 export interface RememberedItem {
@@ -1764,6 +1808,8 @@ export const api = {
       request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    kindnessWeather: (weeks = 12) => get<{ enabled: boolean; weeks: WeatherWeek[] }>(`/admin/kindness-weather?weeks=${weeks}`),
+    encouragerCheckins: () => get<{ totals: Record<CheckInAnswer, number> }>('/admin/encourager-checkins'),
     meaningProposals: () => get<{ proposals: MeaningProposalQueueItem[] }>('/admin/meaning-proposals'),
     decideMeaningProposal: (id: string, d: { approve: boolean; label?: string; neutralLabel?: string; replaces?: string }) =>
       post<{ status: 'approved' | 'declined' }>(`/admin/meaning-proposals/${id}`, d),
@@ -1773,7 +1819,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -2012,6 +2058,18 @@ export const api = {
   setVolunteer: (on: boolean, agree?: boolean) => put<EncouragerState>('/me/encourager/volunteer', { on, ...(agree ? { agree } : {}) }),
   askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
   endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
+  encouragerCheckIn: (id: string, answer: CheckInAnswer) => post<EncouragerState>(`/me/encourager/matches/${id}/check-in`, { answer }),
+  myCircles: () => get<{ enabled: boolean; circles: CircleSummary[] }>('/me/circles'),
+  createCircle: (name: string, about?: string) => post<{ id: string }>('/circles', { name, ...(about ? { about } : {}) }),
+  joinCircle: (code: string) => post<{ id: string }>('/circles/join', { code }),
+  circle: (id: string) => get<CircleView>(`/circles/${id}`),
+  circleInvite: (id: string) => post<{ code: string; expiresAt: string }>(`/circles/${id}/invite`),
+  leaveCircle: (id: string) => post<{ left: boolean }>(`/circles/${id}/leave`),
+  removeCircleMember: (id: string, userId: string) => request<{ removed: boolean }>('DELETE', `/circles/${id}/members/${userId}`),
+  circlePost: (id: string, body: string) => post<{ id: string }>(`/circles/${id}/posts`, { body }),
+  circleReply: (postId: string, body: string) => post<{ id: string }>(`/circle-posts/${postId}/replies`, { body }),
+  circlePray: (postId: string) => post<{ prayed: boolean }>(`/circle-posts/${postId}/pray`),
+  removeCirclePost: (postId: string) => request<{ removed: boolean }>('DELETE', `/circle-posts/${postId}`),
   remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
   hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
   conversationPrefs: () => get<{ prefs: ConversationPrefs }>('/me/conversation-prefs'),

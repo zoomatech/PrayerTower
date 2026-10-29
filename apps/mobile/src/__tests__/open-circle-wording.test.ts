@@ -18,7 +18,7 @@ function strings(e: Tree, n: Tree | undefined, path: string, out: [string, strin
   return out;
 }
 
-it.each(['give', 'radioRequests', 'twoStep', 'accountSecurity', 'invites', 'kindCloud', 'meanings', 'talk', 'practices', 'repair', 'growth', 'harm', 'across', 'quick', 'highlights', 'card', 'highlightsKind', 'coolDown', 'research', 'lament', 'answeredStory', 'kindIntro', 'checkBack', 'kindMilestones', 'commentKindness', 'thankNote', 'calm', 'quietCounts', 'meaningProposals', 'listen'])('%s has no religious words in Open Circle', (section) => {
+it.each(['give', 'radioRequests', 'twoStep', 'accountSecurity', 'invites', 'kindCloud', 'meanings', 'talk', 'practices', 'repair', 'growth', 'harm', 'across', 'quick', 'highlights', 'card', 'highlightsKind', 'coolDown', 'research', 'lament', 'answeredStory', 'kindIntro', 'checkBack', 'kindMilestones', 'commentKindness', 'thankNote', 'calm', 'quietCounts', 'meaningProposals', 'listen', 'circles', 'encCheck', 'weather'])('%s has no religious words in Open Circle', (section) => {
   const e = (en as unknown as Tree)[section] as Tree;
   const religious = strings(e, neutral[section] as Tree | undefined, `${section}.`, []).filter(([, text]) => RELIGIOUS.test(text));
   expect(religious).toEqual([]);

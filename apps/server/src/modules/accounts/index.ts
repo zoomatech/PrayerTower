@@ -423,7 +423,17 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'update public.meaning_proposals set user_id = null where user_id = $1',
     'update public.partnerships set ended_at = coalesce(ended_at, now()) where a_id = $1 or b_id = $1',
     'delete from public.encourager_volunteers where user_id = $1',
+    'delete from public.encourager_checkins where user_id = $1',
     'delete from public.encourager_matches where newcomer_id = $1 or encourager_id = $1',
+    // A circle the member started passes to its longest-standing other member; an empty one goes.
+    `update public.prayer_circles c set owner_id = (select m.user_id from public.prayer_circle_members m where m.circle_id = c.id and m.user_id <> $1 order by m.joined_at limit 1)
+      where c.owner_id = $1 and exists (select 1 from public.prayer_circle_members m where m.circle_id = c.id and m.user_id <> $1)`,
+    'delete from public.prayer_circle_invites where created_by = $1',
+    'delete from public.prayer_circles where owner_id = $1',
+    'delete from public.circle_prayed where user_id = $1',
+    'delete from public.circle_replies where user_id = $1',
+    'delete from public.circle_posts where user_id = $1',
+    'delete from public.prayer_circle_members where user_id = $1',
     'delete from public.remembered_hidden where user_id = $1',
     'delete from public.welcome_dismissed where user_id = $1',
     'delete from public.kind_asks where sender_id = $1',

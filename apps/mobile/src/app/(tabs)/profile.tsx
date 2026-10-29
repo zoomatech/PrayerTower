@@ -198,6 +198,7 @@ export default function Profile() {
         <MeaningProposals />
         {features.kindnessResearch ? <Button small variant="secondary" label={t('research.title')} onPress={() => router.push('/kindness-research')} /> : null}
         <EncouragerCard />
+        {features.prayerCircles ? <Button small variant="secondary" label={t('circles.open')} testID="open-circles" onPress={() => router.push('/circles')} /> : null}
         <PartnerCard />
         <ConversationPrefsCard />
         <AwardCard />

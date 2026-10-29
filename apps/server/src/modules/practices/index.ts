@@ -18,7 +18,7 @@
 import type { Task } from 'graphile-worker';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { badRequest, forbidden, notFound } from '../../errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
@@ -50,12 +50,17 @@ export interface PracticeSettings {
   kind_milestones_enabled: boolean;
   thank_note_enabled: boolean;
   calm_threads_enabled: boolean;
+  prayer_circles_enabled: boolean;
+  encourager_checkin_enabled: boolean;
+  encourager_checkin_days: number;
+  kindness_weather_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
             welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled,
-            partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled, answered_stories_enabled, kindness_intro_enabled, check_back_enabled, kind_milestones_enabled, thank_note_enabled, calm_threads_enabled
+            partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled, answered_stories_enabled, kindness_intro_enabled, check_back_enabled, kind_milestones_enabled, thank_note_enabled, calm_threads_enabled,
+            prayer_circles_enabled, encourager_checkin_enabled, encourager_checkin_days, kindness_weather_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -88,6 +93,10 @@ export const SettingsPatch = z.object({
   kindMilestonesEnabled: z.boolean().optional(),
   thankNoteEnabled: z.boolean().optional(),
   calmThreadsEnabled: z.boolean().optional(),
+  prayerCirclesEnabled: z.boolean().optional(),
+  encouragerCheckinEnabled: z.boolean().optional(),
+  encouragerCheckinDays: z.number().int().min(3).max(60).optional(),
+  kindnessWeatherEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -107,7 +116,9 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        lament_enabled = coalesce($20, lament_enabled), answered_stories_enabled = coalesce($21, answered_stories_enabled),
        kindness_intro_enabled = coalesce($22, kindness_intro_enabled), check_back_enabled = coalesce($23, check_back_enabled),
        kind_milestones_enabled = coalesce($24, kind_milestones_enabled), thank_note_enabled = coalesce($25, thank_note_enabled),
-       calm_threads_enabled = coalesce($26, calm_threads_enabled)`,
+       calm_threads_enabled = coalesce($26, calm_threads_enabled),
+       prayer_circles_enabled = coalesce($27, prayer_circles_enabled), encourager_checkin_enabled = coalesce($28, encourager_checkin_enabled),
+       encourager_checkin_days = coalesce($29, encourager_checkin_days), kindness_weather_enabled = coalesce($30, kindness_weather_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -135,6 +146,10 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.kindMilestonesEnabled ?? null,
       p.thankNoteEnabled ?? null,
       p.calmThreadsEnabled ?? null,
+      p.prayerCirclesEnabled ?? null,
+      p.encouragerCheckinEnabled ?? null,
+      p.encouragerCheckinDays ?? null,
+      p.kindnessWeatherEnabled ?? null,
     ],
   );
   return settings(q);
@@ -164,6 +179,8 @@ export async function features(q: Queryable) {
     kindMilestones: s.kind_milestones_enabled,
     thankNote: s.thank_note_enabled,
     calmThreads: s.calm_threads_enabled,
+    prayerCircles: s.prayer_circles_enabled,
+    encouragerCheckin: s.encourager_enabled && s.encourager_checkin_enabled,
   };
 }
 
@@ -409,9 +426,10 @@ export async function encourager(q: Queryable, userId: string) {
        from public.profiles p where p.id = $1`,
     [userId, s.newcomer_days],
   );
-  const { rows: matches } = await q.query<{ id: string; role: 'newcomer' | 'encourager'; other_id: string; other_name: string; ends_at: Date }>(
+  const { rows: matches } = await q.query<{ id: string; role: 'newcomer' | 'encourager'; other_id: string; other_name: string; ends_at: Date; check_in_due: boolean }>(
     `select m.id, case when m.newcomer_id = $1 then 'newcomer' else 'encourager' end as role,
-            o.id as other_id, o.display_name as other_name, m.ends_at
+            o.id as other_id, o.display_name as other_name, m.ends_at,
+            m.checkin_sent_at is not null and not exists (select 1 from public.encourager_checkins c where c.match_id = m.id and c.user_id = $1) as check_in_due
        from public.encourager_matches m
        join public.profiles o on o.id = case when m.newcomer_id = $1 then m.encourager_id else m.newcomer_id end
       where (m.newcomer_id = $1 or m.encourager_id = $1) and ${openMatch}
@@ -419,11 +437,20 @@ export async function encourager(q: Queryable, userId: string) {
     [userId],
   );
   const asNewcomer = matches.some((m) => m.role === 'newcomer');
+  const checkin = s.encourager_checkin_enabled;
+  // Someone who asked for a change at the check-in may ask again, even past their first days.
+  const changed = checkin && !asNewcomer && (await askedForChange(q, userId));
   return {
     enabled: true as const,
     volunteer: me[0]?.volunteer ?? false,
-    canAsk: (me[0]?.newcomer ?? false) && !asNewcomer,
-    matches: matches.map((m) => ({ id: m.id, role: m.role, other: { id: m.other_id, displayName: m.other_name }, endsAt: m.ends_at.toISOString() })),
+    canAsk: ((me[0]?.newcomer ?? false) || changed) && !asNewcomer,
+    matches: matches.map((m) => ({
+      id: m.id,
+      role: m.role,
+      other: { id: m.other_id, displayName: m.other_name },
+      endsAt: m.ends_at.toISOString(),
+      ...(checkin ? { checkInDue: m.check_in_due } : {}),
+    })),
   };
 }
 
@@ -455,6 +482,8 @@ export async function askForEncourager(q: Queryable, userId: string) {
         and public.member_community_id(v.user_id) = public.member_community_id($1)
         and not exists (select 1 from public.user_blocks b where (b.user_id = v.user_id and b.blocked_id = $1) or (b.user_id = $1 and b.blocked_id = v.user_id))
         and (select count(*) from public.encourager_matches m where m.encourager_id = v.user_id and ${openMatch}) < v.max_newcomers
+        and not exists (select 1 from public.encourager_matches m join public.encourager_checkins c on c.match_id = m.id
+                         where m.newcomer_id = $1 and m.encourager_id = v.user_id and c.answer = 'change')
       order by (select count(*) from public.encourager_matches m where m.encourager_id = v.user_id and ${openMatch}), v.agreed_at
       limit 1`,
     [userId],
@@ -485,6 +514,86 @@ export async function endMatch(q: Queryable, userId: string, matchId: string) {
   );
   if (!rowCount) throw notFound('Match');
   return encourager(q, userId);
+}
+
+// 4b. Encourager check-in ---------------------------------------------------------------
+// Two weeks in (encourager_checkin_days), each side gets one quiet "How is it going?".
+// Answers are private: the other person is never told what was said. "I'd like a change"
+// ends the pairing; the newcomer can then ask again and is never matched with the same person.
+
+async function askedForChange(q: Queryable, userId: string) {
+  const { rows } = await q.query<{ answer: string }>(
+    `select c.answer from public.encourager_matches m join public.encourager_checkins c on c.match_id = m.id and c.user_id = m.newcomer_id
+      where m.newcomer_id = $1 order by m.started_at desc limit 1`,
+    [userId],
+  );
+  return rows[0]?.answer === 'change';
+}
+
+export const CheckIn = z.object({ answer: z.enum(['good', 'okay', 'change']) });
+
+export async function checkIn(q: Queryable, userId: string, matchId: string, answer: z.infer<typeof CheckIn>['answer']) {
+  const s = await requireEncourager(q);
+  if (!s.encourager_checkin_enabled) throw badRequest('Check-ins are switched off');
+  const { rows } = await q.query<{ newcomer_id: string; encourager_id: string }>(
+    `select newcomer_id, encourager_id from public.encourager_matches m
+      where m.id = $1 and (m.newcomer_id = $2 or m.encourager_id = $2) and m.checkin_sent_at is not null`,
+    [matchId, userId],
+  );
+  const m = rows[0];
+  if (!m) throw notFound('Check-in');
+  const { rowCount } = await q.query('insert into public.encourager_checkins (match_id, user_id, answer) values ($1, $2, $3) on conflict do nothing', [matchId, userId, answer]);
+  if (!rowCount) throw conflict('You already answered');
+  if (answer === 'change') {
+    await q.query('update public.encourager_matches set ended_at = now() where id = $1 and ended_at is null', [matchId]);
+    // The newcomer hears a gentle word whichever side asked, so nobody is left wondering.
+    if (userId === m.encourager_id) {
+      await notifications.notify(q, m.newcomer_id, {
+        kind: 'encourager_checkin',
+        title: 'Your encourager time has wrapped up',
+        body: 'Thank you for letting someone walk with you. You can ask for another encourager any time.',
+        data: { screen: 'encourager' },
+        quiet: true,
+      });
+    }
+  }
+  return encourager(q, userId);
+}
+
+/** Admins see only totals by answer, never who said what. */
+export async function checkInTotals(q: Queryable) {
+  const { rows } = await q.query<{ answer: string; n: number }>('select answer, count(*)::int as n from public.encourager_checkins group by answer');
+  const t = { good: 0, okay: 0, change: 0 };
+  for (const r of rows) t[r.answer as keyof typeof t] = r.n;
+  return t;
+}
+
+export function checkInDueTask(q: Queryable): Task {
+  return async () => {
+    const s = await settings(q);
+    if (!s.encourager_enabled || !s.encourager_checkin_enabled) return;
+    const { rows } = await q.query<{ id: string; newcomer_id: string; encourager_id: string }>(
+      `update public.encourager_matches m set checkin_sent_at = now()
+        where m.checkin_sent_at is null and ${openMatch} and m.started_at <= now() - make_interval(days => $1)
+        returning m.id, m.newcomer_id, m.encourager_id`,
+      [s.encourager_checkin_days],
+    );
+    for (const r of rows) {
+      for (const [to, body] of [
+        [r.newcomer_id, 'Two weeks in with your encourager. How is it going? Your answer stays private.'],
+        [r.encourager_id, "Two weeks in with the newcomer you're encouraging. How is it going? Your answer stays private."],
+      ] as const) {
+        await notifications.notify(q, to, {
+          kind: 'encourager_checkin',
+          title: 'A quick check-in',
+          body,
+          data: { screen: 'encourager', matchId: r.id },
+          dedupeKey: `encourager_checkin:${r.id}`,
+          quiet: true,
+        });
+      }
+    }
+  };
 }
 
 // 5. Answered & remembered -------------------------------------------------------------
