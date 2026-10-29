@@ -168,6 +168,11 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return { settings: await radio.stationSettings(db) };
   });
 
+  app.get('/admin/radio-bursts', async (req) => {
+    await requireAdmin(req);
+    return { bursts: await radio.recentBursts(db) };
+  });
+
   app.patch('/admin/radio-settings', async (req) => {
     await requireAdmin(req);
     const input = z
