@@ -34,6 +34,21 @@ Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `ba
 
 Open Circle gets the same skins. They carry no religious words, and the vine's Open Circle wording still replaces `birdText` and `tipText`.
 
+## Seasonal skins
+
+Admin → Feed skins → **Seasonal skins** (off) offers each season's skin in Feed style only during its season. **Use the season's skin for members who haven't chosen one** (off) dresses members on the community's usual feed by date; anyone who picked a style keeps it, and a seasonal pick falls back to the usual feed when its season ends.
+
+| Season | Dates | Faith communities | Open Circle |
+|---|---|---|---|
+| Advent | Fourth Sunday before Christmas to 24 December | Advent Wreath (evergreen stem, purple leaves) | |
+| Christmas | 25 December to 5 January | Christmas Star (gold glow on night blue, star leaves) | |
+| Lent | Ash Wednesday (Easter − 46 days) to Holy Saturday | Lenten Desert (sand, violet leaves) | |
+| Easter | Easter Sunday to the day before Pentecost (Easter + 49) | Easter Lily (cream, gold flowers) | |
+| Pentecost | Pentecost Sunday and its week | Pentecost Flame (glowing flame on deep red) | |
+| Winter / spring / summer / autumn | December–February, March–May, June–August, September–November | | Winter Frost, Spring Bloom, Summer Sun, Autumn Leaves |
+
+Church dates follow the Western calendar ([United Methodist glossary](https://admin.umc.org/content/glossary-calendar-christian), [Columban Missionaries](https://www.columban.org.au/media-and-publications/articles/features/2015/liturgical-seasons-explained)); Easter is computed with the anonymous Gregorian algorithm (`easterSunday()` in `packages/shared`). Open Circle uses the northern-hemisphere weather seasons. Every seasonal skin passes the contrast checks below. New ones can be added from a skin file with a `season` (docs/CLAUDE_DESIGN_SKINS.md).
+
 ## Prayer Tower (climb layout)
 
 `apps/mobile/src/layouts/tower.tsx`. Phones and tablets. One request per floor between two stone pillars; the climber climbs one floor each time the member swipes to the next request, with Climb up and Climb down buttons for anyone who prefers tapping. A long request scrolls inside its floor, and the swipe only climbs once the floor is read to its edge.
@@ -63,6 +78,8 @@ Me → Make your own feed skin (`apps/mobile/src/app/skin-idea.tsx`). A member n
 Saving creates a private skin owned by the member (`feed_themes.owner_id`); it shows at once in their own Feed style. Everyone else sees it only after an admin approves it in Admin → Feed skins, which offers it in the member's community (still behind the skins switch). Declining leaves it private. The server accepts only known token names and values (hex colors, set ranges, listed shapes), so a skin can't inject anything else. Up to 3 can wait for review at once. Skins and ideas are in the member's data export and are deleted with the account.
 
 ## Using Claude Design for new skins
+
+Step-by-step guide, prompt and skin file: [CLAUDE_DESIGN_SKINS.md](CLAUDE_DESIGN_SKINS.md).
 
 Claude Design is Anthropic's tool for making designs and prototypes by chatting with Claude ([Get started with Claude Design](https://support.claude.com/en/articles/14604416-get-started-with-claude-design)). What the official pages say, checked 2026-10-29:
 

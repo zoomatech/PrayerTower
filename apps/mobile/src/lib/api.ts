@@ -144,6 +144,8 @@ export interface SkinSettings {
   comment_tree_max_depth: number;
   proposals_enabled: boolean;
   video_max_seconds: number;
+  seasonal_enabled: boolean;
+  seasonal_auto: boolean;
 }
 
 export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
@@ -1237,7 +1239,7 @@ export const api = {
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
-    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number }>) =>
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
       request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),

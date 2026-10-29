@@ -15,7 +15,8 @@
     "push-test": "tsx src/scripts/push-test.ts",
     "query-audit": "tsx src/scripts/query-audit.ts",
     "load-test": "tsx src/scripts/load-test.ts",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "skin:add": "tsx src/scripts/skin-add.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
