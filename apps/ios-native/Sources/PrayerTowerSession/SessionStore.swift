@@ -93,6 +93,40 @@ public final class SessionStore: Sendable {
         try await auth.deletePasskey(id: id)
     }
 
+    /// Creates an account. Returns nil when the server wants the email confirmed first.
+    /// The invite code is checked by the sign-up trigger (supabase/migrations/…_invite_codes.sql).
+    public func signUp(email: String, password: String, name: String, invite: String, openCircle: Bool = false) async throws -> SignInState? {
+        var data: [String: AnyJSON] = ["display_name": .string(name.trimmingCharacters(in: .whitespacesAndNewlines)), "locale": .string("en")]
+        let code = invite.trimmingCharacters(in: .whitespaces)
+        if !code.isEmpty { data["invite_code"] = .string(code) }
+        if openCircle { data["community"] = .string("open-circle") }
+        let r = try await auth.signUp(email: email.trimmingCharacters(in: .whitespaces), password: password, data: data)
+        return r.session == nil ? nil : .signedIn
+    }
+
+    /// Emails a link to choose a new password.
+    public func sendPasswordReset(email: String) async throws {
+        try await auth.resetPasswordForEmail(email.trimmingCharacters(in: .whitespaces))
+    }
+
+    /// The code from the reset email signs the member in to choose a new password.
+    public func verifyResetCode(email: String, code: String) async throws {
+        _ = try await auth.verifyOTP(email: email.trimmingCharacters(in: .whitespaces), token: code.trimmingCharacters(in: .whitespaces), type: .recovery)
+    }
+
+    // MARK: - Password and email on Me
+
+    public var email: String? { auth.currentUser?.email }
+
+    public func setPassword(_ password: String) async throws {
+        _ = try await auth.update(user: UserAttributes(password: password))
+    }
+
+    /// Sends a confirmation link to the new address; the email changes once it is tapped.
+    public func changeEmail(_ email: String) async throws {
+        _ = try await auth.update(user: UserAttributes(email: email.trimmingCharacters(in: .whitespaces)))
+    }
+
     public func signOut() async {
         try? await auth.signOut(scope: .local)
     }
