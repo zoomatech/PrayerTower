@@ -164,25 +164,114 @@ function bins(x: Float32Array, at: number, first: number, count: number): [Float
   return [re.slice(first, first + count), im.slice(first, first + count)];
 }
 
-/** Differential demodulation of `count` symbols after a reference symbol, at `at` (useful part of the reference). */
-function demodDiff(x: Float32Array, at: number, first: number, c: number, symbols: number, bits: number): number[] {
+/**
+ * Receiver tracking, carried from the header into the payload:
+ * off  = how far (in samples) the transmitter's clock has drifted from ours
+ * rate = that drift per symbol
+ * bias = the steady phase turn per symbol from a tuning offset (SSB) in radians
+ * fresh = nothing measured yet
+ */
+interface Track {
+  fresh: boolean;
+  off: number;
+  rate: number;
+  bias: number;
+}
+
+/**
+ * Differential demodulation of `symbols` symbols after a reference symbol whose
+ * useful part starts at `at`. Decision-directed tracking: after each symbol,
+ * the leftover phase error across carriers gives a slope (timing drift) and an
+ * offset (tuning error); the FFT window follows the drift and the decisions
+ * remove the offset.
+ */
+function demodDiff(x: Float32Array, at: number, first: number, c: number, symbols: number, bits: number, track: Track): number[] {
   const m = 1 << bits;
   const step = (2 * Math.PI) / m;
-  let [pr, pi] = bins(x, at, first, c);
+  const S = N + GUARD;
+  let shift = Math.round(track.off);
+  let [pr, pi] = bins(x, at + shift, first, c);
   const values: number[] = [];
+  const err = new Float64Array(c);
+  const kMean = first + (c - 1) / 2;
+  let kVar = 0;
+  for (let k = 0; k < c; k++) kVar += (first + k - kMean) ** 2;
   for (let s = 1; s <= symbols; s++) {
-    const [cr, ci] = bins(x, at + s * (N + GUARD), first, c);
+    const nextShift = Math.round(track.off);
+    const [cr, ci] = bins(x, at + s * S + nextShift, first, c);
+    if (nextShift !== shift) {
+      // A window moved by d samples turns bin k by 2*pi*k*d/N; turn the previous symbol to match.
+      const d = nextShift - shift;
+      for (let k = 0; k < c; k++) {
+        const a = (2 * Math.PI * (first + k) * d) / N;
+        const r = pr[k]! * Math.cos(a) - pi[k]! * Math.sin(a);
+        pi[k] = pr[k]! * Math.sin(a) + pi[k]! * Math.cos(a);
+        pr[k] = r;
+      }
+      shift = nextShift;
+    }
+    if (s === 1 && track.fresh) {
+      // First symbol: estimate the tuning offset before any decision. Raising
+      // each phase change to the power m wipes out the data and leaves m times
+      // the offset (good for up to half a phase step either way).
+      let sr = 0;
+      let si = 0;
+      for (let k = 0; k < c; k++) {
+        const a = Math.atan2(ci[k]! * pr[k]! - cr[k]! * pi[k]!, cr[k]! * pr[k]! + ci[k]! * pi[k]!) * m;
+        sr += Math.cos(a);
+        si += Math.sin(a);
+      }
+      track.bias = Math.atan2(si, sr) / m;
+      track.fresh = false;
+    }
+    let errMean = 0;
     for (let k = 0; k < c; k++) {
-      // angle of current * conj(previous)
+      // angle of current * conj(previous), less the tracked tuning offset
       const dr = cr[k]! * pr[k]! + ci[k]! * pi[k]!;
       const di = ci[k]! * pr[k]! - cr[k]! * pi[k]!;
-      const d = Math.round(Math.atan2(di, dr) / step);
+      const ang = Math.atan2(di, dr) - track.bias;
+      const d = Math.round(ang / step);
       values.push(stepToGray(((d % m) + m) % m));
+      err[k] = ang - d * step;
+      errMean += err[k]! / c;
     }
+    let slope = 0;
+    for (let k = 0; k < c; k++) slope += ((first + k - kMean) * (err[k]! - errMean)) / kVar;
+    // A clock difference makes each symbol arrive a little earlier or later
+    // than the one before, which shows up as a phase slope of 2*pi*d/N radians
+    // per bin (the window moves are already undone above). So the slope
+    // measures the drift rate: smooth it, and move the window by it.
+    track.rate += 0.15 * (-(slope * N) / (2 * Math.PI) - track.rate);
+    track.off += track.rate;
+    track.bias += 0.3 * errMean;
     pr = cr;
     pi = ci;
   }
   return values;
+}
+
+/** Shift every frequency in x by hz (via the analytic signal), as an SSB receiver's tuning knob would. */
+function shiftFrequency(x: Float32Array, hz: number): Float32Array {
+  let n = 1;
+  while (n < x.length) n <<= 1;
+  const re = new Float64Array(n);
+  const im = new Float64Array(n);
+  re.set(x);
+  fft(re, im);
+  // Analytic signal: keep positive frequencies (doubled), drop negative ones.
+  for (let k = 1; k < n / 2; k++) {
+    re[k]! *= 2;
+    im[k]! *= 2;
+  }
+  re.fill(0, n / 2 + 1);
+  im.fill(0, n / 2 + 1);
+  fft(re, im, true);
+  const out = new Float32Array(x.length);
+  for (let i = 0; i < x.length; i++) {
+    const a = (2 * Math.PI * hz * i) / SAMPLE_RATE;
+    out[i] = (re[i]! * Math.cos(a) - im[i]! * Math.sin(a)) / n;
+  }
+  return out;
 }
 
 let syncTemplate: Float64Array | null = null;
@@ -241,7 +330,8 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     let best = i;
     for (let j = i; j < Math.min(corr.length, i + S); j++) if (corr[j]! > corr[best]!) best = j;
     const at = Math.max(0, best - BACKOFF);
-    const hv = demodDiff(x, at, SYNC_FIRST, SYNC_CARRIERS, hdrSyms, 1);
+    const track: Track = { fresh: true, off: 0, rate: 0, bias: 0 };
+    const hv = demodDiff(x, at, SYNC_FIRST, SYNC_CARRIERS, hdrSyms, 1, track);
     const header = decodeHeader(ungroup(hv, 1, HEADER_BYTES + HEADER_PARITY));
     const preset = header && PRESETS.find((p) => p.id === header.presetId);
     if (!header || !preset) {
@@ -254,7 +344,18 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     const refAt = at + (1 + hdrSyms) * S;
     const end = best - GUARD + (2 + hdrSyms + syms) * S;
     if (refAt + syms * S + N > x.length + BACKOFF) break; // the recording stops mid-frame
-    const pv = demodDiff(x, refAt, preset.firstBin, c, syms, preset.bitsPerSymbol);
+    // A tuning offset (SSB) also leaks energy between carriers; past a fraction
+    // of a hertz, shift the frame back into tune before reading the payload.
+    const offsetHz = (track.bias * SAMPLE_RATE) / (2 * Math.PI * S);
+    let src = x;
+    let srcAt = refAt;
+    if (Math.abs(offsetHz) > 0.25) {
+      const from = Math.max(0, refAt - S);
+      src = shiftFrequency(x.subarray(from, Math.min(x.length, end + S)), -offsetHz);
+      srcAt = refAt - from;
+      track.bias = 0;
+    }
+    const pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track);
     const result = decodePayload(ungroup(pv, preset.bitsPerSymbol, plen), header.messageLength, preset.parity);
     if (result) {
       frames.push({ ...header, preset: preset.name, batch: result.batch, corrected: result.corrected, start: best - GUARD, end });

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { decodeBatch, encodeBatch } from '../src/burst/codec.js';
+import { fft } from '../src/burst/fft.js';
 import { frameSeconds, modulate } from '../src/burst/ofdm.js';
 import { PRESETS, presetByName } from '../src/burst/presets.js';
 import { rsDecode, rsEncode } from '../src/burst/rs.js';
@@ -65,6 +66,28 @@ function radioChannel(x: Float32Array, o: { snrDb: number; lowHz: number; highHz
     out[i] = 0.6 * v + noise * gauss();
   }
   return out;
+}
+
+/** Move every frequency by hz, as a mistuned SSB receiver would. */
+function shiftForTest(x: Float32Array, hz: number): Float32Array {
+  const n = 1 << Math.ceil(Math.log2(x.length));
+  const re = new Float64Array(n);
+  const im = new Float64Array(n);
+  re.set(x);
+  fft(re, im);
+  const bins = Math.round(hz / (48_000 / n));
+  const r2 = new Float64Array(n);
+  const i2 = new Float64Array(n);
+  for (let k = 1; k < n / 2; k++) {
+    const t = k + bins;
+    if (t <= 0 || t >= n / 2) continue;
+    r2[t] = re[k]!;
+    i2[t] = im[k]!;
+    r2[n - t] = re[k]!;
+    i2[n - t] = -im[k]!;
+  }
+  fft(r2, i2, true);
+  return Float32Array.from(r2.subarray(0, x.length), (v) => v / n);
 }
 
 describe('Reed-Solomon', () => {
@@ -128,6 +151,29 @@ describe('burst modem through a simulated FM radio', () => {
     expect(frameSeconds(preset, batch.length + 4)).toBeLessThan(1);
     const rx = radioChannel(modulate(batch, preset, 'KD9XYZ'), { snrDb: 24, lowHz: 50, highHz: 7000, seed: 4 });
     expect(listen(rx)[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
+
+  it('fm-fast: a long frame (over 12 s) survives a 300 ppm sound card clock difference', () => {
+    const preset = presetByName('fm-fast');
+    const prayers = samplePrayers(1500, 5);
+    const [batch] = planFrames(prayers, preset, 20);
+    const audio = modulate(batch!, preset, 'KD9XYZ');
+    expect(audio.length / 48_000).toBeGreaterThan(12);
+    for (const ratio of [1.0003, 0.9997]) {
+      const rx = new Float32Array(Math.floor(audio.length / ratio));
+      for (let i = 0; i < rx.length; i++) {
+        const t = i * ratio;
+        const a = Math.floor(t);
+        rx[i] = (audio[a] ?? 0) * (1 - (t - a)) + (audio[a + 1] ?? 0) * (t - a);
+      }
+      expect(listen(rx)).toHaveLength(1);
+    }
+  });
+
+  it('fm-fast: survives an SSB receiver tuned 8 Hz off', () => {
+    const preset = presetByName('fm-fast');
+    const audio = modulate(encodeBatch(SAMPLE_PRAYERS), preset, 'KD9XYZ');
+    for (const hz of [8, -8]) expect(listen(shiftForTest(audio, hz))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
   });
 
   it('fm-fast: 30 prayers take under 2 seconds of air time', () => {

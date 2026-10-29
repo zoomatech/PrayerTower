@@ -22,6 +22,10 @@ about 32 bytes a prayer.
 | `fm-fast` | FM audio, strong clean signal | 6.0 kbit/s | 1.7 s | about 16 dB |
 | `dataport-fast` | The radio's 9600 data port, or an SDR | 13 kbit/s | 0.9 s | about 18-20 dB |
 
+The receiver follows a sound card clock difference of up to ±300 ppm through
+frames of 20 seconds or more, and an SSB tuning error of up to about ±10 Hz
+(it measures the error from the header and shifts the frame back into tune).
+
 A full-quieting FM signal is far above these numbers, so `fm-fast` is the
 normal choice once the link is known to be solid. Bigger batches compress
 better, because later prayers reuse the words of earlier ones: 100 prayers fit
@@ -158,6 +162,9 @@ payload symbols   the preset's bins, differential PSK
 
 A receiver finds the sync symbol by correlation, reads the header (whose bins
 don't depend on the preset), then knows the preset and the payload length.
+The reference decoder also tracks clock drift (from the phase slope across
+carriers) and tuning error (from the common phase turn per symbol); these are
+receiver choices, not part of the format.
 
 ## Notes for the legal department
 
