@@ -17,6 +17,8 @@ case "$EDITION" in
   *) echo "Unknown edition: $EDITION (prayertower or opencircle)"; exit 2 ;;
 esac
 SCREENS=(feed post promises messages notices me)
+# The feed in each built-in skin (AuditSamplesView.skins), on the iPhone only: skin-<slug>.png.
+SKINS=(beanstalk golden-wood moonlit-gate neon-cinderella blossom-garden christmas-star wall prayer-tower neon-circuit swipe flip)
 # The largest iPhone and iPad sizes App Store Connect asks for (the newest Pro Max is 6.9"); it
 # scales them down for smaller ones.
 DEVICES=("iPhone .* Pro Max" "iPad Pro 13-inch.*")
@@ -74,6 +76,18 @@ for PATTERN in "${DEVICES[@]}"; do
       echo "Screenshot failed: $NAME/$SCREEN: $(tail -1 "$LOGS/shot.txt")"
     fi
   done
+  if [[ "$NAME" == iPhone* ]]; then
+    for SKIN in "${SKINS[@]}"; do
+      xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1 || true
+      xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData -PTScreen feed -PTSkin "$SKIN" > /dev/null
+      sleep 4
+      if xcrun simctl io "$UDID" screenshot "$OUT/$NAME/skin-$SKIN.png" > "$LOGS/shot.txt" 2>&1; then
+        echo "Saved $NAME/skin-$SKIN.png"; SAVED=$((SAVED + 1))
+      else
+        echo "Screenshot failed: $NAME/skin-$SKIN: $(tail -1 "$LOGS/shot.txt")"
+      fi
+    done
+  fi
   xcrun simctl shutdown "$UDID"
   xcrun simctl delete "$UDID"
 done

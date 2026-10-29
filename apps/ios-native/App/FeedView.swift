@@ -139,7 +139,9 @@ struct FeedView: View {
             pending = await OfflineStore.shared.pending().count
             dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
             posts = page.posts
-            theme = page.theme
+            SpotlightIndex.update(page.posts)
+            // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
+            theme = SampleServer.skin().flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
             nextPage = page.nextPage
             error = nil
             await WidgetBridge.update(page, model: model)
