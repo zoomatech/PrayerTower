@@ -11,6 +11,7 @@ import * as materialMatch from '../material-match/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
+import * as acks from './acks.js';
 import * as receipts from './receipts.js';
 import * as tokens from '../tokens/index.js';
 import { requireFeature } from '../communities/index.js';
@@ -263,6 +264,8 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
       where status = 'sending' and claimed_at < now() - make_interval(mins => $1)`,
     [CLAIM_TIMEOUT_MINUTES],
   );
+  // Listener acknowledgements: sent prayers nobody heard go back in the queue (acks.ts).
+  await acks.requeueUnheard(q);
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
     const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(

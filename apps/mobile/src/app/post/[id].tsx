@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { BelieveCard } from '@/components/believe-card';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
@@ -29,13 +30,15 @@ import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
 
 export default function PostScreen() {
-  const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
+  const { id, celebrate: celebrateParam, comment: sharedCommentId, believe: believeParam } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string; believe?: string }>();
   const { celebrate, overlay } = useCelebration();
   const { profile, roles } = useAuth();
   const { t } = useLocale();
   const features = useFeatures();
   // On a very wide window the comment vine gets a roomier lane, like the feed's skins.
   const roomy = useWindowDimensions().width >= breakpoints.twoColumnFeed && features.commentTree;
+  // The Believe moment: 'mine' right after marking answered, 'theirs' when a pray-er opens the good news.
+  const [believe, setBelieve] = useState<'mine' | 'theirs' | null>(believeParam ? 'theirs' : null);
   const { materialMatch, kindCloud } = features;
   // The comment tree and the emoji word leaves take their look from the member's feed skin.
   // The tree falls back to the vine's own colors; the word leaves stay plain chips without a skin.
@@ -161,6 +164,7 @@ export default function PostScreen() {
       if (r.crisis) setSupport(true);
       setTestimony(null);
       celebrate();
+      if (features.believe) setBelieve('mine');
     } catch (e) {
       setError((e as Error).message);
     }
@@ -240,6 +244,20 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
+        {card && believe && features.believe && card.state === 'answered' && (believe === 'mine') === card.isMine ? (
+          <BelieveCard
+            mine={believe === 'mine'}
+            onShare={
+              card.testimony
+                ? undefined
+                : () => {
+                    setBelieve(null);
+                    setTestimony('');
+                  }
+            }
+            onClose={() => setBelieve(null)}
+          />
+        ) : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}

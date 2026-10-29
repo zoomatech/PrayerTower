@@ -2,7 +2,7 @@
 // small cloud with a prayer and "Are you sure you want to put that out there?";
 // a threat gets a firmer ask, never a refusal. Off, nothing is checked or shown.
 import { act, screen } from '@testing-library/react-native';
-import { Text, View } from 'react-native';
+import { AccessibilityInfo, Text, View } from 'react-native';
 
 import { renderApp } from '@/__tests__/helpers';
 import { KindCloud } from '@/components/kind-cloud';
@@ -34,6 +34,17 @@ describe('Kind cloud', () => {
     expect(await screen.findByText('Are you sure you want to put that out there?', {}, { timeout: 3000 })).toBeTruthy();
     expect(screen.getByText(/Set a guard over my mouth, Lord/)).toBeTruthy();
     expect(api.precheck).toHaveBeenCalledWith('You are an idiot.');
+  });
+
+  it('is read aloud once by VoiceOver, since iOS has no live regions', async () => {
+    const spoken = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+    on(true);
+    jest.mocked(api.precheck).mockResolvedValue({ warn: false, cloud: { level: 'nudge', reason: 'aimed' } });
+    await renderApp(<Draft text="You are a fool." />);
+    await screen.findByText('Are you sure you want to put that out there?', {}, { timeout: 3000 });
+    expect(spoken).toHaveBeenCalledTimes(1);
+    expect(spoken).toHaveBeenCalledWith('A gentle note about your words. Are you sure you want to put that out there?');
+    spoken.mockRestore();
   });
 
   it('asks more firmly about a threat', async () => {
