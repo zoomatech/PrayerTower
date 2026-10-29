@@ -21,7 +21,8 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const userId = requireUser(req);
     const post = await withTx(db, (tx) => posts.create(tx, userId, input));
     reply.code(201);
-    return { post: (await posts.cards(db, [post.id], userId))[0] };
+    // harm: a gentle word for the poster when the harmful-prayer check flagged it (null otherwise).
+    return { post: (await posts.cards(db, [post.id], userId))[0], harm: post.harm };
   });
 
   app.get<{ Params: { id: string } }>('/posts/:id', async (req) => {

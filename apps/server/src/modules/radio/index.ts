@@ -91,17 +91,18 @@ export async function mine(q: Queryable, userId: string): Promise<RadioPrayer[]>
 }
 
 /** Why a queued prayer must not go out now: 'wait' while a moderator is still reviewing it. */
-function holdReason(r: { moderation_status: string; is_sensitive: boolean; pending_review: boolean }): string | 'wait' | null {
+function holdReason(r: { moderation_status: string; is_sensitive: boolean; pending_review: boolean; harm_category: string | null }): string | 'wait' | null {
   if (r.moderation_status !== 'visible') return 'request removed or hidden';
   if (r.is_sensitive) return 'sensitive request';
-  return r.pending_review ? 'wait' : null;
+  // Flagged by the harmful-prayer check: never sent until a moderator clears it (modules/harm).
+  return r.pending_review || r.harm_category ? 'wait' : null;
 }
 const QUEUED_PRAYER = `select r.id, r.post_id, p.body, p.user_id as poster_id, r.user_id as sender_id, r.repeats,
-            p.moderation_status, p.is_sensitive,
+            p.moderation_status, p.is_sensitive, p.harm_category,
             exists (select 1 from public.moderation_items m
                      where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending') as pending_review
        from public.radio_prayers r join public.posts p on p.id = r.post_id`;
-type QueuedPrayer = { id: string; post_id: string; body: string; poster_id: string; sender_id: string; repeats: number; moderation_status: string; is_sensitive: boolean; pending_review: boolean };
+type QueuedPrayer = { id: string; post_id: string; body: string; poster_id: string; sender_id: string; repeats: number; moderation_status: string; is_sensitive: boolean; pending_review: boolean; harm_category: string | null };
 
 /** A prayer that will never go out gives back the Priestly tokens spent on it. */
 async function failAndRefund(q: Queryable, id: string, error: string) {
@@ -243,10 +244,10 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
   );
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
-    const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; repeats: number }>(
-      `select r.id, p.body, p.moderation_status, p.is_sensitive, r.repeats
+    const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(
+      `select r.id, p.body, p.moderation_status, p.is_sensitive, p.harm_category, r.repeats
          from public.radio_prayers r join public.posts p on p.id = r.post_id
-        where r.status = 'queued'
+        where r.status = 'queued' and p.harm_category is null
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
         order by ${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,

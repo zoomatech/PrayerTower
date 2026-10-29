@@ -7,6 +7,7 @@ import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CircleRequests } from '@/components/circle-requests';
+import { HarmFloods } from '@/components/harm-admin';
 import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -87,6 +88,7 @@ function Moderation() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <Text style={type.title}>{t('profile.moderation')}</Text>
         <ErrorText error={error} />
+        <HarmFloods onError={setError} />
         {flags.length ? <Text style={type.heading}>{t('moderation.flagsTitle')}</Text> : null}
         {flags.map((f) => (
           <View key={f.id} style={styles.item}>

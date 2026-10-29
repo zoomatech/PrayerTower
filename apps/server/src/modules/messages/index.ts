@@ -8,6 +8,7 @@ import type { Queryable } from '../../db.js';
 import { AppError, badRequest, forbidden, notFound } from '../../errors.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
+import * as harm from '../harm/index.js';
 import * as safety from '../safety/index.js';
 import { requireFeature } from '../communities/index.js';
 
@@ -369,6 +370,7 @@ export async function send(q: Queryable, userId: string, conversationId: string,
     }
   }
   await checkNewMemberMessage(q, userId, input.body);
+  const harmDecision = await harm.screen(q, userId, 'message', input.body);
 
   const { rows } = await q.query<{ id: string; created_at: Date }>(
     `insert into public.messages (conversation_id, user_id, community_id, body)
@@ -386,6 +388,7 @@ export async function send(q: Queryable, userId: string, conversationId: string,
   await moderation.queueScan(q, 'message', message.id);
   const crisis = safety.mentionsCrisis(input.body);
   if (crisis) await moderation.flagCrisis(q, 'message', message.id);
+  const harmGuidance = await harm.apply(q, userId, 'message', message.id, harmDecision);
 
   // Pray-er threads and direct messages notify the other person (at most one notice per conversation an hour).
   // Group messages don't push; members see them in the Messages tab.
@@ -406,7 +409,7 @@ export async function send(q: Queryable, userId: string, conversationId: string,
       dedupeKey: `message:${conversationId}:${Math.floor(Date.now() / 3_600_000)}`,
     });
   }
-  return { id: message.id, createdAt: message.created_at, crisis };
+  return { id: message.id, createdAt: message.created_at, crisis, harm: harmGuidance };
 }
 
 /** Everyone: the flood limit (safety.checkFlood). New members also: no links (per safety settings) and a daily message cap. */

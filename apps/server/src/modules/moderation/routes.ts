@@ -6,6 +6,7 @@ import { withTx } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as activity from '../activity/index.js';
+import * as harm from '../harm/index.js';
 import * as kindness from '../kindness/index.js';
 import * as moderation from './index.js';
 
@@ -54,6 +55,9 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   app.post('/moderation/precheck', async (req) => {
     requireUser(req);
     const { text } = z.object({ text: z.string().max(10_000) }).parse(req.body);
+    // The harmful-prayer check (free, no AI): a gentle word and any hotlines, only when it applies (docs/HARMFUL_PRAYERS.md).
+    const harmWord = await harm.precheck(db, text).catch(() => null);
+    const harmPart = harmWord ? { harm: harmWord } : {};
     const kind = await kindness.enabled(db);
     const rules = kind && text.trim() ? kindness.assess(text) : null;
     let warn = false;
@@ -64,9 +68,9 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
       // Self-harm is met with support, not a warning.
       warn = flagged.some((c) => !c.startsWith('self-harm'));
     }
-    if (!rules) return { warn };
+    if (!rules) return { warn, ...harmPart };
     const cloud: kindness.Verdict = rules.level === 'ok' && warn ? { level: 'nudge', reason: 'aimed' } : rules;
-    return { warn, cloud };
+    return { warn, cloud, ...harmPart };
   });
 
   // Members appeal a removal of their own content; suspended members can still do this.

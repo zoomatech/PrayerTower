@@ -10,6 +10,7 @@
 // so a receiver finds any frame with one search and learns the preset from the header.
 import { fft } from './fft.js';
 import { decodeHeader, decodePayload, encodeHeader, encodePayload, HEADER_BYTES, HEADER_PARITY, payloadLength, type FrameHeader } from './frame.js';
+import { codedBits, convDecode, convEncode, interleaver } from './conv.js';
 import { carriers, PRESETS, symbolSamples, type BurstPreset } from './presets.js';
 
 const SAMPLE_RATE = 48_000;
@@ -101,6 +102,27 @@ function ungroup(values: number[], bits: number, byteCount: number): Uint8Array 
   return out;
 }
 
+/** Inner code: convolutional-code the payload, then scatter the coded bits. */
+function innerEncode(payload: Uint8Array, preset: BurstPreset): Uint8Array {
+  const coded = convEncode(payload, preset.inner!);
+  const perm = interleaver(coded.length);
+  const out = new Uint8Array(coded.length);
+  for (let i = 0; i < coded.length; i++) out[perm[i]!] = coded[i]!;
+  return out;
+}
+
+/** One-bit-per-entry array to groups of `bits`, zero padded to whole symbols. */
+function bitGroups(bitArr: Uint8Array, bits: number, perSymbol: number): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < bitArr.length; i += bits) {
+    let v = 0;
+    for (let j = 0; j < bits; j++) v = (v << 1) | (bitArr[i + j] ?? 0);
+    out.push(v);
+  }
+  while (out.length % perSymbol) out.push(0);
+  return out;
+}
+
 /** Differential PSK: each carrier's phase moves by a Gray-coded step from the previous symbol. */
 function diffSymbols(start: number[], values: number[], bits: number): number[][] {
   const c = start.length;
@@ -118,8 +140,13 @@ export const SYNC_CARRIERS = SYNC_LAST - SYNC_FIRST + 1;
 const headerSymbols = Math.ceil(((HEADER_BYTES + HEADER_PARITY) * 8) / SYNC_CARRIERS);
 
 /** Number of symbols (sync + header + reference + payload) for a message of this size. */
+/** Bits on air for a payload: 8 per byte, or the inner code's coded bits. */
+function airBits(preset: BurstPreset, payloadBytes: number): number {
+  return preset.inner ? codedBits(payloadBytes, preset.inner) : payloadBytes * 8;
+}
+
 export function frameSymbols(preset: BurstPreset, messageLength: number): number {
-  const bits = payloadLength(messageLength, preset.parity) * 8;
+  const bits = airBits(preset, payloadLength(messageLength, preset.parity));
   return 2 + headerSymbols + Math.ceil(bits / (carriers(preset) * preset.bitsPerSymbol));
 }
 export const frameSeconds = (preset: BurstPreset, messageLength: number) => (frameSymbols(preset, messageLength) * symbolSamples(preset)) / preset.sampleRate;
@@ -135,7 +162,7 @@ export function modulate(batch: Uint8Array, preset: BurstPreset, callSign: strin
   const parts: Float64Array[] = [symbol(SYNC_FIRST, sync)];
   for (const ph of diffSymbols(sync, groups(header, 1, SYNC_CARRIERS), 1)) parts.push(symbol(SYNC_FIRST, ph));
   parts.push(symbol(preset.firstBin, ref));
-  const values = groups(payload, preset.bitsPerSymbol, carriers(preset));
+  const values = preset.inner ? bitGroups(innerEncode(payload, preset), preset.bitsPerSymbol, carriers(preset)) : groups(payload, preset.bitsPerSymbol, carriers(preset));
   for (const ph of diffSymbols(ref, values, preset.bitsPerSymbol)) parts.push(symbol(preset.firstBin, ph));
 
   const total = parts.reduce((n, p) => n + p.length, 0);
@@ -194,7 +221,17 @@ interface Track {
  * offset (tuning error); the FFT window follows the drift and the decisions
  * remove the offset.
  */
-function demodDiff(x: Float32Array, at: number, first: number, c: number, symbols: number, bits: number, track: Track, margins?: number[]): number[] {
+function demodDiff(
+  x: Float32Array,
+  at: number,
+  first: number,
+  c: number,
+  symbols: number,
+  bits: number,
+  track: Track,
+  margins?: number[],
+  soft?: number[],
+): number[] {
   const m = 1 << bits;
   const step = (2 * Math.PI) / m;
   const S = N + GUARD;
@@ -245,6 +282,23 @@ function demodDiff(x: Float32Array, at: number, first: number, c: number, symbol
       errMean += err[k]! / c;
       // How far inside its decision region the phase landed: 1 dead centre, 0 on the edge.
       margins?.push(1 - Math.min(1, Math.abs(err[k]!) / (step / 2)));
+      if (soft) {
+        // Max-log soft bits: for each bit of the Gray label, how much better the
+        // phase change matches the closest step with that bit 0 than the closest
+        // with it 1. Using the raw product (not just its angle) lets weak, faded
+        // carriers count for less.
+        for (let j = bits - 1; j >= 0; j--) {
+          let d0 = Infinity;
+          let d1 = Infinity;
+          for (let sIdx = 0; sIdx < m; sIdx++) {
+            const t = sIdx * step + track.bias;
+            const d = -(dr * Math.cos(t) + di * Math.sin(t));
+            if ((stepToGray(sIdx) >> j) & 1) d1 = Math.min(d1, d);
+            else d0 = Math.min(d0, d);
+          }
+          soft.push(d1 - d0);
+        }
+      }
     }
     let slope = 0;
     for (let k = 0; k < c; k++) slope += ((first + k - kMean) * (err[k]! - errMean)) / kVar;
@@ -351,7 +405,7 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     }
     const c = carriers(preset);
     const plen = payloadLength(header.messageLength, preset.parity);
-    const syms = Math.ceil((plen * 8) / (c * preset.bitsPerSymbol));
+    const syms = Math.ceil(airBits(preset, plen) / (c * preset.bitsPerSymbol));
     const refAt = at + (1 + hdrSyms) * S;
     // The recording stops mid-frame (allowing for a sender whose clock runs up to 0.1% fast).
     if (refAt + (syms * S + N) * 0.999 > x.length + BACKOFF) break;
@@ -367,8 +421,22 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
       track.bias = 0;
     }
     const margins: number[] = [];
-    const pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track, margins);
-    const result = decodePayload(ungroup(pv, preset.bitsPerSymbol, plen), header.messageLength, preset.parity, byteMargins(margins, preset.bitsPerSymbol, plen));
+    const soft: number[] | undefined = preset.inner ? [] : undefined;
+    const pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track, margins, soft);
+    let result;
+    if (preset.inner) {
+      // Undo the scatter, then let the Viterbi decoder weigh every soft bit.
+      const n = codedBits(plen, preset.inner);
+      const perm = interleaver(n);
+      let scale = 0;
+      for (let i = 0; i < n; i++) scale += Math.abs(soft![i] ?? 0);
+      scale = scale ? n / scale : 1;
+      const llr = new Float32Array(n);
+      for (let i = 0; i < n; i++) llr[i] = (soft![perm[i]!] ?? 0) * scale;
+      result = decodePayload(convDecode(llr, plen, preset.inner), header.messageLength, preset.parity);
+    } else {
+      result = decodePayload(ungroup(pv, preset.bitsPerSymbol, plen), header.messageLength, preset.parity, byteMargins(margins, preset.bitsPerSymbol, plen));
+    }
     const end = refAt + BACKOFF - GUARD + (syms + 1) * S + Math.round(track.off);
     if (result) {
       frames.push({ ...header, preset: preset.name, batch: result.batch, corrected: result.corrected, start: best - GUARD, end });

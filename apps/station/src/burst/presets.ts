@@ -4,6 +4,8 @@
 // Differential phase needs no channel estimate, so the FM radio's audio
 // filters, pre-emphasis and de-emphasis only have to be steady across two
 // symbols (48 ms).
+import type { InnerCode } from './conv.js';
+
 export interface BurstPreset {
   /** One byte on air; receivers try every preset they know. */
   id: number;
@@ -21,6 +23,8 @@ export interface BurstPreset {
   bitsPerSymbol: 1 | 2 | 3 | 4;
   /** Reed-Solomon parity bytes per 255-byte block (corrects half as many bad bytes). */
   parity: number;
+  /** Inner convolutional code with soft-decision decoding (the "-fec" presets); none when absent. */
+  inner?: InnerCode;
 }
 
 const base = { sampleRate: 48_000, fftSize: 1024, guard: 128 } as const;
@@ -85,6 +89,28 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 111,
     bitsPerSymbol: 4,
     parity: 32,
+  },
+  {
+    ...base,
+    id: 7,
+    name: 'fm-robust-fec',
+    description: 'Weakest FM paths: faster than fm-robust and about 1 dB tougher: DQPSK with a rate-1/2 convolutional code and soft decoding. 48 carriers 750-2953 Hz, ~2.0 kbit/s of data.',
+    firstBin: 16,
+    lastBin: 63,
+    bitsPerSymbol: 2,
+    parity: 16,
+    inner: 'r12',
+  },
+  {
+    ...base,
+    id: 8,
+    name: 'fm-turbo-fec',
+    description: 'Faster than fm-fast and about 1 dB tougher: D16PSK with a rate-2/3 convolutional code and soft decoding. 55 carriers 563-3094 Hz, ~6.1 kbit/s of data.',
+    firstBin: 12,
+    lastBin: 66,
+    bitsPerSymbol: 4,
+    parity: 16,
+    inner: 'r23',
   },
 ];
 

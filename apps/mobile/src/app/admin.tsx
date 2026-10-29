@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { HarmSettingsSection } from '@/components/harm-admin';
 import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
@@ -316,6 +317,7 @@ function Admin() {
         <LiveSection />
         <GivingSection />
         <SecuritySection />
+        <HarmSettingsSection />
         <ReminderToneSection />
 
         {radio ? (
@@ -349,10 +351,11 @@ function Admin() {
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
             <View style={styles.row}>
-              {[2, 3, 5, 10].map((n) => (
+              {[2, 3, 5, 10, 100, 1000].map((n) => (
                 <Chip key={n} label={`${n}x`} selected={radio.radio_amplify_repeats === n} onPress={() => saveRadio({ amplifyRepeats: n })} />
               ))}
             </View>
+            {radio.radio_amplify_repeats > 50 ? <Text style={type.small}>{t('admin.amplifyBurstHint')}</Text> : null}
             {radio.radio_transmitter === 'station' && radio.radio_station_requires_free && tokens?.radio_funding !== 'free' ? (
               <Text style={[type.small, { color: colors.danger }]}>{t('admin.paused')}</Text>
             ) : null}
