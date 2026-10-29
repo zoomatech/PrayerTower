@@ -86,6 +86,7 @@ struct MessagesView: View {
 struct ConversationScreen: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var still
     let id: String
     @State private var view: ConversationView?
     @State private var text = ""
@@ -119,7 +120,7 @@ struct ConversationScreen: View {
                     if !c.isRequest { Section { tools(c) } }
                 }
             }
-            .onChange(of: view?.messages.last?.id) { _, last in if let last { withAnimation { proxy.scrollTo(last, anchor: .bottom) } } }
+            .onChange(of: view?.messages.last?.id) { _, last in if let last { withAnimation(still ? nil : .default) { proxy.scrollTo(last, anchor: .bottom) } } }
         }
         .navigationTitle(view?.conversation.title ?? "")
         .navigationBarTitleDisplayMode(.inline)
