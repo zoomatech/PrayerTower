@@ -71,6 +71,7 @@ import { macroNeedRoutes } from './modules/macro-needs/routes.js';
 import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
+import { listenerAdminRoutes, listenerPublicRoutes } from './modules/radio/listener-routes.js';
 import { nodeRoutes, stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
@@ -138,6 +139,8 @@ export interface AppDeps {
   mailer?: Mailer | null;
   /** The web app's address, for invite links (…/sign-in?invite=CODE); null = no link. */
   webAppUrl?: string | null;
+  /** This API host's public address (PUBLIC_SITE_URL), for listener setup and card links; null = the address each request came to. */
+  publicSiteUrl?: string | null;
   /** TestFlight public links for invite emails (Prayer Tower, Open Circle); null = not in a TestFlight pilot. */
   testFlight?: { prayerTower: string | null; openCircle: string | null } | null;
   /** OpenAPI JSON and Swagger UI at /api/docs; null = off. Staff-only when restricted (production). */
@@ -161,7 +164,9 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, testFlight = null, appleVerifier = null, crosspost = null, practicePurchases = false, jaas = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, publicSiteUrl = null, testFlight = null, appleVerifier = null, crosspost = null, practicePurchases = false, jaas = null }: AppDeps) {
+  // Listener sign-up and thank-you card email (radio/listener-routes.ts).
+  const listeners = { mailer, openCircleName: site?.openCircle?.name ?? 'Open Circle', siteUrl: publicSiteUrl?.replace(/\/+$/, '') || null };
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -245,7 +250,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (node) => {
     markScope(node, catalog, 'station');
     if (rateLimitPerMinute > 0) await node.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 30, timeWindow: '1 minute' });
-    nodeRoutes(node, db);
+    nodeRoutes(node, db, listeners);
   });
 
   // The API description, for developers (staff-only in production).
@@ -274,6 +279,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (open) => {
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 10, timeWindow: '1 minute' });
     waitlistJoinRoutes(open, db);
+    listenerPublicRoutes(open, db);
   });
 
   // Listener receipts for radio prayers (switched off by default), limited per IP address.
@@ -390,6 +396,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     kindnessHighlightRoutes(authed, db);
     coolDownRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
+    listenerAdminRoutes(authed, db, listeners);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);

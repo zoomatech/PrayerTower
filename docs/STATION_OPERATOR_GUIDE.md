@@ -35,6 +35,9 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
 | Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
 | Weekly radio digest | Admin → Radio → Weekly digest | [Weekly radio digest](#weekly-radio-digest) |
+| Listener sign-up (a public page; approved listeners get a guided Pi or Mac setup) | Admin → Radio → Listener sign-up | [Listener sign-up](#listener-sign-up) |
+| Thank-you cards (QSL-style cards for confirmed reception) | Admin → Radio → Thank-you cards | [Thank-you cards](#thank-you-cards) |
+| Weekly station report (bursts, prayers delivered, listener coverage, problems) | Admin → Radio → Station report | [Weekly station report](#weekly-station-report) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
 | Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
@@ -638,6 +641,61 @@ With **Email it to admins on Mondays** on (and SMTP set up), the
 UTC each Monday, once per week.
 
 ![Weekly radio digest](images/radio/weekly-digest.png)
+
+## Listener sign-up
+
+Off by default. Admin → Radio → **Listener sign-up on** publishes a page at
+`/listeners` (and `/open-circle/listeners` in Open Circle's words) where
+anyone with an RTL-SDR dongle or a radio asks to run a listener node. They
+give a name, an email, which receiver and computer they have, and, only if
+they want to be on the coverage map, a location (rounded to about a city).
+A ham call sign is optional: listeners only receive, so no license is needed.
+
+Each request waits in Admin → Radio for a person to read it. **Approve** makes
+a one-use setup link that works for 14 days. With email set up (`SMTP_URL`) it
+is emailed; otherwise the admin sends it from the share sheet. A new approval
+replaces an old unused link, and **Decline** stops it.
+
+The link opens a guided setup page for their Raspberry Pi or Mac: the one
+install command (`get-station.sh --listener-only --sdr`, or
+`install-mac.sh --listener-only --sdr`), then **Make my key**, which makes the
+node and shows its key once, already filled into their settings lines
+(server address, `NODE_KEY`, `LISTEN_SDR_FREQ` from the setup wizard's
+frequency, and `NODE_LOCATION` if they gave one). The key is never stored,
+only its hash, and the link stops working once the key is made. The new node
+is named after them, placed on the coverage map if they gave a location, and
+appears in Listener nodes like any other. Set `PUBLIC_SITE_URL` so the links
+and the server address on the page are the public https one.
+
+## Thank-you cards
+
+Off by default. With Admin → Radio → **Thank-you cards on**, a listener node
+whose report matches prayers the station really sent (the same fingerprints
+receipts use) gets a digital thank-you card, like a ham radio QSL card. There
+is one card per station call sign per UTC day, with the date, the first and
+last time heard, the preset, the best signal (SNR), how many it decoded, and a
+running card number. Each card is a printable page at an unguessable
+`/qsl/<link>`. The node's log prints the link the first time each day, and a
+listener who came through sign-up gets it by email. A node made from an Open
+Circle sign-up gets Open Circle's words ("messages heard"). A card never shows
+a prayer's words or who asked. Admin → Radio lists the newest cards.
+
+## Weekly station report
+
+Off by default. Admin → Radio → **Station report on** shows last week
+(Monday to Sunday, UTC) next to this week so far: bursts sent and failed, air
+time, prayers delivered, heard by a listener, failed and still waiting;
+listeners reporting (and which were quiet), each node's median signal, new
+listener requests and nodes, and thank-you cards; and problems, counted from
+operator alerts as they started (`radio_alert_history`, kept while operator
+alerts are on), failed bursts with their errors, and failed prayers. Radio
+operators (the control operator) see it read only in the operator console.
+
+With **Email it to admins and radio operators on Mondays** on (and SMTP set
+up), the `station_report_weekly` job emails last week's report at 07:10 UTC
+each Monday, once per week. Counts and listener names only: no request text,
+no names of members. The station keeps every burst of the last eight weeks
+for this report.
 
 ## Security
 

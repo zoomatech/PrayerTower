@@ -969,6 +969,72 @@ export interface RadioDigest {
   weeks: RadioDigestWeek[];
 }
 
+/** Admin → Radio → Listener requests (server radio/listener-signup.ts). */
+export interface ListenerSignup {
+  id: string;
+  name: string;
+  email: string;
+  place: string;
+  lat: number | null;
+  lon: number | null;
+  receiver: 'rtl-sdr' | 'radio' | 'not-sure';
+  platform: 'pi' | 'mac' | 'other';
+  callSign: string | null;
+  note: string;
+  edition: 'prayer-tower' | 'open-circle';
+  status: 'pending' | 'approved' | 'declined' | 'joined';
+  setupExpiresAt: string | null;
+  nodeId: string | null;
+  createdAt: string;
+}
+export interface ListenerSignups {
+  enabled: boolean;
+  /** Whether approving can email the setup link (SMTP set up); otherwise the admin sends it. */
+  emailReady: boolean;
+  signups: ListenerSignup[];
+}
+
+/** Admin → Radio → Thank-you cards (server radio/qsl.ts). */
+export interface QslCard {
+  token: string;
+  path: string;
+  node: string;
+  callSign: string;
+  day: string;
+  serial: number;
+  preset: string;
+  bestSnrDb: number;
+  prayers: number;
+  firstHeardAt: string;
+  lastHeardAt: string;
+  edition: 'prayer-tower' | 'open-circle';
+}
+
+/** Admin → Radio and the operator console → Weekly station report (server radio/station-report.ts). */
+export interface StationReport {
+  weekStart: string;
+  bursts: { sent: number; failed: number; airSeconds: number; prayers: number; presets: Record<string, number> };
+  prayers: { delivered: number; heard: number; failed: number; waiting: number };
+  listeners: {
+    nodes: number;
+    reporting: number;
+    quiet: string[];
+    placed: number;
+    signups: number;
+    joined: number;
+    cards: number;
+    perNode: { name: string; receiver: string | null; reports: number; snrDb: number | null; quality: 'strong' | 'fair' | 'weak' | 'none' }[];
+  };
+  problems: { total: number; byKind: Record<string, number>; burstErrors: { error: string; count: number }[] };
+}
+export interface StationReportOverview {
+  enabled: boolean;
+  email: boolean;
+  thisWeek: StationReport | null;
+  lastWeek: StationReport | null;
+  history: StationReport[];
+}
+
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
 export interface StationBurst {
   id: string;
@@ -2100,6 +2166,15 @@ export const api = {
     setRadioPacket: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-packet', { enabled }),
     radioDigest: () => get<RadioDigest>('/admin/radio-digest'),
     updateRadioDigest: (patch: { enabled?: boolean; email?: boolean }) => request<RadioDigest>('PATCH', '/admin/radio-digest', patch),
+    listenerSignups: () => get<ListenerSignups>('/admin/listener-signups'),
+    setListenerSignups: (enabled: boolean) => request<ListenerSignups>('PATCH', '/admin/listener-signups', { enabled }),
+    approveListener: (id: string) => request<{ signup: ListenerSignup; setupUrl: string; emailed: boolean }>('POST', `/admin/listener-signups/${id}/approve`),
+    declineListener: (id: string) => request<{ signup: ListenerSignup }>('POST', `/admin/listener-signups/${id}/decline`),
+    removeListenerSignup: (id: string) => request<{ ok: true }>('DELETE', `/admin/listener-signups/${id}`),
+    qslCards: () => get<{ enabled: boolean; cards: QslCard[] }>('/admin/qsl-cards'),
+    setQslCards: (enabled: boolean) => request<{ enabled: boolean; cards: QslCard[] }>('PATCH', '/admin/qsl-cards', { enabled }),
+    stationReport: () => get<StationReportOverview>('/admin/station-report'),
+    updateStationReport: (patch: { enabled?: boolean; email?: boolean }) => request<StationReportOverview>('PATCH', '/admin/station-report', patch),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => request<{ enabled: boolean; multiStation: boolean; signaturesRequired: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),

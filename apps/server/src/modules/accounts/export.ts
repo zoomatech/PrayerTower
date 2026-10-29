@@ -157,6 +157,8 @@ export const NOT_EXPORTED = [
   'invite_codes',
   'legal_case_notes',
   'legal_cases',
+  // Listener requests point only at the admin who reviewed them (staff record).
+  'listener_signups',
   'macro_needs',
   'oncall_notes',
   'oncall_settings',
