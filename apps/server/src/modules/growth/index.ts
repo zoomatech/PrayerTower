@@ -7,6 +7,8 @@
 //   3. Prayed-for widget: who prayed for you today, for the home-screen widget.
 //   4. Prayer minute: one minute a day the member chose, prayed alongside
 //      everyone else who chose it, with a real live count.
+//   5. Sharing with consent: the author chooses whether anyone may share a post
+//      outside the app, as a members-only link or as a public share card.
 // Guests never earn tokens and their prayers never count as verified.
 import { createHash, randomBytes } from 'node:crypto';
 import type { Task } from 'graphile-worker';
@@ -26,11 +28,12 @@ export interface GrowthSettings {
   prayed_for_widget_enabled: boolean;
   prayer_minute_enabled: boolean;
   guest_email_days: number;
+  share_consent_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<GrowthSettings> {
   const { rows } = await q.query<GrowthSettings>(
-    `select guest_prayer_enabled, prayer_chain_enabled, prayer_chain_max, prayed_for_widget_enabled, prayer_minute_enabled, guest_email_days
+    `select guest_prayer_enabled, prayer_chain_enabled, prayer_chain_max, prayed_for_widget_enabled, prayer_minute_enabled, guest_email_days, share_consent_enabled
        from public.growth_settings`,
   );
   return rows[0]!;
@@ -43,6 +46,7 @@ export const SettingsPatch = z.object({
   prayedForWidgetEnabled: z.boolean().optional(),
   prayerMinuteEnabled: z.boolean().optional(),
   guestEmailDays: z.number().int().min(1).max(365).optional(),
+  shareConsentEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -50,7 +54,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
     `update public.growth_settings set
        guest_prayer_enabled = coalesce($1, guest_prayer_enabled), prayer_chain_enabled = coalesce($2, prayer_chain_enabled),
        prayer_chain_max = coalesce($3, prayer_chain_max), prayed_for_widget_enabled = coalesce($4, prayed_for_widget_enabled),
-       prayer_minute_enabled = coalesce($5, prayer_minute_enabled), guest_email_days = coalesce($6, guest_email_days)`,
+       prayer_minute_enabled = coalesce($5, prayer_minute_enabled), guest_email_days = coalesce($6, guest_email_days),
+       share_consent_enabled = coalesce($7, share_consent_enabled)`,
     [
       p.guestPrayerEnabled ?? null,
       p.prayerChainEnabled ?? null,
@@ -58,6 +63,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.prayedForWidgetEnabled ?? null,
       p.prayerMinuteEnabled ?? null,
       p.guestEmailDays ?? null,
+      p.shareConsentEnabled ?? null,
     ],
   );
   return settings(q);
@@ -71,6 +77,7 @@ export async function features(q: Queryable) {
     prayerChain: s.prayer_chain_enabled && s.guest_prayer_enabled,
     prayedForWidget: s.prayed_for_widget_enabled,
     prayerMinute: s.prayer_minute_enabled,
+    shareConsent: s.share_consent_enabled,
   };
 }
 
@@ -607,5 +614,99 @@ export function purgeTask(q: Queryable): Task {
     await q.query('update public.guest_prayers set email = null where email is not null and created_at < now() - make_interval(days => $1)', [s.guest_email_days]);
     await q.query("delete from public.prayer_minute_presence where seen_at < now() - interval '1 day'");
     await q.query("delete from public.prayer_chain_members where status = 'pending' and created_at < now() - interval '30 days'");
+  };
+}
+
+// 5. Sharing with consent ---------------------------------------------------------------
+
+export type ShareLevel = 'private' | 'link' | 'card';
+export const ShareChoice = z.object({ level: z.enum(['private', 'link', 'card']) });
+
+/** Open Circle's card links carry no religious word either. */
+export const cardPath = (token: string) => `/card/${token}`;
+
+/**
+ * What the viewer may send outside the app for this post. `words` is true only on a
+ * share card. The author can always send the members-only link to their own post;
+ * anyone else only what the author allowed. Null while the switch is off (the app
+ * keeps its old share button).
+ */
+export async function shareState(q: Queryable, viewerId: string, postId: string) {
+  if (!(await settings(q)).share_consent_enabled) return null;
+  const post = await posts.getViewable(q, viewerId, postId);
+  if (!post) throw notFound('Post');
+  const { rows } = await q.query<{ level: 'link' | 'card'; token: string }>('select level, token from public.share_consents where post_id = $1', [postId]);
+  const level: ShareLevel = rows[0]?.level ?? 'private';
+  const mine = post.user_id === viewerId;
+  const canShare = mine || level !== 'private';
+  return {
+    mine,
+    level,
+    canShare,
+    /** A card can't be offered for a request that mentions crisis (it would show the words to strangers). */
+    cardAllowed: !post.crisis,
+    words: level === 'card',
+    path: level === 'card' ? cardPath(rows[0]!.token) : `/post/${postId}`,
+  };
+}
+
+/** The author chooses who may share their post outside the app. Back to private kills the card link. */
+export async function setShareLevel(q: Queryable, userId: string, postId: string, level: ShareLevel) {
+  if (!(await settings(q)).share_consent_enabled) throw forbidden('Sharing outside the app is turned off for now');
+  const post = await posts.getVisible(q, postId);
+  if (!post) throw notFound('Post');
+  if (post.user_id !== userId) throw forbidden('Only the person who posted this can choose how it is shared');
+  if (level === 'card' && post.crisis) throw badRequest("A post that mentions crisis can't be shared as a card");
+  if (level === 'private') await q.query('delete from public.share_consents where post_id = $1', [postId]);
+  else {
+    await q.query(
+      `insert into public.share_consents (post_id, level, token) values ($1, $2, $3)
+       on conflict (post_id) do update set level = excluded.level, updated_at = now()`,
+      [postId, level, newToken()],
+    );
+  }
+  return (await shareState(q, userId, postId))!;
+}
+
+export interface CardView {
+  body: string;
+  /** First name only; null on an anonymous post. */
+  name: string | null;
+  postType: string;
+  answered: boolean;
+  testimony: string | null;
+  secular: boolean;
+  /** The author's own "pray from this link" page, when they made one. */
+  guestPath: string | null;
+}
+
+/** The public share card: only while the switch is on, the author chose 'card', and the post is visible. */
+export async function cardView(q: Queryable, token: string): Promise<CardView | null> {
+  if (!/^[A-Za-z0-9_-]{20,40}$/.test(token)) return null;
+  const s = await settings(q);
+  if (!s.share_consent_enabled) return null;
+  const { rows } = await q.query<{
+    body: string; is_anonymous: boolean; display_name: string | null; post_type: string; state: string; testimony: string | null;
+    community_id: string; crisis: boolean; guest_token: string | null;
+  }>(
+    `select p.body, p.is_anonymous, pr.display_name, p.post_type, p.state, p.testimony, p.community_id, p.crisis,
+            (select l.token from public.guest_links l where l.post_id = p.id and l.revoked_at is null) as guest_token
+       from public.share_consents c
+       join public.posts p on p.id = c.post_id
+       join public.profiles pr on pr.id = p.user_id
+      where c.token = $1 and c.level = 'card' and p.moderation_status = 'visible'`,
+    [token],
+  );
+  const r = rows[0];
+  if (!r || r.crisis) return null;
+  const secular = await secularCommunity(q, r.community_id);
+  return {
+    body: r.body,
+    name: r.is_anonymous ? null : firstName(r.display_name),
+    postType: r.post_type,
+    answered: r.state === 'answered',
+    testimony: r.state === 'answered' ? r.testimony : null,
+    secular,
+    guestPath: r.guest_token && s.guest_prayer_enabled && r.state !== 'answered' ? guestPath(r.guest_token, secular) : null,
   };
 }
