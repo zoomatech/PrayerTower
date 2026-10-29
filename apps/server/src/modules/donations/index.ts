@@ -164,7 +164,36 @@ export async function markPaid(q: Queryable, donationId: string) {
   if (d.target_kind === 'pool' && regular > 0) await tokens.creditPool(q, d.target_pool_id!, regular, `${key}:pool`, 'Gift to pool');
   if (d.target_kind === 'member' && priestly > 0) await tokens.creditPurchase(q, d.target_user_id!, priestly, `${key}:member`, 'priestly');
   if (d.target_kind === 'everyone' && priestly > 0) await tokens.creditFund(q, priestly, `${key}:fund`, 'Gift to everyone');
-  if (d.donor_id && regular > 0) await tokens.earn(q, d.donor_id, regular, `${key}:giver`, 'Thank you for giving');
+  if (d.donor_id && regular > 0) {
+    const t = await tokens.earn(q, d.donor_id, regular, `${key}:giver`, 'Thank you for giving');
+    await q.query('update public.donations set giver_transfer_id = $2 where id = $1', [donationId, t.id]);
+  }
+  return true;
+}
+
+/**
+ * A paid gift was refunded (Stripe's charge.refunded, or an admin). It is marked refunded and
+ * the giver's thank-you tokens are taken back while they still have them. What the gift
+ * already gave to everyone, a member or a pool stays given.
+ */
+export async function refund(q: Queryable, donationId: string, byUserId: string | null) {
+  const { rows } = await q.query<{ donor_id: string | null; giver_transfer_id: string | null }>(
+    `update public.donations set status = 'refunded', refunded_at = now() where id = $1 and status = 'paid' returning donor_id, giver_transfer_id`,
+    [donationId],
+  );
+  const d = rows[0];
+  if (!d) return false;
+  if (d.donor_id && d.giver_transfer_id) {
+    // A savepoint, so tokens already spent don't abort the caller's transaction.
+    await q.query('savepoint donation_refund');
+    try {
+      await tokens.clawback(q, d.giver_transfer_id, byUserId ?? d.donor_id, 'Gift refunded');
+      await q.query('release savepoint donation_refund');
+    } catch (err) {
+      await q.query('rollback to savepoint donation_refund');
+      if ((err as AppError).code !== 'insufficient_tokens') throw err;
+    }
+  }
   return true;
 }
 
@@ -253,15 +282,26 @@ export function verifyStripeSignature(raw: string, header: string | undefined, s
 }
 
 /** A Stripe event: a paid Checkout (card at once, bank transfer when it clears) marks its gift paid. */
-export async function stripeEvent(q: Queryable, event: { type?: string; data?: { object?: { id?: string; payment_status?: string; metadata?: { donation_id?: string } } } }) {
-  const session = event.data?.object;
-  const id = session?.metadata?.donation_id;
+type StripeObject = { id?: string; payment_status?: string; payment_intent?: string | null; refunded?: boolean; metadata?: { donation_id?: string } };
+
+export async function stripeEvent(q: Queryable, event: { type?: string; data?: { object?: StripeObject } }) {
+  const obj = event.data?.object;
+  // A full refund from the Stripe Dashboard: the charge names the payment, not our gift.
+  if (event.type === 'charge.refunded') {
+    if (!obj?.refunded || !obj.payment_intent) return false;
+    const { rows } = await q.query<{ id: string }>(`select id from public.donations where provider = 'stripe' and provider_payment = $1`, [obj.payment_intent]);
+    return rows[0] ? refund(q, rows[0].id, null) : false;
+  }
+  const id = obj?.metadata?.donation_id;
   if (!id) return false;
+  if (obj?.payment_intent) {
+    await q.query('update public.donations set provider_payment = $2 where id = $1 and provider_payment is null', [id, obj.payment_intent]);
+  }
   const paid =
-    (event.type === 'checkout.session.completed' && session?.payment_status === 'paid') || event.type === 'checkout.session.async_payment_succeeded';
+    (event.type === 'checkout.session.completed' && obj?.payment_status === 'paid') || event.type === 'checkout.session.async_payment_succeeded';
   if (paid) return markPaid(q, id);
   if (event.type === 'checkout.session.async_payment_failed' || event.type === 'checkout.session.expired') {
-    await q.query(`update public.donations set status = 'refunded' where id = $1 and status = 'pending'`, [id]);
+    await q.query(`update public.donations set status = 'failed' where id = $1 and status = 'pending'`, [id]);
   }
   return false;
 }

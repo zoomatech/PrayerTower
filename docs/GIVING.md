@@ -35,8 +35,14 @@ For comparison, GoFundMe charges 2.9% + $0.30 per donation ([gofundme.com/pricin
    - `checkout.session.async_payment_succeeded`
    - `checkout.session.async_payment_failed`
    - `checkout.session.expired`
+   - `charge.refunded`
 2. Put the secret key (`sk_…`) in `STRIPE_SECRET_KEY` and the signing secret (`whsec_…`) in `STRIPE_WEBHOOK_SECRET`, in the server's private settings only.
-3. Bank transfers settle in a few days. A gift shows as "Waiting" until Stripe sends `async_payment_succeeded`.
+3. Bank transfers settle in a few days. A gift shows as "Waiting" until Stripe sends `async_payment_succeeded`, or "Didn't go through" if the transfer fails.
+
+## Refunds
+- **Stripe gifts.** Refund them in the Stripe Dashboard. The webhook marks the gift refunded.
+- **Zeffy and hand-entered gifts.** Refund them in Admin → Giving → **Mark refunded**.
+- **What happens to tokens.** A refund takes back the giver's thank-you tokens if they still have them; tokens already spent stay spent. What the gift already gave to everyone, a member or a pool stays given.
 
 ## API
 - No sign-in needed:
@@ -54,3 +60,4 @@ For comparison, GoFundMe charges 2.9% + $0.30 per donation ([gofundme.com/pricin
 - Admin:
   - `GET` and `PATCH /admin/donation-settings`
   - `GET` and `POST /admin/donations`
+  - `POST /admin/donations/:id/refund`

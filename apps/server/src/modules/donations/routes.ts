@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { requireUser } from '../../auth.js';
 import { withTx, type Db } from '../../db.js';
-import { AppError, forbidden } from '../../errors.js';
+import { AppError, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as donations from './index.js';
 
@@ -64,6 +64,12 @@ export function donationRoutes(app: FastifyInstance, db: Db, stripe: donations.S
   app.get('/admin/donations', async (req) => {
     await requireAdmin(req);
     return { donations: await donations.list(db) };
+  });
+  // A gift returned outside Stripe (a Zeffy or manual gift). Stripe refunds arrive by webhook.
+  app.post<{ Params: { id: string } }>('/admin/donations/:id/refund', async (req) => {
+    const adminId = await requireAdmin(req);
+    if (!(await withTx(db, (tx) => donations.refund(tx, req.params.id, adminId)))) throw notFound('Paid gift');
+    return { refunded: true };
   });
   app.post('/admin/donations', async (req, reply) => {
     const adminId = await requireAdmin(req);

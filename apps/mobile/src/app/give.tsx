@@ -19,14 +19,15 @@ const dollars = (cents: number) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0
 export default function GiveScreen() {
   const { t } = useLocale();
   const radioOn = useFeature('radio');
-  const params = useLocalSearchParams<{ thanks?: string }>();
+  const params = useLocalSearchParams<{ thanks?: string; to?: string; name?: string }>();
   const [info, setInfo] = useState<GivingInfo | null>(null);
   const [pools, setPools] = useState<TokenPool[]>([]);
   const [gifts, setGifts] = useState<MyGift[]>([]);
   const [allowance, setAllowance] = useState<RadioAllowance | null>(null);
   const [amount, setAmount] = useState(1000);
   const [custom, setCustom] = useState('');
-  const [target, setTarget] = useState<GiftTarget>({ kind: 'everyone' });
+  // From a member's page (Give to …), the gift starts out going to them.
+  const [target, setTarget] = useState<GiftTarget>(params.to ? { kind: 'member', userId: params.to } : { kind: 'everyone' });
   const [showDonor, setShowDonor] = useState(false);
   const [ask, setAsk] = useState('1');
   const [note, setNote] = useState('');
@@ -102,6 +103,9 @@ export default function GiveScreen() {
                 <Text style={type.heading}>{t('give.to')}</Text>
                 <View style={styles.chips}>
                   <Chip label={t('give.everyone')} selected={target.kind === 'everyone'} onPress={() => setTarget({ kind: 'everyone' })} />
+                  {params.to ? (
+                    <Chip label={params.name ?? t('give.member')} selected={target.kind === 'member'} onPress={() => setTarget({ kind: 'member', userId: params.to! })} />
+                  ) : null}
                   {pools.map((p) => (
                     <Chip key={p.id} label={p.name} selected={target.kind === 'pool' && target.poolId === p.id} onPress={() => setTarget({ kind: 'pool', poolId: p.id })} />
                   ))}

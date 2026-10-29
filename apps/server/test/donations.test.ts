@@ -99,7 +99,7 @@ describe('giving', () => {
     expect(new URLSearchParams(sent!.body).get('payment_method_types[0]')).toBe('us_bank_account');
 
     const hooked = buildApp({ db, verifyToken: async () => 'nobody', stripe: keys });
-    const event = JSON.stringify({ type: 'checkout.session.completed', data: { object: { id: sessionId, payment_status: 'paid', metadata: { donation_id: out.donationId } } } });
+    const event = JSON.stringify({ type: 'checkout.session.completed', data: { object: { id: sessionId, payment_status: 'paid', payment_intent: `pi_${sessionId}`, metadata: { donation_id: out.donationId } } } });
     const sign = (body: string, t = Math.floor(Date.now() / 1000)) => `t=${t},v1=${createHmac('sha256', keys.webhookSecret).update(`${t}.${body}`).digest('hex')}`;
     const post = (sig: string) => hooked.inject({ method: 'POST', url: '/donations/stripe-webhook', headers: { 'content-type': 'application/json', 'stripe-signature': sig }, payload: event });
     expect((await post('t=1,v1=bad')).statusCode).toBe(400);
@@ -108,6 +108,37 @@ describe('giving', () => {
     expect((await post(sign(event))).statusCode).toBe(200); // a retry pays nothing twice
     expect(await tokens.balanceOf(db, giver)).toBe(100);
     expect((await as(giver).get('/me/donations')).json().donations[0]).toMatchObject({ amount_cents: 1000, status: 'paid' });
+
+    // Refunded from the Stripe Dashboard: the giver's thank-you tokens go back, once.
+    const refunded = JSON.stringify({ type: 'charge.refunded', data: { object: { id: 'ch_1', refunded: true, payment_intent: `pi_${sessionId}` } } });
+    const postRefund = () =>
+      hooked.inject({ method: 'POST', url: '/donations/stripe-webhook', headers: { 'content-type': 'application/json', 'stripe-signature': sign(refunded) }, payload: refunded });
+    expect((await postRefund()).statusCode).toBe(200);
+    expect((await postRefund()).statusCode).toBe(200);
+    expect(await tokens.balanceOf(db, giver)).toBe(0);
+    expect((await as(giver).get('/me/donations')).json().donations[0]).toMatchObject({ status: 'refunded' });
     await hooked.close();
+  });
+
+  it('marks a bank transfer that never cleared as failed, not refunded', async () => {
+    const giver = await createUser('Failed Fay');
+    const { rows } = await db.query<{ id: string }>(
+      `insert into public.donations (donor_id, amount_cents, provider) values ($1, 2000, 'stripe') returning id`,
+      [giver],
+    );
+    await donations.stripeEvent(db, { type: 'checkout.session.async_payment_failed', data: { object: { metadata: { donation_id: rows[0]!.id } } } });
+    expect((await as(giver).get('/me/donations')).json().donations[0]).toMatchObject({ status: 'failed' });
+  });
+
+  it('lets an admin mark a manual gift refunded, keeping tokens already spent', async () => {
+    await donations.updateSettings(db, { enabled: true, regularPerDollar: 10 });
+    const giver = await createUser('Manual Mo');
+    const gift = (await as(admin).post('/admin/donations', { amountCents: 500, donorId: giver })).json();
+    expect(await tokens.balanceOf(db, giver)).toBe(50);
+    const res = await as(admin).post(`/admin/donations/${gift.id}/refund`);
+    expect(res.statusCode).toBe(200);
+    expect(await tokens.balanceOf(db, giver)).toBe(0);
+    expect((await as(admin).post(`/admin/donations/${gift.id}/refund`)).statusCode).toBe(404);
+    expect((await as(giver).post(`/admin/donations/${gift.id}/refund`)).statusCode).toBe(403);
   });
 });

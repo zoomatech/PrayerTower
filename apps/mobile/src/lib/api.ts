@@ -714,7 +714,7 @@ export type GiftTarget = { kind: 'everyone' } | { kind: 'member'; userId: string
 export interface MyGift {
   id: string;
   amount_cents: number;
-  status: 'pending' | 'paid' | 'refunded';
+  status: 'pending' | 'paid' | 'refunded' | 'failed';
   target_kind: GiftTarget['kind'];
   created_at: string;
 }
@@ -995,6 +995,7 @@ export const api = {
       }>,
     ) => request<{ settings: AdminDonationSettings }>('PATCH', '/admin/donation-settings', patch),
     gifts: () => get<{ donations: AdminGift[] }>('/admin/donations'),
+    refundGift: (id: string) => post<{ refunded: true }>(`/admin/donations/${id}/refund`),
     recordGift: (amountCents: number, reference: string) => post('/admin/donations', { amountCents, reference: reference || undefined }),
     securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
     updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),

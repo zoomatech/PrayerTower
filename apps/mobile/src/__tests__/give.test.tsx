@@ -1,5 +1,6 @@
 // Give: off until an admin sets it up; Stripe checkout opens in the in-app browser.
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { renderApp } from '@/__tests__/helpers';
@@ -40,6 +41,16 @@ describe('Give', () => {
     await fireEvent.press(screen.getByText('Give $25'));
     await waitFor(() => expect(mocked.giveCheckout).toHaveBeenCalledWith(2500, { kind: 'pool', poolId: 'p1' }, false));
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://checkout.stripe.com/c/pay/cs_1');
+  });
+
+  it('gives to the member whose page it came from', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ to: 'u-ruth', name: 'Ruth' });
+    mocked.givingInfo.mockResolvedValue(info);
+    mocked.giveCheckout.mockResolvedValue({ donationId: 'd2', url: 'https://checkout.stripe.com/c/pay/cs_2' });
+    await renderApp(<Give />);
+    await fireEvent.press(await screen.findByText('Give $10'));
+    await waitFor(() => expect(mocked.giveCheckout).toHaveBeenCalledWith(1000, { kind: 'member', userId: 'u-ruth' }, false));
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
   });
 
   it('opens the Zeffy page', async () => {

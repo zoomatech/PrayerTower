@@ -726,10 +726,26 @@ function GivingSection() {
       <Field label={t('admin.field.giftReference')} value={draft.reference} onChangeText={(reference) => setDraft((d) => ({ ...d, reference }))} />
       <Button small variant="secondary" label={t('admin.btn.recordGift')} onPress={record} disabled={!(Number(draft.amount.replace(/[$,]/g, '')) > 0)} />
       {gifts.slice(0, 20).map((g) => (
-        <Text key={g.id} style={type.small}>
-          {new Date(g.created_at).toLocaleDateString()} · ${(g.amount_cents / 100).toFixed(2)} · {g.provider} · {g.status}
-          {g.donor_name ? ` · ${g.donor_name}` : ''}
-        </Text>
+        <View key={g.id} style={styles.row}>
+          <Text style={type.small}>
+            {new Date(g.created_at).toLocaleDateString()} · ${(g.amount_cents / 100).toFixed(2)} · {g.provider} · {g.status}
+            {g.donor_name ? ` · ${g.donor_name}` : ''}
+          </Text>
+          {/* Stripe refunds arrive by webhook; Zeffy and hand-entered gifts are marked here. */}
+          {g.status === 'paid' && g.provider !== 'stripe' ? (
+            <Button
+              small
+              variant="ghost"
+              label={t('admin.refundGift')}
+              onPress={() =>
+                api.admin
+                  .refundGift(g.id)
+                  .then(() => (setNote(t('admin.giftRefunded')), loadGifts()))
+                  .catch(fail)
+              }
+            />
+          ) : null}
+        </View>
       ))}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
