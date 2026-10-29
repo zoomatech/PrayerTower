@@ -1499,7 +1499,7 @@ export type ReadingPlanToday =
       } | null;
     };
 export type LibraryOverview = { enabled: false } | { enabled: true; collections: { id: LibraryCollectionId; title: string; faith: boolean }[] };
-export type LibraryCollectionId = 'bible-kjv' | 'ancient-writings';
+export type LibraryCollectionId = 'bible-kjv' | 'ancient-writings' | 'oldest-texts';
 export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string } };
 export type LibraryResults = { total: number; source: string; hits: LibraryHit[] };
 export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
