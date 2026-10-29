@@ -2595,6 +2595,8 @@
  "quietCounts.seen": "Hide support numbers on posts I see",
  "quietCounts.seenHint": "You’ll see “People are with you” instead of a number.",
  "quietCounts.title": "Quiet counts",
+ "radioAdmin.fund": "Lighthouse token fund",
+ "radioAdmin.open": "Radio settings",
  "radioDigest.aired": "Aired",
  "radioDigest.answered": "Answered",
  "radioDigest.emailOff": "Not emailed",

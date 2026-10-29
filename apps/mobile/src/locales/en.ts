@@ -1376,6 +1376,11 @@ const en = {
     status: { transmitted: "sent", failed: "failed", sending: "sending", other: "queued" },
   },
   // The native Mac operator console (apps/ios-native/Console): the same console, its keying safety rules and the menu bar.
+  // Admin → Radio in the native apps (apps/ios-native/Shared/RadioAdminView.swift).
+  radioAdmin: {
+    fund: "Priestly token fund",
+    open: "Radio settings",
+  },
   macConsole: {
     keying: "Keying",
     confirmResumeTitle: "Resume transmissions?",

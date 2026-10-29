@@ -2578,6 +2578,8 @@
  "quietCounts.seen": "Hide prayer numbers on posts I see",
  "quietCounts.seenHint": "You’ll see “People are praying with you” instead of a number.",
  "quietCounts.title": "Quiet counts",
+ "radioAdmin.fund": "Priestly token fund",
+ "radioAdmin.open": "Radio settings",
  "radioDigest.aired": "Aired",
  "radioDigest.answered": "Answered",
  "radioDigest.emailOff": "Not emailed",

@@ -211,7 +211,7 @@ struct ConsoleRoot: View {
             switch model.state {
             case .signedOut: ConsoleSignInView()
             case .needsCode: ConsoleCodeView()
-            case .signedIn: ConsoleView()
+            case .signedIn: NavigationStack { ConsoleView() }
             }
         }
     }

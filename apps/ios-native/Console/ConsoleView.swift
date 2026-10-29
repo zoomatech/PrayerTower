@@ -21,6 +21,12 @@ struct ConsoleView: View {
             if model.demo != nil {
                 Section { Label(w("macConsole.demo"), systemImage: "info.circle") }
             }
+            // Admin → Radio: for admins (station health loads only for them), and on the sample.
+            if model.demo != nil || model.health != nil {
+                Section {
+                    NavigationLink(w("radioAdmin.open")) { RadioAdminView(api: model.demo == nil ? model.store.api : nil, words: w) }
+                }
+            }
             if model.notOperator {
                 Section { Text(w("macConsole.notOperator")) }
             } else if model.off {
