@@ -149,7 +149,7 @@ export const ThemeTokens = z
     stemGlow: z.boolean(),
     leafShape: z.enum(['round', 'pointed', 'flower', 'star', 'tablet']),
     scenery: z.enum(['', 'fairytale']),
-    vineStyle: z.enum(['', 'beanstalk', 'ink', 'neon', 'gate']),
+    vineStyle: z.enum(['', 'beanstalk', 'ink', 'neon', 'gate', 'floral']),
     ink: Hex,
     stone: Hex,
     mortar: Hex,
