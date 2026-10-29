@@ -45,7 +45,7 @@ struct EncouragerSection: View {
     }
 
     @ViewBuilder private func match(_ m: EncouragerMatch) -> some View {
-        let l = m.lines(w, endDate: encouragerDay(m.endsAt))
+        let l = m.lines(w, endDate: monthDay(m.endsAt))
         VStack(alignment: .leading, spacing: 4) {
             Text(l.title)
             Text(l.hint).font(.footnote).foregroundStyle(.secondary)

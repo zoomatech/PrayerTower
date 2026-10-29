@@ -47,8 +47,8 @@ public struct EncouragerState: Codable, Sendable, Equatable {
 
 public enum CheckInAnswer: String, Sendable, CaseIterable, Encodable { case good, okay, change }
 
-/// "October 30", as the Expo card shows the end date.
-public func encouragerDay(_ iso: String, locale: Locale = .current) -> String {
+/// "October 30": how the Expo app shows an end date (an encourager match, a circle invite).
+public func monthDay(_ iso: String, locale: Locale = .current) -> String {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     let date = f.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)

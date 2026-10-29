@@ -11,7 +11,7 @@ private let state = ##"{"enabled":true,"volunteer":false,"canAsk":false,"matches
         #expect(m.isNewcomer && m.checkInDue == true)
         let l = m.lines(Words(.faith), endDate: "November 12")
         #expect(l.title.contains("Ruth") && l.hint.contains("November 12"))
-        #expect(encouragerDay(m.endsAt, locale: Locale(identifier: "en_US")).contains("November"))
+        #expect(monthDay(m.endsAt, locale: Locale(identifier: "en_US")).contains("November"))
         let off = try JSONDecoder().decode(EncouragerState.self, from: Data(##"{"enabled":false}"##.utf8))
         #expect(!off.enabled && off.matches.isEmpty)
     }
