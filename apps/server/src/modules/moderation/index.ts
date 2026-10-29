@@ -8,6 +8,7 @@ import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as pathBack from '../path-back/index.js';
 import * as adFines from '../ad-fines/index.js';
 import * as harm from '../harm/index.js';
 import * as messages from '../messages/index.js';
@@ -313,6 +314,10 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
     }
     const notice = removalNotice(item.target_type, rule, item.id, suspendedUntil);
     if (fine) notice.body += adFines.noticeLine(fine);
+    if (await pathBack.applies(q, item.target_type, rule)) {
+      notice.body += pathBack.NOTICE_LINE;
+      notice.data = { ...notice.data, pathBack: true };
+    }
     await notifications.notify(q, item.user_id, notice);
   }
   // One decision settles the item; a removal also settles every other pending report or flag on the

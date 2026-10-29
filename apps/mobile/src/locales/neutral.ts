@@ -35,6 +35,19 @@ export const keys: Tree = named({
   weather: {
     numbers: '%{comments} comments · %{warm} warm · %{heated} heated · %{lifts} thinking of you',
   },
+  circleWelcome: {
+    adminHint: 'The person who started a circle writes a short welcome (its norms). Someone posting there for the first time sees it above the composer and can dismiss it, and the starter gets a quiet nudge to say hello. Needs circles on.',
+  },
+  pathBack: {
+    adminHint: 'When a moderator removes a post or comment, the notice says the author may post it again with changes, and only the author can open their own words to edit. Never offered for posts wishing harm, flooding or automated accounts.',
+  },
+  replyChoice: {
+    supporters: 'People who sent support',
+    none: 'No comments, just support',
+    supportersNote: 'The person who asked chose comments from people who sent support. Your support still means a lot.',
+    noneNote: 'The person who asked would like support here, without comments. Your support still means a lot.',
+    adminHint: 'The person who asked chooses who may comment on their post: everyone, only people who supported it, or no comments at all. They can always post updates and change it any time. While off, everyone can comment.',
+  },
   thankNote: {
     title: 'Thank everyone who supported you',
     hint: 'Write one warm note. Everyone who supported this gets it, once.',
