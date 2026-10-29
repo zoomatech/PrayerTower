@@ -164,8 +164,11 @@ describe('every radio feature, every switch on, both editions', () => {
     for (const [url, host] of [['/listen', 'opencircle.example'], ['/open-circle/listen', 'localhost'], ['/on-the-air', 'opencircle.example'], ['/open-circle/on-the-air', 'localhost']] as const) {
       const res = await app.inject({ method: 'GET', url, headers: { host } });
       expect(res.statusCode, url).toBe(200);
-      // Only what a visitor reads: drop scripts and tags.
-      const text = res.body.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ');
+      // The page without its decoder script (code, not words a visitor reads). A test check, not a sanitizer.
+      const text = res.body
+        .split('<script')
+        .map((part, i) => (i ? part.slice(part.indexOf('</script>') + '</script>'.length) : part))
+        .join(' ');
       expect(text, `${host}${url}`).not.toMatch(RELIGIOUS);
       if (url.endsWith('/listen')) expect(text).toContain('Listen to a radio burst');
     }
