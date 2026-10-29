@@ -23,6 +23,13 @@ struct MeView: View {
                     Section { header(profile) }
                     Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
                 }
+                FeedStyleSection()
+                if model.features["skinGallery"] || model.features["themeProposals"] {
+                    Section {
+                        if model.features["skinGallery"] { NavigationLink("Skin gallery") { SkinGalleryView() } }
+                        if model.features["themeProposals"] { NavigationLink("Make your own feed skin") { ThemeMakerView() } }
+                    }
+                }
                 if model.features["freshDays"] {
                     if let line = freshDay?.line { Section { Text(line) } }
                     Section { FreshDaysSection() } header: { Text("Days that matter") }

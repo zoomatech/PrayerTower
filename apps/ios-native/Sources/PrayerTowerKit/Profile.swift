@@ -80,28 +80,6 @@ public enum ProfileSettings {
     }
 }
 
-/// A small JSON value for PATCH bodies that mix types.
-public enum JSONValue: Encodable, Sendable, Equatable {
-    case bool(Bool)
-    case string(String)
-    case int(Int)
-    case array([JSONValue])
-    case object([String: JSONValue])
-    case null
-
-    public func encode(to encoder: Encoder) throws {
-        var c = encoder.singleValueContainer()
-        switch self {
-        case .bool(let b): try c.encode(b)
-        case .string(let s): try c.encode(s)
-        case .int(let i): try c.encode(i)
-        case .array(let a): try c.encode(a)
-        case .object(let o): try c.encode(o)
-        case .null: try c.encodeNil()
-        }
-    }
-}
-
 /// Which phone alerts are on, and quiet hours (`notification_prefs` on the profile).
 public struct NotificationPrefs: Codable, Sendable, Equatable {
     public struct Quiet: Codable, Sendable, Equatable {

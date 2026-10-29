@@ -37,6 +37,8 @@ final class AppModel {
     var tree: [MeaningEmoji] = []
     /// A request to open from a widget or Live Activity tap.
     var openPost: String?
+    /// Bumped when the member picks another feed style, so the feed reloads in it.
+    var feedStyle: String?
 
     init(store: SessionStore) { self.store = store }
 
