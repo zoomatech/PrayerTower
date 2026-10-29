@@ -253,6 +253,23 @@ export interface AdminRadioSettings {
   radio_batch_max: number;
 }
 
+/** One burst the station sent (burst mode), newest first in Admin → Radio. */
+export interface StationBurst {
+  id: string;
+  created_at: string;
+  call_sign: string;
+  mode: 'audio' | 'fldigi' | 'simulate';
+  preset: string;
+  prayers: number;
+  frames: number;
+  bytes: number;
+  seconds: number;
+  /** Prayers decoded back from the burst audio (simulate mode); null when not checked. */
+  decoded: number | null;
+  ok: boolean;
+  error: string | null;
+}
+
 export interface PowerPrayerStatus {
   reach: number;
   freeLeft: number;
@@ -983,6 +1000,7 @@ export const api = {
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
+    radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
