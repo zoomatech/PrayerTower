@@ -104,6 +104,36 @@ describe('Cross-posting while on', () => {
     expect((await send({ source: 'threads', text: 'Another one' })).statusCode).toBe(401);
   });
 
+  it('answers bad extension requests with a clear 4xx, never a server error', async () => {
+    const member = await createUser('Messy Poster');
+    const { key } = (await as(member).post('/crosspost/extension-key')).json();
+    const send = (payload: unknown, headers: Record<string, string> = {}) =>
+      withKeys.inject({ method: 'POST', url: '/crosspost/extension/posts', headers: { 'x-crosspost-key': key, 'content-type': 'application/json', ...headers }, payload: typeof payload === 'string' ? payload : JSON.stringify(payload) });
+    expect((await send('{"source": "facebook", "text": ')).statusCode).toBe(400);
+    expect((await send({ source: 'myspace', text: 'hello' })).statusCode).toBe(400);
+    expect((await send({ source: 'facebook', text: 'x'.repeat(20_001) })).statusCode).toBe(400);
+    expect((await send({ source: 'facebook', text: 'hi', media: Array.from({ length: 11 }, () => ({ data: 'AA==' })) })).statusCode).toBe(400);
+    expect((await send({ source: 'facebook', text: 'hi' }, { 'x-crosspost-key': '' })).statusCode).toBe(401);
+    // Broken or unknown files are dropped; the words still go through.
+    const res = await send({ source: 'facebook', text: 'Words survive a broken photo', media: [{ data: '%%%not-base64%%%' }, { data: Buffer.from('GIF89a').toString('base64') }] });
+    expect(res.statusCode).toBe(201);
+    expect((await as(member).get(`/posts/${res.json().postId}`)).json().post.media).toEqual([]);
+    // A photo with no media storage configured is refused plainly.
+    expect((await send({ source: 'facebook', text: 'With a photo', media: [{ data: JPEG.toString('base64') }] })).statusCode).toBe(503);
+  });
+
+  it('lets the extension call from its own origin even when the server limits origins', async () => {
+    const locked = buildApp({ db, verifyToken: async (t) => t.slice(5), crosspost: opts, corsOrigins: ['https://app.example.org'] });
+    const preflight = (origin: string) =>
+      locked.inject({ method: 'OPTIONS', url: '/crosspost/extension/posts', headers: { origin, 'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type,x-crosspost-key' } });
+    for (const origin of ['chrome-extension://abcdefghijklmnopabcdefghijklmnop', 'safari-web-extension://8D1A2B3C-0000-4E5F-9A8B-1234567890AB', 'https://app.example.org']) {
+      expect((await preflight(origin)).headers['access-control-allow-origin']).toBe(origin);
+    }
+    expect((await preflight('https://evil.example')).headers['access-control-allow-origin']).toBeUndefined();
+    expect((await preflight('chrome-extension://abc/../evil')).headers['access-control-allow-origin']).toBeUndefined();
+    await locked.close();
+  });
+
   it('skips repeats, empty posts and paused members, and remembers why', async () => {
     const member = await createUser('Careful Poster');
     const base = { source: 'threads' as const, via: 'account' as const, text: 'Grateful for good friends today.' };
