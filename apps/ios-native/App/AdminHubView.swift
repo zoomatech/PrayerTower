@@ -298,8 +298,11 @@ struct AdminBoardsView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        List(AdminBoard.all) { b in
-            NavigationLink(model.words(b.title)) { AdminBoardView(board: b) }
+        List {
+            ForEach(AdminBoard.all) { b in
+                NavigationLink(model.words(b.title)) { AdminBoardView(board: b) }
+            }
+            LibraryAdminSection()
         }
         .navigationTitle(model.words("profile.settings"))
     }
