@@ -12,6 +12,8 @@ export function readingPlanRoutes(app: FastifyInstance, db: Db) {
   app.get('/staff/reading-plans', async (req) => ({ plans: await plan.plans(db, requireUser(req)) }));
   app.post('/staff/reading-plans', async (req, reply) => {
     const userId = requireUser(req);
+    // The role first, so a member learns nothing from the body check.
+    await plan.requireStaff(db, userId);
     const body = plan.NewPlan.parse(req.body);
     reply.code(201);
     return withTx(db, (tx) => plan.create(tx, userId, body));
