@@ -35,6 +35,8 @@ Two questions are still open before running unattended (see the paper):
 
 Steve's model (2026-10-28): "from each according to his generosity, to each according to his need." Members donate Priestly tokens to the shared fund, and nobody buys a transmission. With radio prayers free (Admin → Tokens), Admin → Radio → "Which prayer goes out next" → **By need** has the station take the most urgent queued request first. Ties go to the request with the fewest people praying, then to the oldest. **First in, first out** is the default (`token_settings.radio_order`).
 
+**Urgent requests first** (Admin → Radio, off by default, `token_settings.radio_urgent_first`) sends requests marked "Today" or "Right now" ahead of the rest, whichever order the rest follows. Among the urgent ones the chosen order still applies.
+
 ## Server setup
 
 1. Generate a key with `openssl rand -hex 32` and set `STATION_API_KEY` on the API server (see `apps/server/.env.example`).

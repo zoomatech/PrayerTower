@@ -350,6 +350,12 @@ function Admin() {
               <Chip label={t('admin.radioNeed')} selected={radio.radio_order === 'need'} onPress={() => saveRadio({ order: 'need' })} />
             </View>
             {radio.radio_order === 'need' ? <Text style={type.small}>{t('admin.radioNeedHint')}</Text> : null}
+            <Toggle
+              label={t('admin.radioUrgentFirst')}
+              hint={t('admin.radioUrgentFirstHint')}
+              value={radio.radio_urgent_first}
+              onChange={(v) => saveRadio({ urgentFirst: v })}
+            />
             <Text style={type.small}>{t('admin.radioBurst')}</Text>
             <View style={styles.row}>
               {[1, 10, 50, 100, 500].map((n) => (
@@ -875,6 +881,22 @@ function StationHealthSection() {
             ))
           ) : (
             <Text style={type.small}>{t('admin.healthSnrNone')}</Text>
+          )}
+          <Text style={type.small}>{t('admin.healthListenersTitle')}</Text>
+          {h.listeners.map((l) => (
+            <Text key={l.name} style={[type.small, l.silent ? { color: colors.danger } : null]}>
+              {t(l.silent ? 'admin.healthListenerSilent' : 'admin.healthListener', { name: l.name, when: when(l.lastHeartbeat) })}
+            </Text>
+          ))}
+          <Text style={type.small}>{t('admin.healthHeardTitle')}</Text>
+          {h.lastHeard.length ? (
+            h.lastHeard.map((r, i) => (
+              <Text key={`${r.at}-${i}`} style={type.small}>
+                {t('admin.healthHeard', { when: when(r.at), node: r.node, callSign: r.callSign, preset: r.preset, snr: r.snrDb })}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.healthHeardNone')}</Text>
           )}
           <Text style={type.small}>{t('admin.healthFailuresTitle')}</Text>
           {h.failures.length ? (

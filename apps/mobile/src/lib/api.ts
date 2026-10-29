@@ -584,6 +584,7 @@ export interface AdminRadioSettings {
   radio_max_chars: number;
   radio_amplify_repeats: number;
   radio_order: 'oldest' | 'need';
+  radio_urgent_first: boolean;
   /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
   radio_batch_max: number;
   /** The public /listen page that decodes bursts from a phone's microphone. */
@@ -594,7 +595,7 @@ export interface AdminRadioSettings {
 
 /** A station health alert in Admin → Radio (server radio/health.ts). */
 export interface StationAlert {
-  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'queue_empty';
+  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'listener_silent' | 'queue_empty';
   level: 'problem' | 'info';
   detail: string;
   callSign: string | null;
@@ -619,6 +620,8 @@ export interface StationHealth {
   health: {
     stations: { callSign: string; lastHeartbeat: string | null; silent: boolean; checks: { name: string; ok: boolean; detail: string }[]; bursts24h: number; failed24h: number; prayers24h: number; lastBurstAt: string | null; lastError: string | null }[];
     queue: { queued: number; sending: number; oldestMinutes: number | null };
+    listeners: { name: string; lastHeartbeat: string | null; silent: boolean }[];
+    lastHeard: { node: string; callSign: string; preset: string; snrDb: number; at: string }[];
     snr: { callSign: string; preset: string; reports: number; avgDb: number; minDb: number; lastAt: string }[];
     failures: { at: string; callSign: string | null; kind: 'burst' | 'prayer'; error: string }[];
   } | null;
@@ -1649,7 +1652,7 @@ export const api = {
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
     removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
     updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; urgentFirst: boolean; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (

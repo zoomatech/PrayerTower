@@ -71,3 +71,6 @@ export function decodePackets(samples: Float32Array, rate: number): (PacketStatu
     return s ? [{ ...s, end: p.end }] : [];
   });
 }
+
+/** Decode replay and diagnostics for a recording (diagnose.ts): level, clipping, hum, SNR margins and advice. */
+export { diagnose, report as diagnosisReport } from './diagnose.js';
