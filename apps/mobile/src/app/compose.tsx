@@ -21,6 +21,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { KindCloud } from '@/components/kind-cloud';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -151,6 +152,7 @@ export default function Compose() {
           autoFocus
           accessibilityLabel={t('compose.bodyLabel')}
         />
+        <KindCloud text={body} />
         <Text style={[type.small, words > MAX_POST_WORDS && { color: colors.danger }]}>
           {t('compose.words', { count: words, max: MAX_POST_WORDS })}
         </Text>

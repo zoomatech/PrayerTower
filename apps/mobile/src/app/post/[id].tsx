@@ -11,6 +11,8 @@ import { GuestShare } from '@/components/guest-share';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
+import { KindCloud } from '@/components/kind-cloud';
+import { MeaningReactions } from '@/components/meaning-reactions';
 import { CircleGoal } from '@/components/circle-goal';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
@@ -29,7 +31,7 @@ export default function PostScreen() {
   const { profile, roles } = useAuth();
   const { t } = useLocale();
   const features = useFeatures();
-  const { materialMatch } = features;
+  const { materialMatch, kindCloud } = features;
   // The comment tree takes its colors from the member's feed style (vine skins), else the vine's own.
   const [treeTokens, setTreeTokens] = useState(() => vineTokens(null));
   useEffect(() => {
@@ -94,7 +96,8 @@ export default function PostScreen() {
     setBusy(true);
     setError(null);
     try {
-      if (!confirmed && (await api.precheck(text.trim())).warn) {
+      // With the kind cloud on, the cloud speaks while typing and nothing waits here.
+      if (!confirmed && !kindCloud && (await api.precheck(text.trim())).warn) {
         setWarnedFor({ text, isUpdate });
         return;
       }
@@ -228,6 +231,7 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
+        {card ? <MeaningReactions postId={card.id} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
@@ -448,6 +452,7 @@ export default function PostScreen() {
                 </Text>
               ) : null}
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
+              <KindCloud text={text} />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>
                 <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />

@@ -1374,6 +1374,8 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.checkinAffirmation')} hint={t('admin.toggle.checkinAffirmationHint')} value={s.checkin_affirmation_enabled} onChange={(v) => save({ checkinAffirmationEnabled: v })} />
       <Toggle label={t('admin.toggle.whyGifts')} hint={t('admin.toggle.whyGiftsHint')} value={s.why_gifts_enabled} onChange={(v) => save({ whyGiftsEnabled: v })} />
       <Toggle label={t('admin.toggle.poolMatching')} hint={t('admin.toggle.poolMatchingHint')} value={s.pool_matching_enabled} onChange={(v) => save({ poolMatchingEnabled: v })} />
+      <Toggle label={t('admin.toggle.kindCloud')} hint={t('admin.toggle.kindCloudHint')} value={s.kind_cloud_enabled} onChange={(v) => save({ kindCloudEnabled: v })} />
+      <Toggle label={t('admin.toggle.meaningReactions')} hint={t('admin.toggle.meaningReactionsHint')} value={s.meaning_reactions_enabled} onChange={(v) => save({ meaningReactionsEnabled: v })} />
       <Toggle label={t('admin.toggle.lamps')} hint={t('admin.toggle.lampsHint')} value={s.lamps_enabled} onChange={(v) => save({ lampsEnabled: v })} />
       <Toggle label={t('admin.toggle.poolLedger')} hint={t('admin.toggle.poolLedgerHint')} value={s.pool_ledger_enabled} onChange={(v) => save({ poolLedgerEnabled: v })} />
       <Toggle label={t('admin.toggle.circleGoals')} hint={t('admin.toggle.circleGoalsHint')} value={s.circle_goals_enabled} onChange={(v) => save({ circleGoalsEnabled: v })} />

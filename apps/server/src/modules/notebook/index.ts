@@ -8,7 +8,9 @@
 //   * the "don't pressure people" rule and the public ad-free promise page (20261029004700);
 //   * the "no misleading claims" and "no automated accounts" rules (20261029006000);
 //   * the post anatomy lines from Mockups 1 and 2 (20261029009200);
-//   * tier upkeep, Notes Page 3 (20261029009300; the rule itself is in tiers/).
+//   * tier upkeep, Notes Page 3 (20261029009300; the rule itself is in tiers/);
+//   * the kind cloud (20261029015600; the rules are in kindness/);
+//   * emoji meanings (20261029015700; meaning-reactions/).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
@@ -43,6 +45,8 @@ export interface NotebookSettings {
   checkin_affirmation_enabled: boolean;
   why_gifts_enabled: boolean;
   pool_matching_enabled: boolean;
+  kind_cloud_enabled: boolean;
+  meaning_reactions_enabled: boolean;
   lamps_enabled: boolean;
   lamps_per_week: number;
   pool_ledger_enabled: boolean;
@@ -60,7 +64,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled, squire_board_enabled, squire_board_days, group_gifts_enabled from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, kind_cloud_enabled, meaning_reactions_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled, squire_board_enabled, squire_board_days, group_gifts_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -89,6 +93,8 @@ export const SettingsPatch = z.object({
   checkinAffirmationEnabled: z.boolean().optional(),
   whyGiftsEnabled: z.boolean().optional(),
   poolMatchingEnabled: z.boolean().optional(),
+  kindCloudEnabled: z.boolean().optional(),
+  meaningReactionsEnabled: z.boolean().optional(),
   lampsEnabled: z.boolean().optional(),
   lampsPerWeek: z.number().int().min(1).max(20).optional(),
   poolLedgerEnabled: z.boolean().optional(),
@@ -118,13 +124,15 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        checkin_affirmation_enabled = coalesce($21, checkin_affirmation_enabled),
        why_gifts_enabled = coalesce($22, why_gifts_enabled),
        pool_matching_enabled = coalesce($23, pool_matching_enabled),
-       lamps_enabled = coalesce($24, lamps_enabled), lamps_per_week = coalesce($25, lamps_per_week),
-       pool_ledger_enabled = coalesce($26, pool_ledger_enabled),
-       circle_goals_enabled = coalesce($27, circle_goals_enabled),
-       giving_ask_enabled = coalesce($28, giving_ask_enabled), giving_ask_after_days = coalesce($29, giving_ask_after_days),
-       support_links_enabled = coalesce($30, support_links_enabled),
-       squire_board_enabled = coalesce($31, squire_board_enabled), squire_board_days = coalesce($32, squire_board_days),
-       group_gifts_enabled = coalesce($33, group_gifts_enabled)`,
+       kind_cloud_enabled = coalesce($24, kind_cloud_enabled),
+       meaning_reactions_enabled = coalesce($25, meaning_reactions_enabled),
+       lamps_enabled = coalesce($26, lamps_enabled), lamps_per_week = coalesce($27, lamps_per_week),
+       pool_ledger_enabled = coalesce($28, pool_ledger_enabled),
+       circle_goals_enabled = coalesce($29, circle_goals_enabled),
+       giving_ask_enabled = coalesce($30, giving_ask_enabled), giving_ask_after_days = coalesce($31, giving_ask_after_days),
+       support_links_enabled = coalesce($32, support_links_enabled),
+       squire_board_enabled = coalesce($33, squire_board_enabled), squire_board_days = coalesce($34, squire_board_days),
+       group_gifts_enabled = coalesce($35, group_gifts_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -149,6 +157,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.checkinAffirmationEnabled ?? null,
       p.whyGiftsEnabled ?? null,
       p.poolMatchingEnabled ?? null,
+      p.kindCloudEnabled ?? null,
+      p.meaningReactionsEnabled ?? null,
       p.lampsEnabled ?? null,
       p.lampsPerWeek ?? null,
       p.poolLedgerEnabled ?? null,
@@ -187,6 +197,10 @@ export async function features(q: Queryable) {
     checkinAffirmation: s.checkin_affirmation_enabled,
     whyGifts: s.why_gifts_enabled,
     poolMatching: s.pool_matching_enabled,
+    /** The kind cloud on the composer (modules/kindness). */
+    kindCloud: s.kind_cloud_enabled,
+    /** Emoji reactions that open to positive meanings (modules/meaning-reactions). */
+    meaningReactions: s.meaning_reactions_enabled,
     lamps: s.lamps_enabled,
     poolLedger: s.pool_ledger_enabled,
     circleGoals: s.circle_goals_enabled,

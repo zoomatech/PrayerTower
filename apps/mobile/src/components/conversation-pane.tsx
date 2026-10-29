@@ -7,6 +7,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 
 import { CrisisSupport } from '@/components/crisis';
+import { KindCloud } from '@/components/kind-cloud';
 import { GroupGift } from '@/components/group-gift';
 import { Button, Chip, ErrorText, Field, RulesWarning } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -21,6 +22,7 @@ const POLL_MS = 5000;
  * blocking calls it instead of going back.
  */
 export function ConversationPane({ id, onClose }: { id: string; onClose?: () => void }) {
+  const { kindCloud } = useFeatures();
   const { t } = useLocale();
   const features = useFeatures();
   const [view, setView] = useState<ConversationView | null>(null);
@@ -61,7 +63,8 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
     setBusy(true);
     setError(null);
     try {
-      if (!confirmed && (await api.precheck(body)).warn) {
+      // With the kind cloud on, the cloud speaks while typing and nothing waits here.
+      if (!confirmed && !kindCloud && (await api.precheck(body)).warn) {
         setWarned(true);
         return;
       }
@@ -205,6 +208,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
             maxLength={MESSAGE_MAX_CHARS}
             multiline
           />
+          <KindCloud text={text} />
           {warned ? <RulesWarning onPostAnyway={() => send(true)} busy={busy} /> : null}
           <Button testID="message-send" label={t('actions.send')} onPress={() => send()} busy={busy} disabled={!text.trim()} />
         </View>
