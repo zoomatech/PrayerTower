@@ -32,6 +32,8 @@ final class AppModel {
     var me: Me?
     /// Emoji meanings for the action row, loaded only while both meaning switches are on.
     var tree: [MeaningEmoji] = []
+    /// Bumped when the member picks another feed style, so the feed reloads in it.
+    var feedStyle: String?
 
     init(store: SessionStore) { self.store = store }
 

@@ -45,6 +45,8 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public var lamentRadio: Bool? = nil
     /// Only on the author's own request: it goes out again when the air is quiet.
     public var keepOnAir: Bool? = nil
+    /// Newest few comments, newest first, while comments as leaves is on (the drawn vine and tower).
+    public let leafComments: [LeafComment]?
 }
 
 /// A photo or video on a post; `url` is a short-lived signed read URL.
@@ -54,7 +56,17 @@ public struct CardMedia: Codable, Sendable, Equatable {
     public let url: String?
 }
 
+/// A comment shown on a leaf or sub-tablet under its request.
+public struct LeafComment: Codable, Sendable, Equatable, Identifiable {
+    public let id: String
+    public let body: String
+    public let author: Identity
+    public let createdAt: String
+}
+
 public struct FeedPage: Codable, Sendable, Equatable {
+    /// The member's feed skin; nil means the plain column.
+    public let theme: FeedTheme?
     public let posts: [Card]
     public let pinnedId: String?
     public let nextPage: Int?
