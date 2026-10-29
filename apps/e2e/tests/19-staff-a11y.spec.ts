@@ -7,7 +7,7 @@ import { db, signIn } from './helpers';
 
 const SCREENS = [
   '/admin', '/announcements', '/audit-log', '/churches', '/feedback-triage', '/import', '/invites', '/legal', '/macro-needs',
-  '/moderation', '/ops', '/operator-console', '/podcasts-admin', '/radio-requests', '/surveys', '/waitlist', '/witness',
+  '/moderation', '/ops', '/podcasts-admin', '/radio-requests', '/surveys', '/waitlist', '/witness', '/operator-console',
 ];
 
 test('staff screens have no WCAG A/AA violations, with every switch on', async ({ page }) => {

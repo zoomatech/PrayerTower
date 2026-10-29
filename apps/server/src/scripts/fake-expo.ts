@@ -23,14 +23,15 @@ createServer((req, res) => {
     if (req.url === '/--/api/v2/push/send') {
       if (mode === 'busy') return reply(503, { errors: [{ code: 'SERVICE_UNAVAILABLE' }] });
       const messages = (Array.isArray(body) ? body : [body]) as { to: string; title: string; body: string; collapseId?: string }[];
-      for (const m of messages) console.log(`push → ${m.to}: ${m.title} — ${m.body}${m.collapseId ? ` (collapseId ${m.collapseId})` : ''}`);
+      // Each push as JSON on one line: quotes and line breaks are escaped, so a request can't forge log lines.
+      for (const m of messages) console.log('push', JSON.stringify({ to: m.to, title: m.title, body: m.body, collapseId: m.collapseId }));
       return reply(200, {
         data: messages.map(() => (mode === 'dead' ? { status: 'error', message: 'not registered', details: { error: 'DeviceNotRegistered' } } : { status: 'ok', id: `fake-${next++}` })),
       });
     }
     if (req.url === '/--/api/v2/push/getReceipts') {
-      const ids = (body.ids ?? []) as string[];
-      console.log(`receipts for ${ids.length} push(es)`);
+      const ids: string[] = Array.isArray(body.ids) ? body.ids.map(String) : [];
+      console.log(`receipts for ${Number(ids.length)} push(es)`);
       return reply(200, { data: Object.fromEntries(ids.map((id) => [id, { status: 'ok' }])) });
     }
     reply(404, { errors: [{ code: 'NOT_FOUND' }] });
