@@ -402,7 +402,9 @@ Only one test waits at a time. A test the station doesn't pick up within 5
 minutes fails ("is it running, in burst mode?"), and so does a burst no
 listener reports within 30 minutes. A failed key-up is reported in the
 wizard and unkeys the radio, but doesn't stop the station. Test bursts are
-never counted as prayers and never send receipts.
+never counted as prayers and never send receipts. Tests are started by
+the operator, so they go out even outside transmission windows and quiet
+hours.
 
 ## Coverage map
 
