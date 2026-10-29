@@ -24,6 +24,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
 | Operator alerts (push on station problems) | Admin → Radio → Operator alerts | [Operator alerts](#operator-alerts) |
 | Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
+| Scheduled radio sends (a request goes out by radio, or amplified, at a set time) | Admin → Radio → Scheduled radio sends | [Scheduled radio sends](#scheduled-radio-sends) |
 | Prayer without ceasing (kept requests go out again when the air is quiet) | Admin → Radio → Prayer without ceasing | [Prayer without ceasing](#prayer-without-ceasing) |
 | Dish and sky target (where to point, rotator follows, hold while low) | Admin → Radio → Dish and sky target, plus `ROTATOR=rotctld` to turn a rotator | [Dish and sky target](#dish-and-sky-target) |
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
@@ -422,6 +423,12 @@ Off until an admin turns on **Operator alerts** in Admin → Radio (under the op
 Off until an admin turns on **Reception beacon** in Admin → Radio (under the operator console switch) and picks how often: every 30, 60 (the default), 120 or 240 minutes. Each time, the station sends the setup wizard's short test burst ("Station test" and a code, with its call sign in the frame). The station needs no new settings, and the setup wizard itself can stay off. Every listener node and listening page that decodes the beacon reports it, and each receiver is kept with its signal-to-noise ratio. The operator console shows the last 24 hours: when each beacon went out, which receivers heard it and how strongly, or that none did. This makes changes in reception through the day easy to see.
 
 No beacon goes out while the console's hold is on or outside the transmission windows. Turning the beacon off drops any beacon still waiting for the station. While a beacon is waiting (up to 5 minutes), a setup wizard test has to wait for it.
+
+## Scheduled radio sends
+
+From the Dominic notebook page ("2,500 on Friday, 2,500 on Saturday and the rest at the start of the game", amplified). Off until an admin turns on **Scheduled radio sends** in Admin → Radio.
+
+While it is on, a request's screen has **Schedule a radio send**. The member picks a time (Friday 7 pm, Saturday 9 am, Sunday 9 am or their own), once or weekly for 4 or 12 weeks, and whether to amplify. At that time the request is queued for the station exactly as if they had pressed **Send as a radio prayer** (or **Amplify**) then: the price in Priestly tokens, the free monthly radio prayer, the one-free-send-per-request rule and every hold apply at that moment, not when it was scheduled. If the radio refuses it then (sensitive, a lament kept off the air, no Amplify price, not enough Priestly tokens, or the switch turned off), the schedule stops and the member gets a notice saying why. Members see and cancel these under **Scheduled gifts** in their profile.
 
 ## Prayer without ceasing
 
