@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildBurst, listen } from '../src/burst/burst.js';
 import { decodeBatch, encodeBatch } from '../src/burst/codec.js';
@@ -85,6 +88,20 @@ describe('store-and-forward relay', () => {
     // What its heartbeat tells the operator console.
     expect(relay.status()).toMatchObject({ callSign: 'K1RLY', relayedLastHour: 1, budgetSeconds: 0.3, skipped: { budget: 1, not_allowed: 1 } });
     expect(relay.status().secondsLastHour).toBeGreaterThan(0);
+  });
+
+  it('keeps its air time and relayed batches across a restart', async () => {
+    const stateFile = path.join(mkdtempSync(path.join(tmpdir(), 'relay-state-')), 'relay-state.json');
+    const first = new Relay({ ...cfg, maxSecondsPerHour: 0.3, stateFile }, fakeTx().tx, Date.now, async () => {});
+    const heard = station('N0CALL', encodeBatch(['Pray for A.']));
+    expect(await first.consider(heard)).toMatchObject({ relayed: true });
+    // Restarted: the same batch is still a duplicate, and the hour's budget is still spent.
+    const again = new Relay({ ...cfg, maxSecondsPerHour: 0.3, stateFile }, fakeTx().tx, Date.now, async () => {});
+    expect(await again.consider(heard)).toEqual({ relayed: false, reason: 'duplicate' });
+    expect(await again.consider(station('N0CALL', encodeBatch(['Pray for B.'])))).toEqual({ relayed: false, reason: 'budget' });
+    // A damaged file starts fresh rather than stopping the node.
+    writeFileSync(stateFile, '{nope');
+    expect(await new Relay({ ...cfg, stateFile }, fakeTx().tx, Date.now, async () => {}).consider(heard)).toMatchObject({ relayed: true });
   });
 
   it('is off unless RELAY=on, and needs a call sign and a list of stations', () => {

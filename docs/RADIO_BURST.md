@@ -327,6 +327,10 @@ The relay re-sends a frame only when all of these hold (loop protection):
 - The relay can read it (it never re-sends what it can't vouch for).
 - It is within `RELAY_MAX_SECONDS_PER_HOUR` of airtime (default 120).
 
+The last hour's airtime and the batches relayed in the last 10 minutes are kept in
+`relay/relay-state.json` in the node's state directory. A restart or a crash loop
+therefore doesn't reset the budget or the duplicate check.
+
 It waits `RELAY_DELAY_MS` (1 s) for the channel to clear, then sends the frame
 on the same preset under its own call sign (`RELAY_CALL_SIGN`), which is its
 identification. The original station and the hop count travel inside (codec 5,
