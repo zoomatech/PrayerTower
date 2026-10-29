@@ -118,7 +118,7 @@ export function nodeRoutes(app: FastifyInstance, db: Db) {
   // A listener node decoded these prayers (fingerprints only): acknowledges them (acks.ts) and, with receipts on, tells their senders.
   app.post('/node/heard', async (req) => {
     const node = await nodes.authenticateRequest(db, req, 'listener');
-    const wizard = await setup.enabled(db);
+    const wizard = await setup.testsActive(db);
     const on = wizard || (await nodes.enabled(db)) || (await acks.settings(db)).enabled || (await receipts.enabled(db));
     if (!on) throw notFound('Listener acknowledgements');
     const report = receipts.HeardReport.parse(req.body);
@@ -139,8 +139,9 @@ export function nodeRoutes(app: FastifyInstance, db: Db) {
   // A node that opted in (NODE_LOCATION) adds its approximate location for the coverage map (coverage.ts).
   app.post('/node/heartbeat', async (req) => {
     const node = await nodes.authenticateRequest(db, req, 'listener');
-    const { location } = z.object({ location: coverage.Location.optional() }).parse(req.body ?? {});
+    const { location, relay } = z.object({ location: coverage.Location.optional(), relay: nodes.RelayStatus.optional() }).parse(req.body ?? {});
     if (location) await coverage.fromNode(db, node.id, location);
+    if (relay) await nodes.recordRelay(db, node.id, relay);
     return { ok: true };
   });
 }

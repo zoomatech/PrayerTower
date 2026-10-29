@@ -31,9 +31,21 @@ export const DEDUPE_MS = 10 * 60_000;
 
 export type RelayResult = { relayed: true; seconds: number } | { relayed: false; reason: 'own' | 'not_allowed' | 'max_hops' | 'duplicate' | 'budget' | 'unreadable' };
 
+/** What a relay tells the server with its heartbeat (operator console, "Relays"). */
+export interface RelayStatus {
+  callSign: string;
+  /** Frames re-sent, and their air time, in the last hour. */
+  relayedLastHour: number;
+  secondsLastHour: number;
+  budgetSeconds: number;
+  /** Frames not re-sent since the relay started, by reason. */
+  skipped: Partial<Record<Exclude<RelayResult, { relayed: true }>['reason'], number>>;
+}
+
 export class Relay {
   private seen = new Map<string, number>();
   private airtime: { at: number; seconds: number }[] = [];
+  private skipped: RelayStatus['skipped'] = {};
 
   constructor(
     private cfg: RelayConfig,
@@ -47,6 +59,24 @@ export class Relay {
 
   /** Decide on one decoded frame, and re-send it if every check passes. */
   async consider(frame: Pick<HeardFrame, 'callSign' | 'preset' | 'batch' | 'prayers'> & { via?: string }): Promise<RelayResult> {
+    const r = await this.decide(frame);
+    if (!r.relayed) this.skipped[r.reason] = (this.skipped[r.reason] ?? 0) + 1;
+    return r;
+  }
+
+  status(): RelayStatus {
+    const now = this.now();
+    const hour = this.airtime.filter((a) => now - a.at < 3_600_000);
+    return {
+      callSign: this.cfg.callSign.toUpperCase(),
+      relayedLastHour: hour.length,
+      secondsLastHour: Math.round(hour.reduce((n, a) => n + a.seconds, 0) * 10) / 10,
+      budgetSeconds: this.cfg.maxSecondsPerHour,
+      skipped: { ...this.skipped },
+    };
+  }
+
+  private async decide(frame: Pick<HeardFrame, 'callSign' | 'preset' | 'batch' | 'prayers'> & { via?: string }): Promise<RelayResult> {
     const own = this.cfg.callSign.toUpperCase();
     const sender = (frame.via ?? frame.callSign).toUpperCase();
     const wrapped = unwrapRelay(frame.batch);

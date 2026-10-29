@@ -81,6 +81,10 @@ describe('store-and-forward relay', () => {
     const relay = new Relay({ ...cfg, maxSecondsPerHour: 0.3 }, tx, Date.now, async () => {});
     expect(await relay.consider(station('N0CALL', encodeBatch(['Pray for A.'])))).toMatchObject({ relayed: true });
     expect(await relay.consider(station('N0CALL', encodeBatch(['Pray for B.'])))).toEqual({ relayed: false, reason: 'budget' });
+    await relay.consider(station('W9XYZ'));
+    // What its heartbeat tells the operator console.
+    expect(relay.status()).toMatchObject({ callSign: 'K1RLY', relayedLastHour: 1, budgetSeconds: 0.3, skipped: { budget: 1, not_allowed: 1 } });
+    expect(relay.status().secondsLastHour).toBeGreaterThan(0);
   });
 
   it('is off unless RELAY=on, and needs a call sign and a list of stations', () => {

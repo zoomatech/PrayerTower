@@ -66,7 +66,7 @@ const recorder = startRecorder(command, dec);
 console.log(`[listener] listening (${command}), decoding every ${everyMs / 1000}s${cfg.searchHz ? `, ±${cfg.searchHz} Hz search` : ''}`);
 
 // The server resends prayers nobody heard only while a listener is running (radio/acks.ts).
-const beat = () => api.heartbeat(location).catch((err: Error) => console.error(`[listener] ${err.message}`));
+const beat = () => api.heartbeat(location, relay?.status()).catch((err: Error) => console.error(`[listener] ${err.message}`));
 void beat();
 const beating = setInterval(beat, 60_000);
 

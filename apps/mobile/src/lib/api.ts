@@ -723,6 +723,17 @@ export interface RadioConsole {
   };
   stations: { callSign: string; lastHeartbeat: string; lastIdAt: string | null; everyMinutes: number | null; nextIdAt: string | null }[];
   log: { at: string; callSign: string; station: string; preset: string; status: string; heard: boolean; error: string | null; text: string }[];
+  beacon: { enabled: boolean; minutes: number; recent: RadioBeacon[] };
+  relays: { node: string; reportedAt: string; callSign: string; relayedLastHour: number; secondsLastHour: number; budgetSeconds: number; skipped: Record<string, number> }[];
+}
+
+export interface RadioBeacon {
+  id: string;
+  sentAt: string | null;
+  status: string;
+  callSign: string | null;
+  preset: string | null;
+  heard: { by: string; snrDb: number; peakDbfs: number | null }[];
 }
 
 export interface StationHealth {
@@ -1845,6 +1856,10 @@ export const api = {
     updateRadioSchedule: (patch: Partial<RadioSchedule>) => request<{ schedule: RadioSchedule; onAirNow: boolean }>('PATCH', '/admin/radio-schedule', patch),
     radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
     setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
+    operatorAlerts: () => get<{ enabled: boolean }>('/admin/radio-operator-alerts'),
+    radioBeacon: () => get<{ enabled: boolean; minutes: number }>('/admin/radio-beacon'),
+    setRadioBeacon: (patch: { enabled?: boolean; minutes?: number }) => request<{ enabled: boolean; minutes: number }>('PATCH', '/admin/radio-beacon', patch),
+    setOperatorAlerts: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-operator-alerts', { enabled }),
     operatorLog: () => get<{ enabled: boolean }>('/admin/operator-log'),
     setOperatorLog: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/operator-log', { enabled }),
     operatorLogCsv: () => getText('/admin/operator-log?format=csv'),

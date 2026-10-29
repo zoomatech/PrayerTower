@@ -338,6 +338,9 @@ Receivers older than the relay show a relayed frame as unreadable and keep
 decoding the rest. The code is `apps/station/src/relay.ts` and
 `src/burst/relay-frame.ts`.
 
+
+A relay reports with its listener heartbeat (once a minute): frames re-sent and seconds on the air in the last hour, its budget, and frames it did not re-send since it started, by reason. The operator console lists every relay that reported in the last hour.
+
 ## Diagnose a weak signal
 
 When a burst doesn't decode, or decodes only sometimes, record it at the
