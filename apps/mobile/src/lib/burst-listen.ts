@@ -74,3 +74,8 @@ export function toMono(data: ArrayBuffer, channels: number, encoding: 'float32' 
 export function receiptHashes(frame: HeardFrame): string[] {
   return [...new Set(frame.prayers ?? [])].slice(0, 500).map((p) => fingerprint(p));
 }
+
+/** One prayer's fingerprint, for "I'm praying too" (praying-too.ts). */
+export function prayerHash(text: string): string {
+  return fingerprint(text);
+}

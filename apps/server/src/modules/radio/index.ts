@@ -48,7 +48,7 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   const s = await tokens.settings(q);
   const existing = await q.query<RadioPrayer>(
     `select id, post_id, cost, repeats, status, created_at, transmitted_at
-       from public.radio_prayers where user_id = $1 and (idempotency_key = $2 or (cost = 0 and status <> 'failed' and post_id = $3 and (repeats > 1) = $4))`,
+       from public.radio_prayers where user_id = $1 and (idempotency_key = $2 or (cost = 0 and kind = 'prayer' and status <> 'failed' and post_id = $3 and (repeats > 1) = $4))`,
     [userId, key, post.id, amplify],
   );
   if (existing.rows[0]) return existing.rows[0];
@@ -100,7 +100,9 @@ function holdReason(r: { moderation_status: string; is_sensitive: boolean; pendi
   // Flagged by the harmful-prayer check: never sent until a moderator clears it (modules/harm).
   return r.pending_review || r.harm_category ? 'wait' : null;
 }
-const QUEUED_PRAYER = `select r.id, r.post_id, p.body, p.user_id as poster_id, r.user_id as sender_id, r.repeats,
+/** The words to send: the request, or for a thanksgiving (thanksgiving.ts) the text made when it was queued. */
+const SEND_TEXT = `case when r.kind = 'thanksgiving' then r.sent_text else p.body end`;
+const QUEUED_PRAYER = `select r.id, r.post_id, ${SEND_TEXT} as body, p.user_id as poster_id, r.user_id as sender_id, r.repeats,
             p.moderation_status, p.is_sensitive, p.harm_category,
             exists (select 1 from public.moderation_items m
                      where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending') as pending_review
@@ -272,7 +274,7 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
     const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(
-      `select r.id, p.body, p.moderation_status, p.is_sensitive, p.harm_category, r.repeats
+      `select r.id, ${SEND_TEXT} as body, p.moderation_status, p.is_sensitive, p.harm_category, r.repeats
          from public.radio_prayers r join public.posts p on p.id = r.post_id
         where r.status = 'queued' and p.harm_category is null
           and not exists (select 1 from public.moderation_items m
@@ -401,7 +403,7 @@ export async function castLog(q: Queryable, viewerId: string, limit = 50) {
     call_sign: string | null;
     transmitted_at: Date;
   }>(
-    `select r.id, r.post_id, left(regexp_replace(p.body, '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
+    `select r.id, r.post_id, left(regexp_replace(${SEND_TEXT}, '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
        from public.radio_prayers r join public.posts p on p.id = r.post_id
       where r.status = 'transmitted' and p.moderation_status = 'visible' and not p.is_sensitive
         and p.community_id = public.member_community_id($2)

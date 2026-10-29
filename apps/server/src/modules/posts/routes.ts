@@ -13,6 +13,7 @@ import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
 import * as growth from '../growth/index.js';
 import { settings as practiceSettings } from '../practices/index.js';
+import * as radioThanks from '../radio/thanksgiving.js';
 
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
@@ -182,6 +183,8 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
 export async function markAnsweredAndTell(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, testimony?: string) {
   const post = await posts.markAnswered(tx, userId, postId);
   await growth.queueGuestAnswered(tx, post.id);
+  // A request that went out by radio gets a short thanksgiving on the air, while that switch is on.
+  await radioThanks.onAnswered(tx, post.id);
   if (testimony) return shareTestimony(tx, userId, postId, testimony);
   await tellPrayersAnswered(tx, userId, post);
   return false;
