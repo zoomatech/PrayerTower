@@ -381,6 +381,7 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <RadioConsoleSection /> : null}
             {radio.radio_transmitter === 'station' ? <SkyTargetSection /> : null}
             <CeaselessSection />
+            <ScheduledRadioToggle />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -779,6 +780,26 @@ function RadioScheduleSection() {
         </>
       ) : null}
     </View>
+  );
+}
+
+/** Scheduled radio and amplify sends (modules/schedules), off by default. */
+function ScheduledRadioToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.scheduledRadio().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle
+      label={t('admin.scheduledRadio')}
+      hint={t('admin.scheduledRadioHint')}
+      value={on}
+      onChange={(v) => api.admin.setScheduledRadio(v).then((r) => setOn(r.enabled)).catch(() => undefined)}
+    />
   );
 }
 

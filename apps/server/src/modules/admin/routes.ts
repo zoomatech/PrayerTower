@@ -305,6 +305,15 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await requireAdmin(req);
     return beacon.update(db, beacon.BeaconSettings.parse(req.body));
   });
+  app.get('/admin/scheduled-radio', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await schedules.radioEnabled(db) };
+  });
+  app.patch('/admin/scheduled-radio', async (req) => {
+    await requireAdmin(req);
+    await schedules.setRadioEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await schedules.radioEnabled(db) };
+  });
   app.get('/admin/radio-ceaseless', async (req) => {
     await requireAdmin(req);
     return ceaseless.settings(db);

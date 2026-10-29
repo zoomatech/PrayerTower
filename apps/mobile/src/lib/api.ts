@@ -244,6 +244,8 @@ export interface Features {
   passkeys: boolean;
   /** "Keep on the air" on a member's own request (prayer without ceasing). */
   keepOnAir: boolean;
+  /** Schedule a radio or amplify send for a set time. */
+  scheduledRadio: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -949,6 +951,8 @@ export interface ScheduledSpend {
   next_run_at: string;
   repeat_weeks: number;
   runs: number;
+  /** 'reach' gives tokens; 'radio' and 'amplify' send the request by radio at that time. */
+  action?: 'reach' | 'radio' | 'amplify';
   status: 'active' | 'done' | 'cancelled' | 'failed';
   error: string | null;
   excerpt: string;
@@ -1912,6 +1916,8 @@ export const api = {
     radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
     setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
     operatorAlerts: () => get<{ enabled: boolean }>('/admin/radio-operator-alerts'),
+    scheduledRadio: () => get<{ enabled: boolean }>('/admin/scheduled-radio'),
+    setScheduledRadio: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/scheduled-radio', { enabled }),
     radioCeaseless: () => get<{ enabled: boolean; gapMinutes: number }>('/admin/radio-ceaseless'),
     setRadioCeaseless: (patch: { enabled?: boolean; gapMinutes?: number }) => request<{ enabled: boolean; gapMinutes: number }>('PATCH', '/admin/radio-ceaseless', patch),
     radioSky: () => get<{ settings: SkySettings; now: SkyNow | null }>('/admin/radio-sky'),
@@ -2096,7 +2102,7 @@ export const api = {
   fundTokenPool: (id: string, amount: number) => post<{ matched: number; poolBalance: number; balance: number }>(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
   closeTokenPool: (id: string) => post(`/token-pools/${id}/close`, {}),
   drawFromPool: (id: string, postId: string) => post<{ amount: number; reach: number }>(`/token-pools/${id}/draw`, { postId }),
-  scheduleSpend: (postId: string, input: { amount: number; runAt: string; repeatWeeks: number }) =>
+  scheduleSpend: (postId: string, input: { amount: number; runAt: string; repeatWeeks: number; action?: 'reach' | 'radio' | 'amplify' }) =>
     post<{ schedule: ScheduledSpend }>(`/posts/${postId}/scheduled-spends`, input),
   scheduledSpends: () => get<{ schedules: ScheduledSpend[] }>('/me/scheduled-spends'),
   cancelScheduledSpend: (id: string) => request<{ ok: true }>('DELETE', `/scheduled-spends/${id}`),
