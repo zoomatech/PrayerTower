@@ -110,6 +110,14 @@ export interface Features {
   kindCloud: boolean;
   /** Emoji reactions that open to positive meanings, shown as leaves. */
   meaningReactions: boolean;
+  lamps: boolean;
+  poolLedger: boolean;
+  circleGoals: boolean;
+  supportLinks: boolean;
+  squireBoard: boolean;
+  groupGifts: boolean;
+  prayerList: boolean;
+  readingPlan: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -319,6 +327,18 @@ export interface NotebookSettings {
   pool_matching_enabled: boolean;
   kind_cloud_enabled: boolean;
   meaning_reactions_enabled: boolean;
+  lamps_enabled: boolean;
+  lamps_per_week: number;
+  pool_ledger_enabled: boolean;
+  circle_goals_enabled: boolean;
+  giving_ask_enabled: boolean;
+  giving_ask_after_days: number;
+  support_links_enabled: boolean;
+  squire_board_enabled: boolean;
+  squire_board_days: number;
+  group_gifts_enabled: boolean;
+  prayer_list_enabled: boolean;
+  reading_plan_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -509,7 +529,7 @@ export interface TokenPool {
   open: boolean;
   balance: number;
   /** A matching pledge, while matching is switched on. */
-  match: { ratio: number; cap: number; matched: number } | null;
+  match: { mode: 'ratio' | 'quadratic'; ratio: number; cap: number; matched: number } | null;
   /** Only when listed for a request: why the member can't draw, or null. */
   blockedReason?: string | null;
 }
@@ -904,6 +924,48 @@ export type AiSettings = {
   auto_pray_per_day: number;
   auto_pray_daily_limit: number;
   auto_pray_days: number;
+};
+
+/** Circle goals: "N people pray for this by <date>". */
+export type CircleGoal =
+  | { enabled: false }
+  | { enabled: true; canSet: boolean; goal: { target: number; endsAt: string; prayed: number; met: boolean; ended: boolean } | null };
+
+/** Lamp awards: thanks with a note, recognition only. */
+export type SquireBoard =
+  | { enabled: false }
+  | {
+      enabled: true;
+      days: number;
+      onBoard: boolean;
+      canJoin: boolean;
+      entries: { rank: number; personId: string; name: string; prayers: number; peoplePrayedFor: number; you: boolean }[];
+    };
+
+export type PrayerListItem = { id: string; name: string; note: string; remind: 'off' | 'daily' | 'weekly'; nextReminderAt: string | null; lastPrayedAt: string | null; prayedCount: number };
+export type PrayerList = { enabled: false } | { enabled: true; items: PrayerListItem[] };
+
+export type ReadingPlanToday =
+  | { enabled: false }
+  | {
+      enabled: true;
+      plan: {
+        id: string;
+        title: string;
+        day: number;
+        days: number;
+        conversationId: string | null;
+        reading: { reference: string; url: string; read: boolean; readers: number } | null;
+      } | null;
+    };
+export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
+
+export type Lamps = {
+  enabled: boolean;
+  count: number;
+  lamps: { id: string; note: string; createdAt: string; giverId: string; giverName: string }[];
+  canGive: boolean;
+  leftThisWeek: number;
 };
 
 /** Auto-Pray: AI prayers under a request, counted apart from prayers by people. */
@@ -1355,7 +1417,7 @@ export const api = {
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1376,9 +1438,35 @@ export const api = {
       idempotencyKey: `power-${postId}-${Date.now()}`,
     }),
   tokenPools: (postId?: string) => get<{ pools: TokenPool[] }>(postId ? `/token-pools?postId=${postId}` : '/token-pools'),
+  poolLedger: () =>
+    get<
+      | { enabled: false }
+      | { enabled: true; given: number; givers: number; matched: number; reachedRequests: number; reachedLast30Days: number; requestsHelped: number; returned: number; openPools: number }
+    >('/token-pools/ledger'),
   myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
-  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number }) =>
+  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number; matchMode?: 'ratio' | 'quadratic' }) =>
     post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
+  circleGoal: (postId: string) => get<CircleGoal>(`/posts/${postId}/circle-goal`),
+  setCircleGoal: (postId: string, target: number, days: number) => request<CircleGoal>('PUT', `/posts/${postId}/circle-goal`, { target, days }),
+  removeCircleGoal: (postId: string) => request<CircleGoal>('DELETE', `/posts/${postId}/circle-goal`),
+  squireBoard: () => get<SquireBoard>('/squire-board'),
+  setSquireBoard: (on: boolean) => request<SquireBoard>('PUT', '/me/squire-board', { public: on }),
+  groupGiftInfo: (target: 'group' | 'event', id: string) => get<{ enabled: false } | { enabled: true; recipients: number }>(`/${target}s/${id}/gift`),
+  giveToGroup: (target: 'group' | 'event', id: string, amount: number) =>
+    post<{ recipients: number; each: number; given: number; balance: number }>(`/${target}s/${id}/gift`, { amount, idempotencyKey: `${target}-gift-${id}-${Date.now()}` }),
+  prayerList: () => get<PrayerList>('/me/prayer-list'),
+  addToPrayerList: (input: { name: string; note?: string; remind: 'off' | 'daily' | 'weekly'; hour: number; tzOffsetMinutes: number }) => post<PrayerList>('/me/prayer-list', input),
+  editPrayerListItem: (id: string, input: Partial<{ name: string; note: string; remind: 'off' | 'daily' | 'weekly'; hour: number; tzOffsetMinutes: number }>) =>
+    request<PrayerList>('PATCH', `/me/prayer-list/${id}`, input),
+  removePrayerListItem: (id: string) => request<PrayerList>('DELETE', `/me/prayer-list/${id}`),
+  prayedForListItem: (id: string) => post<PrayerList>(`/me/prayer-list/${id}/prayed`, {}),
+  readingPlan: () => get<ReadingPlanToday>('/reading-plan'),
+  markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),
+  staffReadingPlans: () => get<{ plans: StaffReadingPlan[] }>('/staff/reading-plans'),
+  createReadingPlan: (input: { title: string; startsOn: string; references: string[]; conversationId?: string | null }) => post<{ id: string }>('/staff/reading-plans', input),
+  archiveReadingPlan: (planId: string) => post<{ archived: true }>(`/staff/reading-plans/${planId}/archive`, {}),
+  lamps: (personId: string) => get<Lamps>(`/people/${personId}/lamps`),
+  giveLamp: (personId: string, note: string) => post<{ id: string }>(`/people/${personId}/lamps`, { note }),
   aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),
   setAutoPray: (postId: string, on: boolean) => request<AiPrayers>('PUT', `/posts/${postId}/auto-pray`, { on }),
   fundTokenPool: (id: string, amount: number) => post<{ matched: number; poolBalance: number; balance: number }>(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
@@ -1485,6 +1573,8 @@ export const api = {
   worldwide: () => get<{ stats: WorldwideStats }>('/stats/worldwide'),
   thanksCard: () => get<{ card: { show: boolean; answeredYouPrayedFor: number } }>('/me/thanks-card'),
   dismissThanksCard: () => post<{ dismissed: true }>('/me/thanks-card/dismiss'),
+  givingAsk: () => get<{ show: boolean }>('/me/giving-ask'),
+  seenGivingAsk: () => post<{ ok: true }>('/me/giving-ask/seen'),
   eventInputs: (id: string) => get<{ canSeeAll: boolean; inputs: EventInput[] }>(`/events/${id}/inputs`),
   addEventInput: (id: string, body: string) => post<{ input: { id: string; crisis: boolean } }>(`/events/${id}/inputs`, { body }),
   removeEventInput: (id: string, inputId: string) => request<{ removed: true }>('DELETE', `/events/${id}/inputs/${inputId}`),

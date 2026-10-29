@@ -16,6 +16,7 @@ import { FollowupCard } from '@/components/followup-card';
 import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
 import { ReplyHelpers } from '@/components/reply-helpers';
 import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
+import { CircleGoal } from '@/components/circle-goal';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -342,6 +343,7 @@ export default function PostScreen() {
         {card && prayable ? <GuestShare card={card} /> : null}
 
         {card && prayable && spokenOn ? <SpokenPrayers postId={id} /> : null}
+        {card && prayable ? <CircleGoal postId={id} /> : null}
         {card && prayable ? <AiPrayers postId={id} /> : null}
 
         {!prayable || !radioOn ? null : radioSent ? (

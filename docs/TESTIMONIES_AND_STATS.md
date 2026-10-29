@@ -27,7 +27,7 @@ Under them are seven dots for the past week.
 
 - **Gentle by design:**
   - Only the member sees these numbers.
-  - There is no leaderboard.
+  - There is no leaderboard unless an admin turns on the opt-in Prayer Squire board (docs/NOTEBOOK_EXTRAS.md).
   - A streak still counts until a whole day is missed. If you haven't prayed yet today, yesterday's run stands.
   - When there's no streak, the copy says "a missed day costs nothing".
 - **Off switch:** Me → Settings → **Show my prayer stats** (on by default). When it's off, the server returns no numbers.

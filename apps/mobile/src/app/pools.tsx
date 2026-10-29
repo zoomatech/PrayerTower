@@ -28,8 +28,11 @@ export default function PoolsScreen() {
   const [added, setAdded] = useState<Record<string, string>>({});
   const { poolMatching } = useFeatures();
   const [matchRatio, setMatchRatio] = useState('0');
+  const [manyHands, setManyHands] = useState(false);
+  const pledging = poolMatching && (manyHands || Number(matchRatio) > 0);
   const [matchCap, setMatchCap] = useState('');
   const [thanks, setThanks] = useState<string | null>(null);
+  const [ledger, setLedger] = useState<Awaited<ReturnType<typeof api.poolLedger>> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -37,6 +40,8 @@ export default function PoolsScreen() {
       setMine(m.pools);
       setOpen(o.pools.filter((p) => !p.isMine));
       setBalance(t.balance);
+      // Optional extra: a failure here never blocks the pools.
+      Promise.resolve().then(() => api.poolLedger()).then(setLedger, () => setLedger(null));
       setLoaded(true);
       setError(null);
     } catch (e) {
@@ -61,12 +66,15 @@ export default function PoolsScreen() {
     }
   };
 
+  const matchLine = (m: NonNullable<TokenPool['match']>) => (m.mode === 'quadratic' ? t('pools.matchingMany', m) : t('pools.matching', m));
+
   const create = () =>
     act(async () => {
-      const pledge = poolMatching && Number(matchRatio) > 0 ? { matchRatio: Number(matchRatio), matchCap: Number(matchCap) } : {};
+      const pledge = !pledging ? {} : manyHands ? { matchMode: 'quadratic' as const, matchCap: Number(matchCap) } : { matchRatio: Number(matchRatio), matchCap: Number(matchCap) };
       await api.createTokenPool({ name: name.trim(), purpose: purpose.trim(), realm, drawAmount: Number(drawAmount), showDonor, amount: Number(amount), ...pledge });
       setName('');
       setMatchRatio('0');
+      setManyHands(false);
       setMatchCap('');
       setPurpose('');
       setAmount('');
@@ -87,6 +95,15 @@ export default function PoolsScreen() {
         {/* Nothing below until the pools and the balance have loaded, so a slow or failed load never shows "You have 0 tokens". */}
         {loaded ? (
           <>
+            {ledger?.enabled ? (
+              <View style={styles.card}>
+                <Text style={type.heading}>{t('pools.ledgerTitle')}</Text>
+                <Text style={type.small}>{t('pools.ledgerGiven', { count: ledger.given, givers: ledger.givers })}</Text>
+                {ledger.matched > 0 ? <Text style={type.small}>{t('pools.ledgerMatched', { count: ledger.matched })}</Text> : null}
+                <Text style={type.small}>{t('pools.ledgerReached', { count: ledger.reachedRequests, requests: ledger.requestsHelped, recent: ledger.reachedLast30Days })}</Text>
+                {ledger.returned > 0 ? <Text style={type.small}>{t('pools.ledgerReturned', { count: ledger.returned })}</Text> : null}
+              </View>
+            ) : null}
             <View style={styles.card}>
               <Text style={type.heading}>{t('pools.start')}</Text>
               <Text style={type.small}>{t('pools.youHave', { count: balance })}</Text>
@@ -104,14 +121,15 @@ export default function PoolsScreen() {
               <Toggle label={t('pools.showName')} value={showDonor} onChange={setShowDonor} />
               {poolMatching ? (
                 <>
-                  <Field label={t('pools.matchRatio')} value={matchRatio} onChangeText={setMatchRatio} keyboardType="number-pad" maxLength={1} />
-                  {Number(matchRatio) > 0 ? <Field label={t('pools.matchCap')} value={matchCap} onChangeText={setMatchCap} keyboardType="number-pad" maxLength={7} /> : null}
+                  <Toggle label={t('pools.manyHands')} hint={t('pools.manyHandsHint')} value={manyHands} onChange={setManyHands} />
+                  {manyHands ? null : <Field label={t('pools.matchRatio')} value={matchRatio} onChangeText={setMatchRatio} keyboardType="number-pad" maxLength={1} />}
+                  {pledging ? <Field label={t('pools.matchCap')} value={matchCap} onChangeText={setMatchCap} keyboardType="number-pad" maxLength={7} /> : null}
                 </>
               ) : null}
               <Button
                 label={t('pools.create')}
                 busy={busy}
-                disabled={!name.trim() || !(Number(amount) > 0) || !(Number(drawAmount) > 0) || (poolMatching && Number(matchRatio) > 0 && !(Number(matchCap) > 0))}
+                disabled={!name.trim() || !(Number(amount) > 0) || !(Number(drawAmount) > 0) || (pledging && !(Number(matchCap) > 0))}
                 onPress={create}
               />
             </View>
@@ -125,7 +143,7 @@ export default function PoolsScreen() {
                 <Text style={type.small}>
                   {t('pools.left', { count: p.balance, per: p.drawAmount })}{p.realm ? ` · ${t('pools.only', { realm: label('prayerRealm', p.realm, PRAYER_REALM_LABELS[p.realm as PrayerRealm]) })}` : ''}
                 </Text>
-                {p.match ? <Text style={type.small}>{t('pools.matching', p.match)} {t('pools.shareBack')}</Text> : null}
+                {p.match ? <Text style={type.small}>{matchLine(p.match)} {t('pools.shareBack')}</Text> : null}
                 {p.open ? (
                   <View style={styles.chips}>
                     <Field
@@ -160,7 +178,7 @@ export default function PoolsScreen() {
                 </Text>
                 {p.match ? (
                   <>
-                    <Text style={type.small}>{t('pools.matching', p.match)}</Text>
+                    <Text style={type.small}>{matchLine(p.match)}</Text>
                     <Text style={type.small}>{t('pools.shareBack')}</Text>
                     <View style={styles.chips}>
                       <Field

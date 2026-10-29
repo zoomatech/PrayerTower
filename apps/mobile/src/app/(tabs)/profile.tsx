@@ -26,6 +26,7 @@ import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
+import { SupportLinkField } from '@/components/support-link';
 import { TownField } from '@/components/town-field';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -198,6 +199,9 @@ export default function Profile() {
           {features.whyGifts ? <Button small variant="secondary" label={t('whyGifts.link')} onPress={() => router.push('/why-gifts')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
           {features.prayerChain ? <Button small variant="secondary" label={t('growth.chainOpen')} onPress={() => router.push('/prayer-chain')} /> : null}
+          {features.prayerList ? <Button small variant="secondary" label={t('prayerList.title')} onPress={() => router.push('/prayer-list')} /> : null}
+          {features.readingPlan && wording === 'faith' ? <Button small variant="secondary" label={t('readingPlan.title')} onPress={() => router.push('/reading-plan')} /> : null}
+          {features.squireBoard ? <Button small variant="secondary" label={t('squire.open')} onPress={() => router.push('/squire-board')} /> : null}
           {features.prayerMinute ? <Button small variant="secondary" label={t('growth.minuteOpen')} onPress={() => router.push('/prayer-minute')} /> : null}
         </View>
 
@@ -272,6 +276,7 @@ export default function Profile() {
           <Toggle label={t('across.toggle')} hint={t('across.toggleHint')} value={!!profile.open_to_other_communities} onChange={(v) => update({ openToOtherCommunities: v })} />
         ) : null}
         {features.memberTown ? <TownField town={profile.town} onSave={(town) => update({ town })} /> : null}
+        {features.supportLinks ? <SupportLinkField url={profile.support_url} onSave={(supportUrl) => update({ supportUrl })} /> : null}
         <CommunityPicker />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
