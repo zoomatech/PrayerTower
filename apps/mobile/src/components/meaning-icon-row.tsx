@@ -133,7 +133,7 @@ export function MeaningIcons({ postId, postBody }: { postId: string; postBody?: 
 }
 
 const styles = StyleSheet.create({
-  cell: { position: 'relative' },
+  cell: { position: 'relative', flexShrink: 0 },
   icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
   iconMine: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   emoji: { fontSize: 18 },

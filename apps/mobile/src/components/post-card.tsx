@@ -254,8 +254,9 @@ const styles = StyleSheet.create({
   bodyLine: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, marginLeft: 4 },
   more: { color: colors.primary, fontWeight: '600' },
   counts: type.small,
-  actions: { flexDirection: 'row', justifyContent: 'space-between', gap: space.xs },
-  actionCell: { flex: 1, alignItems: 'center', position: 'relative' },
+  // Wraps rather than squeezing when the emoji meanings join the row: every target stays 44 points.
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: space.xs },
+  actionCell: { flex: 1, minWidth: 44, alignItems: 'center', position: 'relative' },
   // 44 pt touch targets (Apple HIG).
   action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.background },
   actionActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
