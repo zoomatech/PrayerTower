@@ -83,6 +83,7 @@ import { registerMetrics } from './metrics.js';
 import { announcementRoutes } from './modules/announcements/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
 import { pilotToolsRoutes } from './modules/pilot-tools/routes.js';
+import { kindNormsRoutes } from './modules/kind-norms/routes.js';
 import * as pilotTools from './modules/pilot-tools/index.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
@@ -395,6 +396,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);
     pilotToolsRoutes(authed, db);
+    kindNormsRoutes(authed, db);
     inviteRoutes(authed, db, mailer, { webAppUrl, appStoreUrl: site?.appStoreUrl ?? null, playStoreUrl: site?.playStoreUrl ?? null, testFlightUrl: testFlight?.prayerTower ?? null, openCircleTestFlightUrl: testFlight?.openCircle ?? null });
     announcementRoutes(authed, db);
     adminRoutes(authed, db, storage);

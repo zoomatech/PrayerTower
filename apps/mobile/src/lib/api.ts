@@ -190,6 +190,11 @@ export interface Features {
   moderationTools: boolean;
   goldfishMemory: boolean;
   safetyCenter: boolean;
+  kindnessPromise: boolean;
+  replyReminder: boolean;
+  restingThreads: boolean;
+  thisHelped: boolean;
+  offerSorry: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -603,6 +608,21 @@ export interface NotebookSettings {
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
   crosspost_enabled: boolean;
+}
+
+/** Admin → Kind norms (docs/KIND_NORMS.md). */
+export interface KindNormsSettings {
+  promise_enabled: boolean;
+  promise_text: string | null;
+  reply_reminder_enabled: boolean;
+  reply_reminder_count: number;
+  resting_enabled: boolean;
+  resting_heated: number;
+  resting_window_minutes: number;
+  resting_minutes: number;
+  resting_gap_minutes: number;
+  appreciation_enabled: boolean;
+  offer_sorry_enabled: boolean;
 }
 
 export interface PilotToolsSettings {
@@ -1758,6 +1778,12 @@ export const api = {
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
   /** The "Tell Steve" shortcut (Admin → Pilot tools). */
+  kindnessPromise: () => get<{ enabled: boolean; text: string | null; agreed: boolean }>('/me/kindness-promise'),
+  agreeKindnessPromise: () => post<{ agreed: true }>('/me/kindness-promise'),
+  replyBox: (postId: string) => get<{ reminder: boolean; resting: { until: string; gapMinutes: number } | null }>(`/posts/${postId}/reply-box`),
+  sorryOffer: (commentId: string) => get<{ available: boolean; mendId: string | null }>(`/comments/${commentId}/sorry-offer`),
+  offerSorry: (commentId: string) => post<{ mendId: string }>(`/comments/${commentId}/sorry-offer`),
+  setHelped: (commentId: string, on: boolean) => put<{ helped: boolean }>(`/comments/${commentId}/helped`, { on }),
   pilotTell: () => get<{ enabled: boolean; name: string }>('/pilot/tell'),
   /** A crash or unexpected error for the error log; kept only while Admin → Pilot tools has it on. */
   reportError: (r: { message: string; detail?: string; screen: string; platform?: string; appVersion?: string }) => post<{ ok: true }>('/pilot/errors', r),
@@ -1801,7 +1827,7 @@ export const api = {
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean; part?: number } = {}) =>
-    post<{ comment: { id: string; crisis: boolean; harm?: HarmNote | null }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
+    post<{ comment: { id: string; crisis: boolean; harm?: HarmNote | null }; coolDown?: boolean; resting?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
   prayingNow: (id: string) => postOrQueue<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`, {}, 'Praying Now'),
@@ -2086,6 +2112,22 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    kindNorms: () => get<{ settings: KindNormsSettings }>('/admin/kind-norms'),
+    updateKindNorms: (
+      patch: Partial<{
+        promise: boolean;
+        promiseText: string;
+        replyReminder: boolean;
+        replyReminderCount: number;
+        resting: boolean;
+        restingHeated: number;
+        restingWindowMinutes: number;
+        restingMinutes: number;
+        restingGapMinutes: number;
+        appreciation: boolean;
+        offerSorry: boolean;
+      }>,
+    ) => request<{ settings: KindNormsSettings }>('PATCH', '/admin/kind-norms', patch),
     pilotTools: () => get<{ settings: PilotToolsSettings }>('/admin/pilot-tools'),
     updatePilotTools: (patch: Partial<{ tellFounder: boolean; founderName: string; feedbackSummary: boolean; feedbackSummaryEmail: boolean; errorCapture: boolean }>) =>
       request<{ settings: PilotToolsSettings }>('PATCH', '/admin/pilot-tools', patch),

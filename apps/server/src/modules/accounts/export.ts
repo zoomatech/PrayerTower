@@ -127,6 +127,8 @@ const SECTIONS: Record<string, Section> = {
   dailyReminder: { table: 'daily_reminders', where: 'user_id = $1' },
   partnerPool: { table: 'partner_pool', where: 'user_id = $1' },
   partnerships: { table: 'partnerships', where: 'a_id = $1 or b_id = $1' },
+  kindnessPromise: { table: 'kindness_promises', where: 'user_id = $1' },
+  commentsThatHelped: { table: 'comment_appreciations', where: 'user_id = $1' },
 };
 
 // Tables that point at a member but are left out of the download on purpose:
