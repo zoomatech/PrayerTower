@@ -103,6 +103,9 @@ to the old 2-10×. A PSK31 station still sends at most 50 copies.
 
 ## Station settings
 
+Setting up the radio, sound card and push-to-talk, and the first tests, are in
+[STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md).
+
 In `/etc/prayer-tower-station.env` (see `apps/station/install/station.env.example`):
 
 | Setting | Default | Meaning |
