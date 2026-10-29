@@ -2,6 +2,7 @@
 
 This is a one-page start for the station's control operator (Ginni). Every step links to the full
 [station operator guide](STATION_OPERATOR_GUIDE.md), which has the detail.
+For the first day itself, tick through the [first day on the air checklist](FIRST_DAY_ON_AIR.md).
 
 ## Before day one (an admin does this)
 
