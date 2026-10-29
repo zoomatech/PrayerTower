@@ -186,6 +186,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     if (err instanceof ZodError) return reply.code(400).send({ error: 'invalid_request', issues: err.issues });
     const pgCode = (err as { code?: string }).code;
     if (pgCode === '22P02') return reply.code(400).send({ error: 'invalid_request', message: 'Malformed id or value' });
+    // A hidden null character (\u0000) in text: Postgres refuses it in text (22021) and in JSON (22P05).
+    if (pgCode === '22021' || pgCode === '22P05') return reply.code(400).send({ error: 'invalid_request', message: 'Text contains a character that is not allowed' });
     if (pgCode === '23514' || pgCode === '23503') return reply.code(400).send({ error: 'invalid_request', message: 'Request breaks a data rule' });
     const statusCode = (err as { statusCode?: number }).statusCode;
     if (statusCode && statusCode < 500) return reply.code(statusCode).send({ error: 'invalid_request', message: (err as Error).message });
