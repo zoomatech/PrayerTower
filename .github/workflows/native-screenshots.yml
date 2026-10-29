@@ -1,0 +1,30 @@
+# App Store screenshots of the native apps, taken on GitHub's macOS runner (it has the iOS
+# Simulator runtimes, so nothing runs on a member's Mac). Run it from the Actions tab, or it runs
+# when the screenshot script changes. The pictures are kept as the "native-screenshots" artifact.
+name: Native screenshots
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: [scripts/mac-screenshots-native.sh, .github/workflows/native-screenshots.yml]
+
+jobs:
+  screenshots:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/mac-screenshots-native.sh prayertower
+      - run: bash scripts/mac-screenshots-native.sh opencircle
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: native-screenshots
+          path: store-screenshots/native
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: native-screenshots-logs
+          path: build-logs/screenshots-*/*.txt
+          if-no-files-found: ignore

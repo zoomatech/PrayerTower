@@ -18,7 +18,7 @@ case "$EDITION" in
 esac
 SCREENS=(feed post promises messages notices me)
 # The largest iPhone and iPad sizes App Store Connect asks for; it scales them down for smaller ones.
-DEVICES=("iPhone .* Pro Max" "iPad Pro 13-inch")
+DEVICES=("iPhone .* Pro Max" "iPad Pro 13-inch.*")
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/apps/ios-native"
