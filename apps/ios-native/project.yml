@@ -43,6 +43,7 @@ targets:
         PTTermsURL: $(PT_TERMS_URL)
         PTPrivacyURL: $(PT_PRIVACY_URL)
         PTSupportEmail: $(PT_SUPPORT_EMAIL)
+        PTEdition: prayer-tower
     entitlements:
       path: App/PrayerTowerNative.entitlements
       properties:
@@ -54,6 +55,48 @@ targets:
       base:
         # A separate bundle id from the Expo pilot (com.zoomatech.prayertower) until the native app replaces it.
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+    configFiles:
+      Debug: Config.xcconfig
+      Release: Config.xcconfig
+
+  # The separately branded, non-religious edition (Steve, 2026-10-28), as the Expo app's
+  # EXPO_PUBLIC_EDITION=open-circle: the same screens, always the neutral words, its own name,
+  # bundle id and link scheme, and new members join the Open Circle community. "Open Circle" is
+  # a placeholder name until Steve picks one. The home-screen widget comes later.
+  OpenCircleNative:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes: [Info.plist, PrayerTowerNative.entitlements]
+    scheme: {}
+    dependencies:
+      - package: PrayerTowerKit
+        products:
+          - PrayerTowerKit
+          - PrayerTowerSession
+    info:
+      path: OpenCircle/Info.plist
+      properties:
+        CFBundleDisplayName: Open Circle
+        UILaunchScreen: {}
+        CFBundleURLTypes:
+          - CFBundleURLName: com.zoomatech.opencircle.native
+            CFBundleURLSchemes: [opencircle]
+        NSSupportsLiveActivities: true
+        PTSupabaseURL: $(PT_SUPABASE_URL)
+        PTSupabaseKey: $(PT_SUPABASE_KEY)
+        PTApiURL: $(PT_API_URL)
+        PTTermsURL: $(PT_TERMS_URL)
+        PTPrivacyURL: $(PT_PRIVACY_URL)
+        PTSupportEmail: $(PT_SUPPORT_EMAIL)
+        PTEdition: open-circle
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"

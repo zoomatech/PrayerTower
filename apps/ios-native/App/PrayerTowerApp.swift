@@ -29,11 +29,13 @@ final class AppModel {
     var starting = true
     /// Admin switches (`/features`); anything missing counts as off.
     var features = Features(values: [:])
-    var wording: Wording = .faith {
+    /// Which app this build is: Prayer Tower, or the separately branded, non-religious Open Circle.
+    let edition = Edition(Bundle.main.infoDictionary)
+    var wording: Wording = Edition(Bundle.main.infoDictionary) == .openCircle ? .neutral : .faith {
         didSet { words = Words(wording) }
     }
     /// The Expo app's words for this member's wording (Open Circle gets the neutral set).
-    var words = Words(.faith)
+    var words = Words(Edition(Bundle.main.infoDictionary) == .openCircle ? .neutral : .faith)
     /// The signed-in member, their community and roles (`/me`).
     var me: Me?
     /// The member's choices for the conversation helpers, loaded only while a helper is switched on.
@@ -72,7 +74,8 @@ final class AppModel {
         async let me = try? store.api.me()
         features = await f ?? Features(values: [:])
         self.me = await me
-        wording = Wording(self.me?.community)
+        // The Open Circle app always uses the neutral words, whatever the community.
+        wording = edition == .openCircle ? .neutral : Wording(self.me?.community)
         talkPrefs = Talk.anyOn(features) ? ((try? await store.api.conversationPrefs()) ?? ConversationPrefs()) : nil
         tree = features["meaningReactions"] && features["meaningIconRow"] ? ((try? await store.api.reactionMeanings()) ?? []) : []
         if let p = self.me?.profile, p.onboardedAt != nil, !Tour.seen(p.id) { showTour = true }

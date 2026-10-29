@@ -144,7 +144,7 @@ extension APIClient {
 extension PrayNow {
     /// The request a widget or Live Activity link opens: `prayertower:///post/<id>`.
     public static func postId(from url: URL) -> String? {
-        guard url.scheme == "prayertower" else { return nil }
+        guard Edition.schemes.contains(url.scheme ?? "") else { return nil }
         let parts = (url.host().map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" }
         guard parts.count == 2, parts[0] == "post", !parts[1].isEmpty else { return nil }
         return parts[1]

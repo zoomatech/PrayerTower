@@ -72,3 +72,13 @@ import Testing
         #expect(!h.enabled)
     }
 }
+
+@Suite struct EditionTests {
+    @Test func editionFromInfoPlist() throws {
+        #expect(Edition(["PTEdition": "open-circle"]) == .openCircle)
+        #expect(Edition(["PTEdition": "prayer-tower"]) == .prayerTower)
+        #expect(Edition(nil) == .prayerTower)
+        #expect(Invite.code(from: try #require(URL(string: "opencircle:///sign-in?invite=OC1"))) == "OC1")
+        #expect(PrayNow.postId(from: try #require(URL(string: "opencircle:///post/p9"))) == "p9")
+    }
+}

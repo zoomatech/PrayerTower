@@ -71,6 +71,17 @@ else
   grep -E "error:" "$LOGS/app-build.txt" | sort -u | head -20 > "$LOGS/errors.txt"
 fi
 
+# The Open Circle edition: the same screens under its own name and bundle id.
+if grep -q "OpenCircleNative:" project.yml; then
+  if xcodebuild -project PrayerTowerNative.xcodeproj -scheme OpenCircleNative -destination "$DEST" \
+       -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO build > "$LOGS/open-circle-build.txt" 2>&1; then
+    record "Open Circle app" PASS "iOS Simulator ($DEST)"
+  else
+    record "Open Circle app" FAIL "$LOGS/open-circle-build.txt"
+    grep -E "error:" "$LOGS/open-circle-build.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
+  fi
+fi
+
 echo
 printf '%s\n' "${RESULTS[@]}"
 [ -s "$LOGS/errors.txt" ] && { echo; echo "First errors:"; cat "$LOGS/errors.txt"; }
