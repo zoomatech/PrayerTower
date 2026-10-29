@@ -32,13 +32,13 @@ public struct PrayNowSnapshot: Codable, Sendable, Equatable {
     /// Shown until the app first sends content.
     public static func placeholder(_ wording: Wording) -> PrayNowSnapshot {
         let w = Words(wording)
-        return PrayNowSnapshot(heading: w("widget.heading"), text: w("widget.empty"), detail: "", url: "prayertower:///")
+        return PrayNowSnapshot(heading: w("widget.heading"), text: w("widget.empty"), detail: "", url: "\(Edition.current.scheme):///")
     }
 }
 
 public enum PrayNow {
-    /// The app group both the app and the widget extension use.
-    public static let appGroup = "group.com.zoomatech.prayertower.native"
+    /// The app group both the app and the widget extension use (each edition has its own).
+    public static let appGroup = Edition.current == .openCircle ? "group.com.zoomatech.opencircle.native" : "group.com.zoomatech.prayertower.native"
     static let key = "pray-now:v1"
 
     /// The request the widget shows: the feed's pinned request, else the first other request.
@@ -52,12 +52,12 @@ public enum PrayNow {
     }
 
     public static func snapshot(_ card: Card?, words w: Words) -> PrayNowSnapshot {
-        guard let card else { return PrayNowSnapshot(heading: w("widget.heading"), text: w("widget.empty"), detail: "", url: "prayertower:///") }
+        guard let card else { return PrayNowSnapshot(heading: w("widget.heading"), text: w("widget.empty"), detail: "", url: "\(Edition.current.scheme):///") }
         return PrayNowSnapshot(
             heading: w("widget.heading"),
             text: card.preview.isEmpty ? card.body : card.preview,
             detail: card.counts.prayers > 0 ? w("card.praying", count: card.counts.prayers) : w("card.firstToPray"),
-            url: "prayertower:///post/\(card.id)"
+            url: "\(Edition.current.scheme):///post/\(card.id)"
         )
     }
 
@@ -144,7 +144,7 @@ extension APIClient {
 extension PrayNow {
     /// The request a widget or Live Activity link opens: `prayertower:///post/<id>`.
     public static func postId(from url: URL) -> String? {
-        guard url.scheme == "prayertower" else { return nil }
+        guard Edition.schemes.contains(url.scheme ?? "") else { return nil }
         let parts = (url.host().map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" }
         guard parts.count == 2, parts[0] == "post", !parts[1].isEmpty else { return nil }
         return parts[1]
