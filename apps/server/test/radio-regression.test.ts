@@ -11,6 +11,9 @@ import * as oplog from '../src/modules/radio/oplog.js';
 import * as prayingToo from '../src/modules/radio/praying-too.js';
 import * as radio from '../src/modules/radio/index.js';
 import * as schedule from '../src/modules/radio/schedule.js';
+import * as setup from '../src/modules/radio/setup.js';
+import * as coverage from '../src/modules/radio/coverage.js';
+import * as digest from '../src/modules/radio/digest.js';
 import * as thanks from '../src/modules/radio/thanksgiving.js';
 import * as tokens from '../src/modules/tokens/index.js';
 import { app, as, createUser, db, STATION_KEY } from './helpers.js';
@@ -34,6 +37,9 @@ const defaults = {
   oplog: await oplog.enabled(db),
   thanks: await thanks.enabled(db),
   praying: await prayingToo.enabled(db),
+  wizard: await setup.enabled(db),
+  coverage: await coverage.settings(db),
+  digest: await digest.settings(db),
 };
 
 let admin: string;
@@ -60,6 +66,10 @@ beforeAll(async () => {
   await as(admin).patch('/admin/operator-log', { enabled: true });
   await as(admin).patch('/admin/listener-mode', { enabled: true });
   await as(admin).patch('/admin/radio-followups', { thanksgiving: true, prayingToo: true });
+  await as(admin).patch('/admin/radio-setup', { enabled: true });
+  await as(admin).patch('/admin/radio-coverage', { enabled: true });
+  await as(admin).patch('/admin/radio-digest', { enabled: true });
+  await db.query(`update public.radio_setup_tests set status = 'failed', error = 'test reset' where status in ('requested', 'sending', 'sent')`);
   listenerKey = (await as(admin).post('/admin/radio-nodes', { name: `Regression listener ${RUN}` })).json().key;
 });
 afterAll(async () => {
@@ -74,6 +84,9 @@ afterAll(async () => {
   await oplog.setEnabled(db, defaults.oplog);
   await thanks.setEnabled(db, defaults.thanks);
   await prayingToo.setEnabled(db, defaults.praying);
+  await setup.setEnabled(db, defaults.wizard);
+  await coverage.updateSettings(db, { enabled: defaults.coverage.enabled, tileUrl: defaults.coverage.tileUrl, station: defaults.coverage.station });
+  await digest.updateSettings(db, defaults.digest);
   await db.query('update public.token_settings set listener_mode_enabled = false');
   await db.query(`update public.communities set status = 'hidden', hidden_features = '{}' where slug = 'open-circle'`);
   await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
@@ -154,6 +167,30 @@ describe('every radio feature, every switch on, both editions', () => {
     const mine = csv.split('\n').filter((l) => l.includes(CALL));
     expect(mine).toHaveLength(4);
     for (const l of mine) expect(l).toContain(',146520000,fm-standard,1,transmitted,');
+  });
+
+  it('the setup wizard, coverage map and weekly digest work alongside everything else', async () => {
+    // A test burst heard by the listener is a test, never a prayer: no receipts, no resend.
+    const t = (await as(admin).post('/admin/radio-setup/tests', { kind: 'burst' })).json().test;
+    const claimed = await app.inject({ method: 'GET', url: `/station/setup-test?callSign=${CALL}`, headers: { 'x-station-key': STATION_KEY } });
+    expect(claimed.json().test.id).toBe(t.id);
+    const hash = fingerprint(`Station test ${t.code}`);
+    await station(`/station/setup-test/${t.id}/result`, { ok: true, callSign: CALL, preset: 'fm-standard', sentHash: hash });
+    expect((await node('/node/heard', listenerKey, { callSign: CALL, preset: 'fm-standard', snrDb: 22, hashes: [hash], peakDbfs: -8 })).json()).toEqual({ matched: 1 });
+    expect((await as(admin).get('/admin/radio-setup')).json().tests[0]).toMatchObject({ id: t.id, status: 'heard', advice: 'good' });
+    expect(await sendAll()).toEqual([]);
+
+    // The listener opts in to the map; its earlier report colors its dot.
+    await node('/node/heartbeat', listenerKey, { location: { lat: 39.78, lon: -89.66, place: 'Springfield' } });
+    const map = (await as(admin).get('/admin/radio-coverage')).json();
+    expect(map.points.find((p: { name: string }) => p.name === `Regression listener ${RUN}`)).toMatchObject({ lat: 39.8, lon: -89.7, quality: 'fair' });
+
+    // The digest counts this week's prayers (thanksgiving apart) and holds no request text.
+    const week = (await as(admin).get('/admin/radio-digest')).json().weeks.at(-1);
+    expect(week.aired).toBeGreaterThanOrEqual(2);
+    expect(week.heard).toBeGreaterThanOrEqual(2);
+    expect(week.thanksgiving).toBeGreaterThanOrEqual(2);
+    expect(digest.toText(week)).not.toContain(RUN);
   });
 
   it('public pages and the signed-out listener mode, with Open Circle wording on its host and path', async () => {
