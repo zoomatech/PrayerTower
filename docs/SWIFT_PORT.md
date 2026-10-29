@@ -47,7 +47,7 @@ The native feed reads the member's skin from `GET /feed` (`theme`) and draws it 
 - **Neon Circuit**: tilted glowing screens and a live wire with bursts of light.
 - **Swipe to pray**: one card at a time; a swipe right or the Pray button asks before it prays, so a swipe never records a prayer by itself. Next, Pray and VoiceOver actions do the same without a swipe.
 - **Flip**: one request per page, turned with a fold (`scrollTransition`), with "1 of 12" and the last page's thank-you.
-- Neon Cinderella's castle, coach and slipper are SF Symbols for now, not the Expo app's own drawings.
+- Neon Cinderella's castle, pumpkin coach, midnight clock and glass slipper are the Expo app's own drawings: the same SVG path data (`NeonArt.swift`), each line stroked as a glowing tube with a white-hot core.
 - Every drawing is hidden from VoiceOver, and the spark, bursts and climber stop with Reduce Motion.
 
 ## Port order

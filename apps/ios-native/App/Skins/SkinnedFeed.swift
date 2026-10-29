@@ -48,7 +48,7 @@ struct VineFeed<Row: View>: View {
                         ForEach(card.leafComments ?? []) { c in
                             VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
                         }
-                        if look.fairytale, (i + 1) % 3 == 0 { NeonScene(index: i / 3, look: look).frame(height: 110) }
+                        if look.fairytale, let scene = NeonSceneKind.after(card: i) { NeonScene(kind: scene, look: look) }
                     }
                     .task { if card.id == cards.last?.id { await onEnd() } }
                 }
@@ -251,16 +251,48 @@ struct GateTop: View {
 
 /// Neon Cinderella's tube drawings between requests, from SF Symbols for now (the Expo app draws its own castle, coach and slipper).
 struct NeonScene: View {
-    let index: Int
+    let kind: NeonSceneKind
     let look: VineLook
+
     var body: some View {
-        let symbols = ["building.columns", "moon.stars", "clock", "sparkles"]
-        Image(systemName: symbols[index % symbols.count])
-            .font(.system(size: 64, weight: .ultraLight))
-            .foregroundStyle(Color(look.stem))
-            .neonTube(Color(look.stem))
-            .frame(maxWidth: .infinity)
-            .accessibilityHidden(true)
+        let box = NeonSceneKind.box
+        Canvas { ctx, size in
+            ctx.translateBy(x: (size.width - box.width) / 2 - box.x, y: -box.y)
+            if let h = kind.halo {
+                let ring = Path(ellipseIn: CGRect(x: h.cx - h.r, y: h.cy - h.r, width: h.r * 2, height: h.r * 2))
+                ctx.stroke(ring, with: .color(Color(look.stem).opacity(0.25)), lineWidth: 10)
+            }
+            for tube in kind.tubes {
+                let color = Color(tube.ink == .accent ? look.leaf : look.stem)
+                let path = Path(tube.ops)
+                // A wide faint bloom, a halo, the tube, and a white-hot core (`Rod` in vine-flow.tsx).
+                for (c, w) in [(color.opacity(0.14), tube.width + 14), (color.opacity(0.35), tube.width + 6), (color, tube.width),
+                               (Color.white.opacity(0.85), max(0.8, tube.width / 3))] {
+                    ctx.stroke(path, with: .color(c), style: StrokeStyle(lineWidth: w, lineCap: .round, lineJoin: .round))
+                }
+            }
+        }
+        .frame(height: box.height)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .accessibilityHidden(true)
+    }
+}
+
+extension Path {
+    /// A SwiftUI path from a scene's drawing steps.
+    init(_ ops: [PathOp]) {
+        self.init()
+        for op in ops {
+            switch op {
+            case let .move(x, y): move(to: CGPoint(x: x, y: y))
+            case let .line(x, y): addLine(to: CGPoint(x: x, y: y))
+            case let .quad(x, y, cx, cy): addQuadCurve(to: CGPoint(x: x, y: y), control: CGPoint(x: cx, y: cy))
+            case let .cubic(x, y, c1x, c1y, c2x, c2y):
+                addCurve(to: CGPoint(x: x, y: y), control1: CGPoint(x: c1x, y: c1y), control2: CGPoint(x: c2x, y: c2y))
+            case .close: closeSubpath()
+            }
+        }
     }
 }
 
