@@ -18,7 +18,7 @@ let package = Package(
         .package(url: "https://github.com/supabase/supabase-swift.git", from: "2.55.0"),
     ],
     targets: [
-        .target(name: "PrayerTowerKit"),
+        .target(name: "PrayerTowerKit", resources: [.copy("Resources")]),
         .target(name: "PrayerTowerSession", dependencies: ["PrayerTowerKit", .product(name: "Auth", package: "supabase-swift")]),
         .testTarget(name: "PrayerTowerKitTests", dependencies: ["PrayerTowerKit"]),
         .testTarget(name: "PrayerTowerSessionTests", dependencies: ["PrayerTowerSession"]),

@@ -8,6 +8,9 @@ struct FeedView: View {
     @State private var nextPage: Int?
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
+    @State private var composing = false
+    @State private var opened: String?
+    @State private var committing: Card?
     @State private var notice: String?
     @State private var error: String?
 
@@ -17,7 +20,7 @@ struct FeedView: View {
                 ForEach(posts) { card in
                     CardRow(card: card, active: done[card.id] ?? [], onAction: { act($0, on: card) }, onMeaning: { item, meaning in
                         Task { await choose(meaning, of: item, on: card) }
-                    })
+                    }, onOpen: { opened = card.id })
                     .task { if card.id == posts.last?.id { await more() } }
                 }
             }
@@ -25,6 +28,19 @@ struct FeedView: View {
                 if let error { ContentUnavailableView("Couldn’t load the feed", systemImage: "wifi.exclamationmark", description: Text(error)) }
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
+                }
+            }
+            .navigationDestination(item: $opened) { PostDetailView(postId: $0) }
+            .sheet(item: $committing) { card in
+                CommitSheet(card: card) { message in
+                    done[card.id, default: []].insert(.commit)
+                    notice = message
+                }
+            }
+            .sheet(isPresented: $composing) { ComposeView { _ in Task { await load() } } }
             .refreshable { await load() }
             .task { await load() }
             .sheet(item: $encouraging) { card in EncourageSheet(card: card) { note in Task { await encourage(card, note) } } }
@@ -59,8 +75,9 @@ struct FeedView: View {
         case .wellWishes: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "well_wishes") } }
         case .encouragement: encouraging = card
         case .share: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "share") } }
-        // Not ported yet: these open in the pilot app for now (docs/SWIFT_PORT.md, phase 2 and 4).
-        case .commit, .giftTokens: notice = "\(action.name(model.wording)) is coming to this app soon. For now, use it in the Prayer Tower app."
+        // Not ported yet: this opens in the pilot app for now (docs/SWIFT_PORT.md, phase 4).
+        case .commit: committing = card
+        case .giftTokens: notice = "\(action.name(model.wording)) is coming to this app soon. For now, use it in the Prayer Tower app."
         }
     }
 
@@ -96,6 +113,8 @@ struct CardRow: View {
     let active: Set<CardAction>
     let onAction: (CardAction) -> Void
     let onMeaning: (ActionItem, MeaningEmoji.Meaning) -> Void
+    /// Opens the post with its comments.
+    var onOpen: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -107,7 +126,11 @@ struct CardRow: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .contentShape(.rect)
+            .onTapGesture { onOpen?() }
             .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(onOpen == nil ? [] : .isButton)
+            .accessibilityAction { onOpen?() }
             ActionRowView(
                 items: ActionRow.items(actions: card.actions ?? (card.isMine ? [] : ["praying_now"]), features: model.features, tree: model.tree, wording: model.wording),
                 wording: model.wording,

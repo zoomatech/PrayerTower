@@ -67,7 +67,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "export:web": "expo export --platform web && node web-edition.js && node workbox-config.js",
-    "test": "jest"
+    "test": "jest",
+    "native-strings": "WRITE_NATIVE_STRINGS=1 jest src/__tests__/native-strings.test.ts"
   },
   "private": true,
   "jest": {

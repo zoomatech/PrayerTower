@@ -116,6 +116,7 @@ describe('public website', () => {
       { appIDs: ['ABCDE12345.com.zoomatech.prayertower'], components: [{ '/': '/post/*' }] },
       { appID: 'ABCDE12345.com.zoomatech.prayertower', paths: ['/post/*'] },
     ]);
+    expect(aasa.json().webcredentials).toEqual({ apps: ['ABCDE12345.com.zoomatech.prayertower'] });
     const assets = await linked.inject({ method: 'GET', url: '/.well-known/assetlinks.json' });
     expect(assets.json()).toEqual([
       { relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: 'com.zoomatech.prayertower', sha256_cert_fingerprints: ['14:6D:E9'] } },
