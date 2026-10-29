@@ -1253,6 +1253,8 @@ function SkinSettingsSection() {
       <Text style={type.heading}>{t('skins.title')}</Text>
       <Text style={type.small}>{t('skins.intro')}</Text>
       <Toggle label={t('skins.skins')} hint={t('skins.skinsHint')} value={s.skins_enabled} onChange={(v) => save({ skinsEnabled: v })} />
+      <Toggle label={t('skins.seasonal')} hint={t('skins.seasonalHint')} value={s.seasonal_enabled} onChange={(v) => save({ seasonalEnabled: v })} />
+      {s.seasonal_enabled ? <Toggle label={t('skins.seasonalAuto')} hint={t('skins.seasonalAutoHint')} value={s.seasonal_auto} onChange={(v) => save({ seasonalAuto: v })} /> : null}
       <Toggle label={t('skins.tree')} hint={t('skins.treeHint')} value={s.comment_tree_enabled} onChange={(v) => save({ commentTreeEnabled: v })} />
       <Field label={t('skins.leaves')} keyboardType="number-pad" value={draft.leaves} onChangeText={(leaves) => setDraft((d) => ({ ...d, leaves }))} />
       <Field label={t('skins.levels')} keyboardType="number-pad" value={draft.depth} onChangeText={(depth) => setDraft((d) => ({ ...d, depth }))} />
@@ -1265,7 +1267,7 @@ function SkinSettingsSection() {
       {pending.map((i) => (
         <View key={i.id} style={styles.section}>
           <Text style={type.body}>
-            {i.name} · {i.layout === 'wall' ? t('skinIdea.wall') : t('skinIdea.vine')} · {i.from?.name}
+            {i.name} · {t(`skinIdea.layout.${i.layout}`)} · {i.from?.name}
           </Text>
           <Text style={type.small}>{i.description}</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>

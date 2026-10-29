@@ -54,16 +54,16 @@ describe('Feed skins', () => {
         tokens: { leafShape: 'pointed', stemWidth: 8 },
       });
       expect((await feed.chooseTheme(c, member, 'wall')).theme?.layout).toBe('wall');
-      // Turning skins off again sends the member back to the plain column.
+      // Turning skins off again sends the member back to the community's usual feed.
       await skins.updateSettings(c, { skinsEnabled: false });
-      expect(await feed.theme(c, member)).toBeNull();
+      expect((await feed.theme(c, member))?.slug).toBe('column');
     });
   });
 
   it('are offered in Open Circle too, the tower without a religious name', async () => {
     const { rows } = await db.query<{ slug: string }>(
       `select t.slug from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
-        join public.communities c on c.id = d.community_id where c.slug = 'open-circle' and t.gated`,
+        join public.communities c on c.id = d.community_id where c.slug = 'open-circle' and t.gated and t.season is null`,
     );
     expect(rows.map((r) => r.slug).sort()).toEqual(OPEN_CIRCLE_SKINS);
   });
@@ -221,5 +221,68 @@ describe('Skin ideas from members', () => {
         from: { name: 'Idea Member' },
       });
     });
+  });
+});
+
+describe('Seasonal skins', () => {
+  const advent = new Date('2026-12-01T12:00:00Z');
+  const autumn = new Date('2026-10-29T12:00:00Z');
+  it('show only in their season, and can dress members who never chose a style', async () => {
+    const member = await createUser('Season Member');
+    await inTx(async (c) => {
+      await skins.updateSettings(c, { skinsEnabled: true });
+      const slugs = async (now: Date) => (await feed.themeChoices(c, member, now)).themes.map((t) => t.slug);
+      // Off: no seasonal skin, even in Advent.
+      expect(await slugs(advent)).not.toContain('advent-wreath');
+      await skins.updateSettings(c, { seasonalEnabled: true });
+      expect(await slugs(advent)).toContain('advent-wreath');
+      expect(await slugs(advent)).not.toContain('christmas-star');
+      expect(await slugs(autumn)).not.toContain('advent-wreath');
+      // Open Circle's weather skins never reach a faith community.
+      expect(await slugs(autumn)).not.toContain('autumn-leaves');
+      await expect(feed.chooseTheme(c, member, 'easter-lily', advent)).rejects.toThrow();
+
+      // "Use the season's skin": members on the default see it by date.
+      expect((await feed.theme(c, member, advent))?.slug).not.toBe('advent-wreath');
+      await skins.updateSettings(c, { seasonalAuto: true });
+      expect((await feed.theme(c, member, advent))?.slug).toBe('advent-wreath');
+      // A member's own choice wins, and a seasonal choice falls back once its season ends.
+      await feed.chooseTheme(c, member, 'beanstalk', advent);
+      expect((await feed.theme(c, member, advent))?.slug).toBe('beanstalk');
+      await feed.chooseTheme(c, member, 'advent-wreath', advent);
+      const after = await feed.theme(c, member, new Date('2027-02-01T12:00:00Z'));
+      expect(after?.slug).not.toBe('advent-wreath');
+      expect(after).not.toBeNull();
+    });
+  });
+
+  it('offers the weather skins to Open Circle only', async () => {
+    const { rows } = await db.query<{ slug: string; communities: string[] }>(
+      `select t.slug, array_agg(c.slug order by c.slug) as communities from public.feed_themes t
+         join public.community_feed_themes d on d.theme_id = t.id join public.communities c on c.id = d.community_id
+        where t.season in ('winter', 'spring', 'summer', 'autumn') group by t.slug`,
+    );
+    expect(rows.map((r) => r.slug).sort()).toEqual(['autumn-leaves', 'spring-bloom', 'summer-sun', 'winter-frost']);
+    for (const r of rows) expect(r.communities).toEqual(['open-circle']);
+  });
+});
+
+describe('Skin files (Claude Design handoff)', () => {
+  const file = { slug: 'harvest-moon', name: 'Harvest Moon', layout: 'vine', tokens: { backdrop: '#1B1B3A', stem: '#F2C14E', leaf: '#F28C28', leafShape: 'round', tipText: 'Top of the field.' } };
+  it('turns a checked skin file into a gated theme row', async () => {
+    const sql = skins.skinMigration(file);
+    expect(sql).toContain(`'harvest-moon', 'Harvest Moon', 'vine', 'beta', true, null`);
+    await inTx(async (c) => {
+      await c.query(sql);
+      const { rows } = await c.query(`select gated, tokens from public.feed_themes where slug = 'harvest-moon'`);
+      expect(rows[0]).toMatchObject({ gated: true, tokens: { leafShape: 'round', tipText: 'Top of the field.' } });
+    });
+  });
+
+  it('refuses unknown tokens, bad slugs and unreadable comment colors', () => {
+    expect(() => skins.skinMigration({ ...file, tokens: { onPress: 'x' } })).toThrow();
+    expect(() => skins.skinMigration({ ...file, slug: 'Harvest Moon' })).toThrow();
+    expect(() => skins.skinMigration({ ...file, tokens: { leafSoft: '#222222' } })).toThrow(/too dark/);
+    expect(() => skins.skinMigration({ ...file, name: "O'Brien's Field" })).not.toThrow();
   });
 });
