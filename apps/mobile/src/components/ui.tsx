@@ -22,6 +22,7 @@ export function Button({
   busy,
   small,
   testID,
+  a11yLabel,
 }: {
   label: string;
   onPress: () => void;
@@ -31,12 +32,14 @@ export function Button({
   small?: boolean;
   /** For native UI tests (Maestro: `tapOn: { id: … }`). */
   testID?: string;
+  /** What a screen reader says when the visible label alone is ambiguous, e.g. "Remove Birthday". */
+  a11yLabel?: string;
 }) {
   const v = buttonVariants[variant];
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={a11yLabel ?? label}
       testID={testID}
       accessibilityState={{ disabled: !!(disabled || busy), busy: !!busy }}
       // Small buttons are drawn 34pt tall; the slop makes the tap area Apple's 44pt minimum.

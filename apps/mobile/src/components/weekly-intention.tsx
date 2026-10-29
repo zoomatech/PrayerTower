@@ -35,7 +35,8 @@ export function WeeklyIntention({ intention: i, onChange }: { intention: NonNull
       </View>
       {i.days !== null ? (
         <>
-          <View style={styles.row} accessible accessibilityLabel={t('intention.shown', { count: i.shown })}>
+          {/* The line below says the same thing in words, so screen readers skip the dots. */}
+          <View style={styles.row} aria-hidden>
             {i.week.map((d) => (
               <View key={d.date} style={[styles.dot, d.prayed && styles.dotOn]} />
             ))}

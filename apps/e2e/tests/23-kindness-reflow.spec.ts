@@ -42,6 +42,15 @@ test('kindness screens reflow at 320 px and with wider text spacing, switches on
     await db.query('insert into public.prayer_circle_members (circle_id, user_id) values ($1, $2)', [circle[0]!.id, ethel[0]!.id]);
     const { rows: cp } = await db.query<{ id: string }>("insert into public.circle_posts (circle_id, user_id, body) values ($1, $2, 'Please pray for my sister, who starts a new job on Monday.') returning id", [circle[0]!.id, ethel[0]!.id]);
     await db.query("insert into public.circle_replies (circle_post_id, user_id, body) values ($1, $2, 'Holding her in my heart.')", [cp[0]!.id, ethel[0]!.id]);
+    // A circle update, a fresh-start day for today and a weekly aim, so those cards are laid out too.
+    await db.query("update public.circle_posts set update_text = 'Her first week went well.', update_at = now(), answered = true where id = $1", [cp[0]!.id]);
+    const today = new Date();
+    await db.query("insert into public.fresh_start_days (user_id, month, day, label) values ($1, $2, $3, 'reflow day')", [ethel[0]!.id, today.getMonth() + 1, today.getDate()]);
+    await db.query('update public.profiles set weekly_intention = 3 where id = $1', [ethel[0]!.id]);
+    const expected: Record<string, string[]> = {
+      '/profile': ['weekly-intention', 'fresh-days-card', 'fresh-day'],
+      [`/circles/${circle[0]!.id}`]: [`circle-update-${cp[0]!.id}`],
+    };
     const paths = ['/', '/profile', '/kindness-research', '/meaning-words', '/highlights', '/circles', `/circles/${circle[0]!.id}`, ...[...other, ...own].map((p) => `/post/${p.id}`)];
     for (const spacing of [false, true]) {
       for (const path of paths) {
@@ -49,6 +58,9 @@ test('kindness screens reflow at 320 px and with wider text spacing, switches on
         await page.goto(path);
         await page.waitForLoadState('networkidle');
         if (spacing) await page.addStyleTag({ content: SPACING });
+        for (const id of expected[path] ?? []) {
+          if (!(await page.getByTestId(id).first().waitFor({ state: 'visible', timeout: 10_000 }).then(() => true, () => false))) problems.push(`${here}: ${id} is missing`);
+        }
         await page.waitForTimeout(400);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         if (overflow > 1) problems.push(`${here}: scrolls sideways by ${overflow}px`);
@@ -58,6 +70,8 @@ test('kindness screens reflow at 320 px and with wider text spacing, switches on
     }
     expect(problems, problems.join('\n')).toEqual([]);
   } finally {
+    await db.query("delete from public.fresh_start_days where label = 'reflow day'");
+    await db.query("update public.profiles set weekly_intention = null where id = (select id from auth.users where email = 'ethel@demo.prayertower.local')");
     for (const s of before) await db.query(`update public.${s.t} set ${s.c} = $1`, [s.v]);
   }
 });

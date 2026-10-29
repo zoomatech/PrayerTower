@@ -2096,6 +2096,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     day: 'Day',
     add: 'Save this day',
     remove: 'Remove',
+    removeOne: 'Remove %{label}',
+    check: 'Check the month and day. Use numbers, like 3 and 14 for March 14, and fill in what the day is.',
     today: 'Today is %{label}. A fresh start: want to pick one small intention?',
     advent: 'Advent begins today. A fresh start: want to pick one small intention?',
     lent: 'Lent begins today. A fresh start: want to pick one small intention?',
