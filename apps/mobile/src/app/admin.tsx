@@ -2285,6 +2285,7 @@ function ConversationSettingsSection() {
       <Toggle label={t('commentKindness.adminThanks')} hint={t('commentKindness.adminThanksHint')} value={s.comment_thanks_enabled} onChange={(v) => save({ commentThanksEnabled: v })} />
       <Toggle label={t('quietCounts.adminTitle')} hint={t('quietCounts.adminHint')} value={s.quiet_counts_enabled} onChange={(v) => save({ quietCountsEnabled: v })} />
       <Toggle label={t('replyChoice.adminTitle')} hint={t('replyChoice.adminHint')} value={s.reply_choice_enabled} onChange={(v) => save({ replyChoiceEnabled: v })} />
+      <Toggle label={t('partComments.adminTitle')} hint={t('partComments.adminHint')} value={s.part_comments_enabled} onChange={(v) => save({ partCommentsEnabled: v })} />
       <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

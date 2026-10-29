@@ -193,6 +193,8 @@ export interface Comment {
   isMine?: boolean;
   author: Identity;
   depth?: number;
+  /** The part of a long post this comment is about (comments at block breaks), from 0. */
+  part?: number | null;
 }
 
 /** Long-press reactions: "Light a candle" and "Standing with you". */
@@ -502,6 +504,34 @@ export function importantWords(body: string, n = 4): string[] {
     scores.set(key, { word: prev?.word ?? word, score });
   }
   return [...scores.values()].sort((a, b) => b.score - a.score).slice(0, n).map((s) => s.word);
+}
+
+// Comments at block breaks (notebook Page 13: "a thread can incur comments at any
+// 200-word block break"). A long post is cut into parts of about 200 words, each
+// ending at a paragraph or sentence close to the mark, so a reader can comment on
+// one part. The comments still appear together at the end (Steve leans that way).
+export const POST_PART_WORDS = 200;
+
+/** A post's parts, in order. A post of 200 words or fewer is one part. */
+export function postParts(body: string, words = POST_PART_WORDS): string[] {
+  const tokens = [...body.matchAll(/\S+/g)];
+  if (tokens.length <= words) return [body.trim()];
+  const parts: string[] = [];
+  let start = 0; // index into tokens
+  while (tokens.length - start > words) {
+    // Look back up to a quarter part from the mark for a paragraph end, else a sentence end.
+    const mark = start + words;
+    const floor = mark - Math.floor(words / 4);
+    let cut = mark;
+    const gapAfter = (i: number) => body.slice(tokens[i]!.index! + tokens[i]![0].length, tokens[i + 1]!.index!);
+    let found = false;
+    for (let i = mark - 1; i >= floor && !found; i--) if (gapAfter(i).includes('\n\n')) [cut, found] = [i + 1, true];
+    for (let i = mark - 1; i >= floor && !found; i--) if (/[.!?]["”’)]*$/.test(tokens[i]![0])) [cut, found] = [i + 1, true];
+    parts.push(body.slice(tokens[start]!.index!, tokens[cut - 1]!.index! + tokens[cut - 1]![0].length));
+    start = cut;
+  }
+  parts.push(body.slice(tokens[start]!.index!).trim());
+  return parts;
 }
 
 // Messages (Features Set 2: pray-er-to-prayee, direct, group chats) ------------
