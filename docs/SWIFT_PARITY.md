@@ -99,7 +99,8 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
 
 | Expo route | Status |
 | --- | --- |
-| `listen`, `listen-on-air`, `operator-console`, `radio-requests`, `signal-queue`, amplify / radio send, admin radio sections | 📻 radio thread (`RadioViews.swift`, `PrayerTowerConsole`) |
+| `listen`, `listen-on-air`, `operator-console`, `radio-requests`, `signal-queue`, amplify / radio send | 📻 radio thread (`RadioViews.swift`, `PrayerTowerConsole`) |
+| Admin → Radio: radio settings, burst size, listen page, receipts, on-air page, Priestly fund settings, station health and acks, station alerts, listener and station nodes with SNR, recent bursts, and the radio switches (heard trail, scheduled radio, signal queue, operator console, fair air, ceaseless, beacon, sky, schedule, operator log, followups, listener mode, packet, digest) | 📻 radio thread |
 | `kindness-research`, `meaning-words`, `mend/[id]`, `skin-gallery`, `skin-idea`, kind norms, kindness weather | 💛 kindness thread (`Skins/`, `KindCloudView`) |
 
 ## Editions
@@ -107,16 +108,30 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
 | Edition | Native target | Status |
 | --- | --- | --- |
 | Prayer Tower | `PrayerTowerNative` (`com.zoomatech.prayertower.native`, `prayertower://`) | ✅ |
-| Open Circle | `OpenCircleNative` (`com.zoomatech.opencircle.native`, `opencircle://`, neutral words) | ✅ (no widgets yet) |
+| Open Circle | `OpenCircleNative` (`com.zoomatech.opencircle.native`, `opencircle://`, neutral words) | ✅ |
+
+## Feed skins, widgets and extensions
+
+| Expo piece | Native | Status |
+| --- | --- | --- |
+| Feed layouts: vine, wall, tower, circuit, carousel, flip, column (`src/layouts/`) | `Skins/SkinnedFeed.swift`, `Skins/DeckFeeds.swift` | ✅ |
+| Looks: beanstalk, Golden Wood ink, neon tube light, gate, floral, plain; one row of 6 reaction icons | `Skins/`, `ActionRowView` | ✅ |
+| Theme maker and skin gallery | `ThemeMakerView`, `SkinGalleryView` | ✅ (💛 kindness thread) |
+| Pray now widget | `PrayerTowerWidgets`, `OpenCircleWidgets` | ✅ |
+| Prayed-for Lock Screen Live Activity | `PrayedForLiveActivity` in both widget targets | ✅ |
+| Cross-posting browser extension (Safari on iPhone and iPad) | `PrayerTowerCrosspost`, `OpenCircleCrosspost` app extensions, embedded in each app | ✅ |
 
 ## Known gaps
 
-- Open Circle has no Home Screen widget target yet.
 - A few admin settings that are not plain switches or number fields are only in the Expo admin
   screen: the care confession-days number, and the giving split and live sections' extra fields.
 
 ## How it is checked
 
 - Linux: `swift test` in `apps/ios-native` (PrayerTowerKit models, API paths, words, offline queue).
-- Mac, headless only: `scripts/mac-build-native.sh` builds both apps and runs the Kit tests with
-  no windows opened.
+- Mac, headless only: `scripts/mac-build-native.sh` runs the Kit tests, builds both apps with
+  their widgets and Safari extensions and the Mac console, and runs the UI walks. No windows open.
+- UI walks (`apps/ios-native/UIWalks`): XCUITest on the Simulator with `-PTSampleData`, which
+  signs in a sample member and answers every API call on the device (`SampleServer`), so no
+  server or account is needed. They open the feed, a request with its comments, My Promises,
+  Messages, Notices and Me.
