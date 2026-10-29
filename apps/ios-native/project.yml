@@ -92,6 +92,7 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+          - PrayerTowerScripture
       - target: OpenCircleWidgets
       - target: OpenCircleCrosspost
     info:
