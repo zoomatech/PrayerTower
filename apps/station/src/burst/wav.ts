@@ -17,7 +17,7 @@ export function toWav(samples: Float32Array, sampleRate: number): Buffer {
   return b;
 }
 
-/** Reads 8/16/32-bit PCM or 32-bit float WAV; stereo is mixed to mono. */
+/** Reads 8/16/24/32-bit PCM or 32/64-bit float WAV (what recorders and Audacity export); stereo is mixed to mono. */
 export function fromWav(b: Buffer): { samples: Float32Array; sampleRate: number } {
   if (b.toString('ascii', 0, 4) !== 'RIFF' || b.toString('ascii', 8, 12) !== 'WAVE') throw new Error('not a WAV file');
   let at = 12;
@@ -30,6 +30,9 @@ export function fromWav(b: Buffer): { samples: Float32Array; sampleRate: number 
       fmt = { format: b.readUInt16LE(body), channels: b.readUInt16LE(body + 2), rate: b.readUInt32LE(body + 4), bits: b.readUInt16LE(body + 14) };
       if (fmt.format === 0xfffe) fmt.format = b.readUInt16LE(body + 24); // WAVE_FORMAT_EXTENSIBLE
     } else if (id === 'data' && fmt) {
+      if (fmt.format !== 1 && fmt.format !== 3) throw new Error(`unsupported WAV encoding ${fmt.format} (save it as PCM or float)`);
+      if (!fmt.channels || !fmt.rate) throw new Error('WAV file has a broken format header');
+      if (!(fmt.format === 1 ? [8, 16, 24, 32] : [32, 64]).includes(fmt.bits)) throw new Error(`unsupported WAV sample size ${fmt.bits}`);
       const width = fmt.bits / 8;
       const frames = Math.floor(Math.min(size, b.length - body) / (width * fmt.channels));
       const out = new Float32Array(frames);
@@ -37,11 +40,11 @@ export function fromWav(b: Buffer): { samples: Float32Array; sampleRate: number 
         let sum = 0;
         for (let c = 0; c < fmt.channels; c++) {
           const p = body + (i * fmt.channels + c) * width;
-          if (fmt.format === 3 && fmt.bits === 32) sum += b.readFloatLE(p);
+          if (fmt.format === 3) sum += fmt.bits === 32 ? b.readFloatLE(p) : b.readDoubleLE(p);
           else if (fmt.bits === 16) sum += b.readInt16LE(p) / 32768;
+          else if (fmt.bits === 24) sum += b.readIntLE(p, 3) / 8388608;
           else if (fmt.bits === 32) sum += b.readInt32LE(p) / 2147483648;
-          else if (fmt.bits === 8) sum += (b.readUInt8(p) - 128) / 128;
-          else throw new Error(`unsupported WAV sample size ${fmt.bits}`);
+          else sum += (b.readUInt8(p) - 128) / 128;
         }
         out[i] = sum / fmt.channels;
       }

@@ -274,6 +274,8 @@ Turning a node off stops its key working and its reports counting. A node on the
 same machine as the station can also write `LISTEN_REPORT_FILE`, which the
 station reads as a plain `BURST_AUTO_REPORT` file.
 
+If the internet or Prayer Tower is down, the node keeps the reports it could not send, up to 500 for up to 23 hours. It sends them, oldest first, as soon as the server answers again ("sent N kept report(s)" in its log). That way a prayer it heard during the outage still counts as heard, and the station doesn't send it again. They are kept in `outbox.json` in the node's state directory, so a restart or a power cut doesn't lose them. A report the server refuses, such as one with a wrong key, is not kept.
+
 ![Listener nodes](images/radio/listener-nodes.png)
 
 ## Several stations (one shared queue)

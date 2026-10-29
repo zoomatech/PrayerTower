@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { presetByName } from '../src/burst/presets.js';
+import { fromWav, resample } from '../src/burst/wav.js';
 import { SAMPLE_PRAYERS } from './fixtures/sample-prayers.js';
 
 const RATE = 48_000;
@@ -76,5 +77,64 @@ describe('receive robustness', () => {
     const audio = onAir(seq);
     expect(prayersFrom(audio, 'N0CALL')).toEqual(sentA);
     expect(prayersFrom(audio, 'K0GIN')).toEqual(sentB);
+  });
+});
+
+/** A WAV as recorders and Audacity save one: `bits` PCM or float, `channels` interleaved, the same audio in each. */
+function wav(x: Float32Array, rate: number, bits: number, float: boolean, channels: number): Buffer {
+  const width = bits / 8;
+  const data = Buffer.alloc(x.length * width * channels);
+  for (let i = 0; i < x.length; i++) {
+    for (let c = 0; c < channels; c++) {
+      const p = (i * channels + c) * width;
+      const v = Math.max(-1, Math.min(1 - 2 ** -(bits - 1), x[i]!));
+      if (float) {
+        if (bits === 32) data.writeFloatLE(v, p);
+        else data.writeDoubleLE(v, p);
+      } else if (bits === 24) data.writeIntLE(Math.round(v * 8388608), p, 3);
+      else data.writeInt32LE(Math.round(v * 2147483648), p);
+    }
+  }
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0, 'ascii');
+  h.writeUInt32LE(36 + data.length, 4);
+  h.write('WAVEfmt ', 8, 'ascii');
+  h.writeUInt32LE(16, 16);
+  h.writeUInt16LE(float ? 3 : 1, 20);
+  h.writeUInt16LE(channels, 22);
+  h.writeUInt32LE(rate, 24);
+  h.writeUInt32LE(rate * width * channels, 28);
+  h.writeUInt16LE(width * channels, 32);
+  h.writeUInt16LE(bits, 34);
+  h.write('data', 36, 'ascii');
+  h.writeUInt32LE(data.length, 40);
+  return Buffer.concat([h, data]);
+}
+
+describe('recordings in the formats receivers save', () => {
+  const at441 = resample(onAir(burstA), RATE, 44_100);
+  for (const [name, bits, float, channels] of [
+    ['24-bit stereo', 24, false, 2],
+    ['32-bit float', 32, true, 1],
+    ['64-bit float', 64, true, 1],
+  ] as const) {
+    it(`decodes a ${name} WAV at 44.1 kHz`, () => {
+      const r = fromWav(wav(at441, 44_100, bits, float, channels));
+      expect(r.sampleRate).toBe(44_100);
+      expect(prayersFrom(resample(r.samples, 44_100, RATE), 'N0CALL')).toEqual(sentA);
+    });
+  }
+
+  it('refuses a broken or compressed WAV with a clear message', () => {
+    const ok = wav(new Float32Array(100), RATE, 24, false, 1);
+    const noChannels = Buffer.from(ok);
+    noChannels.writeUInt16LE(0, 22);
+    expect(() => fromWav(noChannels)).toThrow(/broken format header/);
+    const adpcm = Buffer.from(ok);
+    adpcm.writeUInt16LE(2, 20);
+    expect(() => fromWav(adpcm)).toThrow(/unsupported WAV encoding 2/);
+    const odd = Buffer.from(ok);
+    odd.writeUInt16LE(12, 34);
+    expect(() => fromWav(odd)).toThrow(/sample size 12/);
   });
 });
