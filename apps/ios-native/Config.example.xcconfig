@@ -3,9 +3,20 @@
 PT_SUPABASE_URL = https:/$()/ywbcylonlmjkbreqpfrq.supabase.co
 PT_SUPABASE_KEY = sb_publishable_REPLACE_ME
 PT_API_URL = https:/$()/prayertower-api.fly.dev
+// The site shared links point to (blank: links use PT_API_URL).
+PT_LINK_URL =
 // Passkeys: the web domain whose apple-app-site-association lists this app (webcredentials).
 PT_PASSKEY_DOMAIN = prayertower.app
 // The terms of use, privacy policy and contact address (blank hides them).
 PT_TERMS_URL =
 PT_PRIVACY_URL =
 PT_SUPPORT_EMAIL =
+// TestFlight (scripts/mac-archive-native.sh, docs/NATIVE_TESTFLIGHT.md): your Apple Developer
+// Team ID, and optionally the version people see. The build number defaults to a rising count.
+PT_TEAM_ID =
+PT_VERSION = 0.1.0
+// An App Store Connect API key for signing and upload without Xcode's account (optional).
+// Keep the .p8 file outside the repository.
+ASC_KEY_PATH =
+ASC_KEY_ID =
+ASC_ISSUER_ID =

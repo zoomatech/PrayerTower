@@ -57,6 +57,7 @@ struct MeView: View {
                 Section {
                     NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
                     NavigationLink(w("profile.scheduled")) { ScheduledGiftsView() }
+                    if model.features["library"] { NavigationLink(w("library.title")) { LibraryView() } }
                 }
                 if model.me?.roles.contains("admin") == true {
                     Section { NavigationLink(w("starter.title")) { AdminKindnessView() } }
@@ -65,7 +66,6 @@ struct MeView: View {
                     if model.features["remembered"] { NavigationLink(w("practices.lookBack")) { RememberedView() } }
                     if model.features["kindnessHighlights"] { NavigationLink(w("highlightsKind.title")) { HighlightsView() } }
                     NavigationLink(w("helpStories.title")) { HelpStoriesView() }
-                    if model.features["library"] { NavigationLink(w("library.title")) { LibraryView() } }
                 }
                 Section {
                     if model.features["safetyCenter"] { NavigationLink(w("safetyCenter.title")) { SafetyCenterView() } }

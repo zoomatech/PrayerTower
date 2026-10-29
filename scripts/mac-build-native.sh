@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # One command on Steve's Mac for the native SwiftUI app (apps/ios-native, docs/SWIFT_PORT.md):
 #   1. swift test for the shared package (PrayerTowerKit, PrayerTowerSession),
-#   2. xcodegen generate, then build the app for the iOS Simulator and the Mac operator console (no signing needed),
+#   2. xcodegen generate (after building the cross-posting Safari extension into Crosspost/), then build
+#      both apps (with their widgets and Safari extensions) for the iOS Simulator and the Mac operator console (no signing needed),
 # and print a pass/fail table. Logs go to build-logs/native-<time>/.
 # Needs Xcode. XcodeGen comes from Homebrew when it can install there; otherwise (for example
 # when Homebrew belongs to another macOS account) it is built from its tagged source with
@@ -47,18 +48,30 @@ if command -v npm >/dev/null && [ -d "$ROOT/node_modules" ]; then
 fi
 
 cd "$APP"
-if swift test > "$LOGS/swift-test.txt" 2>&1; then
+# SKIP_BUILD=1 (scripts/mac-archive-native.sh) only prepares the project: words, the Safari
+# extension's files and xcodegen.
+if [ -n "${SKIP_BUILD:-}" ]; then :
+elif swift test > "$LOGS/swift-test.txt" 2>&1; then
   record "Shared tests" PASS "$(grep -oE 'Test run with [0-9]+ tests' "$LOGS/swift-test.txt" | tail -1)"
 else
   record "Shared tests" FAIL "$LOGS/swift-test.txt"
 fi
 
 [ -f Config.xcconfig ] || cp Config.example.xcconfig Config.xcconfig
+# The cross-posting Safari extension inside each app: apps/extension built for Safari, per edition.
+for EDITION in prayertower opencircle; do
+  if DIST="$(node "$ROOT/apps/extension/scripts/build.mjs" "$EDITION" --safari 2> "$LOGS/crosspost-$EDITION.txt")"; then
+    rm -rf "Crosspost/$EDITION" && cp -R "$DIST" "Crosspost/$EDITION"
+  else
+    record "Safari extension" FAIL "$LOGS/crosspost-$EDITION.txt"
+  fi
+done
 if "$XCODEGEN" generate > "$LOGS/xcodegen.txt" 2>&1; then
   record "Xcode project" PASS "PrayerTowerNative.xcodeproj"
 else
   record "Xcode project" FAIL "$LOGS/xcodegen.txt"
 fi
+if [ -n "${SKIP_BUILD:-}" ]; then printf '%s\n' "${RESULTS[@]}"; exit $FAILED; fi
 
 SIM=$(xcrun simctl list devices available -j 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((x["udid"] for k,v in d.items() if "iOS" in k for x in v if x["name"].startswith("iPhone")), ""))')
 DEST=${SIM:+"id=$SIM"}
@@ -69,6 +82,32 @@ if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerNative -de
 else
   record "iPhone app" FAIL "$LOGS/app-build.txt"
   grep -E "error:" "$LOGS/app-build.txt" | sort -u | head -20 > "$LOGS/errors.txt"
+fi
+
+# UI walks of the main screens (apps/ios-native/UIWalks) with the app's sample data. xcodebuild
+# boots the Simulator in the background: no Simulator window opens. Shut down afterwards.
+if [ -n "$SIM" ]; then
+  if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerNative -destination "id=$SIM" \
+       -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO test > "$LOGS/ui-walks.txt" 2>&1; then
+    record "UI walks" PASS "$(grep -oE 'Executed [0-9]+ tests?, with 0 failures' "$LOGS/ui-walks.txt" | tail -1)"
+  else
+    record "UI walks" FAIL "$LOGS/ui-walks.txt"
+    grep -E "error:|failed" "$LOGS/ui-walks.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
+  fi
+  xcrun simctl shutdown "$SIM" > /dev/null 2>&1 || true
+else
+  record "UI walks" FAIL "no iPhone Simulator installed"
+fi
+
+# The Open Circle edition: the same screens under its own name and bundle id.
+if grep -q "OpenCircleNative:" project.yml; then
+  if xcodebuild -project PrayerTowerNative.xcodeproj -scheme OpenCircleNative -destination "$DEST" \
+       -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO build > "$LOGS/open-circle-build.txt" 2>&1; then
+    record "Open Circle app" PASS "iOS Simulator ($DEST)"
+  else
+    record "Open Circle app" FAIL "$LOGS/open-circle-build.txt"
+    grep -E "error:" "$LOGS/open-circle-build.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
+  fi
 fi
 
 # The Mac operator console (Console/), built for this Mac.

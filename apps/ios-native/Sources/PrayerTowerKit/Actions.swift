@@ -107,3 +107,16 @@ public enum ActionRow {
         }
     }
 }
+
+/// Which app a build is (Info.plist PTEdition), as the Expo app's EXPO_PUBLIC_EDITION: Prayer
+/// Tower, or the separately branded, non-religious Open Circle, which always uses the neutral
+/// words and signs new members up to the Open Circle community.
+public enum Edition: String, Sendable {
+    case prayerTower = "prayer-tower", openCircle = "open-circle"
+    public init(_ info: [String: Any]?) { self = (info?["PTEdition"] as? String) == "open-circle" ? .openCircle : .prayerTower }
+    /// Each edition's link scheme (prayertower://, opencircle://).
+    public static let schemes: Set<String> = ["prayertower", "opencircle"]
+    /// This build's edition, from PTEdition in its Info.plist (the app's or the widget's).
+    public static let current = Edition(Bundle.main.infoDictionary)
+    public var scheme: String { self == .openCircle ? "opencircle" : "prayertower" }
+}

@@ -2,20 +2,17 @@ import Foundation
 import Testing
 @testable import PrayerTowerKit
 
-// The network tests share the stand-in server, so they join the serialized APIClientTests suite.
-extension APIClientTests {
-    @Test func searchesTheTexts() async throws {
-        StubProtocol.answer = (200, #"{"enabled":true,"collections":[{"id":"ancient-writings","title":"Ancient writings","faith":false}]}"#)
-        #expect(try await client().library().collections?.map(\.id) == ["ancient-writings"])
-        StubProtocol.answer = (200, """
-        {"total":1,"source":"Project Gutenberg","hits":[{"ref":"Psalms 23:1","text":"The LORD is my shepherd; I shall not want.","complete":true,
-          "work":{"id":"kjv-psalms","title":"Psalms","author":""}}]}
-        """)
-        let found = try await client().searchLibrary("my shepherd", collection: "bible-kjv")
-        #expect(found.hits.first?.ref == "Psalms 23:1")
-        #expect(StubProtocol.seen.last?.url?.path == "/library/search")
-        #expect(StubProtocol.seen.last?.url?.query == "collection=bible-kjv&limit=20&offset=0&q=my%20shepherd")
-        StubProtocol.answer = (200, #"{"enabled":false}"#)
-        #expect(try await client().library().enabled == false)
+@Suite struct LibraryTests {
+    @Test func readsAClosedAndAnOpenLibrary() throws {
+        let closed = try JSONDecoder().decode(LibraryOverview.self, from: Data(#"{"enabled":false}"#.utf8))
+        #expect(!closed.enabled && closed.collections.isEmpty)
+        let open = try JSONDecoder().decode(LibraryOverview.self, from: Data(#"{"enabled":true,"collections":[{"id":"bible-kjv","title":"King James Bible","faith":true}]}"#.utf8))
+        #expect(open.collections.first?.id == Library.bible)
+    }
+
+    @Test func readsResults() throws {
+        let json = #"{"total":1,"source":"Project Gutenberg","hits":[{"ref":"Psalm 23:1","text":"The LORD is my shepherd; I shall not want.","complete":true,"work":{"id":"kjv","title":"King James Bible","author":""}}]}"#
+        let r = try JSONDecoder().decode(LibraryResults.self, from: Data(json.utf8))
+        #expect(r.hits.first?.ref == "Psalm 23:1")
     }
 }

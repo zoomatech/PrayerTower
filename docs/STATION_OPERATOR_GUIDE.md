@@ -680,7 +680,11 @@ Each step uses the settings in `/etc/prayer-tower-station.env`; restart with
 1. **No radio.** Set `BURST_MODE=simulate`. Bursts are written to the bursts
    folder and decoded back, and the log (`journalctl -u prayer-tower-station -f`)
    says how many prayers a receiver would get. Add `BURST_SIM_SNR_DB=10` to
-   see the slower presets cope with noise.
+   see the slower presets cope with noise. The server's test suite runs this
+   whole path on every change (`apps/server/test/station-practice.test.ts`):
+   queued requests, one simulated burst, a separate receiver decoding the WAV,
+   a listener node's report, and the operator log, console, signal queue and
+   "where it was heard" agreeing. Nothing is keyed.
 2. **Make a test burst.** `echo "Test prayer one" | node /opt/prayer-tower-station/dist/src/burst/cli.js encode test.wav fm-robust-fec`
 3. **Into the dummy load.** Key and play it by hand:
    `rigctl -m 2 T 1; aplay -q -D plughw:CARD=Device,DEV=0 test.wav; rigctl -m 2 T 0`.
