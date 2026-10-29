@@ -1,5 +1,7 @@
-// Vine 2.0: the community is one plant. Requests hang from a single
-// stem as fruit, alternating sides; ripeness follows the request's state.
+// Vine 2.0: the community is one plant. It grows top to bottom, present to
+// past: each request sits inside a pointed leaf, and a curving drawn vine
+// (components/vine-flow.tsx) swoops from leaf to leaf, alternating sides,
+// through wide open space. A dot at the top of each leaf shows ripeness.
 // Your own requests grow on your branch (and all of them on the Your branch
 // screen), a tendril curls toward each request for every promise to pray (yours
 // in the tendril color), answered requests bloom, and scripture leaves ("abide in the vine") sit
@@ -7,18 +9,26 @@
 // resting vine tip, and if the screen sits idle a bird snips off a would-be
 // ad bud. Colors, spacing and copy come from the theme's tokens, so the look
 // can change without an app release. Reduced motion turns the animations off.
-import type { Card, FeedTheme, PostState } from '@prayer-tower/shared';
+// Skins (Beanstalk, Golden Wood, Moonlit Gate) are the same vine with other
+// tokens: a backdrop, a thicker or doubled stem and round or pointed leaves.
+import { COMMENT_TEXT, contrastRatio, type Card, type Comment, type FeedTheme, type PostState } from '@prayer-tower/shared';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui';
+import { CardSurface } from '@/components/post-card';
+import { GateArch } from '@/components/gate-arch';
+import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
-import { vinePlacement } from './placement';
+import { isDark, LeafMark, NeonScene, SCENES, textOn, type SceneKind } from './motifs';
+import { hashId } from './placement';
 
 // The branch color as text: darker, for 4.5:1 contrast on the card (WCAG AA).
 const BRANCH_TEXT = '#6B5435';
@@ -33,14 +43,38 @@ const DEFAULTS = {
   idleBirdSeconds: 25,
   birdText: 'Uh-uh! No ads here. Just people and prayer.',
   tipText: 'You have reached the tip of the vine. Rest a moment, or come back later to see it grow.',
+  /** Feed background; empty keeps the screen's own. */
+  backdrop: '',
+  stemWidth: 4,
+  /** Two thin parallel lines instead of one stem (Moonlit Gate's silver tracery). */
+  stemDouble: false,
+  /**
+   * 'flower' (Blossom Garden) and 'star' (Neon Cinderella) draw a mark from
+   * motifs.tsx; 'tablet' is for comment trees on the Prayer Tower.
+   */
+  leafShape: 'round' as LeafShape,
+  /** A neon glow on the stem. */
+  stemGlow: false,
+  /** 'fairytale' puts neon outline drawings between the requests (Neon Cinderella). */
+  scenery: '',
+  /** How the plant is drawn: '' (one stalk), 'beanstalk' (twisting strands), 'ink' (pen-and-ink), 'neon' (glowing rods, no plant), 'gate' (lines of silver light under a drawn gate). */
+  vineStyle: '' as VineStyle,
+  /** Outline color for the 'ink' style. */
+  ink: '',
 };
 type VineTokens = typeof DEFAULTS;
+export const LEAF_SHAPES = ['round', 'pointed', 'flower', 'star', 'tablet'] as const;
+export type LeafShape = (typeof LEAF_SHAPES)[number];
+const VINE_STYLES: VineStyle[] = ['', 'beanstalk', 'ink', 'neon', 'gate'];
 
 /** Theme tokens override the defaults key by key; wrong types are ignored. */
 export function vineTokens(theme: FeedTheme | null): VineTokens {
   const t = (theme?.tokens ?? {}) as Record<string, unknown>;
   const out = { ...DEFAULTS } as Record<string, unknown>;
   for (const [k, v] of Object.entries(DEFAULTS)) if (typeof t[k] === typeof v) out[k] = t[k];
+  out.stemWidth = Math.min(Math.max(Number(out.stemWidth) || DEFAULTS.stemWidth, 2), 14);
+  if (!LEAF_SHAPES.includes(out.leafShape as LeafShape)) out.leafShape = 'round';
+  if (!VINE_STYLES.includes(out.vineStyle as VineStyle)) out.vineStyle = '';
   return out as VineTokens;
 }
 
@@ -51,15 +85,6 @@ const ripeness: Record<PostState, string> = {
   answered: colors.gold,
 };
 
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduced).catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => sub.remove();
-  }, []);
-  return reduced;
-}
 
 interface Leaf {
   id: string;
@@ -68,63 +93,73 @@ interface Leaf {
   translation: string | null;
 }
 
-type Item = { kind: 'fruit'; card: Card } | { kind: 'leaf'; leaf: Leaf; key: string };
+type Item = (
+  | { kind: 'fruit'; card: Card; side: VineSide; gap: number }
+  | { kind: 'comment'; comment: Comment; postId: string; side: VineSide; key: string }
+  | { kind: 'more'; postId: string; count: number; side: VineSide; key: string }
+  | { kind: 'leaf'; leaf: Leaf; key: string }
+  | { kind: 'scene'; scene: SceneKind; key: string }
+  | { kind: 'gate'; key: string }
+) & {
+  /** The side the vine is coming from (the leaf above), or null at the top. */
+  from: VineSide | null;
+};
 
 /** How many tendrils a fruit shows at most; the label carries the real count. */
 const MAX_TENDRILS = 5;
+/** Space above a comment leaf: closer than between requests, so they read as the request's own. */
+const COMMENT_GAP = 26;
 
-function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean; tokens: VineTokens; children: React.ReactNode }) {
+function Fruit({ card, pinned, tokens, side, from, gap, children }: { card: Card; pinned: boolean; tokens: VineTokens; side: VineSide; from: VineSide | null; gap: number; children: React.ReactNode }) {
   const { t } = useLocale();
-  const { side: hashedSide, tilt, gap } = vinePlacement(card.id);
-  // Your own requests always grow on your branch, on the right.
-  const side = card.isMine ? 'right' : hashedSide;
-  const left = side === 'left';
   const reduced = useReducedMotion();
   const grow = useRef(new Animated.Value(reduced ? 1 : 0)).current;
+  // The tags sit on the leaf: keep each tag color only where it reads at 4.5:1 there (WCAG AA).
+  const under = isLit(tokens.vineStyle) ? tokens.backdrop || '#0B0820' : tokens.leaf;
+  const on = (color: string) => (/^#[0-9A-Fa-f]{6}$/.test(color) && /^#[0-9A-Fa-f]{6}$/.test(under) && contrastRatio(color, under) >= 4.5 ? color : textOn(under));
   useEffect(() => {
     if (reduced) return grow.setValue(1);
     Animated.spring(grow, { toValue: 1, friction: 7, tension: 50, useNativeDriver: false }).start();
   }, [grow, reduced]);
+  const surface = useMemo(() => leafCardSurface(tokens), [tokens]);
+  const mark = tokens.leafShape === 'flower' || tokens.leafShape === 'star' ? <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={26} /> : undefined;
 
   return (
-    <View style={[styles.row, { paddingTop: gap }]} accessibilityLabel={t(`vine.ripeness.${card.state}`)}>
-      <View style={[styles.stem, { backgroundColor: tokens.stem }]} />
-      {card.isMine ? <View style={[styles.branch, { backgroundColor: tokens.branch }]} /> : null}
+    <VineRow from={from} side={side} look={tokens} gap={gap} seed={hashId(card.id)}>
       <Animated.View
+        accessibilityLabel={t(`vine.ripeness.${card.state}`)}
         style={[
-          styles.fruit,
-          left ? styles.fruitLeft : styles.fruitRight,
-          card.state === 'answered' && { ...styles.bloom, shadowColor: colors.gold, borderColor: colors.goldSoft },
+          card.state === 'answered' && { ...styles.bloom, shadowColor: colors.gold },
           { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
-        <View
-          style={[styles.leaf, { backgroundColor: tokens.leaf }, left ? { right: -10 } : { left: -10 }, { transform: [{ rotate: `${left ? tilt : -tilt}deg` }] }]}
-        />
-        <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }, left ? { right: -7 } : { left: -7 }]} />
-        <View style={styles.tags}>
-          {pinned ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
-          {card.state === 'answered' ? <Text style={[styles.tag, { color: colors.goldText }]}>{t('vine.bloom')}</Text> : null}
-          {card.isMine ? <Text style={[styles.tag, { color: BRANCH_TEXT }]}>{t('vine.yourBranch')}</Text> : null}
-          {card.myCommitment ? <Text style={[styles.tag, { color: tokens.tendril }]}>{t('vine.yourTendril')}</Text> : null}
-        </View>
-        {card.counts.commitments > 0 ? (
-          <Text
-            style={[styles.tendrils, { color: card.myCommitment ? tokens.tendril : tokens.stem }]}
-            accessibilityLabel={t('vine.tendrils', { count: card.counts.commitments })}>
-            {'➰'.repeat(Math.min(card.counts.commitments, MAX_TENDRILS))}
-            {card.counts.commitments > MAX_TENDRILS ? ` +${card.counts.commitments - MAX_TENDRILS}` : ''}
-          </Text>
-        ) : null}
-        {children}
+        <LeafFrame side={side} look={tokens} bare mark={mark}>
+          <CardSurface.Provider value={surface}>
+          <View style={styles.tags}>
+            <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }]} />
+            {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: on(colors.primary) }]} /> : null}
+            {card.state === 'answered' ? <Text style={[styles.tag, { color: on(colors.goldText) }]}>{t('vine.bloom')}</Text> : null}
+            {card.isMine ? <Text style={[styles.tag, { color: on(BRANCH_TEXT) }]}>{t('vine.yourBranch')}</Text> : null}
+            {card.myCommitment ? <Text style={[styles.tag, { color: on(tokens.tendril) }]}>{t('vine.yourTendril')}</Text> : null}
+            {card.counts.commitments > 0 ? (
+              <Text
+                style={[styles.tendrils, { color: on(card.myCommitment ? tokens.tendril : tokens.stem) }]}
+                accessibilityLabel={t('vine.tendrils', { count: card.counts.commitments })}>
+                {'➰'.repeat(Math.min(card.counts.commitments, MAX_TENDRILS))}
+                {card.counts.commitments > MAX_TENDRILS ? ` +${card.counts.commitments - MAX_TENDRILS}` : ''}
+              </Text>
+            ) : null}
+          </View>
+          {children}
+          </CardSurface.Provider>
+        </LeafFrame>
       </Animated.View>
-    </View>
+    </VineRow>
   );
 }
 
-function ScriptureLeaf({ leaf, tokens }: { leaf: Leaf; tokens: VineTokens }) {
+function ScriptureLeaf({ leaf, tokens, from }: { leaf: Leaf; tokens: VineTokens; from: VineSide | null }) {
   return (
-    <View style={styles.row}>
-      <View style={[styles.stem, { backgroundColor: tokens.stem }]} />
+    <VineRow from={from} side="center" look={tokens} gap={VINE_GAP / 2}>
       <View style={[styles.scripture, { backgroundColor: tokens.leafSoft, borderColor: tokens.leaf }]} accessibilityRole="text">
         <Text style={styles.scriptureText}>“{leaf.text}”</Text>
         <Text style={type.small}>
@@ -132,7 +167,7 @@ function ScriptureLeaf({ leaf, tokens }: { leaf: Leaf; tokens: VineTokens }) {
           {leaf.translation ? ` (${leaf.translation})` : ''}
         </Text>
       </View>
-    </View>
+    </VineRow>
   );
 }
 
@@ -207,15 +242,38 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
   // A scripture leaf after every few fruit, cycling through the verses.
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
+    let line: VineSide | null = null;
+    // Moonlit Gate: the feed begins at a drawn gate, and its line of light runs down from the doorway.
+    if (tokens.vineStyle === 'gate' && cards.length) out.push({ kind: 'gate', key: 'gate', from: null });
     cards.forEach((card, i) => {
-      out.push({ kind: 'fruit', card });
+      // Leaves alternate down the vine, so it swoops from side to side; your own requests grow on your branch, on the right.
+      const side: VineSide = card.isMine ? 'right' : line === 'left' ? 'right' : 'left';
+      out.push({ kind: 'fruit', card, side, gap: VINE_GAP + (hashId(card.id) % 4) * 8, from: line });
+      line = side;
+      // Its newest comments spread outward and downward on smaller leaves, toward the next (older) request.
+      const leafComments = card.leafComments ?? [];
+      leafComments.forEach((comment, k) => {
+        const s2: VineSide = (k % 2 === 0) === (side === 'left') ? 'right' : 'left';
+        out.push({ kind: 'comment', comment, postId: card.id, side: s2, key: `c-${comment.id}`, from: line });
+        line = s2;
+      });
+      if (leafComments.length && card.counts.comments > leafComments.length) {
+        const s2: VineSide = line === 'left' ? 'right' : 'left';
+        out.push({ kind: 'more', postId: card.id, count: card.counts.comments - leafComments.length, side: s2, key: `more-${card.id}`, from: line });
+        line = s2;
+      }
       if (leaves.length && tokens.leafEvery > 0 && (i + 1) % tokens.leafEvery === 0) {
         const n = Math.floor(i / tokens.leafEvery);
-        out.push({ kind: 'leaf', leaf: leaves[n % leaves.length]!, key: `leaf-${n}` });
+        out.push({ kind: 'leaf', leaf: leaves[n % leaves.length]!, key: `leaf-${n}`, from: line });
+      }
+      // Neon Cinderella: a castle, a coach or a slipper after every third request (offset from the verses).
+      if (tokens.scenery === 'fairytale' && i % 3 === 1) {
+        const n = Math.floor(i / 3);
+        out.push({ kind: 'scene', scene: SCENES[n % SCENES.length]!, key: `scene-${n}`, from: line });
       }
     });
     return out;
-  }, [cards, leaves, tokens.leafEvery]);
+  }, [cards, leaves, tokens.leafEvery, tokens.scenery, tokens.vineStyle]);
 
   const onScroll = useCallback(() => {
     const now = Date.now();
@@ -226,26 +284,57 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
   }, []);
 
   return (
-    <View style={styles.fill}>
+    <View style={[styles.fill, tokens.backdrop ? { backgroundColor: tokens.backdrop } : null]}>
       <FlatList
         data={items}
         keyExtractor={(it) => (it.kind === 'fruit' ? it.card.id : it.key)}
         renderItem={({ item }) =>
           item.kind === 'fruit' ? (
-            <Fruit card={item.card} pinned={item.card.id === pinnedId} tokens={tokens}>
-              {renderCard(item.card)}
+            <Fruit card={item.card} pinned={item.card.id === pinnedId} tokens={tokens} side={item.side} from={item.from} gap={item.gap}>
+              {/* Its comments hang below as their own leaves, so the card doesn't repeat one. */}
+              {renderCard(item.card.leafComments?.length ? { ...item.card, topComment: null } : item.card)}
             </Fruit>
+          ) : item.kind === 'comment' ? (
+            <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={1} seed={hashId(item.comment.id)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityHint={t('vine.openComment')}
+                onPress={() => router.push(`/post/${item.postId}?comment=${item.comment.id}`)}>
+                <LeafFrame side={item.side} look={tokens} depth={1}>
+                  <Text style={styles.commentName}>{item.comment.author.displayName}</Text>
+                  <Text style={styles.commentBody} numberOfLines={3}>
+                    {item.comment.body}
+                  </Text>
+                </LeafFrame>
+              </Pressable>
+            </VineRow>
+          ) : item.kind === 'more' ? (
+            <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={2} seed={item.count}>
+              <Pressable accessibilityRole="button" onPress={() => router.push(`/post/${item.postId}`)} style={[styles.more, item.side === 'left' ? styles.moreLeft : styles.moreRight]}>
+                {[0.35, 0.22, 0.12].map((o, k) => (
+                  <View key={k} style={[styles.ghost, { opacity: o, backgroundColor: tokens.leaf, left: k * 12, top: 6 + k * 6, transform: [{ rotate: `${(k - 1) * 8}deg` }] }]} />
+                ))}
+                <Text style={[styles.moreText, tokens.backdrop ? { color: textOn(tokens.backdrop) } : null]}>{t('vine.moreComments', { count: item.count })}</Text>
+              </Pressable>
+            </VineRow>
+          ) : item.kind === 'gate' ? (
+            <GateArch line={tokens.stem} accent={tokens.tendril} testID="gate-arch" />
+          ) : item.kind === 'scene' ? (
+            <VineRow from={item.from} side="center" look={tokens} gap={VINE_GAP / 2}>
+              <NeonScene kind={item.scene} line={tokens.stem} accent={tokens.leaf} />
+            </VineRow>
           ) : (
-            <ScriptureLeaf leaf={item.leaf} tokens={tokens} />
+            <ScriptureLeaf leaf={item.leaf} tokens={tokens} from={item.from} />
           )
         }
-        ListHeaderComponent={header ?? undefined}
+        // On a dark skin the feed's header sits on a light panel so its text stays readable.
+        ListHeaderComponent={header ? isDark(tokens.backdrop) ? <View style={styles.headerPanel}>{header}</View> : header : undefined}
         ListFooterComponent={
           atEnd && cards.length > 0 ? (
             <View style={styles.tip}>
-              <View style={[styles.tipStem, { backgroundColor: tokens.stem }]} />
+              <View style={[styles.tipStem, { backgroundColor: tokens.stem, width: tokens.stemWidth }]} />
               <View style={styles.blossom} />
-              <Text style={styles.end}>{wording === 'neutral' ? t('vine.tip') : tokens.tipText}</Text>
+              <Text style={[styles.end, tokens.backdrop ? { color: textOn(tokens.backdrop) } : null]}>{wording === 'neutral' ? t('vine.tip') : tokens.tipText}</Text>
               <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />
             </View>
           ) : undefined
@@ -267,24 +356,23 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { padding: space.lg, paddingBottom: 120 },
-  row: { position: 'relative' },
-  // The stem runs down the middle of every row, so together the rows form one vine.
-  stem: { position: 'absolute', left: '50%', top: 0, bottom: 0, width: 4, marginLeft: -2, borderRadius: 2 },
-  // Your branch: a short woody limb from the stem toward your request.
-  branch: { position: 'absolute', left: '50%', width: '18%', top: 36, height: 5, borderRadius: 3, transform: [{ rotate: '-12deg' }] },
-  fruit: { width: '86%', position: 'relative' },
-  fruitLeft: { alignSelf: 'flex-start' },
-  fruitRight: { alignSelf: 'flex-end' },
-  leaf: { position: 'absolute', top: 18, width: 34, height: 18, borderTopLeftRadius: 18, borderBottomRightRadius: 18 },
-  ripeness: { position: 'absolute', top: 42, width: 14, height: 14, borderRadius: radius.pill, borderWidth: 2 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.xs },
+  headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm, marginBottom: space.md },
+  ripeness: { width: 14, height: 14, borderRadius: radius.pill, borderWidth: 2 },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm, marginBottom: space.xs },
   tag: { fontSize: 13, fontWeight: '700' },
-  tendrils: { fontSize: 14, letterSpacing: -2, marginBottom: space.xs },
+  tendrils: { fontSize: 14, letterSpacing: -2 },
   // An answered request blooms: a soft gold glow around the fruit.
   bloom: { borderRadius: radius.lg, borderWidth: 2, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
   pinned: { ...type.small, color: colors.primary, fontWeight: '700' },
   scripture: { alignSelf: 'center', width: '70%', marginVertical: space.lg, padding: space.md, borderRadius: radius.lg, borderWidth: 1, gap: 4 },
   scriptureText: { fontSize: 15, lineHeight: 21, fontStyle: 'italic', fontFamily: 'serif', color: colors.text },
+  commentName: { fontSize: 13, fontWeight: '700', color: COMMENT_TEXT },
+  commentBody: { fontSize: 14, lineHeight: 19, color: COMMENT_TEXT },
+  more: { height: 44, justifyContent: 'center', paddingLeft: 56, width: '62%' },
+  moreLeft: { alignSelf: 'flex-start' },
+  moreRight: { alignSelf: 'flex-end' },
+  ghost: { position: 'absolute', width: 38, height: 26, borderTopLeftRadius: 20, borderBottomRightRadius: 20, borderTopRightRadius: 3, borderBottomLeftRadius: 3 },
+  moreText: { ...type.small, color: colors.text, fontWeight: '700' },
   tip: { alignItems: 'center', gap: space.sm },
   tipStem: { width: 4, height: 40, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
   blossom: { width: 22, height: 22, borderRadius: radius.pill, backgroundColor: colors.gold, borderWidth: 4, borderColor: colors.goldSoft },

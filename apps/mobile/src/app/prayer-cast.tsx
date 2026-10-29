@@ -16,6 +16,11 @@ export default function PrayerCastScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [canListen, setCanListen] = useState(false);
+  useEffect(() => {
+    api.radioListen().then((c) => setCanListen(c.enabled), () => undefined);
+  }, []);
+
   const load = useCallback(() => {
     setRefreshing(true);
     api
@@ -33,6 +38,7 @@ export default function PrayerCastScreen() {
         <Text style={type.body}>
           {t('cast.intro')}
         </Text>
+        {canListen ? <Button label={t('cast.listen')} onPress={() => router.push('/listen')} /> : null}
         <ErrorText error={error} onRetry={data ? undefined : load} />
         {!data && !error ? <Loading /> : null}
         {data ? (

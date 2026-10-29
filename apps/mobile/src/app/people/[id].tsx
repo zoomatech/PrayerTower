@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { Lamps } from '@/components/lamps';
+import { SupportLinkButton } from '@/components/support-link';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -18,6 +20,8 @@ export default function PersonScreen() {
   const [person, setPerson] = useState<Person | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // "Give to …" shows while card giving (Stripe) is on; a Zeffy form can't name a member.
+  const [givingOn, setGivingOn] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +36,9 @@ export default function PersonScreen() {
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    api.givingInfo().then((g) => setGivingOn(g.enabled && g.provider === 'stripe'), () => undefined);
+  }, []);
 
   const { onAction, sheets } = useCardActions(load);
 
@@ -83,6 +90,7 @@ export default function PersonScreen() {
                 ✝ {person.pastor.title} · {person.pastor.church}
               </Text>
             ) : null}
+            {person.squire ? <Text style={styles.pastor}>{t('squire.badge')}</Text> : null}
             {person.whyHere.length ? (
               <Text style={type.body}>{person.whyHere.map((w) => WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS] ?? w).join(' · ')}</Text>
             ) : null}
@@ -105,10 +113,19 @@ export default function PersonScreen() {
             ) : (
               <Button variant="secondary" label={t('person.message')} onPress={() => setMessageOpen(true)} />
             )}
+            {givingOn ? (
+              <Button
+                variant="secondary"
+                label={t('give.toPerson', { name: person.displayName })}
+                onPress={() => router.push({ pathname: '/give', params: { to: id, name: person.displayName } })}
+              />
+            ) : null}
             <Text style={styles.block} onPress={toggleBlock} accessibilityRole="button">
               {blocked ? t('person.unblock', { name: person.displayName }) : t('person.block', { name: person.displayName })}
             </Text>
             {blocked ? <Text style={type.small}>{t('person.blockedNote')}</Text> : null}
+            {!blocked ? <Lamps personId={person.id} name={person.displayName} /> : null}
+            {!blocked && person.supportUrl ? <SupportLinkButton url={person.supportUrl} name={person.displayName} /> : null}
           </View>
         ) : null}
         {person && cards.length === 0 ? <Empty text={t('person.noPosts', { name: person.displayName })} /> : null}

@@ -1,13 +1,16 @@
 // Sign-in and invite-only sign-up, as a new pilot member meets them.
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { renderApp } from '@/__tests__/helpers';
 import SignIn from '@/app/sign-in';
 import { api } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
-jest.mock('@/lib/api', () => ({ api: { signupConfig: jest.fn(async () => ({ inviteOnly: true })) } }));
+jest.mock('@/lib/api', () => ({ api: { signupConfig: jest.fn(async () => ({ inviteOnly: true })), listenConfig: jest.fn(async () => ({ enabled: false, receipts: false })) } }));
+const mockSetRecovering = jest.fn();
+jest.mock('@/lib/auth-links', () => ({ authRedirectUrl: () => 'prayertower://account-security' }));
+jest.mock('@/lib/auth', () => ({ useAuth: () => ({ setRecovering: mockSetRecovering, linkError: null }) }));
 
 const auth = supabase.auth as jest.Mocked<typeof supabase.auth>;
 afterEach(() => (useLocalSearchParams as jest.Mock).mockReturnValue({}));
@@ -38,6 +41,15 @@ describe('Sign in', () => {
     await type('Password', 'wrong-password');
     await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Invalid login credentials')).toBeTruthy();
+  });
+
+  it('offers listening without an account only while listener mode is on', async () => {
+    await renderApp(<SignIn />);
+    expect(screen.queryByRole('button', { name: 'Listen to radio prayers (no account needed)' })).toBeNull();
+    (api.listenConfig as jest.Mock).mockResolvedValueOnce({ enabled: true, receipts: false });
+    await renderApp(<SignIn />);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Listen to radio prayers (no account needed)' }));
+    expect(router.push).toHaveBeenCalledWith('/listen-on-air');
   });
 });
 
@@ -88,5 +100,24 @@ describe('Sign up during the invite-only pilot', () => {
     await renderApp(<SignIn />);
     await fireEvent.press(screen.getByRole('button', { name: 'New here? Create an account' }));
     await waitFor(() => expect(screen.queryByLabelText('Invite code')).toBeNull());
+  });
+});
+
+describe('Forgot password', () => {
+  it('sends the reset email, then signs in with the code into "Choose a new password"', async () => {
+    (auth.resetPasswordForEmail as jest.Mock).mockResolvedValueOnce({ data: {}, error: null });
+    (auth.verifyOtp as jest.Mock).mockResolvedValueOnce({ data: {}, error: null });
+    await renderApp(<SignIn />);
+    await fireEvent.press(screen.getByText('Forgot your password?'));
+    await type('Email', 'ruth@example.com');
+    await fireEvent.press(screen.getByText('Send reset email'));
+    await waitFor(() => expect(auth.resetPasswordForEmail).toHaveBeenCalledWith('ruth@example.com', expect.objectContaining({ redirectTo: expect.any(String) })));
+    await waitFor(() => expect(screen.getByTestId('reset-continue')).toBeTruthy());
+    const el = screen.getByTestId('reset-code');
+    await fireEvent.changeText(el, '123456');
+    await waitFor(() => expect(screen.getByTestId('reset-continue')).toBeEnabled());
+    await fireEvent.press(screen.getByTestId('reset-continue'));
+    await waitFor(() => expect(auth.verifyOtp).toHaveBeenCalledWith({ email: 'ruth@example.com', token: '123456', type: 'recovery' }));
+    expect(mockSetRecovering).toHaveBeenCalledWith(true);
   });
 });

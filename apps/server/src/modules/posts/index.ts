@@ -8,7 +8,9 @@ import { badRequest, forbidden, notFound } from '../../errors.js';
 import { getProfile, presentIdentity, primaryCommunityId } from '../accounts/index.js';
 import { badgesOf } from '../churches/index.js';
 import * as moderation from '../moderation/index.js';
+import * as harm from '../harm/index.js';
 import * as safety from '../safety/index.js';
+import * as skins from '../skins/index.js';
 import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
@@ -44,8 +46,13 @@ export const NewPost = z.object({
   isSensitive: z.boolean().default(false),
   /** "Prayer and positive thoughts welcome": support from people of any faith or none. */
   allSupportWelcome: z.boolean().default(false),
+  /** A lament (grief or anguish): heard, not fixed. Only kept while the Lament switch is on. */
+  isLament: z.boolean().optional(),
+  /** The author's yes to a lament going out by radio. */
+  lamentRadio: z.boolean().optional(),
   media: z
-    .array(z.object({ kind: z.enum(['image', 'video']), storagePath: z.string().min(1).max(500) }))
+    // durationMs: the clip's length from the picker, checked against the video cap (modules/skins).
+    .array(z.object({ kind: z.enum(['image', 'video']), storagePath: z.string().min(1).max(500), durationMs: z.number().int().min(0).max(86_400_000).optional() }))
     .max(10)
     .default([]),
 });
@@ -62,7 +69,11 @@ export interface PostRow {
   is_anonymous: boolean;
   is_sensitive: boolean;
   all_support_welcome: boolean;
+  is_lament: boolean;
+  lament_radio: boolean;
   crisis: boolean;
+  /** Set by the harmful-prayer check (modules/harm) until a moderator clears it. */
+  harm_category: string | null;
   state: PostState;
   answered_at: Date | null;
   testimony: string | null;
@@ -72,11 +83,13 @@ export interface PostRow {
   created_at: Date;
 }
 
-export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPost>): Promise<PostRow> {
+export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPost>): Promise<PostRow & { harm: harm.Guidance | null }> {
   await safety.checkNewMember(q, userId, 'post', input.body);
   await safety.checkFlood(q, userId, 'post', input.body);
+  const harmDecision = await harm.screen(q, userId, 'post', input.body);
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
+  await skins.checkVideos(q, input.media);
   for (const m of input.media) {
     // Exactly the shape /media/upload-url hands out: <user id>/<uuid>.<ext>, no other folders.
     if (!m.storagePath.startsWith(`${userId}/`) || !/^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(m.storagePath.slice(userId.length + 1))) throw badRequest('Media must be uploaded through /media/upload-url');
@@ -89,8 +102,9 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
   ]);
   if (!typeAllowed) throw badRequest('This kind of post is not available in your community');
   const { rows } = await q.query<PostRow>(
-    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id, all_support_welcome)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
+    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id, all_support_welcome, is_lament, lament_radio)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+             $12 and (select lament_enabled from public.practice_settings), $12 and $13 and (select lament_enabled from public.practice_settings)) returning *`,
     [
       userId,
       input.postType,
@@ -103,6 +117,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
       input.isSensitive,
       communityId,
       input.allSupportWelcome,
+      input.isLament ?? false,
+      input.lamentRadio ?? false,
     ],
   );
   const post = rows[0]!;
@@ -120,7 +136,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     await moderation.flagCrisis(q, 'post', post.id);
     post.crisis = true;
   }
-  return post;
+  const harmGuidance = await harm.apply(q, userId, 'post', post.id, harmDecision);
+  return { ...post, harm: harmGuidance };
 }
 
 export async function get(q: Queryable, postId: string): Promise<PostRow | null> {
@@ -224,16 +241,34 @@ export async function setTestimony(q: Queryable, userId: string, postId: string,
   if (post.user_id !== userId) throw forbidden('Only the poster can add a testimony');
   if (post.state !== 'answered') throw badRequest('Mark the request answered first');
   await safety.checkNewMember(q, userId, 'post', input.body);
+  const harmDecision = await harm.screen(q, userId, 'post', input.body);
   await q.query(`update public.posts set testimony = $2, testimony_at = coalesce(testimony_at, now()) where id = $1`, [postId, input.body]);
   await moderation.queueScan(q, 'post', postId);
   const crisis = safety.mentionsCrisis(input.body);
   if (crisis) await moderation.flagCrisis(q, 'post', postId);
+  await harm.apply(q, userId, 'post', postId, harmDecision);
   return { post, first: post.testimony === null, crisis };
 }
 
 export async function removeTestimony(q: Queryable, userId: string, postId: string) {
   const { rowCount } = await q.query(`update public.posts set testimony = null, testimony_at = null where id = $1 and user_id = $2`, [postId, userId]);
   if (!rowCount) throw notFound('Post');
+}
+
+export const LamentPatch = z.object({ lament: z.boolean().optional(), radio: z.boolean().optional() });
+
+/** The author marks or unmarks a lament, and says yes or no to radio. Off with the Lament switch. */
+export async function setLament(q: Queryable, userId: string, postId: string, p: z.infer<typeof LamentPatch>) {
+  const { rows: s } = await q.query<{ on: boolean }>('select lament_enabled as on from public.practice_settings');
+  if (!s[0]?.on) throw badRequest('Lament posts are switched off');
+  const { rows } = await q.query<{ is_lament: boolean; lament_radio: boolean }>(
+    `update public.posts set is_lament = coalesce($3, is_lament),
+            lament_radio = coalesce($3, is_lament) and coalesce($4, lament_radio)
+      where id = $1 and user_id = $2 returning is_lament, lament_radio`,
+    [postId, userId, p.lament ?? null, p.radio ?? null],
+  );
+  if (!rows[0]) throw notFound('Post');
+  return { lament: rows[0].is_lament, lamentRadio: rows[0].lament_radio };
 }
 
 /** Everyone who prayed for or committed to a request, except its poster. */
@@ -320,9 +355,11 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
   if (input.parentId) {
     const { rowCount } = await q.query('select 1 from public.comments where id = $1 and post_id = $2', [input.parentId, postId]);
     if (!rowCount) throw badRequest('Reply target is not on this post');
+    await skins.checkReplyDepth(q, input.parentId);
   }
   await safety.checkNewMember(q, userId, 'comment', input.body);
   await safety.checkFlood(q, userId, 'comment', input.body);
+  const harmDecision = await harm.screen(q, userId, 'comment', input.body);
   const isAnonymous = input.isAnonymous ?? (input.isUpdate ? post.is_anonymous : false);
   const { rows } = await q.query<{ id: string }>(
     `insert into public.comments (post_id, user_id, parent_id, body, is_update, is_anonymous)
@@ -332,7 +369,8 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
   await moderation.queueScan(q, 'comment', rows[0]!.id);
   const crisis = safety.mentionsCrisis(input.body);
   if (crisis) await moderation.flagCrisis(q, 'comment', rows[0]!.id);
-  return { ...rows[0]!, crisis };
+  const harmGuidance = await harm.apply(q, userId, 'comment', rows[0]!.id, harmDecision);
+  return { ...rows[0]!, crisis, harm: harmGuidance };
 }
 
 interface CommentRow {
@@ -346,6 +384,9 @@ interface CommentRow {
   display_name: string;
   handle: string | null;
 }
+
+/** Most comments a feed card brings for the drawn vine; the rest are on the post page. */
+const FEED_LEAVES = 3;
 
 const commentSelect = `select c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
                               p.id as user_id, p.display_name, p.handle
@@ -575,6 +616,33 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
     [postIds],
   );
   const topByPost = new Map(tops.map((t) => [t.post_id, t]));
+
+  // Drawn vine (Admin → Feed skins → comments as leaves): each card brings its newest few
+  // comments, so they can spread outward and downward from the post toward the next one.
+  const leavesByPost = new Map<string, CommentRow[]>();
+  const { rows: tree } = await q.query<{ on: boolean; n: number }>(
+    'select skins_enabled and comment_tree_enabled as on, least(comment_tree_leaves, $1)::int as n from public.skin_settings',
+    [FEED_LEAVES],
+  );
+  if (tree[0]?.on) {
+    const { rows: recent } = await q.query<CommentRow & { post_id: string }>(
+      `select * from (
+         select c.post_id, c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
+                p.id as user_id, p.display_name, p.handle,
+                row_number() over (partition by c.post_id order by c.created_at desc, c.id desc) as n
+           from public.comments c join public.profiles p on p.id = c.user_id
+          where c.post_id = any($1::uuid[]) and c.moderation_status = 'visible'
+            and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)) x
+        where x.n <= $3
+        order by x.post_id, x.created_at desc, x.id desc`,
+      [postIds, viewerId, tree[0].n],
+    );
+    for (const c of recent) {
+      const list = leavesByPost.get(c.post_id);
+      if (list) list.push(c);
+      else leavesByPost.set(c.post_id, [c]);
+    }
+  }
   // One query, not one per card: parallel per-card queries took every pool connection (load test 2026-10-28).
   const reachByPost = await tokens.reachOfMany(q, postIds);
   // Posts copied from the author's Facebook or Threads ("From Facebook").
@@ -656,12 +724,15 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         background: r.background,
         isSensitive: r.is_sensitive,
         allSupportWelcome: r.all_support_welcome,
+        lament: r.is_lament,
+        lamentRadio: r.lament_radio,
         crisis: r.crisis,
         media: r.media,
         counts: r.counts,
         reach: reachByPost.get(id) ?? 0,
         topComment: top ? presentComment(top, viewerId) : null,
         crosspostedFrom: copiedFrom.get(id) ?? null,
+        ...(leavesByPost.size ? { leafComments: (leavesByPost.get(id) ?? []).map((c) => presentComment(c, viewerId)) } : {}),
         createdAt: r.created_at,
       },
     ];

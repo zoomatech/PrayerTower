@@ -1,0 +1,50 @@
+# One free server (docs/FREE_SERVER.md): the API, the worker, and Caddy for
+# HTTPS in front of the API and the web app. scripts/go-live.sh with
+# DEPLOY_TARGET=server copies the code here (/opt/prayertower) and runs:
+#   API_HOST=… WEB_HOST=… docker compose -f deploy/server/compose.yml up -d --build
+# Supabase stays on Supabase Cloud. The settings are deploy/production.env.
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+    command: ["node", "--import", "./apps/server/dist/src/instrument.js", "apps/server/dist/src/server.js"]
+    env_file: ../production.env
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+      # Caddy puts the visitor's address here (Caddyfile below).
+      CLIENT_IP_HEADER: x-real-ip
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+    command: ["node", "--import", "./apps/server/dist/src/instrument.js", "apps/server/dist/src/worker.js"]
+    env_file: ../production.env
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_HOST: ${API_HOST:?set API_HOST}
+      WEB_HOST: ${WEB_HOST:?set WEB_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

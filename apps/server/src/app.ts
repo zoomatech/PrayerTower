@@ -13,6 +13,7 @@ import { careRoutes } from './modules/care/routes.js';
 import { commitmentRoutes } from './modules/commitments/routes.js';
 import { feedRoutes } from './modules/feed/routes.js';
 import type { Classifier } from './modules/moderation/index.js';
+import { harmRoutes } from './modules/harm/routes.js';
 import { moderationRoutes } from './modules/moderation/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { postRoutes } from './modules/posts/routes.js';
@@ -25,6 +26,13 @@ import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { surveyRoutes } from './modules/surveys/routes.js';
 import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
+import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
+import { practiceRoutes } from './modules/practices/routes.js';
+import { repairRoutes } from './modules/repair/routes.js';
+import { conversationHelperRoutes } from './modules/conversation-helpers/routes.js';
+import { partnerRoutes } from './modules/partners/routes.js';
+import { kindnessHighlightRoutes } from './modules/kindness-highlights/routes.js';
+import { coolDownRoutes } from './modules/cool-down/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { storageMediaStore } from './modules/crosspost/index.js';
@@ -33,6 +41,12 @@ import { crosspostPublicRoutes, crosspostRoutes } from './modules/crosspost/rout
 import { MEDIA_BUCKET } from './modules/posts/media.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { aiRoutes } from './modules/ai/routes.js';
+import { lampRoutes } from './modules/lamps/routes.js';
+import { circleGoalRoutes } from './modules/circle-goals/routes.js';
+import { squireRoutes } from './modules/squire/routes.js';
+import { groupGiftRoutes } from './modules/group-gifts/routes.js';
+import { prayerListRoutes } from './modules/prayer-list/routes.js';
+import { readingPlanRoutes } from './modules/reading-plan/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
 import { liveRoutes } from './modules/live/routes.js';
@@ -44,11 +58,13 @@ import { macroNeedRoutes } from './modules/macro-needs/routes.js';
 import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
-import { stationRoutes } from './modules/radio/station-routes.js';
+import { nodeRoutes, stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
 import { growthPublicRoutes, growthRoutes } from './modules/growth/routes.js';
+import { skinRoutes } from './modules/skins/routes.js';
+import { securityRoutes } from './modules/security/routes.js';
 import { registerMetrics } from './metrics.js';
 import { announcementRoutes } from './modules/announcements/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
@@ -57,7 +73,11 @@ import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
 import { acrossRoutes } from './modules/across/routes.js';
 import { waitlistAdminRoutes, waitlistJoinRoutes } from './modules/waitlist/routes.js';
+import { listenPublicRoutes } from './modules/listen/routes.js';
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
+import { donationPublicRoutes, donationRoutes } from './modules/donations/routes.js';
+import type { StripeKeys } from './modules/donations/index.js';
+import type { ZeffyKeys } from './modules/donations/zeffy.js';
 import type { AppleVerifier } from './modules/store/index.js';
 import { storeNotificationRoutes } from './modules/store/routes.js';
 import { amplifierRoutes } from './modules/amplifier/routes.js';
@@ -84,6 +104,10 @@ export interface AppDeps {
   rateLimitPerMinute?: number;
   /** The header the host's proxy puts the visitor's address in (Fly: fly-client-ip). Unset: the connection's address. */
   clientIpHeader?: string | null;
+  /** Stripe keys for giving (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET); null until Steve sets them. */
+  stripe?: StripeKeys | null;
+  /** Zeffy's API key and webhook token (ZEFFY_API_KEY, ZEFFY_WEBHOOK_TOKEN); null until set. */
+  zeffy?: ZeffyKeys | null;
   /** The public account-deletion page (Google Play); null = page off. */
   deletionPage?: DeletionPageOptions | null;
   /** Bearer token for GET /metrics (Prometheus); null = no metrics endpoint. */
@@ -111,7 +135,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -178,7 +202,16 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   // The radio station authenticates with its own key, not a member login.
   app.register(async (station) => {
     markScope(station, catalog, 'station');
+    // Generous: a station polls every few seconds, but keys are checked against the database.
+    if (rateLimitPerMinute > 0) await station.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 300, timeWindow: '1 minute' });
     stationRoutes(station, db, stationKey);
+  });
+
+  // Listener nodes (radio/nodes.ts): their own keys, limited per IP address.
+  app.register(async (node) => {
+    markScope(node, catalog, 'station');
+    if (rateLimitPerMinute > 0) await node.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 30, timeWindow: '1 minute' });
+    nodeRoutes(node, db);
   });
 
   // The API description, for developers (staff-only in production).
@@ -209,6 +242,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     waitlistJoinRoutes(open, db);
   });
 
+  // Listener receipts for radio prayers (switched off by default), limited per IP address.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 20, timeWindow: '1 minute' });
+    listenPublicRoutes(open, db);
+  });
+
   // The public website, limited per IP address.
   if (site) {
     app.register(async (open) => {
@@ -227,6 +266,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 60, timeWindow: '1 minute' });
     commonFundPublicRoutes(open, db);
     podcastPublicRoutes(open, db);
+    donationPublicRoutes(open, db, stripe, zeffy);
     storeNotificationRoutes(open, db, appleVerifier);
   });
 
@@ -277,21 +317,38 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
     growthRoutes(authed, db);
+    skinRoutes(authed, db);
+    securityRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
     aiRoutes(authed, db, converse);
+    lampRoutes(authed, db);
+    circleGoalRoutes(authed, db);
+    squireRoutes(authed, db);
+    groupGiftRoutes(authed, db);
+    prayerListRoutes(authed, db);
+    readingPlanRoutes(authed, db);
     liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
     quickReactionRoutes(authed, db);
+    meaningReactionRoutes(authed, db);
+    practiceRoutes(authed, db);
+    repairRoutes(authed, db);
+    conversationHelperRoutes(authed, db);
+    partnerRoutes(authed, db);
+    kindnessHighlightRoutes(authed, db);
+    coolDownRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
     crosspostRoutes(authed, db, crosspost);
+    donationRoutes(authed, db, stripe, webAppUrl, zeffy);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
+    harmRoutes(authed, db);
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);

@@ -6,10 +6,14 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as donations from '../donations/index.js';
 import * as materialMatch from '../material-match/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
+import * as acks from './acks.js';
+import * as receipts from './receipts.js';
+import * as schedule from './schedule.js';
 import * as tokens from '../tokens/index.js';
 import { requireFeature } from '../communities/index.js';
 
@@ -44,12 +48,13 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   const s = await tokens.settings(q);
   const existing = await q.query<RadioPrayer>(
     `select id, post_id, cost, repeats, status, created_at, transmitted_at
-       from public.radio_prayers where user_id = $1 and (idempotency_key = $2 or (cost = 0 and status <> 'failed' and post_id = $3 and (repeats > 1) = $4))`,
+       from public.radio_prayers where user_id = $1 and (idempotency_key = $2 or (cost = 0 and kind = 'prayer' and status <> 'failed' and post_id = $3 and (repeats > 1) = $4))`,
     [userId, key, post.id, amplify],
   );
   if (existing.rows[0]) return existing.rows[0];
   // Sensitive requests never go out (the transmit job would refuse them), so don't take tokens for one.
   if (post.is_sensitive) throw conflict("Sensitive requests aren't sent by radio.");
+  if (post.is_lament && !post.lament_radio) throw conflict('This is a lament. It goes on the radio only if the person who posted it says so.');
   // 'free' mode: no tokens move; Priestly tokens are donations only.
   if (await moderation.awaitingCrisisReview(q, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
   // Paid Amplify is off unless an admin set its price (token_settings.amplify_paid_cost).
@@ -63,12 +68,16 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
     throw conflict('Radio prayers are paused: the station only sends while they are free. An admin can turn on “Radio prayers are free” on the Admin screen.');
   }
   const repeats = amplify ? station.radio_amplify_repeats : 1;
-  const cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
+  let cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
+  // Everybody gets at least one: the month's free radio prayers, then any granted ones (modules/donations).
+  const gift = cost > 0 && !amplify ? await donations.radioFunding(q, userId) : null;
+  if (gift) cost = 0;
+  const fundedBy = s.radio_funding === 'free' ? 'free' : (gift ?? 'tokens');
   const t = cost > 0 ? await tokens.spendOnRadio(q, userId, cost, key) : null;
   const { rows } = await q.query<RadioPrayer>(
-    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key, repeats) values ($1, $2, $3, $4, $5, $6)
+    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key, repeats, funded_by) values ($1, $2, $3, $4, $5, $6, $7)
      returning id, post_id, cost, repeats, status, created_at, transmitted_at`,
-    [post.id, userId, t?.id ?? null, cost, key, repeats],
+    [post.id, userId, t?.id ?? null, cost, key, repeats, fundedBy],
   );
   // Equal material help for the afflicted, when that switch is on (modules/material-match).
   if (t) await materialMatch.onRadioSpend(q, rows[0]!.id, userId, cost);
@@ -86,17 +95,21 @@ export async function mine(q: Queryable, userId: string): Promise<RadioPrayer[]>
 }
 
 /** Why a queued prayer must not go out now: 'wait' while a moderator is still reviewing it. */
-function holdReason(r: { moderation_status: string; is_sensitive: boolean; pending_review: boolean }): string | 'wait' | null {
+function holdReason(r: { moderation_status: string; is_sensitive: boolean; pending_review: boolean; harm_category: string | null }): string | 'wait' | null {
   if (r.moderation_status !== 'visible') return 'request removed or hidden';
   if (r.is_sensitive) return 'sensitive request';
-  return r.pending_review ? 'wait' : null;
+  // Flagged by the harmful-prayer check: never sent until a moderator clears it (modules/harm).
+  return r.pending_review || r.harm_category ? 'wait' : null;
 }
-const QUEUED_PRAYER = `select r.id, r.post_id, p.body, p.user_id as poster_id, r.user_id as sender_id, r.repeats,
-            p.moderation_status, p.is_sensitive,
+// A lament stays off the air unless its author said it may go out: treated like a sensitive request.
+/** The words to send: the request, or for a thanksgiving (thanksgiving.ts) the text made when it was queued. */
+const SEND_TEXT = `case when r.kind = 'thanksgiving' then r.sent_text else p.body end`;
+const QUEUED_PRAYER = `select r.id, r.post_id, ${SEND_TEXT} as body, p.user_id as poster_id, r.user_id as sender_id, r.repeats,
+            p.moderation_status, (p.is_sensitive or (p.is_lament and not p.lament_radio)) as is_sensitive, p.harm_category,
             exists (select 1 from public.moderation_items m
                      where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending') as pending_review
        from public.radio_prayers r join public.posts p on p.id = r.post_id`;
-type QueuedPrayer = { id: string; post_id: string; body: string; poster_id: string; sender_id: string; repeats: number; moderation_status: string; is_sensitive: boolean; pending_review: boolean };
+type QueuedPrayer = { id: string; post_id: string; body: string; poster_id: string; sender_id: string; repeats: number; moderation_status: string; is_sensitive: boolean; pending_review: boolean; harm_category: string | null };
 
 /** A prayer that will never go out gives back the Priestly tokens spent on it. */
 async function failAndRefund(q: Queryable, id: string, error: string) {
@@ -150,6 +163,7 @@ export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitte
     }
     await markAmplified(q, r);
     await tellPoster(q, r);
+    await receipts.onAir(q, r.id);
   };
 }
 
@@ -186,11 +200,21 @@ export interface StationSettings {
   radio_max_chars: number;
   /** How many times Amplify sends a prayer (placeholder; "1,000x" is not possible on PSK31). */
   radio_amplify_repeats: number;
+  /** Which queued prayer goes next: first in, or by need (most urgent, fewest praying, then oldest). */
+  radio_order: 'oldest' | 'need';
+  /** Burst mode: the most prayers the station may claim at once (1 = one at a time). */
+  radio_batch_max: number;
+  /** The public /listen page that decodes bursts from a microphone. */
+  listen_page_enabled: boolean;
+  /** "On the air" receipts: tell senders when their prayer went out and when a listener heard it (receipts.ts). */
+  radio_receipts_enabled: boolean;
+  /** The public /on-the-air page: counts of what went out, never content. */
+  on_air_page_enabled: boolean;
 }
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled from public.token_settings',
   );
   return rows[0]!;
 }
@@ -201,9 +225,24 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
         set radio_transmitter = coalesce($1, radio_transmitter),
             radio_station_requires_free = coalesce($2, radio_station_requires_free),
             radio_max_chars = coalesce($3, radio_max_chars),
-            radio_amplify_repeats = coalesce($4, radio_amplify_repeats)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats`,
-    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null],
+            radio_amplify_repeats = coalesce($4, radio_amplify_repeats),
+            radio_order = coalesce($5, radio_order),
+            radio_batch_max = coalesce($6, radio_batch_max),
+            listen_page_enabled = coalesce($7, listen_page_enabled),
+            radio_receipts_enabled = coalesce($8, radio_receipts_enabled),
+            on_air_page_enabled = coalesce($9, on_air_page_enabled)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled`,
+    [
+      patch.radio_transmitter ?? null,
+      patch.radio_station_requires_free ?? null,
+      patch.radio_max_chars ?? null,
+      patch.radio_amplify_repeats ?? null,
+      patch.radio_order ?? null,
+      patch.radio_batch_max ?? null,
+      patch.listen_page_enabled ?? null,
+      patch.radio_receipts_enabled ?? null,
+      patch.on_air_page_enabled ?? null,
+    ],
   );
   return rows[0]!;
 }
@@ -211,31 +250,38 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
 /** A claim the station hasn't reported on within this long is handed out again. */
 const CLAIM_TIMEOUT_MINUTES = 15;
 
+/** The queue order for claimNext: by need puts the most urgent, least-prayed-for request first. */
+const NEED_ORDER = `p.urgency desc, (select count(*) from public.prayer_events e where e.post_id = p.id) asc, r.id`;
+
 /**
- * Hand the station the oldest queued prayer it may send, or null. Never sends
+ * Hand the station the next queued prayer it may send (oldest first, or by need), or null. Never sends
  * a name: only the request text. Skips (and fails) requests that were removed,
  * are marked sensitive, or have moderation still pending.
  */
-export async function claimNext(q: Queryable): Promise<{ id: string; text: string; repeats: number } | null> {
+export async function claimNext(q: Queryable, nodeId: string | null = null): Promise<{ id: string; text: string; repeats: number } | null> {
   const s = await stationSettings(q);
   if (s.radio_transmitter !== 'station') throw conflict('Radio is not in station mode');
   if (s.radio_station_requires_free && (await tokens.settings(q)).radio_funding !== 'free') {
     throw conflict('Amateur rules: the station only sends while radio prayers are free (radio_funding = free)');
   }
   await q.query(
-    `update public.radio_prayers set status = 'queued', claimed_at = null
+    `update public.radio_prayers set status = 'queued', claimed_at = null, claimed_by_node = null
       where status = 'sending' and claimed_at < now() - make_interval(mins => $1)`,
     [CLAIM_TIMEOUT_MINUTES],
   );
+  // Listener acknowledgements: sent prayers nobody heard go back in the queue (acks.ts).
+  await acks.requeueUnheard(q);
+  // Transmission windows and quiet hours (schedule.ts): outside them the prayers wait.
+  if (!schedule.onAir(await schedule.get(q))) return null;
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
-    const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; repeats: number }>(
-      `select r.id, p.body, p.moderation_status, p.is_sensitive, r.repeats
+    const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(
+      `select r.id, ${SEND_TEXT} as body, p.moderation_status, (p.is_sensitive or (p.is_lament and not p.lament_radio)) as is_sensitive, p.harm_category, r.repeats
          from public.radio_prayers r join public.posts p on p.id = r.post_id
-        where r.status = 'queued'
+        where r.status = 'queued' and p.harm_category is null
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
-        order by r.id limit 1 for update of r skip locked`,
+        order by ${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
     );
     const r = rows[0];
     if (!r) return null;
@@ -244,10 +290,23 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
       await failAndRefund(q, r.id, `not sent: ${skip}`);
       continue;
     }
-    await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now() where id = $1`, [r.id]);
-    return { id: r.id, text: r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars), repeats: r.repeats };
+    const text = r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars);
+    await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now(), claimed_by_node = $2, sent_text = $3 where id = $1`, [r.id, nodeId, text]);
+    return { id: r.id, text, repeats: r.repeats };
   }
   return null;
+}
+
+/** Burst mode: up to `max` prayers (capped by radio_batch_max), in the order claimNext hands them out. */
+export async function claimBatch(q: Queryable, max: number, nodeId: string | null = null) {
+  const limit = Math.max(1, Math.min(max, (await stationSettings(q)).radio_batch_max));
+  const out: { id: string; text: string; repeats: number }[] = [];
+  while (out.length < limit) {
+    const next = await claimNext(q, nodeId);
+    if (!next) break;
+    out.push(next);
+  }
+  return out;
 }
 
 export const StationResult = z.object({
@@ -255,17 +314,71 @@ export const StationResult = z.object({
   callSign: z.string().trim().min(3).max(20),
   pieces: z.number().int().min(1).max(5000).optional(),
   error: z.string().max(500).optional(),
+  /** Burst mode: the preset it went out on, and the fingerprint of the exact text sent (receipts.ts). */
+  preset: z.string().trim().min(1).max(40).optional(),
+  sentHash: z.string().regex(/^[0-9a-f]{32}$/).optional(),
+  /** The frequency it went out on (RIG_FREQ_HZ or STATION_FREQ_HZ), for the operator log. */
+  frequencyHz: z.number().int().positive().max(300_000_000_000).optional(),
 });
 
-export async function reportResult(q: Queryable, id: string, result: z.infer<typeof StationResult>) {
+export const BurstReport = z.object({
+  callSign: z.string().trim().min(3).max(20),
+  mode: z.enum(['audio', 'fldigi', 'simulate']),
+  preset: z.string().trim().min(1).max(40),
+  prayers: z.number().int().min(0).max(5000),
+  frames: z.number().int().min(0).max(1000),
+  bytes: z.number().int().min(0).max(10_000_000),
+  seconds: z.number().min(0).max(100_000),
+  decoded: z.number().int().min(0).max(5000).nullable().optional(),
+  ok: z.boolean(),
+  error: z.string().max(500).optional(),
+});
+
+/** Log one burst from the station (burst mode). Keeps the latest 500. */
+export async function recordBurst(q: Queryable, b: z.infer<typeof BurstReport>) {
+  await q.query(
+    `insert into public.station_bursts (call_sign, mode, preset, prayers, frames, bytes, seconds, decoded, ok, error)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    [b.callSign, b.mode, b.preset, b.prayers, b.frames, b.bytes, b.seconds, b.decoded ?? null, b.ok, b.ok ? null : (b.error ?? 'station error')],
+  );
+  await q.query(`delete from public.station_bursts where id <= (select id from public.station_bursts order by id desc offset 500 limit 1)`);
+}
+
+export interface StationBurst {
+  id: string;
+  created_at: string;
+  call_sign: string;
+  mode: string;
+  preset: string;
+  prayers: number;
+  frames: number;
+  bytes: number;
+  seconds: number;
+  decoded: number | null;
+  ok: boolean;
+  error: string | null;
+}
+
+export async function recentBursts(q: Queryable, limit = 10): Promise<StationBurst[]> {
+  const { rows } = await q.query<StationBurst>(
+    `select id::text, created_at, call_sign, mode, preset, prayers, frames, bytes, seconds::float8 as seconds, decoded, ok, error
+       from public.station_bursts b order by b.id desc limit $1`,
+    [limit],
+  );
+  return rows;
+}
+
+/** nodeId: the reporting station (null for the main station); only the station holding the claim may report it. */
+export async function reportResult(q: Queryable, id: string, result: z.infer<typeof StationResult>, nodeId: string | null = null) {
   const { rows } = await q.query<{ id: string; post_id: string; poster_id: string; sender_id: string }>(
     `update public.radio_prayers r
         set status = $2::public.radio_prayer_status, transmitter = 'station', call_sign = $3, pieces = $4, error = $5,
-            transmitted_at = case when $2::public.radio_prayer_status = 'transmitted' then now() end
+            transmitted_at = case when $2::public.radio_prayer_status = 'transmitted' then now() end,
+            preset = $6, sent_hash = $7, frequency_hz = $9
        from public.posts p
-      where r.id = $1 and r.status = 'sending' and p.id = r.post_id
+      where r.id = $1 and r.status = 'sending' and p.id = r.post_id and r.claimed_by_node is not distinct from $8
       returning r.id, r.post_id, p.user_id as poster_id, r.user_id as sender_id`,
-    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error')],
+    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error'), result.preset ?? null, result.sentHash ?? null, nodeId, result.frequencyHz ?? null],
   );
   const r = rows[0];
   if (!r) throw badRequest('That radio prayer is not being sent');
@@ -273,6 +386,7 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
   if (result.ok) {
     await markAmplified(q, r);
     await tellPoster(q, r);
+    await receipts.onAir(q, r.id);
   }
 }
 
@@ -291,7 +405,7 @@ export async function castLog(q: Queryable, viewerId: string, limit = 50) {
     call_sign: string | null;
     transmitted_at: Date;
   }>(
-    `select r.id, r.post_id, left(regexp_replace(p.body, '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
+    `select r.id, r.post_id, left(regexp_replace(${SEND_TEXT}, '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
        from public.radio_prayers r join public.posts p on p.id = r.post_id
       where r.status = 'transmitted' and p.moderation_status = 'visible' and not p.is_sensitive
         and p.community_id = public.member_community_id($2)

@@ -15,6 +15,8 @@ The flow:
 
 Until the station is switched on, the placeholder transmitter only logs.
 
+**Burst mode** sends a whole batch of prayers, compressed, in one short burst (30 prayers in under 2 seconds on an FM radio). It is off by default; see [RADIO_BURST.md](RADIO_BURST.md), and [STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md) for the radio setup and first tests.
+
 ## Rules the software enforces
 
 | Rule | What Prayer Tower does |
@@ -28,6 +30,10 @@ Until the station is switched on, the placeholder transmitter only logs.
 Two questions are still open before running unattended (see the paper):
 - Does an unattended one-way queue fit the 97.203 beacon or another 97.111(b) provision? Ask the ARRL or the FCC.
 - How does the control operator's responsibility apply to third-party text?
+
+## Prayers by need
+
+Steve's model (2026-10-28): "from each according to his generosity, to each according to his need." Members donate Priestly tokens to the shared fund, and nobody buys a transmission. With radio prayers free (Admin → Tokens), Admin → Radio → "Which prayer goes out next" → **By need** has the station take the most urgent queued request first. Ties go to the request with the fewest people praying, then to the oldest. **First in, first out** is the default (`token_settings.radio_order`).
 
 ## Server setup
 

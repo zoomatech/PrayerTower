@@ -15,7 +15,7 @@ import { Button } from '@/components/ui';
 import { colors, space, type } from '@/lib/theme';
 
 function RootStack() {
-  const { session, profile, loading, profileError, refreshProfile, signOut } = useAuth();
+  const { session, profile, loading, profileError, refreshProfile, signOut, recovering, needsCode } = useAuth();
   const { language, t } = useLocale();
   usePush(!!session && !!profile?.onboarded_at);
   useMenuCommands(!!session && !!profile?.onboarded_at);
@@ -38,12 +38,12 @@ function RootStack() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xl, backgroundColor: colors.background }}>
         <Text style={[type.body, { textAlign: 'center' }]}>{profileError}</Text>
-        <Button label="Try again" onPress={() => void refreshProfile()} />
-        <Button variant="ghost" label="Sign out" onPress={() => void signOut()} />
+        <Button label={t('common.tryAgain')} onPress={() => void refreshProfile()} />
+        <Button variant="ghost" label={t('profile.signOut')} onPress={() => void signOut()} />
       </View>
     );
   }
-  if (loading || (session && !profile)) return <Starting />;
+  if (loading || (session && !profile && !needsCode)) return <Starting />;
   const signedIn = !!session;
   const onboarded = !!profile?.onboarded_at;
   // Every screen must be listed in one of the groups below. A screen left out is
@@ -54,11 +54,16 @@ function RootStack() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
+          {/* Listener mode: shows "Listening isn't turned on" unless an admin turned it on. */}
+          <Stack.Screen name="listen-on-air" />
         </Stack.Protected>
-        <Stack.Protected guard={signedIn && !onboarded}>
+        <Stack.Protected guard={signedIn && needsCode}>
+          <Stack.Screen name="two-step" />
+        </Stack.Protected>
+        <Stack.Protected guard={signedIn && !needsCode && !onboarded && !recovering}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
-        <Stack.Protected guard={signedIn && onboarded}>
+        <Stack.Protected guard={signedIn && !needsCode && onboarded && !recovering}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
           <Stack.Screen name="post/[id]" />
@@ -75,6 +80,10 @@ function RootStack() {
           <Stack.Screen name="surveys" />
           <Stack.Screen name="legal" />
           <Stack.Screen name="podcasts" />
+          <Stack.Screen name="why-gifts" />
+          <Stack.Screen name="squire-board" />
+          <Stack.Screen name="prayer-list" />
+          <Stack.Screen name="reading-plan" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="crosspost" />
@@ -87,11 +96,22 @@ function RootStack() {
           <Stack.Screen name="pools" />
           <Stack.Screen name="scheduled" />
           <Stack.Screen name="prayer-chain" />
+          <Stack.Screen name="remembered" />
+          <Stack.Screen name="mend/[id]" />
+          <Stack.Screen name="meaning-words" />
+          <Stack.Screen name="highlights" />
+          <Stack.Screen name="kindness-research" />
           <Stack.Screen name="prayer-minute" />
+          <Stack.Screen name="skin-idea" />
+          <Stack.Screen name="skin-gallery" />
           <Stack.Screen name="token-store" />
+          <Stack.Screen name="give" />
+          <Stack.Screen name="radio-requests" />
           <Stack.Screen name="macro-needs" />
           <Stack.Screen name="prayer-cast" />
+          <Stack.Screen name="listen" />
           <Stack.Screen name="highlights" />
+          <Stack.Screen name="kindness-research" />
           <Stack.Screen name="awards" />
           <Stack.Screen name="branch" />
           <Stack.Screen name="ai-chat" />
@@ -106,6 +126,10 @@ function RootStack() {
           <Stack.Screen name="church" />
           <Stack.Screen name="churches" />
           <Stack.Screen name="help-stories" />
+        </Stack.Protected>
+        {/* After the main screens, so signing in lands on the feed; during a password reset it's the only screen. */}
+        <Stack.Protected guard={signedIn && !needsCode && (onboarded || recovering)}>
+          <Stack.Screen name="account-security" />
         </Stack.Protected>
       </Stack>
     </View>

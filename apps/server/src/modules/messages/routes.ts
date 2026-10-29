@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
+import * as coolDown from '../cool-down/index.js';
 import * as messages from './index.js';
 
 type Id = { Params: { id: string } };
@@ -41,9 +42,13 @@ export function messageRoutes(app: FastifyInstance, db: Db) {
 
   app.post<Id>('/conversations/:id/messages', async (req, reply) => {
     const input = messages.NewMessage.parse(req.body);
-    const message = await withTx(db, (tx) => messages.send(tx, requireUser(req), req.params.id, input));
+    const userId = requireUser(req);
+    const { message, cool } = await withTx(db, async (tx) => {
+      const message = await messages.send(tx, userId, req.params.id, input);
+      return { message, cool: await coolDown.noteMessage(tx, userId, req.params.id, input.body) };
+    });
     reply.code(201);
-    return { message };
+    return cool ? { message, coolDown: true } : { message };
   });
 
   app.post<Id>('/conversations/:id/read', async (req) => {

@@ -12,6 +12,9 @@ import * as notifications from '../notifications/index.js';
 import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
 import * as growth from '../growth/index.js';
+import { settings as practiceSettings } from '../practices/index.js';
+import * as coolDown from '../cool-down/index.js';
+import * as radioThanks from '../radio/thanksgiving.js';
 
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
@@ -21,7 +24,8 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const userId = requireUser(req);
     const post = await withTx(db, (tx) => posts.create(tx, userId, input));
     reply.code(201);
-    return { post: (await posts.cards(db, [post.id], userId))[0] };
+    // harm: a gentle word for the poster when the harmful-prayer check flagged it (null otherwise).
+    return { post: (await posts.cards(db, [post.id], userId))[0], harm: post.harm };
   });
 
   app.get<{ Params: { id: string } }>('/posts/:id', async (req) => {
@@ -63,15 +67,13 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.post<{ Params: { id: string } }>('/posts/:id/answered', async (req) => {
     const userId = requireUser(req);
     const { testimony } = z.object({ testimony: z.string().trim().min(1).max(2000).optional() }).parse(req.body ?? {});
-    const crisis = await withTx(db, async (tx) => {
-      const post = await posts.markAnswered(tx, userId, req.params.id);
-      await growth.queueGuestAnswered(tx, post.id);
-      if (testimony) return shareTestimony(tx, userId, req.params.id, testimony);
-      await tellPrayersAnswered(tx, userId, post);
-      return false;
-    });
+    const crisis = await withTx(db, (tx) => markAnsweredAndTell(tx, userId, req.params.id, testimony));
     return { post: (await posts.cards(db, [req.params.id], userId))[0], crisis };
   });
+
+  app.put<{ Params: { id: string } }>('/posts/:id/lament', async (req) =>
+    posts.setLament(db, requireUser(req), req.params.id, posts.LamentPatch.parse(req.body)),
+  );
 
   app.put<{ Params: { id: string } }>('/posts/:id/testimony', async (req) => {
     const userId = requireUser(req);
@@ -95,9 +97,12 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.post<{ Params: { id: string } }>('/posts/:id/comments', async (req, reply) => {
     const userId = requireUser(req);
     const input = posts.NewComment.parse(req.body);
-    const comment = await withTx(db, (tx) => posts.addComment(tx, userId, req.params.id, input));
+    const { comment, coolDown: cool } = await withTx(db, async (tx) => {
+      const comment = await posts.addComment(tx, userId, req.params.id, input);
+      return { comment, coolDown: await coolDown.noteComment(tx, userId, req.params.id, input.parentId, input.body) };
+    });
     reply.code(201);
-    return { comment };
+    return cool ? { comment, coolDown: true } : { comment };
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/reactions', async (req, reply) => {
@@ -182,33 +187,51 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   });
 }
 
-/** Save the testimony; the first time, tell everyone who prayed. Returns whether it mentions crisis. */
+/** Mark a request answered and tell the pray-ers once (also used by the follow-up, modules/practices). Returns whether the testimony mentions crisis. */
+export async function markAnsweredAndTell(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, testimony?: string) {
+  const post = await posts.markAnswered(tx, userId, postId);
+  await growth.queueGuestAnswered(tx, post.id);
+  // A request that went out by radio gets a short thanksgiving on the air, while that switch is on.
+  await radioThanks.onAnswered(tx, post.id);
+  if (testimony) return shareTestimony(tx, userId, postId, testimony);
+  await tellPrayersAnswered(tx, userId, post);
+  return false;
+}
+
+/** With the Believe moment on (docs/GROWTH_PRACTICES.md), the post opens with a "Believe" card for the people who prayed. */
+async function answeredData(tx: Parameters<typeof posts.setTestimony>[0], postId: string): Promise<Record<string, string>> {
+  return (await practiceSettings(tx)).believe_enabled ? { postId, believe: '1' } : { postId };
+}
+
 /** Answered without a testimony: the pray-ers still hear the good news once (Notes p8, Ethel 10–11). */
 async function tellPrayersAnswered(tx: Parameters<typeof posts.setTestimony>[0], userId: string, post: Awaited<ReturnType<typeof posts.markAnswered>>) {
   if (post.moderation_status !== 'visible') return;
   const who = post.is_anonymous ? null : ((await getProfile(tx, userId))?.display_name || null);
+  const data = await answeredData(tx, post.id);
   for (const recipientId of await posts.prayedBy(tx, post.id, userId)) {
     await notifications.notify(tx, recipientId, {
       kind: 'answered',
       title: 'A prayer you prayed was answered',
       body: `${who ?? 'Someone'} marked their request answered. Thank you for praying.`,
-      data: { postId: post.id },
+      data,
       dedupeKey: `answered:${post.id}`,
       t: { key: 'answered', params: { who } },
     });
   }
 }
 
+/** Save the testimony; the first time, tell everyone who prayed. Returns whether it mentions crisis. */
 async function shareTestimony(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, body: string) {
   const r = await posts.setTestimony(tx, userId, postId, { body });
   if (r.first && r.post.moderation_status === 'visible') {
     const who = r.post.is_anonymous ? null : ((await getProfile(tx, userId))?.display_name || null);
+    const data = await answeredData(tx, postId);
     for (const recipientId of await posts.prayedBy(tx, postId, userId)) {
       await notifications.notify(tx, recipientId, {
         kind: 'testimony',
         title: `A prayer you prayed was answered`,
         body: `${who ?? 'Someone'} shared what God did: "${body.slice(0, 120)}${body.length > 120 ? '…' : ''}"`,
-        data: { postId },
+        data,
         dedupeKey: `testimony:${postId}`,
         t: { key: 'testimony', params: { who, excerpt: body.slice(0, 120) + (body.length > 120 ? '…' : '') } },
       });

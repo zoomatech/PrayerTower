@@ -5,9 +5,34 @@
 import type { Fldigi } from './fldigi.js';
 import { foldAscii, passesFilter, splitPieces } from './text.js';
 
+export interface ClaimedPrayer {
+  id: string;
+  text: string;
+  repeats?: number;
+}
+
+export interface BurstLog {
+  callSign: string;
+  mode: 'audio' | 'fldigi' | 'simulate';
+  preset: string;
+  prayers: number;
+  frames: number;
+  bytes: number;
+  seconds: number;
+  decoded: number | null;
+  ok: boolean;
+  error?: string;
+}
+
 export interface StationApi {
-  claim(): Promise<{ id: string; text: string; repeats?: number } | null>;
-  report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string }): Promise<void>;
+  claim(): Promise<ClaimedPrayer | null>;
+  /** Up to `max` prayers at once (burst mode); empty when none are waiting. */
+  claimBatch?(max: number): Promise<ClaimedPrayer[]>;
+  report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string; preset?: string; sentHash?: string; frequencyHz?: number }): Promise<void>;
+  /** Log a burst for Admin → Radio (burst mode). Best effort: a failure here never stops the station. */
+  reportBurst?(burst: BurstLog): Promise<void>;
+  /** The station's own checks for Admin → Radio health alerts (status.ts). Best effort, like reportBurst. */
+  reportStatus?(status: { callSign: string; checks: { name: string; ok: boolean; detail: string }[] }): Promise<void>;
 }
 
 export interface StationConfig {
@@ -16,6 +41,8 @@ export interface StationConfig {
   maxPieceChars: number;
   txTimeoutMs: number;
   blocklist: readonly string[];
+  /** RIG_FREQ_HZ or STATION_FREQ_HZ, reported with each prayer for the operator log. */
+  frequencyHz?: number;
 }
 
 export type Outcome = 'idle' | 'sent' | 'rejected';
@@ -25,7 +52,7 @@ export type Outcome = 'idle' | 'sent' | 'rejected';
  * arrives leaves the prayer "sending", and after 15 minutes Prayer Tower hands
  * it out again, so a prayer that already went out would be transmitted twice.
  */
-async function reportWithRetry(api: StationApi, id: string, result: Parameters<StationApi['report']>[1], waitMs: number[]) {
+export async function reportWithRetry(api: StationApi, id: string, result: Parameters<StationApi['report']>[1], waitMs: number[]) {
   for (let i = 0; ; i++) {
     try {
       return await api.report(id, result);
@@ -35,7 +62,7 @@ async function reportWithRetry(api: StationApi, id: string, result: Parameters<S
     }
   }
 }
-const REPORT_RETRY_MS = [2_000, 4_000, 8_000, 16_000];
+export const REPORT_RETRY_MS = [2_000, 4_000, 8_000, 16_000];
 
 /** The radio side failed: transmit was disabled and the station should stop until a person checks it. */
 export class TransmitError extends Error {}
@@ -66,7 +93,7 @@ export async function runOnce(
     await reportWithRetry(api, prayer.id, { ok: false, callSign: cfg.callSign, error: message }, retryMs).catch(() => undefined);
     throw new TransmitError(message);
   }
-  await reportWithRetry(api, prayer.id, { ok: true, callSign: cfg.callSign, pieces: pieces.length }, retryMs);
+  await reportWithRetry(api, prayer.id, { ok: true, callSign: cfg.callSign, pieces: pieces.length, frequencyHz: cfg.frequencyHz }, retryMs);
   log(`[station] ${prayer.id} sent in ${pieces.length} piece(s)`);
   return 'sent';
 }
@@ -87,9 +114,35 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
       if (!res.ok) throw new Error(`claim failed (${res.status}): ${json.message ?? ''}`);
       return json.radioPrayer ?? null;
     },
+    async claimBatch(max) {
+      const res = await post('/station/claim-batch', { max });
+      if (res.status === 204) return [];
+      // An older server without burst claims: take one prayer at a time instead.
+      if (res.status === 404) {
+        const out: ClaimedPrayer[] = [];
+        while (out.length < max) {
+          const p = await this.claim();
+          if (!p) break;
+          out.push(p);
+        }
+        return out;
+      }
+      const json = (await res.json().catch(() => ({}))) as { radioPrayers?: ClaimedPrayer[]; message?: string };
+      if (!res.ok) throw new Error(`claim-batch failed (${res.status}): ${json.message ?? ''}`);
+      return json.radioPrayers ?? [];
+    },
     async report(id, result) {
       const res = await post(`/station/radio-prayers/${id}/result`, result);
       if (!res.ok) throw new Error(`report failed (${res.status})`);
+    },
+    async reportBurst(burst) {
+      const res = await post('/station/bursts', burst);
+      if (!res.ok) throw new Error(`burst log failed (${res.status})`);
+    },
+    async reportStatus(status) {
+      const res = await post('/station/status', status);
+      // 404: an older server without health alerts.
+      if (!res.ok && res.status !== 404) throw new Error(`status report failed (${res.status})`);
     },
   };
 }

@@ -246,12 +246,12 @@ otp_expiry = 3600
 
 # English only (docs/LOCALIZATION.md). With Spanish on: "Confirm your email / Confirma tu correo · Prayer Tower"
 [auth.email.template.confirmation]
-subject = "Confirm your email · Prayer Tower"
+subject = "Confirm your email · {{ if eq .Data.community `open-circle` }}Open Circle{{ else }}Prayer Tower{{ end }}"
 content_path = "./supabase/templates/confirmation.html"
 
 # English only. With Spanish on: "Reset your password / Restablece tu contraseña · Prayer Tower"
 [auth.email.template.recovery]
-subject = "Reset your password · Prayer Tower"
+subject = "Reset your password · {{ if eq .Data.community `open-circle` }}Open Circle{{ else }}Prayer Tower{{ end }}"
 content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize email template
@@ -314,8 +314,8 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]

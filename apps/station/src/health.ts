@@ -1,8 +1,11 @@
 // Station health check (`node dist/src/health.js`): is the worker looping, can
-// it reach Prayer Tower, and is fldigi answering and in receive? Exits 0 when
+// it reach Prayer Tower, is fldigi answering and in receive, and (with
+// RIG_CONTROL=rigctld) is rigctld answering with the radio unkeyed? Exits 0 when
 // all pass, 1 otherwise. The installer runs it from a systemd timer.
 import { readFileSync, statSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { fldigiClient, type Fldigi } from './fldigi.js';
+import { rigctldClient, type Rig } from './rig.js';
 
 /** The worker's exit code after a failed transmission: it stays stopped until a person checks the station. */
 export const EXIT_TRANSMIT_FAILED = 3;
@@ -15,7 +18,10 @@ export interface Check {
 
 export interface HealthOptions {
   apiUrl: string;
-  fldigi: Fldigi;
+  /** null when the station does not use fldigi (BURST_MODE=audio or simulate). */
+  fldigi: Fldigi | null;
+  /** null unless RIG_CONTROL=rigctld. */
+  rig?: Rig | null;
   /** File the worker rewrites every loop; null skips the check. */
   heartbeatFile: string | null;
   /** Oldest acceptable heartbeat. The worker waits up to POLL_SECONDS (or a long transmit) between beats. */
@@ -44,6 +50,17 @@ export async function checkHealth(o: HealthOptions): Promise<Check[]> {
     checks.push({ name: 'prayer tower api', ok: false, detail: (err as Error).message });
   }
 
+  if (o.rig) {
+    try {
+      const [hz, keyed] = [await o.rig.frequency(), await o.rig.ptt()];
+      // Between bursts the radio should be in receive; keyed here means PTT is stuck.
+      checks.push({ name: 'rig', ok: !keyed, detail: `${(hz / 1e6).toFixed(6)} MHz, ${keyed ? 'TRANSMITTING (PTT stuck?)' : 'receive'}` });
+    } catch (err) {
+      checks.push({ name: 'rig', ok: false, detail: (err as Error).message });
+    }
+  }
+
+  if (!o.fldigi) return checks;
   try {
     const status = (await o.fldigi.status()).toLowerCase();
     // Any other answer means fldigi is up but not in a normal receive or transmit state.
@@ -55,7 +72,8 @@ export async function checkHealth(o: HealthOptions): Promise<Check[]> {
 }
 
 // CLI ---------------------------------------------------------------------------
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL: the Mac install lives under "Application Support", and a space is %20 in the module URL.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   // Read the same settings file systemd gives the worker when run by hand.
   const file = process.env.STATION_ENV_FILE ?? '/etc/prayer-tower-station.env';
   try {
@@ -75,7 +93,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const tx = Number(process.env.TX_TIMEOUT_SECONDS || 180);
   const checks = await checkHealth({
     apiUrl,
-    fldigi: fldigiClient(process.env.FLDIGI_URL || 'http://127.0.0.1:7362/RPC2'),
+    fldigi: ['audio', 'simulate'].includes(process.env.BURST_MODE ?? '') ? null : fldigiClient(process.env.FLDIGI_URL || 'http://127.0.0.1:7362/RPC2'),
+    rig: process.env.RIG_CONTROL === 'rigctld' ? rigctldClient(process.env.RIG_HOST || '127.0.0.1', Number(process.env.RIG_PORT || 4532)) : null,
     heartbeatFile: process.env.HEARTBEAT_FILE ?? '/var/lib/prayer-tower-station/heartbeat',
     // A long prayer may hold the loop for several transmit timeouts.
     maxAgeSeconds: Math.max(120, poll * 3, tx * 4),

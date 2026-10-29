@@ -92,6 +92,16 @@ export async function creditPurchase(q: Queryable, userId: string, amount: numbe
   return transfer(q, key, 'purchase', await systemAccount(q, 'mint', currency), await userAccount(q, userId, currency), amount, userId, 'Token purchase');
 }
 
+/** A paid gift to everyone: new Priestly tokens into the shared radio fund. */
+export async function creditFund(q: Queryable, amount: number, key: string, reason: string) {
+  return transfer(q, key, 'purchase', await systemAccount(q, 'mint', 'priestly'), await systemAccount(q, 'infrastructure', 'priestly'), amount, null, reason);
+}
+
+/** A paid gift to a pool: new regular tokens into the pool. */
+export async function creditPool(q: Queryable, poolId: string, amount: number, key: string, reason: string) {
+  return transfer(q, key, 'purchase', await systemAccount(q, 'mint'), await poolAccount(q, poolId), amount, null, reason);
+}
+
 export async function earn(q: Queryable, userId: string, amount: number, key: string, reason: string) {
   return transfer(q, key, 'earn', await systemAccount(q, 'mint'), await userAccount(q, userId), amount, null, reason);
 }
@@ -234,16 +244,59 @@ export async function fundPool(q: Queryable, userId: string, poolId: string, amo
   return transfer(q, `pool_fund:${userId}:${key}`, 'pool_fund', await userAccount(q, userId), await poolAccount(q, poolId), amount, userId, null);
 }
 
+/** A member gives to someone else's matching pool; `key` is the member's own idempotency key. */
+export async function giveToPool(q: Queryable, userId: string, poolId: string, amount: number, key: string) {
+  return transfer(q, `pool_give:${poolId}:${userId}:${key}`, 'pool_fund', await userAccount(q, userId), await poolAccount(q, poolId), amount, userId, null);
+}
+
+/** The donor's match for one gift, keyed to that gift so a retry never matches twice. */
+export async function matchPoolGift(q: Queryable, ownerId: string, poolId: string, amount: number, giftId: string) {
+  return transfer(q, `pool_match:${giftId}`, 'pool_fund', await userAccount(q, ownerId), await poolAccount(q, poolId), amount, ownerId, 'Matching pledge');
+}
+
 /** A member draws from a pool to extend a request's reach. Refused (409) when the pool runs short. */
 export async function drawFromPool(q: Queryable, userId: string, poolId: string, postId: string, amount: number) {
   return transfer(q, `pool_draw:${poolId}:${userId}:${postId}`, 'pool_draw', await poolAccount(q, poolId), await postReachAccount(q, postId), amount, userId, null);
 }
 
-/** A closed pool's remaining tokens go back to the donor. */
+/**
+ * A closed pool's remaining tokens go back to the people who put them in. Members who
+ * gave to a matching pool get their share of what is left (rounded down, by what each
+ * put in); the donor gets the rest.
+ */
+/** What each member other than the owner has given to a pool, in total. */
+export async function poolGivers(q: Queryable, poolId: string, ownerId: string) {
+  const { rows } = await q.query<{ user_id: string; given: number }>(
+    `select a.user_id, sum(t.amount)::float8 as given
+       from public.token_transfers t join public.token_accounts a on a.id = t.debit_account_id
+      where t.credit_account_id = $1 and t.kind = 'pool_fund' and a.user_id <> $2
+      group by a.user_id`,
+    [await poolAccount(q, poolId), ownerId],
+  );
+  return rows;
+}
+
 export async function returnPool(q: Queryable, poolId: string, ownerId: string, actorId: string) {
   const left = await poolBalance(q, poolId);
   if (left <= 0) return null;
-  return transfer(q, `pool_return:${poolId}`, 'pool_return', await poolAccount(q, poolId), await userAccount(q, ownerId), left, actorId, 'Pool closed');
+  const pool = await poolAccount(q, poolId);
+  const { rows } = await q.query<{ user_id: string; given: number; total: number }>(
+    `with ins as (
+       select a.user_id, t.amount from public.token_transfers t join public.token_accounts a on a.id = t.debit_account_id
+        where t.credit_account_id = $1 and t.kind = 'pool_fund')
+     select user_id, sum(amount)::float8 as given, (select sum(amount) from ins)::float8 as total
+       from ins where user_id <> $2 group by user_id order by user_id`,
+    [pool, ownerId],
+  );
+  let rest = left;
+  for (const r of rows) {
+    const share = Math.floor((left * r.given) / r.total);
+    if (share <= 0) continue;
+    await transfer(q, `pool_return:${poolId}:${r.user_id}`, 'pool_return', pool, await userAccount(q, r.user_id), share, actorId, 'Pool closed: your share');
+    rest -= share;
+  }
+  if (rest <= 0) return null;
+  return transfer(q, `pool_return:${poolId}`, 'pool_return', pool, await userAccount(q, ownerId), rest, actorId, 'Pool closed');
 }
 
 /** Moderation penalty: move up to `amount` (or everything) from a member to the forfeit sink. */

@@ -18,7 +18,19 @@ jest.mock('@/lib/supabase', () => ({
       signInWithPassword: jest.fn(async () => ({ data: { session: {} }, error: null })),
       signUp: jest.fn(async () => ({ data: { session: null }, error: null })),
       signOut: jest.fn(async () => ({ error: null })),
+      resetPasswordForEmail: jest.fn(async () => ({ data: {}, error: null })),
+      verifyOtp: jest.fn(async () => ({ data: {}, error: null })),
+      updateUser: jest.fn(async () => ({ data: {}, error: null })),
+      setSession: jest.fn(async () => ({ data: {}, error: null })),
       onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      mfa: {
+        getAuthenticatorAssuranceLevel: jest.fn(async () => ({ data: { currentLevel: 'aal1', nextLevel: 'aal1' }, error: null })),
+        listFactors: jest.fn(async () => ({ data: { all: [], totp: [], phone: [] }, error: null })),
+        enroll: jest.fn(async () => ({ data: null, error: null })),
+        challenge: jest.fn(async () => ({ data: { id: 'challenge-1' }, error: null })),
+        verify: jest.fn(async () => ({ data: {}, error: null })),
+        unenroll: jest.fn(async () => ({ data: {}, error: null })),
+      },
     },
   },
 }));
@@ -45,7 +57,9 @@ afterEach(() => {
 jest.mock('expo-audio', () => {
   const recorder = { uri: 'file:///take.m4a', currentTime: 12, prepareToRecordAsync: jest.fn(async () => undefined), record: jest.fn(), stop: jest.fn(async () => undefined) };
   const player = { play: jest.fn(), pause: jest.fn(), seekTo: jest.fn() };
+  const stream = { start: jest.fn(async () => undefined), stop: jest.fn(), isStreaming: false };
   return {
+    useAudioStream: jest.fn(() => ({ stream, isStreaming: false })),
     RecordingPresets: { HIGH_QUALITY: {} },
     requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true })),
     setAudioModeAsync: jest.fn(async () => undefined),

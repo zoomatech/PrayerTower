@@ -14,6 +14,7 @@ export function poolRoutes(app: FastifyInstance, db: Db) {
     pools: await pools.list(db, requireUser(req), { postId: req.query.postId }),
   }));
   app.get('/me/token-pools', async (req) => ({ pools: await pools.list(db, requireUser(req), { mine: true }) }));
+  app.get('/token-pools/ledger', async (req) => pools.ledger(db, requireUser(req)));
 
   app.post('/token-pools', async (req, reply) => {
     const userId = requireUser(req);
@@ -26,8 +27,8 @@ export function poolRoutes(app: FastifyInstance, db: Db) {
   app.post<{ Params: { id: string } }>('/token-pools/:id/fund', async (req) => {
     const userId = requireUser(req);
     const body = Key.extend({ amount: z.number().int().min(1).max(1_000_000) }).parse(req.body);
-    await withTx(db, (tx) => pools.fund(tx, userId, req.params.id, body.amount, body.idempotencyKey));
-    return { poolBalance: await tokens.poolBalance(db, req.params.id), balance: await tokens.balanceOf(db, userId) };
+    const { matched } = await withTx(db, (tx) => pools.fund(tx, userId, req.params.id, body.amount, body.idempotencyKey));
+    return { matched, poolBalance: await tokens.poolBalance(db, req.params.id), balance: await tokens.balanceOf(db, userId) };
   });
 
   app.post<{ Params: { id: string } }>('/token-pools/:id/close', async (req) => {

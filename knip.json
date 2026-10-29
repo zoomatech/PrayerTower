@@ -25,11 +25,19 @@
         "src/*.js",
         "scripts/*.mjs"
       ]
+    },
+    "apps/station": {
+      "entry": [
+        "scripts/*.ts",
+        "src/burst/web.ts",
+        "src/listener-main.ts"
+      ]
     }
   },
   "ignoreExportsUsedInFile": true,
   "ignore": [
-    "deploy/fly-web/site/**"
+    "deploy/fly-web/site/**",
+    "apps/mobile/src/lib/burst-decoder.generated.js"
   ],
   "ignoreBinaries": [
     "openssl"

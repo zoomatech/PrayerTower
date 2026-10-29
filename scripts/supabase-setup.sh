@@ -56,19 +56,20 @@ json() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const 
 call GET /projects >/dev/null || die "Supabase refused the token (it may be scoped too narrowly; a full-access token works)"
 echo "Token works."
 
-# 2. Organization: the account's first one, or a new one on the Free plan.
-log "Finding your Supabase organization"
-org=$(call GET /organizations | json 'v[0] ? v[0].id : ""')
-if [ -z "$org" ]; then
-  org=$(call POST /organizations '{"name":"Prayer Tower"}' | json 'v.id')
-  echo "Created organization \"Prayer Tower\"."
-fi
-echo "Organization: $org"
-
-# 3. Project: reuse one with this name, else create it with a strong random database password.
-ref=$(call GET /projects | NAME="$name" json 'process.env.NAME && (v.find(p=>p.name===process.env.NAME)||{}).id || ""')
+# 2. Project: reuse one with this name, else create it with a strong random database password.
+# A token scoped to one project sees only that project, so reuse it whatever its name.
+ref=$(call GET /projects | NAME="$name" json '((v.find(p=>p.name===process.env.NAME)) || (v.length === 1 ? v[0] : {})).id || ""')
 pass=$(get SUPABASE_DB_PASSWORD)
 if [ -z "$ref" ]; then
+  # The organization is only needed to create one (a token scoped to one project can't list them):
+  # the account's first one, or a new one on the Free plan.
+  log "Finding your Supabase organization"
+  org=$(call GET /organizations | json 'v[0] ? v[0].id : ""')
+  if [ -z "$org" ]; then
+    org=$(call POST /organizations '{"name":"Prayer Tower"}' | json 'v.id')
+    echo "Created organization \"Prayer Tower\"."
+  fi
+  echo "Organization: $org"
   log "Creating project \"$name\" (region group: $region)"
   [ -n "$pass" ] || pass=$(node -e 'console.log(require("crypto").randomBytes(24).toString("base64url"))')
   put SUPABASE_DB_PASSWORD "$pass"

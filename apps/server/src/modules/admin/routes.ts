@@ -22,6 +22,11 @@ import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
 import * as growth from '../growth/index.js';
+import * as practices from '../practices/index.js';
+import * as talkCounts from '../conversation-helpers/counts.js';
+import * as meaningProposals from '../meaning-reactions/proposals.js';
+import * as kindnessHighlights from '../kindness-highlights/index.js';
+import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
@@ -29,6 +34,14 @@ import { MEDIA_BUCKET } from '../posts/media.js';
 import * as prayerActions from '../prayer-actions/index.js';
 import * as prompts from '../prompts/index.js';
 import * as radio from '../radio/index.js';
+import * as radioHealth from '../radio/health.js';
+import * as radioNodes from '../radio/nodes.js';
+import * as radioAcks from '../radio/acks.js';
+import * as radioSchedule from '../radio/schedule.js';
+import * as operatorLog from '../radio/oplog.js';
+import { listenerMode, setListenerMode } from '../listen/routes.js';
+import * as radioThanks from '../radio/thanksgiving.js';
+import * as prayingToo from '../radio/praying-too.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -168,6 +181,146 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return { settings: await radio.stationSettings(db) };
   });
 
+  // Station health alerts (radio/health.ts); empty while the switch is off.
+  app.get('/admin/radio-alerts', async (req) => {
+    await requireAdmin(req);
+    return radioHealth.alerts(db);
+  });
+
+  app.patch('/admin/radio-alerts', async (req) => {
+    await requireAdmin(req);
+    const input = z.object({ enabled: z.boolean().optional(), overdueMinutes: z.number().int().min(1).max(1440).optional() }).parse(req.body);
+    await radioHealth.updateSettings(db, input);
+    return radioHealth.alerts(db);
+  });
+
+  // Listener nodes (radio/nodes.ts): their keys, switch and latest reports.
+  app.get('/admin/radio-nodes', async (req) => {
+    await requireAdmin(req);
+    return {
+      enabled: await radioNodes.enabled(db),
+      multiStation: await radioNodes.multiStation(db),
+      nodes: await radioNodes.list(db),
+      reports: await radioNodes.latestReports(db),
+      stations: await radioNodes.stationCounts(db),
+    };
+  });
+
+  app.patch('/admin/radio-nodes', async (req) => {
+    await requireAdmin(req);
+    const { enabled, multiStation } = z.object({ enabled: z.boolean().optional(), multiStation: z.boolean().optional() }).parse(req.body);
+    if (enabled !== undefined) await radioNodes.setEnabled(db, enabled);
+    if (multiStation !== undefined) await radioNodes.setMultiStation(db, multiStation);
+    return { enabled: await radioNodes.enabled(db), multiStation: await radioNodes.multiStation(db) };
+  });
+
+  // The key is in this answer only; the server keeps its hash.
+  app.post('/admin/radio-nodes', async (req, reply) => {
+    await requireAdmin(req);
+    const { name, role } = z.object({ name: z.string().trim().min(1).max(60), role: z.enum(['listener', 'station']).default('listener') }).parse(req.body);
+    return reply.code(201).send(await radioNodes.create(db, name, role));
+  });
+
+  app.patch<{ Params: { id: string } }>('/admin/radio-nodes/:id', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    return { node: await radioNodes.update(db, id, z.object({ enabled: z.boolean().optional() }).parse(req.body)) };
+  });
+
+  app.delete<{ Params: { id: string } }>('/admin/radio-nodes/:id', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    await radioNodes.remove(db, id);
+    return { ok: true };
+  });
+
+  // Station health page (radio/health.ts) and listener acknowledgements (radio/acks.ts); health is null while its switch is off.
+  app.get('/admin/radio-health', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await radioHealth.pageEnabled(db), health: await radioHealth.overview(db), acks: { ...(await radioAcks.settings(db)), ...(await radioAcks.stats(db)) } };
+  });
+
+  app.patch('/admin/radio-health', async (req) => {
+    await requireAdmin(req);
+    const input = z
+      .object({
+        enabled: z.boolean().optional(),
+        acks: z.object({ enabled: z.boolean().optional(), timeoutMinutes: z.number().int().min(1).max(1440).optional(), maxRetries: z.number().int().min(0).max(10).optional() }).optional(),
+      })
+      .parse(req.body);
+    if (input.enabled !== undefined) await radioHealth.setPageEnabled(db, input.enabled);
+    if (input.acks) await radioAcks.updateSettings(db, input.acks);
+    return { enabled: await radioHealth.pageEnabled(db), health: await radioHealth.overview(db), acks: { ...(await radioAcks.settings(db)), ...(await radioAcks.stats(db)) } };
+  });
+
+  // Transmission windows and quiet hours (radio/schedule.ts).
+  app.get('/admin/radio-schedule', async (req) => {
+    await requireAdmin(req);
+    const schedule = await radioSchedule.get(db);
+    return { schedule, onAirNow: radioSchedule.onAir(schedule) };
+  });
+
+  app.patch('/admin/radio-schedule', async (req) => {
+    await requireAdmin(req);
+    const schedule = await radioSchedule.update(db, radioSchedule.SchedulePatch.parse(req.body));
+    return { schedule, onAirNow: radioSchedule.onAir(schedule) };
+  });
+
+  // Operator log (radio/oplog.ts): ?format=csv&from=&to= downloads it (the last 30 days by default) while it is on.
+  app.get('/admin/operator-log', async (req, reply) => {
+    await requireAdmin(req);
+    const { format, from, to } = z
+      .object({ format: z.enum(['json', 'csv']).default('json'), from: z.coerce.date().optional(), to: z.coerce.date().optional() })
+      .parse(req.query);
+    const on = await operatorLog.enabled(db);
+    if (format === 'json') return { enabled: on };
+    if (!on) throw notFound('Operator log');
+    const end = to ?? new Date();
+    const rows = await operatorLog.rows(db, from ?? new Date(end.getTime() - 30 * 86_400_000), end);
+    reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-operator-log.csv"');
+    return operatorLog.toCsv(rows);
+  });
+
+  app.patch('/admin/operator-log', async (req) => {
+    await requireAdmin(req);
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+    await operatorLog.setEnabled(db, enabled);
+    return { enabled };
+  });
+
+  // Listener mode: the Listen screen from the sign-in screen, with no account.
+  app.get('/admin/listener-mode', async (req) => {
+    await requireAdmin(req);
+    const { rows } = await db.query<{ on: boolean }>('select listener_mode_enabled as on from public.token_settings');
+    return { enabled: rows[0]!.on, active: (await listenerMode(db)).enabled };
+  });
+
+  app.patch('/admin/listener-mode', async (req) => {
+    await requireAdmin(req);
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+    await setListenerMode(db, enabled);
+    return { enabled, active: (await listenerMode(db)).enabled };
+  });
+
+  // Thanksgiving bursts for answered requests (radio/thanksgiving.ts) and listeners' "I'm praying too" (radio/praying-too.ts).
+  app.get('/admin/radio-followups', async (req) => {
+    await requireAdmin(req);
+    return { thanksgiving: await radioThanks.enabled(db), prayingToo: await prayingToo.enabled(db) };
+  });
+
+  app.patch('/admin/radio-followups', async (req) => {
+    await requireAdmin(req);
+    const input = z.object({ thanksgiving: z.boolean().optional(), prayingToo: z.boolean().optional() }).parse(req.body);
+    if (input.thanksgiving !== undefined) await radioThanks.setEnabled(db, input.thanksgiving);
+    if (input.prayingToo !== undefined) await prayingToo.setEnabled(db, input.prayingToo);
+    return { thanksgiving: await radioThanks.enabled(db), prayingToo: await prayingToo.enabled(db) };
+  });
+
+  app.get('/admin/radio-bursts', async (req) => {
+    await requireAdmin(req);
+    return { bursts: await radio.recentBursts(db) };
+  });
+
   app.patch('/admin/radio-settings', async (req) => {
     await requireAdmin(req);
     const input = z
@@ -175,11 +328,21 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         transmitter: z.enum(['log', 'station']).optional(),
         stationRequiresFree: z.boolean().optional(),
         maxChars: z.number().int().min(50).max(2800).optional(),
-        amplifyRepeats: z.number().int().min(2).max(50).optional(),
+        amplifyRepeats: z.number().int().min(2).max(1000).optional(),
+        order: z.enum(['oldest', 'need']).optional(),
+        batchMax: z.number().int().min(1).max(500).optional(),
+        listenPage: z.boolean().optional(),
+        receipts: z.boolean().optional(),
+        onAirPage: z.boolean().optional(),
       })
       .parse(req.body);
     return {
       settings: await radio.updateStationSettings(db, {
+        radio_order: input.order,
+        radio_batch_max: input.batchMax,
+        listen_page_enabled: input.listenPage,
+        radio_receipts_enabled: input.receipts,
+        on_air_page_enabled: input.onAirPage,
         radio_transmitter: input.transmitter,
         radio_station_requires_free: input.stationRequiresFree,
         radio_amplify_repeats: input.amplifyRepeats,
@@ -255,6 +418,52 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/notebook-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await notebook.updateSettings(db, notebook.SettingsPatch.parse(req.body)) };
+  });
+
+  // Conversation helpers (docs/CONVERSATION_HELPERS.md): each off until switched on here.
+  app.get('/admin/conversation-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await conversationHelpers.settings(db) };
+  });
+  app.patch('/admin/conversation-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await conversationHelpers.updateSettings(db, conversationHelpers.SettingsPatch.parse(req.body)) };
+  });
+  app.get('/admin/kindness-highlights', async (req) => {
+    await requireAdmin(req);
+    return { items: await kindnessHighlights.queue(db) };
+  });
+  app.post<{ Params: { id: string } }>('/admin/kindness-highlights/:id', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.uuid() }).parse(req.params);
+    return { items: await kindnessHighlights.pick(db, id, kindnessHighlights.Pick.parse(req.body)) };
+  });
+  app.post('/admin/kindness-highlights/send', async (req) => {
+    await requireAdmin(req);
+    return kindnessHighlights.send(db);
+  });
+  app.get('/admin/meaning-proposals', async (req) => {
+    await requireAdmin(req);
+    return { proposals: await meaningProposals.queue(db) };
+  });
+  app.post<{ Params: { id: string } }>('/admin/meaning-proposals/:id', async (req) => {
+    const adminId = await requireAdmin(req);
+    const id = z.uuid().parse(req.params.id);
+    return withTx(db, (tx) => meaningProposals.decide(tx, adminId, id, meaningProposals.Decision.parse(req.body)));
+  });
+  app.get('/admin/talk-counts', async (req) => {
+    await requireAdmin(req);
+    return { counts: await talkCounts.summary(db) };
+  });
+
+  // Growth practices (docs/GROWTH_PRACTICES.md): each off until switched on here.
+  app.get('/admin/practice-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await practices.settings(db) };
+  });
+  app.patch('/admin/practice-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await practices.updateSettings(db, practices.SettingsPatch.parse(req.body)) };
   });
 
   // Growth ideas (docs/GROWTH.md): each off until switched on here.

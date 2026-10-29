@@ -21,6 +21,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { KindCloud } from '@/components/kind-cloud';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -40,10 +41,10 @@ export default function Compose() {
   // Only the kinds of post the member's community has turned on (discussion, news and blog are off by default).
   const types = POST_TYPES.filter((p) => (community ? community.enabledPostTypes.includes(p) : isPrayable(p)));
   const { t, label } = useLocale();
-  // The thanksgiving card opens the composer as a praise post.
-  const params = useLocalSearchParams<{ type?: string }>();
+  // The thanksgiving card opens the composer as a praise post; the gratitude card also passes its words.
+  const params = useLocalSearchParams<{ type?: string; body?: string }>();
   const [postType, setPostType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(typeof params.body === 'string' ? params.body.slice(0, 5000) : '');
   const [urgency, setUrgency] = useState(0);
   const [kind, setKind] = useState<PrayerKind | undefined>();
   const [realm, setRealm] = useState<PrayerRealm | undefined>();
@@ -51,6 +52,8 @@ export default function Compose() {
   const [anonymous, setAnonymous] = useState(profile?.anonymous_by_default ?? false);
   const [sensitive, setSensitive] = useState(false);
   const [allSupport, setAllSupport] = useState(false);
+  const [lament, setLament] = useState(false);
+  const [lamentRadio, setLamentRadio] = useState(false);
   const features = useFeatures();
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [busy, setBusy] = useState(false);
@@ -84,6 +87,7 @@ export default function Compose() {
           isAnonymous: anonymous,
           isSensitive: sensitive,
           allSupportWelcome: features.supportLabel && allSupport,
+          ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
         });
         if ('queued' in result) return leave();
         return afterCreate(result.post);
@@ -99,6 +103,7 @@ export default function Compose() {
         isAnonymous: anonymous,
         isSensitive: sensitive,
         allSupportWelcome: features.supportLabel && allSupport,
+        ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
         media,
       });
       afterCreate(created.post);
@@ -109,13 +114,21 @@ export default function Compose() {
   };
 
   const pick = async () => {
+    const max = features.videoMaxSeconds;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
       allowsMultipleSelection: true,
       selectionLimit: MAX_MEDIA - assets.length,
       quality: 0.8,
+      videoMaxDuration: max,
+      // Short clips at 720p keep storage and data use low (docs/FEED_SKINS.md, video cap).
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
-    if (!result.canceled) setAssets((prev) => [...prev, ...result.assets].slice(0, MAX_MEDIA));
+    if (result.canceled) return;
+    // Videos over the cap are left out, with a note; the server refuses them too.
+    const fits = result.assets.filter((a) => a.type !== 'video' || a.duration == null || a.duration <= max * 1000 + 500);
+    setError(fits.length < result.assets.length ? t('compose.videoTooLong', { count: max }) : null);
+    setAssets((prev) => [...prev, ...fits].slice(0, MAX_MEDIA));
   };
 
   return (
@@ -143,6 +156,7 @@ export default function Compose() {
           autoFocus
           accessibilityLabel={t('compose.bodyLabel')}
         />
+        <KindCloud text={body} context={features.lament && lament ? 'lament' : undefined} />
         <Text style={[type.small, words > MAX_POST_WORDS && { color: colors.danger }]}>
           {t('compose.words', { count: words, max: MAX_POST_WORDS })}
         </Text>
@@ -221,6 +235,12 @@ export default function Compose() {
         />
         {features.supportLabel ? (
           <Toggle label={t('notebook.supportToggle')} hint={t('notebook.supportHint')} value={allSupport} onChange={setAllSupport} />
+        ) : null}
+        {features.lament ? (
+          <>
+            <Toggle label={t('lament.toggle')} hint={t('lament.toggleHint')} value={lament} onChange={setLament} />
+            {lament ? <Toggle label={t('lament.radio')} hint={t('lament.radioHint')} value={lamentRadio} onChange={setLamentRadio} /> : null}
+          </>
         ) : null}
       </ScrollView>
     </Screen>

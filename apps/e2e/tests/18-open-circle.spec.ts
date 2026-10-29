@@ -11,7 +11,10 @@ const RELIGIOUS = /\b(pray\w*|god|lord|jesus|church\w*|amen|blessed|scripture|pr
 const SCREENS = [
   '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/tour', '/notification-settings', '/feedback', '/rules',
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
-  '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account',
+  '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account', '/squire-board', '/prayer-list',
+  '/why-gifts', '/give', '/account-security', '/two-step', '/ai-chat', '/announcements', '/churches', '/listen', '/onboarding',
+  '/prayer-chain', '/prayer-minute', '/remembered', '/scheduled', '/skin-idea', '/waitlist', '/reading-plan', '/invites',
+  '/meaning-words', '/kindness-research',
 ];
 const shots = process.env.OPEN_CIRCLE_SHOTS;
 
@@ -44,6 +47,8 @@ test('an Open Circle member never sees religious wording or an accessibility vio
   // Earlier tests post as Ruth; age those posts so the new-member limit (3 a day) leaves room for one more.
   await db.query("update public.posts set created_at = created_at - interval '2 days' where user_id = $1", [ruth]);
   const { rows: written } = await db.query<{ body: string }>('select body from public.posts where user_id = $1', [ruth]);
+  // Her sign-in address (Me → Account security) is the demo domain, not app wording.
+  written.push({ body: 'ruth@demo.prayertower.local' });
 
   // Tall enough to show most of each screen in one screenshot.
   await page.setViewportSize({ width: 412, height: 1600 });

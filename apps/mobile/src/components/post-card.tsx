@@ -12,8 +12,8 @@ import {
   type CardAction,
 } from '@prayer-tower/shared';
 import { router } from 'expo-router';
-import { memo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { createContext, memo, useContext, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
@@ -22,6 +22,7 @@ import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
+import { MeaningIcons } from './meaning-icon-row';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
@@ -44,6 +45,9 @@ export interface CardHandlers {
 }
 
 // Memoized: a feed re-render (a prompt or highlights arriving) skips cards whose data didn't change.
+/** A feed skin can restyle the card's box (the drawn vine puts a smaller, greener box inside a leaf). */
+export const CardSurface = createContext<ViewStyle | null>(null);
+
 export const PostCard = memo(function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
   const [tray, setTray] = useState(false);
@@ -51,6 +55,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
+  const surface = useContext(CardSurface);
   const lines = features.postLines;
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
@@ -64,7 +69,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
   const typeLabel = <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
 
   return (
-    <View style={[styles.card, answered && styles.answered]}>
+    <View style={[styles.card, answered && styles.answered, surface]}>
       {answered ? <Text style={styles.answeredBanner}>{t('card.answered')}</Text> : null}
       <View style={styles.header}>
         <UrgencyLight urgency={card.urgency} />
@@ -101,6 +106,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         ) : null}
         {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
         {card.crosspostedFrom ? <Text style={styles.tags}>{t('card.from', { name: card.crosspostedFrom === 'threads' ? 'Threads' : 'Facebook' })}</Text> : null}
+        {card.lament && features.lament ? <Text style={styles.tags}>🕯️ {t('lament.tag')}</Text> : null}
         {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
         <Pressable
@@ -150,24 +156,24 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
         </Text>
 
+        {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press. */}
         <View style={styles.actions}>
           {card.actions.map((action) => {
             const active = action === 'commit' && !!card.myCommitment;
             return (
-              <Pressable
+              <ActionIcon
                 key={action}
-                accessibilityRole="button"
-                accessibilityLabel={label('action', action, ACTION_LABELS[action])}
+                icon={icon(action, ACTION_ICONS)}
+                label={active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
+                name={label('action', action, ACTION_LABELS[action])}
+                active={active}
                 onPress={() => onAction(card, action)}
-                style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
-                <Text style={styles.actionIcon}>{icon(action, ACTION_ICONS)}</Text>
-                {/* Two lines, so labels aren't cut off at large text sizes. */}
-                <Text style={[styles.actionLabel, active && { color: colors.primary }]} numberOfLines={2}>
-                  {active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
-                </Text>
-              </Pressable>
+              />
             );
           })}
+          {/* Emoji meanings join the same row in every skin (off unless switched on). On the
+              request's own page the full meaning tree with its leaves sits below instead. */}
+          {startExpanded ? null : <MeaningIcons postId={card.id} postBody={card.body} />}
         </View>
 
         {card.topComment ? (
@@ -186,6 +192,41 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
     </View>
   );
 });
+
+/** One action as an icon. Its name is its accessibility label and shows in a tip on hover (web, iPad pointer, Mac) or a long press. */
+function ActionIcon({ icon: glyph, label: tip, name, active, onPress }: { icon: string; label: string; name: string; active: boolean; onPress: () => void }) {
+  const [shown, setShown] = useState(false);
+  return (
+    <View style={styles.actionCell}>
+      {shown ? (
+        <View style={styles.tip} pointerEvents="none">
+          <Text style={styles.tipText} numberOfLines={2}>
+            {tip}
+          </Text>
+        </View>
+      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={name}
+        accessibilityState={{ selected: active }}
+        onPress={onPress}
+        onHoverIn={() => setShown(true)}
+        onHoverOut={() => setShown(false)}
+        onLongPress={() => {
+          setShown(true);
+          setTimeout(() => setShown(false), 1800);
+        }}
+        delayLongPress={350}
+        hitSlop={4}
+        style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
+        {/* The icon is decoration; the button's name is the action's name. */}
+        <Text style={styles.actionIcon} aria-hidden>
+          {glyph}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   hide: { fontSize: 15, color: colors.textMuted, paddingHorizontal: space.xs },
@@ -214,18 +255,15 @@ const styles = StyleSheet.create({
   bodyLine: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, marginLeft: 4 },
   more: { color: colors.primary, fontWeight: '600' },
   counts: type.small,
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  action: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    alignItems: 'center',
-    paddingVertical: space.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-  },
-  actionActive: { backgroundColor: colors.primarySoft },
-  actionIcon: { fontSize: 18 },
-  actionLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2, textAlign: 'center' },
+  // Wraps rather than squeezing when the emoji meanings join the row: every target stays 44 points.
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: space.xs },
+  actionCell: { flex: 1, minWidth: 44, alignItems: 'center', position: 'relative' },
+  // 44 pt touch targets (Apple HIG).
+  action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.background },
+  actionActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
+  actionIcon: { fontSize: 20 },
+  tip: { position: 'absolute', bottom: 50, zIndex: 10, minWidth: 90, maxWidth: 140, paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.text },
+  tipText: { fontSize: 12, color: colors.surface, textAlign: 'center', fontWeight: '600' },
   comment: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: 2 },
   commentAuthor: { fontWeight: '700', color: colors.text, fontSize: 14 },
 });

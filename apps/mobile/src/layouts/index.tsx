@@ -6,9 +6,12 @@ import type { Card, CardAction, FeedLayoutKind, FeedTheme } from '@prayer-tower/
 import type { ReactElement } from 'react';
 
 import { CarouselLayout } from './carousel';
+import { CircuitLayout } from './circuit';
 import { ColumnLayout } from './column';
 import { FlipLayout } from './flip';
+import { TowerLayout } from './tower';
 import { VineLayout } from './vine';
+import { WallLayout } from './wall';
 
 export interface FeedLayoutProps {
   cards: Card[];
@@ -31,12 +34,17 @@ export interface FeedLayoutProps {
 export type FeedLayout = (props: FeedLayoutProps) => ReactElement;
 
 // Column is the V1 default; vine, flip and swipe-to-pray (carousel) are beta
-// styles members can opt into.
+// styles members can opt into. The Wall and the vine skins (Beanstalk, Golden
+// Wood, Moonlit Gate) and the Prayer Tower climb are offered only while
+// Admin → Feed skins is on.
 const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   column: ColumnLayout,
   vine: VineLayout,
   flip: FlipLayout,
   carousel: CarouselLayout,
+  wall: WallLayout,
+  tower: TowerLayout,
+  circuit: CircuitLayout,
 };
 
 export function layoutFor(theme: FeedTheme | null): FeedLayout {

@@ -9,6 +9,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
 import * as adFines from '../ad-fines/index.js';
+import * as harm from '../harm/index.js';
 import * as messages from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
@@ -87,10 +88,14 @@ async function alertCrisisReviewers(q: Queryable, itemId: string, authorId: stri
   }
 }
 
-/** Crisis posts are not amplified (reach, radio) until a person has reviewed them. */
+/**
+ * Crisis posts, and posts the harmful-prayer check flagged (modules/harm), are not
+ * amplified (reach, radio, pools, schedules) until a person has reviewed them.
+ */
 export async function awaitingCrisisReview(q: Queryable, postId: string): Promise<boolean> {
   const { rowCount } = await q.query(
-    `select 1 from public.moderation_items where target_type = 'post' and target_id = $1 and source = 'crisis' and status = 'pending'`,
+    `select 1 from public.moderation_items where target_type = 'post' and target_id = $1 and source = 'crisis' and status = 'pending'
+     union all select 1 from public.posts where id = $1 and harm_category is not null`,
     [postId],
   );
   return !!rowCount;
@@ -215,7 +220,7 @@ export const Decision = z.object({
 
 /** A moderator's decision on a queue item, with any penalties, all logged. */
 export async function decide(q: Queryable, moderatorId: string, itemId: string, d: z.infer<typeof Decision>) {
-  const { rows } = await q.query<{ id: string; target_type: Target; target_id: string; user_id: string; status: string }>(
+  const { rows } = await q.query<{ id: string; target_type: Target; target_id: string; user_id: string; status: string; source: string }>(
     'select * from public.moderation_items where id = $1 for update',
     [itemId],
   );
@@ -246,6 +251,8 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
     // Dismissing un-hides content an AI flag hid; it never brings back content that was
     // removed (by an earlier decision, or deleted by its author).
     await posts.unhide(q, item.target_type, item.target_id);
+    // A dismissed harmful-prayer flag clears the mark that keeps it off the radio.
+    if (item.source === 'harm') await harm.clear(q, item.target_type, item.target_id);
     await log('dismiss');
   } else {
     await posts.setModerationStatus(q, item.target_type, item.target_id, 'removed');
