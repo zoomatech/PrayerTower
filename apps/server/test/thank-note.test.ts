@@ -45,4 +45,16 @@ describe('Thank the pray-ers', () => {
     expect(seen.glad).toBeUndefined();
     expect((await as(t.asker).get(`/posts/${t.post.id}/thank-note`)).json().note.glad).toBe(1);
   });
+
+  it('skips pray-ers where either blocked the other', async () => {
+    await on(true);
+    const t = await prayed();
+    expect((await as(t.b).put(`/people/${t.asker}/block`)).statusCode).toBe(200);
+    expect((await as(t.asker).post(`/posts/${t.post.id}/thank-note`, { body: note })).json()).toEqual({ sent: 1 });
+    const { rows } = await db.query("select 1 from public.notifications where user_id = $1 and kind = 'thank_note'", [t.b]);
+    expect(rows).toEqual([]);
+    expect((await as(t.b).get(`/posts/${t.post.id}/thank-note`)).json().note).toBeNull();
+    expect((await as(t.b).post(`/posts/${t.post.id}/thank-note/glad`)).statusCode).toBe(403);
+    await on(false);
+  });
 });

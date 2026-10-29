@@ -30,7 +30,7 @@ export async function forPost(q: Queryable, viewerId: string, postId: string) {
     [postId, viewerId],
   );
   const n = rows[0];
-  if (!mine && !prayed.includes(viewerId)) return { enabled: true as const, note: null, canWrite: false };
+  if (!mine && (!prayed.includes(viewerId) || (await posts.blockedBetween(q, viewerId, post.user_id)))) return { enabled: true as const, note: null, canWrite: false };
   const note = n ? { body: n.body, createdAt: n.created_at.toISOString(), gladByMe: n.glad_by_me, ...(mine ? { glad: n.glad } : {}) } : null;
   const canWrite = mine && !n && (await posts.prayedBy(q, postId, viewerId)).length > 0;
   return { enabled: true as const, note, canWrite };
@@ -42,7 +42,13 @@ export async function send(q: Queryable, userId: string, postId: string, body: s
   const post = await posts.get(q, postId);
   if (!post || post.moderation_status !== 'visible') throw notFound('Post');
   if (post.user_id !== userId) throw forbidden('Only the person who asked can send it');
-  const recipients = await posts.prayedBy(q, postId, userId);
+  // Nobody the asker blocked, or who blocked the asker, hears from them.
+  const { rows: blocks } = await q.query<{ id: string }>(
+    'select case when user_id = $1 then blocked_id else user_id end as id from public.user_blocks where user_id = $1 or blocked_id = $1',
+    [userId],
+  );
+  const blocked = new Set(blocks.map((b) => b.id));
+  const recipients = (await posts.prayedBy(q, postId, userId)).filter((r) => !blocked.has(r));
   if (!recipients.length) throw badRequest('Nobody has prayed for this yet');
   const { rowCount } = await q.query('insert into public.thank_notes (post_id, user_id, body) values ($1, $2, $3) on conflict do nothing', [postId, userId, body]);
   if (!rowCount) throw conflict('You already sent your thank-you');
@@ -64,7 +70,7 @@ export async function glad(q: Queryable, userId: string, postId: string) {
   if (!(await enabled(q))) throw badRequest('Thank-you notes are switched off');
   const post = await posts.get(q, postId);
   if (!post) throw notFound('Post');
-  if (!(await posts.prayedBy(q, postId, post.user_id)).includes(userId)) throw forbidden('Only those who prayed can answer');
+  if (!(await posts.prayedBy(q, postId, post.user_id)).includes(userId) || (await posts.blockedBetween(q, userId, post.user_id))) throw forbidden('Only those who prayed can answer');
   const { rowCount } = await q.query('select 1 from public.thank_notes where post_id = $1', [postId]);
   if (!rowCount) throw notFound('Thank-you note');
   await q.query('insert into public.thank_note_glad (post_id, user_id) values ($1, $2) on conflict do nothing', [postId, userId]);
