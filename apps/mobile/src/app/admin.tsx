@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type StationHealth, type RadioNodes } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -350,6 +350,7 @@ function Admin() {
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             {radio.radio_transmitter === 'station' ? <StationAlertsSection /> : null}
+            {radio.radio_transmitter === 'station' ? <StationHealthSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
@@ -654,6 +655,98 @@ function StationAlertsSection() {
           ) : (
             <Text style={type.small}>{t('admin.stationAlertsNone')}</Text>
           )}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** Station health page and listener acknowledgements (radio/health.ts, radio/acks.ts); both off by default. */
+function StationHealthSection() {
+  const t = useT();
+  const [data, setData] = useState<StationHealth | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioHealth().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const save = (patch: Parameters<typeof api.admin.updateRadioHealth>[0]) => api.admin.updateRadioHealth(patch).then(setData).catch(() => undefined);
+  const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : t('admin.healthNever'));
+  const h = data.health;
+  const a = data.acks;
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.healthOff')} selected={!data.enabled} onPress={() => save({ enabled: false })} />
+        <Chip label={t('admin.healthOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.healthHint')}</Text>
+      {h ? (
+        <>
+          {h.stations.map((s) => (
+            <View key={s.callSign}>
+              <Text style={[type.small, s.silent ? { color: colors.danger } : null]}>
+                {s.silent
+                  ? t('admin.healthSilent', { callSign: s.callSign, when: when(s.lastHeartbeat) })
+                  : t('admin.healthStation', { callSign: s.callSign, when: when(s.lastHeartbeat), bursts: s.bursts24h, prayers: s.prayers24h, failed: s.failed24h })}
+              </Text>
+              {s.checks
+                .filter((c) => !c.ok)
+                .map((c) => (
+                  <Text key={c.name} style={[type.small, { color: colors.danger }]}>
+                    {t('admin.healthCheck', { name: c.name, detail: c.detail })}
+                  </Text>
+                ))}
+              {s.lastError ? <Text style={[type.small, { color: colors.danger }]}>{t('admin.healthLastError', { error: s.lastError })}</Text> : null}
+            </View>
+          ))}
+          <Text style={type.small}>
+            {t('admin.healthQueue', { queued: h.queue.queued, sending: h.queue.sending })}
+            {h.queue.oldestMinutes !== null ? ` ${t('admin.healthOldest', { minutes: h.queue.oldestMinutes })}` : ''}
+          </Text>
+          <Text style={type.small}>{t('admin.healthSnrTitle')}</Text>
+          {h.snr.length ? (
+            h.snr.map((r) => (
+              <Text key={`${r.callSign}-${r.preset}`} style={type.small}>
+                {t('admin.healthSnr', { callSign: r.callSign, preset: r.preset, avg: r.avgDb, min: r.minDb, reports: r.reports })}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.healthSnrNone')}</Text>
+          )}
+          <Text style={type.small}>{t('admin.healthFailuresTitle')}</Text>
+          {h.failures.length ? (
+            h.failures.map((f, i) => (
+              <Text key={`${f.at}-${i}`} style={[type.small, { color: colors.danger }]}>
+                {t(`admin.healthFailure.${f.kind}`, { when: when(f.at), callSign: f.callSign ?? '', error: f.error })}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.healthFailuresNone')}</Text>
+          )}
+        </>
+      ) : null}
+      <View style={styles.row}>
+        <Chip label={t('admin.acksOff')} selected={!a.enabled} onPress={() => save({ acks: { enabled: false } })} />
+        <Chip label={t('admin.acksOn')} selected={a.enabled} onPress={() => save({ acks: { enabled: true } })} />
+      </View>
+      <Text style={type.small}>{t('admin.acksHint')}</Text>
+      {a.enabled ? (
+        <>
+          <Text style={type.small}>{t('admin.acksTimeout')}</Text>
+          <View style={styles.row}>
+            {[5, 10, 30, 60].map((n) => (
+              <Chip key={n} label={t('admin.stationMinutes', { count: n })} selected={a.timeoutMinutes === n} onPress={() => save({ acks: { timeoutMinutes: n } })} />
+            ))}
+          </View>
+          <Text style={type.small}>{t('admin.acksRetries')}</Text>
+          <View style={styles.row}>
+            {[0, 1, 2, 3].map((n) => (
+              <Chip key={n} label={String(n)} selected={a.maxRetries === n} onPress={() => save({ acks: { maxRetries: n } })} />
+            ))}
+          </View>
+          <Text style={type.small}>{t('admin.acksStats', { heard: a.heard, waiting: a.waiting, unheard: a.unheard, retried: a.retried })}</Text>
         </>
       ) : null}
     </View>

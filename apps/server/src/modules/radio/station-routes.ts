@@ -9,6 +9,8 @@ import { AppError, notFound } from '../../errors.js';
 import * as ops from '../ops/index.js';
 import * as health from './health.js';
 import * as radio from './index.js';
+import * as acks from './acks.js';
+import * as receipts from './receipts.js';
 import * as nodes from './nodes.js';
 
 export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string | null) {
@@ -90,6 +92,21 @@ export function nodeRoutes(app: FastifyInstance, db: Db) {
     const node = await nodes.authenticate(db, req.headers['x-node-key'] as string | undefined, 'listener');
     if (!(await nodes.enabled(db))) throw notFound('Listener reports');
     await nodes.recordReport(db, node.id, nodes.ChannelReportInput.parse(req.body));
+    return { ok: true };
+  });
+
+  // A listener node decoded these prayers (fingerprints only): acknowledges them (acks.ts) and, with receipts on, tells their senders.
+  app.post('/node/heard', async (req) => {
+    await nodes.authenticate(db, req.headers['x-node-key'] as string | undefined, 'listener');
+    const on = (await nodes.enabled(db)) || (await acks.settings(db)).enabled || (await receipts.enabled(db));
+    if (!on) throw notFound('Listener acknowledgements');
+    const report = receipts.HeardReport.parse(req.body);
+    return { matched: await withTx(db, (tx) => receipts.heard(tx, report)) };
+  });
+
+  // About once a minute, so acknowledgements know a listener is running (authenticate marks it seen).
+  app.post('/node/heartbeat', async (req) => {
+    await nodes.authenticate(db, req.headers['x-node-key'] as string | undefined, 'listener');
     return { ok: true };
   });
 }

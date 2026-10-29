@@ -477,6 +477,17 @@ export interface StationAlert {
   callSign: string | null;
   since: string | null;
 }
+export interface StationHealth {
+  enabled: boolean;
+  health: {
+    stations: { callSign: string; lastHeartbeat: string | null; silent: boolean; checks: { name: string; ok: boolean; detail: string }[]; bursts24h: number; failed24h: number; prayers24h: number; lastBurstAt: string | null; lastError: string | null }[];
+    queue: { queued: number; sending: number; oldestMinutes: number | null };
+    snr: { callSign: string; preset: string; reports: number; avgDb: number; minDb: number; lastAt: string }[];
+    failures: { at: string; callSign: string | null; kind: 'burst' | 'prayer'; error: string }[];
+  } | null;
+  acks: { enabled: boolean; timeoutMinutes: number; maxRetries: number; heard: number; waiting: number; unheard: number; retried: number };
+}
+
 export interface StationAlerts {
   enabled: boolean;
   overdueMinutes: number;
@@ -1352,6 +1363,8 @@ export const api = {
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
+    radioHealth: () => get<StationHealth>('/admin/radio-health'),
+    updateRadioHealth: (patch: { enabled?: boolean; acks?: Partial<{ enabled: boolean; timeoutMinutes: number; maxRetries: number }> }) => request<StationHealth>('PATCH', '/admin/radio-health', patch),
     radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
