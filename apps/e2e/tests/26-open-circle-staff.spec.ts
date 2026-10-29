@@ -35,9 +35,10 @@ test('an Open Circle admin sees no religious wording on staff screens, with ever
     before.push({ ...s, v: rows[0]?.v ?? false });
     await db.query(`update public.${s.t} set ${s.c} = true`);
   }
-  // What staff wrote (survey questions, community names such as Prayer Tower) is theirs, not app wording.
+  // What staff wrote (survey questions, announcements, community names such as Prayer Tower) is theirs, not app wording.
   const { rows: data } = await db.query<{ w: string }>(
-    'select title as w from public.surveys union all select intro from public.surveys union all select name from public.communities',
+    'select title as w from public.surveys union all select intro from public.surveys union all select name from public.communities'
+      + ' union all select title from public.announcements union all select body from public.announcements',
   );
   const written = data.map((d) => d.w).filter(Boolean).sort((a, b) => b.length - a.length);
   try {
