@@ -36,6 +36,7 @@ struct PostDetailView: View {
                 if card.crisis || support { Section { CrisisBox() } }
                 if let harm { Section { HarmBox(note: harm) } }
                 if card.isMine && prayable { Section { ownerTools(card) } }
+                if let radio = Binding($card) { RadioSection(card: radio) }
                 if prayable, let prayers { Section { prayedList(prayers) } }
                 Section(w("post.comments")) { commentList }
                 Section { composer(card) }

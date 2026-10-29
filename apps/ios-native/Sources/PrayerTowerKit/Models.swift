@@ -38,6 +38,13 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let testimony: String?
     public let background: String?
     public let media: [CardMedia]?
+    // Radio (Radio.swift). Older servers leave these out.
+    public var isSensitive: Bool? = nil
+    /// A lament: it goes on the air only when its author said so (`lamentRadio`).
+    public var lament: Bool? = nil
+    public var lamentRadio: Bool? = nil
+    /// Only on the author's own request: it goes out again when the air is quiet.
+    public var keepOnAir: Bool? = nil
 }
 
 /// A photo or video on a post; `url` is a short-lived signed read URL.
