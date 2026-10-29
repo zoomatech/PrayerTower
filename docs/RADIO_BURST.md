@@ -478,7 +478,7 @@ node apps/station/dist/src/burst/cli.js decode-text rx.txt
 node apps/station/dist/src/burst/cli.js encode test.wav fm-standard < prayers.txt
 ```
 
-Any recording rate works; the decoder resamples to 48 kHz.
+Any recording rate works; the decoder resamples to 48 kHz. A WAV can be 8, 16, 24 or 32-bit PCM or 32 or 64-bit float, mono or stereo, which covers handheld recorders and Audacity's exports. A compressed WAV (ADPCM and the like) is refused with a message saying to save it as PCM or float.
 
 The decoder is tested (`apps/station/test/robustness.test.ts`, `fuzz.test.ts`) against what real receivers do to a recording:
 
