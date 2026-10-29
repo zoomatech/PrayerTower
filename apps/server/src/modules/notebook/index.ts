@@ -204,6 +204,7 @@ export async function features(q: Queryable) {
   const s = await settings(q);
   const { rows: legal } = await q.query<{ enabled: boolean }>('select enabled from public.legal_settings');
   const { rows: match } = await q.query<{ enabled: boolean }>('select enabled from public.material_match_settings');
+  const { rows: library } = await q.query<{ enabled: boolean }>('select enabled from public.library_settings');
   return {
     worldwideCount: s.worldwide_count_enabled,
     thanksCard: s.thanks_card_enabled,
@@ -241,6 +242,8 @@ export async function features(q: Queryable) {
     crosspost: s.crosspost_enabled,
     /** Paid radio prayers are matched with equal material help (modules/material-match). */
     materialMatch: match[0]?.enabled === true,
+    /** Scripture and ancient writings search (modules/library, Admin → Library search). */
+    library: library[0]?.enabled === true,
     /** Growth ideas (modules/growth, Admin → Growth). */
     ...(await growth.features(q)),
     /** Giving split (modules/giving-split, Admin → Giving split). */

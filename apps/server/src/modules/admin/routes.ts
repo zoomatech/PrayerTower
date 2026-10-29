@@ -17,6 +17,7 @@ import * as commitments from '../commitments/index.js';
 import * as commonFund from '../common-fund/index.js';
 import * as sponsors from '../sponsors/index.js';
 import * as materialMatch from '../material-match/index.js';
+import * as library from '../library/index.js';
 import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
@@ -750,6 +751,15 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/material-match', async (req) => {
     await requireAdmin(req);
     return { settings: await materialMatch.updateSettings(db, materialMatch.SettingsPatch.parse(req.body)) };
+  });
+  // Scripture and ancient writings search (off by default).
+  app.get('/admin/library', async (req) => {
+    await requireAdmin(req);
+    return library.settings(db);
+  });
+  app.patch('/admin/library', async (req) => {
+    await requireAdmin(req);
+    return library.updateSettings(db, library.SettingsPatch.parse(req.body));
   });
   app.post('/admin/material-match/fulfill', async (req) => {
     const adminId = await requireAdmin(req);

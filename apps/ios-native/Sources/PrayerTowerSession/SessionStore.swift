@@ -1,5 +1,8 @@
 @_spi(Experimental) import Auth
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import PrayerTowerKit
 
 /// Where the member is in signing in: the same states as apps/mobile/src/lib/auth.tsx.
@@ -15,8 +18,11 @@ public enum SignInState: Sendable, Equatable {
 public final class SessionStore: Sendable {
     public let auth: AuthClient
     public let api: APIClient
+    /// Signed in as the sample member, with every API call answered on the device (UI walks).
+    public let isSample: Bool
 
-    public init(supabaseURL: URL, publishableKey: String, apiURL: URL, storage: any AuthLocalStorage) {
+    public init(supabaseURL: URL, publishableKey: String, apiURL: URL, storage: any AuthLocalStorage,
+                apiSession: URLSession = .shared, sample: Bool = false) {
         let auth = AuthClient(
             url: supabaseURL.appendingPathComponent("auth/v1"),
             headers: ["apikey": publishableKey],
@@ -24,11 +30,19 @@ public final class SessionStore: Sendable {
             logger: nil
         )
         self.auth = auth
-        self.api = APIClient(baseURL: apiURL) { try? await auth.session.accessToken }
+        self.api = APIClient(baseURL: apiURL, session: apiSession) { try? await auth.session.accessToken }
+        self.isSample = sample
+    }
+
+    /// For the UI walks (launched with -PTSampleData): no server, no account, no network.
+    public static func sampleData() -> SessionStore {
+        SessionStore(supabaseURL: SampleServer.baseURL, publishableKey: "", apiURL: SampleServer.baseURL,
+                     storage: MemoryStorage(), apiSession: SampleServer.session(), sample: true)
     }
 
     /// The state for the session saved on this device (on app start).
     public func current() async -> SignInState {
+        if isSample { return .signedIn }
         guard auth.currentSession != nil else { return .signedOut }
         return await codeStillNeeded() ? .needsCode : .signedIn
     }

@@ -174,7 +174,7 @@ public struct Invite: Codable, Sendable, Equatable, Identifiable {
 
     /// The code in an invite link, which opens sign-up with it filled in.
     public static func code(from url: URL) -> String? {
-        guard url.scheme == "prayertower", url.host() == "sign-in" || url.path() == "/sign-in" else { return nil }
+        guard Edition.schemes.contains(url.scheme ?? ""), url.host() == "sign-in" || url.path() == "/sign-in" else { return nil }
         return URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "invite" }?.value.flatMap { $0.isEmpty ? nil : $0 }
     }
 
