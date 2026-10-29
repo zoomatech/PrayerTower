@@ -19,6 +19,8 @@ export function prayerCircleRoutes(app: FastifyInstance, db: Db) {
   });
   app.post('/circles/join', async (req) => circles.join(db, requireUser(req), circles.Join.parse(req.body).code));
   app.get<Id>('/circles/:id', async (req) => circles.get(db, requireUser(req), id.parse(req.params).id));
+  app.put<Id>('/circles/:id/welcome', async (req) => circles.setWelcome(db, requireUser(req), id.parse(req.params).id, circles.Welcome.parse(req.body).text));
+  app.post<Id>('/circles/:id/welcome/seen', async (req) => circles.welcomeSeen(db, requireUser(req), id.parse(req.params).id));
   app.post<Id>('/circles/:id/invite', async (req) => circles.invite(db, requireUser(req), id.parse(req.params).id));
   app.post<Id>('/circles/:id/leave', async (req) => withTx(db, (tx) => circles.leave(tx, requireUser(req), id.parse(req.params).id)));
   app.delete<{ Params: { id: string; userId: string } }>('/circles/:id/members/:userId', async (req) => {

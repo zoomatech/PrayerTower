@@ -80,6 +80,29 @@ function PostItem({ p, view, onChange }: { p: CirclePost; view: CircleView; onCh
   );
 }
 
+/** The starter writes the circle's welcome. Empty goes back to the app's default words. */
+function WelcomeEditor({ circleId, text, onSaved }: { circleId: string; text: string | null; onSaved: () => void }) {
+  const t = useT();
+  const [draft, setDraft] = useState(text ?? '');
+  return (
+    <View style={styles.welcomeEdit}>
+      <Field label={t('circleWelcome.label')} value={draft} onChangeText={setDraft} maxLength={400} multiline placeholder={t('circleWelcome.default')} />
+      <KindCloud text={draft} />
+      <Button
+        small
+        variant="secondary"
+        label={t('circleWelcome.save')}
+        onPress={() =>
+          api.setCircleWelcome(circleId, draft.trim()).then(() => {
+            announce(t('circleWelcome.saved'));
+            onSaved();
+          }, () => undefined)
+        }
+      />
+    </View>
+  );
+}
+
 export default function Circle() {
   const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -125,6 +148,15 @@ export default function Circle() {
               {c.name}
             </Text>
             {c.about ? <Text style={type.body}>{c.about}</Text> : null}
+            {view.welcome?.show ? (
+              <View style={[styles.card, styles.welcome]} testID="circle-welcome">
+                <Text style={type.heading} role="heading">
+                  {t('circleWelcome.title')}
+                </Text>
+                <Text style={type.body}>{view.welcome.text ?? t('circleWelcome.default')}</Text>
+                <Button small variant="secondary" label={t('circleWelcome.gotIt')} onPress={() => api.circleWelcomeSeen(id).then(load, () => undefined)} />
+              </View>
+            ) : null}
             <View style={styles.card}>
               <Text style={type.heading} role="heading">
                 {t('circles.share')}
@@ -149,6 +181,7 @@ export default function Circle() {
                   ) : null}
                 </View>
               ))}
+              {c.isOwner && view.welcome ? <WelcomeEditor circleId={id} text={view.welcome.text} onSaved={load} /> : null}
               {c.isOwner ? (
                 c.full ? (
                   <Text style={type.small}>{t('circles.full')}</Text>
@@ -181,4 +214,6 @@ const styles = StyleSheet.create({
   reply: { gap: 2, paddingLeft: space.md, borderLeftWidth: 2, borderLeftColor: colors.border },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
   grow: { flex: 1 },
+  welcome: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  welcomeEdit: { gap: space.sm },
 });
