@@ -1185,6 +1185,7 @@ const en = {
     revokeCode: 'Revoke %{code}',
     revoked: 'Code revoked.',
     shareMessage: 'You are invited to Prayer Tower. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
+    shareMessageTo: 'You are invited to %{name}. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
     email: 'Email',
     emailCode: 'Email %{code}',
     import: 'Import from a spreadsheet (CSV)',

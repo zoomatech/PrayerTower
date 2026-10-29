@@ -1187,6 +1187,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     revokeCode: 'Anular %{code}',
     revoked: 'Código anulado.',
     shareMessage: 'Te invitamos a Prayer Tower. Tu código de invitación es %{code}. Abre %{url} en la aplicación, o escribe el código al crear tu cuenta.',
+    shareMessageTo: 'You are invited to %{name}. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
     email: 'Correo',
     import: 'Importar desde una hoja de cálculo (CSV)',
     emailCode: 'Enviar %{code} por correo',
