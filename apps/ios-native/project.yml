@@ -94,6 +94,8 @@ targets:
   PrayerTowerConsole:
     type: application
     platform: macOS
+    # macOS 15 for defaultLaunchBehavior, so the console window opens at launch.
+    deploymentTarget: "15.0"
     sources: [Console]
     scheme: {}
     dependencies:

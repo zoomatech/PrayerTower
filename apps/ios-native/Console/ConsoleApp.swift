@@ -10,15 +10,23 @@ import SwiftUI
 
 @main
 struct ConsoleApp: App {
-    @State private var model = ConsoleModel(store: ConsoleModel.makeStore())
+    @State private var model: ConsoleModel
+
+    init() {
+        let model = ConsoleModel(store: ConsoleModel.makeStore())
+        _model = State(initialValue: model)
+        // Started here rather than from the window, so the menu bar item works with the window closed.
+        Task { await model.start() }
+    }
 
     var body: some Scene {
         Window(Words(.faith)("operatorConsole.title"), id: "console") {
             ConsoleRoot()
                 .environment(model)
                 .frame(minWidth: 640, minHeight: 520)
-                .task { await model.start() }
         }
+        // A single Window scene doesn't open by itself when the app also has a menu bar item.
+        .defaultLaunchBehavior(.presented)
         .commands { StationCommands(model: model) }
 
         MenuBarExtra {
