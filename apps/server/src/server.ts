@@ -59,6 +59,12 @@ const app = buildApp({
   testFlight: { prayerTower: config.TESTFLIGHT_URL ?? null, openCircle: config.OPEN_CIRCLE_TESTFLIGHT_URL ?? null },
   appleVerifier: appleVerifier(config),
   crosspost: crosspostOptions(config),
+  // Practice purchases (Admin → Practice mode) can never be on while the App Store is set to production.
+  practicePurchases: config.APPLE_IAP_ENVIRONMENT !== 'Production',
+  jaas:
+    config.JAAS_APP_ID && config.JAAS_API_KEY_ID && config.JAAS_PRIVATE_KEY
+      ? { appId: config.JAAS_APP_ID, keyId: config.JAAS_API_KEY_ID, privateKey: config.JAAS_PRIVATE_KEY }
+      : null,
   apiDocs: { restricted: process.env.NODE_ENV === 'production', password: config.API_DOCS_PASSWORD ?? null, version: serverVersion() },
   deletionPage: { supabaseUrl: config.SUPABASE_URL, publishableKey: config.SUPABASE_PUBLISHABLE_KEY ?? null, supportEmail: config.SUPPORT_EMAIL ?? null },
   site: {

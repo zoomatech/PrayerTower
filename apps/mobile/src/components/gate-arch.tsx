@@ -74,7 +74,7 @@ export function GateArch({ line, accent, testID }: { line: string; accent: strin
       importantForAccessibility="no-hide-descendants"
       testID={testID}>
       {w ? (
-        <Svg width={w} height={h} pointerEvents="none">
+        <Svg aria-hidden width={w} height={h} pointerEvents="none">
           {/* A crescent moon in the upper corner. */}
           <Path d={`M ${w - 46} 22 A 18 18 0 1 0 ${w - 46} 58 A 13 13 0 1 1 ${w - 46} 22 Z`} fill={line} fillOpacity={0.9} />
           {trees.map((t, i) => (

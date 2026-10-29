@@ -20,6 +20,75 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  circles: {
+    title: 'Circles',
+    intro: 'A small, invite-only group (up to 12 people) that supports each other. What you share stays inside the circle.',
+    open: 'Circles',
+    shareLabel: 'What would you like support with?',
+    pray: 'Thinking of you',
+    prayed: 'You’re thinking of them',
+    prayedNote: 'Thank you. They’ll know someone is with them.',
+    prayedCount: '%{count} are thinking of you',
+    adminTitle: 'Circles',
+    adminHint: 'Members can start an invite-only small group (up to 12 people) with its own gentle feed, newest first. What is shared stays in the circle: never on the main feed, the radio or digests. The kind cloud checks every post and reply, members get a quiet in-app heads-up instead of a push, and only the asker sees how many are thinking of them. The person who started the circle can take down a post or remove someone.',
+  },
+  weather: {
+    numbers: '%{comments} comments from %{people} people · %{warm} warm · %{heated} heated · %{lifts} thinking of you',
+  },
+  circleWelcome: {
+    adminHint: 'The person who started a circle writes a short welcome (its norms). Someone posting there for the first time sees it above the composer and can dismiss it, and the starter gets a quiet nudge to say hello. Needs circles on.',
+  },
+  pathBack: {
+    adminHint: 'When a moderator removes a post or comment, the notice says the author may post it again with changes, and only the author can open their own words to edit. Never offered for posts wishing harm, flooding or automated accounts.',
+  },
+  starter: {
+    items: {
+      answered_stories: 'Answered request stories',
+      thank_note: 'Thank the supporters',
+    },
+  },
+  circleUpdates: {
+    answered: 'It worked out',
+    answeredBadge: 'Worked out 🌱',
+    adminHint: 'The person who shared in a circle can add how it’s going or mark that it worked out, and the people who sent support get a quiet in-app note. Three good things can also be shared to one of the member’s circles. Needs circles on.',
+  },
+  freshDays: {
+    advent: 'A new season begins today. Want to pick one small intention?',
+    lent: 'A new season begins today. Want to pick one small intention?',
+    easter: 'A new season begins today. Want to pick one small intention?',
+    adminHint: 'Members may save up to three dates of their own. On that day, Me invites one small intention. Shown only on the day, never pushed.',
+  },
+  intention: {
+    title: 'How many days this week would you like to check in?',
+    adminHint: 'On Me, a member may choose to check in 1 to 6 days a week, so rest is built in. Dots fill in for the days they showed up and never empty; a week that falls short is never mentioned.',
+  },
+  health: {
+    intro: 'What matters each week, from totals only: requests that felt held (someone sent support or replied within two days), requests answered, and members who came back. Never time spent in the app.',
+    adminHint: 'A weekly view for admins of requests that felt held, requests answered and members who came back, built only from totals. Weeks with fewer than five requests show no numbers.',
+  },
+  replyChoice: {
+    supporters: 'People who sent support',
+    none: 'No comments, just support',
+    supportersNote: 'The person who asked chose comments from people who sent support. Your support still means a lot.',
+    noneNote: 'The person who asked would like support here, without comments. Your support still means a lot.',
+    adminHint: 'The person who asked chooses who may comment on their post: everyone, only people who supported it, or no comments at all. They can always post updates and change it any time. While off, everyone can comment.',
+  },
+  thankNote: {
+    title: 'Thank everyone who supported you',
+    hint: 'Write one warm note. Everyone who supported this gets it, once.',
+    starter2: 'I felt your support, and it made a difference. ',
+    send: 'Send to everyone who supported you',
+    adminTitle: 'Thank the supporters',
+    adminHint: 'The person who asked can send one warm note to everyone who supported their post, with starters to help. Each supporter hears once and can answer “Glad to”; only the asker sees how many did.',
+  },
+  quietCounts: {
+    seen: 'Hide support numbers on posts I see',
+    seenHint: 'You’ll see “People are with you” instead of a number.',
+    mine: 'Hide the numbers on my posts from others',
+    mineHint: 'Others see “People are with you”. You still see your own numbers.',
+    praying: 'People are with you',
+    adminHint: 'Each member chooses, on Me, to hide support numbers on posts they see, on their own posts for others, or both, as Instagram lets people hide likes. Nothing changes for anyone who doesn’t choose it.',
+  },
   crosspost: {
     extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
   },
@@ -54,6 +123,13 @@ export const keys: Tree = named({
     radioTitle: 'Radio messages',
     radioFree: 'Free radio messages left this month: {{count}}',
     radioGranted: 'Extra radio messages granted to you: {{count}}',
+  },
+  signalQueue: {
+    intro: 'Your radio messages, newest first. Once one goes out it gets a signal code. Anyone who decodes it on the air sees the same code.',
+    empty: 'You have not sent a radio message yet. Send one from any request.',
+  },
+  scheduleRadio: {
+    hint: 'It goes out at the time you pick. If radio messages cost Lighthouse tokens, they are taken then.',
   },
   listen: {
     intro: 'Hold this phone near a radio tuned to the station. When a burst plays, the messages in it appear here. The sound stays on this phone.',
@@ -151,6 +227,9 @@ export const keys: Tree = named({
     firmHint: 'For example: "Remember, you promised to be there for Billy."',
   },
   profile: {
+    // Hidden for Open Circle (the church page is faith-only); plain words in case a screen shows them.
+    churchApply: 'Lead a local group? Add it',
+    myChurch: 'My group',
     prayers: 'Times supported',
     priestly: 'Lighthouse',
     nextTier: '%{count} more to become a %{tier}.',
@@ -315,6 +394,16 @@ export const keys: Tree = named({
     beFirst: 'Be the first to lift someone up this week.',
     window: 'Support for others in the last %{count} days.',
     anonymous: 'Anonymous helper',
+  },
+  reminders: {
+    intro: "A gentle nudge at a time you choose. It's skipped on days you've already supported someone.",
+    weeks: 'Weeks of kindness',
+    weeksSummary: 'You have supported people on %{days} days, %{people} people in all, in %{weeks} different weeks.',
+    weekRun: '%{count} weeks of kindness in a row, with room to rest.',
+    weeksNote: 'Every week you support someone adds to this, and it never goes down.',
+    adminDailyHint: 'Skipped on a day they already supported someone. After the number of unused reminders below, it quietly drops to once a week until they do again.',
+    adminWeeks: 'Weeks of kindness instead of days in a row',
+    adminWeeksHint: 'Me shows the weeks they supported someone, a total that only grows, and "weeks in a row" that allows a rest week and is only shown from 2 up.',
   },
   offline: { saved: 'Showing posts saved %{when}.' },
   conversation: { invited: 'You were invited to this group. Join to talk and cheer each other on.' },

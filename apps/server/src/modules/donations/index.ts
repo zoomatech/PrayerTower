@@ -438,7 +438,7 @@ export async function requestAllocation(q: Queryable, userId: string, input: z.i
   }
 }
 
-async function requireStaff(q: Queryable, userId: string) {
+export async function requireStaff(q: Queryable, userId: string) {
   if (!(await hasRole(q, userId, 'admin', 'moderator', 'pastor_counselor'))) throw forbidden('Staff only');
 }
 

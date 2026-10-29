@@ -35,7 +35,7 @@ export async function onAnswered(q: Queryable, postId: string): Promise<string |
      select p.id, p.user_id, 0, 'thanksgiving:' || p.id, 1, 'free', 'thanksgiving', $2
        from public.posts p
       where p.id = $1 and p.state = 'answered' and not p.is_sensitive and p.moderation_status = 'visible'
-        and exists (select 1 from public.radio_prayers r where r.post_id = p.id and r.kind = 'prayer' and r.status = 'transmitted')
+        and exists (select 1 from public.radio_prayers r where r.post_id = p.id and r.kind in ('prayer', 'auto') and r.status = 'transmitted')
      on conflict do nothing
      returning id`,
     [postId, await textFor(q, postId)],

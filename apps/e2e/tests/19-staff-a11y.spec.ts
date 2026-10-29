@@ -6,8 +6,8 @@ import { expect, test } from '@playwright/test';
 import { db, signIn } from './helpers';
 
 const SCREENS = [
-  '/admin', '/announcements', '/audit-log', '/operator-console', '/churches', '/error-log', '/feedback-triage', '/import', '/invites', '/legal', '/macro-needs',
-  '/moderation', '/ops', '/podcasts-admin', '/radio-requests', '/surveys', '/waitlist', '/witness',
+  '/admin', '/announcements', '/audit-log', '/churches', '/error-log', '/feedback-triage', '/import', '/invites', '/legal', '/macro-needs',
+  '/moderation', '/ops', '/podcasts-admin', '/radio-requests', '/surveys', '/waitlist', '/witness', '/operator-console',
 ];
 
 test('staff screens have no WCAG A/AA violations, with every switch on', async ({ page }) => {

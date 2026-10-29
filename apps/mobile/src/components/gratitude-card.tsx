@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, ErrorText, Field } from '@/components/ui';
-import { api, type Gratitude } from '@/lib/api';
+import { api, type CircleSummary, type Gratitude } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -17,7 +17,8 @@ const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 export function GratitudeCard() {
-  const { gratitudeCard } = useFeatures();
+  const { gratitudeCard, circleUpdates } = useFeatures();
+  const [circles, setCircles] = useState<CircleSummary[]>([]);
   const t = useT();
   const [g, setG] = useState<Gratitude | null>(null);
   const [items, setItems] = useState(['', '', '']);
@@ -37,6 +38,11 @@ export function GratitudeCard() {
       // A card that can't load stays hidden; only the error log hears about it.
       .catch((e) => void errorText(e));
   }, [gratitudeCard]);
+  // Circle updates: three good things can go to one of the member's circles, by their choice.
+  useEffect(() => {
+    if (!gratitudeCard || !circleUpdates) return;
+    api.myCircles().then((r) => setCircles(r.circles), () => undefined);
+  }, [gratitudeCard, circleUpdates]);
 
   if (!gratitudeCard || !g?.enabled) return null;
   const filled = items.map((i) => i.trim()).filter(Boolean);
@@ -83,6 +89,20 @@ export function GratitudeCard() {
             }
           />
         ) : null}
+        {filled.length
+          ? circles.map((c) => (
+              <Button
+                key={c.id}
+                small
+                variant="secondary"
+                label={t('circleUpdates.shareTo', { name: c.name })}
+                onPress={() => run(async () => {
+                    await api.circlePost(c.id, filled.join('\n'));
+                    return g!;
+                  }, t('circleUpdates.shared', { name: c.name }))}
+              />
+            ))
+          : null}
       </View>
       {note ? <Text style={type.small}>{note}</Text> : null}
       <Text style={type.small}>{t('practices.gratitudeDay')}</Text>

@@ -92,6 +92,29 @@ export async function authenticate(q: Queryable, key: string | undefined, role: 
   return rows[0];
 }
 
+/** A store-and-forward relay's report, sent with its heartbeat (station relay.ts, RelayStatus). */
+export const RelayStatus = z.object({
+  callSign: z.string().trim().min(3).max(10),
+  relayedLastHour: z.number().int().min(0).max(100_000),
+  secondsLastHour: z.number().min(0).max(3600),
+  budgetSeconds: z.number().min(0).max(3600),
+  skipped: z.partialRecord(z.enum(['own', 'not_allowed', 'max_hops', 'duplicate', 'budget', 'unreadable']), z.number().int().min(0)).default({}),
+});
+
+export async function recordRelay(q: Queryable, nodeId: string, r: z.infer<typeof RelayStatus>) {
+  await q.query('update public.radio_nodes set relay_status = $2, relay_reported_at = now() where id = $1', [nodeId, r]);
+}
+
+/** Relays that reported in the last hour, for the operator console. */
+export async function relays(q: Queryable, now = new Date()) {
+  const { rows } = await q.query<{ name: string; relay_status: z.infer<typeof RelayStatus>; relay_reported_at: Date }>(
+    `select name, relay_status, relay_reported_at from public.radio_nodes
+      where relay_status is not null and enabled and relay_reported_at > $1 order by name`,
+    [new Date(now.getTime() - 3_600_000)],
+  );
+  return rows.map((r) => ({ node: r.name, reportedAt: r.relay_reported_at.toISOString(), ...r.relay_status }));
+}
+
 export const ChannelReportInput = z.object({
   callSign: z.string().trim().min(3).max(20),
   preset: z.string().trim().min(1).max(40),

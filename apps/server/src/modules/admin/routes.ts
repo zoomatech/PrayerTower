@@ -21,10 +21,13 @@ import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
+import * as pushDelivery from '../notifications/delivery.js';
+import * as reminders from '../reminders/index.js';
 import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
 import * as talkCounts from '../conversation-helpers/counts.js';
+import * as kindnessWeather from '../kindness-weather/index.js';
 import * as meaningProposals from '../meaning-reactions/proposals.js';
 import * as kindnessHighlights from '../kindness-highlights/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
@@ -40,6 +43,13 @@ import * as radioNodes from '../radio/nodes.js';
 import * as radioAcks from '../radio/acks.js';
 import * as radioSchedule from '../radio/schedule.js';
 import * as operatorConsole from '../radio/console.js';
+import * as operatorAlerts from '../radio/operator-alerts.js';
+import * as beacon from '../radio/beacon.js';
+import * as sky from '../radio/sky.js';
+import * as ceaseless from '../radio/ceaseless.js';
+import * as trail from '../radio/trail.js';
+import * as signalQueue from '../radio/signal-queue.js';
+import * as fairAir from '../radio/fair-air.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -56,6 +66,9 @@ import * as seedPrayers from '../seed-prayers/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as audit from '../audit/index.js';
+import * as moderationTools from '../moderation/tools.js';
+import * as goldfish from '../goldfish/index.js';
+import * as kindnessStarter from '../kindness-starter/index.js';
 import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
@@ -278,6 +291,75 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await requireAdmin(req);
     await operatorConsole.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
     return { enabled: (await operatorConsole.settings(db)).enabled };
+  });
+  app.get('/admin/radio-operator-alerts', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await operatorAlerts.enabled(db) };
+  });
+  app.patch('/admin/radio-operator-alerts', async (req) => {
+    await requireAdmin(req);
+    await operatorAlerts.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await operatorAlerts.enabled(db) };
+  });
+  app.get('/admin/radio-beacon', async (req) => {
+    await requireAdmin(req);
+    return beacon.settings(db);
+  });
+  app.patch('/admin/radio-beacon', async (req) => {
+    await requireAdmin(req);
+    return beacon.update(db, beacon.BeaconSettings.parse(req.body));
+  });
+  app.get('/admin/radio-fair-air', async (req) => {
+    await requireAdmin(req);
+    return fairAir.settings(db);
+  });
+  app.patch('/admin/radio-fair-air', async (req) => {
+    await requireAdmin(req);
+    return fairAir.update(db, fairAir.FairAirSettings.parse(req.body));
+  });
+  app.get('/admin/signal-queue', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await signalQueue.enabled(db) };
+  });
+  app.patch('/admin/signal-queue', async (req) => {
+    await requireAdmin(req);
+    await signalQueue.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await signalQueue.enabled(db) };
+  });
+  app.get('/admin/heard-trail', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await trail.enabled(db) };
+  });
+  app.patch('/admin/heard-trail', async (req) => {
+    await requireAdmin(req);
+    await trail.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await trail.enabled(db) };
+  });
+  app.get('/admin/scheduled-radio', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await schedules.radioEnabled(db) };
+  });
+  app.patch('/admin/scheduled-radio', async (req) => {
+    await requireAdmin(req);
+    await schedules.setRadioEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await schedules.radioEnabled(db) };
+  });
+  app.get('/admin/radio-ceaseless', async (req) => {
+    await requireAdmin(req);
+    return ceaseless.settings(db);
+  });
+  app.patch('/admin/radio-ceaseless', async (req) => {
+    await requireAdmin(req);
+    return ceaseless.update(db, ceaseless.CeaselessSettings.parse(req.body));
+  });
+  app.get('/admin/radio-sky', async (req) => {
+    await requireAdmin(req);
+    return { settings: await sky.settings(db), now: await sky.now(db) };
+  });
+  app.patch('/admin/radio-sky', async (req) => {
+    await requireAdmin(req);
+    await sky.update(db, sky.SkyPatch.parse(req.body));
+    return { settings: await sky.settings(db), now: await sky.now(db) };
   });
   app.get('/radio/console', async (req) => {
     await requireOperator(req);
@@ -540,6 +622,22 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await requireAdmin(req);
     return { settings: await conversationHelpers.settings(db) };
   });
+  app.get('/admin/reminder-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await reminders.settings(db) };
+  });
+  app.patch('/admin/reminder-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await reminders.updateSettings(db, reminders.SettingsPatch.parse(req.body)) };
+  });
+  app.get('/admin/push-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await pushDelivery.settings(db), health: await pushDelivery.health(db) };
+  });
+  app.patch('/admin/push-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await pushDelivery.updateSettings(db, pushDelivery.SettingsPatch.parse(req.body)), health: await pushDelivery.health(db) };
+  });
   app.get('/admin/giving-split-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await givingSplit.settings(db) };
@@ -587,6 +685,26 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/practice-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await practices.updateSettings(db, practices.SettingsPatch.parse(req.body)) };
+  });
+
+  // Encourager check-ins: totals by answer only, never who said what.
+  app.get('/admin/encourager-checkins', async (req) => {
+    await requireAdmin(req);
+    return { totals: await practices.checkInTotals(db) };
+  });
+
+  // Kindness weather report: weekly totals only, quiet weeks folded (modules/kindness-weather).
+  app.get('/admin/kindness-weather', async (req) => {
+    await requireAdmin(req);
+    const { weeks } = z.object({ weeks: z.coerce.number().int().min(4).max(52).default(12) }).parse(req.query);
+    return kindnessWeather.report(db, weeks);
+  });
+
+  // Community health: requests that felt held, answers, members who came back; folded when quiet.
+  app.get('/admin/community-health', async (req) => {
+    await requireAdmin(req);
+    const { weeks } = z.object({ weeks: z.coerce.number().int().min(4).max(52).default(12) }).parse(req.query);
+    return kindnessWeather.health(db, weeks);
   });
 
   // Growth ideas (docs/GROWTH.md): each off until switched on here.
@@ -869,12 +987,56 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     };
   });
 
+  // Moderation tools: search, bulk decisions and audit log filters (docs/MODERATION_TOOLS.md).
+  app.get('/admin/moderation-tools', async (req) => {
+    await requireAdmin(req);
+    return { settings: await moderationTools.settings(db) };
+  });
+
+  app.patch('/admin/moderation-tools', async (req) => {
+    await requireAdmin(req);
+    return { settings: await moderationTools.updateSettings(db, moderationTools.SettingsPatch.parse(req.body)) };
+  });
+
+  // Kindness starter set: one tap turns a short list of no-cost kindness tools on or off together.
+  app.get('/admin/kindness-starter', async (req) => {
+    await requireAdmin(req);
+    return kindnessStarter.status(db);
+  });
+
+  app.post('/admin/kindness-starter', async (req) => {
+    await requireAdmin(req);
+    const { on } = kindnessStarter.Apply.parse(req.body);
+    return withTx(db, (tx) => kindnessStarter.apply(tx, on));
+  });
+
+  // Goldfish memory: recent removals in the queue fade after a set time (docs/GENTLE_REPAIR.md).
+  app.get('/admin/goldfish', async (req) => {
+    await requireAdmin(req);
+    return { settings: await goldfish.settings(db) };
+  });
+
+  app.patch('/admin/goldfish', async (req) => {
+    await requireAdmin(req);
+    return { settings: await goldfish.updateSettings(db, goldfish.SettingsPatch.parse(req.body)) };
+  });
+
   // Staff audit log, newest first; ?before= pages back, ?actorId= / ?targetId= filter.
   app.get('/admin/audit-log', async (req) => {
     await requireAdmin(req);
     const query = z
-      .object({ actorId: z.uuid().optional(), targetId: z.uuid().optional(), before: z.iso.datetime({ offset: true }).optional(), limit: z.coerce.number().int().min(1).max(200).default(50) })
+      .object({
+        actorId: z.uuid().optional(),
+        targetId: z.uuid().optional(),
+        before: z.iso.datetime({ offset: true }).optional(),
+        limit: z.coerce.number().int().min(1).max(200).default(50),
+        // Moderation tools (off): filter by action, words, and a start time.
+        action: z.string().trim().min(1).max(100).optional(),
+        q: z.string().trim().min(1).max(200).optional(),
+        since: z.iso.datetime({ offset: true }).optional(),
+      })
       .parse(req.query);
+    if (query.action || query.q || query.since) await moderationTools.requireOn(db);
     return { entries: await audit.list(db, query) };
   });
 

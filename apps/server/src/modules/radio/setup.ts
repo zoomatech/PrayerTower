@@ -9,6 +9,8 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
+import * as beacon from './beacon.js';
+import * as operatorConsole from './console.js';
 import { AppError, notFound } from '../../errors.js';
 
 /**
@@ -158,17 +160,30 @@ export async function request(q: Queryable, kind: SetupTest['kind'], userId: str
   return rows[0]!;
 }
 
-/** The station takes the oldest waiting test; null when none (or the wizard is off). */
+/**
+ * The station takes the oldest waiting test; null when none. Wizard tests only
+ * while the wizard is on; reception beacons (beacon.ts) only while the beacon is
+ * on and the station may transmit now (not held, inside the windows).
+ */
 export async function claim(q: Queryable, callSign: string | null): Promise<Pick<SetupTest, 'id' | 'kind' | 'seconds' | 'code'> | null> {
-  if (!(await enabled(q))) return null;
+  const wizard = await enabled(q);
+  const beacons = (await beacon.settings(q)).enabled && (await operatorConsole.mayTransmit(q));
+  if (!wizard && !beacons) return null;
   await expire(q);
   const { rows } = await q.query<Pick<SetupTest, 'id' | 'kind' | 'seconds' | 'code'>>(
     `update public.radio_setup_tests set status = 'sending', call_sign = $1
-      where id = (select id from public.radio_setup_tests where status = 'requested' order by created_at limit 1 for update skip locked)
+      where id = (select id from public.radio_setup_tests
+                   where status = 'requested' and (($2 and not beacon) or ($3 and beacon))
+                   order by created_at limit 1 for update skip locked)
       returning id, kind, seconds, code`,
-    [callSign?.toUpperCase() ?? null],
+    [callSign?.toUpperCase() ?? null, wizard, beacons],
   );
   return rows[0] ?? null;
+}
+
+/** Whether listener reports should be matched against test bursts: the wizard or the beacon is on. */
+export async function testsActive(q: Queryable): Promise<boolean> {
+  return (await enabled(q)) || (await beacon.settings(q)).enabled;
 }
 
 export const SetupResult = z.object({
@@ -197,6 +212,15 @@ export async function report(q: Queryable, id: string, r: z.infer<typeof SetupRe
  * routes that take prayer receipts, before them.
  */
 export async function heard(q: Queryable, r: { callSign: string; snrDb: number; hashes: string[]; peakDbfs?: number }, by: string): Promise<number> {
+  // A beacon keeps every receiver that heard it, not only the first.
+  await q.query(
+    `insert into public.radio_beacon_heard (test_id, heard_by, snr_db, peak_dbfs)
+     select id, $3, $4, $5 from public.radio_setup_tests
+      where beacon and status in ('sent', 'heard') and sent_hash = any($1::text[]) and upper(call_sign) = upper($2)
+        and sent_at > now() - make_interval(mins => $6)
+     on conflict (test_id, heard_by) do update set snr_db = greatest(radio_beacon_heard.snr_db, excluded.snr_db)`,
+    [r.hashes, r.callSign, by.slice(0, 80), Math.round(r.snrDb * 10) / 10, r.peakDbfs ?? null, HEARD_MINUTES],
+  );
   const { rowCount } = await q.query(
     `update public.radio_setup_tests set status = 'heard', heard_at = now(), heard_by = $3, heard_snr_db = $4, heard_peak_dbfs = $5
       where kind = 'burst' and status = 'sent' and sent_hash = any($1::text[]) and upper(call_sign) = upper($2)

@@ -13,8 +13,8 @@ const SCREENS = [
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account', '/squire-board', '/prayer-list',
   '/why-gifts', '/give', '/account-security', '/two-step', '/ai-chat', '/announcements', '/churches', '/church', '/listen', '/listen-on-air', '/onboarding',
-  '/prayer-chain', '/prayer-minute', '/remembered', '/safety', '/scheduled', '/skin-idea', '/skin-gallery', '/waitlist', '/reading-plan', '/invites',
-  '/meaning-words', '/kindness-research', '/crosspost',
+  '/prayer-chain', '/prayer-minute', '/remembered', '/scheduled', '/signal-queue', '/skin-idea', '/skin-gallery', '/waitlist', '/reading-plan', '/invites',
+  '/meaning-words', '/kindness-research', '/crosspost', '/circles',
 ];
 const shots = process.env.OPEN_CIRCLE_SHOTS;
 
@@ -24,7 +24,7 @@ async function signInFresh(page: Page) {
   await page.goto('/sign-in');
   await page.locator('input').nth(0).fill('ruth@demo.prayertower.local');
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).last().click();
+  await page.getByTestId('sign-in-submit').click();
   await expect(page.getByText('Support').first()).toBeVisible();
 }
 

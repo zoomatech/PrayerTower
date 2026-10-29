@@ -21,7 +21,7 @@ export class RigError extends Error {}
 export const RIG_MODES = ['USB', 'LSB', 'CW', 'CWR', 'RTTY', 'RTTYR', 'AM', 'FM', 'WFM', 'AMS', 'PKTLSB', 'PKTUSB', 'PKTFM', 'ECSSUSB', 'ECSSLSB', 'FA', 'SAM', 'SAL', 'SAH', 'DSB'] as const;
 
 /** Send one command and collect its "Key: value" lines; rejects on a non-zero RPRT, a dropped connection or a timeout. */
-export function rigctldCommand(host: string, port: number, command: string, timeoutMs = 5_000): Promise<Record<string, string>> {
+export function rigctldCommand(host: string, port: number, command: string, timeoutMs = 5_000, daemon = 'rigctld'): Promise<Record<string, string>> {
   return new Promise((resolve, reject) => {
     const socket = connect({ host, port });
     let buf = '';
@@ -29,8 +29,8 @@ export function rigctldCommand(host: string, port: number, command: string, time
       socket.destroy();
       reject(err);
     };
-    socket.setTimeout(timeoutMs, () => fail(new RigError(`rigctld at ${host}:${port} did not answer "${command}"`)));
-    socket.on('error', (err) => fail(new RigError(`rigctld at ${host}:${port}: ${err.message}`)));
+    socket.setTimeout(timeoutMs, () => fail(new RigError(`${daemon} at ${host}:${port} did not answer "${command}"`)));
+    socket.on('error', (err) => fail(new RigError(`${daemon} at ${host}:${port}: ${err.message}`)));
     socket.on('connect', () => socket.write(`+${command}\n`));
     socket.on('data', (d) => {
       buf += d.toString('latin1');
@@ -38,7 +38,7 @@ export function rigctldCommand(host: string, port: number, command: string, time
       if (!m) return;
       socket.end();
       const code = Number(m[1]);
-      if (code !== 0) return reject(new RigError(`rigctld refused "${command}" (Hamlib error ${code})`));
+      if (code !== 0) return reject(new RigError(`${daemon} refused "${command}" (Hamlib error ${code})`));
       const values: Record<string, string> = {};
       for (const line of buf.slice(0, m.index).split('\n')) {
         const kv = /^([^:]+):\s*(.*)$/.exec(line.trim());

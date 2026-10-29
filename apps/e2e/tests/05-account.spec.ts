@@ -22,6 +22,6 @@ test('a member deletes their account and can no longer sign in', async ({ page }
 
   await page.locator('input').nth(0).fill('james@demo.prayertower.local');
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).last().click();
+  await page.getByTestId('sign-in-submit').click();
   await expect(page.getByText(/invalid/i).first()).toBeVisible();
 });

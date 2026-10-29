@@ -13,6 +13,7 @@ import * as acks from './acks.js';
 import * as receipts from './receipts.js';
 import * as nodes from './nodes.js';
 import * as setup from './setup.js';
+import * as sky from './sky.js';
 import * as coverage from './coverage.js';
 import * as packet from './packet.js';
 
@@ -91,6 +92,14 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
     return { test };
   });
 
+  // Where to point the dish (sky.ts), for a station with a rotator (ROTATOR=rotctld); 204 while off.
+  app.get('/station/sky', async (req, reply) => {
+    await requireStation(req);
+    const p = await sky.now(db);
+    if (!p) return reply.code(204).send();
+    return { az: p.az, el: p.el, target: p.target, aboveMinimum: p.aboveMinimum };
+  });
+
   app.post<{ Params: { id: string } }>('/station/setup-test/:id/result', async (req) => {
     await requireStation(req);
     await setup.report(db, z.string().uuid().parse(req.params.id), setup.SetupResult.parse(req.body));
@@ -118,29 +127,30 @@ export function nodeRoutes(app: FastifyInstance, db: Db) {
   // A listener node decoded these prayers (fingerprints only): acknowledges them (acks.ts) and, with receipts on, tells their senders.
   app.post('/node/heard', async (req) => {
     const node = await nodes.authenticateRequest(db, req, 'listener');
-    const wizard = await setup.enabled(db);
+    const wizard = await setup.testsActive(db);
     const on = wizard || (await nodes.enabled(db)) || (await acks.settings(db)).enabled || (await receipts.enabled(db));
     if (!on) throw notFound('Listener acknowledgements');
     const report = receipts.HeardReport.parse(req.body);
     // A setup wizard test burst (setup.ts) is not a prayer: it never reaches receipts.
     const tests = wizard ? await setup.heard(db, report, node.name) : 0;
-    return { matched: (await withTx(db, (tx) => receipts.heard(tx, report))) + tests };
+    return { matched: (await withTx(db, (tx) => receipts.heard(tx, report, { id: node.id, name: node.name }))) + tests };
   });
 
   // A listener decoded the packet fallback's short IDs (packet.ts): heard, like a burst receipt.
   app.post('/node/heard-ids', async (req) => {
-    await nodes.authenticateRequest(db, req, 'listener');
+    const node = await nodes.authenticateRequest(db, req, 'listener');
     if (!(await packet.enabled(db))) throw notFound('Packet fallback');
     const report = packet.HeardIds.parse(req.body);
-    return { matched: await withTx(db, (tx) => packet.heardIds(tx, report)) };
+    return { matched: await withTx(db, (tx) => packet.heardIds(tx, report, { id: node.id, name: node.name })) };
   });
 
   // About once a minute, so acknowledgements know a listener is running (authenticate marks it seen).
   // A node that opted in (NODE_LOCATION) adds its approximate location for the coverage map (coverage.ts).
   app.post('/node/heartbeat', async (req) => {
     const node = await nodes.authenticateRequest(db, req, 'listener');
-    const { location } = z.object({ location: coverage.Location.optional() }).parse(req.body ?? {});
+    const { location, relay } = z.object({ location: coverage.Location.optional(), relay: nodes.RelayStatus.optional() }).parse(req.body ?? {});
     if (location) await coverage.fromNode(db, node.id, location);
+    if (relay) await nodes.recordRelay(db, node.id, relay);
     return { ok: true };
   });
 }

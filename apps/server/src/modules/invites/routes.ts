@@ -9,10 +9,17 @@ import type { Mailer } from '../digest/mailer.js';
 import { EmailInvite, renderInviteEmail, type InviteLinks } from './email.js';
 import { importCsv, ImportInput } from './import.js';
 import * as invites from './index.js';
+import * as security from '../security/index.js';
 
-/** Public: the sign-up screen asks whether to show the invite code field. */
+/**
+ * Public: the sign-in screens ask whether to show the invite code field, "Sign in
+ * with a passkey", and "Use a backup code" (before the code, /features is refused).
+ */
 export function signupConfigRoutes(app: FastifyInstance, db: Db) {
-  app.get('/signup-config', async () => ({ inviteOnly: await invites.inviteOnly(db) }));
+  app.get('/signup-config', async () => {
+    const s = await security.settings(db);
+    return { inviteOnly: await invites.inviteOnly(db), passkeys: s.passkeys_enabled, backupCodes: s.backup_codes_enabled };
+  });
 }
 
 

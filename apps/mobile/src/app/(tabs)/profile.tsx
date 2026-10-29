@@ -27,8 +27,13 @@ import { LiftUpCard } from '@/components/lift-up-card';
 import { HighlightsLink } from '@/components/kindness-highlights';
 import { MeaningProposals } from '@/components/meaning-proposals';
 import { PartnerCard } from '@/components/partner-card';
+import { DailyReminderCard } from '@/components/daily-reminder-card';
 import { GratitudeCard } from '@/components/gratitude-card';
+import { KindWordsCard } from '@/components/kind-words-card';
+import { WeeklyIntention } from '@/components/weekly-intention';
+import { FreshDayLine, FreshDaysCard } from '@/components/fresh-days';
 import { KindMilestones } from '@/components/kind-milestones';
+import { QuietCountsCard } from '@/components/comment-kindness';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
@@ -151,8 +156,10 @@ export default function Profile() {
           <View
             style={styles.prayerLife}
             accessibilityLabel={
-              // Gentle rhythm: days this month (which only adds) instead of days in a row.
-              features.gentleRhythm
+              // Weeks of prayer, or gentle rhythm (days this month), instead of days in a row.
+              features.gentleStreak
+                ? t('reminders.weeksSummary', { days: stats.daysPrayed, weeks: stats.weeksPrayed, people: stats.peoplePrayedFor })
+                : features.gentleRhythm
                 ? t('practices.rhythmSummary', { days: stats.daysPrayed, month: stats.monthDays, people: stats.peoplePrayedFor })
                 : t('stats.summary', { days: stats.daysPrayed, people: stats.peoplePrayedFor, streak: stats.currentStreak })
             }>
@@ -167,8 +174,12 @@ export default function Profile() {
                 <Text style={type.small}>{t('stats.people')}</Text>
               </View>
               <View style={styles.stat}>
-                <Text style={styles.statValue}>{features.gentleRhythm ? stats.monthDays : stats.currentStreak}</Text>
-                <Text style={type.small}>{features.gentleRhythm ? t('practices.rhythmMonth') : t('stats.streak')}</Text>
+                <Text style={styles.statValue}>
+                  {features.gentleStreak ? stats.weeksPrayed : features.gentleRhythm ? stats.monthDays : stats.currentStreak}
+                </Text>
+                <Text style={type.small}>
+                  {features.gentleStreak ? t('reminders.weeks') : features.gentleRhythm ? t('practices.rhythmMonth') : t('stats.streak')}
+                </Text>
               </View>
             </View>
             <View style={styles.week} accessible={false}>
@@ -176,13 +187,19 @@ export default function Profile() {
                 <View key={d.date} style={[styles.dot, d.prayed && styles.dotOn]} />
               ))}
             </View>
+            {stats.freshDay ? <FreshDayLine day={stats.freshDay} /> : null}
+            {stats.intention ? <WeeklyIntention intention={stats.intention} onChange={setStats} /> : null}
             {features.gentleRhythm && stats.welcomeBack ? <Text style={type.body}>{t('practices.welcomeBack')}</Text> : null}
             {features.gentleRhythm && stats.freshStart ? (
               <Text style={type.body}>{stats.freshStart === 'month' ? t('practices.freshMonth') : t('practices.freshWeek')}</Text>
             ) : null}
             <Text style={type.small}>
-              {features.gentleRhythm
-                ? t('practices.rhythmNote')
+              {features.gentleStreak
+                ? stats.weekRun
+                  ? t('reminders.weekRun', { count: stats.weekRun })
+                  : t('reminders.weeksNote')
+                : features.gentleRhythm
+                  ? t('practices.rhythmNote')
                 : stats.currentStreak > 1
                   ? t('stats.streakNote', { count: stats.currentStreak })
                   : t('stats.gentle')}{' '}
@@ -191,12 +208,17 @@ export default function Profile() {
           </View>
         ) : null}
         <GratitudeCard />
+        <KindWordsCard />
+        <FreshDaysCard />
+        <DailyReminderCard />
         <KindMilestones />
+        <QuietCountsCard />
         <LiftUpCard />
         <HighlightsLink />
         <MeaningProposals />
         {features.kindnessResearch ? <Button small variant="secondary" label={t('research.title')} onPress={() => router.push('/kindness-research')} /> : null}
         <EncouragerCard />
+        {features.prayerCircles ? <Button small variant="secondary" label={t('circles.open')} testID="open-circles" onPress={() => router.push('/circles')} /> : null}
         <PartnerCard />
         <ConversationPrefsCard />
         <AwardCard />
@@ -210,6 +232,7 @@ export default function Profile() {
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           {giving?.enabled || (radioOn && giving?.allocationRequests) ? <Button small variant="secondary" label={t('give.open')} onPress={() => router.push('/give')} /> : null}
+          {radioOn && features.signalQueue ? <Button small variant="secondary" label={t('signalQueue.title')} onPress={() => router.push('/signal-queue')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
           {features.whyGifts ? <Button small variant="secondary" label={t('whyGifts.link')} onPress={() => router.push('/why-gifts')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
@@ -330,7 +353,7 @@ export default function Profile() {
             setExporting(true);
             try {
               const data = await api.exportMyData();
-              await saveJson(`${env.edition}-data-${data.exportedAt.slice(0, 10)}.json`, data);
+              await saveJson(`${wording === 'neutral' ? 'open-circle' : env.edition}-data-${data.exportedAt.slice(0, 10)}.json`, data);
             } catch (e) {
               setError((e as Error).message);
             } finally {

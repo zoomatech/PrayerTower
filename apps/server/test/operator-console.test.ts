@@ -67,6 +67,23 @@ describe('operator console', () => {
     expect(after.log[0]).toMatchObject({ callSign: CALL, status: 'transmitted', text: `Console queued prayer ${RUN}.` });
   });
 
+  it('lists what comes next in the order the station will be handed it', async () => {
+    await radio.updateStationSettings(db, { radio_urgent_first: true });
+    try {
+      const calm = await newRequest(poster, `Console calm prayer ${RUN}.`);
+      const urgent = await newRequest(poster, `Console urgent prayer ${RUN}.`);
+      await db.query('update public.posts set urgency = 3 where id = $1', [urgent.id]);
+      await as(member).post(`/posts/${calm.id}/radio`, { idempotencyKey: `console-calm-${RUN}` });
+      await as(member).post(`/posts/${urgent.id}/radio`, { idempotencyKey: `console-urgent-${RUN}` });
+      const next = (await as(operator).get('/radio/console')).json().queue.next as { text: string }[];
+      expect(next.map((n) => n.text).slice(0, 2)).toEqual([`Console urgent prayer ${RUN}.`, `Console calm prayer ${RUN}.`]);
+      expect((await station('/station/claim')).json().radioPrayer.text).toBe(`Console urgent prayer ${RUN}.`);
+    } finally {
+      await radio.updateStationSettings(db, { radio_urgent_first: stationDefaults.radio_urgent_first });
+      await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+    }
+  });
+
   it('hold stops the station being handed anything until resumed', async () => {
     const p = await newRequest(poster, `Console held prayer ${RUN}.`);
     await as(member).post(`/posts/${p.id}/radio`, { idempotencyKey: `console-held-${RUN}` });
@@ -94,6 +111,15 @@ describe('operator console', () => {
     await station(`/station/radio-prayers/${c.id}/result`, { ok: true, callSign: CALL });
     expect((await as(operator).patch('/radio/console', { windowOverrideMinutes: 0 })).json()).toMatchObject({ onAirNow: false, windowOverrideUntil: null });
     await schedule.update(db, { enabled: false });
+  });
+
+  it('lists relays that reported with their heartbeat in the last hour', async () => {
+    const key = (await as(admin).post('/admin/radio-nodes', { name: `Ridge relay ${RUN}` })).json().key;
+    const relay = { callSign: 'K1RLY', relayedLastHour: 3, secondsLastHour: 4.2, budgetSeconds: 120, skipped: { duplicate: 2 } };
+    const r = await app.inject({ method: 'POST', url: '/node/heartbeat', headers: { 'x-node-key': key }, payload: { relay } });
+    expect(r.statusCode).toBe(200);
+    expect((await as(operator).get('/radio/console')).json().relays).toContainEqual(expect.objectContaining({ node: `Ridge relay ${RUN}`, ...relay }));
+    expect((await app.inject({ method: 'POST', url: '/node/heartbeat', headers: { 'x-node-key': key }, payload: { relay: { ...relay, skipped: { bogus: 1 } } } })).statusCode).toBe(400);
   });
 
   it('turning the console off lifts a hold, so nothing stays held by a screen no one can see', async () => {

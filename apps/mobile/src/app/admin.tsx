@@ -14,11 +14,11 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PilotToolsSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings } from '@/lib/api';
 import { errorText } from '@/lib/error-report';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
-import { resetFeatures } from '@/lib/features';
+import { resetFeatures, useFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -36,6 +36,9 @@ const toInt = (s: string) => (s.trim() === '' ? null : Number.parseInt(s, 10));
 
 function Admin() {
   const { t, language } = useLocale();
+  const features = useFeatures();
+  // A member who lost their phone and backup codes: the first tap asks, the second turns two-step sign-in off.
+  const [resetAsk, setResetAsk] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [days, setDays] = useState(7);
@@ -316,6 +319,12 @@ function Admin() {
         <NotebookSettingsSection />
         <GrowthSettingsSection />
         <GivingSplitSection />
+        <PushDeliverySection />
+        <ReminderSettingsSection />
+        <PracticeModeSection />
+        <ModerationToolsSection />
+        <GoldfishSection />
+        <KindnessStarterSection />
         <PracticeSettingsSection />
         <ConversationSettingsSection />
         <SkinSettingsSection />
@@ -373,6 +382,12 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <RadioScheduleSection /> : null}
             {radio.radio_transmitter === 'station' ? <OperatorLogSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioConsoleSection /> : null}
+            {radio.radio_transmitter === 'station' ? <SkyTargetSection /> : null}
+            <CeaselessSection />
+            <ScheduledRadioToggle />
+            <HeardTrailToggle />
+            <SignalQueueToggle />
+            <FairAirSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -500,6 +515,21 @@ function Admin() {
                   <Chip key={r} label={t(`admin.role.${r}`)} selected={p.roles.includes(r)} onPress={() => toggleRole(p, r)} />
                 ))}
               </View>
+              {features.twoStep || features.backupCodes ? (
+                <Button
+                  small
+                  variant="ghost"
+                  label={resetAsk === p.id ? t('backupCodes.adminResetSure') : t('backupCodes.adminReset')}
+                  onPress={() =>
+                    resetAsk === p.id
+                      ? run(async () => {
+                          await api.admin.resetTwoStep(p.id);
+                          setResetAsk(null);
+                        }, t('backupCodes.adminResetDone', { name: p.display_name }))
+                      : setResetAsk(p.id)
+                  }
+                />
+              ) : null}
             </View>
           ))}
         </View>
@@ -759,13 +789,193 @@ function RadioScheduleSection() {
   );
 }
 
-/** The operator console switch (radio/console.ts), off by default. */
+/** Fair air (radio/fair-air.ts): every request on the air once, and a daily cap per member. Both off by default. */
+function FairAirSection() {
+  const t = useT();
+  const [s, setS] = useState<{ everyRequest: boolean; dailyCap: number | null } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioFairAir().then(setS).catch(() => undefined);
+    }, []),
+  );
+  if (!s) return null;
+  const save = (patch: { everyRequest?: boolean; dailyCap?: number | null }) => api.admin.setRadioFairAir(patch).then(setS).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.everyRequest')} hint={t('admin.everyRequestHint')} value={s.everyRequest} onChange={(v) => save({ everyRequest: v })} />
+      <Text style={type.small}>{t('admin.dailyCap')}</Text>
+      <View style={styles.row}>
+        {[null, 3, 10, 30].map((c) => (
+          <Chip key={String(c)} label={c === null ? t('admin.dailyCapNone') : String(c)} selected={s.dailyCap === c} onPress={() => save({ dailyCap: c })} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** My signal queue and signal codes (radio/signal-queue.ts), off by default. */
+function SignalQueueToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.signalQueueSetting().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.signalQueue')} hint={t('admin.signalQueueHint')} value={on} onChange={(v) => api.admin.setSignalQueue(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
+  );
+}
+
+/** "Where it was heard" (radio/trail.ts), off by default. */
+function HeardTrailToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.heardTrail().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.heardTrail')} hint={t('admin.heardTrailHint')} value={on} onChange={(v) => api.admin.setHeardTrail(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
+  );
+}
+
+/** Scheduled radio and amplify sends (modules/schedules), off by default. */
+function ScheduledRadioToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.scheduledRadio().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle
+      label={t('admin.scheduledRadio')}
+      hint={t('admin.scheduledRadioHint')}
+      value={on}
+      onChange={(v) => api.admin.setScheduledRadio(v).then((r) => setOn(r.enabled)).catch(() => undefined)}
+    />
+  );
+}
+
+/** Prayer without ceasing (radio/ceaseless.ts), off by default. */
+function CeaselessSection() {
+  const t = useT();
+  const [s, setS] = useState<{ enabled: boolean; gapMinutes: number } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioCeaseless().then(setS).catch(() => undefined);
+    }, []),
+  );
+  if (!s) return null;
+  const save = (patch: { enabled?: boolean; gapMinutes?: number }) => api.admin.setRadioCeaseless(patch).then(setS).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.ceaseless')} hint={t('admin.ceaselessHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      {s.enabled ? (
+        <View style={styles.row}>
+          {[15, 30, 60, 120].map((m) => (
+            <Chip key={m} label={t('admin.ceaselessGap', { minutes: m })} selected={s.gapMinutes === m} onPress={() => save({ gapMinutes: m })} />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** The dish's sky target (radio/sky.ts), off by default. */
+function SkyTargetSection() {
+  const t = useT();
+  const [data, setData] = useState<{ settings: SkySettings; now: SkyNow | null } | null>(null);
+  const [place, setPlace] = useState({ lat: '', lon: '' });
+  const [custom, setCustom] = useState({ name: '', ra: '', dec: '' });
+  const [error, setError] = useState<string | null>(null);
+  const show = (r: { settings: SkySettings; now: SkyNow | null }) => {
+    setData(r);
+    setPlace({ lat: r.settings.location ? String(r.settings.location.lat) : '', lon: r.settings.location ? String(r.settings.location.lon) : '' });
+    setCustom({ name: r.settings.custom?.name ?? '', ra: r.settings.custom ? String(r.settings.custom.raHours) : '', dec: r.settings.custom ? String(r.settings.custom.decDeg) : '' });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioSky().then(show).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const save = (patch: Partial<SkySettings>) => {
+    setError(null);
+    api.admin.setRadioSky(patch).then(show).catch((e: Error) => setError(e.message));
+  };
+  const s = data.settings;
+  const num = (v: string) => (v.trim() === '' ? NaN : Number(v));
+  return (
+    <View>
+      <Toggle label={t('admin.sky')} hint={t('admin.skyHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      {s.enabled ? (
+        <>
+          <View style={styles.row}>
+            {(['zenith', 'moon', 'alpha_centauri', 'custom'] as const).map((k) => (
+              <Chip key={k} label={t(`operatorConsole.skyTarget.${k}`)} selected={s.target === k} onPress={() => save({ target: k })} />
+            ))}
+          </View>
+          {s.target === 'custom' ? (
+            <>
+              <Field label={t('admin.skyCustomName')} value={custom.name} onChangeText={(v) => setCustom((c) => ({ ...c, name: v }))} maxLength={40} />
+              <Field label={t('admin.skyCustomRa')} value={custom.ra} onChangeText={(v) => setCustom((c) => ({ ...c, ra: v }))} keyboardType="numbers-and-punctuation" />
+              <Field label={t('admin.skyCustomDec')} value={custom.dec} onChangeText={(v) => setCustom((c) => ({ ...c, dec: v }))} keyboardType="numbers-and-punctuation" />
+              <Button
+                small
+                label={t('admin.skySave')}
+                disabled={!custom.name.trim() || Number.isNaN(num(custom.ra)) || Number.isNaN(num(custom.dec))}
+                onPress={() => save({ custom: { name: custom.name.trim(), raHours: num(custom.ra), decDeg: num(custom.dec) } })}
+              />
+            </>
+          ) : null}
+          <Field label={t('admin.skyLat')} value={place.lat} onChangeText={(v) => setPlace((p) => ({ ...p, lat: v }))} keyboardType="numbers-and-punctuation" />
+          <Field label={t('admin.skyLon')} value={place.lon} onChangeText={(v) => setPlace((p) => ({ ...p, lon: v }))} keyboardType="numbers-and-punctuation" />
+          <Button
+            small
+            label={t('admin.skySave')}
+            disabled={Number.isNaN(num(place.lat)) || Number.isNaN(num(place.lon))}
+            onPress={() => save({ location: { lat: num(place.lat), lon: num(place.lon) } })}
+          />
+          <Text style={type.small}>{t('admin.skyMinElevation')}</Text>
+          <View style={styles.row}>
+            {[0, 5, 10, 20, 30].map((m) => (
+              <Chip key={m} label={`${m}°`} selected={s.minElevation === m} onPress={() => save({ minElevation: m })} />
+            ))}
+          </View>
+          <Toggle label={t('admin.skyHold')} hint={t('admin.skyHoldHint')} value={s.holdBelow} onChange={(v) => save({ holdBelow: v })} />
+          {data.now ? (
+            <Text style={type.small}>
+              {t('operatorConsole.skyPoint', { target: data.now.name ?? t(`operatorConsole.skyTarget.${data.now.target}`), az: data.now.az.toFixed(1), el: data.now.el.toFixed(1) })}
+            </Text>
+          ) : (
+            <Text style={type.small}>{t('admin.skyNeedsPlace')}</Text>
+          )}
+          <ErrorText error={error} />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** The operator console, operator alert and reception beacon switches (radio/console.ts, operator-alerts.ts, beacon.ts), off by default. */
 function RadioConsoleSection() {
   const t = useT();
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [alerts, setAlerts] = useState<boolean | null>(null);
+  const [beacon, setBeacon] = useState<{ enabled: boolean; minutes: number } | null>(null);
+  const saveBeacon = (patch: { enabled?: boolean; minutes?: number }) => api.admin.setRadioBeacon(patch).then(setBeacon).catch(() => undefined);
   useFocusEffect(
     useCallback(() => {
       api.admin.radioConsole().then((r) => setEnabled(r.enabled)).catch(() => undefined);
+      api.admin.operatorAlerts().then((r) => setAlerts(r.enabled)).catch(() => undefined);
+      api.admin.radioBeacon().then(setBeacon).catch(() => undefined);
     }, []),
   );
   if (enabled === null) return null;
@@ -778,6 +988,21 @@ function RadioConsoleSection() {
       </View>
       <Text style={type.small}>{t('admin.radioConsoleHint')}</Text>
       {enabled ? <Button small label={t('profile.operatorConsole')} onPress={() => router.push('/operator-console')} /> : null}
+      {alerts !== null ? (
+        <Toggle label={t('admin.operatorAlerts')} hint={t('admin.operatorAlertsHint')} value={alerts} onChange={(v) => api.admin.setOperatorAlerts(v).then((r) => setAlerts(r.enabled)).catch(() => undefined)} />
+      ) : null}
+      {beacon ? (
+        <>
+          <Toggle label={t('admin.radioBeacon')} hint={t('admin.radioBeaconHint')} value={beacon.enabled} onChange={(v) => saveBeacon({ enabled: v })} />
+          {beacon.enabled ? (
+            <View style={styles.row}>
+              {[30, 60, 120, 240].map((m) => (
+                <Chip key={m} label={t('admin.radioBeaconEvery', { minutes: m })} selected={beacon.minutes === m} onPress={() => saveBeacon({ minutes: m })} />
+              ))}
+            </View>
+          ) : null}
+        </>
+      ) : null}
     </View>
   );
 }
@@ -1130,23 +1355,25 @@ function LiveSection() {
 /** Two-step sign-in with an authenticator app. Off by default; members who turned it on keep it. */
 function SecuritySection() {
   const t = useT();
-  const [on, setOn] = useState<boolean | null>(null);
+  const [s, setS] = useState<SecuritySettings | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      api.admin.securitySettings().then((r) => setOn(r.settings.two_step_enabled), (e) => setNote((e as Error).message));
+      api.admin.securitySettings().then((r) => setS(r.settings), (e) => setNote((e as Error).message));
     }, []),
   );
-  const save = (v: boolean) =>
+  const save = (patch: { twoStepEnabled?: boolean; backupCodesEnabled?: boolean; passkeysEnabled?: boolean }) =>
     api.admin
-      .updateSecuritySettings({ twoStepEnabled: v })
-      .then((r) => (setOn(r.settings.two_step_enabled), resetFeatures(), setNote(t('admin.saved.security'))))
+      .updateSecuritySettings(patch)
+      .then((r) => (setS(r.settings), resetFeatures(), setNote(t('admin.saved.security'))))
       .catch((e) => setNote((e as Error).message));
-  if (on === null) return note ? <Text style={type.small}>{note}</Text> : null;
+  if (s === null) return note ? <Text style={type.small}>{note}</Text> : null;
   return (
     <View style={styles.section}>
       <Text style={type.heading}>{t('admin.security')}</Text>
-      <Toggle label={t('admin.toggle.twoStep')} hint={t('admin.toggle.twoStepHint')} value={on} onChange={save} />
+      <Toggle label={t('admin.toggle.twoStep')} hint={t('admin.toggle.twoStepHint')} value={s.two_step_enabled} onChange={(v) => save({ twoStepEnabled: v })} />
+      <Toggle label={t('backupCodes.adminToggle')} hint={t('backupCodes.adminHint')} value={s.backup_codes_enabled} onChange={(v) => save({ backupCodesEnabled: v })} />
+      <Toggle label={t('passkeys.adminToggle')} hint={t('passkeys.adminHint')} value={s.passkeys_enabled} onChange={(v) => save({ passkeysEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
@@ -1759,7 +1986,54 @@ function SkinSettingsSection() {
   );
 }
 
-/** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
+/** Push delivery: retries without repeats, receipts, folding and an hourly cap (docs/PUSH_DELIVERY.md). */
+export function PushDeliverySection() {
+  const t = useT();
+  const [d, setD] = useState<PushDelivery | null>(null);
+  const [fold, setFold] = useState('');
+  const [cap, setCap] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: PushDelivery) => {
+    setD(x);
+    setFold(String(x.settings.collapse_minutes));
+    setCap(String(x.settings.max_per_hour));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.pushSettings().then(show).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updatePushSettings({ collapseMinutes: toInt(fold) ?? undefined, maxPerHour: toInt(cap) ?? undefined, ...patch })
+      .then((r) => {
+        show(r);
+        setNote(t('pushDelivery.saved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!d) return note ? <Text style={type.small}>{note}</Text> : null;
+  const n = (k: keyof PushDelivery['health']['byStatus']) => d.health.byStatus[k] ?? 0;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('pushDelivery.title')}</Text>
+      <Text style={type.small}>{t('pushDelivery.intro')}</Text>
+      <Toggle label={t('pushDelivery.toggle')} value={d.settings.push_reliability_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('pushDelivery.fold')} keyboardType="number-pad" value={fold} onChangeText={setFold} />
+      <Field label={t('pushDelivery.cap')} keyboardType="number-pad" value={cap} onChangeText={setCap} />
+      <Button label={t('pushDelivery.save')} onPress={() => save()} />
+      <Text style={type.small}>
+        {t('pushDelivery.health', { delivered: n('ok'), sent: n('sent'), waiting: n('retry') + n('held'), folded: n('folded') + n('capped'), failed: n('error'), off: d.health.devicesTurnedOff })}
+      </Text>
+      {d.health.errors.map((e) => (
+        <Text key={e.error} style={type.small}>
+          {t('pushDelivery.error', { error: e.error, n: e.n })}
+        </Text>
+      ))}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Giving split: members may ask that a share of gifts toward them go to their own page. */
 function GivingSplitSection() {
   const t = useT();
@@ -1797,6 +2071,204 @@ function GivingSplitSection() {
   );
 }
 
+/** Gentle reminders: a daily reminder that never mentions a missed day, and weeks of prayer (docs/GENTLE_REMINDERS.md). */
+export function PracticeModeSection() {
+  const t = useT();
+  const [d, setD] = useState<{ settings: PracticeModeSettings; connected: PracticeConnected } | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceMode().then(setD).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Partial<PracticeModeSettings>) =>
+    api.admin
+      .updatePracticeMode(patch)
+      .then((r) => (setD(r), resetFeatures(), setNote(t('practiceMode.saved'))))
+      .catch((e) => setNote((e as Error).message));
+  if (!d) return note ? <Text style={type.small}>{note}</Text> : null;
+  const c = d.connected;
+  const list = [
+    c.ai && t('practiceMode.aiOn'),
+    c.videoServer && t('practiceMode.videoOn'),
+    c.jaas && t('practiceMode.jaasOn'),
+    c.appStore && t('practiceMode.storeOn'),
+  ].filter(Boolean);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('practiceMode.title')}</Text>
+      <Text style={type.small}>{t('practiceMode.intro')}</Text>
+      <Text style={type.small}>{list.length ? t('practiceMode.connected', { list: list.join(', ') }) : t('practiceMode.nothing')}</Text>
+      <Toggle label={t('practiceMode.ai')} hint={t('practiceMode.aiHint')} value={d.settings.ai} onChange={(v) => save({ ai: v })} />
+      <Toggle label={t('practiceMode.live')} hint={t('practiceMode.liveHint')} value={d.settings.live} onChange={(v) => save({ live: v })} />
+      <Toggle label={t('practiceMode.purchases')} hint={t('practiceMode.purchasesHint')} value={d.settings.purchases} onChange={(v) => save({ purchases: v })} />
+      {c.practicePurchasesAllowed ? null : <Text style={type.small}>{t('practiceMode.noPracticeBuy')}</Text>}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+export function ReminderSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<ReminderSettings | null>(null);
+  const [quiet, setQuiet] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: ReminderSettings) => {
+    setS(x);
+    setQuiet(String(x.quiet_after));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.reminderSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { dailyReminderEnabled?: boolean; gentleStreakEnabled?: boolean } = {}) =>
+    api.admin
+      .updateReminderSettings({ quietAfter: toInt(quiet) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('reminders.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('reminders.adminTitle')}</Text>
+      <Text style={type.small}>{t('reminders.adminIntro')}</Text>
+      <Toggle
+        label={t('reminders.adminDaily')}
+        hint={t('reminders.adminDailyHint')}
+        value={s.daily_reminder_enabled}
+        onChange={(v) => save({ dailyReminderEnabled: v })}
+      />
+      <Field label={t('reminders.adminQuiet')} keyboardType="number-pad" value={quiet} onChangeText={setQuiet} />
+      <Toggle
+        label={t('reminders.adminWeeks')}
+        hint={t('reminders.adminWeeksHint')}
+        value={s.gentle_streak_enabled}
+        onChange={(v) => save({ gentleStreakEnabled: v })}
+      />
+      <Button label={t('reminders.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Moderation tools: search, bulk decisions and audit log filters (docs/MODERATION_TOOLS.md). */
+export function ModerationToolsSection() {
+  const t = useT();
+  const [s, setS] = useState<{ tools_enabled: boolean; bulk_max: number } | null>(null);
+  const [max, setMax] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: { tools_enabled: boolean; bulk_max: number }) => {
+    setS(x);
+    setMax(String(x.bulk_max));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.moderationTools().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateModerationTools({ bulkMax: toInt(max) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('modTools.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('modTools.adminTitle')}</Text>
+      <Text style={type.small}>{t('modTools.adminIntro')}</Text>
+      <Toggle label={t('modTools.adminToggle')} value={s.tools_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('modTools.adminMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
+      <Button label={t('modTools.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Kindness starter set (docs/KINDNESS_SWITCHES.md): the no-cost kindness tools on or off in one tap. */
+export function KindnessStarterSection() {
+  const t = useT();
+  const [s, setS] = useState<KindnessStarter | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.kindnessStarter().then(setS).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const set = (on: boolean) =>
+    api.admin
+      .setKindnessStarter(on)
+      .then((r) => {
+        setS(r);
+        resetFeatures();
+        setNote(t('starter.done'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section} testID="kindness-starter">
+      <Text style={type.heading}>{t('starter.title')}</Text>
+      <Text style={type.small}>{t('starter.intro')}</Text>
+      <Text style={type.body}>{t('starter.count', { on: s.items.filter((i) => i.on).length, total: s.items.length })}</Text>
+      {s.items.map((i) => (
+        <Text key={i.key} style={type.small}>
+          {i.on ? '✓' : '○'} {t(`starter.items.${i.key}`)}
+        </Text>
+      ))}
+      {!s.allOn ? <Button label={t('starter.turnOn')} onPress={() => set(true)} /> : null}
+      {s.anyOn ? <Button variant="secondary" label={t('starter.turnOff')} onPress={() => set(false)} /> : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Goldfish memory (docs/GENTLE_REPAIR.md): recent removals in the queue, which fade after a set time. */
+export function GoldfishSection() {
+  const t = useT();
+  const [s, setS] = useState<GoldfishSettings | null>(null);
+  const [days, setDays] = useState('');
+  const [repeat, setRepeat] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: GoldfishSettings) => {
+    setS(x);
+    setDays(String(x.goldfish_days));
+    setRepeat(String(x.goldfish_repeat));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.goldfish().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateGoldfish({ days: toInt(days) ?? undefined, repeat: toInt(repeat) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('goldfish.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('goldfish.adminTitle')}</Text>
+      <Toggle label={t('goldfish.adminToggle')} hint={t('goldfish.adminHint')} value={s.goldfish_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('goldfish.adminDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
+      <Field label={t('goldfish.adminRepeat')} keyboardType="number-pad" value={repeat} onChangeText={setRepeat} />
+      <Button label={t('goldfish.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
 function GrowthSettingsSection() {
   const t = useT();
   const [s, setS] = useState<GrowthSettings | null>(null);
@@ -1835,6 +2307,70 @@ function GrowthSettingsSection() {
       <Toggle label={t('growth.adminLive')} hint={t('growth.adminLiveHint')} value={s.prayed_for_live_enabled} onChange={(v) => save({ prayedForLiveEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Encourager check-ins: totals by answer, never who said what. */
+function CheckInTotals() {
+  const t = useT();
+  const [c, setC] = useState<Record<CheckInAnswer, number> | null>(null);
+  useEffect(() => {
+    api.admin.encouragerCheckins().then((r) => setC(r.totals), () => undefined);
+  }, []);
+  return c ? <Text style={type.small}>{t('encCheck.totals', { good: c.good, okay: c.okay, change: c.change })}</Text> : null;
+}
+
+const SKY: Record<Weather, string> = { sunny: '☀️', fair: '🌤️', cloudy: '☁️', stormy: '⛈️', quiet: '🌫️' };
+
+/** Kindness weather: one line a week, newest first, from totals only. Quiet weeks show no numbers. */
+function KindnessWeather() {
+  const t = useT();
+  const [weeks, setWeeks] = useState<WeatherWeek[] | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.admin.kindnessWeather().then((r) => setWeeks(r.weeks), (e) => setNote((e as Error).message));
+  }, []);
+  if (!weeks) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View testID="kindness-weather" style={{ gap: space.xs }}>
+      <Text style={type.body} role="heading">
+        {t('weather.title')}
+      </Text>
+      <Text style={type.small}>{t('weather.intro')}</Text>
+      {weeks.map((w) => (
+        <View key={w.weekStart} accessible accessibilityLabel={`${t('weather.week', { date: w.weekStart })}: ${t(`weather.${w.weather}`)}`}>
+          <Text style={type.small}>
+            {SKY[w.weather]} {t('weather.week', { date: w.weekStart })}: {t(`weather.${w.weather}`)}
+          </Text>
+          {w.comments !== null ? <Text style={type.small}>{t('weather.numbers', { comments: w.comments, warm: w.warm ?? 0, heated: w.heated ?? 0, lifts: w.prayers ?? 0, people: w.people ?? 0 })}</Text> : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Community health: what matters each week, never time spent. Quiet weeks are folded. */
+export function CommunityHealth() {
+  const t = useT();
+  const [weeks, setWeeks] = useState<HealthWeek[] | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.admin.communityHealth().then((r) => setWeeks(r.weeks), (e) => setNote((e as Error).message));
+  }, []);
+  if (!weeks) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View testID="community-health" style={{ gap: space.xs }}>
+      <Text style={type.body} role="heading">
+        {t('health.title')}
+      </Text>
+      <Text style={type.small}>{t('health.intro')}</Text>
+      {weeks.map((w) => (
+        <Text key={w.weekStart} style={type.small}>
+          {t('weather.week', { date: w.weekStart })}:{' '}
+          {w.requests === null ? t('health.quiet') : t('health.numbers', { requests: w.requests, held: w.held ?? 0, answered: w.answered ?? 0, returning: w.returning ?? 0 })}
+        </Text>
+      ))}
     </View>
   );
 }
@@ -1907,6 +2443,11 @@ function ConversationSettingsSection() {
       <Toggle label={t('meaningProposals.adminTitle')} hint={t('meaningProposals.adminHint')} value={s.meaning_proposals_enabled} onChange={(v) => save({ meaningProposalsEnabled: v })} />
       {s.meaning_proposals_enabled ? <MeaningProposalsAdmin /> : null}
       <Toggle label={t('talk.adminTypePrompts')} hint={t('talk.adminTypePromptsHint')} value={s.type_prompts_enabled} onChange={(v) => save({ typePromptsEnabled: v })} />
+      <Toggle label={t('commentKindness.adminHearts')} hint={t('commentKindness.adminHeartsHint')} value={s.author_hearts_enabled} onChange={(v) => save({ authorHeartsEnabled: v })} />
+      <Toggle label={t('commentKindness.adminThanks')} hint={t('commentKindness.adminThanksHint')} value={s.comment_thanks_enabled} onChange={(v) => save({ commentThanksEnabled: v })} />
+      <Toggle label={t('quietCounts.adminTitle')} hint={t('quietCounts.adminHint')} value={s.quiet_counts_enabled} onChange={(v) => save({ quietCountsEnabled: v })} />
+      <Toggle label={t('replyChoice.adminTitle')} hint={t('replyChoice.adminHint')} value={s.reply_choice_enabled} onChange={(v) => save({ replyChoiceEnabled: v })} />
+      <Toggle label={t('partComments.adminTitle')} hint={t('partComments.adminHint')} value={s.part_comments_enabled} onChange={(v) => save({ partCommentsEnabled: v })} />
       <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
@@ -1957,6 +2498,8 @@ function PracticeSettingsSection() {
       <Toggle label={t('practices.adminEncourager')} hint={t('practices.adminEncouragerHint')} value={s.encourager_enabled} onChange={(v) => save({ encouragerEnabled: v })} />
       <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
       <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
+      <Toggle label={t('encCheck.adminTitle')} hint={t('encCheck.adminHint')} value={s.encourager_checkin_enabled} onChange={(v) => save({ encouragerCheckinEnabled: v })} />
+      {s.encourager_checkin_enabled ? <CheckInTotals /> : null}
       <Toggle label={t('practices.adminLiftUp')} hint={t('practices.adminLiftUpHint')} value={s.lift_up_enabled} onChange={(v) => save({ liftUpEnabled: v })} />
       <Toggle label={t('practices.adminGratitudeCount')} hint={t('practices.adminGratitudeCountHint')} value={s.gratitude_count_enabled} onChange={(v) => save({ gratitudeCountEnabled: v })} />
       <Toggle label={t('practices.adminBelieve')} hint={t('practices.adminBelieveHint')} value={s.believe_enabled} onChange={(v) => save({ believeEnabled: v })} />
@@ -1969,6 +2512,19 @@ function PracticeSettingsSection() {
       <Toggle label={t('kindIntro.adminTitle')} hint={t('kindIntro.adminHint')} value={s.kindness_intro_enabled} onChange={(v) => save({ kindnessIntroEnabled: v })} />
       <Toggle label={t('checkBack.adminTitle')} hint={t('checkBack.adminHint')} value={s.check_back_enabled} onChange={(v) => save({ checkBackEnabled: v })} />
       <Toggle label={t('kindMilestones.adminTitle')} hint={t('kindMilestones.adminHint')} value={s.kind_milestones_enabled} onChange={(v) => save({ kindMilestonesEnabled: v })} />
+      <Toggle label={t('thankNote.adminTitle')} hint={t('thankNote.adminHint')} value={s.thank_note_enabled} onChange={(v) => save({ thankNoteEnabled: v })} />
+      <Toggle label={t('calm.adminTitle')} hint={t('calm.adminHint')} value={s.calm_threads_enabled} onChange={(v) => save({ calmThreadsEnabled: v })} />
+      <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={s.prayer_circles_enabled} onChange={(v) => save({ prayerCirclesEnabled: v })} />
+      <Toggle label={t('circleWelcome.adminTitle')} hint={t('circleWelcome.adminHint')} value={s.circle_welcome_enabled} onChange={(v) => save({ circleWelcomeEnabled: v })} />
+      <Toggle label={t('circleUpdates.adminTitle')} hint={t('circleUpdates.adminHint')} value={s.circle_updates_enabled} onChange={(v) => save({ circleUpdatesEnabled: v })} />
+      <Toggle label={t('pathBack.adminTitle')} hint={t('pathBack.adminHint')} value={s.path_back_enabled} onChange={(v) => save({ pathBackEnabled: v })} />
+      <Toggle label={t('kindWords.adminTitle')} hint={t('kindWords.adminHint')} value={s.empathy_practice_enabled} onChange={(v) => save({ empathyPracticeEnabled: v })} />
+      <Toggle label={t('weather.adminTitle')} hint={t('weather.adminHint')} value={s.kindness_weather_enabled} onChange={(v) => save({ kindnessWeatherEnabled: v })} />
+      {s.kindness_weather_enabled ? <KindnessWeather /> : null}
+      <Toggle label={t('health.adminTitle')} hint={t('health.adminHint')} value={s.community_health_enabled} onChange={(v) => save({ communityHealthEnabled: v })} />
+      {s.community_health_enabled ? <CommunityHealth /> : null}
+      <Toggle label={t('freshDays.adminTitle')} hint={t('freshDays.adminHint')} value={s.fresh_days_enabled} onChange={(v) => save({ freshDaysEnabled: v })} />
+      <Toggle label={t('intention.adminTitle')} hint={t('intention.adminHint')} value={s.weekly_intention_enabled} onChange={(v) => save({ weeklyIntentionEnabled: v })} />
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />

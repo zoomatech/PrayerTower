@@ -6,9 +6,15 @@ import { scanTask as activityScanTask } from './modules/activity/index.js';
 import { remindTask } from './modules/events/index.js';
 import { scanTask, type Classifier } from './modules/moderation/index.js';
 import { createClassifier } from './modules/moderation/providers.js';
+import { receiptsTask as pushReceiptsTask } from './modules/notifications/delivery.js';
+import { dueTask as dailyRemindersTask } from './modules/reminders/index.js';
 import { sendPushTask } from './modules/notifications/index.js';
 import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
 import { transmitTask, type Transmitter } from './modules/radio/index.js';
+import { operatorAlertsTask } from './modules/radio/operator-alerts.js';
+import { beaconTask } from './modules/radio/beacon.js';
+import { ceaselessTask } from './modules/radio/ceaseless.js';
+import { everyRequestTask } from './modules/radio/fair-air.js';
 import { awardDueTask } from './modules/milestones/index.js';
 import { runDueTask } from './modules/schedules/index.js';
 import { weeklyDigestTask } from './modules/digest/index.js';
@@ -66,14 +72,21 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     practices_followup: practices.followupDueTask(db),
     practices_gratitude: practices.gratitudeDueTask(db),
     check_back_due: checkBack.dueTask(db),
+    encourager_checkin_due: practices.checkInDueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
+    notifications_push_receipts: pushReceiptsTask(db, config, overrides.fetch),
+    reminders_daily_due: dailyRemindersTask(),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
     commitments_send_due_reminders: sendDueRemindersTask(),
     prayer_list_send_due_reminders: prayerListRemindersTask(),
     commitments_weekly_review: weeklyReviewTask(db),
     tiers_weekly_resupply: weeklyResupplyTask(db),
     radio_transmit: transmitTask(db, overrides.transmit),
+    radio_operator_alerts: operatorAlertsTask(db),
+    radio_beacon: beaconTask(db),
+    radio_ceaseless: ceaselessTask(db),
+    radio_every_request: everyRequestTask(db),
     schedules_run_due: runDueTask(),
     milestones_award_due: awardDueTask(),
     events_send_reminders: remindTask(db),
@@ -135,6 +148,14 @@ export const crontab = [
   '30 3 * * * retention_purge ?max=10&fill=1d&jobKey=retention_purge',
   // Monday 07:00: last week's harmful-prayer report to admins (only while the switch is on).
   '0 7 * * 1 harm_weekly_report ?max=10&fill=1d&jobKey=harm_weekly_report',
+  // Every 2 minutes: station problems that just started go to radio operators and admins (only while switched on).
+  '*/2 * * * * radio_operator_alerts ?max=3&fill=10m&jobKey=radio_operator_alerts',
+  // Every 5 minutes: queue the reception beacon when one is due (only while switched on).
+  '*/5 * * * * radio_beacon ?max=3&fill=10m&jobKey=radio_beacon',
+  // Every 5 minutes: "prayer without ceasing" re-sends a kept request when the air has been quiet (only while switched on).
+  '*/5 * * * * radio_ceaseless ?max=3&fill=10m&jobKey=radio_ceaseless',
+  // Every 5 minutes: fair air sends each new request once (only while switched on).
+  '*/5 * * * * radio_every_request ?max=3&fill=10m&jobKey=radio_every_request',
   // Every 5 minutes: held posts waiting too long remind whoever is on call, then an admin (only while the rota is on).
   '*/5 * * * * oncall_check ?max=3&fill=15m&jobKey=oncall_check',
   // Daily 04:15: re-derive every token balance from the ledger; alerts admins on any mismatch.
@@ -154,6 +175,10 @@ export const crontab = [
   // Every minute: the prayer minute notice for members whose chosen minute it is (only while switched on).
   '* * * * * growth_prayer_minute ?max=1&jobKey=growth_prayer_minute',
   '* * * * * live_activity_refresh ?max=1&jobKey=live_activity_refresh',
+  // Every 5 minutes: read back Expo push receipts (only while Admin → Push delivery is on).
+  // Every 5 minutes: members' own daily reminders (only while Admin → Gentle reminders is on).
+  '*/5 * * * * reminders_daily_due ?max=3&fill=1h&jobKey=reminders_daily_due',
+  '*/5 * * * * notifications_push_receipts ?max=3&jobKey=notifications_push_receipts',
   // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
   '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',
   // Every 5 minutes: check connected Facebook and Threads accounts for new posts (only while cross-posting is on).
@@ -163,4 +188,6 @@ export const crontab = [
   // Hourly: the gratitude card invitation at 6 pm on each member's chosen day (only while switched on).
   '0 * * * * practices_gratitude ?max=3&jobKey=practices_gratitude',
   '30 * * * * check_back_due ?max=3&jobKey=check_back_due',
+  // Daily 16:00: the two-week encourager check-in (only while switched on).
+  '0 16 * * * encourager_checkin_due ?max=10&fill=1d&jobKey=encourager_checkin_due',
 ].join('\n');

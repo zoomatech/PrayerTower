@@ -93,3 +93,81 @@ Still one suggestion per move, as Smart Reply does: the pair replaces the guess 
 the post's words. A tap only fills the box, and own-words still applies.
 
 Code: `pairKey` in `lib/talk.ts`, `postType`/`lament` props on `ReplyHelpers`.
+
+## Comment kindness and quiet counts (off)
+
+Three ideas mined from `research/Kind_Interaction_UX_Research.md` (sections 4 and 6), each
+behind its own switch in Admin → Conversation helpers (migration 20261029018700). None
+shows a public number.
+
+- **The asker's heart.** The person who asked can tap **♡ Love this** under a comment on
+  their post. Everyone then sees "❤️ Loved by the person who asked", and the commenter
+  gets one quiet in-app note. YouTube found that a creator's heart in the first hour was
+  linked to about 22% more comments (arXiv 2404.03612).
+- **Thank someone for a comment.** Any member can tap **Thank** under someone else's
+  comment, once. Only the commenter hears ("Ana thanked you for your comment"), and
+  nothing is counted in public. Wikipedia's Thanks experiment raised thanks sent by 43%
+  and retention by about 2 points.
+- **Quiet counts.** On Me, a member can hide prayer numbers on posts they see, on their
+  own posts for others, or both. Instagram has made hiding like counts each person's own
+  choice since 2021. In place of the number, people see "People are praying with you"
+  (Open Circle: "People are with you"). Authors always see their own numbers.
+
+Code: `modules/comment-kindness`, `components/comment-kindness.tsx`. The tables
+`comment_hearts`, `comment_thanks` and `quiet_count_prefs` are included in account
+deletion and export.
+
+## Who can reply (off)
+
+Admin → Conversation helpers → **Who can reply** (migration 20261029019500).
+
+- The person who asked chooses, on their own request, who may comment:
+  - **Everyone**, which is the default.
+  - **People who prayed**: those who prayed, promised to pray or reacted.
+  - **No comments, just prayers.**
+- The author can change it at any time and can always post updates.
+- Anyone who can't comment sees a gentle note instead of the comment box: "Your prayer still
+  means a lot."
+- It is the author's own choice, like the reply controls on X and Threads, and never a
+  penalty. While the switch is off, everyone can comment as before.
+
+Code: `modules/reply-choice`, `components/reply-choice.tsx`.
+
+## Comments at block breaks (off)
+
+Admin → Conversation helpers → **Comments at block breaks** (migration 20261029130100).
+From notebook Page 13: "a thread can incur comments at any 200-word block break."
+
+- On a request's own page, a post longer than 200 words is shown in parts of about 200
+  words. Each part ends at a paragraph break, or else a sentence end, within the last
+  quarter before the mark (`postParts` in packages/shared).
+- After each part: **Comment on this part**, and how many comments that part already has.
+- The comment box then says "Commenting on part 2 of 3", with a link to comment on the
+  whole post instead.
+- The comments stay together at the end, as Steve leans toward, each marked "On part 2".
+- Only a new top-level comment can be about one part. Replies and updates belong to the
+  whole thread.
+- While the switch is off, the post shows whole and a part sent by an older app is ignored.
+
+Code: `posts.addComment` (part check), `components/post-parts.tsx`. Tests:
+`test/part-comments.test.ts`, `post-parts.test.tsx`, e2e `25-part-comments.spec.ts`.
+
+## Everything shipped on 2026-10-29 (all off by default)
+
+| Feature | Where to switch it on | Doc |
+| --- | --- | --- |
+| Meanings ride on the action icons (one row, hover / press and hold) | Conversation helpers → Meanings in the icon row | this file |
+| Member-made emoji meanings | Conversation helpers | this file |
+| Kindness research page | Conversation helpers | this file |
+| Reply prompts by kind of post | Conversation helpers | this file |
+| The asker's heart, Thank for a comment, Quiet counts | Conversation helpers | this file |
+| Cool-down, lament posts, answered-prayer stories, kindness intro | Growth practices | GROWTH_PRACTICES.md |
+| Check back, quiet milestones, thank the pray-ers, calm threads | Growth practices | GROWTH_PRACTICES.md |
+| Prayer circles, encourager check-in, kindness weather report | Growth practices | GROWTH_PRACTICES.md |
+| Circle welcome, a path back after a removal | Growth practices | GROWTH_PRACTICES.md |
+| Who can reply | Conversation helpers | this file |
+
+Every one of them has Open Circle wording, and `open-circle-wording.test.ts` checks it.
+For accessibility, see `ACCESSIBILITY_KINDNESS_TOOLS.md`. The e2e walk `24-kindness-skins` opens the feed
+and a request on all 13 year-round skins with every switch on. It checks that each card keeps one row of
+at most six icons, that nothing scrolls sideways, and that axe finds no WCAG A/AA issue.

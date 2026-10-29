@@ -27,6 +27,8 @@ interface AuthState {
   linkError: string | null;
   /** Signed in with a password, but two-step sign-in is on: the app asks for the code before anything else. */
   needsCode: boolean;
+  /** After a backup code turned two-step sign-in off: refresh the session and open the app. */
+  codeDone: () => Promise<void>;
 }
 
 /** True when this session still needs the code from the member's authenticator app (aal1 → aal2). */
@@ -122,6 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [url]);
 
+  const codeDone = useCallback(async () => {
+    // The refreshed session no longer lists the removed factor, so the code isn't needed.
+    await supabase.auth.refreshSession();
+    const need = await codeStillNeeded().catch(() => false);
+    setNeedsCode(need);
+    if (!need) await refreshProfile();
+  }, [refreshProfile]);
+
   const signOut = useCallback(async () => {
     setRecovering(false);
     await supabase.auth.signOut();
@@ -130,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, profile, roles, community, loading, profileError, refreshProfile, signOut, recovering, setRecovering, linkError, needsCode }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ session, profile, roles, community, loading, profileError, refreshProfile, signOut, recovering, setRecovering, linkError, needsCode, codeDone }}>{children}</AuthContext.Provider>
   );
 }
 

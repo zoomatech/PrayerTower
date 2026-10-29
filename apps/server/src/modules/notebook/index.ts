@@ -19,10 +19,17 @@ import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
 import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
+import * as reminders from '../reminders/index.js';
+import * as goldfish from '../goldfish/index.js';
+import * as moderationTools from '../moderation/tools.js';
 import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
 import * as safety from '../safety/index.js';
+import * as signalQueue from '../radio/signal-queue.js';
+import * as trail from '../radio/trail.js';
+import * as schedules from '../schedules/index.js';
+import * as ceaseless from '../radio/ceaseless.js';
 import * as safetyCenter from '../safety-center/index.js';
 import * as skins from '../skins/index.js';
 
@@ -239,6 +246,12 @@ export async function features(q: Queryable) {
     ...(await givingSplit.features(q)),
     /** Growth practices: follow-ups, gratitude card, gentle rhythm (modules/practices, Admin → Growth practices). */
     ...(await practices.features(q)),
+    /** Daily reminder and weeks of prayer (modules/reminders, Admin → Gentle reminders). */
+    ...(await reminders.features(q)),
+    /** Moderation search, bulk decisions and audit log filters (modules/moderation/tools, Admin → Moderation tools). */
+    ...(await moderationTools.features(q)),
+    /** Goldfish memory: recent removals in the queue, which fade (modules/goldfish, Admin → Moderation tools). */
+    ...(await goldfish.features(q)),
     /** Conversation helpers: reply suggestions, meaning words, care after "how are you", greeting packs, own words, kind closings. */
     ...(await conversationHelpers.features(q)),
     /** Feed skins, comment trees, skin ideas and the video cap (modules/skins, Admin → Feed skins). */
@@ -247,6 +260,14 @@ export async function features(q: Queryable) {
     ...(await security.features(q)),
     /** Member safety center: report, block, mute and hide in one place (modules/safety-center). */
     ...(await safetyCenter.features(q)),
+    /** "Keep on the air" for a member's own request (radio/ceaseless.ts, Admin → Radio → Prayer without ceasing). */
+    keepOnAir: (await ceaseless.settings(q)).enabled,
+    /** Scheduled radio and amplify sends (modules/schedules, Admin → Radio → Scheduled radio sends). */
+    scheduledRadio: await schedules.radioEnabled(q),
+    /** "Where it was heard": the receivers that decoded a radio prayer (radio/trail.ts). */
+    heardTrail: await trail.enabled(q),
+    /** My signal queue and signal codes on the Listen screen (radio/signal-queue.ts). */
+    signalQueue: await signalQueue.enabled(q),
   };
 }
 

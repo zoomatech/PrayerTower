@@ -27,7 +27,7 @@ export const HeardIds = z.object({
  * Short IDs a listener decoded: each matches the prayers this call sign sent by
  * packet in the last day whose fingerprint starts with it, then counts as heard.
  */
-export async function heardIds(q: Queryable, r: z.infer<typeof HeardIds>): Promise<number> {
+export async function heardIds(q: Queryable, r: z.infer<typeof HeardIds>, node: { id: string; name: string } | null = null): Promise<number> {
   const { rows } = await q.query<{ sent_hash: string }>(
     `select distinct sent_hash from public.radio_prayers
       where status = 'transmitted' and preset = 'aprs-1200' and upper(call_sign) = upper($1)
@@ -35,5 +35,5 @@ export async function heardIds(q: Queryable, r: z.infer<typeof HeardIds>): Promi
     [r.callSign, [...new Set(r.ids)]],
   );
   if (!rows.length) return 0;
-  return receipts.heard(q, { callSign: r.callSign, preset: 'aprs-1200', snrDb: r.snrDb, hashes: rows.map((x) => x.sent_hash) });
+  return receipts.heard(q, { callSign: r.callSign, preset: 'aprs-1200', snrDb: r.snrDb, hashes: rows.map((x) => x.sent_hash) }, node);
 }

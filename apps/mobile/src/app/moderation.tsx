@@ -16,6 +16,8 @@ import { api } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { MendQueue } from '@/components/gentle-repair';
+import { CalmThreadsQueue } from '@/components/calm-thread';
+import { ModerationTools } from '@/components/moderation-tools';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter((r) => r !== 'safe_messaging');
@@ -97,8 +99,10 @@ function Moderation() {
         {/* On a break the queue steps aside until the moderator comes back (moderator care). */}
         {care.onBreak ? null : (
           <>
+        <ModerationTools ruleChoices={ruleChoices} onDecided={load} />
         <HarmFloods onError={setError} />
         <MendQueue />
+        <CalmThreadsQueue />
         {flags.length ? <Text style={type.heading}>{t('moderation.flagsTitle')}</Text> : null}
         {flags.map((f) => (
           <View key={f.id} style={styles.item}>
@@ -138,6 +142,7 @@ function Moderation() {
             </Text>
             <HardText item={item} care={care} />
             {item.reason ? <Text style={styles.reason}>{t('moderation.why', { reason: item.reason })}</Text> : null}
+            {item.history ? <GoldfishLine h={item.history} /> : null}
             <HandoffRow item={item} care={care} onDone={() => setItems((prev) => prev.filter((i) => i.id !== item.id))} onError={setError} />
             {item.source === 'crisis' ? (
               // Someone may be in danger: reach out and keep it up; remove only method details. Never suspend.
@@ -188,6 +193,18 @@ function Moderation() {
         )}
       </ScrollView>
     </Screen>
+  );
+}
+
+/** Goldfish memory: how often this author's posts were removed lately. Old removals fade. */
+export function GoldfishLine({ h }: { h: NonNullable<ModerationItem['history']> }) {
+  const { t } = useLocale();
+  return (
+    <Text style={type.small} testID="goldfish-line">
+      {h.recent ? t('goldfish.recent', { count: h.recent, days: h.days }) : t('goldfish.first', { days: h.days })}
+      {h.serious ? ` ${t('goldfish.serious', { count: h.serious })}` : ''}
+      {h.repeat ? ` ${t('goldfish.repeat')}` : ''}
+    </Text>
   );
 }
 

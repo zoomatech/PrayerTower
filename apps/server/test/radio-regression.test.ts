@@ -177,7 +177,7 @@ describe('every radio feature, every switch on, both editions', () => {
     const hash = fingerprint(`Station test ${t.code}`);
     await station(`/station/setup-test/${t.id}/result`, { ok: true, callSign: CALL, preset: 'fm-standard', sentHash: hash });
     expect((await node('/node/heard', listenerKey, { callSign: CALL, preset: 'fm-standard', snrDb: 22, hashes: [hash], peakDbfs: -8 })).json()).toEqual({ matched: 1 });
-    expect((await as(admin).get('/admin/radio-setup')).json().tests[0]).toMatchObject({ id: t.id, status: 'heard', advice: 'good' });
+    expect((await as(admin).get('/admin/radio-setup')).json().tests.find((x: { id: string }) => x.id === t.id)).toMatchObject({ id: t.id, status: 'heard', advice: 'good' });
     expect(await sendAll()).toEqual([]);
 
     // The listener opts in to the map; its earlier report colors its dot.

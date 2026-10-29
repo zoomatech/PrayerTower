@@ -2,11 +2,13 @@
 // wishes, shares), thanks, the request state machine, and the post card.
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { postParts } from '@prayer-tower/shared';
 import { product } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { getProfile, presentIdentity, primaryCommunityId } from '../accounts/index.js';
 import { badgesOf } from '../churches/index.js';
+import { settings as conversationSettings } from '../conversation-helpers/index.js';
 import * as moderation from '../moderation/index.js';
 import * as harm from '../harm/index.js';
 import * as safety from '../safety/index.js';
@@ -71,6 +73,8 @@ export interface PostRow {
   all_support_welcome: boolean;
   is_lament: boolean;
   lament_radio: boolean;
+  /** "Prayer without ceasing" (radio/ceaseless.ts): the author keeps it on the air. */
+  keep_on_air: boolean;
   answers_post_id: string | null;
   crisis: boolean;
   /** Set by the harmful-prayer check (modules/harm) until a moderator clears it. */
@@ -349,7 +353,17 @@ export const NewComment = z.object({
   parentId: z.uuid().optional(),
   isUpdate: z.boolean().default(false),
   isAnonymous: z.boolean().optional(),
+  /** Comments at block breaks: which part of a long post this is about. Ignored while the switch is off. */
+  part: z.number().int().min(0).max(1000).optional(),
 });
+
+/** The part a new comment may carry: only a top-level comment, on a part the post has, with the switch on. */
+async function commentPart(q: Queryable, post: PostRow, input: z.infer<typeof NewComment>) {
+  if (input.part === undefined || !(await conversationSettings(q)).part_comments_enabled) return null;
+  if (input.parentId || input.isUpdate) throw badRequest('Only a new comment can be about one part');
+  if (input.part >= postParts(post.body).length) throw badRequest('That part is not in this post');
+  return input.part;
+}
 
 export async function addComment(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewComment>) {
   const post = await getActionable(q, userId, postId);
@@ -360,14 +374,15 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
     if (!rowCount) throw badRequest('Reply target is not on this post');
     await skins.checkReplyDepth(q, input.parentId);
   }
+  const part = await commentPart(q, post, input);
   await safety.checkNewMember(q, userId, 'comment', input.body);
   await safety.checkFlood(q, userId, 'comment', input.body);
   const harmDecision = await harm.screen(q, userId, 'comment', input.body);
   const isAnonymous = input.isAnonymous ?? (input.isUpdate ? post.is_anonymous : false);
   const { rows } = await q.query<{ id: string }>(
-    `insert into public.comments (post_id, user_id, parent_id, body, is_update, is_anonymous)
-     values ($1, $2, $3, $4, $5, $6) returning id`,
-    [postId, userId, input.parentId ?? null, input.body, input.isUpdate, isAnonymous],
+    `insert into public.comments (post_id, user_id, parent_id, body, is_update, is_anonymous, part)
+     values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+    [postId, userId, input.parentId ?? null, input.body, input.isUpdate, isAnonymous, part],
   );
   await moderation.queueScan(q, 'comment', rows[0]!.id);
   const crisis = safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body));
@@ -382,6 +397,7 @@ interface CommentRow {
   body: string;
   is_update: boolean;
   is_anonymous: boolean;
+  part: number | null;
   created_at: Date;
   user_id: string;
   display_name: string;
@@ -391,7 +407,7 @@ interface CommentRow {
 /** Most comments a feed card brings for the drawn vine; the rest are on the post page. */
 const FEED_LEAVES = 3;
 
-const commentSelect = `select c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
+const commentSelect = `select c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.part, c.created_at,
                               p.id as user_id, p.display_name, p.handle
                          from public.comments c join public.profiles p on p.id = c.user_id`;
 
@@ -401,6 +417,7 @@ function presentComment(c: CommentRow, viewerId: string | null) {
     parentId: c.parent_id,
     body: c.body,
     isUpdate: c.is_update,
+    part: c.part,
     createdAt: c.created_at,
     isMine: c.user_id === viewerId,
     author: presentIdentity({ id: c.user_id, display_name: c.display_name, handle: c.handle }, c.is_anonymous, viewerId),
@@ -591,6 +608,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
       media: { kind: string; storagePath: string }[];
       answers: { id: string; preview: string } | null;
       story_id: string | null;
+      counts_quiet: boolean;
     }
   >(
     `select po.*, pr.display_name, pr.handle, pr.anonymous_by_default as private_tier,
@@ -610,7 +628,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
             -- "Prayer answered" stories: the request a story answers, and a request's story.
             (select json_build_object('id', o.id, 'preview', left(o.body, 120)) from public.posts o
               where o.id = po.answers_post_id and o.moderation_status = 'visible') as answers,
-            (select s.id from public.posts s where s.answers_post_id = po.id and s.moderation_status = 'visible') as story_id
+            (select s.id from public.posts s where s.answers_post_id = po.id and s.moderation_status = 'visible') as story_id,
+            coalesce((select qp.hide_mine from public.quiet_count_prefs qp where qp.user_id = po.user_id), false) as counts_quiet
        from public.posts po join public.profiles pr on pr.id = po.user_id
       where po.id = any($1::uuid[])`,
     [postIds],
@@ -742,8 +761,10 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         allSupportWelcome: r.all_support_welcome,
         lament: r.is_lament,
         lamentRadio: r.lament_radio,
+        ...(r.user_id === viewerId ? { keepOnAir: r.keep_on_air } : {}),
         answers: r.answers,
         storyId: r.story_id,
+        countsQuiet: r.counts_quiet,
         crisis: r.crisis,
         media: r.media,
         counts: r.counts,

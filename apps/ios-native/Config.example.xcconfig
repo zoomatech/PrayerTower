@@ -1,0 +1,5 @@
+// Copy to Config.xcconfig (git-ignored) and fill in. The publishable key is safe in an
+// app; never put the service role key here. `/$()/` keeps "//" from starting a comment.
+PT_SUPABASE_URL = https:/$()/ywbcylonlmjkbreqpfrq.supabase.co
+PT_SUPABASE_KEY = sb_publishable_REPLACE_ME
+PT_API_URL = https:/$()/prayertower-api.fly.dev

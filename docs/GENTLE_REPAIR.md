@@ -33,3 +33,22 @@ nothing is blocked without a person reviewing it first. Research and sources:
 - Tests: `apps/server/test/repair.test.ts`, `apps/mobile/src/__tests__/gentle-repair.test.tsx` and `mend-screen.test.tsx`.
 
 *For the legal team:* Mend messages are user-to-user content; moderators read each one before delivery.
+
+## Goldfish memory (off)
+
+Admin → **Goldfish memory** (migration 20261029190000). Each report in the moderation queue gets
+one line about its author: "No removals for this person in the last 90 days", or how many of
+their posts were removed in that time. A moderator can then tell a first slip, which may need only
+a kind word, from a pattern.
+
+- Removals fade from the count after a set number of days (90 by default, 14 to 365). "Be a
+  goldfish": an old mistake isn't held against anyone.
+- Removals for wishing harm, flooding or automated accounts never fade, and are shown on their own.
+- A removal that was overturned on appeal never counts.
+- When someone reaches the repeat count (3 by default) inside the window, the admins get one
+  quiet in-app note for that window, suggesting a kind word before any suspension.
+- Nothing here suspends, hides or scores anyone. A person still decides every removal.
+
+Evidence: research/Conflict_Repair_and_Newcomer_Kindness.md, suggestion 5 ("notes fade from the
+member's standing after a set time; serious harms are kept out of the forgetting; repeated issues
+escalate"). Code: `modules/goldfish`, the moderation queue and Admin.

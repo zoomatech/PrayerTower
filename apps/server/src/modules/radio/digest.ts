@@ -39,12 +39,12 @@ export async function weeks(q: Queryable, weeks = 8, now = new Date()): Promise<
                               date_trunc('week', $2::timestamptz at time zone 'UTC'), interval '1 week') as start
      )
      select to_char(w.start, 'YYYY-MM-DD') as week_start,
-            (select count(*)::int from public.radio_prayers r where r.kind = 'prayer' and r.status = 'transmitted'
+            (select count(*)::int from public.radio_prayers r where r.kind in ('prayer', 'auto') and r.status = 'transmitted'
                and r.transmitted_at at time zone 'UTC' >= w.start and r.transmitted_at at time zone 'UTC' < w.start + interval '1 week') as aired,
-            (select count(*)::int from public.radio_prayers r where r.kind = 'prayer' and r.status = 'transmitted' and r.heard_at is not null
+            (select count(*)::int from public.radio_prayers r where r.kind in ('prayer', 'auto') and r.status = 'transmitted' and r.heard_at is not null
                and r.transmitted_at at time zone 'UTC' >= w.start and r.transmitted_at at time zone 'UTC' < w.start + interval '1 week') as heard,
             (select count(*)::int from public.posts p where p.answered_at at time zone 'UTC' >= w.start and p.answered_at at time zone 'UTC' < w.start + interval '1 week'
-               and exists (select 1 from public.radio_prayers r where r.post_id = p.id and r.kind = 'prayer' and r.status = 'transmitted')) as answered,
+               and exists (select 1 from public.radio_prayers r where r.post_id = p.id and r.kind in ('prayer', 'auto') and r.status = 'transmitted')) as answered,
             (select count(*)::int from public.radio_prayers r where r.kind = 'thanksgiving' and r.status = 'transmitted'
                and r.transmitted_at at time zone 'UTC' >= w.start and r.transmitted_at at time zone 'UTC' < w.start + interval '1 week') as thanksgiving,
             (select coalesce(sum(r.listener_praying), 0)::int from public.radio_prayers r where r.status = 'transmitted'

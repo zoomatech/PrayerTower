@@ -6,10 +6,12 @@ import { withTx } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as activity from '../activity/index.js';
+import * as goldfish from '../goldfish/index.js';
 import * as harm from '../harm/index.js';
 import * as care from '../moderator-care/index.js';
 import * as kindness from '../kindness/index.js';
 import * as moderation from './index.js';
+import * as tools from './tools.js';
 
 export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderation.Classifier | null = null) {
   const requireModerator = async (req: FastifyRequest) => {
@@ -27,7 +29,25 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   app.get('/moderation/queue', async (req) => {
     const moderatorId = await requireModerator(req);
     const { targetId } = z.object({ targetId: z.uuid().optional() }).parse(req.query);
-    return { items: await moderation.pending(db, 100, targetId, (await care.settings(db)).enabled ? moderatorId : undefined) };
+    const items = await moderation.pending(db, 100, targetId, (await care.settings(db)).enabled ? moderatorId : undefined);
+    // Goldfish memory (Admin → Moderation tools, off): each author's recent removals, which fade.
+    return { items: await goldfish.withHistory(db, items as { user_id: string | null }[]) };
+  });
+
+  // Moderation tools (Admin → Moderation tools, off): search waiting reports and past decisions.
+  app.get('/moderation/search', async (req) => {
+    await requireModerator(req);
+    await tools.requireOn(db);
+    return { items: await tools.search(db, tools.Search.parse(req.query)) };
+  });
+
+  // Moderation tools: one decision for several waiting reports (never someone who may be in danger).
+  app.post('/moderation/items/bulk', async (req) => {
+    const moderatorId = await requireModerator(req);
+    const input = tools.Bulk.parse(req.body);
+    const result = await tools.bulk(db, moderatorId, input);
+    if (input.action === 'remove') for (const id of input.ids) await goldfish.afterDecision(db, id);
+    return result;
   });
 
   // Prayer taps that look automated: flags only, a moderator decides.
@@ -46,6 +66,7 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
     const moderatorId = await requireModerator(req);
     const decision = moderation.Decision.parse(req.body);
     await withTx(db, (tx) => moderation.decide(tx, moderatorId, req.params.id, decision));
+    if (decision.action === 'remove') await goldfish.afterDecision(db, req.params.id);
     return { ok: true };
   });
 

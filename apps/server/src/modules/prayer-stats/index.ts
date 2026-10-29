@@ -2,6 +2,9 @@
 // requests prayed for, and a streak. Only the member sees them, they can be
 // turned off, and nothing here ranks members against each other.
 import type { Queryable } from '../../db.js';
+import { freshDay, type FreshDay } from '../fresh-days/index.js';
+import { settings as practiceSettings } from '../practices/index.js';
+import { weeksOfPrayer } from '../reminders/index.js';
 
 export interface PrayerStats {
   enabled: boolean;
@@ -19,6 +22,34 @@ export interface PrayerStats {
   welcomeBack: boolean;
   /** Monday or the 1st of the month, in the member's time zone. */
   freshStart: 'week' | 'month' | null;
+  /** Weeks of prayer (modules/reminders): weeks with a prayer, a total that only grows. */
+  weeksPrayed: number;
+  /** Weeks in a row allowing one rest week between; null under 2. */
+  weekRun: number | null;
+  /** Weekly intention (Admin → Growth practices, off): present only while the switch is on. */
+  intention?: Intention;
+  /** Fresh starts on days that matter (off): the member's own day or a season's first day, else null. */
+  freshDay?: FreshDay | null;
+}
+
+export interface Intention {
+  /** Days a week the member means to pray, 1 to 6; null when they haven't chosen. */
+  days: number | null;
+  /** This week, Monday first. Days still to come are `prayed: false`. */
+  week: { date: string; prayed: boolean }[];
+  shown: number;
+  /** The intention is met; it is never said when it isn't. */
+  met: boolean;
+}
+
+/** This week (Monday to Sunday) from the member's prayer dates. */
+export function intentionFor(days: number | null, dates: string[], today: string): Intention {
+  const t = dayNumber(today);
+  const monday = t - ((new Date(t * DAY).getUTCDay() + 6) % 7);
+  const set = new Set(dates);
+  const week = Array.from({ length: 7 }, (_, i) => isoOf(monday + i)).map((date) => ({ date, prayed: set.has(date) }));
+  const shown = week.filter((d) => d.prayed).length;
+  return { days, week, shown, met: days !== null && shown >= days };
 }
 
 const DAY = 86_400_000;
@@ -55,9 +86,9 @@ export function streaks(dates: string[], today: string) {
 }
 
 export async function prayerStats(q: Queryable, userId: string, timeZone: string): Promise<PrayerStats> {
-  const { rows: p } = await q.query<{ show_prayer_stats: boolean }>('select show_prayer_stats from public.profiles where id = $1', [userId]);
+  const { rows: p } = await q.query<{ show_prayer_stats: boolean; weekly_intention: number | null }>('select show_prayer_stats, weekly_intention from public.profiles where id = $1', [userId]);
   const enabled = p[0]?.show_prayer_stats ?? true;
-  const empty = { daysPrayed: 0, peoplePrayedFor: 0, requestsPrayedFor: 0, currentStreak: 0, longestStreak: 0, week: [], monthDays: 0, welcomeBack: false, freshStart: null };
+  const empty = { daysPrayed: 0, peoplePrayedFor: 0, requestsPrayedFor: 0, currentStreak: 0, longestStreak: 0, week: [], monthDays: 0, welcomeBack: false, freshStart: null, weeksPrayed: 0, weekRun: null };
   if (!enabled) return { enabled, ...empty };
 
   const { rows: days } = await q.query<{ day: string }>(
@@ -74,6 +105,7 @@ export async function prayerStats(q: Queryable, userId: string, timeZone: string
     [userId, timeZone],
   );
   const today = counts[0]!.today;
+  const practice = await practiceSettings(q);
   const dates = days.map((d) => d.day);
   const set = new Set(dates);
   const t = dayNumber(today);
@@ -84,6 +116,14 @@ export async function prayerStats(q: Queryable, userId: string, timeZone: string
     requestsPrayedFor: counts[0]!.requests,
     ...streaks(dates, today),
     ...rhythm(dates, today),
+    ...weeksOfPrayer(dates, today),
     week: Array.from({ length: 7 }, (_, i) => isoOf(t - 6 + i)).map((date) => ({ date, prayed: set.has(date) })),
+    ...(practice.weekly_intention_enabled ? { intention: intentionFor(p[0]?.weekly_intention ?? null, dates, today) } : {}),
+    ...(practice.fresh_days_enabled ? { freshDay: await freshDay(q, userId, today) } : {}),
   };
+}
+
+/** Weekly intention: 1 to 6 days, or null to have none. */
+export async function setIntention(q: Queryable, userId: string, days: number | null) {
+  await q.query('update public.profiles set weekly_intention = $2 where id = $1', [userId, days]);
 }

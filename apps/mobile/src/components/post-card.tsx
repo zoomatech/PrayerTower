@@ -20,9 +20,11 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
+import { hasParts, PostParts, type PartComments } from './post-parts';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
 import { useMeaningChooser, type MeaningChooser } from './meaning-chooser';
+import { useQuietSeen } from './comment-kindness';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
@@ -48,7 +50,13 @@ export interface CardHandlers {
 /** A feed skin can restyle the card's box (the drawn vine puts a smaller, greener box inside a leaf). */
 export const CardSurface = createContext<ViewStyle | null>(null);
 
-export const PostCard = memo(function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
+export const PostCard = memo(function PostCard({
+  card,
+  onAction,
+  onHide,
+  expanded: startExpanded = false,
+  parts,
+}: { card: Card; expanded?: boolean; /** Comments at block breaks, on the request's own page. */ parts?: PartComments } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
   const [tray, setTray] = useState(false);
   const [quick, setQuick] = useState({ candles: card.counts.candles ?? 0, standing: card.counts.standing ?? 0 });
@@ -65,6 +73,9 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
   const lines = features.postLines;
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
+  // Quiet counts: no prayer numbers for others when the author or the viewer chose it.
+  const quietSeen = useQuietSeen();
+  const quiet = features.quietCounts && !card.isMine && (!!card.countsQuiet || quietSeen);
   // A background shows only on short, text-only posts.
   const bg = card.media.length === 0 && card.background && card.body.length <= 280 ? POST_BACKGROUND_STYLES[card.background as keyof typeof POST_BACKGROUND_STYLES] : undefined;
   const tags = [
@@ -132,14 +143,18 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           accessibilityActions={features.reactionTray ? [{ name: 'longpress', label: t('quick.tray') }] : undefined}
           onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && setTray(true)}
           style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
-          <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
-            {expanded || !card.truncated ? card.body : `${card.preview}… `}
-            {card.truncated && !expanded ? (
-              <Text style={styles.more} onPress={() => setExpanded(true)}>
-                {t('card.more')}
-              </Text>
-            ) : null}
-          </Text>
+          {parts && expanded && !bg && hasParts(card.body) ? (
+            <PostParts body={card.body} style={type.body} parts={parts} />
+          ) : (
+            <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
+              {expanded || !card.truncated ? card.body : `${card.preview}… `}
+              {card.truncated && !expanded ? (
+                <Text style={styles.more} onPress={() => setExpanded(true)}>
+                  {t('card.more')}
+                </Text>
+              ) : null}
+            </Text>
+          )}
           {card.truncated && !expanded ? <SparkleWords body={card.body} /> : null}
         </Pressable>
 
@@ -160,20 +175,22 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           {!isPrayable(card.postType)
             ? ''
             : card.counts.prayers > 0
-              ? t('card.praying', { count: card.counts.prayers })
+              ? quiet
+                ? t('quietCounts.praying')
+                : t('card.praying', { count: card.counts.prayers })
               : card.isMine
                 ? t('post.prayed', { count: 0 })
                 : card.postType === 'praise'
                   ? ''
                   : t('card.firstToPray')}
-          {card.counts.commitments > 0 ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
-          {card.counts.encouragements > 0 ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
+          {card.counts.commitments > 0 && !quiet ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
+          {card.counts.encouragements > 0 && !quiet ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
           {features.reactionTray && quick.candles ? ` · 🕯️ ${quick.candles}` : ''}
           {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
         </Text>
 
         {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press. */}
-        <View style={styles.actions}>
+        <View style={styles.actions} testID="card-actions">
           {card.actions.map((action) => {
             const active = action === 'commit' && !!card.myCommitment;
             return (
@@ -261,7 +278,8 @@ function ActionIcon({
         hitSlop={4}
         style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
         {/* The icon is decoration; the button's name is the action's name. */}
-        <Text style={styles.actionIcon} aria-hidden>
+        {/* The icon grows with larger text only so far that it stays inside its 44 pt circle; the tip and the screen-reader label carry the words. */}
+        <Text style={styles.actionIcon} aria-hidden maxFontSizeMultiplier={1.3}>
           {glyph}
         </Text>
       </Pressable>

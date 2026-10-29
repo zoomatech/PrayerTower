@@ -171,3 +171,220 @@ Rules, following the gentle-rhythm practice:
 
 Code: `modules/kind-milestones`, `components/kind-milestones.tsx`, table
 `kind_milestones_seen` (included in account deletion and export).
+
+## Thank the pray-ers (off)
+
+Admin → Growth practices → **Thank the pray-ers** (migration 20261029018800). On their own
+post, once someone has prayed, the person who asked sees **Thank everyone who prayed**.
+They write one warm note of up to 600 characters. Three starters help them begin ("Thank
+you for carrying this with me…"), and the kind cloud checks it as usual.
+
+- Everyone who prayed or promised to pray gets the note once. Each post can have only one
+  note.
+- Each pray-er sees it on the post as "A thank-you from Ana" and can answer **Glad to**.
+- Only the person who asked sees how many said they were glad to. Strangers see nothing.
+- This sits beside the older quick thanks (a 77-character line with an icon). It is the
+  "gratitude letter" in research/Personal_Growth_Research.md, which found that writing
+  thanks lifts the writer as well as the reader.
+
+Code: `modules/thank-note`, `components/thank-note.tsx`. The tables `thank_notes` and
+`thank_note_glad` are included in account deletion and export.
+
+## Calm threads (off)
+
+Admin → Growth practices → **Calm threads** (migration 20261029018900). This is
+de-escalation for a whole comment thread, in the Ted Lasso spirit. It is the
+thread-wide partner of cool-down, which works between two people.
+
+- **Warm.** A thread turns warm when three comments the kind cloud would flag, from two
+  or more people, arrive within two hours. Everyone on the post then sees "Let’s take a
+  breath together… Be curious, not judgmental" above the comments. The note fades on its
+  own after six quiet hours.
+- **A person decides.** The thread appears under Moderation → **Warm threads**, showing
+  only counts ("3 heated comments from 2 people") and the post's first words. A
+  moderator reads the thread and chooses **It’s fine** or **Slow it down (6 hours)**.
+- **Slow mode.** Only a moderator can turn it on. Each person may then comment once
+  every 10 minutes, and anyone who tries sooner is told how long to wait. The app never
+  limits anyone on its own, following Steve's rule that a person reviews anything before
+  it is blocked.
+- **Privacy.** Only who commented and when is kept (`heated_comments`), never the words.
+
+Evidence: Facebook Groups' conflict alerts and comment slow-down, Hacker News's delay on
+deep replies, and Cornell's "conversations gone awry" work
+(research/Kind_Interaction_UX_Research.md, sections 2–3). Code: `modules/calm-threads`,
+`components/calm-thread.tsx`.
+
+## Prayer circles (off)
+
+Admin → Growth practices → **Prayer circles** (migration 20261029019000). A member starts
+an invite-only small group of up to 12 people. Each circle has its own gentle feed, with the
+newest posts first. Members open it from Me → **Prayer circles**.
+
+- **Invite only.** Only the person who started the circle can make an invite code. A code
+  is 8 characters and works for 7 days, and a new code replaces the old one. Nobody can join
+  a circle whose starter blocked them, or whose starter they blocked.
+- **Stays inside.** Circle posts are kept in their own tables (`circle_posts`,
+  `circle_replies`, `circle_prayed`). They never reach the main feed, the radio, search or
+  digests.
+- **Kindness tools come along.** The kind cloud checks every post and reply, and reply
+  starters help members begin. Each post has one action, "I prayed". Other members get one
+  quiet in-app heads-up per circle per day, with no push. Only the person who asked sees
+  how many prayed.
+- **A person decides.** The author or the circle's starter can take a post down, and the
+  starter can remove a member. The app never removes anything on its own. If the starter
+  leaves, the longest-standing member takes over, and a circle with no one left is deleted.
+- **Data.** Circles, memberships, posts, replies and "I prayed" taps are included in
+  Download my data. Account deletion removes them, and passes a circle the member started
+  on to its longest-standing other member.
+
+Code: `modules/prayer-circles`, `app/circles/`.
+
+## Encourager check-in (off)
+
+Admin → Growth practices → **Encourager check-in** (migration 20261029019100). It needs the
+Encourager to be on. This is the mentor and newcomer pairing: the Encourager already pairs
+a newcomer with a volunteer, and this adds a two-week check-in.
+
+- After `encourager_checkin_days` (14 by default), each side gets one quiet "How is it
+  going?" on their Encourager card, with three answers: **Going well**, **It’s okay** and
+  **I’d like a change**.
+- Answers are private. The other person is never told what was said.
+- "I’d like a change" ends the pairing gently. The newcomer can ask again, even past their
+  first days, and is never paired with the same person again. If the encourager asks for
+  the change, the newcomer gets a kind note saying they can ask for someone new.
+- Admins see only totals by answer.
+
+Code: `modules/practices` (`checkIn`, `checkInDueTask`), `components/encourager-card.tsx`.
+
+## Kindness weather report (off)
+
+Admin → Growth practices → **Kindness weather report** (migration 20261029019200). Admins get
+an anonymous, week-by-week view of how the community's conversations felt over the last 12
+weeks.
+
+- **Warm signals** are hearts from the asker, thank-yous, thank-you notes and "Glad to".
+  **Heated signals** are replies the kind cloud flagged (calm threads and cool-down) and
+  member reports.
+- Each week gets a sky, judged by heated signals per comment:
+  - **Sunny:** under 2% heated, and at least 10% warm.
+  - **Fair:** under 5% heated.
+  - **Cloudy:** under 12% heated.
+  - **Stormy:** 12% or more.
+- The report uses totals only and gives no score for any member. A week with fewer than 5
+  comments shows "Too quiet to say" and no numbers.
+- Each week also counts **how many different people commented**. This answers the question in
+  Steve's notes (p. 2), "Will stopping arguments on the forum reduce or encourage engagement?":
+  compare the people count in calm weeks with stormy ones.
+
+Code: `modules/kindness-weather`, the Admin → Growth practices panel.
+
+## Circle welcome (off)
+
+Admin → Growth practices → **Circle welcome** (migration 20261029019300). It needs prayer
+circles to be on.
+
+- The person who started a circle writes a short welcome, up to 400 characters, which sets
+  out the circle's norms. If they leave it empty, the app's default words are used: "Here we
+  lift each other up. Disagree gently, assume the best, and if something stings, be a
+  goldfish."
+- Someone who hasn't yet posted or replied in the circle sees the welcome above the composer
+  until they tap **Got it**.
+- When someone shares in the circle for the first time, the starter gets one quiet heads-up:
+  "… shared in your circle for the first time. A hello goes a long way."
+
+Evidence: research/Conflict_Repair_and_Newcomer_Kindness.md, suggestion 1. Code:
+`modules/prayer-circles` (`setWelcome`, `welcomeSeen`), `app/circles/[id].tsx`.
+
+## A path back after a removal (off)
+
+Admin → Growth practices → **A path back after a removal** (migration 20261029019400).
+
+- When a moderator removes a post or comment, the removal notice adds one line: "You’re
+  welcome to post it again with changes".
+- The notice offers **Post again with changes**. For a post, the button opens the author's
+  own words in the composer. For a comment, it opens them in the comment box on that request.
+- Only the author can read their removed words this way (`GET /me/removed/:itemId`).
+- It is never offered for prayers for harm, for flooding or for automated accounts.
+
+Evidence: research/Conflict_Repair_and_Newcomer_Kindness.md, suggestion 5. Code:
+`modules/path-back`, the Notices tab.
+
+## Kind words practice (off)
+
+Admin → Growth practices → **Kind words practice** (migration 20261029019600). A private card on
+Me shows one short, made-up moment each week (a new one every Monday, six in turn), with three
+possible replies. Tapping a reply shows gently how it might land: why "at least" can shrink a
+feeling, why naming the hurt helps, why a quick fix can wait.
+
+- There are no scores, points, streaks or right answers, and nothing a member taps is saved or
+  sent.
+- The moments use plain words that suit both faith and Open Circle wording.
+
+Source: Steve's notes, p. 4 ("promote empathy, with content, interaction, games & personal
+stories"). Code: `components/kind-words-card.tsx`.
+
+## Weekly intention (off)
+
+Admin → Growth practices → **Weekly intention** (migration 20261029190100). In "Your prayer
+life" on Me, a member may choose how many days a week they would like to pray: 1 to 6, so at
+least one rest day is always built in. "No aim" is the default.
+
+- A row of dots for Monday to Sunday fills in for each day they showed up. Dots never empty.
+- Once the aim is met, a kind line says "You did what you meant to this week. Rest well."
+- A week that falls short is never mentioned, and each Monday starts fresh. There is no streak.
+
+Evidence: research/Personal_Growth_Research.md §4 ("If someone sets a personal goal, it is
+weekly and includes rest days"). Code: `modules/prayer-stats` (`intentionFor`),
+`PUT /me/weekly-intention`, `components/weekly-intention.tsx`.
+
+## Community health report (off)
+
+Admin → Growth practices → **Community health report** (migration 20261029190100). Admins see,
+week by week, what matters rather than time spent in the app:
+
+- **Requests**, and how many **felt held**, meaning someone else prayed or replied within two days.
+- **Answered**: requests marked answered that week.
+- **Came back**: members active that week who were also active in the four weeks before.
+
+The report uses totals only, with no per-member numbers. A week with fewer than 5 requests shows
+"Too quiet to say".
+
+Evidence: research/Kind_Interaction_UX_Research.md §5 ("measure 'requests that felt held,'
+'prayers answered' and returning members, never time spent"). Code: `modules/kindness-weather`
+(`health`), `GET /admin/community-health`.
+
+## Fresh starts on days that matter (off)
+
+Admin → Growth practices → **Fresh starts on days that matter** (migration 20261029190200).
+Gentle rhythm already invites a fresh start on Mondays and the 1st. With this switch on:
+
+- In **Days that matter** on Me, a member may save up to three dates of their own, such as a
+  birthday, a baptism or the day they began again. Only they see them, and the dates are included
+  in their data download.
+- On that day, "Your prayer life" says "Today is … A fresh start: want to pick one small
+  intention?".
+- In communities with faith wording, the first Sunday of Advent, Ash Wednesday and Easter Sunday
+  also invite a fresh start. Open Circle never sees the seasons.
+- Nothing is pushed, and nothing is said on any other day.
+
+Evidence: the fresh-start effect, where temporal landmarks raise goal starts (Dai, Milkman &
+Riis 2014), in research/Personal_Growth_Research.md §4 ("fresh-start invitations … on the
+person's chosen milestones, such as a birthday or a church season"). Code: `modules/fresh-days`,
+`components/fresh-days.tsx`.
+
+## Circle updates (off)
+
+Admin → Growth practices → **Circle updates** (migration 20261029190300). This needs prayer circles
+to be on.
+
+- On their own post in a circle, the person who shared can choose **Share how it's going**. They
+  write a few words, mark **It was answered**, or both. The kind cloud reads the words first.
+- Everyone in the circle sees the update on the post.
+- Only the people who prayed get a quiet in-app note, never a push. The note uses wording that
+  suits Open Circle too.
+- A "Three good things" card can be shared to one of the member's circles, one tap per circle.
+  Sharing is always their choice.
+
+Evidence: closing the loop with follow-ups, and sharing gratitude with an option to share one to
+the circle (research/Personal_Growth_Research.md §1–2). Code: `modules/prayer-circles` (`update`),
+`app/circles/[id].tsx`, `components/gratitude-card.tsx`.

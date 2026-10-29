@@ -13,9 +13,13 @@ import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
 import * as growth from '../growth/index.js';
 import { settings as practiceSettings } from '../practices/index.js';
+import * as calm from '../calm-threads/index.js';
+import * as replyChoice from '../reply-choice/index.js';
 import * as checkBack from '../check-back/index.js';
 import * as coolDown from '../cool-down/index.js';
 import * as radioThanks from '../radio/thanksgiving.js';
+import * as ceaseless from '../radio/ceaseless.js';
+import * as trail from '../radio/trail.js';
 
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
@@ -84,6 +88,12 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     posts.setLament(db, requireUser(req), req.params.id, posts.LamentPatch.parse(req.body)),
   );
 
+  app.get<{ Params: { id: string } }>('/posts/:id/radio-trail', async (req) => ({ trail: await trail.forPost(db, requireUser(req), req.params.id) }));
+
+  app.put<{ Params: { id: string } }>('/posts/:id/keep-on-air', async (req) =>
+    ceaseless.setKeepOnAir(db, requireUser(req), req.params.id, z.object({ on: z.boolean() }).parse(req.body).on),
+  );
+
   app.put<{ Params: { id: string } }>('/posts/:id/testimony', async (req) => {
     const userId = requireUser(req);
     const { body } = posts.Testimony.parse(req.body);
@@ -107,7 +117,10 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const userId = requireUser(req);
     const input = posts.NewComment.parse(req.body);
     const { comment, coolDown: cool } = await withTx(db, async (tx) => {
+      await replyChoice.check(tx, userId, req.params.id);
+      await calm.checkSlow(tx, userId, req.params.id);
       const comment = await posts.addComment(tx, userId, req.params.id, input);
+      if (!comment.harm) await calm.noteComment(tx, userId, req.params.id, input.body);
       if (input.isUpdate && !comment.harm) await checkBack.noteUpdate(tx, userId, req.params.id);
       return { comment, coolDown: await coolDown.noteComment(tx, userId, req.params.id, input.parentId, input.body) };
     });

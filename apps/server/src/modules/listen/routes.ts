@@ -26,7 +26,7 @@ export function listenPublicRoutes(app: FastifyInstance, db: Db) {
 
   // A listener heard these prayers (fingerprints only): tells their senders, while receipts are on.
   app.post('/listen/heard', async (req) => {
-    const wizard = await setup.enabled(db);
+    const wizard = await setup.testsActive(db);
     if (!wizard && !(await receipts.enabled(db))) throw notFound('Radio receipts');
     const report = receipts.HeardReport.parse(req.body);
     // The setup wizard's test burst (radio/setup.ts) heard on a listening page or phone.

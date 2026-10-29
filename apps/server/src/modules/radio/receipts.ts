@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import * as notifications from '../notifications/index.js';
+import * as trail from './trail.js';
 
 export async function enabled(q: Queryable): Promise<boolean> {
   const { rows } = await q.query<{ on: boolean }>('select radio_receipts_enabled as on from public.token_settings');
@@ -33,12 +34,14 @@ export async function onAir(q: Queryable, radioPrayerId: string) {
     [radioPrayerId],
   );
   const r = rows[0];
-  if (!r) return;
+  // A request kept on the air goes out again and again; its author isn't told each time (the trail shows them).
+  if (!r || r.kind === 'ceaseless') return;
   const time = await timeFor(q, r.user_id, r.transmitted_at);
   const how = [r.call_sign ? `from ${r.call_sign}` : null, r.preset ? `on ${r.preset}` : null].filter(Boolean).join(' ');
   await notifications.notify(q, r.user_id, {
     kind: 'radio_on_air',
-    title: r.kind === 'thanksgiving' ? 'Your answered request went out on the air' : 'Your radio prayer is on the air',
+    // An 'auto' send (fair-air.ts) is the asker's own request, sent for them.
+    title: r.kind === 'thanksgiving' ? 'Your answered request went out on the air' : r.kind === 'auto' ? 'Your request went out on the air' : 'Your radio prayer is on the air',
     body: `It went out at ${time}${how ? ` ${how}` : ''}.`,
     data: { postId: r.post_id, radioPrayerId, preset: r.preset, transmittedAt: r.transmitted_at.toISOString() },
     dedupeKey: `radio_on_air:${radioPrayerId}`,
@@ -63,9 +66,9 @@ const HEARD_WINDOW_HOURS = 24;
  * asker. Returns how many prayers matched (nothing else: a listener learns
  * nothing about who sent what).
  */
-export async function heard(q: Queryable, report: z.infer<typeof HeardReport>): Promise<number> {
+export async function heard(q: Queryable, report: z.infer<typeof HeardReport>, node: { id: string; name: string } | null = null): Promise<number> {
   const hashes = [...new Set(report.hashes)];
-  const { rows } = await q.query<{ id: string; post_id: string; user_id: string; poster_id: string; first: boolean; heard_at: Date }>(
+  const { rows } = await q.query<{ id: string; post_id: string; user_id: string; poster_id: string; first: boolean; heard_at: Date; kind: string }>(
     `with hit as (
        select r.id, r.heard_at is null as first from public.radio_prayers r
         where r.sent_hash = any($1::text[]) and r.status = 'transmitted' and upper(r.call_sign) = upper($2)
@@ -77,15 +80,17 @@ export async function heard(q: Queryable, report: z.infer<typeof HeardReport>): 
             heard_snr_db = greatest(coalesce(r.heard_snr_db, $4::real), $4::real)
        from hit, public.posts p
       where r.id = hit.id and p.id = r.post_id
-      returning r.id, r.post_id, r.user_id, p.user_id as poster_id, hit.first, r.heard_at`,
+      returning r.id, r.post_id, r.user_id, p.user_id as poster_id, hit.first, r.heard_at, r.kind`,
     [hashes, report.callSign, HEARD_WINDOW_HOURS, report.snrDb],
   );
+  // "Where it was heard" (trail.ts): the node by name, a phone only counted.
+  await trail.record(q, rows.map((r) => r.id), report.snrDb, node);
   // A listener node's report also acknowledges the prayer (acks.ts); senders are told only while receipts are on.
   if (!(await enabled(q))) return rows.length;
-  for (const r of rows.filter((x) => x.first)) {
+  for (const r of rows.filter((x) => x.first && x.kind !== 'ceaseless')) {
     for (const userId of new Set([r.user_id, r.poster_id])) {
       const time = await timeFor(q, userId, r.heard_at);
-      const asker = userId === r.poster_id && userId !== r.user_id;
+      const asker = userId === r.poster_id && (userId !== r.user_id || r.kind === 'auto');
       await notifications.notify(q, userId, {
         kind: 'radio_heard',
         title: asker ? 'A listener heard your request on the air' : 'A listener heard your radio prayer',

@@ -22,6 +22,14 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Listener acknowledgements | Admin → Radio → Listener acknowledgements | [Listener acknowledgements](#listener-acknowledgements) |
 | Urgent requests first | Admin → Radio → Urgent requests first | [Queue order](#queue-order) |
 | Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
+| Operator alerts (push on station problems) | Admin → Radio → Operator alerts | [Operator alerts](#operator-alerts) |
+| Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
+| Fair air (every request on the air once; a daily cap per member) | Admin → Radio → Every request on the air once, Radio sends per member a day | [Fair air](#fair-air) |
+| My signal queue and signal codes (a member's own radio prayers; the same code on the Listen screen) | Admin → Radio → My signal queue | [My signal queue](#my-signal-queue) |
+| Where it was heard (receivers that decoded each radio prayer, shown to the sender and asker) | Admin → Radio → Where it was heard | [Where it was heard](#where-it-was-heard) |
+| Scheduled radio sends (a request goes out by radio, or amplified, at a set time) | Admin → Radio → Scheduled radio sends | [Scheduled radio sends](#scheduled-radio-sends) |
+| Prayer without ceasing (kept requests go out again when the air is quiet) | Admin → Radio → Prayer without ceasing | [Prayer without ceasing](#prayer-without-ceasing) |
+| Dish and sky target (where to point, rotator follows, hold while low) | Admin → Radio → Dish and sky target, plus `ROTATOR=rotctld` to turn a rotator | [Dish and sky target](#dish-and-sky-target) |
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
 | Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
 | Weekly radio digest | Admin → Radio → Weekly digest | [Weekly radio digest](#weekly-radio-digest) |
@@ -400,10 +408,77 @@ One screen for the control operator: Me → **Operator console**. It is off unti
 | Status | Whether the station may transmit now, and why not: held, outside the transmission windows, or sending under an override until a given time. |
 | Manual override | **Hold all transmissions**: the station is handed nothing new until **Resume** (a burst already on the air finishes). **Send for 15 / 30 / 60 min**: sends outside the windows and quiet hours, then the windows apply again on their own; **End override** stops it early. |
 | Station ID timer | For each station: when it last identified, how often it must (`STATION_ID_MINUTES`), and when the next ID is due. The station reports this as its `station_id` check. |
-| Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10 with their wait, urgency and repeats. |
+| Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10, in the order the station will be handed them, with their wait, urgency and repeats. |
+| Relays | Each [store-and-forward relay](RADIO_BURST.md#store-and-forward-relay) that reported in the last hour: frames re-sent and air time used of its budget, and frames it did not re-send by reason. A relay sends this with its listener heartbeat. |
+| Reception beacon | When the [reception beacon](#reception-beacon) is on: the last day's beacons and every receiver that heard each one, with its SNR. |
+| Prayer without ceasing | When [prayer without ceasing](#prayer-without-ceasing) is on: how many kept requests are in the rotation, the quiet time before one goes out, and how many went out again in the last day. |
+| Dish and sky target | When the [sky target](#dish-and-sky-target) is on and the dish location is set: where to point now (azimuth and elevation), when the target next rises or sets past the lowest useful elevation, and whether transmissions are held because it is too low. |
 | Log | The last 20 transmissions in 24 hours (the same rows as the [operator log](#operator-log)): time, call sign, preset, sent or failed, heard by a listener, and the text. |
 
 The screen refreshes every 15 seconds. Holds and overrides are recorded in Admin → Audit log. Turning the console off lifts any hold or override, so nothing stays held by a screen no one can open.
+
+## Operator alerts
+
+Off until an admin turns on **Operator alerts** in Admin → Radio (under the operator console switch). Every 2 minutes the server checks the same problems as the [health alerts](#health-alerts-in-admin--radio): no sound card, the radio did not key, the last burst failed, prayers overdue, a station that stopped reporting. When one starts, every radio operator and admin gets a notice (a push, unless they turned pushes off or are in quiet hours). It is sent once while the problem lasts. When it clears, they get a quiet in-app "Back to normal" note. Information-only alerts (an empty queue, a quiet listener node) are never sent. This works whether or not the health alerts card is on.
+
+## Reception beacon
+
+Off until an admin turns on **Reception beacon** in Admin → Radio (under the operator console switch) and picks how often: every 30, 60 (the default), 120 or 240 minutes. Each time, the station sends the setup wizard's short test burst ("Station test" and a code, with its call sign in the frame). The station needs no new settings, and the setup wizard itself can stay off. Every listener node and listening page that decodes the beacon reports it, and each receiver is kept with its signal-to-noise ratio. The operator console shows the last 24 hours: when each beacon went out, which receivers heard it and how strongly, or that none did. This makes changes in reception through the day easy to see.
+
+No beacon goes out while the console's hold is on or outside the transmission windows. Turning the beacon off drops any beacon still waiting for the station. While a beacon is waiting (up to 5 minutes), a setup wizard test has to wait for it.
+
+## Fair air
+
+Two settings in Admin → Radio, both off by default.
+
+**Every request on the air once.** From the notebook's Page 2: "a lack of tokens will never stop a prayer request from being seen and minimally broadcast." Every 5 minutes the server queues one free send for each prayer request from the last day that has not been on the radio yet. It leaves out sensitive requests, laments kept off the radio, requests waiting on a moderator, answered ones, and communities with the radio hidden. The station sends these after the prayers members sent themselves. Turning it off drops any still waiting.
+
+**Radio sends per member a day.** From the Donor Influence page (people amplifying prayers "on both sides" to flood the air). Choose no limit, 3, 10 or 30. Within 24 hours a member can send at most that many radio prayers; an amplified send counts once for each time it goes out. Past the limit the member is told why. A scheduled radio send that would pass it is skipped that week, with the same message to the member; a repeating schedule goes on the next week.
+
+## My signal queue
+
+From the first prototype's Signal Queue tab. Off until an admin turns on **My signal queue** in Admin → Radio.
+
+While it is on, members have **My signal queue** on their profile: their own radio prayers, newest first, each waiting, going out, sent or not sent, amplified or not, with the call sign and preset it went out on and how many receivers reported it. Each one that went out has a signal code such as `Q7MK-4XPL-9RT2`: 60 bits of the fingerprint of the exact text sent (the same fingerprint the station reports and listeners send back), written in 32 letters and digits with no I, O, 0 or 1. The Listen screen shows the same code under each prayer it decodes, so a sender and a listener can match a transmission without either learning who the other is. Re-sends from [prayer without ceasing](#prayer-without-ceasing) are left out of the list.
+
+## Where it was heard
+
+From the HAM Operators notebook page ("a trail of all the places and ears that have heard that prayer"), with real reports only. Off until an admin turns on **Where it was heard** in Admin → Radio.
+
+While it is on, every receiver that decodes a radio prayer is kept: a [listener node](#listener-nodes-receive-only-real-data-for-the-auto-preset) by its name with its best signal-to-noise ratio, and a phone or listening page only as a count (never who or where). The member who sent the prayer and the person who asked see **Where it was heard** on the request: each time it went out (and whether amplified), from which call sign, the nodes that heard it and how many phones did. Nobody else sees it. Nothing is estimated: a prayer no receiver reported says so. It needs listener nodes or [receipts](RADIO_BURST.md) on for reports to arrive. Reports for packet fallback IDs count the same way.
+
+## Scheduled radio sends
+
+From the Dominic notebook page ("2,500 on Friday, 2,500 on Saturday and the rest at the start of the game", amplified). Off until an admin turns on **Scheduled radio sends** in Admin → Radio.
+
+While it is on, a request's screen has **Schedule a radio send**. The member picks a time (Friday 7 pm, Saturday 9 am, Sunday 9 am or their own), once or weekly for 4 or 12 weeks, and whether to amplify. At that time the request is queued for the station exactly as if they had pressed **Send as a radio prayer** (or **Amplify**) then: the price in Priestly tokens, the free monthly radio prayer, the one-free-send-per-request rule and every hold apply at that moment, not when it was scheduled. If the radio refuses it then (sensitive, a lament kept off the air, no Amplify price, not enough Priestly tokens, or the switch turned off), the schedule stops and the member gets a notice saying why. Members see and cancel these under **Scheduled gifts** in their profile.
+
+## Prayer without ceasing
+
+From the notebook's Digital Prayer Signal Codec page ("prayer without ceasing"). Off until an admin turns on **Prayer without ceasing** in Admin → Radio and picks the quiet time: 15, 30 (the default), 60 or 120 minutes.
+
+While it is on, a member sees **Keep on the air** on their own prayer request. When nothing else is waiting and the station has sent nothing for the quiet time, the server queues one kept request again, free, the one sent longest ago first. Members' new radio prayers always go first. A re-send goes out like any radio prayer: the hold, the transmission windows, the sky-target hold, moderation and the content checks all apply. A request drops out of the rotation when it is answered, removed, marked sensitive, or a lament kept off the radio, or when its author turns **Keep on the air** off. Turning the switch off drops any re-send still waiting for the station.
+
+## Dish and sky target
+
+For the notebook's idea of a dish pointed at the sky. Off until an admin turns on **Dish and sky target** in Admin → Radio (under the operator console switch). Pick a target: straight up (zenith), the Moon, Alpha Centauri, or your own (a name, right ascension in hours and declination in degrees). Enter the dish's latitude and longitude (kept to 0.01°, about 1 km) and the lowest useful elevation (0 to 30°; 10° by default, to stay above trees and buildings).
+
+The operator console then shows where to point now (azimuth from true north, elevation above the horizon) and when the target next rises or sets past that elevation. With **Hold transmissions while the target is too low** on, nothing goes out while it is below; the console's send-now override does not lift this.
+
+The positions are low precision on purpose (a few arcminutes for the Moon, about half a degree for Alpha Centauri because precession since 2000 is left out). A 60 cm dish at 10 GHz has a beam about 3.5° wide, so this is well inside it.
+
+**Turning a rotator.** On the station computer, run Hamlib's `rotctld` for your rotator (default port 4533) and set in `station.env`:
+
+```
+ROTATOR=rotctld
+ROTATOR_HOST=127.0.0.1
+ROTATOR_PORT=4533
+ROTATOR_STEP_DEG=2
+ROTATOR_MIN_EL=0
+ROTATOR_MAX_EL=90
+```
+
+Every minute the station asks the server where the target is and sends `P az el` when it has moved more than `ROTATOR_STEP_DEG`. Elevation is kept between `ROTATOR_MIN_EL` and `ROTATOR_MAX_EL` for rotators with limits. The station's status shows a `rotator` check with the last position sent or the last error. With the sky target off, the rotator is left where it is. Like `rigctld`, `rotctld` has no password, so keep it on 127.0.0.1.
 
 ## Operator log
 
@@ -611,6 +686,7 @@ opens fast enough, and drop back to a slower preset.
 Station identification, frequencies and control-operator duties are in
 [RADIO_STATION.md](RADIO_STATION.md). The call sign travels in plain ASCII in
 every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.md).
+For the legal department: signals aimed at the sky (the dish and sky target) should be checked against the band and power rules for the frequency used, including any for Earth-Moon-Earth work.
 
 ## Sources
 
@@ -632,4 +708,8 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Hamlib model numbers (`RIG_MAKE_MODEL`, `MAX_MODELS_PER_BACKEND` 1000, the radios in the setup wizard): [Hamlib, include/hamlib/riglist.h](https://github.com/Hamlib/Hamlib/blob/master/include/hamlib/riglist.h)
 - OpenStreetMap tiles need attribution, a real User-Agent and conforming caching: [OSMF Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/), summarised in [flutter_map, "Using OpenStreetMap (direct)"](https://docs.fleaflet.dev/tile-servers/using-openstreetmap-direct)
+- rotctld default port 4533, `P` (set_pos) and `p` (get_pos): [rotctld(1)](https://www.mankier.com/1/rotctld)
+- Sidereal time formula: [USNO, "Computing Greenwich Apparent Sidereal Time"](https://aa.usno.navy.mil/faq/GAST)
+- Moon position and topocentric parallax: [Paul Schlyter, "How to compute planetary positions"](https://stjarnhimlen.se/comp/ppcomp.html)
+- Alpha Centauri J2000 coordinates: [Wikipedia, "Alpha Centauri"](https://en.wikipedia.org/wiki/Alpha_Centauri)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)

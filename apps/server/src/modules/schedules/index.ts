@@ -1,6 +1,9 @@
 // Schedules module (roadmap Phase 2): scheduled token spending. A member sets
 // tokens to go to a request at a chosen time (Friday evening, a game's start),
 // once or weekly for a number of weeks. Tokens are taken when it runs.
+// Scheduled radio sends (off until an admin turns on scheduled_radio_enabled):
+// instead of tokens for reach, the request goes out by radio, or amplified, at
+// that time, at the radio prayer's own price and under its rules.
 import type { Task } from 'graphile-worker';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
@@ -8,6 +11,8 @@ import { badRequest, conflict, notFound } from '../../errors.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
+import * as radio from '../radio/index.js';
+import { AppError } from '../../errors.js';
 import * as tokens from '../tokens/index.js';
 
 /** Placeholder limits. */
@@ -19,6 +24,8 @@ export const NewSchedule = z.object({
   amount: z.number().int().min(1).max(10_000),
   runAt: z.iso.datetime({ offset: true }),
   repeatWeeks: z.number().int().min(1).max(52).default(1),
+  /** 'reach' gives `amount` tokens; 'radio' and 'amplify' send the request by radio (amount is ignored). */
+  action: z.enum(['reach', 'radio', 'amplify']).default('reach'),
 });
 
 export interface Schedule {
@@ -28,23 +35,34 @@ export interface Schedule {
   next_run_at: Date;
   repeat_weeks: number;
   runs: number;
+  action: 'reach' | 'radio' | 'amplify';
   status: 'active' | 'done' | 'cancelled' | 'failed';
   error: string | null;
 }
 
-const COLS = 'id, post_id, amount, next_run_at, repeat_weeks, runs, status, error';
+const COLS = 'id, post_id, amount, next_run_at, repeat_weeks, runs, action, status, error';
+
+export async function radioEnabled(q: Queryable): Promise<boolean> {
+  const { rows } = await q.query<{ on: boolean }>('select scheduled_radio_enabled as on from public.token_settings');
+  return rows[0]!.on;
+}
+
+export async function setRadioEnabled(q: Queryable, on: boolean) {
+  await q.query('update public.token_settings set scheduled_radio_enabled = $1', [on]);
+}
 
 export async function create(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewSchedule>): Promise<Schedule> {
   const post = await posts.getViewable(q, userId, postId);
   if (!post) throw notFound('Post');
+  if (input.action !== 'reach' && !(await radioEnabled(q))) throw badRequest('Scheduled radio sends are switched off');
   const runAt = new Date(input.runAt);
   if (runAt.getTime() < Date.now() - 60_000) throw badRequest('Pick a time in the future');
   if (runAt.getTime() > Date.now() + MAX_DAYS_AHEAD * 24 * 3600 * 1000) throw badRequest('Pick a time within a year');
   const { rows: n } = await q.query<{ n: number }>(`select count(*)::int as n from public.scheduled_spends where user_id = $1 and status = 'active'`, [userId]);
   if (n[0]!.n >= MAX_ACTIVE_PER_MEMBER) throw conflict(`You can have ${MAX_ACTIVE_PER_MEMBER} scheduled gifts at a time`);
   const { rows } = await q.query<Schedule>(
-    `insert into public.scheduled_spends (user_id, post_id, amount, next_run_at, repeat_weeks) values ($1, $2, $3, $4, $5) returning ${COLS}`,
-    [userId, post.id, input.amount, runAt, input.repeatWeeks],
+    `insert into public.scheduled_spends (user_id, post_id, amount, next_run_at, repeat_weeks, action) values ($1, $2, $3, $4, $5, $6) returning ${COLS}`,
+    [userId, post.id, input.action === 'reach' ? input.amount : 1, runAt, input.repeatWeeks, input.action],
   );
   return rows[0]!;
 }
@@ -86,12 +104,30 @@ export async function runOne(q: Queryable, s: Schedule & { user_id: string }) {
   if (await moderation.awaitingCrisisReview(q, post.id)) return; // try again next minute
   try {
     await q.query('savepoint spend');
-    await tokens.spendOnReach(q, s.user_id, post.id, s.amount, `sched:${s.id}:${s.runs}`);
+    if (s.action === 'reach') await tokens.spendOnReach(q, s.user_id, post.id, s.amount, `sched:${s.id}:${s.runs}`);
+    else {
+      // Switched off since it was set: it stops, and the member is told.
+      if (!(await radioEnabled(q))) throw new AppError(409, 'conflict', 'Scheduled radio sends were switched off.');
+      await radio.queue(q, s.user_id, post.id, `sched:${s.id}:${s.runs}`, s.action === 'amplify');
+    }
     await q.query('release savepoint spend');
   } catch (err) {
     await q.query('rollback to savepoint spend');
-    if ((err as { code?: string }).code !== 'insufficient_tokens') throw err;
-    return finish(q, s, 'failed', `You didn't have ${s.amount} tokens when it was time.`);
+    if ((err as { code?: string }).code === 'insufficient_tokens') {
+      return finish(q, s, 'failed', s.action === 'reach' ? `You didn't have ${s.amount} tokens when it was time.` : "You didn't have enough Priestly tokens when it was time.");
+    }
+    // Over the daily radio cap (fair-air.ts) is a busy day, not a reason to stop: this week's send is skipped.
+    if (err instanceof AppError && err.code === 'radio_daily_cap') {
+      await notifications.notify(q, s.user_id, {
+        kind: 'scheduled_spend',
+        title: "This week's scheduled radio send was skipped",
+        body: err.message,
+        data: { postId: s.post_id, scheduleId: s.id },
+      });
+    }
+    // The radio's own other refusals (paused, sensitive, a lament kept off the air, no price set) end the schedule.
+    else if (s.action !== 'reach' && err instanceof AppError && err.statusCode < 500) return finish(q, s, 'failed', err.message);
+    else throw err;
   }
   const runs = s.runs + 1;
   if (runs >= s.repeat_weeks) {

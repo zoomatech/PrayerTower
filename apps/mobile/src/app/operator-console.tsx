@@ -5,7 +5,7 @@
 // everything, or send outside the transmission windows for a while. Off until
 // an admin turns it on in Admin → Radio; admins and radio operators use it.
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { staffOnly } from '@/components/staff-only';
@@ -25,11 +25,12 @@ function OperatorConsole() {
   const [off, setOff] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     try {
       setData(await api.radioConsole());
+      setNow(Date.now());
       setOff(false);
       setError(null);
     } catch (e) {
@@ -41,20 +42,17 @@ function OperatorConsole() {
   useFocusEffect(
     useCallback(() => {
       load();
-      const id = setInterval(() => {
-        setNow(Date.now());
-        load();
-      }, 15_000);
+      const id = setInterval(load, 15_000);
       return () => clearInterval(id);
     }, [load]),
   );
-  useEffect(() => setNow(Date.now()), [data]);
 
   const change = async (patch: { paused?: boolean; windowOverrideMinutes?: number }) => {
     setBusy(true);
     setError(null);
     try {
       setData(await api.updateRadioConsole(patch));
+      setNow(Date.now());
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -126,6 +124,31 @@ function OperatorConsole() {
           </>
         ) : null}
 
+        {data.sky ? (
+          <View style={[styles.card, data.sky.aboveMinimum ? null : styles.offAir]}>
+            <Text style={type.heading}>{t('operatorConsole.sky')}</Text>
+            <Text style={type.body}>
+              {t('operatorConsole.skyPoint', { target: data.sky.name ?? t(`operatorConsole.skyTarget.${data.sky.target}`), az: data.sky.az.toFixed(1), el: data.sky.el.toFixed(1) })}
+            </Text>
+            <Text style={type.small}>
+              {data.sky.target === 'zenith'
+                ? t('operatorConsole.skyZenith')
+                : data.sky.next
+                  ? t(data.sky.next.rising ? 'operatorConsole.skyRises' : 'operatorConsole.skySets', { time: clock(data.sky.next.at), min: data.sky.minElevation })
+                  : t(data.sky.aboveMinimum ? 'operatorConsole.skyAlwaysUp' : 'operatorConsole.skyNeverUp', { min: data.sky.minElevation })}
+              {!data.sky.aboveMinimum && data.sky.holdBelow ? ` ${t('operatorConsole.skyHeld')}` : ''}
+            </Text>
+          </View>
+        ) : null}
+
+        {data.ceaseless ? (
+          <View style={styles.card}>
+            <Text style={type.heading}>{t('operatorConsole.ceaseless')}</Text>
+            <Text style={type.body}>{t('operatorConsole.ceaselessCounts', { count: data.ceaseless.inRotation, minutes: data.ceaseless.gapMinutes })}</Text>
+            <Text style={type.small}>{t('operatorConsole.ceaselessSent', { count: data.ceaseless.sentLastDay })}</Text>
+          </View>
+        ) : null}
+
         <Text style={type.heading}>{t('operatorConsole.idTimer')}</Text>
         {data.stations.length === 0 ? <Empty text={t('operatorConsole.noStations')} /> : null}
         {data.stations.map((s) => {
@@ -160,6 +183,52 @@ function OperatorConsole() {
             </Text>
           </View>
         ))}
+
+        {data.relays.length ? (
+          <>
+            <Text style={type.heading}>{t('operatorConsole.relays')}</Text>
+            {data.relays.map((r) => (
+              <View key={r.node} style={styles.card}>
+                <Text style={styles.strong}>
+                  {r.callSign} · {r.node}
+                </Text>
+                <Text style={type.body}>{t('operatorConsole.relayHour', { count: r.relayedLastHour, seconds: r.secondsLastHour, budget: r.budgetSeconds })}</Text>
+                {Object.keys(r.skipped).length ? (
+                  <Text style={type.small}>
+                    {t('operatorConsole.relaySkipped', {
+                      list: Object.entries(r.skipped)
+                        .map(([reason, n]) => `${t(`operatorConsole.relayReason.${reason}`)} ${n}`)
+                        .join(', '),
+                    })}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </>
+        ) : null}
+
+        {data.beacon.enabled ? (
+          <>
+            <Text style={type.heading}>{t('operatorConsole.beacon')}</Text>
+            <Text style={type.small}>{t('operatorConsole.beaconHint', { minutes: data.beacon.minutes })}</Text>
+            {data.beacon.recent.length === 0 ? <Empty text={t('operatorConsole.beaconNone')} /> : null}
+            {data.beacon.recent.map((b) => (
+              <View key={b.id} style={styles.logRow}>
+                <Text style={type.small}>
+                  {b.sentAt ? clock(b.sentAt) : t('operatorConsole.beaconWaiting')}
+                  {b.preset ? ` · ${b.preset}` : ''}
+                </Text>
+                <Text style={type.body}>
+                  {b.heard.length
+                    ? b.heard.map((h) => t('operatorConsole.beaconHeardBy', { by: h.by, snr: Math.round(h.snrDb) })).join(', ')
+                    : b.status === 'failed'
+                      ? t('operatorConsole.beaconUnheard')
+                      : t('operatorConsole.beaconListening')}
+                </Text>
+              </View>
+            ))}
+          </>
+        ) : null}
 
         <Text style={type.heading}>{t('operatorConsole.log')}</Text>
         {data.log.length === 0 ? <Empty text={t('operatorConsole.logEmpty')} /> : null}

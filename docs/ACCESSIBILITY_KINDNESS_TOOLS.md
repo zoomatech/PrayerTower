@@ -36,3 +36,24 @@ milestones.
 - **Open Circle wording.** `open-circle-wording.test.ts` now also covers
   `answeredStory`, `kindIntro`, `checkBack` and `kindMilestones`, as well as the new
   `talk.pairs`.
+
+## Later on 2026-10-29: comment kindness, thank-you notes, calm threads
+
+- **Comment kindness.**
+  - **♡ Love this** is a button that reports its selected state. **Thank** is a button
+    with a hint saying the thanks is private.
+  - Both announce what happened ("Loved. They’ll get a quiet note.", "Thank-you sent.
+    Only they will see it.").
+  - Both are at least 44 pt tall.
+  - Quiet counts swap the number for words, so a screen reader hears "People are praying
+    with you" rather than a number that was hidden on screen only.
+- **Thank the pray-ers.** The card has a heading. The starters are buttons, 44 pt tall,
+  that only fill the box, and the kind cloud runs on the note. Sending announces how many
+  people it went to.
+- **Calm threads.** The note is a summary with a heading, so screen readers reach it
+  before the comments. The moderators' queue gives each thread as a link, with counts
+  and two labelled buttons.
+- **Tests.** `comment-kindness.test.tsx`, `thank-note.test.tsx` and
+  `calm-thread.test.tsx` cover each feature in both editions. The e2e reflow walk
+  (`23-kindness-reflow`) visits the post screen, where all three live, with every switch
+  on.

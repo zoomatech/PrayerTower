@@ -193,6 +193,8 @@ export interface Comment {
   isMine?: boolean;
   author: Identity;
   depth?: number;
+  /** The part of a long post this comment is about (comments at block breaks), from 0. */
+  part?: number | null;
 }
 
 /** Long-press reactions: "Light a candle" and "Standing with you". */
@@ -230,10 +232,14 @@ export interface Card {
   lament?: boolean;
   /** The author said this lament may go out by radio. */
   lamentRadio?: boolean;
+  /** Only on the author's own request: it goes out again when the air is quiet (radio/ceaseless.ts). */
+  keepOnAir?: boolean;
   /** A "prayer answered" story: the request it tells the ending of. */
   answers?: { id: string; preview: string } | null;
   /** A request's "prayer answered" story, once posted. */
   storyId?: string | null;
+  /** The author chose quiet counts: others see no prayer numbers on this post. */
+  countsQuiet?: boolean;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
@@ -362,6 +368,8 @@ export interface ModerationItem {
   author_note?: string | null;
   /** Hidden until a moderator decides (a held post). */
   auto_hidden?: boolean;
+  /** Goldfish memory (off): the author's recent removals, which fade, and serious ones, which don't. */
+  history?: { recent: number; serious: number; days: number; repeat: boolean };
 }
 
 export interface Appeal {
@@ -500,6 +508,34 @@ export function importantWords(body: string, n = 4): string[] {
   return [...scores.values()].sort((a, b) => b.score - a.score).slice(0, n).map((s) => s.word);
 }
 
+// Comments at block breaks (notebook Page 13: "a thread can incur comments at any
+// 200-word block break"). A long post is cut into parts of about 200 words, each
+// ending at a paragraph or sentence close to the mark, so a reader can comment on
+// one part. The comments still appear together at the end (Steve leans that way).
+export const POST_PART_WORDS = 200;
+
+/** A post's parts, in order. A post of 200 words or fewer is one part. */
+export function postParts(body: string, words = POST_PART_WORDS): string[] {
+  const tokens = [...body.matchAll(/\S+/g)];
+  if (tokens.length <= words) return [body.trim()];
+  const parts: string[] = [];
+  let start = 0; // index into tokens
+  while (tokens.length - start > words) {
+    // Look back up to a quarter part from the mark for a paragraph end, else a sentence end.
+    const mark = start + words;
+    const floor = mark - Math.floor(words / 4);
+    let cut = mark;
+    const gapAfter = (i: number) => body.slice(tokens[i]!.index! + tokens[i]![0].length, tokens[i + 1]!.index!);
+    let found = false;
+    for (let i = mark - 1; i >= floor && !found; i--) if (gapAfter(i).includes('\n\n')) [cut, found] = [i + 1, true];
+    for (let i = mark - 1; i >= floor && !found; i--) if (/[.!?]["”’)]*$/.test(tokens[i]![0])) [cut, found] = [i + 1, true];
+    parts.push(body.slice(tokens[start]!.index!, tokens[cut - 1]!.index! + tokens[cut - 1]![0].length));
+    start = cut;
+  }
+  parts.push(body.slice(tokens[start]!.index!).trim());
+  return parts;
+}
+
 // Messages (Features Set 2: pray-er-to-prayee, direct, group chats) ------------
 
 export type ConversationKind = 'prayer' | 'direct' | 'group' | 'care';
@@ -630,10 +666,10 @@ export const NOTIFICATION_CATEGORIES = ['prayers', 'promises', 'encouragement', 
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'radio_on_air', 'radio_heard', 'spoken_prayer', 'live_amplifier_read', 'guest_prayer', 'prayer_minute'],
-  promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder'],
-  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'check_back', 'check_back_update', 'gratitude', 'encourager', 'kind_ask', 'mend_invite', 'mend_delivered', 'mend_returned', 'mend_accepted', 'mend_closed', 'partner', 'highlight_ask', 'highlights'],
+  promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder', 'daily_reminder'],
+  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'check_back', 'check_back_update', 'author_heart', 'comment_thanks', 'thank_note', 'gratitude', 'encourager', 'encourager_checkin', 'kind_ask', 'mend_invite', 'mend_delivered', 'mend_returned', 'mend_accepted', 'mend_closed', 'partner', 'highlight_ask', 'highlights'],
   messages: ['message', 'meetup', 'care_request'],
-  community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
+  community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'circle_post', 'witness_story'],
   tokens: ['mint', 'milestone', 'scheduled_spend', 'radio_not_sent', 'token_purchase_refunded'],
 };
 export function notificationCategory(kind: string): NotificationCategory | null {
@@ -664,6 +700,14 @@ export interface PrayerStats {
   welcomeBack: boolean;
   /** A Monday or the 1st of the month invites a fresh start. */
   freshStart: 'week' | 'month' | null;
+  /** Weeks of prayer (Admin → Gentle reminders): weeks with a prayer, a total that only grows. */
+  weeksPrayed: number;
+  /** Weeks in a row, one rest week allowed between; null under 2, so a run is never shown as lost. */
+  weekRun: number | null;
+  /** Weekly intention (Admin → Growth practices, off): only while the switch is on. */
+  intention?: { days: number | null; week: { date: string; prayed: boolean }[]; shown: number; met: boolean };
+  /** Fresh starts on days that matter (off): the member's own day, or the first day of a season. */
+  freshDay?: { label: string } | { season: 'advent' | 'lent' | 'easter' } | null;
 }
 
 /**
@@ -741,4 +785,24 @@ export function seasonsOn(date: Date): SkinSeason[] {
   const m = date.getUTCMonth();
   const weather: SkinSeason = m === 11 || m <= 1 ? 'winter' : m <= 4 ? 'spring' : m <= 7 ? 'summer' : 'autumn';
   return church ? [church, weather] : [weather];
+}
+
+/** The letters of a signal code: no I, O, 0 or 1, so it reads back without mistakes (32 of them, 5 bits each). */
+export const SIGNAL_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/**
+ * A radio prayer's signal code, "Q7MK-4XPL-9RT2": 60 bits of the fingerprint of
+ * the exact text that went out (sha256, first 32 hex digits). A listener who
+ * decodes the same prayer computes the same code, so sender and listener can
+ * match a transmission without either learning who the other is.
+ */
+export function signalCode(fingerprint: string): string | null {
+  if (!/^[0-9a-f]{15}/i.test(fingerprint)) return null;
+  let v = BigInt(`0x${fingerprint.slice(0, 15)}`);
+  let out = '';
+  for (let i = 0; i < 12; i++) {
+    out = SIGNAL_CHARS[Number(v & 31n)]! + out;
+    v >>= 5n;
+  }
+  return `${out.slice(0, 4)}-${out.slice(4, 8)}-${out.slice(8)}`;
 }

@@ -17,7 +17,10 @@ export async function signIn(page: Page, who: Demo, { tour = false } = {}) {
   await page.goto('/sign-in');
   await page.locator('input').nth(0).fill(`${who}@demo.prayertower.local`);
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).last().click();
+  // By test ID: with passkeys on, "Sign in with a passkey" is another sign-in button.
+  await page.getByTestId('sign-in-submit').click();
+  // With the tour on, it can cover the tabs before they show, so the caller checks the tour itself.
+  if (tour) return void (await expect(page).not.toHaveURL(/\/sign-in/));
   // Exact: the sign-in screen's "Listen to radio prayers" link would match a loose search.
   await expect(page.getByText('Prayers', { exact: true }).first()).toBeVisible();
 }

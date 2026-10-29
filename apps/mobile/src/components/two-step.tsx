@@ -5,6 +5,7 @@ import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 
+import { BackupCodes } from '@/components/backup-codes';
 import { Button, ErrorText, Field } from '@/components/ui';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
@@ -68,7 +69,7 @@ export function TwoStepSettings() {
     if (err) return setError(err);
     setSetup(null);
     setCode('');
-    setNotice(t('twoStep.on'));
+    setNotice(features.backupCodes ? `${t('twoStep.on')} ${t('backupCodes.nudge')}` : t('twoStep.on'));
     await load();
   };
 
@@ -91,6 +92,7 @@ export function TwoStepSettings() {
         <>
           <Text style={type.body}>{t('twoStep.isOn')}</Text>
           <Button small variant="secondary" testID="two-step-off" label={t('twoStep.turnOff')} onPress={turnOff} busy={busy} />
+          <BackupCodes />
         </>
       ) : setup ? (
         <>

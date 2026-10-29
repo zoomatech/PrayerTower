@@ -66,6 +66,8 @@ describe('endpoint auth', () => {
       'POST /donations/zeffy-webhook', // checks its own ?token=
       // App Store Server Notifications: Apple's signature on the payload is the check.
       'POST /store/apple/notifications',
+      // A practice live room's page: fixed text, no data; the room name is long and random.
+      'GET /live/practice/:name',
       // The same public pages in Spanish.
       'GET /es',
       'GET /es/',
@@ -138,7 +140,9 @@ describe('staff-only endpoints', () => {
     const zero = '00000000-0000-0000-0000-000000000000';
     const staffOnly: [string, string][] = [];
     for (const r of routes) {
-      if (/^\/(admin|witness|moderation\/(queue|appeals|activity-flags|items\/:id\/decision))/.test(r.url)) staffOnly.push([r.method, r.url]);
+      // Members may check a draft and appeal a decision on their own post.
+      if (['/moderation/precheck', '/moderation/items/:id/appeal'].includes(r.url)) continue;
+      if (/^\/(admin|witness|moderation|staff|station-admin|oncall)\b/.test(r.url)) staffOnly.push([r.method, r.url]);
     }
     expect(staffOnly.length).toBeGreaterThan(35);
     const leaks: string[] = [];
