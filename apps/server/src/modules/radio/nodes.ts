@@ -162,27 +162,30 @@ export async function setSignaturesRequired(q: Queryable, on: boolean) {
   await q.query('update public.token_settings set node_signatures_required = $1', [on]);
 }
 
+type NodeRequest = { headers: Record<string, string | string[] | undefined>; method: string; url: string; routeOptions?: { url?: string }; body?: unknown };
+
+const header = (req: NodeRequest, name: string) => {
+  const v = req.headers[name];
+  return typeof v === 'string' ? v : undefined;
+};
+
 /**
  * The node behind a request: by its signature (x-node-kid, x-node-ts, x-node-sig),
  * or by its key (x-node-key) unless signatures are required. Marks it seen; 401 otherwise.
  */
-export async function authenticateRequest(
-  q: Queryable,
-  req: { headers: Record<string, string | string[] | undefined>; method: string; url: string; routeOptions?: { url?: string }; body?: unknown },
-  role: RadioNode['role'],
-  now = Date.now(),
-): Promise<RadioNode> {
-  const h = (name: string) => {
-    const v = req.headers[name];
-    return typeof v === 'string' ? v : undefined;
-  };
-  const kid = h('x-node-kid');
-  if (!kid) {
-    if (await signaturesRequired(q)) throw new AppError(401, 'signature_required', 'Signed node requests are required');
-    return authenticate(q, h('x-node-key'), role);
-  }
-  const ts = Number(h('x-node-ts'));
-  const sig = h('x-node-sig') ?? '';
+export async function authenticateRequest(q: Queryable, req: NodeRequest, role: RadioNode['role'], now = Date.now()): Promise<RadioNode> {
+  const signed = await signedNode(q, req, role, now);
+  if (signed) return signed;
+  if (await signaturesRequired(q)) throw new AppError(401, 'signature_required', 'Signed node requests are required');
+  return authenticate(q, header(req, 'x-node-key'), role);
+}
+
+/** The node that signed this request; null for an unsigned one, 401 for a bad or replayed signature. */
+async function signedNode(q: Queryable, req: NodeRequest, role: RadioNode['role'], now: number): Promise<RadioNode | null> {
+  const kid = header(req, 'x-node-kid') ?? '';
+  const ts = Number(header(req, 'x-node-ts'));
+  const sig = header(req, 'x-node-sig') ?? '';
+  if (!kid && !sig) return null;
   const bad = () => new AppError(401, 'unauthenticated', 'Bad node signature');
   if (!/^[0-9a-f]{16}$/.test(kid) || !Number.isSafeInteger(ts) || Math.abs(now - ts) > SIGNATURE_WINDOW_MS || !/^[0-9a-f]{64}$/.test(sig)) throw bad();
   const { rows } = await q.query<{ id: string; key_hash: string }>(
