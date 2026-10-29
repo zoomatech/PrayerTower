@@ -217,6 +217,7 @@ export interface Features {
   encouragerCheckin: boolean;
   circleWelcome: boolean;
   pathBack: boolean;
+  empathyPractice: boolean;
   replyChoice: boolean;
   /** Comments at block breaks: a comment on one ~200-word part of a long post. */
   partComments: boolean;
@@ -328,6 +329,7 @@ export interface PracticeSettings {
   kindness_weather_enabled: boolean;
   circle_welcome_enabled: boolean;
   path_back_enabled: boolean;
+  empathy_practice_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -434,6 +436,7 @@ export interface WeatherWeek {
   warm: number | null;
   heated: number | null;
   prayers: number | null;
+  people: number | null;
 }
 export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
 export interface RememberedItem {
@@ -1972,7 +1975,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean; partCommentsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>

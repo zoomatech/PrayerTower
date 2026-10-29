@@ -272,6 +272,9 @@ weeks.
   - **Stormy:** 12% or more.
 - The report uses totals only and gives no score for any member. A week with fewer than 5
   comments shows "Too quiet to say" and no numbers.
+- Each week also counts **how many different people commented**. This answers the question in
+  Steve's notes (p. 2), "Will stopping arguments on the forum reduce or encourage engagement?":
+  compare the people count in calm weeks with stormy ones.
 
 Code: `modules/kindness-weather`, the Admin → Growth practices panel.
 
@@ -305,3 +308,17 @@ Admin → Growth practices → **A path back after a removal** (migration 202610
 
 Evidence: research/Conflict_Repair_and_Newcomer_Kindness.md, suggestion 5. Code:
 `modules/path-back`, the Notices tab.
+
+## Kind words practice (off)
+
+Admin → Growth practices → **Kind words practice** (migration 20261029019600). A private card on
+Me shows one short, made-up moment each week (a new one every Monday, six in turn), with three
+possible replies. Tapping a reply shows gently how it might land: why "at least" can shrink a
+feeling, why naming the hurt helps, why a quick fix can wait.
+
+- There are no scores, points, streaks or right answers, and nothing a member taps is saved or
+  sent.
+- The moments use plain words that suit both faith and Open Circle wording.
+
+Source: Steve's notes, p. 4 ("promote empathy, with content, interaction, games & personal
+stories"). Code: `components/kind-words-card.tsx`.
