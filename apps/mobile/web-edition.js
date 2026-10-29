@@ -25,8 +25,8 @@ function openCircle(dist, name) {
   const safe = name.replace(/[<>"&]/g, '');
   const html = fs
     .readFileSync(htmlPath, 'utf8')
-    .replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*"/, `$1${safe}"`)
-    .replace(/(<meta name="theme-color" content=")[^"]*"/, `$1${TEAL}"`);
+    .replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*"/, (_m, start) => `${start}${safe}"`)
+    .replace(/(<meta name="theme-color" content=")[^"]*"/, (_m, start) => `${start}${TEAL}"`);
   fs.writeFileSync(htmlPath, html);
 
   for (const size of [192, 512]) {

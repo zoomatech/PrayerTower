@@ -154,7 +154,7 @@ const BODY = `
 // Open Circle's domain: the same page in its own look, without religious words.
 const NEUTRAL_BODY = (name: string) =>
   BODY.replace('<h1>Listen to a prayer burst</h1>', '<h1>Listen to a message burst</h1>')
-    .replace('tuned to the Prayer Tower station. When a burst plays, the prayers in it appear below.', `tuned to the ${esc(name)} station. When a burst plays, the messages in it appear below.`)
+    .replace('tuned to the Prayer Tower station. When a burst plays, the prayers in it appear below.', () => `tuned to the ${esc(name)} station. When a burst plays, the messages in it appear below.`)
     .replace('Let senders know their prayer was heard. Only a fingerprint of each prayer goes back', 'Let senders know their message was heard. Only a fingerprint of each message goes back');
 
 const pages = new Map<string, string>();

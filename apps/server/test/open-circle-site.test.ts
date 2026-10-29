@@ -114,7 +114,7 @@ describe('Open Circle website', () => {
     await db.query('update public.token_settings set listen_page_enabled = true');
     try {
       // The words a visitor sees; the decoder script's own names are not shown.
-      const words = (html: string) => visible(html).replace(/<script>[\s\S]*?<\/script>/g, '');
+      const words = (html: string) => visible(html).split('<script>').map((part, i) => (i === 0 ? part : part.slice(part.indexOf('</script>') + '</script>'.length))).join('');
       for (const url of ['/listen', '/open-circle/listen']) {
         const page = url === '/listen' ? await onHost(url) : await app.inject({ method: 'GET', url });
         expect(page.statusCode, url).toBe(200);
