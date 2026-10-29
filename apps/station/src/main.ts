@@ -26,6 +26,7 @@ import { presetByName } from './burst/presets.js';
 import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTransmitter } from './burst/transmit.js';
 import { runBurstOnce } from './burst/worker.js';
 import { RIG_MODES, rigctldClient, tuneRig, type Rig } from './rig.js';
+import { stationChecks } from './status.js';
 
 const env = (name: string, fallback?: string) => {
   const v = process.env[name] || fallback;
@@ -134,6 +135,20 @@ const beat = () => {
   }
 };
 
+// Health alerts in Admin → Radio: report the station's own checks about once a minute (status.ts).
+const STATUS_EVERY_MS = 60_000;
+let lastStatus = 0;
+const reportStatus = async () => {
+  if (Date.now() - lastStatus < STATUS_EVERY_MS) return;
+  lastStatus = Date.now();
+  try {
+    const checks = await stationChecks({ audio: burstMode === 'audio', rig });
+    await api.reportStatus?.({ callSign, checks });
+  } catch (err) {
+    console.error(`[station] could not report status: ${(err as Error).message}`);
+  }
+};
+
 let stopping = false;
 process.on('SIGINT', () => (stopping = true));
 process.on('SIGTERM', () => (stopping = true));
@@ -145,6 +160,7 @@ console.log(
 );
 while (!stopping) {
   beat();
+  await reportStatus();
   try {
     const idle = burst ? (await runBurstOnce(api, burst.tx, burst.cfg)).kind === 'idle' : (await runOnce(api, fldigi, cfg)) === 'idle';
     if (idle) await new Promise((r) => setTimeout(r, pollMs));

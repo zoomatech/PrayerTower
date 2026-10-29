@@ -74,3 +74,24 @@ describe('rig control through rigctld', () => {
     expect((await checkHealth({ ...base, rig: rigctldClient('127.0.0.1', 1) })).find((c) => c.name === 'rig')?.ok).toBe(false);
   });
 });
+
+describe('station status for health alerts', () => {
+  it('finds sound cards, reports none, and checks the rig', async () => {
+    const { writeFileSync } = await import('node:fs');
+    const { stationChecks } = await import('../src/status.js');
+    const dir = mkdtempSync(path.join(tmpdir(), 'asound-'));
+    const cards = path.join(dir, 'cards');
+    writeFileSync(cards, ' 0 [Device         ]: USB-Audio - USB Audio Device\n                      C-Media USB Audio Device at usb-1, full speed\n');
+    const rig = rigctldClient('127.0.0.1', mock.port);
+    expect(await stationChecks({ audio: true, rig, cardsFile: cards })).toEqual([
+      { name: 'audio', ok: true, detail: 'USB-Audio - USB Audio Device' },
+      { name: 'rig', ok: true, detail: expect.stringMatching(/MHz, receive$/) },
+    ]);
+    writeFileSync(cards, '--- no soundcards ---\n');
+    mock.state.ptt = 1;
+    const bad = await stationChecks({ audio: true, rig, cardsFile: cards });
+    expect(bad.map((c) => [c.name, c.ok])).toEqual([['audio', false], ['rig', false]]);
+    expect(await stationChecks({ audio: false, cardsFile: path.join(dir, 'none') })).toEqual([]);
+    expect((await stationChecks({ audio: true, cardsFile: path.join(dir, 'none') }))[0]?.ok).toBe(false);
+  });
+});

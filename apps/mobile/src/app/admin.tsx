@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -347,6 +347,7 @@ function Admin() {
               ))}
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
+            {radio.radio_transmitter === 'station' ? <StationAlertsSection /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
               <>
@@ -527,6 +528,49 @@ function DeletionRequestsSection() {
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+/** Station health alerts: no sound card, PTT failed, a failed or overdue burst, a silent station, an empty queue. Off by default. */
+function StationAlertsSection() {
+  const t = useT();
+  const [data, setData] = useState<StationAlerts | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioAlerts().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const save = (patch: Parameters<typeof api.admin.updateRadioAlerts>[0]) => api.admin.updateRadioAlerts(patch).then(setData).catch(() => undefined);
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.stationAlertsOff')} selected={!data.enabled} onPress={() => save({ enabled: false })} />
+        <Chip label={t('admin.stationAlertsOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.stationAlertsHint')}</Text>
+      {data.enabled ? (
+        <>
+          <Text style={type.small}>{t('admin.stationOverdue')}</Text>
+          <View style={styles.row}>
+            {[15, 30, 60, 120].map((n) => (
+              <Chip key={n} label={t('admin.stationMinutes', { count: n })} selected={data.overdueMinutes === n} onPress={() => save({ overdueMinutes: n })} />
+            ))}
+          </View>
+          {data.alerts.length ? (
+            data.alerts.map((a, i) => (
+              <Text key={`${a.kind}-${i}`} style={[type.small, a.level === 'problem' ? { color: colors.danger } : null]}>
+                {t(`admin.stationAlert.${a.kind}`)}
+                {a.callSign ? ` (${a.callSign})` : ''}
+                {a.detail && a.kind !== 'queue_empty' ? ` ${a.detail}` : ''}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.stationAlertsNone')}</Text>
+          )}
+        </>
+      ) : null}
     </View>
   );
 }

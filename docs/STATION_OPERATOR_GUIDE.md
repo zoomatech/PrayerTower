@@ -120,6 +120,22 @@ plays: the station unkeys and stops, the same as any other transmit failure.
    The health check adds a `rig` line. It fails if rigctld is not answering,
    or if the radio is transmitting between bursts (a stuck PTT).
 
+## Health alerts in Admin → Radio
+
+Off by default. In Admin → Radio (station mode), turn on **Station alerts**.
+About once a minute the station reports its own checks, and the server adds
+what it can see. Problems also reach admins as an in-app alert, at most once
+an hour.
+
+| Alert | What it means | Comes from |
+| --- | --- | --- |
+| No sound card | ALSA lists no sound card (`/proc/asound/cards`), so bursts can't play. Check the USB interface. | The station (BURST_MODE=audio) |
+| The radio did not key (PTT) | rigctld is not answering, the radio ignored PTT, or it is stuck transmitting. A failed burst whose error names PTT counts too. | The station (RIG_CONTROL=rigctld) and the burst log |
+| The last burst failed | Any other transmit error. The station has stopped itself until someone checks it. | The burst log |
+| A burst is overdue | A prayer has waited longer than the chosen limit (15, 30, 60 or 120 minutes; 30 by default). | The queue |
+| The station stopped reporting | No report for 10 minutes. | The station |
+| Nothing is waiting | The queue is empty. This is information, not a problem. | The queue |
+
 ## 4. Which preset
 
 Start slow and speed up once the path is proven. `node /opt/prayer-tower-station/dist/src/burst/cli.js presets`

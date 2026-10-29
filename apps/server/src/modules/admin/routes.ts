@@ -29,6 +29,7 @@ import { MEDIA_BUCKET } from '../posts/media.js';
 import * as prayerActions from '../prayer-actions/index.js';
 import * as prompts from '../prompts/index.js';
 import * as radio from '../radio/index.js';
+import * as radioHealth from '../radio/health.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -166,6 +167,19 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.get('/admin/radio-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await radio.stationSettings(db) };
+  });
+
+  // Station health alerts (radio/health.ts); empty while the switch is off.
+  app.get('/admin/radio-alerts', async (req) => {
+    await requireAdmin(req);
+    return radioHealth.alerts(db);
+  });
+
+  app.patch('/admin/radio-alerts', async (req) => {
+    await requireAdmin(req);
+    const input = z.object({ enabled: z.boolean().optional(), overdueMinutes: z.number().int().min(1).max(1440).optional() }).parse(req.body);
+    await radioHealth.updateSettings(db, input);
+    return radioHealth.alerts(db);
   });
 
   app.get('/admin/radio-bursts', async (req) => {
