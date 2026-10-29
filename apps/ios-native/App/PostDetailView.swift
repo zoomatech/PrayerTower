@@ -38,6 +38,7 @@ struct PostDetailView: View {
                 if let harm { Section { HarmBox(note: harm) } }
                 if card.isMine && prayable { Section { ownerTools(card) } }
                 if let radio = Binding($card) { RadioSection(card: radio) }
+                if card.isMine { Section { LiveFollowView(card: card) } }
                 if prayable, let prayers { Section { prayedList(prayers) } }
                 Section(w("post.comments")) { commentList }
                 Section { composer(card) }
@@ -188,6 +189,7 @@ struct PostDetailView: View {
             .lineLimit(2...8)
             .onChange(of: text) { _, new in if new.count > 2000 { text = String(new.prefix(2000)) } }
         KindCloudView(text: text)
+        ReplyHelpersView(lastFromOther: replyTo?.body ?? card.body, empty: replyTo == nil && comments.isEmpty, text: $text, postType: replyTo == nil ? card.postType : nil)
         if card.isMine && replyTo == nil { Toggle(w("post.postUpdate"), isOn: $asUpdate) }
         if let error, self.card != nil { Text(error).font(.footnote).foregroundStyle(.red) }
         Button(w("post.comment")) { Task { await send() } }

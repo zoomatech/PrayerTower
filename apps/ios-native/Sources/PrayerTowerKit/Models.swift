@@ -27,6 +27,8 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let preview: String
     public let body: String
     public let crisis: Bool
+    /// Marked sensitive by its author: never shown on a home or Lock Screen.
+    public let isSensitive: Bool?
     public let counts: CardCounts
     public let createdAt: String
     /// The actions this viewer may take, in the server's order (`ACTION_ORDER`). Older servers may leave it out.
@@ -39,7 +41,6 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let background: String?
     public let media: [CardMedia]?
     // Radio (Radio.swift). Older servers leave these out.
-    public var isSensitive: Bool? = nil
     /// A lament: it goes on the air only when its author said so (`lamentRadio`).
     public var lament: Bool? = nil
     public var lamentRadio: Bool? = nil
