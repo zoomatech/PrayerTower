@@ -68,15 +68,33 @@ export function encodePayload(batch: Uint8Array, parity: number): { payload: Uin
   return { payload: interleave(blocks), messageLength: message.length };
 }
 
-/** The inverse of encodePayload; null when a block is beyond repair or the CRC fails. */
-export function decodePayload(payload: Uint8Array, messageLength: number, parity: number): { batch: Uint8Array; corrected: boolean } | null {
+/**
+ * The inverse of encodePayload; null when a block is beyond repair or the CRC
+ * fails. `margins` (0 weak .. 1 solid, per payload byte) lets a block that has
+ * too many errors try again with its weakest bytes marked as erasures.
+ */
+export function decodePayload(
+  payload: Uint8Array,
+  messageLength: number,
+  parity: number,
+  margins?: Float32Array,
+): { batch: Uint8Array; corrected: boolean } | null {
   const sizes = blockSizes(messageLength, parity).map((k) => k + parity);
   const blocks = deinterleave(payload, sizes);
+  const weak = margins ? deinterleave(margins, sizes) : null;
   const message = new Uint8Array(messageLength);
   let at = 0;
   let corrected = false;
-  for (const block of blocks) {
-    const data = rsDecode(block, parity);
+  for (let b = 0; b < blocks.length; b++) {
+    const block = blocks[b]!;
+    let data = rsDecode(block, parity);
+    if (!data && weak) {
+      const order = Array.from(block.keys()).sort((i, j) => weak[b]![i]! - weak[b]![j]!);
+      for (const e of [parity / 2, (parity * 3) / 4, parity]) {
+        data = rsDecode(block, parity, order.slice(0, Math.floor(e)));
+        if (data) break;
+      }
+    }
     if (!data) return null;
     if (!corrected && !rsEncode(data, parity).every((v, i) => v === block[i])) corrected = true;
     message.set(data, at);
@@ -97,8 +115,8 @@ function interleave(blocks: Uint8Array[]): Uint8Array {
   return out;
 }
 
-function deinterleave(data: Uint8Array, sizes: number[]): Uint8Array[] {
-  const blocks = sizes.map((n) => new Uint8Array(n));
+function deinterleave<T extends Uint8Array | Float32Array>(data: T, sizes: number[]): T[] {
+  const blocks = sizes.map((n) => new (data.constructor as new (n: number) => T)(n));
   const longest = Math.max(...sizes);
   let o = 0;
   for (let i = 0; i < longest; i++) for (const b of blocks) if (i < b.length) b[i] = data[o++] ?? 0;

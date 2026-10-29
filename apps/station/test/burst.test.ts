@@ -106,6 +106,21 @@ describe('Reed-Solomon', () => {
     }
   });
 
+  it('with suspected positions marked as erasures, fixes up to parity bad bytes', () => {
+    const rand = rng(8);
+    for (let t = 0; t < 100; t++) {
+      const data = Uint8Array.from({ length: 150 }, () => Math.floor(rand() * 256));
+      const block = rsEncode(data, 32);
+      const bad = new Set<number>();
+      while (bad.size < 24) bad.add(Math.floor(rand() * block.length));
+      const all = [...bad];
+      for (const p of all) block[p]! ^= 1 + Math.floor(rand() * 255);
+      // 20 known-weak bytes plus 4 surprises: 20 + 2 x 4 = 28, within 32 parity bytes.
+      expect(rsDecode(block, 32)).toBeNull();
+      expect(Array.from(rsDecode(block, 32, all.slice(0, 20)) ?? [])).toEqual(Array.from(data));
+    }
+  });
+
   it('gives up (rather than inventing data) on a block with far too many errors', () => {
     const rand = rng(9);
     let wrong = 0;

@@ -83,6 +83,15 @@ function groups(bytes: Uint8Array, bits: number, perSymbol: number): number[] {
   return out;
 }
 
+/** For each byte, the weakest margin among the symbols that carried its bits. */
+function byteMargins(margins: number[], bits: number, byteCount: number): Float32Array {
+  const out = new Float32Array(byteCount).fill(1);
+  for (let g = 0; g < margins.length; g++) {
+    for (let b = g * bits; b < (g + 1) * bits && b < byteCount * 8; b++) out[b >> 3] = Math.min(out[b >> 3]!, margins[g]!);
+  }
+  return out;
+}
+
 function ungroup(values: number[], bits: number, byteCount: number): Uint8Array {
   const out = new Uint8Array(byteCount);
   let bit = 0;
@@ -185,7 +194,7 @@ interface Track {
  * offset (tuning error); the FFT window follows the drift and the decisions
  * remove the offset.
  */
-function demodDiff(x: Float32Array, at: number, first: number, c: number, symbols: number, bits: number, track: Track): number[] {
+function demodDiff(x: Float32Array, at: number, first: number, c: number, symbols: number, bits: number, track: Track, margins?: number[]): number[] {
   const m = 1 << bits;
   const step = (2 * Math.PI) / m;
   const S = N + GUARD;
@@ -234,6 +243,8 @@ function demodDiff(x: Float32Array, at: number, first: number, c: number, symbol
       values.push(stepToGray(((d % m) + m) % m));
       err[k] = ang - d * step;
       errMean += err[k]! / c;
+      // How far inside its decision region the phase landed: 1 dead centre, 0 on the edge.
+      margins?.push(1 - Math.min(1, Math.abs(err[k]!) / (step / 2)));
     }
     let slope = 0;
     for (let k = 0; k < c; k++) slope += ((first + k - kMean) * (err[k]! - errMean)) / kVar;
@@ -355,8 +366,9 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
       srcAt = refAt - from;
       track.bias = 0;
     }
-    const pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track);
-    const result = decodePayload(ungroup(pv, preset.bitsPerSymbol, plen), header.messageLength, preset.parity);
+    const margins: number[] = [];
+    const pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track, margins);
+    const result = decodePayload(ungroup(pv, preset.bitsPerSymbol, plen), header.messageLength, preset.parity, byteMargins(margins, preset.bitsPerSymbol, plen));
     const end = refAt + BACKOFF - GUARD + (syms + 1) * S + Math.round(track.off);
     if (result) {
       frames.push({ ...header, preset: preset.name, batch: result.batch, corrected: result.corrected, start: best - GUARD, end });

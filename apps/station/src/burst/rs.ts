@@ -67,16 +67,11 @@ export function rsEncode(data: Uint8Array, nsym: number): Uint8Array {
   return out;
 }
 
-/** Corrects errors in place-copy and returns the data bytes, or null when the block has too many errors. */
-export function rsDecode(block: Uint8Array, nsym: number): Uint8Array | null {
-  const msg = Array.from(block);
-  const synd = Array.from({ length: nsym }, (_, i) => polyEval(msg, pow(2, i)));
-  if (synd.every((s) => s === 0)) return Uint8Array.from(msg.slice(0, msg.length - nsym));
-
-  // Berlekamp-Massey: the error locator polynomial.
+/** Berlekamp-Massey: the error locator polynomial from `count` syndromes. */
+function locator(synd: number[], count: number): number[] {
   let errLoc = [1];
   let oldLoc = [1];
-  for (let i = 0; i < nsym; i++) {
+  for (let i = 0; i < count; i++) {
     let delta = synd[i]!;
     for (let j = 1; j < errLoc.length; j++) delta ^= mul(errLoc[errLoc.length - 1 - j]!, synd[i - j]!);
     oldLoc = [...oldLoc, 0];
@@ -90,14 +85,37 @@ export function rsDecode(block: Uint8Array, nsym: number): Uint8Array | null {
     }
   }
   while (errLoc.length && errLoc[0] === 0) errLoc.shift();
+  return errLoc;
+}
+
+/**
+ * Returns the data bytes with errors corrected, or null when the block has too
+ * many errors. `erasures` are positions the caller suspects (e.g. from weak
+ * radio symbols); each costs one parity byte instead of two, so 2 x errors +
+ * erasures may be up to nsym.
+ */
+export function rsDecode(block: Uint8Array, nsym: number, erasures: readonly number[] = []): Uint8Array | null {
+  const msg = Array.from(block);
+  const n = msg.length;
+  const synd = Array.from({ length: nsym }, (_, i) => polyEval(msg, pow(2, i)));
+  if (synd.every((s) => s === 0)) return Uint8Array.from(msg.slice(0, n - nsym));
+  if (erasures.length > nsym) return null;
+
+  // Forney syndromes: the syndromes with the erasures' part divided out.
+  const fsynd = [...synd];
+  for (const p of erasures) {
+    const x = pow(2, n - 1 - p);
+    for (let j = 0; j < fsynd.length - 1; j++) fsynd[j] = mul(fsynd[j]!, x) ^ fsynd[j + 1]!;
+  }
+  const errLoc = locator(fsynd, nsym - erasures.length);
   const errs = errLoc.length - 1;
-  if (errs * 2 > nsym) return null;
+  if (errs * 2 + erasures.length > nsym) return null;
 
   // Chien search: positions where the locator has a root.
-  const n = msg.length;
-  const pos: number[] = [];
-  for (let i = 0; i < n; i++) if (polyEval(errLoc, pow(2, 255 - i)) === 0) pos.push(n - 1 - i);
-  if (pos.length !== errs) return null;
+  const found: number[] = [];
+  for (let i = 0; i < n; i++) if (polyEval(errLoc, pow(2, 255 - i)) === 0) found.push(n - 1 - i);
+  if (found.length !== errs) return null;
+  const pos = [...new Set([...erasures, ...found])];
 
   // Forney: error magnitudes.
   const coefPos = pos.map((p) => n - 1 - p);
