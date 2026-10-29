@@ -25,6 +25,7 @@ import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
 import * as safety from '../safety/index.js';
+import * as schedules from '../schedules/index.js';
 import * as ceaseless from '../radio/ceaseless.js';
 import * as safetyCenter from '../safety-center/index.js';
 import * as skins from '../skins/index.js';
@@ -256,6 +257,8 @@ export async function features(q: Queryable) {
     ...(await safetyCenter.features(q)),
     /** "Keep on the air" for a member's own request (radio/ceaseless.ts, Admin → Radio → Prayer without ceasing). */
     keepOnAir: (await ceaseless.settings(q)).enabled,
+    /** Scheduled radio and amplify sends (modules/schedules, Admin → Radio → Scheduled radio sends). */
+    scheduledRadio: await schedules.radioEnabled(q),
   };
 }
 

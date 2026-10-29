@@ -35,7 +35,7 @@ export default function ScheduledScreen() {
               “{s.excerpt}”
             </Text>
             <Text style={type.small}>
-              {t(`scheduled.status.${s.status}`)} · {t('scheduled.tokens', { count: s.amount })}
+              {t(`scheduled.status.${s.status}`)} · {s.action === 'radio' || s.action === 'amplify' ? t(`scheduled.${s.action}`) : t('scheduled.tokens', { count: s.amount })}
               {s.status === 'active'
                 ? ` · ${new Date(s.next_run_at).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
                 : ''}
