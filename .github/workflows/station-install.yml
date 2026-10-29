@@ -1,0 +1,46 @@
+# Dry run of the radio station installers (apps/station/install/ci/dry-run.sh) on throwaway
+# machines: the Pi/Linux installer on Ubuntu with systemd, and the Mac installer with launchd.
+# Each installs, runs the station in simulate mode against a stand-in API (nothing is keyed),
+# checks a burst is sent, decoded and reported, runs the health check, updates and uninstalls.
+# Only when the station or its installers change, since macOS runner minutes cost more.
+name: station-install
+
+on:
+  pull_request:
+    paths:
+      - apps/station/**
+      - package-lock.json
+      - .github/workflows/station-install.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/station/install/**
+      - .github/workflows/station-install.yml
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the Pi first-boot file (cloud-init)
+        run: |
+          sudo apt-get install -y -qq cloud-init > /dev/null
+          cloud-init schema --config-file apps/station/install/pi/user-data
+      - name: Install, simulate, update and uninstall
+        run: bash apps/station/install/ci/dry-run.sh linux
+
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install, simulate and uninstall
+        run: bash apps/station/install/ci/dry-run.sh mac

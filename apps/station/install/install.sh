@@ -70,15 +70,20 @@ fi
 
 # Node.js 22 from NodeSource (https://github.com/nodesource/distributions);
 # the Debian packages are older than the worker needs.
-node_major=$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)
+node_bin=$(command -v node || true)
+node_major=$([ -n "$node_bin" ] && "$node_bin" -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)
 if [ "$node_major" -lt 22 ]; then
   log "Installing Node.js 22"
   curl -fsSL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource_setup.sh
   bash /tmp/nodesource_setup.sh
   rm -f /tmp/nodesource_setup.sh
   apt-get install -y -qq nodejs
+  # NodeSource installs to /usr/bin; an older node earlier on PATH (say /usr/local/bin) must not win.
+  node_bin=/usr/bin/node
 fi
-node -v
+"$node_bin" -v
+# Build and run with that Node.js (and its npm).
+export PATH="$(dirname "$node_bin"):$PATH"
 
 log "Building the worker"
 build=$(mktemp -d)
@@ -110,8 +115,12 @@ else
   fresh_env=0
 fi
 
+# The units start /usr/bin/node; point them at the Node.js 22 found above when it lives elsewhere
+# (for example /usr/local/bin from a manual install).
+install_unit() { sed "s#/usr/bin/node #$node_bin #" "$here/$1" > "/etc/systemd/system/$1"; chmod 0644 "/etc/systemd/system/$1"; }
+
 log "Installing the systemd service, health check and journal limit"
-for u in "${units[@]}"; do install -m 0644 "$here/$u" "/etc/systemd/system/$u"; done
+for u in "${units[@]}"; do install_unit "$u"; done
 install -d /etc/systemd/journald.conf.d
 install -m 0644 "$here/journald-prayer-station.conf" /etc/systemd/journald.conf.d/prayer-station.conf
 systemctl daemon-reload
@@ -126,7 +135,7 @@ fi
 if [ "$with_listener" = 1 ]; then
   log "Installing the listener node"
   [ -f "$listener_env" ] || install -m 0640 -o root -g "$user" "$here/listener.env.example" "$listener_env"
-  install -m 0644 "$here/prayer-tower-listener.service" /etc/systemd/system/prayer-tower-listener.service
+  install_unit prayer-tower-listener.service
   systemctl daemon-reload
   systemctl enable prayer-tower-listener.service
   if grep -q '^NODE_KEY=$' "$listener_env"; then

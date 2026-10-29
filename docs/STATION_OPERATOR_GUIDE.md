@@ -77,6 +77,14 @@ from November 2025 or later.
    sudo systemctl start prayer-tower-station
    ```
 
+**Tested on every change.** Each change to the station or its installers runs both installers
+on throwaway machines (`.github/workflows/station-install.yml`): this one on Ubuntu with
+systemd, and the Mac one with launchd. Each install runs the station in simulate mode against a
+stand-in server, so nothing is keyed. It checks that a burst is sent, decoded and reported, that
+the health check and rig control (the dummy radio) work, and that updating and uninstalling
+leave the settings in place. The Pi first-boot file is checked against cloud-init's schema.
+The script is `apps/station/install/ci/dry-run.sh`. Never run it on a station that is on the air.
+
 ## What you need
 
 - An FM transceiver. A mobile with a 6-pin mini-DIN **data port** is best,
