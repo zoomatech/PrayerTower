@@ -15,12 +15,26 @@ Steve's rule (2026-10-28): the pilot stays the Expo app in `apps/mobile`. Every 
 | --- | --- | --- |
 | `PrayerTowerKit` | API models, requests, errors (`APIError` reads `{error, message}`, `needsCode`, `signedOut`) | Yes |
 | `PrayerTowerSession` | Supabase sign-in, two-step code, sign-out; `SignInState` | Yes |
-| `App/` | SwiftUI: sign in, two-step code, feed with Praying Now | No (needs a Mac) |
+| `App/` | SwiftUI: sign in, two-step code, the feed with one row of action icons, the kind cloud, prayer circles (with welcome and updates), and fresh-start days on Me | No (needs a Mac) |
 | `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md) spec; bundle id `com.zoomatech.prayertower.native` | — |
 
 Tests: five API tests with a stubbed network, and two live tests (sign-in, feed, Praying Now, wrong password) that run when `PT_*` variables point at a running stack. CI runs `swift test` in the official `swift:6.4.1-noble` image ([swift.org Linux install](https://www.swift.org/install/linux/)).
 
 The app uses the `@Observable` macro rather than `ObservableObject`, as Apple now recommends ([migration guide](https://developer.apple.com/documentation/swiftui/migrating-from-the-observable-object-protocol-to-the-observable-macro)). Sessions are kept in the Keychain (`KeychainLocalStorage` from supabase-swift).
+
+## Kindness screens (phase 1b)
+
+Each one reads the same admin switch as the Expo app and shows nothing while it is off.
+
+| Screen | Switch (`/features`) | Shared code |
+| --- | --- | --- |
+| One row of six action icons; a long press shows the name, and with meanings on, the emoji's meanings to choose | `meaningReactions` + `meaningIconRow` for meanings | `ActionRow`, `CardAction`, `MeaningEmoji` |
+| Kind cloud under every text box (encourage, circle posts, replies, updates), checked 700 ms after typing stops, never blocking | `kindCloud` | `KindCloud`, `Precheck` |
+| Prayer circles: start, join with a code, share, pray, reply, invite | `prayerCircles` | `CircleView`, `CirclePost` |
+| Circle welcome and circle updates ("How it's going", answered) | `circleWelcome`, `circleUpdates` (both need circles) | `CirclePost.Update` |
+| Fresh-start days on Me: up to three dates, and today's fresh start | `freshDays` | `FreshDayRules`, `FreshDay` |
+
+Commit to Pray and Gift Tokens keep their icons in the row, and for now say they are coming soon (phases 2 and 4). Open Circle wording comes from the same words as `neutral.ts`, and a test checks the kind cloud has no religious words there.
 
 ## Port order
 
@@ -44,8 +58,10 @@ Each phase ships to TestFlight under the separate bundle id. The Expo app stays 
 
 Mac builds run through Remote Control, as with `scripts/mac-build.sh`. The native app needs Xcode and `brew install xcodegen`; it does not need CocoaPods (packages come from Swift Package Manager). Steps are in [apps/ios-native/README.md](../apps/ios-native/README.md).
 
+`scripts/mac-build-native.sh` does it in one go: it runs `swift test`, installs XcodeGen with Homebrew if it's missing, generates the project, builds the app for the iOS Simulator without signing, and prints a pass/fail table with logs in `build-logs/native-<time>/`.
+
 ## Not done yet
 
-- No screens beyond sign-in and the feed.
+- No screens beyond sign-in, the feed, circles and fresh-start days on Me.
 - No App Store listing or TestFlight build for the native bundle id.
 - The `App/` target has only been type-checked through its shared code on Linux; its first full build happens on the Mac.

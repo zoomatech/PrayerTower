@@ -16,6 +16,8 @@ targets:
     type: application
     platform: iOS
     sources: [App]
+    # A shared scheme, so scripts/mac-build-native.sh can build with xcodebuild -scheme.
+    scheme: {}
     dependencies:
       - package: PrayerTowerKit
         products:

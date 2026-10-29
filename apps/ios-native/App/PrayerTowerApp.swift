@@ -1,3 +1,4 @@
+import PrayerTowerKit
 import PrayerTowerSession
 import SwiftUI
 
@@ -20,6 +21,11 @@ final class AppModel {
     let store: SessionStore
     var state: SignInState = .signedOut
     var starting = true
+    /// Admin switches (`/features`); anything missing counts as off.
+    var features = Features(values: [:])
+    var wording: Wording = .faith
+    /// Emoji meanings for the action row, loaded only while both meaning switches are on.
+    var tree: [MeaningEmoji] = []
 
     init(store: SessionStore) { self.store = store }
 
@@ -38,6 +44,15 @@ final class AppModel {
         state = await store.current()
         starting = false
     }
+
+    /// Reads the switches and the member's wording after sign-in. A failure leaves everything off.
+    func loadSettings() async {
+        async let f = try? store.api.features()
+        async let me = try? store.api.me()
+        features = await f ?? Features(values: [:])
+        wording = Wording(await me?.community)
+        tree = features["meaningReactions"] && features["meaningIconRow"] ? ((try? await store.api.reactionMeanings()) ?? []) : []
+    }
 }
 
 struct RootView: View {
@@ -50,7 +65,7 @@ struct RootView: View {
             switch model.state {
             case .signedOut: SignInView()
             case .needsCode: CodeView()
-            case .signedIn: FeedView()
+            case .signedIn: MainTabs()
             }
         }
     }
