@@ -107,6 +107,109 @@ auto preset adds 3 dB). `apps/station/test/sim.test.ts` checks every preset at
 2 dB and 12 dB above its rated floor and 10 dB below it, and the HF presets in
 moderate fading, on every CI run.
 
+## Robustness
+
+Measured on 2026-10-29 with `npm run burst -w @prayer-tower/station -- stress`
+(`src/burst/stress.ts`), in practice mode: nothing keyed, all simulated audio.
+Each preset sends 30 generated requests in one burst through one of four
+conditions, at each SNR (in 2.5 kHz) from 0 to 30 dB, on 2 noise seeds. Each
+cell is the share of the 30 prayers decoded, in percent. 50 means one seed got
+all of them and the other got none.
+
+- **noise**: white noise and the radio's audio filter only.
+- **fading**: FM presets get flat fading at 2 Hz, like a mobile or handheld
+  moving through reflections ("picket fencing"). HF presets get CCIR 520
+  moderate fading.
+- **drift**: the receiver's sound card clock 200 ppm off, and on HF a receiver
+  tuned 15 Hz off (decoded with a 50 Hz search).
+- **clipping**: the transmit audio overdriven into hard clipping at 30% of its
+  peak, about 10 dB too hot.
+
+| Preset | Condition | 0 dB | 3 dB | 6 dB | 9 dB | 12 dB | 15 dB | 18 dB | 21 dB | 24 dB | 30 dB |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fm-robust` | noise | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-robust` | fading | 0 | 0 | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 |
+| `fm-robust` | drift | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-robust` | clipping | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-standard` | noise | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-standard` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 50 | 100 | 100 | 100 |
+| `fm-standard` | drift | 0 | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-standard` | clipping | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-fast` | noise | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 |
+| `fm-fast` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 50 | 100 |
+| `fm-fast` | drift | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 |
+| `fm-fast` | clipping | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `dataport-fast` | noise | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 |
+| `dataport-fast` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 50 |
+| `dataport-fast` | drift | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 |
+| `dataport-fast` | clipping | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `fm-turbo` | noise | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 |
+| `fm-turbo` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `fm-turbo` | drift | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 |
+| `fm-turbo` | clipping | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `dataport-turbo` | noise | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 |
+| `dataport-turbo` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `dataport-turbo` | drift | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 |
+| `dataport-turbo` | clipping | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `fm-robust-fec` | noise | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-robust-fec` | fading | 0 | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-robust-fec` | drift | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-robust-fec` | clipping | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-turbo-fec` | noise | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 |
+| `fm-turbo-fec` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 50 | 50 | 100 |
+| `fm-turbo-fec` | drift | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 |
+| `fm-turbo-fec` | clipping | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `fm-qam16` | noise | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-qam16` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 |
+| `fm-qam16` | drift | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `fm-qam16` | clipping | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 | 100 |
+| `fm-qam64` | noise | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 |
+| `fm-qam64` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 50 | 100 |
+| `fm-qam64` | drift | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 | 100 |
+| `fm-qam64` | clipping | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `dataport-qam64` | noise | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 |
+| `dataport-qam64` | fading | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
+| `dataport-qam64` | drift | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 100 | 100 |
+| `dataport-qam64` | clipping | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `hf-robust` | noise | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-robust` | fading | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-robust` | drift | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-robust` | clipping | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-standard` | noise | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-standard` | fading | 0 | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-standard` | drift | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-standard` | clipping | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-fast` | noise | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-fast` | fading | 0 | 0 | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 |
+| `hf-fast` | drift | 0 | 0 | 100 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+| `hf-fast` | clipping | 0 | 0 | 50 | 100 | 100 | 100 | 100 | 100 | 100 | 100 |
+
+What it shows:
+
+- **Drift** costs nothing: 200 ppm and 15 Hz off decode at the same SNR as
+  plain noise on every preset.
+- **Fading** is the hard case. `fm-robust-fec` needs 12 dB, `fm-qam16` 18 dB
+  and `fm-standard` 21 dB. The faster uncoded presets need 30 dB or don't make
+  it, because a 30-prayer burst is one frame and a deep fade in it loses the
+  whole frame. For mobile or handheld listeners use `fm-robust-fec` or
+  `fm-qam16`.
+- **Clipping** at this level breaks every preset that packs data into small
+  phase steps or levels (`fm-fast`, the turbo presets, `fm-qam64`,
+  `dataport-*`) at any SNR: more error correction can't undo distortion that
+  is the same every time. The fix is the transmit level
+  ([STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md#2-sound-card-levels)).
+  The robust, standard, `fm-qam16` and HF presets get through it.
+
+Tuning made from this run: the receiver now weighs each symbol's confidence by
+its signal strength, so the bytes of a faded stretch are the first the
+Reed-Solomon code treats as missing (erasures), which it can fix twice as many
+of as unknown errors. Nothing on the air changed, so old recordings still
+decode. Before this, `fm-fast` lost every prayer in fading even at 30 dB.
+
+`apps/station/test/stress.test.ts` checks each preset under each condition at a
+level from this table on every CI run, and that a failed burst never yields a
+wrong prayer.
+
 ## How it fits that much
 
 1. **Batch compression.** The prayers are folded to ASCII, joined with
