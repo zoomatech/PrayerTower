@@ -28,3 +28,10 @@ it('answers bad ids and empty bodies with 4xx, never 500', async () => {
   expect(tried).toBeGreaterThan(100);
   expect(crashes).toEqual([]);
 });
+
+it('answers a hidden null character in a search or a text field with 400, not 500', async () => {
+  const admin = await createUser('Null Admin');
+  await grantRole(db, admin, 'admin', null);
+  expect((await as(admin).get('/admin/people?q=a%00b')).statusCode).toBe(400);
+  expect((await as(admin).post('/feedback', { body: 'a\u0000b' })).statusCode).toBe(400);
+});
