@@ -7,6 +7,8 @@
 // resting vine tip, and if the screen sits idle a bird snips off a would-be
 // ad bud. Colors, spacing and copy come from the theme's tokens, so the look
 // can change without an app release. Reduced motion turns the animations off.
+// Skins (Beanstalk, Golden Wood, Moonlit Gate) are the same vine with other
+// tokens: a backdrop, a thicker or doubled stem and round or pointed leaves.
 import type { Card, FeedTheme, PostState } from '@prayer-tower/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
@@ -33,6 +35,12 @@ const DEFAULTS = {
   idleBirdSeconds: 25,
   birdText: 'Uh-uh! No ads here. Just people and prayer.',
   tipText: 'You have reached the tip of the vine. Rest a moment, or come back later to see it grow.',
+  /** Feed background; empty keeps the screen's own. */
+  backdrop: '',
+  stemWidth: 4,
+  /** Two thin parallel lines instead of one stem (Moonlit Gate's silver tracery). */
+  stemDouble: false,
+  leafShape: 'round' as 'round' | 'pointed',
 };
 type VineTokens = typeof DEFAULTS;
 
@@ -41,8 +49,20 @@ export function vineTokens(theme: FeedTheme | null): VineTokens {
   const t = (theme?.tokens ?? {}) as Record<string, unknown>;
   const out = { ...DEFAULTS } as Record<string, unknown>;
   for (const [k, v] of Object.entries(DEFAULTS)) if (typeof t[k] === typeof v) out[k] = t[k];
+  out.stemWidth = Math.min(Math.max(Number(out.stemWidth) || DEFAULTS.stemWidth, 2), 14);
+  if (out.leafShape !== 'pointed') out.leafShape = 'round';
   return out as VineTokens;
 }
+
+/** The stem through one row; every row draws its piece, so together they form one plant. */
+export function Stem({ tokens }: { tokens: VineTokens }) {
+  const w = tokens.stemWidth;
+  if (tokens.stemDouble)
+    return <View style={[styles.stem, { width: w * 3, marginLeft: -(w * 3) / 2, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderColor: tokens.stem, borderRadius: 0 }]} />;
+  return <View style={[styles.stem, { backgroundColor: tokens.stem, width: w, marginLeft: -w / 2, borderRadius: w / 2 }]} />;
+}
+
+const POINTED = { borderTopLeftRadius: 2, borderBottomRightRadius: 2, borderTopRightRadius: 18, borderBottomLeftRadius: 18 };
 
 const ripeness: Record<PostState, string> = {
   open: '#9BC59D',
@@ -88,7 +108,7 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
 
   return (
     <View style={[styles.row, { paddingTop: gap }]} accessibilityLabel={t(`vine.ripeness.${card.state}`)}>
-      <View style={[styles.stem, { backgroundColor: tokens.stem }]} />
+      <Stem tokens={tokens} />
       {card.isMine ? <View style={[styles.branch, { backgroundColor: tokens.branch }]} /> : null}
       <Animated.View
         style={[
@@ -98,7 +118,13 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
           { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
         <View
-          style={[styles.leaf, { backgroundColor: tokens.leaf }, left ? { right: -10 } : { left: -10 }, { transform: [{ rotate: `${left ? tilt : -tilt}deg` }] }]}
+          style={[
+            styles.leaf,
+            tokens.leafShape === 'pointed' && POINTED,
+            { backgroundColor: tokens.leaf },
+            left ? { right: -10 } : { left: -10 },
+            { transform: [{ rotate: `${left ? tilt : -tilt}deg` }] },
+          ]}
         />
         <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }, left ? { right: -7 } : { left: -7 }]} />
         <View style={styles.tags}>
@@ -124,7 +150,7 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
 function ScriptureLeaf({ leaf, tokens }: { leaf: Leaf; tokens: VineTokens }) {
   return (
     <View style={styles.row}>
-      <View style={[styles.stem, { backgroundColor: tokens.stem }]} />
+      <Stem tokens={tokens} />
       <View style={[styles.scripture, { backgroundColor: tokens.leafSoft, borderColor: tokens.leaf }]} accessibilityRole="text">
         <Text style={styles.scriptureText}>“{leaf.text}”</Text>
         <Text style={type.small}>
@@ -226,7 +252,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
   }, []);
 
   return (
-    <View style={styles.fill}>
+    <View style={[styles.fill, tokens.backdrop ? { backgroundColor: tokens.backdrop } : null]}>
       <FlatList
         data={items}
         keyExtractor={(it) => (it.kind === 'fruit' ? it.card.id : it.key)}
@@ -243,7 +269,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         ListFooterComponent={
           atEnd && cards.length > 0 ? (
             <View style={styles.tip}>
-              <View style={[styles.tipStem, { backgroundColor: tokens.stem }]} />
+              <View style={[styles.tipStem, { backgroundColor: tokens.stem, width: tokens.stemWidth }]} />
               <View style={styles.blossom} />
               <Text style={styles.end}>{wording === 'neutral' ? t('vine.tip') : tokens.tipText}</Text>
               <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />

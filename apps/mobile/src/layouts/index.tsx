@@ -9,6 +9,7 @@ import { CarouselLayout } from './carousel';
 import { ColumnLayout } from './column';
 import { FlipLayout } from './flip';
 import { VineLayout } from './vine';
+import { WallLayout } from './wall';
 
 export interface FeedLayoutProps {
   cards: Card[];
@@ -31,12 +32,14 @@ export interface FeedLayoutProps {
 export type FeedLayout = (props: FeedLayoutProps) => ReactElement;
 
 // Column is the V1 default; vine, flip and swipe-to-pray (carousel) are beta
-// styles members can opt into.
+// styles members can opt into. The Wall and the vine skins (Beanstalk, Golden
+// Wood, Moonlit Gate) are offered only while Admin → Feed skins is on.
 const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   column: ColumnLayout,
   vine: VineLayout,
   flip: FlipLayout,
   carousel: CarouselLayout,
+  wall: WallLayout,
 };
 
 export function layoutFor(theme: FeedTheme | null): FeedLayout {

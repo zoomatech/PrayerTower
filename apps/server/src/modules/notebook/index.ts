@@ -16,6 +16,7 @@ import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
 import * as growth from '../growth/index.js';
 import * as safety from '../safety/index.js';
+import * as skins from '../skins/index.js';
 
 export interface NotebookSettings {
   worldwide_count_enabled: boolean;
@@ -145,6 +146,8 @@ export async function features(q: Queryable) {
     materialMatch: match[0]?.enabled === true,
     /** Growth ideas (modules/growth, Admin → Growth). */
     ...(await growth.features(q)),
+    /** Feed skins, comment trees, skin ideas and the video cap (modules/skins, Admin → Feed skins). */
+    ...(await skins.features(q)),
   };
 }
 

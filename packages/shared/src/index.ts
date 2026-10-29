@@ -265,7 +265,7 @@ export interface TokenSummary {
   priestly: PriestlyStatus;
 }
 
-export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip';
+export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip' | 'wall';
 
 export interface FeedTheme {
   slug: string;
@@ -354,6 +354,8 @@ export interface Appeal {
 export interface FeedThemeChoices {
   themes: { slug: string; name: string; layout: FeedLayoutKind; status: 'active' | 'beta'; is_default: boolean }[];
   current: string | null;
+  /** The viewer's current theme with its tokens (comment trees use its colors). */
+  theme?: FeedTheme | null;
 }
 
 export interface FeedPage {

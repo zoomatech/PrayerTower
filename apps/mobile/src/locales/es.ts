@@ -328,6 +328,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     deleteAccount: 'Eliminar mi cuenta',
   },
   compose: {
+    videoTooLong: en.compose.videoTooLong,
     post: 'Publicar',
     greeting: '¡Bienvenido, %{name}! Hablemos con el Señor.',
     placeholder: 'Escribe tu oración aquí',
@@ -1305,6 +1306,11 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     revoke: "Revocar verificación",
   },
   // English until Spanish is turned on (Steve, 2026-10-28: no Spanish work for now).
+  // Feed skins: English until Spanish is turned on.
+  skins: en.skins,
+  skinIdea: en.skinIdea,
+  tree: en.tree,
+  wall: en.wall,
   growth: en.growth,
   card: {
     answered: '✨ Oración contestada',
