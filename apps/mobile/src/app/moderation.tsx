@@ -9,6 +9,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { CircleRequests } from '@/components/circle-requests';
 import { HarmFloods } from '@/components/harm-admin';
 import { BreakCard, HandoffRow, HardText, useModeratorCare } from '@/components/moderator-care';
+import { OncallBanner } from '@/components/oncall';
 import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -91,6 +92,7 @@ function Moderation() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <Text style={type.title}>{t('profile.moderation')}</Text>
         <ErrorText error={error} />
+        <OncallBanner />
         <BreakCard care={care} />
         {/* On a break the queue steps aside until the moderator comes back (moderator care). */}
         {care.onBreak ? null : (
@@ -156,7 +158,12 @@ function Moderation() {
                   ))}
                 </View>
                 <View style={styles.row}>
-                  <Button small variant="secondary" label={t('moderation.keep')} onPress={() => decide(item, { action: 'dismiss' })} />
+                  <Button
+                    small
+                    variant="secondary"
+                    label={care.restore && item.auto_hidden ? t('modCare.restore') : t('moderation.keep')}
+                    onPress={() => decide(item, { action: 'dismiss' })}
+                  />
                   <Button small label={t('moderation.remove')} onPress={() => decide(item, { action: 'remove', rule: rules[item.id] ?? 'other' })} />
                   <Button
                     small

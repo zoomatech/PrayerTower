@@ -11,6 +11,7 @@ import { enqueue } from '../../jobs.js';
 import * as adFines from '../ad-fines/index.js';
 import * as harm from '../harm/index.js';
 import * as messages from '../messages/index.js';
+import * as care from '../moderator-care/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as spoken from '../spoken-prayers/index.js';
@@ -259,10 +260,15 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
   if (d.action === 'dismiss') {
     // Dismissing un-hides content an AI flag hid; it never brings back content that was
     // removed (by an earlier decision, or deleted by its author).
-    await posts.unhide(q, item.target_type, item.target_id);
+    const restored = await posts.unhide(q, item.target_type, item.target_id);
     // A dismissed harmful-prayer flag clears the mark that keeps it off the radio.
     if (item.source === 'harm') await harm.clear(q, item.target_type, item.target_id);
     await log('dismiss');
+    // Restoring a held post (Admin → Moderator care, off by default): logged as a restore, and its author is told it is back up.
+    if (restored && (await care.settings(q)).restore_enabled) {
+      await log('restore');
+      await notifications.notify(q, item.user_id, restoredNotice(item.target_type, item.id, item.target_type === 'post' ? item.target_id : null));
+    }
   } else {
     await posts.setModerationStatus(q, item.target_type, item.target_id, 'removed');
     await log('remove');
@@ -322,6 +328,18 @@ export async function decide(q: Queryable, moderatorId: string, itemId: string, 
     moderatorId,
     d.action === 'dismiss' ? null : rule,
   ]);
+}
+
+/** A held post is back up: thanks, no blame. */
+export function restoredNotice(target: Target, itemId: string, postId: string | null): notifications.NewNotification {
+  const noun = NOUN[target];
+  return {
+    kind: 'post_restored',
+    title: `Your ${noun} is back up`,
+    body: `A moderator read your ${noun} and restored it. Thank you for your patience while a person looked at it.`,
+    data: { itemId, target, ...(postId ? { postId } : {}) },
+    dedupeKey: `post_restored:${itemId}`,
+  };
 }
 
 /** What the member is told: which rule, any suspension, and that they can appeal. Kind, never shaming. */

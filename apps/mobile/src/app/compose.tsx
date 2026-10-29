@@ -21,9 +21,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { rememberSupport } from '@/components/harm-support';
 import { KindCloud } from '@/components/kind-cloud';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api } from '@/lib/api';
+import { api, type HarmNote } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
@@ -59,9 +60,10 @@ export default function Compose() {
   const words = wordCount(body);
   const bg = background ? POST_BACKGROUND_STYLES[background] : null;
 
-  const afterCreate = (post: Card) => {
-    // A request that mentions suicide or self-harm opens with crisis support showing.
-    if (post.crisis) router.replace(`/post/${post.id}`);
+  const afterCreate = (post: Card, harm?: HarmNote | null) => {
+    // A request that mentions suicide or self-harm opens with crisis support showing, and one
+    // that describes abuse opens with the hotlines (harmful-prayer check). Neither is blocked.
+    if (rememberSupport(post.id, harm) || post.crisis) router.replace(`/post/${post.id}`);
     // Praise opens with the thanksgiving celebration.
     else if (postType === 'praise') router.replace(`/post/${post.id}?celebrate=1`);
     else leave();
@@ -87,7 +89,7 @@ export default function Compose() {
           allSupportWelcome: features.supportLabel && allSupport,
         });
         if ('queued' in result) return leave();
-        return afterCreate(result.post);
+        return afterCreate(result.post, result.harm);
       }
       const created = await api.createPost({
         postType,
@@ -102,7 +104,7 @@ export default function Compose() {
         allSupportWelcome: features.supportLabel && allSupport,
         media,
       });
-      afterCreate(created.post);
+      afterCreate(created.post, created.harm);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);

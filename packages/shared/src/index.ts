@@ -350,6 +350,8 @@ export interface ModerationItem {
   handoff_note?: string | null;
   /** The member's explanation of their own held post. */
   author_note?: string | null;
+  /** Hidden until a moderator decides (a held post). */
+  auto_hidden?: boolean;
 }
 
 export interface Appeal {

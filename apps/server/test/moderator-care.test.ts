@@ -138,3 +138,29 @@ describe('moderation dashboard and weekly report', () => {
     expect((await as(admin).get('/admin/moderation-dashboard')).json().reports[0].week_start).toBeDefined();
   });
 });
+
+describe('restoring a held post', () => {
+  it('is quiet by default, then logs a restore and tells the author it is back up', async () => {
+    expect(careDefaults.restore_enabled).toBe(false);
+    const author = await createUser('Hannah');
+    const quiet = await heldPost(author, "I'm going to hurt him, I swear.");
+    expect((await as(mod1).post(`/moderation/items/${quiet.item.id}/decision`, { action: 'dismiss' })).statusCode).toBe(200);
+    const restoredNotices = async () =>
+      (await db.query<{ title: string }>(`select title from public.notifications where user_id = $1 and kind = 'post_restored'`, [author])).rows;
+    expect(await restoredNotices()).toHaveLength(0);
+
+    await care.updateSettings(db, { restore_enabled: true });
+    const { post, item } = await heldPost(author, "I'm going to hurt him for what he did.");
+    expect((await db.query('select moderation_status from public.posts where id = $1', [post.id])).rows[0].moderation_status).toBe('hidden_pending_review');
+    expect((await as(mod1).post(`/moderation/items/${item.id}/decision`, { action: 'dismiss' })).statusCode).toBe(200);
+    expect((await db.query('select moderation_status from public.posts where id = $1', [post.id])).rows[0].moderation_status).toBe('visible');
+    const actions = (await db.query<{ action: string; moderator_id: string }>('select action, moderator_id from public.moderation_actions where moderation_item_id = $1 order by created_at', [item.id])).rows;
+    expect(actions.map((a) => a.action)).toEqual(['dismiss', 'restore']);
+    expect(actions[1]!.moderator_id).toBe(mod1);
+    expect(await restoredNotices()).toEqual([{ title: 'Your request is back up' }]);
+    // The staff audit log has the decision too.
+    const audited = async () =>
+      (await db.query(`select 1 from public.staff_audit_log where actor_id = $1 and action = 'POST /moderation/items/:id/decision' and target_id = $2`, [mod1, item.id])).rowCount;
+    await expect.poll(audited).toBe(1);
+  });
+});

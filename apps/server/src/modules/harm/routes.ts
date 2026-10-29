@@ -6,6 +6,7 @@ import { withTx } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as care from '../moderator-care/index.js';
+import * as oncall from '../moderator-care/oncall.js';
 import * as harm from './index.js';
 
 export function harmRoutes(app: FastifyInstance, db: Db) {
@@ -73,6 +74,42 @@ export function harmRoutes(app: FastifyInstance, db: Db) {
     const moderatorId = await requireModerator(req);
     const input = care.Handoff.parse(req.body);
     await withTx(db, (tx) => care.handoff(tx, moderatorId, req.params.id, input));
+    return { ok: true };
+  });
+
+  // The on-call rota (Admin → Moderator care → On-call rota). Moderators see who is on
+  // call and leave notes for the next shift; admins set shifts and the waiting limit.
+  app.get('/moderation/oncall', async (req) => {
+    await requireModerator(req);
+    const status = await oncall.status(db);
+    if (!status.settings.enabled) return { status: { ...status, notes: [] } };
+    return { status, shifts: await oncall.shifts(db) };
+  });
+
+  app.post('/moderation/oncall/notes', async (req) => {
+    const moderatorId = await requireModerator(req);
+    if (!(await oncall.settings(db)).enabled) throw forbidden('The on-call rota is switched off (Admin → Moderator care)');
+    return oncall.addNote(db, moderatorId, oncall.Note.parse(req.body).body);
+  });
+
+  app.get('/admin/oncall', async (req) => {
+    await requireAdmin(req);
+    return { settings: await oncall.settings(db), shifts: await oncall.shifts(db), people: await oncall.people(db) };
+  });
+
+  app.patch('/admin/oncall', async (req) => {
+    await requireAdmin(req);
+    return { settings: await oncall.updateSettings(db, oncall.SettingsPatch.parse(req.body)) };
+  });
+
+  app.post('/admin/oncall/shifts', async (req) => {
+    const adminId = await requireAdmin(req);
+    return oncall.addShift(db, adminId, oncall.Shift.parse(req.body));
+  });
+
+  app.delete<{ Params: { id: string } }>('/admin/oncall/shifts/:id', async (req) => {
+    await requireAdmin(req);
+    await oncall.removeShift(db, z.uuid().parse(req.params.id));
     return { ok: true };
   });
 }

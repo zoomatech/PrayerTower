@@ -90,6 +90,7 @@ export function ModeratorCareSection() {
       <Toggle label={t('modCare.blur')} value={s.blur_hard} onChange={(v) => save({ blur_hard: v })} />
       <Toggle label={t('modCare.dashboard')} value={s.dashboard_enabled} onChange={(v) => save({ dashboard_enabled: v })} />
       <Toggle label={t('modCare.weekly')} hint={t('modCare.weeklyHint')} value={s.weekly_report_enabled} onChange={(v) => save({ weekly_report_enabled: v })} />
+      <Toggle label={t('modCare.restoreToggle')} hint={t('modCare.restoreHint')} value={s.restore_enabled} onChange={(v) => save({ restore_enabled: v })} />
       <Field label={t('modCare.breakAfterMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
       <Field label={t('modCare.breakAfterItems')} keyboardType="number-pad" value={draft.items} onChangeText={(items) => setDraft((d) => ({ ...d, items }))} />
       <Field label={t('modCare.breakMinutes')} keyboardType="number-pad" value={draft.length} onChangeText={(length) => setDraft((d) => ({ ...d, length }))} />

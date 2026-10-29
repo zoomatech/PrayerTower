@@ -45,6 +45,8 @@ export function useModeratorCare() {
   return {
     on,
     blur: on && !!s?.blur_hard,
+    /** Held items show "Restore": logged as a restore, and the author is told. */
+    restore: !!s?.restore_enabled,
     colleagues: care?.colleagues ?? [],
     breakDue,
     onBreak,

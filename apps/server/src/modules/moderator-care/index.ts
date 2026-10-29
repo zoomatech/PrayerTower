@@ -14,12 +14,14 @@ export interface CareSettings {
   dashboard_enabled: boolean;
   /** Monday report to admins of what the harmful-prayer check flagged and how moderators decided. */
   weekly_report_enabled: boolean;
+  /** "Restore" on held items: logged as a restore, and the author is told it is back up. */
+  restore_enabled: boolean;
   blur_hard: boolean;
   break_after_minutes: number;
   break_after_hard_items: number;
   break_minutes: number;
 }
-const COLUMNS = ['enabled', 'dashboard_enabled', 'weekly_report_enabled', 'blur_hard', 'break_after_minutes', 'break_after_hard_items', 'break_minutes'] as const satisfies readonly (keyof CareSettings)[];
+const COLUMNS = ['enabled', 'dashboard_enabled', 'weekly_report_enabled', 'restore_enabled', 'blur_hard', 'break_after_minutes', 'break_after_hard_items', 'break_minutes'] as const satisfies readonly (keyof CareSettings)[];
 
 export async function settings(q: Queryable): Promise<CareSettings> {
   const { rows } = await q.query<CareSettings>(`select ${COLUMNS.join(', ')} from public.moderator_care_settings`);
@@ -31,6 +33,7 @@ export const SettingsPatch = z
     enabled: z.boolean(),
     dashboard_enabled: z.boolean(),
     weekly_report_enabled: z.boolean(),
+    restore_enabled: z.boolean(),
     blur_hard: z.boolean(),
     break_after_minutes: z.number().int().min(0).max(600),
     break_after_hard_items: z.number().int().min(0).max(1000),

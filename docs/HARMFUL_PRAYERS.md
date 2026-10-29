@@ -104,3 +104,12 @@ Both switches are in **Admin → Moderator care**.
 ## Open Circle (secular edition)
 
 The check, the holds, the review queue and the flood bundling work the same on Open Circle. The redirects members read use secular wording: "Ask for justice and safety", not "leave the rest to God", and no Scripture. Notices and error messages also pass through the usual neutral-wording filter. `apps/server/test/harm-open-circle.test.ts` checks that nothing an Open Circle member reads from it has a religious word.
+
+## On-call rota (off by default)
+
+**Admin → On-call rota** (`PATCH /admin/oncall`, shifts at `POST /admin/oncall/shifts`). Moderation guidance treats threats as high priority and asks for a person to look quickly ([IFTAS: Violent threat](https://about.iftas.org/library/violent-threat/)), so a held post should never sit unseen.
+
+- **Shifts:** weekly, per moderator, in the rota's time zone (default America/New_York). The moderation screen shows who is on call now.
+- **The limit** (`max_wait_minutes`, 60): a held, harmful-prayer or crisis item still waiting at `remind_at_percent` (50%) of the limit reminds whoever is on call (every moderator if nobody is). Past the limit, it goes to the person named in **When the wait passes, tell**, or to every admin. Each item is reminded and escalated once. The notices give counts and minutes, never the post's words. The check runs every 5 minutes (job `oncall_check`).
+- **Notes for the next shift** sit at the top of the moderation screen (`POST /moderation/oncall/notes`).
+- Code: `apps/server/src/modules/moderator-care/oncall.ts`, migration `20261029063200_oncall_rota.sql`, test `apps/server/test/oncall.test.ts`.

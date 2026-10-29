@@ -295,9 +295,11 @@ export async function setModerationStatus(q: Queryable, target: moderation.Targe
 }
 
 /** Show content again that was hidden pending review; content already removed stays removed. */
+/** Shows content a flag hid until a person decided. True when it was hidden and is now back up. */
 export async function unhide(q: Queryable, target: moderation.Target, id: string) {
   const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events', spoken_prayer: 'spoken_prayers' }[target];
-  await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
+  const { rowCount } = await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
+  return !!rowCount;
 }
 
 /** The author and text of any moderatable item. */

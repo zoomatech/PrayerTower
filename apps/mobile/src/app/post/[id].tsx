@@ -8,6 +8,7 @@ import { BelieveCard } from '@/components/believe-card';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
+import { HarmSupport, takeSupport } from '@/components/harm-support';
 import { GuestShare } from '@/components/guest-share';
 import { ShareChoice } from '@/components/outside-share';
 import { PostCard } from '@/components/post-card';
@@ -71,6 +72,8 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
+  // Hotlines for someone who has just described abuse (from posting it, or a comment).
+  const [harmSupport, setHarmSupport] = useState(() => takeSupport(id));
   // The answered / testimony panel: closed, or open with the draft text.
   const [testimony, setTestimony] = useState<string | null>(null);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
@@ -116,6 +119,7 @@ export default function PostScreen() {
       setWarnedFor(null);
       const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
       if (r.comment.crisis) setSupport(true);
+      if (r.comment.harm?.resources?.length) setHarmSupport(r.comment.harm);
       setText('');
       setReplyTo(null);
       await load();
@@ -265,6 +269,7 @@ export default function PostScreen() {
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
+        {harmSupport ? <HarmSupport note={harmSupport} /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
 
