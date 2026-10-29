@@ -1725,6 +1725,19 @@ export interface AdminGift extends MyGift {
   donor_name?: string | null;
 }
 
+export type SponsorKind = 'launch' | 'fund' | 'witness' | 'pool' | 'community' | 'other';
+/** A sponsor thanked on the public /sponsors page (Admin → Sponsors). */
+export interface Sponsor {
+  id: string;
+  name: string;
+  kind: SponsorKind;
+  thanks: string | null;
+  since: string;
+  pool_name: string | null;
+  community_name: string | null;
+  hidden_at: string | null;
+}
+
 export const api = {
   /** Public: whether sign-up needs an invite code. */
   signupConfig: () => get<{ inviteOnly: boolean; passkeys?: boolean; backupCodes?: boolean }>('/signup-config'),
@@ -2153,6 +2166,10 @@ export const api = {
       request<{ settings: ReminderSettings }>('PATCH', '/admin/reminder-settings', patch),
     pushSettings: () => get<PushDelivery>('/admin/push-settings'),
     updatePushSettings: (patch: { enabled?: boolean; collapseMinutes?: number; maxPerHour?: number }) => request<PushDelivery>('PATCH', '/admin/push-settings', patch),
+    sponsors: () => get<{ settings: { pageEnabled: boolean }; sponsors: Sponsor[] }>('/admin/sponsors'),
+    updateSponsorSettings: (patch: { pageEnabled: boolean }) => request<{ settings: { pageEnabled: boolean } }>('PATCH', '/admin/sponsors/settings', patch),
+    addSponsor: (s: { name: string; kind: SponsorKind; thanks?: string; poolId?: string; communitySlug?: string }) => request<{ sponsor: Sponsor }>('POST', '/admin/sponsors', s),
+    setSponsorHidden: (id: string, hidden: boolean) => request<{ sponsor: Sponsor }>('PATCH', `/admin/sponsors/${id}`, { hidden }),
     givingSplitSettings: () => get<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('/admin/giving-split-settings'),
     updateGivingSplitSettings: (patch: { enabled?: boolean; maxPercent?: number }) =>
       request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),

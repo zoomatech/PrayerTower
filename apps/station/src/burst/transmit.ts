@@ -39,11 +39,16 @@ export interface BurstTransmitter {
 export function run(command: string, wav: string | null, timeoutMs: number): Promise<void> {
   const cmd = wav ? command.replaceAll('{wav}', `'${wav.replaceAll("'", "'\\''")}'`) : command;
   return new Promise((resolve, reject) => {
-    const child = spawn('sh', ['-c', cmd], { stdio: ['ignore', 'ignore', 'pipe'] });
+    // Its own process group, so a timeout stops the player the shell started too, not just the shell.
+    const child = spawn('sh', ['-c', cmd], { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
     let err = '';
     child.stderr.on('data', (d) => (err = (err + d).slice(-500)));
     const timer = setTimeout(() => {
-      child.kill('SIGKILL');
+      try {
+        process.kill(-child.pid!, 'SIGKILL');
+      } catch {
+        child.kill('SIGKILL');
+      }
       reject(new Error(`"${command}" timed out`));
     }, timeoutMs);
     child.on('error', (e) => {
@@ -82,10 +87,15 @@ export interface AudioOptions {
 }
 
 export function audioTransmitter(o: AudioOptions): BurstTransmitter {
-  const unkey = async () => {
+  const unkeyOnce = async () => {
     if (o.rig) await keyRig(o.rig, false);
     else if (o.pttOffCommand) await run(o.pttOffCommand, null, 10_000);
   };
+  // A radio left keyed is the worst failure, so a failed unkey is tried once more.
+  const unkey = () => unkeyOnce().catch(async () => {
+    await new Promise((r) => setTimeout(r, 500));
+    await unkeyOnce();
+  });
   /** Key, play the WAV, unkey (always). */
   const keyAndPlay = async (wav: string, seconds: number) => {
     if (o.rig) await keyRig(o.rig, true).catch(async (err) => {
@@ -93,7 +103,11 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
       await o.rig!.setPtt(false).catch(() => undefined);
       throw err;
     });
-    else if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000);
+    else if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000).catch(async (err) => {
+      // The key command may have keyed the radio before it failed or timed out.
+      await unkey().catch(() => undefined);
+      throw err;
+    });
     try {
       if (o.pttDelayMs) await new Promise((r) => setTimeout(r, o.pttDelayMs));
       await run(o.playCommand, wav, Math.min(o.txTimeoutMs, seconds * 1000 + 30_000));

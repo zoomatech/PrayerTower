@@ -14,7 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings, type Sponsor, type SponsorKind } from '@/lib/api';
 import { errorText } from '@/lib/error-report';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
@@ -35,7 +35,7 @@ const label = (t: T, key: string) =>
 const toInt = (s: string) => (s.trim() === '' ? null : Number.parseInt(s, 10));
 
 function Admin() {
-  const { t, language } = useLocale();
+  const { t, n, language } = useLocale();
   const features = useFeatures();
   // A member who lost their phone and backup codes: the first tap asks, the second turns two-step sign-in off.
   const [resetAsk, setResetAsk] = useState<string | null>(null);
@@ -320,6 +320,7 @@ function Admin() {
         <NotebookSettingsSection />
         <GrowthSettingsSection />
         <GivingSplitSection />
+        <SponsorsSection />
         <PushDeliverySection />
         <ReminderSettingsSection />
         <PracticeModeSection />
@@ -436,7 +437,7 @@ function Admin() {
             <Text style={type.small}>{t('admin.tiersHint')}</Text>
             {tiers.map((tier) => (
               <View key={tier.tier} style={styles.group}>
-                <Text style={styles.groupTitle}>{tier.label}</Text>
+                <Text style={styles.groupTitle}>{n(tier.label)}</Text>
                 <Field
                   label={t('admin.field.tierMin')}
                   keyboardType="number-pad"
@@ -461,7 +462,7 @@ function Admin() {
           {rules.map((r) => (
             <View key={r.id} style={styles.group}>
               <Toggle
-                label={r.label}
+                label={n(r.label)}
                 hint={`${t(`admin.ruleMetric.${r.metric}`)}: ${r.threshold} → ${t(r.currency === 'priestly' ? 'admin.priestlyTokens' : 'admin.regularTokens', { count: r.amount })} · ${t('admin.given', { count: r.awarded })}`}
                 value={r.enabled}
                 onChange={(enabled) =>
@@ -546,7 +547,7 @@ const METRICS: MilestoneRule['metric'][] = ['prayers_for_others', 'commitment_ch
  * the account's address first to confirm it's them; then delete.
  */
 function DeletionRequestsSection() {
-  const { t, language } = useLocale();
+  const { t, n, language } = useLocale();
   const [requests, setRequests] = useState<Awaited<ReturnType<typeof api.admin.deletionRequests>>['requests']>([]);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1787,6 +1788,7 @@ function MaterialMatchSection() {
 /** Communities (Open Circle, 2026-10-28): a non-default community is hidden until an admin turns it on. */
 function CommunitiesSection() {
   const t = useT();
+  const { n } = useLocale();
   const [list, setList] = useState<Community[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useFocusEffect(
@@ -1835,7 +1837,7 @@ function CommunitiesSection() {
               return (
                 <Chip
                   key={p}
-                  label={POST_TYPE_LABELS[p]}
+                  label={n(POST_TYPE_LABELS[p])}
                   selected={on}
                   onPress={() => change(c, { enabledPostTypes: on ? c.enabledPostTypes.filter((x) => x !== p) : [...c.enabledPostTypes, p] })}
                 />
@@ -2067,6 +2069,83 @@ function GivingSplitSection() {
       <Toggle label={t('givingSplit.adminToggle')} value={s.giving_split_enabled} onChange={(v) => save({ enabled: v })} />
       <Field label={t('givingSplit.adminMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
       <Button label={t('givingSplit.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+const SPONSOR_KINDS: SponsorKind[] = ['launch', 'fund', 'witness', 'pool', 'community', 'other'];
+
+/** Sponsor recognition for the public /sponsors page (Business Plan 11.4), off by default. */
+function SponsorsSection() {
+  const t = useT();
+  const { n } = useLocale();
+  const [d, setD] = useState<{ settings: { pageEnabled: boolean }; sponsors: Sponsor[] } | null>(null);
+  const [pools, setPools] = useState<TokenPool[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [draft, setDraft] = useState<{ name: string; thanks: string; kind: SponsorKind; for: string | null }>({ name: '', thanks: '', kind: 'launch', for: null });
+  const [note, setNote] = useState<string | null>(null);
+  const load = useCallback(() => {
+    api.admin.sponsors().then(setD).catch((e) => setNote((e as Error).message));
+    api.tokenPools().then((r) => setPools(r.pools)).catch(() => undefined);
+    api.admin.communities().then((r) => setCommunities(r.communities)).catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  const act = (fn: () => Promise<unknown>, done: string) =>
+    fn()
+      .then(() => (load(), setNote(done)))
+      .catch((e) => setNote((e as Error).message));
+  if (!d) return note ? <Text style={type.small}>{note}</Text> : null;
+  const choices = draft.kind === 'pool' ? pools.map((p) => ({ key: p.id, name: p.name })) : draft.kind === 'community' ? communities.map((c) => ({ key: c.slug, name: c.name })) : [];
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('sponsors.adminTitle')}</Text>
+      <Text style={type.small}>{t('sponsors.adminIntro')}</Text>
+      <Toggle label={t('sponsors.pageToggle')} value={d.settings.pageEnabled} onChange={(v) => act(() => api.admin.updateSponsorSettings({ pageEnabled: v }), t('sponsors.saved'))} />
+      <Field label={t('sponsors.name')} value={draft.name} onChangeText={(name) => setDraft((x) => ({ ...x, name }))} maxLength={80} />
+      <Field label={t('sponsors.thanks')} value={draft.thanks} onChangeText={(thanks) => setDraft((x) => ({ ...x, thanks }))} maxLength={200} multiline />
+      <View style={styles.row}>
+        {SPONSOR_KINDS.map((k) => (
+          <Chip key={k} label={t(`sponsors.kind.${k}`)} selected={draft.kind === k} onPress={() => setDraft((x) => ({ ...x, kind: k, for: null }))} />
+        ))}
+      </View>
+      {choices.length ? (
+        <>
+          <Text style={type.small}>{t(draft.kind === 'pool' ? 'sponsors.pool' : 'sponsors.community')}</Text>
+          <View style={styles.row}>
+            {choices.map((c) => (
+              <Chip key={c.key} label={n(c.name)} selected={draft.for === c.key} onPress={() => setDraft((x) => ({ ...x, for: c.key }))} />
+            ))}
+          </View>
+        </>
+      ) : null}
+      <Button
+        label={t('sponsors.add')}
+        disabled={!draft.name.trim()}
+        onPress={() =>
+          act(async () => {
+            await api.admin.addSponsor({
+              name: draft.name.trim(),
+              kind: draft.kind,
+              ...(draft.thanks.trim() ? { thanks: draft.thanks.trim() } : {}),
+              ...(draft.kind === 'pool' && draft.for ? { poolId: draft.for } : {}),
+              ...(draft.kind === 'community' && draft.for ? { communitySlug: draft.for } : {}),
+            });
+            setDraft({ name: '', thanks: '', kind: 'launch', for: null });
+          }, t('sponsors.added'))
+        }
+      />
+      {d.sponsors.length === 0 ? <Text style={type.small}>{t('sponsors.none')}</Text> : null}
+      {d.sponsors.map((s) => (
+        <View key={s.id} style={styles.group}>
+          <Text style={styles.groupTitle}>{s.name}</Text>
+          <Text style={type.small}>
+            {[t(`sponsors.kind.${s.kind}`), s.pool_name ?? s.community_name, s.since.slice(0, 10), s.hidden_at ? t('sponsors.hidden') : null].filter(Boolean).join(' · ')}
+          </Text>
+          {s.thanks ? <Text style={type.small}>{s.thanks}</Text> : null}
+          <Button small variant="secondary" label={t(s.hidden_at ? 'sponsors.show' : 'sponsors.hide')} onPress={() => act(() => api.admin.setSponsorHidden(s.id, !s.hidden_at), t('sponsors.saved'))} />
+        </View>
+      ))}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
