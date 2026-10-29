@@ -30,6 +30,7 @@ import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
 import { practiceRoutes } from './modules/practices/routes.js';
 import { checkBackRoutes } from './modules/check-back/routes.js';
 import { kindMilestoneRoutes } from './modules/kind-milestones/routes.js';
+import { commentKindnessRoutes } from './modules/comment-kindness/routes.js';
 import { repairRoutes } from './modules/repair/routes.js';
 import { conversationHelperRoutes } from './modules/conversation-helpers/routes.js';
 import { partnerRoutes } from './modules/partners/routes.js';
@@ -323,6 +324,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     practiceRoutes(authed, db);
     checkBackRoutes(authed, db);
     kindMilestoneRoutes(authed, db);
+    commentKindnessRoutes(authed, db);
     repairRoutes(authed, db);
     conversationHelperRoutes(authed, db);
     partnerRoutes(authed, db);

@@ -6,6 +6,7 @@ import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from '
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
 import { CheckBack } from '@/components/check-back';
+import { CommentKindness, useCommentKindness } from '@/components/comment-kindness';
 import { CoolDownCard } from '@/components/cool-down-card';
 import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
@@ -118,6 +119,7 @@ export default function PostScreen() {
   }, [celebrateParam, celebrate]);
 
   const { onAction, openReport, sheets } = useCardActions(load);
+  const kindness = useCommentKindness(id);
 
   const send = async (isUpdate = false, confirmed = false) => {
     setBusy(true);
@@ -267,6 +269,7 @@ export default function PostScreen() {
           </Text>
         ) : null}
       </View>
+      <CommentKindness k={kindness} commentId={c.id} isAsker={!!card?.isMine} isMine={!!c.isMine || c.author.id === profile?.id} />
       {card?.isMine && !c.isMine && c.author.id !== profile?.id ? <LiftedMeUp commentId={c.id} /> : null}
       {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>

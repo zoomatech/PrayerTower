@@ -20,6 +20,14 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  quietCounts: {
+    seen: 'Hide support numbers on posts I see',
+    seenHint: 'You’ll see “People are with you” instead of a number.',
+    mine: 'Hide the numbers on my posts from others',
+    mineHint: 'Others see “People are with you”. You still see your own numbers.',
+    praying: 'People are with you',
+    adminHint: 'Each member chooses, on Me, to hide support numbers on posts they see, on their own posts for others, or both, as Instagram lets people hide likes. Nothing changes for anyone who doesn’t choose it.',
+  },
   kindMilestones: {
     peopleFirst: 'You lifted someone up for the first time.',
     peopleMany: 'You’ve lifted up %{level} people.',

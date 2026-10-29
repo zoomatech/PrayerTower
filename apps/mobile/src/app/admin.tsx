@@ -1853,6 +1853,9 @@ function ConversationSettingsSection() {
       <Toggle label={t('meaningProposals.adminTitle')} hint={t('meaningProposals.adminHint')} value={s.meaning_proposals_enabled} onChange={(v) => save({ meaningProposalsEnabled: v })} />
       {s.meaning_proposals_enabled ? <MeaningProposalsAdmin /> : null}
       <Toggle label={t('talk.adminTypePrompts')} hint={t('talk.adminTypePromptsHint')} value={s.type_prompts_enabled} onChange={(v) => save({ typePromptsEnabled: v })} />
+      <Toggle label={t('commentKindness.adminHearts')} hint={t('commentKindness.adminHeartsHint')} value={s.author_hearts_enabled} onChange={(v) => save({ authorHeartsEnabled: v })} />
+      <Toggle label={t('commentKindness.adminThanks')} hint={t('commentKindness.adminThanksHint')} value={s.comment_thanks_enabled} onChange={(v) => save({ commentThanksEnabled: v })} />
+      <Toggle label={t('quietCounts.adminTitle')} hint={t('quietCounts.adminHint')} value={s.quiet_counts_enabled} onChange={(v) => save({ quietCountsEnabled: v })} />
       <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

@@ -588,6 +588,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
       media: { kind: string; storagePath: string }[];
       answers: { id: string; preview: string } | null;
       story_id: string | null;
+      counts_quiet: boolean;
     }
   >(
     `select po.*, pr.display_name, pr.handle, pr.anonymous_by_default as private_tier,
@@ -607,7 +608,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
             -- "Prayer answered" stories: the request a story answers, and a request's story.
             (select json_build_object('id', o.id, 'preview', left(o.body, 120)) from public.posts o
               where o.id = po.answers_post_id and o.moderation_status = 'visible') as answers,
-            (select s.id from public.posts s where s.answers_post_id = po.id and s.moderation_status = 'visible') as story_id
+            (select s.id from public.posts s where s.answers_post_id = po.id and s.moderation_status = 'visible') as story_id,
+            coalesce((select qp.hide_mine from public.quiet_count_prefs qp where qp.user_id = po.user_id), false) as counts_quiet
        from public.posts po join public.profiles pr on pr.id = po.user_id
       where po.id = any($1::uuid[])`,
     [postIds],
@@ -735,6 +737,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         lamentRadio: r.lament_radio,
         answers: r.answers,
         storyId: r.story_id,
+        countsQuiet: r.counts_quiet,
         crisis: r.crisis,
         media: r.media,
         counts: r.counts,
