@@ -204,6 +204,22 @@ let stopping = false;
 process.on('SIGINT', () => (stopping = true));
 process.on('SIGTERM', () => (stopping = true));
 
+// Unkey first: if the last run crashed mid-burst, rigctld may still be holding PTT.
+// (Not fldigi: its stop is rx_only, which also turns transmit off.)
+if (burst?.tx.mode === 'audio') await burst.tx.stop().catch((err: Error) => console.error(`[station] could not unkey at start: ${err.message}`));
+// A crash mid-burst unkeys before exiting (systemd restarts the station).
+if (burst?.tx.mode === 'audio') {
+  const tx = burst.tx;
+  const crash = (err: unknown) => {
+    console.error(`[station] crashed: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
+    void tx
+      .stop()
+      .catch(() => undefined)
+      .finally(() => process.exit(1));
+  };
+  process.on('uncaughtException', crash);
+  process.on('unhandledRejection', crash);
+}
 if (burstMode === 'fldigi') await fldigi.setModem(env('BURST_FLDIGI_MODEM', '8PSK1000F'));
 else if (usesFldigi) await fldigi.setModem(cfg.modem);
 console.log(
