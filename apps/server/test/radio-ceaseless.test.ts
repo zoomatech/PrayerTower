@@ -86,6 +86,17 @@ describe('prayer without ceasing', () => {
     expect((await as(admin).get('/radio/console')).json().ceaseless).toMatchObject({ enabled: true, gapMinutes: 30, inRotation: 2, sentLastDay: 1 });
     await db.query(`update public.posts set state = 'answered', answered_at = now() where id = $1`, [first.id]);
     expect((await as(admin).get('/radio/console')).json().ceaseless.inRotation).toBe(1);
+    // A community that hides radio takes its requests out of the rotation.
+    const { rows: hidden } = await db.query<{ id: string; hidden_features: string[] }>(
+      'select c.id, c.hidden_features from public.communities c join public.posts p on p.community_id = c.id where p.id = $1',
+      [second.id],
+    );
+    await db.query(`update public.communities set hidden_features = array_append(hidden_features, 'radio') where id = $1`, [hidden[0]!.id]);
+    try {
+      expect((await as(admin).get('/radio/console')).json().ceaseless.inRotation).toBe(0);
+    } finally {
+      await db.query('update public.communities set hidden_features = $2 where id = $1', [hidden[0]!.id, hidden[0]!.hidden_features]);
+    }
     await as(admin).patch('/admin/radio-ceaseless', { enabled: false });
     const { rows } = await db.query(`select 1 from public.radio_prayers where kind = 'ceaseless' and status = 'queued'`);
     expect(rows).toHaveLength(0);

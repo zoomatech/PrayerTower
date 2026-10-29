@@ -2317,7 +2317,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     status: {"waiting": "Waiting", "sending": "Going out", "sent": "Sent", "not_sent": "Not sent"},
     amplified: "amplified",
     thanksgiving: "answered",
-    heard: "Reported by %{count} receivers",
+    auto: "sent for every request",
+    heard: { one: "Reported by 1 receiver", other: "Reported by %{count} receivers" },
     codeLabel: "Signal code %{code}",
     listenCode: "Signal code %{code}",
   },
@@ -2326,7 +2327,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     sent: "Went out %{time}",
     sentAmplified: "Went out amplified %{time}",
     node: "%{name} (%{snr} dB)",
-    phones: "%{count} phones or listening pages",
+    phones: { one: "1 phone or listening page", other: "%{count} phones or listening pages" },
     none: "No receiver has reported it yet.",
   },
   scheduleRadio: {
