@@ -166,9 +166,11 @@ export async function decideStory(q: Queryable, userId: string, storyId: string,
 /** Witness staff take back a story they drafted (or any, for moderators and admins). */
 export async function withdrawStory(q: Queryable, userId: string, storyId: string) {
   await requireWitness(q, userId);
+  const anyStory = await hasRole(q, userId, 'moderator', 'admin');
   const { rowCount } = await q.query(
-    `update public.witness_stories set status = 'withdrawn', decided_at = now() where id = $1 and status in ('awaiting_consent', 'approved')`,
-    [storyId],
+    `update public.witness_stories set status = 'withdrawn', decided_at = now()
+      where id = $1 and status in ('awaiting_consent', 'approved') and (author_id = $2 or $3)`,
+    [storyId, userId, anyStory],
   );
   if (!rowCount) throw notFound('Story');
 }
