@@ -81,6 +81,24 @@ Thank you for testing Prayer Tower! Please try: posting a request, praying for o
 Prayer Tower is a small community for asking for prayer and praying for one another. This pilot tests posting requests, praying, prayer promises, private notes, groups, events and safety tools.
 ```
 
+## Native builds
+
+The native SwiftUI apps ([NATIVE_TESTFLIGHT.md](../NATIVE_TESTFLIGHT.md)) are separate App Store
+Connect records with their own bundle IDs: `com.zoomatech.prayertower.native` (Prayer Tower) and
+`com.zoomatech.opencircle.native` (Open Circle). They use the same listing text as above, and the
+Open Circle text in [open-circle/STORE_LISTING.md](open-circle/STORE_LISTING.md). The privacy
+answers ([APP_PRIVACY_ANSWERS.md](APP_PRIVACY_ANSWERS.md)) and the TestFlight text
+([TESTFLIGHT_TEST_INFO.md](TESTFLIGHT_TEST_INFO.md)) are the same too. The `eas metadata:push` upload
+covers only the Expo app, so paste this text into the native records by hand. What's different:
+
+- **Version:** 0.1.0 by default (`PT_VERSION`). Build numbers count up by themselves.
+- **Extras in the binary:** the Pray now widget and Lock Screen Live Activity, and the
+  cross-posting Safari extension, which members turn on in Settings → Safari → Extensions. Add one
+  line to What to Test: "Turn on the cross-posting extension in Safari settings and post on
+  facebook.com or threads.com".
+- **Screenshots:** the Expo screenshots show the same screens and can be used until native ones
+  are taken.
+
 ## Screenshots
 
 The current set is in the project files at `store-screenshots/` (and `store-screenshots.zip`), recaptured 2026-10-28 from the English-only build: iPhone 6.3" (1206 × 2622, required), iPhone 6.9" (1320 × 2868) and iPad 13" (2064 × 2752, required because the app runs on iPad). Sizes follow Apple's [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications). The eight screens are: feed, Praying Now, Commit to Pray, a request with comments, My Promises, a private message, tokens and profile, and events.

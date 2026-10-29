@@ -74,6 +74,13 @@ The questionnaire now asks about these capabilities. ([Apple: Age ratings](https
 
 ---
 
+## Native builds
+
+The native apps (`com.zoomatech.prayertower.native`, `com.zoomatech.opencircle.native`) send the same
+data to the same server, so the answers above apply to them as they are. They have no crash
+reporting SDK, so leave out Diagnostics. Their privacy manifests (`apps/ios-native/App/PrivacyInfo.xcprivacy`)
+list the same data types.
+
 ## Before each submission
 - [ ] There are still no analytics or ad SDKs in `apps/mobile/package.json`. Sentry is the only crash SDK, and it is off without a DSN. If you set a DSN, add Crash Data and Crash logs as described above.
 - [ ] Moderation still uses OpenAI's `/v1/moderations`, which has no abuse-monitoring retention ([OpenAI: your data](https://developers.openai.com/api/docs/guides/your-data)). If `MODERATION_PROVIDER=claude`, Anthropic keeps API data up to 30 days, and flagged inputs up to 2 years ([Anthropic](https://privacy.claude.com/en/articles/7996866-how-long-does-anthropic-store-my-organizations-data)); the privacy policy must say so first ([PRIVACY_AUDIT.md](../PRIVACY_AUDIT.md), note 4).
