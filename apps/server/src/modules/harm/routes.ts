@@ -7,6 +7,7 @@ import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as care from '../moderator-care/index.js';
 import * as oncall from '../moderator-care/oncall.js';
+import * as safetyDashboard from '../moderator-care/safety.js';
 import * as harm from './index.js';
 
 export function harmRoutes(app: FastifyInstance, db: Db) {
@@ -68,6 +69,14 @@ export function harmRoutes(app: FastifyInstance, db: Db) {
     if (!(await care.settings(db)).dashboard_enabled) throw forbidden('The moderation dashboard is switched off (Admin → Moderator care)');
     const { days } = z.object({ days: z.coerce.number().int().min(1).max(365).default(7) }).parse(req.query);
     return { dashboard: await care.dashboard(db, days), reports: await care.reports(db) };
+  });
+
+  // Admin → Safety dashboard (safety_dashboard_enabled): held posts, response times, on-call gaps, restores.
+  app.get('/admin/safety-dashboard', async (req) => {
+    await requireAdmin(req);
+    if (!(await care.settings(db)).safety_dashboard_enabled) throw forbidden('The safety dashboard is switched off (Admin → Moderator care)');
+    const { days } = z.object({ days: z.coerce.number().int().min(1).max(365).default(7) }).parse(req.query);
+    return { dashboard: await safetyDashboard.dashboard(db, days) };
   });
 
   app.post<{ Params: { id: string } }>('/moderation/items/:id/handoff', async (req) => {

@@ -15,6 +15,7 @@ import type { Config } from '../../config.js';
 import { withTx, type Db, type Queryable } from '../../db.js';
 import { AppError, badRequest, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import { notify } from '../notifications/index.js';
 import { available, enabled, importPost, MAX_MEDIA, MAX_VIDEO_BYTES, maxBytes, sniffMedia, type MediaStore, type MediaType, type Incoming, type Source } from './index.js';
 
 export interface CrosspostOptions {
@@ -293,9 +294,27 @@ async function newPosts(a: Account, token: string, o: CrosspostOptions, fetcher:
     .reverse();
 }
 
-async function markChecked(q: Queryable, accountId: string, err: unknown) {
+const PROVIDER_NAME = { threads: 'Threads', facebook: 'Facebook' } as const;
+
+/** Tells the member their connection stopped (or is about to), so they tap Reconnect. */
+async function noticeReconnect(q: Queryable, a: Pick<Account, 'id' | 'user_id' | 'provider'>, when: 'expired' | 'soon', dedupe: string) {
+  const name = PROVIDER_NAME[a.provider];
+  await notify(q, a.user_id, {
+    kind: 'crosspost_reconnect',
+    title: when === 'expired' ? `Reconnect ${name}` : `Reconnect ${name} this week`,
+    body:
+      when === 'expired'
+        ? `Your ${name} posts are no longer being copied here. Open Me → Copy my Facebook posts and tap Reconnect.`
+        : `${name} lets a connection last about 60 days, and yours ends soon. Open Me → Copy my Facebook posts and tap Reconnect to keep your posts coming.`,
+    data: { screen: 'crosspost', provider: a.provider },
+    dedupeKey: `crosspost_${when}:${a.id}:${dedupe}`,
+  });
+}
+
+async function markChecked(q: Queryable, a: Account, err: unknown) {
   const expired = err instanceof MetaError && err.tokenInvalid;
-  await q.query(`update public.crosspost_accounts set last_checked_at = now(), status = case when $2 then 'expired' else status end where id = $1`, [accountId, expired]);
+  await q.query(`update public.crosspost_accounts set last_checked_at = now(), status = case when $2 then 'expired' else status end where id = $1`, [a.id, expired]);
+  if (expired) await noticeReconnect(q, a, 'expired', new Date().toISOString().slice(0, 10));
 }
 
 /** Check one connected account and copy its new posts. */
@@ -313,9 +332,13 @@ export async function checkAccount(db: Db, accountId: string, o: CrosspostOption
       const r = await withTx(db, (tx) => importPost(tx, a.user_id, { ...p, media }, storeMedia));
       if (r.status === 'posted') posted++;
     }
-    await markChecked(db, a.id, null);
+    await markChecked(db, a, null);
+    // Facebook tokens can't be refreshed by a server; warn a week before one ends.
+    if (a.provider === 'facebook' && a.token_expires_at && a.token_expires_at.getTime() - Date.now() < 7 * 86_400_000) {
+      await noticeReconnect(db, a, 'soon', a.token_expires_at.toISOString());
+    }
   } catch (err) {
-    await markChecked(db, a.id, err);
+    await markChecked(db, a, err);
     if (!(err instanceof MetaError)) throw err;
   }
   return { posted };
@@ -404,7 +427,7 @@ export function importThreadsTask(db: Db, o: CrosspostOptions, storeMedia: Media
       const media = await downloadMedia(threadsMedia(m), fetcher);
       await withTx(db, (tx) => importPost(tx, a.user_id, { source: 'threads', via: 'account', externalId: m.id, text: m.text ?? '', permalink: m.permalink ?? null, media }, storeMedia));
     } catch (err) {
-      if (err instanceof MetaError) return markChecked(db, a.id, err);
+      if (err instanceof MetaError) return markChecked(db, a, err);
       throw err;
     }
   };

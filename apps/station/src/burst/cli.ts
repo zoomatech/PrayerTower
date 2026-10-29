@@ -11,6 +11,7 @@
 //   encode <out.wav> [preset]   make a burst from prayers on stdin, one per line
 //   presets                     list the modem presets and their speeds
 //   bench [preset]              how many sample prayers fit in how many seconds
+//                               (BURST_CODEC_V2=on to measure codec 4)
 //   sim [preset]                send 30 generated prayers through a simulated radio path at
 //                               falling noise levels; print air time and the lowest SNR that
 //                               decodes every prayer (the table in docs/RADIO_BURST.md; slow)
@@ -45,7 +46,7 @@ switch (cmd) {
     const packets = demodulatePackets(wav.samples, wav.sampleRate).flatMap((p) => parseStatus(p.frame) ?? []);
     if (!heard.length && !packets.length) out('No burst frames decoded.');
     for (const h of heard) {
-      out(`-- de ${h.callSign} (${h.preset}, ${h.snrDb.toFixed(1)} dB SNR${h.corrected ? ', errors corrected' : ''}), ${h.prayers.length} prayer(s)`);
+      out(`-- de ${h.callSign} (${h.preset}, ${h.snrDb.toFixed(1)} dB SNR${h.corrected ? ', errors corrected' : ''}), ${h.unreadable ? `unreadable: ${h.unreadable}` : `${h.prayers.length} prayer(s)`}`);
       for (const p of h.prayers) out(p);
     }
     for (const p of packets) out(`-- packet de ${p.callSign}: ${p.count} prayer(s), part ${p.page}/${p.pages}: ${p.ids.join(' ')}`);
@@ -92,7 +93,7 @@ switch (cmd) {
     for (const p of presets) {
       for (const n of [10, 50, 100, 500]) {
         const prayers = samplePrayers(n);
-        const b = buildBurst(planFrames(prayers, p, 20), p, 'N0CALL');
+        const b = buildBurst(planFrames(prayers, p, 20, { codecV2: process.env.BURST_CODEC_V2 === 'on' }), p, 'N0CALL');
         const raw = prayers.join('\n').length;
         out(`${p.name.padEnd(14)} ${String(n).padStart(4)} prayers: ${raw} chars -> ${b.bytes} bytes (${(raw / b.bytes).toFixed(1)}x), ${b.frames} frame(s), ${b.seconds.toFixed(2)} s`);
       }

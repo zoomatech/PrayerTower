@@ -4,7 +4,7 @@
 //   TX_TIMEOUT_SECONDS (180), MAX_PIECE_CHARS (500), BLOCKLIST_FILE (one word per line, added to the default list)
 // Burst mode (docs/RADIO_BURST.md), off unless BURST_MODE is set:
 //   BURST_MODE (off | audio | fldigi | simulate | packet: IDs and counts as 1200-baud APRS packets, PACKET_PATH), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
-//   BURST_MAX_FRAME_SECONDS (20), BURST_PLAY_CMD ("aplay -q {wav}"; "afplay {wav}" on macOS), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
+//   BURST_MAX_FRAME_SECONDS (20), BURST_CODEC_V2 (off; on also tries codec 4), BURST_PLAY_CMD ("aplay -q {wav}"; "afplay {wav}" on macOS), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
 //   BURST_PTT_DELAY_MS (300), BURST_DIR (bursts/ under the state directory), BURST_FLDIGI_MODEM (8PSK1000F)
 // BURST_PRESET=auto picks a preset before each burst from a receiver's channel report:
 //   BURST_AUTO_REPORT (file or URL; BURST_DIR/channel.json; "server" reads listener nodes' reports
@@ -148,6 +148,7 @@ if (burstMode !== 'off') {
         : undefined,
       maxPrayers: int('BURST_MAX_PRAYERS', '50', 1, 500),
       maxFrameSeconds: int('BURST_MAX_FRAME_SECONDS', '20', 1, 120),
+      codecV2: process.env.BURST_CODEC_V2 === 'on',
       blocklist: cfg.blocklist,
       frequencyHz: cfg.frequencyHz,
     },
@@ -174,7 +175,9 @@ const reportStatus = async () => {
   if (Date.now() - lastStatus < STATUS_EVERY_MS) return;
   lastStatus = Date.now();
   try {
-    const checks = await stationChecks({ audio: burstMode === 'audio' || packetMode, rig });
+    const checks: { name: string; ok: boolean; detail: string }[] = await stationChecks({ audio: burstMode === 'audio' || packetMode, rig });
+    // The operator console's ID timer (STATION_ID=cw).
+    if (stationId) checks.push({ name: 'station_id', ok: true, detail: stationId.statusDetail() });
     await api.reportStatus?.({ callSign, checks });
   } catch (err) {
     console.error(`[station] could not report status: ${(err as Error).message}`);

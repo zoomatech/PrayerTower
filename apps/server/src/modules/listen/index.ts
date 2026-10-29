@@ -54,7 +54,7 @@ const BODY = `
       const card = document.createElement('div');
       card.className = 'card';
       const h = document.createElement('h2');
-      h.textContent = 'From ' + f.callSign + ' at ' + new Date().toLocaleTimeString();
+      h.textContent = 'From ' + f.callSign + (f.via ? ' (relayed by ' + f.via + ')' : '') + ' at ' + new Date().toLocaleTimeString();
       const meta = document.createElement('p');
       meta.textContent = f.preset + ', signal ' + f.snrDb.toFixed(1) + ' dB' + (f.corrected ? ', errors corrected' : '');
       card.append(h, meta);

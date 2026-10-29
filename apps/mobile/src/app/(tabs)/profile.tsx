@@ -297,6 +297,7 @@ export default function Profile() {
         <GivingSplitChoice key={profile.support_url ?? ''} />
         <CommunityPicker />
         <LanguagePicker />
+        {features.safetyCenter ? <Button variant="ghost" label={t('safetyCenter.title')} onPress={() => router.push('/safety')} /> : null}
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
         {wording === 'faith' ? (
           <Button variant="secondary" label={roles.includes('pastor') ? t('profile.myChurch') : t('profile.churchApply')} onPress={() => router.push('/church')} />
@@ -312,6 +313,9 @@ export default function Profile() {
         ) : null}
         {radioOn && giving?.allocationRequests && roles.some((r) => r === 'moderator' || r === 'admin' || r === 'pastor_counselor') ? (
           <Button variant="secondary" label={t('radioRequests.title')} onPress={() => router.push('/radio-requests')} />
+        ) : null}
+        {radioOn && roles.some((r) => r === 'radio_operator' || r === 'admin') ? (
+          <Button variant="secondary" label={t('profile.operatorConsole')} onPress={() => router.push('/operator-console')} />
         ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label={t('profile.admin')} onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
