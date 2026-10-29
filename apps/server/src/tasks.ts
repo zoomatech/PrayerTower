@@ -22,8 +22,10 @@ import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
 import * as growth from './modules/growth/index.js';
+import { writeDueTask as autoPrayTask } from './modules/ai/auto-pray.js';
+import { createConverser, type Converse } from './modules/ai/provider.js';
 
-export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null } = {}): TaskList {
+export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
   const mail: growth.MailContext = {
     mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
     siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
@@ -58,6 +60,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     ops_heartbeat: heartbeatTask(db),
     ops_check: opsCheckTask(db),
     seed_prayers_publish: seedPrayersTask(),
+    auto_pray_write: autoPrayTask(db, overrides.converse !== undefined ? overrides.converse : createConverser(config, overrides.fetch)),
     legal_holds_expire: legalHoldsExpireTask(db),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
   };
@@ -96,6 +99,8 @@ export const crontab = [
   '*/5 * * * * ops_check ?max=3&jobKey=ops_check',
   // Every 15 minutes: post approved seed prayers that are due (only while the switch is on).
   '*/15 * * * * seed_prayers_publish ?max=3&fill=1h&jobKey=seed_prayers_publish',
+  // Auto-Pray AI prayers (does nothing while switched off or with no AI key).
+  '*/30 * * * * auto_pray_write ?max=3&fill=1h&jobKey=auto_pray_write',
   // Daily 03:10: release evidence holds past their end date, erasing the copies.
   '10 3 * * * legal_holds_expire ?max=10&fill=1d&jobKey=legal_holds_expire',
   // Every minute: the prayer minute notice for members whose chosen minute it is (only while switched on).

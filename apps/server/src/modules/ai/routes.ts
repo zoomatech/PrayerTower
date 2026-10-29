@@ -4,6 +4,7 @@ import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
+import * as autoPray from './auto-pray.js';
 import * as ai from './index.js';
 import type { Converse } from './provider.js';
 
@@ -17,6 +18,18 @@ export function aiRoutes(app: FastifyInstance, db: Db, converse: Converse | null
   app.post('/circle-requests', async (req, reply) => {
     const r = await ai.requestCircle(db, requireUser(req), ai.CircleRequest.parse(req.body));
     return reply.code(201).send(r);
+  });
+
+  // Auto-Pray: AI prayers under a request, kept apart from human prayers.
+  app.get('/posts/:id/ai-prayers', async (req) => {
+    const { id } = z.object({ id: z.uuid() }).parse(req.params);
+    return autoPray.info(db, requireUser(req), id);
+  });
+  app.put('/posts/:id/auto-pray', async (req) => {
+    const userId = requireUser(req);
+    const { id } = z.object({ id: z.uuid() }).parse(req.params);
+    const { on } = z.object({ on: z.boolean() }).parse(req.body);
+    return autoPray.setOptIn(db, userId, id, on);
   });
 
   app.get('/moderation/circle-requests', async (req) => {
