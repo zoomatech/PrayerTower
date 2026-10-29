@@ -35,6 +35,9 @@ export const keys: Tree = named({
     tellHint: 'Only a fingerprint of each message goes back, never the words.',
     savedTitle: 'Messages heard on air',
     savedNone: 'Messages this phone decodes are kept here.',
+    prayingToo: "I'm thinking of them too",
+    prayingHint: "Adds one to an anonymous count. Only a fingerprint of the message is sent, when you're online.",
+    prayingDone: "You're thinking of them too.",
   },
   radioRequests: {
     title: 'Radio message requests',

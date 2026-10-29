@@ -219,6 +219,31 @@ newest first, under **Prayers heard on air**: up to 200, never sent anywhere,
 with a button to clear them. With receipts on, a listener can still choose to
 send back fingerprints.
 
+**I'm praying too.** Off by default (Admin → Radio, "Listeners can tap I'm
+praying too"). Each prayer under **Prayers heard on air** gets an **I'm
+praying too** button. A tap is saved on the phone first, then sent when the
+phone is online (`POST /listen/praying`). Only the station's call sign and the
+prayer's fingerprint are sent, never the words and nothing about the listener.
+The radio prayer's anonymous count goes up by one for each tap. The person who
+asked is told once that someone who heard it on the radio is praying too. A
+tap can arrive up to 7 days after the prayer went out. Open Circle's button
+says "I'm thinking of them too".
+
+**Open Circle.** The browser page has Open Circle's wording on Open Circle's
+own domain and at `/open-circle/listen`.
+
+## Answered: a thanksgiving burst
+
+Off by default (Admin → Radio, "Thanksgiving on the air for answered
+requests"). When a member marks a request answered, and that request went
+out by radio at least once, one short thanksgiving is queued for the station:
+"Answered! Thank you for praying: " followed by the start of the request, 160
+characters at most. Open Circle requests get "Good news, answered. Thank you
+for your support: " instead. It is free, there is at most one per request, and
+it goes through the same moderation holds, transmission windows, content filter
+and acknowledgements as any radio prayer. The person who asked gets the "on the
+air" receipt when it goes out.
+
 ## Receipts
 
 Off until Admin → Radio → "On-the-air receipts on" (`token_settings.radio_receipts_enabled`).

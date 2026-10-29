@@ -1,4 +1,4 @@
-// Giving split (migration 20261029052000_giving_split.sql, docs/GIVING_SPLIT.md):
+// Giving split (migration 20261029056000_giving_split.sql, docs/GIVING_SPLIT.md):
 // a member with an outside support page (Ko-fi, Zeffy and the like, profiles.support_url)
 // may ask that a share of gifts toward them go to that page. The app never moves money:
 // it shows the giver the page and the share, and a money gift through Give can be made

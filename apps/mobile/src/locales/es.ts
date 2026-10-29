@@ -381,6 +381,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     schedule: 'Programar en Eventos',
   },
   vine: {
+    ...en.vine,
     yourBranch: 'Tu rama',
     yourTendril: '➰ Tu zarcillo: prometiste orar',
     tendrils: { one: '1 persona prometió orar por esto', other: '%{count} personas prometieron orar por esto' },
@@ -878,6 +879,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     savedNone: "Prayers this phone decodes are kept here.",
     savedClear: "Clear this list",
     savedFrom: "Heard from %{callSign}, %{time}",
+    prayingToo: "I'm praying too",
+    prayingHint: "Adds one to an anonymous count. Only a fingerprint of the prayer is sent, when you're online.",
+    prayingDone: "You're praying too.",
   },
 
   macro: {
@@ -1076,6 +1080,10 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     listenerModeOff: "Listener mode off",
     listenerModeOn: "Listener mode on",
     listenerModeHint: "When on, the sign-in screen offers \"Listen to radio prayers\", so anyone near a radio can decode bursts with the app, without an account. The listening page must be on too.",
+    thanksgivingBurst: "Thanksgiving on the air for answered requests",
+    thanksgivingBurstHint: "When a member marks answered a request that went out by radio, one short thanksgiving is queued for the station, free. It is sent like any other radio prayer.",
+    prayingTooSwitch: "Listeners can tap \"I'm praying too\"",
+    prayingTooSwitchHint: "A listener who decoded a prayer can tap it. Only a fingerprint goes back, when they're online, and the person who asked is told someone is praying too. The count is anonymous.",
     listenerModeInactive: "Turn on the listening page above for listener mode to show.",
     healthOff: "Health page off",
     healthOn: "Health page on",
@@ -1617,6 +1625,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   // English until Spanish is turned on (Steve, 2026-10-28: no Spanish work for now).
   // Feed skins: English until Spanish is turned on.
   skins: en.skins,
+  gallery: en.gallery,
   skinIdea: en.skinIdea,
   tree: en.tree,
   wall: en.wall,

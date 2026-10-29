@@ -117,6 +117,22 @@ describe('Comment tree depth', () => {
   });
 });
 
+describe('Comments on the drawn vine', () => {
+  it('feed cards bring their newest few comments only while comments as leaves is on', async () => {
+    const [poster, a] = [await createUser('Leaf Poster'), await createUser('Leaf A')];
+    const post = await newRequest(poster, 'Surgery on Thursday morning.');
+    await inTx(async (c) => {
+      const ids: string[] = [];
+      for (const body of ['One', 'Two', 'Three', 'Four']) ids.push((await posts.addComment(c, a, post.id, { body, isUpdate: false })).id);
+      expect((await posts.cards(c, [post.id], a))[0]).not.toHaveProperty('leafComments');
+      await skins.updateSettings(c, { skinsEnabled: true, commentTreeEnabled: true });
+      const [card] = await posts.cards(c, [post.id], a);
+      expect(card!.leafComments).toHaveLength(3);
+      expect(card!.leafComments!.every((x) => ids.includes(x.id))).toBe(true);
+    });
+  });
+});
+
 describe('Video cap', () => {
   it('refuses a clip longer than the cap (7 seconds by default)', async () => {
     const member = await createUser('Video Member');
@@ -284,5 +300,32 @@ describe('Skin files (Claude Design handoff)', () => {
     expect(() => skins.skinMigration({ ...file, slug: 'Harvest Moon' })).toThrow();
     expect(() => skins.skinMigration({ ...file, tokens: { leafSoft: '#222222' } })).toThrow(/too dark/);
     expect(() => skins.skinMigration({ ...file, name: "O'Brien's Field" })).not.toThrow();
+  });
+});
+
+describe('Skin gallery', () => {
+  it('is closed while off; once on, lists usable skins with likes and makers', async () => {
+    const [maker, other] = [await createUser('Gallery Maker'), await createUser('Gallery Friend')];
+    await expect(skins.gallery(db, maker)).rejects.toThrow(/not open/);
+    expect((await as(maker).get('/skins/gallery')).statusCode).toBe(403);
+    await inTx(async (c) => {
+      await skins.updateSettings(c, { skinsEnabled: true, galleryEnabled: true, proposalsEnabled: true });
+      expect(await notebook.features(c)).toMatchObject({ skinGallery: true });
+      const own = await skins.propose(c, maker, { name: 'Rose Window', description: 'Pink glass.', layout: 'vine', tokens: { leaf: '#F48FB1' } });
+      const mine = await skins.gallery(c, maker);
+      expect(mine.find((s) => s.slug === own.themeSlug)).toMatchObject({ maker: { name: 'Gallery Maker' }, likes: 0, liked: false });
+      expect(mine.find((s) => s.slug === 'beanstalk')).toMatchObject({ maker: null, layout: 'vine' });
+      // Someone else's unshared skin is neither listed nor likeable.
+      expect((await skins.gallery(c, other)).map((s) => s.slug)).not.toContain(own.themeSlug);
+      await expect(skins.like(c, other, own.themeSlug!, true)).rejects.toThrow(/Skin/);
+
+      const liked = await skins.like(c, other, 'wall', true);
+      await skins.like(c, other, 'wall', true); // twice is still one like
+      expect(liked.find((s) => s.slug === 'wall')).toMatchObject({ likes: 1, liked: true });
+      expect((await skins.gallery(c, other))[0]).toMatchObject({ slug: 'wall', likes: 1 }); // most liked first
+      expect((await skins.like(c, other, 'wall', false)).find((s) => s.slug === 'wall')).toMatchObject({ likes: 0, liked: false });
+      await feed.chooseTheme(c, other, 'golden-wood');
+      expect((await skins.gallery(c, other)).find((s) => s.slug === 'golden-wood')?.inUse).toBe(true);
+    });
   });
 });

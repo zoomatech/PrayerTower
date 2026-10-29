@@ -5,7 +5,7 @@
 // back only a fingerprint of each decoded prayer, if the listener agrees. The decoder is the station's own code, bundled by
 // apps/station/scripts/build-listen.ts into decoder.generated.ts.
 import type { Queryable } from '../../db.js';
-import { layout } from '../site/index.js';
+import { layout, type Brand } from '../site/index.js';
 import { DECODER_JS } from './decoder.generated.js';
 
 export async function enabled(q: Queryable): Promise<boolean> {
@@ -151,13 +151,21 @@ const BODY = `
 })();
 </script>`;
 
-const pages = new Map<boolean, string>();
-/** The page; with receipts on it offers to tell senders their prayers were heard (radio/receipts.ts). */
-export function listenPage(receipts = false): string {
-  let page = pages.get(receipts);
+const pages = new Map<string, string>();
+/** Open Circle's page: the same decoder, with no religious words in what a visitor reads. */
+const neutralBody = (name: string) =>
+  BODY.replace('<h1>Listen to a prayer burst</h1>', '<h1>Listen to a radio burst</h1>')
+    .replace('tuned to the Prayer Tower station. When a burst plays, the prayers in it appear below.', `tuned to the ${name} station. When a burst plays, the messages in it appear below.`)
+    .replace('Let senders know their prayer was heard. Only a fingerprint of each prayer goes back, never the words.', 'Let senders know their message was heard. Only a fingerprint of each message goes back, never the words.');
+
+/** The page; with receipts on it offers to tell senders their prayers were heard (radio/receipts.ts). With a brand, Open Circle's wording. */
+export function listenPage(receipts = false, brand?: Brand): string {
+  const key = `${receipts}:${brand?.base ?? 'pt'}:${brand?.name ?? ''}`;
+  let page = pages.get(key);
   if (!page) {
-    page = layout('Listen to a prayer burst', (receipts ? '<i id="receipts-on" hidden></i>' : '') + BODY, '');
-    pages.set(receipts, page);
+    const body = (receipts ? '<i id="receipts-on" hidden></i>' : '') + (brand ? neutralBody(brand.name) : BODY);
+    page = layout(brand ? 'Listen to a radio burst' : 'Listen to a prayer burst', body, '', 'en', brand);
+    pages.set(key, page);
   }
   return page;
 }

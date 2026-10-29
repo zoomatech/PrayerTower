@@ -37,6 +37,8 @@ import { tourSeen } from "@/lib/tour";
 
 /** Wide screens show the highlights in a right column; phones link to them. */
 const SIDE_WIDTH = 320;
+/** A skin's single lane on a very wide window: room for the vine to swoop, still easy to read. */
+const WIDE_LANE = 880;
 
 export default function Feed() {
   const t = useT();
@@ -55,7 +57,7 @@ export default function Feed() {
   const [highlights, setHighlights] = useState<HighlightsData | null>(null);
   const width = useWindowDimensions().width;
   const wide = width >= breakpoints.split;
-  const columns = width >= breakpoints.twoColumnFeed ? 2 : 1;
+  const veryWide = width >= breakpoints.twoColumnFeed;
   const loadingMore = useRef(false);
 
   // First time on this device: show the short tour once.
@@ -125,6 +127,10 @@ export default function Feed() {
 
   const { onAction, sheets } = useCardActions(load);
   const Layout = layoutFor(theme);
+  // Only the plain column puts cards side by side. The skins draw their own structure, so on a
+  // very wide window (iPad landscape, Mac) they get one roomier lane instead of a stretched one.
+  const columns = veryWide && (theme?.layout ?? 'column') === 'column' ? 2 : 1;
+  const feedWidth = columns > 1 ? columns * maxContentWidth + (columns - 1) * space.lg : veryWide ? WIDE_LANE : maxContentWidth;
 
   // "Not for me": the post leaves this feed and never comes back.
   const hide = useCallback((card: Card) => {
@@ -212,8 +218,8 @@ export default function Feed() {
   );
 
   return (
-    <Screen style={wide ? [styles.wideScreen, { maxWidth: columns * maxContentWidth + (columns - 1) * space.lg + SIDE_WIDTH + space.lg }] : undefined}>
-      <View style={wide ? [styles.feedColumn, { maxWidth: columns * maxContentWidth + (columns - 1) * space.lg }] : styles.fill}>
+    <Screen style={wide ? [styles.wideScreen, { maxWidth: feedWidth + SIDE_WIDTH + space.lg }] : undefined}>
+      <View style={wide ? [styles.feedColumn, { maxWidth: feedWidth }] : styles.fill}>
         <Layout
           cards={cards}
           theme={theme}
