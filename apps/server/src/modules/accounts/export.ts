@@ -119,6 +119,8 @@ const SECTIONS: Record<string, Section> = {
 // test/export.test.ts fails when a new table points at profiles and is in
 // neither list.
 export const NOT_EXPORTED = [
+  // A moderator's decision on a heated thread, kept on the post; it holds no member's words.
+  'calm_threads',
   'account_deletion_requests',
   'activity_flags',
   'announcements',
