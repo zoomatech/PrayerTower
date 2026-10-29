@@ -92,6 +92,7 @@ function RootStack() {
           <Stack.Screen name="why-gifts" />
           <Stack.Screen name="squire-board" />
           <Stack.Screen name="prayer-list" />
+          <Stack.Screen name="safety" />
           <Stack.Screen name="reading-plan" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />

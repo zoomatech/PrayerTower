@@ -296,6 +296,7 @@ export default function Profile() {
         <GivingSplitChoice key={profile.support_url ?? ''} />
         <CommunityPicker />
         <LanguagePicker />
+        {features.safetyCenter ? <Button variant="ghost" label={t('safetyCenter.title')} onPress={() => router.push('/safety')} /> : null}
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
         {wording === 'faith' ? (
           <Button variant="secondary" label={roles.includes('pastor') ? t('profile.myChurch') : t('profile.churchApply')} onPress={() => router.push('/church')} />

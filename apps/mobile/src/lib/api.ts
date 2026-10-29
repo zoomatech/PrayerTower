@@ -165,6 +165,7 @@ export interface Features {
   prayedForLive: boolean;
   /** Mobile numbers on the prayer chain, by text message (docs/GROWTH.md). */
   prayerChainSms: boolean;
+  safetyCenter: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -1899,6 +1900,8 @@ export const api = {
   updateOncall: (patch: Partial<OncallSettings>) => request<{ settings: OncallSettings }>('PATCH', '/admin/oncall', patch),
   addOncallShift: (shift: { userId: string; weekday: number; startMinute: number; endMinute: number }) => post<{ id: string }>('/admin/oncall/shifts', shift),
   removeOncallShift: (id: string) => request<{ ok: boolean }>('DELETE', `/admin/oncall/shifts/${id}`),
+  safetyCenterSwitch: () => get<{ enabled: boolean }>('/admin/safety-center'),
+  setSafetyCenter: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/safety-center', { enabled }),
   safetyDashboard: (days = 7) => get<{ dashboard: SafetyDashboard }>(`/admin/safety-dashboard?days=${days}`),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
@@ -1908,6 +1911,18 @@ export const api = {
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
+  isMuted: (userId: string) => get<{ muted: boolean }>(`/people/${userId}/mute`),
+  mute: (userId: string) => put<{ muted: boolean }>(`/people/${userId}/mute`),
+  unmute: (userId: string) => request<{ muted: boolean }>('DELETE', `/people/${userId}/mute`),
+  safetyCenter: () =>
+    get<{
+      safety: {
+        blocks: { id: string; displayName: string }[];
+        mutes: { id: string; displayName: string }[];
+        hidden: { id: string; excerpt: string }[];
+        reports: { id: string; targetType: string; createdAt: string; reviewed: boolean }[];
+      };
+    }>('/me/safety'),
   tokenStore: () =>
     get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[] }>('/token-store'),
   /** A StoreKit 2 signed transaction; the server checks it with Apple before crediting. */

@@ -409,10 +409,11 @@ function presentComment(c: CommentRow, viewerId: string | null) {
 
 /** Comments in thread order: each reply follows its parent, with its depth for indenting. */
 export async function listComments(q: Queryable, postId: string, viewerId: string | null) {
-  // Comments from anyone the viewer blocked are left out.
+  // Comments from anyone the viewer blocked or muted are left out.
   const { rows } = await q.query<CommentRow>(
     `${commentSelect} where c.post_id = $1 and c.moderation_status = 'visible'
        and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)
+       and not exists (select 1 from public.user_mutes mu where mu.user_id = $2 and mu.muted_id = c.user_id)
      order by c.id`,
     [postId, viewerId],
   );

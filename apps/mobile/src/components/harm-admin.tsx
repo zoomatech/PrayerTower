@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Field, Toggle } from '@/components/ui';
 import { api, type HarmFlood, type HarmReport, type HarmSettings, type ModerationDashboard, type ModeratorCare, type SafetyDashboard } from '@/lib/api';
+import { resetFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -98,6 +99,29 @@ export function ModeratorCareSection() {
       <Field label={t('modCare.breakMinutes')} keyboardType="number-pad" value={draft.length} onChangeText={(length) => setDraft((d) => ({ ...d, length }))} />
       <Button label={t('modCare.save')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Admin → Member safety center: the switch (docs/SAFETY_CENTER.md). */
+export function SafetyCenterSection() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.safetyCenterSwitch().then((r) => setOn(r.enabled), () => setOn(null));
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('safetyCenter.title')}</Text>
+      <Toggle
+        label={t('safetyCenter.adminToggle')}
+        hint={t('safetyCenter.adminHint')}
+        value={on}
+        onChange={(v) => api.setSafetyCenter(v).then((r) => (setOn(r.enabled), resetFeatures()), () => undefined)}
+      />
     </View>
   );
 }
