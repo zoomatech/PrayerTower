@@ -212,7 +212,7 @@ struct LeafCommentText: View {
     let look: VineLook
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            if look.vineStyle != .floral { Mark(shape: look.leafShape, color: Color(look.tendril)) }
+            if look.vineStyle != .floral { Mark(shape: look.leafShape, color: Color(look.leaf), center: Color(look.tendril)) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(comment.author.displayName).font(.caption.bold())
                 Text(comment.body).font(.callout)
