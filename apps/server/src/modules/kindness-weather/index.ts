@@ -70,3 +70,54 @@ export async function report(q: Queryable, weeks = 12) {
     }),
   };
 }
+
+/** Community health (Admin → Growth practices, off): what matters, never time spent in the app. */
+export interface HealthWeek {
+  weekStart: string;
+  /** Null while the week is folded (fewer than QUIET_BELOW requests). */
+  requests: number | null;
+  /** Requests someone else prayed for or answered within two days. */
+  held: number | null;
+  answered: number | null;
+  /** Members active this week who were also active in the four weeks before. */
+  returning: number | null;
+}
+
+export async function health(q: Queryable, weeks = 12) {
+  if (!(await settings(q)).community_health_enabled) return { enabled: false as const, weeks: [] as HealthWeek[] };
+  const { rows } = await q.query<{ week: Date; requests: number; held: number; answered: number; returning: number }>(
+    `with w as (
+       select generate_series(date_trunc('week', now()) - make_interval(weeks => $1 - 1), date_trunc('week', now()), interval '1 week') as week
+     ),
+     active as (
+       select user_id, created_at from public.prayer_events
+       union all select user_id, created_at from public.posts
+       union all select user_id, created_at from public.comments
+     )
+     select w.week,
+       (select count(*)::int from public.posts p where p.post_type = 'prayer_request' and p.created_at >= w.week and p.created_at < w.week + interval '1 week') as requests,
+       (select count(*)::int from public.posts p
+         where p.post_type = 'prayer_request' and p.created_at >= w.week and p.created_at < w.week + interval '1 week'
+           and (exists (select 1 from public.prayer_events e where e.post_id = p.id and e.user_id <> p.user_id and e.created_at < p.created_at + interval '2 days')
+             or exists (select 1 from public.comments c where c.post_id = p.id and c.user_id <> p.user_id and c.created_at < p.created_at + interval '2 days'))) as held,
+       (select count(*)::int from public.posts p where p.answered_at >= w.week and p.answered_at < w.week + interval '1 week') as answered,
+       (select count(distinct a.user_id)::int from active a
+         where a.created_at >= w.week and a.created_at < w.week + interval '1 week'
+           and exists (select 1 from active b where b.user_id = a.user_id and b.created_at >= w.week - interval '4 weeks' and b.created_at < w.week)) as returning
+     from w order by w.week desc`,
+    [weeks],
+  );
+  return {
+    enabled: true as const,
+    weeks: rows.map((r): HealthWeek => {
+      const show = r.requests >= QUIET_BELOW;
+      return {
+        weekStart: r.week.toISOString().slice(0, 10),
+        requests: show ? r.requests : null,
+        held: show ? r.held : null,
+        answered: show ? r.answered : null,
+        returning: show ? r.returning : null,
+      };
+    }),
+  };
+}

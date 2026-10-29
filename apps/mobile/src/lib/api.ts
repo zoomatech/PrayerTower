@@ -188,6 +188,7 @@ export interface Features {
   gentleStreak: boolean;
   /** Moderation tools (Admin → Moderation tools): search, bulk decisions, audit log filters. */
   moderationTools: boolean;
+  goldfishMemory: boolean;
   safetyCenter: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
@@ -218,6 +219,8 @@ export interface Features {
   circleWelcome: boolean;
   pathBack: boolean;
   empathyPractice: boolean;
+  weeklyIntention: boolean;
+  freshDays: boolean;
   replyChoice: boolean;
   /** Comments at block breaks: a comment on one ~200-word part of a long post. */
   partComments: boolean;
@@ -334,6 +337,9 @@ export interface PracticeSettings {
   circle_welcome_enabled: boolean;
   path_back_enabled: boolean;
   empathy_practice_enabled: boolean;
+  weekly_intention_enabled: boolean;
+  community_health_enabled: boolean;
+  fresh_days_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -441,6 +447,19 @@ export interface WeatherWeek {
   heated: number | null;
   prayers: number | null;
   people: number | null;
+}
+export interface FreshStartDay {
+  id: string;
+  month: number;
+  day: number;
+  label: string;
+}
+export interface HealthWeek {
+  weekStart: string;
+  requests: number | null;
+  held: number | null;
+  answered: number | null;
+  returning: number | null;
 }
 export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
 export interface RememberedItem {
@@ -1442,6 +1461,11 @@ export type SpokenPrayerStatus =
   | { enabled: true; mine: false; invited: boolean; offerTokens: number; maxSeconds: number; sent: boolean; prayed: boolean };
 
 /** A waiting or decided report found by a moderation search. */
+export interface GoldfishSettings {
+  goldfish_enabled: boolean;
+  goldfish_days: number;
+  goldfish_repeat: number;
+}
 export interface ModerationSearchItem extends ModerationItem {
   author_name: string | null;
   decided_by_name: string | null;
@@ -1989,6 +2013,8 @@ export const api = {
     moderationTools: () => get<{ settings: { tools_enabled: boolean; bulk_max: number } }>('/admin/moderation-tools'),
     updateModerationTools: (patch: { enabled?: boolean; bulkMax?: number }) =>
       request<{ settings: { tools_enabled: boolean; bulk_max: number } }>('PATCH', '/admin/moderation-tools', patch),
+    goldfish: () => get<{ settings: GoldfishSettings }>('/admin/goldfish'),
+    updateGoldfish: (patch: { enabled?: boolean; days?: number; repeat?: number }) => request<{ settings: GoldfishSettings }>('PATCH', '/admin/goldfish', patch),
     practiceMode: () => get<{ settings: PracticeModeSettings; connected: PracticeConnected }>('/admin/practice-mode'),
     updatePracticeMode: (patch: Partial<PracticeModeSettings>) =>
       request<{ settings: PracticeModeSettings; connected: PracticeConnected }>('PATCH', '/admin/practice-mode', patch),
@@ -2002,6 +2028,7 @@ export const api = {
       request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    communityHealth: (weeks = 12) => get<{ enabled: boolean; weeks: HealthWeek[] }>(`/admin/community-health?weeks=${weeks}`),
     kindnessWeather: (weeks = 12) => get<{ enabled: boolean; weeks: WeatherWeek[] }>(`/admin/kindness-weather?weeks=${weeks}`),
     encouragerCheckins: () => get<{ totals: Record<CheckInAnswer, number> }>('/admin/encourager-checkins'),
     meaningProposals: () => get<{ proposals: MeaningProposalQueueItem[] }>('/admin/meaning-proposals'),
@@ -2013,7 +2040,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean; partCommentsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -2302,6 +2329,10 @@ export const api = {
   mendQueue: () => get<{ mends: Mend[] }>('/moderation/mends'),
   reviewMend: (id: string, approve: boolean, note?: string) => post<{ status: MendStatus }>(`/moderation/mends/${id}`, note ? { approve, note } : { approve }),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
+  freshDays: () => get<{ days: FreshStartDay[] }>('/me/fresh-days'),
+  addFreshDay: (input: { month: number; day: number; label: string }) => post<{ days: FreshStartDay[] }>('/me/fresh-days', input),
+  removeFreshDay: (id: string) => request<{ days: FreshStartDay[] }>('DELETE', `/me/fresh-days/${id}`),
+  setWeeklyIntention: (days: number | null, tz: string) => request<{ stats: PrayerStats }>('PUT', '/me/weekly-intention', { days, tz }),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),
   editChurch: (input: ChurchApplicationInput) => put<{ church: Church }>('/me/church', input),

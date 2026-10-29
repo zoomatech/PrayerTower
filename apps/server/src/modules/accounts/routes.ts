@@ -3,11 +3,13 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import { withTx, type Db } from '../../db.js';
-import { notFound } from '../../errors.js';
+import { badRequest, notFound } from '../../errors.js';
 import * as adFines from '../ad-fines/index.js';
 import { badgesOf } from '../churches/index.js';
 import * as posts from '../posts/index.js';
-import { prayerStats } from '../prayer-stats/index.js';
+import * as freshDays from '../fresh-days/index.js';
+import { settings as practiceSettings } from '../practices/index.js';
+import { prayerStats, setIntention } from '../prayer-stats/index.js';
 import { MEDIA_BUCKET } from '../posts/media.js';
 import { SPOKEN_BUCKET } from '../spoken-prayers/index.js';
 import { exportData } from './export.js';
@@ -29,6 +31,24 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
   app.get('/me/prayer-stats', async (req) => {
     const { tz } = z.object({ tz: z.string().max(64).refine(accounts.validTimeZone, 'Unknown time zone').default('UTC') }).parse(req.query);
     return { stats: await prayerStats(db, requireUser(req), tz) };
+  });
+
+  // Fresh starts on days that matter (Admin → Growth practices, off): up to three of the member's own dates.
+  app.get('/me/fresh-days', async (req) => ({ days: await freshDays.list(db, requireUser(req)) }));
+  app.post('/me/fresh-days', async (req) => ({ days: await freshDays.add(db, requireUser(req), freshDays.NewDay.parse(req.body)) }));
+  app.delete<{ Params: { id: string } }>('/me/fresh-days/:id', async (req) => ({
+    days: await freshDays.remove(db, requireUser(req), z.uuid().parse(req.params.id)),
+  }));
+
+  // Weekly intention (Admin → Growth practices, off): how many days a week the member means to pray.
+  app.put('/me/weekly-intention', async (req) => {
+    const userId = requireUser(req);
+    if (!(await practiceSettings(db)).weekly_intention_enabled) throw badRequest('Weekly intentions are off');
+    const { days, tz } = z
+      .object({ days: z.number().int().min(1).max(6).nullable(), tz: z.string().max(64).refine(accounts.validTimeZone, 'Unknown time zone').default('UTC') })
+      .parse(req.body);
+    await setIntention(db, userId, days);
+    return { stats: await prayerStats(db, userId, tz) };
   });
 
   app.patch('/me', async (req) => {
