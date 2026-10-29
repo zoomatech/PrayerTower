@@ -16,7 +16,7 @@ function strings(e: Tree, n: Tree | undefined, path: string, out: [string, strin
   return out;
 }
 
-it.each(['give', 'radioRequests', 'twoStep', 'accountSecurity', 'invites', 'listen'])('%s has no religious words in Open Circle', (section) => {
+it.each(['give', 'radioRequests', 'twoStep', 'accountSecurity', 'invites', 'listen', 'cast'])('%s has no religious words in Open Circle', (section) => {
   const e = (en as unknown as Tree)[section] as Tree;
   const religious = strings(e, neutral[section] as Tree | undefined, `${section}.`, []).filter(([, text]) => RELIGIOUS.test(text));
   expect(religious).toEqual([]);

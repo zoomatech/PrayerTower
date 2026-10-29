@@ -28,8 +28,8 @@ async function timeFor(q: Queryable, userId: string, at: Date): Promise<string> 
 /** Tell the sender their radio prayer went out. Called once the prayer is marked transmitted. */
 export async function onAir(q: Queryable, radioPrayerId: string) {
   if (!(await enabled(q))) return;
-  const { rows } = await q.query<{ user_id: string; post_id: string; preset: string | null; call_sign: string | null; transmitted_at: Date }>(
-    `select user_id, post_id, preset, call_sign, transmitted_at from public.radio_prayers where id = $1 and status = 'transmitted'`,
+  const { rows } = await q.query<{ user_id: string; post_id: string; preset: string | null; call_sign: string | null; transmitted_at: Date; kind: string }>(
+    `select user_id, post_id, preset, call_sign, transmitted_at, kind from public.radio_prayers where id = $1 and status = 'transmitted'`,
     [radioPrayerId],
   );
   const r = rows[0];
@@ -38,7 +38,7 @@ export async function onAir(q: Queryable, radioPrayerId: string) {
   const how = [r.call_sign ? `from ${r.call_sign}` : null, r.preset ? `on ${r.preset}` : null].filter(Boolean).join(' ');
   await notifications.notify(q, r.user_id, {
     kind: 'radio_on_air',
-    title: 'Your radio prayer is on the air',
+    title: r.kind === 'thanksgiving' ? 'Your answered request went out on the air' : 'Your radio prayer is on the air',
     body: `It went out at ${time}${how ? ` ${how}` : ''}.`,
     data: { postId: r.post_id, radioPrayerId, preset: r.preset, transmittedAt: r.transmitted_at.toISOString() },
     dedupeKey: `radio_on_air:${radioPrayerId}`,

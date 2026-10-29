@@ -7,7 +7,8 @@ import { useAudioStream, type AudioStreamOptions } from 'expo-audio';
 import { renderApp } from '@/__tests__/helpers';
 import Listen from '@/app/listen';
 import { api } from '@/lib/api';
-import { loadHeard } from '@/lib/heard-log';
+import { addHeard, loadHeard } from '@/lib/heard-log';
+import { flushPraying } from '@/lib/praying-too';
 
 jest.mock('@/lib/api', () => {
   const fns: Record<string, jest.Mock> = {};
@@ -24,6 +25,7 @@ jest.mock('@/lib/burst-listen', () => {
     BurstListener: jest.fn().mockImplementation(() => ({ push: jest.fn(), meter: 0.4, decode: (searchHz: number) => (searches.push(searchHz), decoded ? [] : ((decoded = true), [frame])) })),
     toMono: () => new Float32Array(0),
     receiptHashes: (f: { prayers: string[] }) => [...new Set(f.prayers)].map((p) => `hash:${p}`),
+    prayerHash: (p: string) => `hash:${p}`,
   };
 });
 
@@ -84,5 +86,20 @@ describe('Listen', () => {
     expect(await screen.findByText('Prayers this phone decodes are kept here.')).toBeTruthy();
     expect(await loadHeard()).toEqual([]);
     mockSession = { user: { id: 'u1' } };
+  });
+
+  it("I'm praying too: saved while offline, sent once the phone is back online, and shown once", async () => {
+    mocked.radioListen.mockResolvedValue({ enabled: true, receipts: false, prayingToo: true });
+    await addHeard([{ text: 'Pray for snow.', callSign: 'KD9XYZ', at: new Date().toISOString(), hash: 'hash:Pray for snow.' }]);
+    mocked.listenPraying.mockRejectedValueOnce(new Error('Network request failed'));
+    await renderApp(<Listen />);
+    await fireEvent.press(await screen.findByRole('button', { name: "I'm praying too" }));
+    expect(await screen.findByText("You're praying too.")).toBeTruthy();
+    expect(mocked.listenPraying).toHaveBeenCalledWith({ callSign: 'KD9XYZ', hashes: ['hash:Pray for snow.'] });
+    // Offline: kept, and sent on the next try.
+    mocked.listenPraying.mockResolvedValueOnce({ matched: 1 });
+    expect(await flushPraying()).toBe(1);
+    expect(await flushPraying()).toBe(0);
+    expect(mocked.listenPraying).toHaveBeenCalledTimes(2);
   });
 });
