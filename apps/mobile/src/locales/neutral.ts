@@ -36,6 +36,9 @@ export const keys: Tree = named({
     praying: 'People are with you',
     adminHint: 'Each member chooses, on Me, to hide support numbers on posts they see, on their own posts for others, or both, as Instagram lets people hide likes. Nothing changes for anyone who doesn’t choose it.',
   },
+  crosspost: {
+    extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
+  },
   kindMilestones: {
     peopleFirst: 'You lifted someone up for the first time.',
     peopleMany: 'You’ve lifted up %{level} people.',

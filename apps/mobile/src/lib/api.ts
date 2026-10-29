@@ -172,6 +172,8 @@ export interface Features {
   prayerChain: boolean;
   prayedForWidget: boolean;
   prayerMinute: boolean;
+  /** Members can copy their own Facebook and Threads posts here. */
+  crosspost: boolean;
   /** Sharing outside the app only with the author's consent (docs/GROWTH.md). */
   shareConsent: boolean;
   /** Giving split (docs/GIVING_SPLIT.md): a share of gifts to the member's own support page. */
@@ -499,6 +501,7 @@ export interface NotebookSettings {
   reading_plan_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
+  crosspost_enabled: boolean;
 }
 
 export class ApiError extends Error {
@@ -612,6 +615,7 @@ export interface AdminRadioSettings {
   radio_max_chars: number;
   radio_amplify_repeats: number;
   radio_order: 'oldest' | 'need';
+  radio_urgent_first: boolean;
   /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
   radio_batch_max: number;
   /** The public /listen page that decodes bursts from a phone's microphone. */
@@ -622,7 +626,7 @@ export interface AdminRadioSettings {
 
 /** A station health alert in Admin → Radio (server radio/health.ts). */
 export interface StationAlert {
-  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'queue_empty';
+  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'listener_silent' | 'queue_empty';
   level: 'problem' | 'info';
   detail: string;
   callSign: string | null;
@@ -647,6 +651,8 @@ export interface StationHealth {
   health: {
     stations: { callSign: string; lastHeartbeat: string | null; silent: boolean; checks: { name: string; ok: boolean; detail: string }[]; bursts24h: number; failed24h: number; prayers24h: number; lastBurstAt: string | null; lastError: string | null }[];
     queue: { queued: number; sending: number; oldestMinutes: number | null };
+    listeners: { name: string; lastHeartbeat: string | null; silent: boolean }[];
+    lastHeard: { node: string; callSign: string; preset: string; snrDb: number; at: string }[];
     snr: { callSign: string; preset: string; reports: number; avgDb: number; minDb: number; lastAt: string }[];
     failures: { at: string; callSign: string | null; kind: 'burst' | 'prayer'; error: string }[];
   } | null;
@@ -1339,6 +1345,19 @@ export interface TokenPurchase {
   purchased_at: string | null;
 }
 
+/** Cross-posting: the member's own Facebook and Threads posts copied here. */
+export type CrosspostSource = 'facebook' | 'threads';
+export interface CrosspostStatus {
+  enabled: boolean;
+  /** Which Connect buttons work on this server. */
+  connectable: Record<CrosspostSource, boolean>;
+  accounts: { provider: CrosspostSource; username: string | null; status: 'active' | 'expired'; connectedAt: string; lastCheckedAt: string | null }[];
+  postType: PostType | null;
+  postTypes: PostType[];
+  paused: boolean;
+  extensionKeyHint: string | null;
+  recent: { source: CrosspostSource; via: 'extension' | 'account'; status: 'posted' | 'skipped'; reason: string | null; postId: string | null; permalink: string | null; createdAt: string }[];
+}
 /** Giving (off until an admin turns it on and sets up Stripe or a Zeffy link). */
 export interface GivingInfo {
   enabled: boolean;
@@ -1401,6 +1420,14 @@ export const api = {
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   surveys: () => get<{ surveys: Survey[] }>('/surveys'),
   podcasts: () => get<{ shows: PodcastShow[] }>('/podcasts'),
+  crosspost: {
+    status: () => get<CrosspostStatus>('/crosspost'),
+    update: (patch: { postType?: PostType | null; paused?: boolean }) => request<CrosspostStatus>('PATCH', '/crosspost/settings', patch),
+    newKey: () => post<{ key: string }>('/crosspost/extension-key'),
+    revokeKey: () => request<{ revoked: true }>('DELETE', '/crosspost/extension-key'),
+    connect: (provider: CrosspostSource) => post<{ url: string }>(`/crosspost/${provider}/connect`),
+    disconnect: (provider: CrosspostSource) => request<{ disconnected: true }>('DELETE', `/crosspost/${provider}`),
+  },
   whyGifts: (wording: 'faith' | 'neutral') => get<WhyGifts>(`/why-gifts?wording=${wording}`),
   answerSurvey: (id: string, answers: SurveyAnswer[]) => post<{ ok: true }>(`/surveys/${id}/responses`, { answers }),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
@@ -1677,7 +1704,7 @@ export const api = {
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
     removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
     updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; urgentFirst: boolean; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
@@ -1756,7 +1783,7 @@ export const api = {
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean; prayedForLiveEnabled: boolean; prayerChainSmsEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; crosspostEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>

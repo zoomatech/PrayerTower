@@ -42,7 +42,7 @@ describe('listening page', () => {
 
 describe('radio station', () => {
   it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
-    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1, listen_page_enabled: false, radio_receipts_enabled: false, on_air_page_enabled: false });
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1, listen_page_enabled: false, radio_receipts_enabled: false, on_air_page_enabled: false, radio_urgent_first: false });
     expect((await station('/station/claim')).statusCode).toBe(409); // log mode
     const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
     expect(s.json().settings.radio_transmitter).toBe('station');
@@ -178,6 +178,31 @@ describe('radio station', () => {
     };
     expect((await as(admin).patch('/admin/radio-settings', { order: 'need' })).json().settings.radio_order).toBe('need');
     expect(await order()).toEqual(['Pray for my surgery tomorrow.', 'Pray for my garden.', 'Pray for my move.', 'Pray for my job search.']);
+  });
+
+  it('urgent first sends "Today" and "Right now" requests ahead of older ones, off by default', async () => {
+    await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+    await as(admin).patch('/admin/radio-settings', { transmitter: 'station', order: 'oldest' });
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    const poster = await createUser('Urgent Poster');
+    const sender = await createUser('Urgent Sender');
+    const texts = ['Pray for my old roof.', 'Pray for my exam today.', 'Pray for my sister, right now.', 'Pray for my soon trip.'];
+    for (const [i, text] of texts.entries()) {
+      const p = await newRequest(poster, text);
+      await db.query('update public.posts set urgency = $2 where id = $1', [p.id, [0, 2, 3, 1][i]]);
+      expect((await as(sender).post(`/posts/${p.id}/radio`, { idempotencyKey: `urgent-${i}` })).statusCode).toBe(201);
+    }
+    const claim = async () => {
+      const c = (await station('/station/claim')).json().radioPrayer;
+      await station(`/station/radio-prayers/${c.id}/result`, { ok: true, callSign: 'N0CALL' });
+      return c.text as string;
+    };
+    // Off: first in, first out.
+    expect(await claim()).toBe('Pray for my old roof.');
+    expect((await as(admin).patch('/admin/radio-settings', { urgentFirst: true })).json().settings.radio_urgent_first).toBe(true);
+    // On: the two urgent ones (oldest first among them), then the rest.
+    expect([await claim(), await claim(), await claim()]).toEqual(['Pray for my exam today.', 'Pray for my sister, right now.', 'Pray for my soon trip.']);
+    await as(admin).patch('/admin/radio-settings', { urgentFirst: false });
   });
 
   it('burst mode hands out several prayers at once, never more than the admin allows', async () => {

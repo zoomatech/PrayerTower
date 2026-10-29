@@ -18,7 +18,7 @@ jobs:
       - run: npm run typecheck
       # Local Supabase stack (Postgres, Auth, Storage) in Docker; applies migrations.
       # Mailpit runs too: 20-password-reset reads the reset code from it. The script
-      # retries when a port is briefly taken (seen 2026-10-28).
+      # frees taken ports, retries, moves to 553xx ports if it must, and waits for Postgres.
       - run: scripts/ci-db-start.sh
       # Server tests with a coverage report: fails below the thresholds in
       # apps/server/vitest.config.ts (docs/CODE_HEALTH.md).
@@ -38,6 +38,7 @@ jobs:
           path: apps/server/coverage/
           retention-days: 14
       - run: npm test -w @prayer-tower/station
+      - run: npm test -w @prayer-tower/extension
       - name: Mobile unit tests (sign-in, feed, pray, commit, compose, tokens, messages)
         run: npm test -w @prayer-tower/mobile -- --ci
       # Back up the test database, restore it into a throwaway stack, compare.

@@ -92,12 +92,16 @@ Decode the output on a second receiver. When it's clean, do the RF exposure eval
 | Stop transmitting | `sudo systemctl stop prayer-tower-station` |
 | Update | `git pull && sudo apps/station/install/install.sh` |
 | Remove | `sudo apps/station/install/install.sh --uninstall` |
+| Why didn't a burst decode? | `node /opt/prayer-tower-station/dist/src/burst/cli.js diagnose rx.wav` ([RADIO_BURST.md](RADIO_BURST.md#diagnose-a-weak-signal)) |
 
 **The health check** looks at three things: the worker finished a loop recently, the Prayer Tower API answers, and fldigi answers and is in receive or transmit. Each failure is a `FAIL` line in the health log.
 
 **After a failed transmission** the worker turns transmit off, reports the failure and stops with exit code 3. systemd does not restart it after exit code 3 (`RestartPreventExitStatus=3`) [8], so a person checks the station first. Then start it again with `sudo systemctl start prayer-tower-station`. Any other crash restarts after 30 seconds, at most five times in ten minutes.
 
 **Logs** go to the system journal, kept on disk (`Storage=persistent`), at most 200 MB (`SystemMaxUse`) and one month (`MaxRetentionSec`) [4]. The limit is in `/etc/systemd/journald.conf.d/prayer-station.conf`.
+
+Burst mode, listener nodes, the packet fallback, health alerts and the other
+station features are in [STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md#features-at-a-glance).
 
 ## Files
 
