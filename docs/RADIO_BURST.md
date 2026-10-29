@@ -210,6 +210,15 @@ test fails while the bundle is out of date.
 
 **In the app.** Prayer Cast shows "Listen to the radio" while the listening page is on. The Listen screen streams the microphone (expo-audio's `useAudioStream`, 48 kHz float PCM) through the same decoder, bundled as an ES module into `apps/mobile/src/lib/burst-decoder.generated.js` by the same build script. It keeps a rolling 24-second window and decodes it every 2 seconds.
 
+**Listener mode (no account).** Off by default. With **Listener mode** on in
+Admin → Radio, and the listening page on too, the sign-in screen shows
+"Listen to radio prayers (no account needed)". Anyone near a radio can then
+open the same Listen screen without signing up (`GET /listen/config` tells the
+app whether to show it). Every prayer the phone decodes is kept on the phone,
+newest first, under **Prayers heard on air**: up to 200, never sent anywhere,
+with a button to clear them. With receipts on, a listener can still choose to
+send back fingerprints.
+
 ## Receipts
 
 Off until Admin → Radio → "On-the-air receipts on" (`token_settings.radio_receipts_enabled`).

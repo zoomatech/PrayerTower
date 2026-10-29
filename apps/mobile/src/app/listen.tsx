@@ -1,8 +1,10 @@
 // Listen: decode Prayer Tower radio bursts from the phone's microphone, live,
 // with the station's own decoder (the same one the /listen web page uses).
-// Shown only while Admin → Radio has the listening page on. The sound never
-// leaves the phone; with receipts on, the listener may send back fingerprints
-// of the prayers heard so their senders learn they were heard.
+// Shown only while Admin → Radio has the listening page on; with listener mode
+// on too, also signed out (listen-on-air.tsx, from the sign-in screen). The
+// sound never leaves the phone; with receipts on, the listener may send back
+// fingerprints of the prayers heard so their senders learn they were heard.
+// Every prayer decoded is kept on the phone as "Prayers heard on air" (heard-log.ts).
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioStream, type AudioStreamBuffer } from 'expo-audio';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,6 +12,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorText, Loading, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { addHeard, clearHeard, loadHeard, type HeardPrayer } from '@/lib/heard-log';
 import { BurstListener, receiptHashes, toMono, type HeardFrame } from '@/lib/burst-listen';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -20,6 +24,8 @@ type Heard = HeardFrame & { key: string; at: Date; told: boolean };
 
 export default function ListenScreen() {
   const { t } = useLocale();
+  const { session } = useAuth();
+  const [saved, setSaved] = useState<HeardPrayer[]>([]);
   const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
@@ -40,8 +46,9 @@ export default function ListenScreen() {
   const { stream } = useAudioStream({ sampleRate: 48_000, channels: 1, encoding: 'float32', onBuffer });
 
   useEffect(() => {
-    api.radioListen().then(setConfig, (e) => setError((e as Error).message));
-  }, []);
+    (session ? api.radioListen() : api.listenConfig()).then(setConfig, (e) => setError((e as Error).message));
+    void loadHeard().then(setSaved);
+  }, [session]);
 
   const report = useCallback(
     async (f: Heard) => {
@@ -63,6 +70,8 @@ export default function ListenScreen() {
       if (!fresh.length) return;
       setHeard((all) => [...fresh.reverse(), ...all]);
       fresh.forEach((f) => void report(f));
+      const prayers = fresh.flatMap((f) => (f.prayers ?? []).map((text) => ({ text, callSign: f.callSign, at: f.at.toISOString() })));
+      if (prayers.length) void addHeard(prayers).then(setSaved);
     }, hf ? DECODE_EVERY_MS * 2 : DECODE_EVERY_MS);
     return () => clearInterval(timer);
   }, [listening, report, hf]);
@@ -123,6 +132,21 @@ export default function ListenScreen() {
               </View>
             ))}
             <Text style={type.small}>{t('listen.tips')}</Text>
+            <Text style={type.heading}>{t('listen.savedTitle')}</Text>
+            {saved.length ? (
+              <>
+                <Text style={type.small}>{t('listen.savedHint', { count: saved.length })}</Text>
+                {saved.map((p, i) => (
+                  <View key={`${p.at}-${i}`} style={styles.card}>
+                    <Text style={type.body}>{p.text}</Text>
+                    <Text style={type.small}>{t('listen.savedFrom', { callSign: p.callSign, time: new Date(p.at).toLocaleString() })}</Text>
+                  </View>
+                ))}
+                <Button small variant="ghost" label={t('listen.savedClear')} onPress={() => void clearHeard().then(() => setSaved([]))} />
+              </>
+            ) : (
+              <Text style={type.small}>{t('listen.savedNone')}</Text>
+            )}
           </>
         ) : null}
       </ScrollView>

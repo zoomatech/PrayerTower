@@ -15,6 +15,10 @@
 // Rig control (docs/STATION_OPERATOR_GUIDE.md, "Rig control"), off unless RIG_CONTROL=rigctld:
 //   RIG_HOST (127.0.0.1), RIG_PORT (4532), RIG_FREQ_HZ and RIG_MODE (left as the radio is when unset),
 //   RIG_PASSBAND_HZ (0, the radio's default). Burst audio mode then keys PTT through rigctld.
+// STATION_FREQ_HZ: the frequency for the operator log when RIG_FREQ_HZ is not set.
+// Station ID (docs/STATION_OPERATOR_GUIDE.md, "Station ID"), off unless STATION_ID=cw: the call sign
+//   in Morse code after a burst, the first time and then every STATION_ID_MINUTES (10);
+//   STATION_ID_WPM (20), STATION_ID_TONE_HZ (800).
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { HF_CHANNELS } from './burst/hf-channel.js';
@@ -27,6 +31,7 @@ import { presetByName } from './burst/presets.js';
 import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTransmitter } from './burst/transmit.js';
 import { runBurstOnce } from './burst/worker.js';
 import { RIG_MODES, rigctldClient, tuneRig, type Rig } from './rig.js';
+import { StationId } from './station-id.js';
 import { stationChecks } from './status.js';
 
 const env = (name: string, fallback?: string) => {
@@ -49,8 +54,10 @@ if (callSign === 'N0CALL') console.warn('[station] CALL_SIGN is the N0CALL place
 const extra = process.env.BLOCKLIST_FILE
   ? readFileSync(process.env.BLOCKLIST_FILE, 'utf8').split('\n').map((w) => w.trim().toLowerCase()).filter(Boolean)
   : [];
+const freqSetting = process.env.RIG_FREQ_HZ ? 'RIG_FREQ_HZ' : process.env.STATION_FREQ_HZ ? 'STATION_FREQ_HZ' : null;
 const cfg = {
   callSign,
+  frequencyHz: freqSetting ? int(freqSetting, '0', 100_000, 10_000_000_000) : undefined,
   modem: env('MODEM', 'BPSK31'),
   maxPieceChars: int('MAX_PIECE_CHARS', '500', 20, 2800),
   txTimeoutMs: int('TX_TIMEOUT_SECONDS', '180', 10, 3600) * 1000,
@@ -74,6 +81,13 @@ if (rigControl === 'rigctld') {
   await tuneRig(rig, { frequencyHz: freq, mode, passbandHz: int('RIG_PASSBAND_HZ', '0', 0, 100_000) });
 }
 
+const idMode = env('STATION_ID', 'off');
+if (!['off', 'cw'].includes(idMode)) throw new Error('STATION_ID must be off or cw');
+const stationId =
+  idMode === 'cw'
+    ? new StationId(callSign, int('STATION_ID_MINUTES', '10', 1, 60) * 60_000, { wpm: int('STATION_ID_WPM', '20', 5, 40), toneHz: int('STATION_ID_TONE_HZ', '800', 300, 2500) })
+    : undefined;
+
 // Under systemd, STATE_DIRECTORY is /var/lib/prayer-tower-station; the health check reads the heartbeat there.
 const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
 
@@ -95,9 +109,10 @@ if (burstMode !== 'off') {
           snrDb: simSnr === undefined ? undefined : Number(simSnr),
           reportFile: /^https?:/.test(reportSource) ? undefined : reportSource,
           hf: simHf as keyof typeof HF_CHANNELS | undefined,
+          stationId,
         })
       : burstMode === 'fldigi'
-        ? fldigiTransmitter(fldigi, cfg.txTimeoutMs)
+        ? fldigiTransmitter(fldigi, cfg.txTimeoutMs, stationId)
         : audioTransmitter({
             // afplay is built into macOS (docs/STATION_OPERATOR_GUIDE.md, "Station on a Mac").
             playCommand: env('BURST_PLAY_CMD', process.platform === 'darwin' ? 'afplay {wav}' : 'aplay -q {wav}'),
@@ -107,6 +122,7 @@ if (burstMode !== 'off') {
             pttDelayMs: int('BURST_PTT_DELAY_MS', '300', 0, 5000),
             dir,
             txTimeoutMs: cfg.txTimeoutMs,
+            stationId,
           });
   burst = {
     tx,
@@ -128,6 +144,7 @@ if (burstMode !== 'off') {
       maxPrayers: int('BURST_MAX_PRAYERS', '50', 1, 500),
       maxFrameSeconds: int('BURST_MAX_FRAME_SECONDS', '20', 1, 120),
       blocklist: cfg.blocklist,
+      frequencyHz: cfg.frequencyHz,
     },
   };
 }
