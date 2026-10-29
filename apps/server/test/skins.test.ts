@@ -286,3 +286,30 @@ describe('Skin files (Claude Design handoff)', () => {
     expect(() => skins.skinMigration({ ...file, name: "O'Brien's Field" })).not.toThrow();
   });
 });
+
+describe('Skin gallery', () => {
+  it('is closed while off; once on, lists usable skins with likes and makers', async () => {
+    const [maker, other] = [await createUser('Gallery Maker'), await createUser('Gallery Friend')];
+    await expect(skins.gallery(db, maker)).rejects.toThrow(/not open/);
+    expect((await as(maker).get('/skins/gallery')).statusCode).toBe(403);
+    await inTx(async (c) => {
+      await skins.updateSettings(c, { skinsEnabled: true, galleryEnabled: true, proposalsEnabled: true });
+      expect(await notebook.features(c)).toMatchObject({ skinGallery: true });
+      const own = await skins.propose(c, maker, { name: 'Rose Window', description: 'Pink glass.', layout: 'vine', tokens: { leaf: '#F48FB1' } });
+      const mine = await skins.gallery(c, maker);
+      expect(mine.find((s) => s.slug === own.themeSlug)).toMatchObject({ maker: { name: 'Gallery Maker' }, likes: 0, liked: false });
+      expect(mine.find((s) => s.slug === 'beanstalk')).toMatchObject({ maker: null, layout: 'vine' });
+      // Someone else's unshared skin is neither listed nor likeable.
+      expect((await skins.gallery(c, other)).map((s) => s.slug)).not.toContain(own.themeSlug);
+      await expect(skins.like(c, other, own.themeSlug!, true)).rejects.toThrow(/Skin/);
+
+      const liked = await skins.like(c, other, 'wall', true);
+      await skins.like(c, other, 'wall', true); // twice is still one like
+      expect(liked.find((s) => s.slug === 'wall')).toMatchObject({ likes: 1, liked: true });
+      expect((await skins.gallery(c, other))[0]).toMatchObject({ slug: 'wall', likes: 1 }); // most liked first
+      expect((await skins.like(c, other, 'wall', false)).find((s) => s.slug === 'wall')).toMatchObject({ likes: 0, liked: false });
+      await feed.chooseTheme(c, other, 'golden-wood');
+      expect((await skins.gallery(c, other)).find((s) => s.slug === 'golden-wood')?.inUse).toBe(true);
+    });
+  });
+});

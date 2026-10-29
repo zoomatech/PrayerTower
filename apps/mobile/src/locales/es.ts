@@ -1448,6 +1448,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   // English until Spanish is turned on (Steve, 2026-10-28: no Spanish work for now).
   // Feed skins: English until Spanish is turned on.
   skins: en.skins,
+  gallery: en.gallery,
   skinIdea: en.skinIdea,
   tree: en.tree,
   wall: en.wall,

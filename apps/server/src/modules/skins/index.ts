@@ -8,7 +8,8 @@
 //     backdrop) and can use it at once; others see it only after an admin
 //     approves it into the community (feed_themes.owner_id);
 //   * the longest video a member can attach (7 seconds by default);
-//   * seasonal skins, offered only in their season (feed_themes.season, seasonsOn()).
+//   * seasonal skins, offered only in their season (feed_themes.season, seasonsOn());
+//   * the skin gallery: previews, who made each skin, likes and "Use this skin".
 import { CHURCH_SEASONS, COMMENT_TEXT, contrastRatio, seasonsOn, WEATHER_SEASONS } from '@prayer-tower/shared';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
@@ -25,12 +26,13 @@ export interface SkinSettings {
   video_max_seconds: number;
   seasonal_enabled: boolean;
   seasonal_auto: boolean;
+  gallery_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<SkinSettings> {
   const { rows } = await q.query<SkinSettings>(
     `select skins_enabled, comment_tree_enabled, comment_tree_leaves, comment_tree_max_depth, proposals_enabled, video_max_seconds,
-            seasonal_enabled, seasonal_auto
+            seasonal_enabled, seasonal_auto, gallery_enabled
        from public.skin_settings`,
   );
   return rows[0]!;
@@ -45,6 +47,7 @@ export const SettingsPatch = z.object({
   videoMaxSeconds: z.number().int().min(1).max(600).optional(),
   seasonalEnabled: z.boolean().optional(),
   seasonalAuto: z.boolean().optional(),
+  galleryEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -53,7 +56,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        skins_enabled = coalesce($1, skins_enabled), comment_tree_enabled = coalesce($2, comment_tree_enabled),
        comment_tree_leaves = coalesce($3, comment_tree_leaves), comment_tree_max_depth = coalesce($4, comment_tree_max_depth),
        proposals_enabled = coalesce($5, proposals_enabled), video_max_seconds = coalesce($6, video_max_seconds),
-       seasonal_enabled = coalesce($7, seasonal_enabled), seasonal_auto = coalesce($8, seasonal_auto)`,
+       seasonal_enabled = coalesce($7, seasonal_enabled), seasonal_auto = coalesce($8, seasonal_auto),
+       gallery_enabled = coalesce($9, gallery_enabled)`,
     [
       p.skinsEnabled ?? null,
       p.commentTreeEnabled ?? null,
@@ -63,6 +67,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.videoMaxSeconds ?? null,
       p.seasonalEnabled ?? null,
       p.seasonalAuto ?? null,
+      p.galleryEnabled ?? null,
     ],
   );
   return settings(q);
@@ -78,6 +83,7 @@ export async function features(q: Queryable) {
     commentTreeMaxDepth: s.comment_tree_max_depth,
     themeProposals: s.proposals_enabled,
     videoMaxSeconds: s.video_max_seconds,
+    skinGallery: s.skins_enabled && s.gallery_enabled,
   };
 }
 
@@ -351,4 +357,61 @@ export async function decline(q: Queryable, adminId: string, id: string, review:
   );
   if (!rowCount) throw notFound('Pending skin idea');
   return { id, status: 'declined' as const };
+}
+
+// Skin gallery ---------------------------------------------------------------------------
+
+export interface GallerySkin {
+  slug: string;
+  name: string;
+  layout: string;
+  season: string | null;
+  tokens: Record<string, unknown>;
+  /** Who made it, for members' own skins; null for the built-in ones. */
+  maker: { id: string; name: string } | null;
+  likes: number;
+  liked: boolean;
+  inUse: boolean;
+}
+
+async function requireGallery(q: Queryable) {
+  const s = await settings(q);
+  if (!s.skins_enabled || !s.gallery_enabled) throw forbidden('The skin gallery is not open');
+}
+
+/**
+ * Every skin the member can use right now (the same rules as Me → Feed style: shared in
+ * their community, or their own), most liked first.
+ */
+export async function gallery(q: Queryable, userId: string, now = new Date()): Promise<GallerySkin[]> {
+  await requireGallery(q);
+  const { rows } = await q.query<GallerySkin & { maker_id: string | null; maker_name: string | null }>(
+    `select t.slug, t.name, t.layout, t.season, t.tokens, t.owner_id as maker_id,
+            case when t.owner_id is null then null else coalesce(nullif(p.display_name, ''), 'Member') end as maker_name,
+            (select count(*)::int from public.theme_likes l where l.theme_id = t.id) as likes,
+            exists (select 1 from public.theme_likes l where l.theme_id = t.id and l.user_id = $1) as liked,
+            (m.feed_theme_id = t.id) as "inUse"
+       from public.community_memberships m
+       join public.feed_themes t on (
+            t.id in (select d.theme_id from public.community_feed_themes d where d.community_id = m.community_id)
+            or t.owner_id = m.user_id)
+       left join public.profiles p on p.id = t.owner_id
+      where m.user_id = $1 and m.is_primary and ${themeVisible('$2')}
+      order by likes desc, t.name`,
+    [userId, seasonsNow(now)],
+  );
+  return rows.map(({ maker_id, maker_name, ...r }) => ({ ...r, inUse: !!r.inUse, maker: maker_id ? { id: maker_id, name: maker_name! } : null }));
+}
+
+/** Like or unlike a skin the member can see in the gallery. */
+export async function like(q: Queryable, userId: string, slug: string, on: boolean, now = new Date()) {
+  const skins = await gallery(q, userId, now);
+  if (!skins.some((s) => s.slug === slug)) throw notFound('Skin');
+  if (on)
+    await q.query(
+      `insert into public.theme_likes (theme_id, user_id) select id, $1 from public.feed_themes where slug = $2 on conflict do nothing`,
+      [userId, slug],
+    );
+  else await q.query(`delete from public.theme_likes l using public.feed_themes t where t.id = l.theme_id and t.slug = $2 and l.user_id = $1`, [userId, slug]);
+  return gallery(q, userId, now);
 }

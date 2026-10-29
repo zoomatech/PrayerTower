@@ -216,6 +216,7 @@ export default function Profile() {
             </View>
           </View>
         ) : null}
+        {features.skinGallery ? <Button small variant="secondary" label={t('gallery.open')} onPress={() => router.push('/skin-gallery')} /> : null}
         {features.themeProposals ? <Button small variant="secondary" label={t('skinIdea.open')} onPress={() => router.push('/skin-idea')} /> : null}
 
         <View style={{ gap: space.sm }}>

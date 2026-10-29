@@ -8,8 +8,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { SkinPreview } from '@/components/skin-preview';
 import { Button, Chip, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
-import { glow, LeafMark } from '@/layouts/motifs';
 import { api, type MakerLayout, type ThemeProposal } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -39,47 +39,6 @@ const COLOR_FIELDS: Record<MakerLayout, { key: string; start: string }[]> = {
     { key: 'backdrop', start: '#05070D' },
   ],
 };
-
-function Preview({ layout, c, shape, width, double, glowing }: { layout: MakerLayout; c: Record<string, string>; shape: string; width: number; double: boolean; glowing: boolean }) {
-  const ok = (k: string) => (HEX.test(c[k] ?? '') ? c[k]! : colors.border);
-  const card = <View style={styles.previewCard} />;
-  return (
-    <View style={[styles.preview, { backgroundColor: ok('backdrop') }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="maker-preview">
-      {layout === 'vine' ? (
-        <>
-          {double ? (
-            <View style={[styles.previewStem, { width: width * 3, marginLeft: -(width * 3) / 2, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderColor: ok('stem') }]} />
-          ) : (
-            <View style={[styles.previewStem, { width, marginLeft: -width / 2, backgroundColor: ok('stem') }, glowing && glow(ok('stem'), 10)]} />
-          )}
-          <View style={styles.previewLeaf}>
-            {shape === 'flower' || shape === 'star' ? (
-              <LeafMark shape={shape} leaf={ok('leaf')} accent={ok('stem')} size={26} />
-            ) : (
-              <View style={[styles.leafPlain, shape === 'pointed' && styles.leafPointed, shape === 'tablet' && styles.leafTablet, { backgroundColor: ok('leaf') }]} />
-            )}
-          </View>
-          <View style={[styles.previewCardBox, { alignSelf: 'flex-end' }]}>{card}</View>
-          <View style={[styles.previewComment, { backgroundColor: ok('leafSoft'), borderColor: ok('leaf') }]} />
-        </>
-      ) : layout === 'tower' ? (
-        <>
-          <View style={[styles.pillar, { left: 0, backgroundColor: ok('stone'), borderColor: ok('mortar') }]} />
-          <View style={[styles.pillar, { right: 0, backgroundColor: ok('stone'), borderColor: ok('mortar') }]} />
-          <Text style={styles.climber}>🧗</Text>
-          <View style={[styles.previewCardBox, { alignSelf: 'center' }]}>{card}</View>
-        </>
-      ) : layout === 'circuit' ? (
-        <>
-          <View style={[styles.wire, { backgroundColor: ok('wire') }, glow(ok('wire'), 6)]} />
-          <View style={[styles.screen, { borderColor: ok('screen') }, glow(ok('screen'), 10), { transform: [{ perspective: 600 }, { rotateY: '10deg' }] }]}>{card}</View>
-        </>
-      ) : (
-        <View style={[styles.previewCardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>
-      )}
-    </View>
-  );
-}
 
 export default function ThemeMaker() {
   const { t } = useLocale();
@@ -154,7 +113,7 @@ export default function ThemeMaker() {
           ))}
         </View>
 
-        <Preview layout={layout} c={c} shape={shape} width={width} double={double} glowing={glowing} />
+        <SkinPreview layout={layout} tokens={tokens} testID="maker-preview" />
 
         <Text style={type.heading}>{t('skinIdea.colorsHeading')}</Text>
         {fields.map((f) => (
@@ -208,19 +167,6 @@ const styles = StyleSheet.create({
   content: { padding: space.lg, gap: space.md, paddingBottom: 80 },
   row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   sent: { ...type.body, color: colors.primary, fontWeight: '700' },
-  preview: { height: 170, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', justifyContent: 'center', padding: space.md },
-  previewStem: { position: 'absolute', left: '50%', top: 0, bottom: 0 },
-  previewLeaf: { position: 'absolute', left: '50%', top: 26, marginLeft: 6 },
-  leafPlain: { width: 34, height: 18, borderTopLeftRadius: 18, borderBottomRightRadius: 18 },
-  leafPointed: { borderTopLeftRadius: 2, borderBottomRightRadius: 2, borderTopRightRadius: 18, borderBottomLeftRadius: 18 },
-  leafTablet: { width: 16, height: 22, borderRadius: 2, borderTopLeftRadius: 8, borderTopRightRadius: 8 },
-  previewCardBox: { width: '42%' },
-  previewCard: { height: 64, borderRadius: radius.md, backgroundColor: colors.surface },
-  previewComment: { position: 'absolute', left: space.md, bottom: space.md, width: '38%', height: 26, borderRadius: radius.md, borderWidth: 1 },
-  pillar: { position: 'absolute', top: 0, bottom: 0, width: 16, borderWidth: 1 },
-  climber: { position: 'absolute', right: 0, top: '40%', fontSize: 24 },
-  wire: { position: 'absolute', left: 14, top: 0, bottom: 0, width: 2 },
-  screen: { marginLeft: 40, width: '60%', borderWidth: 2, borderRadius: radius.md, padding: 4, backgroundColor: '#0E1220' },
   colorRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-end' },
   swatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, marginBottom: 6 },
   card: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: space.md, gap: 2 },

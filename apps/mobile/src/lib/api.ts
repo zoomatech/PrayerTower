@@ -133,6 +133,7 @@ export interface Features {
   /** Deepest reply level while the tree is on (0 = top-level comments only). */
   commentTreeMaxDepth: number;
   themeProposals: boolean;
+  skinGallery: boolean;
   /** Longest video a member can attach, in seconds. */
   videoMaxSeconds: number;
 }
@@ -146,6 +147,20 @@ export interface SkinSettings {
   video_max_seconds: number;
   seasonal_enabled: boolean;
   seasonal_auto: boolean;
+  gallery_enabled: boolean;
+}
+
+/** One skin in Me → Skin gallery. */
+export interface GallerySkin {
+  slug: string;
+  name: string;
+  layout: string;
+  season: string | null;
+  tokens: Record<string, unknown>;
+  maker: { id: string; name: string } | null;
+  likes: number;
+  liked: boolean;
+  inUse: boolean;
 }
 
 export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
@@ -1041,6 +1056,8 @@ export const api = {
   proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>
     post<{ proposal: ThemeProposal }>('/me/theme-proposals', input),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
+  skinGallery: () => get<{ skins: GallerySkin[] }>('/skins/gallery'),
+  likeSkin: (slug: string, on: boolean) => request<{ skins: GallerySkin[] }>(on ? 'PUT' : 'DELETE', `/skins/${encodeURIComponent(slug)}/like`),
   mediaUploadUrl: (contentType: string) =>
     post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
   person: (id: string) => get<{ person: Person; posts: Card[] }>(`/people/${id}`),
@@ -1239,7 +1256,7 @@ export const api = {
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
-    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
       request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),

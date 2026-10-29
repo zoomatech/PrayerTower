@@ -13,6 +13,7 @@ Everything here is **off** until an admin turns it on in **Admin → Feed skins*
 | Leaves shown on a branch before the blur | 5 | Past this, the other leaves fade into a blur ("12 more leaves on this branch") until tapped. |
 | Levels of comments | 3 | Comment, reply, reply to that. At the third level there is no Reply link, and the server refuses a deeper reply, so a back-and-forth chain can't grow. Side branches at the third level are fine. |
 | Members can make their own skins | off | Me → Make your own feed skin (the theme maker). The maker can use their skin at once; everyone else sees it only after an admin approves it in Admin → Feed skins. |
+| Skin gallery | off | Me → Skin gallery: every skin the member can use, with a small preview, who made it, likes, and "Use this skin". Needs the skins switch on too. |
 | Longest video, in seconds | 7 | The composer leaves out longer clips. The server refuses a clip longer than the cap. |
 
 ## The skins
@@ -76,6 +77,10 @@ The emoji meanings under a post (docs/EMOJI_MEANINGS.md, its own switch) take th
 Me → Make your own feed skin (`apps/mobile/src/app/skin-idea.tsx`). A member names the skin, picks a layout (growing vine, full-screen wall, climbing tower or neon circuit), sets its colors, and for vines picks the comment shape (round, pointed, flower, star, stone tablet), stem width, double outline, glow and fairy-tale scenery. A live preview updates as they go.
 
 Saving creates a private skin owned by the member (`feed_themes.owner_id`); it shows at once in their own Feed style. Everyone else sees it only after an admin approves it in Admin → Feed skins, which offers it in the member's community (still behind the skins switch). Declining leaves it private. The server accepts only known token names and values (hex colors, set ranges, listed shapes), so a skin can't inject anything else. Up to 3 can wait for review at once. Skins and ideas are in the member's data export and are deleted with the account.
+
+## Skin gallery
+
+Me → Skin gallery (`apps/mobile/src/app/skin-gallery.tsx`, `GET /skins/gallery`). It lists the skins offered in the member's community, plus their own private skins, with the same small preview the theme maker uses (`components/skin-preview.tsx`). Seasonal skins show only while their season is on. Members can like a skin (♥, one like per member, table `theme_likes`) and the list sorts by likes, then name. "Use this skin" sets it as their Feed style. The grid is 1 column on a phone, 2 on an iPad and 3 on a wide Mac window. Likes are in the member's data export and are deleted with the account.
 
 ## Using Claude Design for new skins
 

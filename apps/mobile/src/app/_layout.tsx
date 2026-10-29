@@ -92,6 +92,7 @@ function RootStack() {
           <Stack.Screen name="prayer-chain" />
           <Stack.Screen name="prayer-minute" />
           <Stack.Screen name="skin-idea" />
+          <Stack.Screen name="skin-gallery" />
           <Stack.Screen name="token-store" />
           <Stack.Screen name="give" />
           <Stack.Screen name="radio-requests" />
