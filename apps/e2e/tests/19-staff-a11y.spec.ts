@@ -22,6 +22,10 @@ test('staff screens have no WCAG A/AA violations, with every switch on', async (
     before.push({ ...s, v: rows[0]?.v ?? false });
     await db.query(`update public.${s.t} set ${s.c} = true`);
   }
+  // A member's meaning suggestion, so Admin shows the review card.
+  const { rows: idea } = await db.query<{ id: string }>(
+    "insert into public.meaning_proposals (emoji_key, label) values ('support', 'Staff walk meaning') returning id",
+  );
   try {
     await signIn(page, 'admin');
     const found: string[] = [];
@@ -34,6 +38,7 @@ test('staff screens have no WCAG A/AA violations, with every switch on', async (
     }
     expect(found, found.join('\n')).toEqual([]);
   } finally {
+    await db.query('delete from public.meaning_proposals where id = $1', [idea[0]!.id]);
     for (const s of before) await db.query(`update public.${s.t} set ${s.c} = $1`, [s.v]);
   }
 });
