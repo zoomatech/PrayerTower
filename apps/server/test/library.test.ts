@@ -24,6 +24,8 @@ describe('passage search', () => {
       { workId: 'a', ref: 'A 2', text: 'And he went out.' },
       { workId: 'b', ref: 'B 1', text: 'Thy rod and thy staff they comfort me.' },
       { workId: 'c', ref: 'C 1', text: 'Nothing here at all.' },
+      // Synonyms only widen words found in fewer than one passage in ten, so the corpus needs some bulk.
+      ...Array.from({ length: 30 }, (_, i) => ({ workId: `f${i}`, ref: `F ${i}`, text: 'Some other words entirely.' })),
     ];
     const index = new PassageIndex(passages, parseSynonyms('rod\tstaff'));
     const hits = index.search('rod staff');
