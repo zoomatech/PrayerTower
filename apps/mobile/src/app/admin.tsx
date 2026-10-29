@@ -1852,6 +1852,7 @@ function ConversationSettingsSection() {
       {s.talk_counts_enabled ? <TalkCountsView /> : null}
       <Toggle label={t('meaningProposals.adminTitle')} hint={t('meaningProposals.adminHint')} value={s.meaning_proposals_enabled} onChange={(v) => save({ meaningProposalsEnabled: v })} />
       {s.meaning_proposals_enabled ? <MeaningProposalsAdmin /> : null}
+      <Toggle label={t('talk.adminTypePrompts')} hint={t('talk.adminTypePromptsHint')} value={s.type_prompts_enabled} onChange={(v) => save({ typePromptsEnabled: v })} />
       <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
@@ -1912,6 +1913,7 @@ function PracticeSettingsSection() {
       <Toggle label={t('lament.adminTitle')} hint={t('lament.adminHint')} value={s.lament_enabled} onChange={(v) => save({ lamentEnabled: v })} />
       <Toggle label={t('answeredStory.adminTitle')} hint={t('answeredStory.adminHint')} value={s.answered_stories_enabled} onChange={(v) => save({ answeredStoriesEnabled: v })} />
       <Toggle label={t('kindIntro.adminTitle')} hint={t('kindIntro.adminHint')} value={s.kindness_intro_enabled} onChange={(v) => save({ kindnessIntroEnabled: v })} />
+      <Toggle label={t('checkBack.adminTitle')} hint={t('checkBack.adminHint')} value={s.check_back_enabled} onChange={(v) => save({ checkBackEnabled: v })} />
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
