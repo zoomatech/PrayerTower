@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -309,6 +309,7 @@ function Admin() {
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
         <GrowthSettingsSection />
+        <PracticeSettingsSection />
         <SkinSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
@@ -1328,6 +1329,45 @@ function GrowthSettingsSection() {
       <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
       <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Growth practices (docs/GROWTH_PRACTICES.md): kind habits with nothing to lose, each off until switched on. */
+function PracticeSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<PracticeSettings | null>(null);
+  const [days, setDays] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: PracticeSettings) => {
+    setS(x);
+    setDays(String(x.followup_days));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
+    api.admin
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('practices.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('practices.adminTitle')}</Text>
+      <Text style={type.small}>{t('practices.adminIntro')}</Text>
+      <Toggle label={t('practices.adminFollowup')} hint={t('practices.adminFollowupHint')} value={s.followup_enabled} onChange={(v) => save({ followupEnabled: v })} />
+      <Field label={t('practices.adminFollowupDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
+      <Toggle label={t('practices.adminGratitude')} hint={t('practices.adminGratitudeHint')} value={s.gratitude_enabled} onChange={(v) => save({ gratitudeEnabled: v })} />
+      <Toggle label={t('practices.adminRhythm')} hint={t('practices.adminRhythmHint')} value={s.gentle_rhythm_enabled} onChange={(v) => save({ gentleRhythmEnabled: v })} />
+      <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
