@@ -23,16 +23,32 @@ import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
 import * as growth from './modules/growth/index.js';
+import { createSms, type SmsSend } from './modules/growth/sms.js';
+import { createApns, type ApnsSend } from './modules/live-activity/apns.js';
+import { refreshTask as liveActivityRefreshTask } from './modules/live-activity/index.js';
 import * as practices from './modules/practices/index.js';
 import { writeDueTask as autoPrayTask } from './modules/ai/auto-pray.js';
 import { createConverser, type Converse } from './modules/ai/provider.js';
 import { sendDueRemindersTask as prayerListRemindersTask } from './modules/prayer-list/index.js';
 
-export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
+/** The Apple push sender for Live Activities, or null until its key is set. */
+function apnsFrom(config: Config): ApnsSend | null {
+  if (!config.APNS_KEY_ID || !config.APNS_PRIVATE_KEY || !config.APPLE_TEAM_ID) return null;
+  return createApns({ keyId: config.APNS_KEY_ID, teamId: config.APPLE_TEAM_ID, privateKey: config.APNS_PRIVATE_KEY, production: config.APNS_PRODUCTION });
+}
+
+/** Twilio for prayer-chain texts, or null until its keys are set. */
+function smsFrom(config: Config): SmsSend | null {
+  if (!config.TWILIO_ACCOUNT_SID || !config.TWILIO_AUTH_TOKEN || !config.TWILIO_FROM) return null;
+  return createSms({ accountSid: config.TWILIO_ACCOUNT_SID, authToken: config.TWILIO_AUTH_TOKEN, from: config.TWILIO_FROM });
+}
+
+export function buildTaskList(db: Queryable, config: Config, overrides: { apns?: ApnsSend | null; sms?: SmsSend | null; classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
   const mail: growth.MailContext = {
     mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
     siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
     openCircleName: config.OPEN_CIRCLE_NAME,
+    sms: overrides.sms !== undefined ? overrides.sms : smsFrom(config),
   };
   return {
     growth_guest_answered: growth.guestAnsweredTask(db, mail),
@@ -40,6 +56,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     growth_chain_send: growth.chainSendTask(db, mail),
     growth_prayer_minute: growth.minuteDueTask(db),
     growth_purge: growth.purgeTask(db),
+    live_activity_refresh: liveActivityRefreshTask(db, overrides.apns !== undefined ? overrides.apns : apnsFrom(config)),
     practices_followup: practices.followupDueTask(db),
     practices_gratitude: practices.gratitudeDueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
@@ -117,6 +134,7 @@ export const crontab = [
   '10 3 * * * legal_holds_expire ?max=10&fill=1d&jobKey=legal_holds_expire',
   // Every minute: the prayer minute notice for members whose chosen minute it is (only while switched on).
   '* * * * * growth_prayer_minute ?max=1&jobKey=growth_prayer_minute',
+  '* * * * * live_activity_refresh ?max=1&jobKey=live_activity_refresh',
   // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
   '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',
   // Daily 17:00: one "share how it's going?" per request, some days after it was prayed for (only while switched on).
