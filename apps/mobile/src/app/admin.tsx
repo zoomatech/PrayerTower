@@ -2419,6 +2419,7 @@ function PracticeSettingsSection() {
       <Toggle label={t('calm.adminTitle')} hint={t('calm.adminHint')} value={s.calm_threads_enabled} onChange={(v) => save({ calmThreadsEnabled: v })} />
       <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={s.prayer_circles_enabled} onChange={(v) => save({ prayerCirclesEnabled: v })} />
       <Toggle label={t('circleWelcome.adminTitle')} hint={t('circleWelcome.adminHint')} value={s.circle_welcome_enabled} onChange={(v) => save({ circleWelcomeEnabled: v })} />
+      <Toggle label={t('circleUpdates.adminTitle')} hint={t('circleUpdates.adminHint')} value={s.circle_updates_enabled} onChange={(v) => save({ circleUpdatesEnabled: v })} />
       <Toggle label={t('pathBack.adminTitle')} hint={t('pathBack.adminHint')} value={s.path_back_enabled} onChange={(v) => save({ pathBackEnabled: v })} />
       <Toggle label={t('kindWords.adminTitle')} hint={t('kindWords.adminHint')} value={s.empathy_practice_enabled} onChange={(v) => save({ empathyPracticeEnabled: v })} />
       <Toggle label={t('weather.adminTitle')} hint={t('weather.adminHint')} value={s.kindness_weather_enabled} onChange={(v) => save({ kindnessWeatherEnabled: v })} />
