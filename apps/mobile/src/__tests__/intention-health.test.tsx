@@ -51,3 +51,11 @@ it('shows community health totals and folds quiet weeks', async () => {
   expect(await screen.findByText(/12 requests · 10 felt held · 2 answered · 7 came back/)).toBeTruthy();
   expect(screen.getByText(/Too quiet to say/)).toBeTruthy();
 });
+
+it('offers the aims as radio buttons and says the count once, not twice', async () => {
+  await renderApp(<WeeklyIntention intention={{ days: 3, week: week([true, false, false, false, false, false, false]), shown: 1, met: false }} onChange={jest.fn()} />);
+  expect(screen.getByRole('radio', { name: '3 a week', checked: true })).toBeTruthy();
+  expect(screen.getByRole('radio', { name: 'No aim', checked: false })).toBeTruthy();
+  expect(screen.queryByLabelText('Days you showed up this week: 1')).toBeNull();
+  expect(screen.getAllByText('Days you showed up this week: 1')).toHaveLength(1);
+});
