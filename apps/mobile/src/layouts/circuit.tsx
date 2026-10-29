@@ -6,9 +6,10 @@
 // wire and stops the bursts.
 import type { Card, FeedTheme } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { Tr, useLocale } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -26,15 +27,6 @@ export function circuitTokens(theme: FeedTheme | null): CircuitTokens {
   return out as CircuitTokens;
 }
 
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduced).catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => sub.remove();
-  }, []);
-  return reduced;
-}
 
 /** A burst of light sliding down this row's piece of the wire, again and again. */
 function Burst({ tokens, delay }: { tokens: CircuitTokens; delay: number }) {

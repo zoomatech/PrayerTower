@@ -8,6 +8,7 @@
 //     backdrop) and can use it at once; others see it only after an admin
 //     approves it into the community (feed_themes.owner_id);
 //   * the longest video a member can attach (7 seconds by default).
+import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
@@ -198,6 +199,9 @@ export async function propose(q: Queryable, userId: string, raw: z.infer<typeof 
   if (open[0]!.n >= 3) throw badRequest('You have 3 skin ideas waiting already. Wait for those to be reviewed first.');
   const community = await primaryCommunityId(q, userId);
   const tokens = tokensFor(input.layout, input.colors, input.tokens);
+  // Comments sit on leafSoft in dark text, so it must stay readable (WCAG AA 4.5:1).
+  if (typeof tokens.leafSoft === 'string' && contrastRatio(tokens.leafSoft, COMMENT_TEXT) < 4.5)
+    throw badRequest('That comment background is too dark to read. Pick a lighter color.');
   const { rows: theme } = await q.query<{ id: string }>(
     `insert into public.feed_themes (slug, name, layout, status, gated, owner_id, animations, tokens)
      values ($1, $2, $3::public.feed_layout, 'beta', true, $4, '{"enter": "fade"}', $5) returning id`,

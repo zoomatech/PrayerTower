@@ -1472,6 +1472,7 @@ const en = {
       screen: 'Screen glow (#RRGGBB)',
     },
     colorHint: 'Colors are written like #6E8B4E.',
+    tooDark: 'The comment background is too dark for comments to be read. Pick a lighter color.',
     shapeHeading: 'Comment shape',
     shape: { round: 'Round leaf', pointed: 'Pointed leaf', flower: 'Flower', star: 'Star', tablet: 'Stone tablet' },
     stemHeading: 'Stem',

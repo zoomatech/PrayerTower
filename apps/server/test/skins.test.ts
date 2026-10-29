@@ -157,6 +157,8 @@ describe('Theme maker', () => {
       expect((await feed.chooseTheme(c, member, circuit.themeSlug!)).theme).toMatchObject({ layout: 'circuit', tokens: { wire: '#39FF14', tilt: 6 } });
       await expect(skins.propose(c, member, { name: 'Bad', description: 'x', layout: 'vine', tokens: { onPress: 'alert(1)' } } as never)).rejects.toThrow();
       await expect(skins.propose(c, member, { name: 'Bad', description: 'x', layout: 'vine', tokens: { stemWidth: 400 } } as never)).rejects.toThrow();
+      // Comment bubbles too dark for the dark comment text are refused.
+      await expect(skins.propose(c, member, { name: 'Murky', description: 'x', layout: 'vine', tokens: { leafSoft: '#333344' } })).rejects.toThrow(/too dark to read/);
     });
   });
 });

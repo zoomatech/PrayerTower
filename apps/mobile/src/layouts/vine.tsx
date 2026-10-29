@@ -11,11 +11,12 @@
 // tokens: a backdrop, a thicker or doubled stem and round or pointed leaves.
 import type { Card, FeedTheme, PostState } from '@prayer-tower/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -25,6 +26,8 @@ import { vinePlacement } from './placement';
 
 // The branch color as text: darker, for 4.5:1 contrast on the card (WCAG AA).
 const BRANCH_TEXT = '#6B5435';
+/** Tag colors on a dark skin (Neon Cinderella): each at least 4.5:1 on its backdrop. */
+const DARK_TAGS = { pinned: '#C9B8FF', branch: '#E8D5B5', bloom: '#FFD36E' };
 
 const DEFAULTS = {
   stem: '#6E8B4E',
@@ -82,15 +85,6 @@ const ripeness: Record<PostState, string> = {
   answered: colors.gold,
 };
 
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduced).catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => sub.remove();
-  }, []);
-  return reduced;
-}
 
 interface Leaf {
   id: string;
@@ -111,6 +105,7 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
   const side = card.isMine ? 'right' : hashedSide;
   const left = side === 'left';
   const reduced = useReducedMotion();
+  const dark = isDark(tokens.backdrop);
   const grow = useRef(new Animated.Value(reduced ? 1 : 0)).current;
   useEffect(() => {
     if (reduced) return grow.setValue(1);
@@ -145,9 +140,9 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
         )}
         <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }, left ? { right: -7 } : { left: -7 }]} />
         <View style={styles.tags}>
-          {pinned ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
-          {card.state === 'answered' ? <Text style={[styles.tag, { color: colors.goldText }]}>{t('vine.bloom')}</Text> : null}
-          {card.isMine ? <Text style={[styles.tag, { color: BRANCH_TEXT }]}>{t('vine.yourBranch')}</Text> : null}
+          {pinned ? <Tr k="feed.pinned" style={[styles.pinned, dark && { color: DARK_TAGS.pinned }]} /> : null}
+          {card.state === 'answered' ? <Text style={[styles.tag, { color: dark ? DARK_TAGS.bloom : colors.goldText }]}>{t('vine.bloom')}</Text> : null}
+          {card.isMine ? <Text style={[styles.tag, { color: dark ? DARK_TAGS.branch : BRANCH_TEXT }]}>{t('vine.yourBranch')}</Text> : null}
           {card.myCommitment ? <Text style={[styles.tag, { color: tokens.tendril }]}>{t('vine.yourTendril')}</Text> : null}
         </View>
         {card.counts.commitments > 0 ? (

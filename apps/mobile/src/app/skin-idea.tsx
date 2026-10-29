@@ -3,6 +3,7 @@
 // full-screen wall, tower or neon circuit), colors, a leaf or comment shape,
 // the stem and a backdrop, and sees a live preview. The skin is theirs to use
 // in Feed style at once; everyone else can choose it once an admin approves it.
+import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -110,6 +111,8 @@ export default function ThemeMaker() {
   const fields = COLOR_FIELDS[layout];
   const c = all[layout];
   const colorsOk = fields.every((f) => HEX.test(c[f.key] ?? ''));
+  // Comments are dark text on the comment background; keep it readable (WCAG AA 4.5:1). The server checks too.
+  const commentsReadable = !colorsOk || !c.leafSoft || layout !== 'vine' || contrastRatio(c.leafSoft, COMMENT_TEXT) >= 4.5;
   const tokens = useMemo(() => {
     const out: Record<string, string | number | boolean> = Object.fromEntries(fields.map((f) => [f.key, c[f.key]!]));
     if (layout === 'vine') Object.assign(out, { branch: c.stem!, tendril: c.stem!, leafShape: shape, stemWidth: width, stemDouble: double, stemGlow: glowing, scenery: fairytale ? 'fairytale' : '' });
@@ -163,6 +166,7 @@ export default function ThemeMaker() {
           </View>
         ))}
         {!colorsOk ? <Text style={type.small}>{t('skinIdea.colorHint')}</Text> : null}
+        {!commentsReadable ? <Text style={[type.small, { color: colors.danger }]}>{t('skinIdea.tooDark')}</Text> : null}
 
         {layout === 'vine' ? (
           <>
@@ -184,7 +188,7 @@ export default function ThemeMaker() {
           </>
         ) : null}
 
-        <Button label={t('skinIdea.send')} onPress={submit} busy={busy} disabled={name.trim().length < 2 || !description.trim() || !colorsOk} />
+        <Button label={t('skinIdea.send')} onPress={submit} busy={busy} disabled={name.trim().length < 2 || !description.trim() || !colorsOk || !commentsReadable} />
 
         <Text style={type.heading}>{t('skinIdea.yours')}</Text>
         {mine.length === 0 ? <Empty text={t('skinIdea.none')} /> : null}

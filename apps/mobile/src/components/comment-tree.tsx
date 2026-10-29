@@ -10,11 +10,12 @@
 // Reduced motion turns the growing off.
 import type { Comment } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { LeafMark } from '@/layouts/motifs';
 import type { vineTokens } from '@/layouts/vine';
 import { useLocale } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 type Tokens = ReturnType<typeof vineTokens>;
@@ -31,17 +32,6 @@ export interface CommentTreeProps {
   renderBody: (c: Comment, canReply: boolean) => ReactNode;
 }
 
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then(setReduced)
-      .catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => sub.remove();
-  }, []);
-  return reduced;
-}
 
 /** Group comments by parent, keeping thread order. Orphans hang from the request itself. */
 export function branchesOf(comments: Comment[]) {

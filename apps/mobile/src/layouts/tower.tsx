@@ -17,10 +17,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Card, FeedTheme } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, PanResponder, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, Easing, PanResponder, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 
 import { Button, Chip } from '@/components/ui';
 import { Tr, useLocale } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -56,15 +57,6 @@ export function climbStep(dy: number, direction: ClimbDirection, edge: { top: bo
   return climbs ? 1 : -1;
 }
 
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduced).catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => sub.remove();
-  }, []);
-  return reduced;
-}
 
 const BRICK = 22;
 
