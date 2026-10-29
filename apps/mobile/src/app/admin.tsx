@@ -2017,6 +2017,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.readingPlan')} hint={t('admin.toggle.readingPlanHint')} value={s.reading_plan_enabled} onChange={(v) => save({ readingPlanEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
+      <Toggle label={t('admin.toggle.crosspost')} hint={t('admin.toggle.crosspostHint')} value={s.crosspost_enabled} onChange={(v) => save({ crosspostEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

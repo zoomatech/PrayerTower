@@ -112,6 +112,9 @@ describe('endpoint auth', () => {
       'POST /circle/:token',
       'GET /chain/:token',
       'POST /chain/:token',
+      // Cross-posting: the Meta sign-in return (one-time state) and the Threads webhook check (verify token).
+      'GET /crosspost/:provider/callback',
+      'GET /crosspost/threads/webhook',
       // Sharing with consent: the share card the author chose (a 404 otherwise).
       'GET /card/:token',
     ]);
