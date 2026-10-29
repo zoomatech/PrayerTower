@@ -33,6 +33,8 @@ export function build(edition, root = join(dirname(fileURLToPath(import.meta.url
   manifest.description = `When you post on Facebook or Threads, the same post (words, photos and videos) goes to your own ${e.account} account.`;
   // Only the Safari build says which Safari it needs; Chrome would warn about the unknown key.
   if (safari) manifest.browser_specific_settings = { safari: { strict_min_version: SAFARI_MIN } };
+  // Safari doesn't support options_ui.open_in_tab (MDN compatibility table), and its packager warns about it.
+  if (safari) delete manifest.options_ui.open_in_tab;
   writeFileSync(join(out, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 
   const page = join(out, 'src', 'options.html');

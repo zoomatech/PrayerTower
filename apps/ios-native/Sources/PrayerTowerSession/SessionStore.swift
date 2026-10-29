@@ -65,3 +65,13 @@ public final class MemoryStorage: AuthLocalStorage, @unchecked Sendable {
     public func retrieve(key: String) throws -> Data? { lock.withLock { values[key] } }
     public func remove(key: String) throws { _ = lock.withLock { values.removeValue(forKey: key) } }
 }
+
+#if canImport(Security)
+extension SessionStore {
+    /// On iPhone, iPad and Mac: the session lives in the Keychain. The app target links only
+    /// this package's products, so it can't name supabase-swift's `KeychainLocalStorage` itself.
+    public convenience init(supabaseURL: URL, publishableKey: String, apiURL: URL) {
+        self.init(supabaseURL: supabaseURL, publishableKey: publishableKey, apiURL: apiURL, storage: KeychainLocalStorage())
+    }
+}
+#endif
