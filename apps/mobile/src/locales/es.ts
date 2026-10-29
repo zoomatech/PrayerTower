@@ -727,6 +727,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     matching: "Matched %{ratio} to 1 · %{matched} of %{cap} matched",
     give: "Give",
     gave: "Thank you. %{matched} more were matched.",
+    manyHands: "Match by how many give",
+    manyHandsHint: "The more people give, the more you match, so many small gifts outweigh one large one (quadratic matching).",
+    matchingMany: "Matched by how many give · %{matched} of %{cap} matched",
     shareBack: "When it closes, what's left goes back to everyone who gave, by share.",
   },
   scheduled: {

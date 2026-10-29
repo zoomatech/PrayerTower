@@ -264,6 +264,18 @@ export async function drawFromPool(q: Queryable, userId: string, poolId: string,
  * gave to a matching pool get their share of what is left (rounded down, by what each
  * put in); the donor gets the rest.
  */
+/** What each member other than the owner has given to a pool, in total. */
+export async function poolGivers(q: Queryable, poolId: string, ownerId: string) {
+  const { rows } = await q.query<{ user_id: string; given: number }>(
+    `select a.user_id, sum(t.amount)::float8 as given
+       from public.token_transfers t join public.token_accounts a on a.id = t.debit_account_id
+      where t.credit_account_id = $1 and t.kind = 'pool_fund' and a.user_id <> $2
+      group by a.user_id`,
+    [await poolAccount(q, poolId), ownerId],
+  );
+  return rows;
+}
+
 export async function returnPool(q: Queryable, poolId: string, ownerId: string, actorId: string) {
   const left = await poolBalance(q, poolId);
   if (left <= 0) return null;

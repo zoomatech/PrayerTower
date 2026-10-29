@@ -14,7 +14,7 @@ jest.mock('@/lib/api', () => ({
 
 const pool = (over: Partial<TokenPool> = {}): TokenPool => ({
   id: 'p1', name: 'Philanthropic first post', purpose: '', realm: null, drawAmount: 5, drawsPerMemberDay: 1, donor: 'Ethel', isMine: false, open: true, balance: 40,
-  match: { ratio: 2, cap: 30, matched: 20 }, ...over,
+  match: { mode: 'ratio', ratio: 2, cap: 30, matched: 20 }, ...over,
 });
 
 const on = (poolMatching: boolean) => jest.mocked(api.features).mockResolvedValue({ features: { poolMatching } } as Awaited<ReturnType<typeof api.features>>);
@@ -58,5 +58,24 @@ describe('Matching pledges', () => {
     expect(await screen.findByText('Philanthropic first post')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Give' })).toBeNull();
     expect(screen.queryByLabelText("Match others' gifts (tokens per token, 0 for none)")).toBeNull();
+  });
+});
+
+describe('Matching by how many give', () => {
+  it('starts a quadratic pool and shows its line', async () => {
+    resetFeatures();
+    on(true);
+    jest.mocked(api.myTokenPools).mockResolvedValue({ pools: [] });
+    jest.mocked(api.tokens).mockResolvedValue({ balance: 20 } as Awaited<ReturnType<typeof api.tokens>>);
+    jest.mocked(api.tokenPools).mockResolvedValue({ pools: [pool({ id: 'q', match: { mode: 'quadratic', ratio: 0, cap: 100, matched: 32 } })] });
+    jest.mocked(api.createTokenPool).mockResolvedValue({ id: 'p3', balance: 10 });
+    await renderApp(<Pools />);
+    expect(await screen.findByText('Matched by how many give · 32 of 100 matched')).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Many hands');
+    await fireEvent.changeText(screen.getByLabelText('Tokens to put in'), '10');
+    await fireEvent.press(screen.getByRole('switch', { name: /Match by how many give/ }));
+    await fireEvent.changeText(screen.getByLabelText("Most you'll match in all"), '100');
+    await fireEvent.press(screen.getByRole('button', { name: 'Start pool' }));
+    expect(api.createTokenPool).toHaveBeenCalledWith(expect.objectContaining({ matchMode: 'quadratic', matchCap: 100 }));
   });
 });
