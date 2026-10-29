@@ -605,6 +605,21 @@ export interface RadioSchedule {
   quietEnd: string | null;
 }
 
+export interface RadioConsole {
+  paused: boolean;
+  windowOverrideUntil: string | null;
+  onAirNow: boolean;
+  schedule: RadioSchedule & { inWindow: boolean };
+  queue: {
+    queued: number;
+    sending: number;
+    oldestMinutes: number | null;
+    next: { id: string; text: string; urgency: number; repeats: number; waitingMinutes: number }[];
+  };
+  stations: { callSign: string; lastHeartbeat: string; lastIdAt: string | null; everyMinutes: number | null; nextIdAt: string | null }[];
+  log: { at: string; callSign: string; station: string; preset: string; status: string; heard: boolean; error: string | null; text: string }[];
+}
+
 export interface StationHealth {
   enabled: boolean;
   health: {
@@ -1475,6 +1490,8 @@ export const api = {
   decideAppeal: (id: string, action: 'uphold' | 'overturn', note?: string) =>
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
+  radioConsole: () => get<RadioConsole>('/radio/console'),
+  updateRadioConsole: (patch: { paused?: boolean; windowOverrideMinutes?: number }) => request<RadioConsole>('PATCH', '/radio/console', patch),
   admin: {
     communities: () => get<{ communities: Community[] }>('/admin/communities'),
     awardSettings: () => get<{ settings: AwardSettings }>('/admin/award-settings'),
@@ -1589,6 +1606,8 @@ export const api = {
     radioHealth: () => get<StationHealth>('/admin/radio-health'),
     radioSchedule: () => get<{ schedule: RadioSchedule; onAirNow: boolean }>('/admin/radio-schedule'),
     updateRadioSchedule: (patch: Partial<RadioSchedule>) => request<{ schedule: RadioSchedule; onAirNow: boolean }>('PATCH', '/admin/radio-schedule', patch),
+    radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
+    setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
     operatorLog: () => get<{ enabled: boolean }>('/admin/operator-log'),
     setOperatorLog: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/operator-log', { enabled }),
     operatorLogCsv: () => getText('/admin/operator-log?format=csv'),

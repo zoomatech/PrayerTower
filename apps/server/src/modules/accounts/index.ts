@@ -7,7 +7,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
 
 export const WHY_HERE = ['pray_for_others', 'prayer_for_myself', 'pray_without_ceasing', 'extend_reach'] as const;
-export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness';
+export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness' | 'radio_operator';
 
 /** Sites a member may link for outside support: money stays outside the community. */
 export const SUPPORT_HOSTS = ['ko-fi.com', 'patreon.com', 'buymeacoffee.com', 'paypal.me', 'www.paypal.me', 'liberapay.com', 'github.com', 'zeffy.com', 'www.zeffy.com', 'opencollective.com'];

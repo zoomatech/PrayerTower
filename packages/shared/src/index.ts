@@ -341,7 +341,7 @@ export interface ChurchForReview extends Church {
   applicant: { id: string; displayName: string; handle: string | null; email: string | null };
 }
 
-export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness';
+export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness' | 'radio_operator';
 
 export interface ModerationItem {
   id: string;

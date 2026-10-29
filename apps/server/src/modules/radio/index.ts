@@ -12,8 +12,8 @@ import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as acks from './acks.js';
+import * as operatorConsole from './console.js';
 import * as receipts from './receipts.js';
-import * as schedule from './schedule.js';
 import * as tokens from '../tokens/index.js';
 import { requireFeature } from '../communities/index.js';
 
@@ -278,8 +278,9 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
   );
   // Listener acknowledgements: sent prayers nobody heard go back in the queue (acks.ts).
   await acks.requeueUnheard(q);
-  // Transmission windows and quiet hours (schedule.ts): outside them the prayers wait.
-  if (!schedule.onAir(await schedule.get(q))) return null;
+  // Transmission windows and quiet hours (schedule.ts), and the operator console's hold and
+  // window override (console.ts): while the station may not transmit, the prayers wait.
+  if (!(await operatorConsole.mayTransmit(q))) return null;
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
     const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(

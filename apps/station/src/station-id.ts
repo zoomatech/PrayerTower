@@ -83,6 +83,11 @@ export class StationId {
     return this.now() - this.last >= this.intervalMs;
   }
 
+  /** For the operator console's ID timer (the "station_id" status check): when it last identified, and how often it must. */
+  statusDetail(): string {
+    return `last=${Number.isFinite(this.last) ? new Date(this.last).toISOString() : 'never'} every=${Math.round(this.intervalMs / 60_000)}`;
+  }
+
   /** The ID's audio if one is due (and marks it sent), otherwise null. */
   take(sampleRate = 48_000): Float32Array | null {
     if (!this.due()) return null;
