@@ -93,6 +93,14 @@ describe('pilot tools', () => {
     expect(rows[0].body).toMatch(/new \(\d+ bugs/);
     // Only once a week.
     expect((await pilot.runWeekly(db, async (m) => void sent.push(m), now)).notified).toBe(0);
+
+    // A run whose emails all failed is finished by the retry, and only then.
+    await db.query('delete from public.feedback_summaries where week_start = $1', [sum.weekStart]);
+    await expect(pilot.runWeekly(db, async () => Promise.reject(new Error('SMTP down')), now)).rejects.toThrow('SMTP down');
+    const retried: Mail[] = [];
+    expect((await pilot.runWeekly(db, async (m) => void retried.push(m), now)).emailed).toBe(r.emailed);
+    expect(retried.length).toBe(r.emailed);
+    expect((await pilot.runWeekly(db, async (m) => void retried.push(m), now)).emailed).toBe(0);
     await pilot.updateSettings(db, { feedbackSummary: false });
   });
 });

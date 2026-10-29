@@ -12,12 +12,14 @@ struct MainTabs: View {
             FeedView().tabItem { Label("Feed", systemImage: "list.bullet") }.tag(0)
             CommitmentsView().tabItem { Label(model.words("tabs.promises"), systemImage: "checkmark.circle") }.tag(1)
             MessagesView().tabItem { Label(model.words("tabs.messages"), systemImage: "bubble.left.and.bubble.right") }.tag(2)
+            NotificationsView().tabItem { Label(model.words("tabs.notices"), systemImage: "bell") }.tag(5)
             if model.features["prayerCircles"] {
                 CirclesView().tabItem { Label("Circles", systemImage: "person.3") }.tag(3)
             }
             MeView().tabItem { Label(model.words("tabs.me"), systemImage: "person.crop.circle") }.tag(4)
         }
         .task { await model.loadSettings() }
+        .fullScreenCover(isPresented: Binding(get: { model.showTour }, set: { model.showTour = $0 })) { TourView() }
         .onChange(of: model.openPost) { _, id in if id != nil { tab = 0 } }
     }
 }

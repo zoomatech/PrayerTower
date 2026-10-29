@@ -5,3 +5,7 @@ PT_SUPABASE_KEY = sb_publishable_REPLACE_ME
 PT_API_URL = https:/$()/prayertower-api.fly.dev
 // Passkeys: the web domain whose apple-app-site-association lists this app (webcredentials).
 PT_PASSKEY_DOMAIN = prayertower.app
+// The terms of use, privacy policy and contact address (blank hides them).
+PT_TERMS_URL =
+PT_PRIVACY_URL =
+PT_SUPPORT_EMAIL =

@@ -89,11 +89,17 @@ public struct Profile: Codable, Sendable, Equatable {
     public let showPrayerStats: Bool?
     /// Missing on profiles fetched before the setting existed.
     public let notificationPrefs: NotificationPrefs?
+    /// nil until the member finishes the welcome questions.
+    public let onboardedAt: String?
+    public let supportWanted: [String]?
+    public let supportOffered: [String]?
+    public let prayForScope: [String]?
 
     public init(
         id: String, displayName: String, anonymousByDefault: Bool? = nil, whyHere: [String]? = nil, traumaContentOptOut: Bool? = nil,
         updatesInFirstComment: Bool? = nil, promptsEnabled: Bool? = nil, promptTone: String? = nil, digestEnabled: Bool? = nil, showPrayerStats: Bool? = nil,
-        notificationPrefs: NotificationPrefs? = nil
+        notificationPrefs: NotificationPrefs? = nil, onboardedAt: String? = nil, supportWanted: [String]? = nil, supportOffered: [String]? = nil,
+        prayForScope: [String]? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -106,6 +112,10 @@ public struct Profile: Codable, Sendable, Equatable {
         self.digestEnabled = digestEnabled
         self.showPrayerStats = showPrayerStats
         self.notificationPrefs = notificationPrefs
+        self.onboardedAt = onboardedAt
+        self.supportWanted = supportWanted
+        self.supportOffered = supportOffered
+        self.prayForScope = prayForScope
     }
 
     enum CodingKeys: String, CodingKey {
@@ -120,6 +130,10 @@ public struct Profile: Codable, Sendable, Equatable {
         case digestEnabled = "digest_enabled"
         case showPrayerStats = "show_prayer_stats"
         case notificationPrefs = "notification_prefs"
+        case onboardedAt = "onboarded_at"
+        case supportWanted = "support_wanted"
+        case supportOffered = "support_offered"
+        case prayForScope = "pray_for_scope"
     }
 }
 
