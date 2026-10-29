@@ -28,6 +28,29 @@ export async function setEnabled(q: Queryable, on: boolean) {
   await q.query('update public.token_settings set listener_reports_enabled = $1', [on]);
 }
 
+/** Extra stations (role 'station') may claim only while this is on. */
+export async function multiStation(q: Queryable) {
+  const { rows } = await q.query<{ multi_station_enabled: boolean }>('select multi_station_enabled from public.token_settings');
+  return rows[0]!.multi_station_enabled;
+}
+
+export async function setMultiStation(q: Queryable, on: boolean) {
+  await q.query('update public.token_settings set multi_station_enabled = $1', [on]);
+}
+
+/** Which stations sent what in the last 24 hours, for Admin → Radio. */
+export async function stationCounts(q: Queryable) {
+  const { rows } = await q.query<{ node: string | null; sending: number; sent: number }>(
+    `select n.name as node,
+            count(*) filter (where r.status = 'sending')::int as sending,
+            count(*) filter (where r.status = 'transmitted' and r.transmitted_at > now() - interval '24 hours')::int as sent
+       from public.radio_prayers r left join public.radio_nodes n on n.id = r.claimed_by_node
+      where r.status = 'sending' or (r.status = 'transmitted' and r.transmitted_at > now() - interval '24 hours')
+      group by n.name order by n.name nulls first`,
+  );
+  return rows;
+}
+
 export async function list(q: Queryable): Promise<RadioNode[]> {
   const { rows } = await q.query<RadioNode>(`select id, name, role, enabled, created_at, last_seen_at from public.radio_nodes order by created_at`);
   return rows;

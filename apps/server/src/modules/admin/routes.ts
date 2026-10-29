@@ -187,14 +187,21 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   // Listener nodes (radio/nodes.ts): their keys, switch and latest reports.
   app.get('/admin/radio-nodes', async (req) => {
     await requireAdmin(req);
-    return { enabled: await radioNodes.enabled(db), nodes: await radioNodes.list(db), reports: await radioNodes.latestReports(db) };
+    return {
+      enabled: await radioNodes.enabled(db),
+      multiStation: await radioNodes.multiStation(db),
+      nodes: await radioNodes.list(db),
+      reports: await radioNodes.latestReports(db),
+      stations: await radioNodes.stationCounts(db),
+    };
   });
 
   app.patch('/admin/radio-nodes', async (req) => {
     await requireAdmin(req);
-    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
-    await radioNodes.setEnabled(db, enabled);
-    return { enabled };
+    const { enabled, multiStation } = z.object({ enabled: z.boolean().optional(), multiStation: z.boolean().optional() }).parse(req.body);
+    if (enabled !== undefined) await radioNodes.setEnabled(db, enabled);
+    if (multiStation !== undefined) await radioNodes.setMultiStation(db, multiStation);
+    return { enabled: await radioNodes.enabled(db), multiStation: await radioNodes.multiStation(db) };
   });
 
   // The key is in this answer only; the server keeps its hash.

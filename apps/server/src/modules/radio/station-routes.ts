@@ -12,28 +12,41 @@ import * as radio from './index.js';
 import * as nodes from './nodes.js';
 
 export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string | null) {
-  const requireStation = async (req: FastifyRequest) => {
-    if (!stationKey) throw new AppError(503, 'station_disabled', 'No radio station is configured (STATION_API_KEY)');
+  /**
+   * The main station's STATION_API_KEY gives null; with several stations on, a
+   * station node's own key gives its id (radio/nodes.ts). Anything else is refused.
+   */
+  const requireStation = async (req: FastifyRequest): Promise<string | null> => {
     const given = Buffer.from(String(req.headers['x-station-key'] ?? ''));
-    const want = Buffer.from(stationKey);
-    if (given.length !== want.length || !timingSafeEqual(given, want)) throw new AppError(401, 'unauthenticated', 'Bad station key');
+    if (stationKey) {
+      const want = Buffer.from(stationKey);
+      if (given.length === want.length && timingSafeEqual(given, want)) return null;
+    }
+    if (given.length && (await nodes.multiStation(db))) {
+      return (await nodes.authenticate(db, given.toString(), 'station').catch(() => null))?.id ?? fail();
+    }
+    if (!stationKey) throw new AppError(503, 'station_disabled', 'No radio station is configured (STATION_API_KEY)');
+    return fail();
+  };
+  const fail = (): never => {
+    throw new AppError(401, 'unauthenticated', 'Bad station key');
   };
 
   // Claim the next prayer to send; 204 when there is nothing to send.
   app.post('/station/claim', async (req, reply) => {
-    await requireStation(req);
+    const node = await requireStation(req);
     await ops.beat(db, 'station');
-    const next = await withTx(db, (tx) => radio.claimNext(tx));
+    const next = await withTx(db, (tx) => radio.claimNext(tx, node));
     if (!next) return reply.code(204).send();
     return { radioPrayer: next };
   });
 
   // Burst mode: several prayers at once (at most the admin's radio_batch_max); 204 when there are none.
   app.post('/station/claim-batch', async (req, reply) => {
-    await requireStation(req);
+    const node = await requireStation(req);
     const { max } = z.object({ max: z.number().int().min(1).max(500).default(50) }).parse(req.body ?? {});
     await ops.beat(db, 'station');
-    const batch = await withTx(db, (tx) => radio.claimBatch(tx, max));
+    const batch = await withTx(db, (tx) => radio.claimBatch(tx, max, node));
     if (!batch.length) return reply.code(204).send();
     return { radioPrayers: batch };
   });
@@ -71,9 +84,9 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
   });
 
   app.post<{ Params: { id: string } }>('/station/radio-prayers/:id/result', async (req) => {
-    await requireStation(req);
+    const node = await requireStation(req);
     const result = radio.StationResult.parse(req.body);
-    await withTx(db, (tx) => radio.reportResult(tx, req.params.id, result));
+    await withTx(db, (tx) => radio.reportResult(tx, req.params.id, result, node));
     return { ok: true };
   });
 }

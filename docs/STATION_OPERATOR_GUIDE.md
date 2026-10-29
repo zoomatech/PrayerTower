@@ -235,6 +235,33 @@ Turning a node off stops its key working and its reports counting. A node on the
 same machine as the station can also write `LISTEN_REPORT_FILE`, which the
 station reads as a plain `BURST_AUTO_REPORT` file.
 
+## Several stations (one shared queue)
+
+Off by default. Several stations, for example one on FM and one on HF, or the
+Pi and Steve's Mac, can share one queue without sending any prayer twice:
+
+- When a station claims prayers, the server locks those rows and skips any that
+  another station has locked (`for update skip locked`). Two stations asking at the same moment
+  get different prayers.
+- Each claim records which station holds it, and only that station can report it sent or failed.
+- A claim with no report for 15 minutes goes back to the queue. If the
+  late station reports after another one has claimed it, that report is
+  refused.
+
+To add a station:
+
+1. In Admin → Radio, choose **Several stations**, type a name, and tap **Add station**.
+   Copy the key. It is shown only once.
+2. On the new station, put that key in `STATION_API_KEY` (in
+   `/etc/prayer-tower-station.env`, or `station.env` on a Mac). Give the station
+   its own control operator's `CALL_SIGN`. Everything else is set up as for the
+   first station.
+3. Admin → Radio shows each station's last check-in, what it is sending now and
+   what it sent in the last 24 hours. Turning a station off stops its key at once.
+   The main station's key (the server's `STATION_API_KEY`) always works.
+
+Health alerts and the burst log already list each station by its call sign.
+
 ## Health alerts in Admin → Radio
 
 Off by default. In Admin → Radio (station mode), turn on **Station alerts**.
@@ -325,6 +352,7 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - cloud-init on Raspberry Pi OS Trixie (`user-data` on the boot partition, from the 24 November 2025 image): [Raspberry Pi, "Cloud-init on Raspberry Pi OS"](https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/)
 - cloud-init `users` (`plain_text_passwd`, `lock_passwd`) and `packages`: [cloud-init docs](https://docs.cloud-init.io/en/latest/reference/yaml_examples/user_groups.html), [modules](https://docs.cloud-init.io/en/latest/reference/modules.html)
 - `arecord` raw capture options (`-t raw -f S16_LE -r 48000 -c 1`, `-D`): [arecord(1)](https://man.archlinux.org/man/arecord.1.en)
+- PostgreSQL row locks, `FOR UPDATE SKIP LOCKED` for queue consumers: [PostgreSQL docs, SELECT, The Locking Clause](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
 - launchd agent keys (`RunAtLoad`, `KeepAlive` with `SuccessfulExit`, `ThrottleInterval`, `StandardOutPath`): [launchd.plist(5)](https://leancrew.com/all-this/man/man5/launchd.plist.html)
 - Homebrew formulae: [hamlib](https://formulae.brew.sh/formula/hamlib), [node@22](https://formulae.brew.sh/formula/node@22), [sox](https://formulae.brew.sh/formula/sox) (provides `rec`)
 - sox raw output to stdout (`-` as the file name, `-t raw -b 16 -e signed-integer`): [sox(1)](https://man.archlinux.org/man/sox.1.en)
