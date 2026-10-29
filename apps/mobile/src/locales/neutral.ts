@@ -33,7 +33,7 @@ export const keys: Tree = named({
     adminHint: 'Members can start an invite-only small group (up to 12 people) with its own gentle feed, newest first. What is shared stays in the circle: never on the main feed, the radio or digests. The kind cloud checks every post and reply, members get a quiet in-app heads-up instead of a push, and only the asker sees how many are thinking of them. The person who started the circle can take down a post or remove someone.',
   },
   weather: {
-    numbers: '%{comments} comments · %{warm} warm · %{heated} heated · %{lifts} thinking of you',
+    numbers: '%{comments} comments from %{people} people · %{warm} warm · %{heated} heated · %{lifts} thinking of you',
   },
   circleWelcome: {
     adminHint: 'The person who started a circle writes a short welcome (its norms). Someone posting there for the first time sees it above the composer and can dismiss it, and the starter gets a quiet nudge to say hello. Needs circles on.',

@@ -132,7 +132,7 @@ export function NeonScene({ kind, line, accent }: { kind: SceneKind; line: strin
   }
   return (
     <View style={styles.scene} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`scene-${kind}`}>
-      <Svg width={180} height={170} viewBox="-10 -14 180 170" pointerEvents="none">
+      <Svg aria-hidden width={180} height={170} viewBox="-10 -14 180 170" pointerEvents="none">
         {art}
       </Svg>
     </View>

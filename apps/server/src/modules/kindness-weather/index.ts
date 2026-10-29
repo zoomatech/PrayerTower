@@ -19,6 +19,8 @@ export interface WeatherWeek {
   warm: number | null;
   heated: number | null;
   prayers: number | null;
+  /** Different people who commented: whether calmer weeks keep people talking (Steve's question, Notes p2). */
+  people: number | null;
 }
 
 /** Heat per comment decides the sky; a warm week with little heat is sunny. */
@@ -33,7 +35,7 @@ export function skyFor(comments: number, warm: number, heated: number): Weather 
 
 export async function report(q: Queryable, weeks = 12) {
   if (!(await settings(q)).kindness_weather_enabled) return { enabled: false as const, weeks: [] as WeatherWeek[] };
-  const { rows } = await q.query<{ week: Date; comments: number; warm: number; heated: number; prayers: number }>(
+  const { rows } = await q.query<{ week: Date; comments: number; warm: number; heated: number; prayers: number; people: number }>(
     `with w as (
        select generate_series(date_trunc('week', now()) - make_interval(weeks => $1 - 1), date_trunc('week', now()), interval '1 week') as week
      )
@@ -46,7 +48,8 @@ export async function report(q: Queryable, weeks = 12) {
        (select count(*)::int from public.heated_comments h where h.created_at >= w.week and h.created_at < w.week + interval '1 week')
        + (select count(*)::int from public.heated_replies h where h.created_at >= w.week and h.created_at < w.week + interval '1 week')
        + (select count(*)::int from public.moderation_items m where m.source = 'report' and m.created_at >= w.week and m.created_at < w.week + interval '1 week') as heated,
-       (select count(*)::int from public.prayer_events e where e.created_at >= w.week and e.created_at < w.week + interval '1 week') as prayers
+       (select count(*)::int from public.prayer_events e where e.created_at >= w.week and e.created_at < w.week + interval '1 week') as prayers,
+       (select count(distinct c.user_id)::int from public.comments c where c.created_at >= w.week and c.created_at < w.week + interval '1 week') as people
      from w order by w.week desc`,
     [weeks],
   );
@@ -62,6 +65,7 @@ export async function report(q: Queryable, weeks = 12) {
         warm: show ? r.warm : null,
         heated: show ? r.heated : null,
         prayers: show ? r.prayers : null,
+        people: show ? r.people : null,
       };
     }),
   };
