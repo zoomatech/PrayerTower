@@ -22,6 +22,8 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Listener acknowledgements | Admin → Radio → Listener acknowledgements | [Listener acknowledgements](#listener-acknowledgements) |
 | Urgent requests first | Admin → Radio → Urgent requests first | [Queue order](#queue-order) |
 | Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
+| Operator alerts (push on station problems) | Admin → Radio → Operator alerts | [Operator alerts](#operator-alerts) |
+| Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
 | Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
 | Weekly radio digest | Admin → Radio → Weekly digest | [Weekly radio digest](#weekly-radio-digest) |
@@ -401,9 +403,21 @@ One screen for the control operator: Me → **Operator console**. It is off unti
 | Manual override | **Hold all transmissions**: the station is handed nothing new until **Resume** (a burst already on the air finishes). **Send for 15 / 30 / 60 min**: sends outside the windows and quiet hours, then the windows apply again on their own; **End override** stops it early. |
 | Station ID timer | For each station: when it last identified, how often it must (`STATION_ID_MINUTES`), and when the next ID is due. The station reports this as its `station_id` check. |
 | Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10 with their wait, urgency and repeats. |
+| Relays | Each [store-and-forward relay](RADIO_BURST.md#store-and-forward-relay) that reported in the last hour: frames re-sent and air time used of its budget, and frames it did not re-send by reason. A relay sends this with its listener heartbeat. |
+| Reception beacon | When the [reception beacon](#reception-beacon) is on: the last day's beacons and every receiver that heard each one, with its SNR. |
 | Log | The last 20 transmissions in 24 hours (the same rows as the [operator log](#operator-log)): time, call sign, preset, sent or failed, heard by a listener, and the text. |
 
 The screen refreshes every 15 seconds. Holds and overrides are recorded in Admin → Audit log. Turning the console off lifts any hold or override, so nothing stays held by a screen no one can open.
+
+## Operator alerts
+
+Off until an admin turns on **Operator alerts** in Admin → Radio (under the operator console switch). Every 2 minutes the server checks the same problems as the [health alerts](#health-alerts-in-admin--radio): no sound card, the radio did not key, the last burst failed, prayers overdue, a station that stopped reporting. When one starts, every radio operator and admin gets a notice (a push, unless they turned pushes off or are in quiet hours). It is sent once while the problem lasts. When it clears, they get a quiet in-app "Back to normal" note. Information-only alerts (an empty queue, a quiet listener node) are never sent. This works whether or not the health alerts card is on.
+
+## Reception beacon
+
+Off until an admin turns on **Reception beacon** in Admin → Radio (under the operator console switch) and picks how often: every 30, 60 (the default), 120 or 240 minutes. Each time, the station sends the setup wizard's short test burst ("Station test" and a code, with its call sign in the frame). The station needs no new settings, and the setup wizard itself can stay off. Every listener node and listening page that decodes the beacon reports it, and each receiver is kept with its signal-to-noise ratio. The operator console shows the last 24 hours: when each beacon went out, which receivers heard it and how strongly, or that none did. This makes changes in reception through the day easy to see.
+
+No beacon goes out while the console's hold is on or outside the transmission windows. Turning the beacon off drops any beacon still waiting for the station. While a beacon is waiting (up to 5 minutes), a setup wizard test has to wait for it.
 
 ## Operator log
 

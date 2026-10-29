@@ -6,6 +6,8 @@
 // members with the radio_operator role may use it.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
+import * as beacon from './beacon.js';
+import * as nodes from './nodes.js';
 import * as oplog from './oplog.js';
 import * as schedule from './schedule.js';
 
@@ -83,6 +85,7 @@ export async function view(q: Queryable, now = new Date()) {
   );
   const log = (await oplog.rows(q, new Date(now.getTime() - 24 * 3_600_000), now)).slice(-20).reverse();
   const c = counts[0]!;
+  const b = await beacon.settings(q);
   return {
     paused: s.paused,
     windowOverrideUntil: s.windowOverrideUntil && s.windowOverrideUntil > now ? s.windowOverrideUntil.toISOString() : null,
@@ -99,6 +102,8 @@ export async function view(q: Queryable, now = new Date()) {
       const nextIdAt = id.lastIdAt && id.everyMinutes ? new Date(Date.parse(id.lastIdAt) + id.everyMinutes * 60_000).toISOString() : null;
       return { callSign: st.call_sign, lastHeartbeat: st.reported_at.toISOString(), ...id, nextIdAt };
     }),
+    relays: await nodes.relays(q, now),
+    beacon: { enabled: b.enabled, minutes: b.minutes, recent: b.enabled ? await beacon.recent(q, now) : [] },
     log: log.map((r) => ({ at: r.time_utc, callSign: r.call_sign, station: r.station, preset: r.preset, status: r.status, heard: r.heard, error: r.error, text: r.contents.slice(0, 140) })),
   };
 }

@@ -43,6 +43,8 @@ import * as radioNodes from '../radio/nodes.js';
 import * as radioAcks from '../radio/acks.js';
 import * as radioSchedule from '../radio/schedule.js';
 import * as operatorConsole from '../radio/console.js';
+import * as operatorAlerts from '../radio/operator-alerts.js';
+import * as beacon from '../radio/beacon.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -282,6 +284,23 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await requireAdmin(req);
     await operatorConsole.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
     return { enabled: (await operatorConsole.settings(db)).enabled };
+  });
+  app.get('/admin/radio-operator-alerts', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await operatorAlerts.enabled(db) };
+  });
+  app.patch('/admin/radio-operator-alerts', async (req) => {
+    await requireAdmin(req);
+    await operatorAlerts.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await operatorAlerts.enabled(db) };
+  });
+  app.get('/admin/radio-beacon', async (req) => {
+    await requireAdmin(req);
+    return beacon.settings(db);
+  });
+  app.patch('/admin/radio-beacon', async (req) => {
+    await requireAdmin(req);
+    return beacon.update(db, beacon.BeaconSettings.parse(req.body));
   });
   app.get('/radio/console', async (req) => {
     await requireOperator(req);

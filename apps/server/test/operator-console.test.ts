@@ -96,6 +96,15 @@ describe('operator console', () => {
     await schedule.update(db, { enabled: false });
   });
 
+  it('lists relays that reported with their heartbeat in the last hour', async () => {
+    const key = (await as(admin).post('/admin/radio-nodes', { name: `Ridge relay ${RUN}` })).json().key;
+    const relay = { callSign: 'K1RLY', relayedLastHour: 3, secondsLastHour: 4.2, budgetSeconds: 120, skipped: { duplicate: 2 } };
+    const r = await app.inject({ method: 'POST', url: '/node/heartbeat', headers: { 'x-node-key': key }, payload: { relay } });
+    expect(r.statusCode).toBe(200);
+    expect((await as(operator).get('/radio/console')).json().relays).toContainEqual(expect.objectContaining({ node: `Ridge relay ${RUN}`, ...relay }));
+    expect((await app.inject({ method: 'POST', url: '/node/heartbeat', headers: { 'x-node-key': key }, payload: { relay: { ...relay, skipped: { bogus: 1 } } } })).statusCode).toBe(400);
+  });
+
   it('turning the console off lifts a hold, so nothing stays held by a screen no one can see', async () => {
     await as(operator).patch('/radio/console', { paused: true });
     await as(admin).patch('/admin/radio-console', { enabled: false });

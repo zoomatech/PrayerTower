@@ -779,13 +779,18 @@ function RadioScheduleSection() {
   );
 }
 
-/** The operator console switch (radio/console.ts), off by default. */
+/** The operator console, operator alert and reception beacon switches (radio/console.ts, operator-alerts.ts, beacon.ts), off by default. */
 function RadioConsoleSection() {
   const t = useT();
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [alerts, setAlerts] = useState<boolean | null>(null);
+  const [beacon, setBeacon] = useState<{ enabled: boolean; minutes: number } | null>(null);
+  const saveBeacon = (patch: { enabled?: boolean; minutes?: number }) => api.admin.setRadioBeacon(patch).then(setBeacon).catch(() => undefined);
   useFocusEffect(
     useCallback(() => {
       api.admin.radioConsole().then((r) => setEnabled(r.enabled)).catch(() => undefined);
+      api.admin.operatorAlerts().then((r) => setAlerts(r.enabled)).catch(() => undefined);
+      api.admin.radioBeacon().then(setBeacon).catch(() => undefined);
     }, []),
   );
   if (enabled === null) return null;
@@ -798,6 +803,21 @@ function RadioConsoleSection() {
       </View>
       <Text style={type.small}>{t('admin.radioConsoleHint')}</Text>
       {enabled ? <Button small label={t('profile.operatorConsole')} onPress={() => router.push('/operator-console')} /> : null}
+      {alerts !== null ? (
+        <Toggle label={t('admin.operatorAlerts')} hint={t('admin.operatorAlertsHint')} value={alerts} onChange={(v) => api.admin.setOperatorAlerts(v).then((r) => setAlerts(r.enabled)).catch(() => undefined)} />
+      ) : null}
+      {beacon ? (
+        <>
+          <Toggle label={t('admin.radioBeacon')} hint={t('admin.radioBeaconHint')} value={beacon.enabled} onChange={(v) => saveBeacon({ enabled: v })} />
+          {beacon.enabled ? (
+            <View style={styles.row}>
+              {[30, 60, 120, 240].map((m) => (
+                <Chip key={m} label={t('admin.radioBeaconEvery', { minutes: m })} selected={beacon.minutes === m} onPress={() => saveBeacon({ minutes: m })} />
+              ))}
+            </View>
+          ) : null}
+        </>
+      ) : null}
     </View>
   );
 }

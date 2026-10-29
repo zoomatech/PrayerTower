@@ -67,11 +67,14 @@ export async function updateSettings(q: Queryable, patch: { enabled?: boolean; o
   return settings(q);
 }
 
-/** Every alert that holds now, problems first. Empty when the switch is off or the radio is not in station mode. */
-export async function alerts(q: Queryable, now = new Date()): Promise<{ enabled: boolean; overdueMinutes: number; alerts: StationAlert[] }> {
+/**
+ * Every alert that holds now, problems first. Empty when the switch is off (unless
+ * force, for operator alerts, which have their own switch) or the radio is not in station mode.
+ */
+export async function alerts(q: Queryable, now = new Date(), opts: { force?: boolean } = {}): Promise<{ enabled: boolean; overdueMinutes: number; alerts: StationAlert[] }> {
   const s = await settings(q);
   const out = { enabled: s.station_alerts_enabled, overdueMinutes: s.station_overdue_minutes, alerts: [] as StationAlert[] };
-  if (!s.station_alerts_enabled || (await stationSettings(q)).radio_transmitter !== 'station') return out;
+  if ((!s.station_alerts_enabled && !opts.force) || (await stationSettings(q)).radio_transmitter !== 'station') return out;
   const list = out.alerts;
 
   const { rows: stations } = await q.query<{ call_sign: string; checks: { name: string; ok: boolean; detail: string }[]; reported_at: Date }>(
