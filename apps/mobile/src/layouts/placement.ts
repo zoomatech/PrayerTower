@@ -6,13 +6,3 @@ export function hashId(id: string): number {
   return Math.abs(h);
 }
 
-export function vinePlacement(id: string) {
-  const h = hashId(id);
-  return {
-    side: h % 2 === 0 ? ('left' as const) : ('right' as const),
-    /** Leaf tilt, 15–20 degrees; the card text itself stays upright. */
-    tilt: 15 + (h % 6),
-    /** Extra stem length before this fruit, so the vine does not look ruled. */
-    gap: 8 + (h % 4) * 6,
-  };
-}

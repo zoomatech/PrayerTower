@@ -100,6 +100,7 @@ function RootStack() {
           <Stack.Screen name="meaning-words" />
           <Stack.Screen name="prayer-minute" />
           <Stack.Screen name="skin-idea" />
+          <Stack.Screen name="skin-gallery" />
           <Stack.Screen name="token-store" />
           <Stack.Screen name="give" />
           <Stack.Screen name="radio-requests" />

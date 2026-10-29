@@ -63,17 +63,20 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
   return (
     <View style={styles.row} testID={`screen-${card.id}`}>
       {/* The wire, its tap into this screen, and the bursts on it. */}
-      <View style={[styles.wire, { backgroundColor: tokens.wire, ...glow(tokens.wire, 6) }]}>{reduced ? null : <Burst tokens={tokens} delay={(index % 4) * 650} />}</View>
-      <View style={[styles.tap, { backgroundColor: tokens.wire, ...glow(tokens.wire, 6) }]} />
+      {/* Neon tubes: a white-hot core with the color blooming round it. */}
+      <View style={[styles.wire, styles.core, { borderColor: tokens.wire, ...glow(tokens.wire, 12) }]}>{reduced ? null : <Burst tokens={tokens} delay={(index % 4) * 650} />}</View>
+      <View style={[styles.tap, styles.core, { borderColor: tokens.wire, ...glow(tokens.wire, 12) }]} />
       <View style={[styles.node, { borderColor: tokens.wire, ...glow(tokens.wire, 8) }]} />
       <View
         style={[
           styles.screen,
-          { borderColor: tokens.screen, ...glow(tokens.screen, 14) },
+          { borderColor: tokens.screen, ...glow(tokens.screen, 18) },
           { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
         ]}>
         {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
-        <View style={styles.glass}>{children}</View>
+        <View style={styles.tube}>
+          <View style={styles.glass}>{children}</View>
+        </View>
       </View>
     </View>
   );
@@ -116,6 +119,9 @@ export function CircuitLayout({ cards, theme, pinnedId, renderCard, header, refr
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { padding: space.md, paddingBottom: 120 },
+  core: { backgroundColor: '#F2FEFF', borderWidth: 0.5 },
+  // The screen's frame glows as a tube: its color outside, a thin bright line inside.
+  tube: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.75)', borderRadius: radius.md },
   headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm, marginBottom: space.md },
   row: { position: 'relative', paddingVertical: space.md },
   // The live wire runs down the left edge of every row, so together the rows form one line.
