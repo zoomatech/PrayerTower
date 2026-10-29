@@ -20,14 +20,17 @@ about 32 bytes a prayer.
 | `fm-robust` | Any FM radio's mic and speaker audio | 2.0 kbit/s | 5.0 s | about 6 dB |
 | `fm-standard` (default) | Any FM radio's mic and speaker audio | 4.0 kbit/s | 2.5 s | about 10-12 dB |
 | `fm-fast` | FM audio, strong clean signal | 6.0 kbit/s | 1.7 s | about 16 dB |
+| `fm-turbo` | FM audio, full-quieting signal, audio level set well | 9.2 kbit/s | 1.2 s | about 22 dB |
 | `dataport-fast` | The radio's 9600 data port, or an SDR | 13 kbit/s | 0.9 s | about 18-20 dB |
+| `dataport-turbo` | 9600 data port or SDR, strong signal | 17 kbit/s | 0.7 s | about 24 dB |
 
 The receiver follows a sound card clock difference of up to ±300 ppm through
 frames of 20 seconds or more, and an SSB tuning error of up to about ±10 Hz
 (it measures the error from the header and shifts the frame back into tune).
 
-A full-quieting FM signal is far above these numbers, so `fm-fast` is the
-normal choice once the link is known to be solid. Bigger batches compress
+A full-quieting FM signal is normally above these numbers, so `fm-fast` or
+`fm-turbo` is the normal choice once the link is known to be solid. Check with
+`simulate` and a test receiver first. Bigger batches compress
 better, because later prayers reuse the words of earlier ones: 100 prayers fit
 in about 3.7 s on `fm-standard` and 2.6 s on `fm-fast` in the benchmark.
 
@@ -46,7 +49,7 @@ in about 3.7 s on `fm-standard` and 2.6 s on `fm-fast` in the benchmark.
    Reed-Solomon blocks over GF(256) (the RS(255,223) family), interleaved so a
    noise burst is spread over all blocks.
 3. **Many tones at once.** The audio is OFDM: 48 to 104 carriers 46.875 Hz
-   apart, each carrying 1 to 3 bits per 24 ms symbol with differential PSK.
+   apart, each carrying 1 to 4 bits per 24 ms symbol with differential PSK.
    This is the same layout that [VARA FM uses](https://digirig.net/software-modems-in-ham-radio-part-1-two-kinds-of-burst/)
    (48 kHz sound card, 1,024-point FFT, 46.875 Hz spacing, 21.3 ms symbol plus
    a 1/8 guard). Differential phase needs no channel estimate, so the radio's
@@ -104,7 +107,7 @@ Everything needed to write an independent decoder.
 header, 16 bytes, followed by 16 Reed-Solomon parity bytes:
   0-1   "PT"
   2     version, 1
-  3     preset id (1 fm-robust, 2 fm-standard, 3 fm-fast, 4 dataport-fast)
+  3     preset id (see the preset table below)
   4-6   message length L, big-endian
   7-14  call sign, ASCII, space padded
   15    flags, 0
@@ -145,6 +148,8 @@ payload symbols   the preset's bins, differential PSK
 | fm-standard | 2 | 16-63 | 2 | 32 |
 | fm-fast | 3 | 16-63 | 3 | 32 |
 | dataport-fast | 4 | 8-111 | 3 | 32 |
+| fm-turbo | 5 | 12-66 | 4 | 32 |
+| dataport-turbo | 6 | 8-111 | 4 | 32 |
 
 - **Known phases.** xorshift32 (x ^= x << 13; x ^= x >> 17; x ^= x << 5),
   seeded with 0x50545331 for S and 0x50545232 for R. For each carrier, from

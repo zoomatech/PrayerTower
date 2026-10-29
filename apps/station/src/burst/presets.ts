@@ -17,8 +17,8 @@ export interface BurstPreset {
   /** First and last FFT bin carrying data (inclusive). */
   firstBin: number;
   lastBin: number;
-  /** Bits per carrier per symbol: 1 = DBPSK, 2 = DQPSK, 3 = D8PSK. */
-  bitsPerSymbol: 1 | 2 | 3;
+  /** Bits per carrier per symbol: 1 = DBPSK, 2 = DQPSK, 3 = D8PSK, 4 = D16PSK. */
+  bitsPerSymbol: 1 | 2 | 3 | 4;
   /** Reed-Solomon parity bytes per 255-byte block (corrects half as many bad bytes). */
   parity: number;
 }
@@ -64,6 +64,26 @@ export const PRESETS: readonly BurstPreset[] = [
     firstBin: 8,
     lastBin: 111,
     bitsPerSymbol: 3,
+    parity: 32,
+  },
+  {
+    ...base,
+    id: 5,
+    name: 'fm-turbo',
+    description: 'FM audio, full-quieting signal and a well-set audio level. 55 carriers 563-3094 Hz, D16PSK, ~9.2 kbit/s raw.',
+    firstBin: 12,
+    lastBin: 66,
+    bitsPerSymbol: 4,
+    parity: 32,
+  },
+  {
+    ...base,
+    id: 6,
+    name: 'dataport-turbo',
+    description: 'A 9600 data port or SDR with a strong signal. 104 carriers 375-5203 Hz, D16PSK, ~17 kbit/s raw.',
+    firstBin: 8,
+    lastBin: 111,
+    bitsPerSymbol: 4,
     parity: 32,
   },
 ];

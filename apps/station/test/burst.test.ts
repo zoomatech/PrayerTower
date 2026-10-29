@@ -138,12 +138,20 @@ describe('burst modem through a simulated FM radio', () => {
   for (const preset of fmPresets) {
     it(`${preset.name}: 30 prayers survive filtering, clock drift and noise`, () => {
       const audio = modulate(encodeBatch(SAMPLE_PRAYERS), preset, 'KD9XYZ');
-      const rx = radioChannel(audio, { snrDb: preset.bitsPerSymbol === 3 ? 22 : 15, lowHz: 300, highHz: 3400, seed: preset.id });
+      const rx = radioChannel(audio, { snrDb: [0, 15, 15, 22, 30][preset.bitsPerSymbol]!, lowHz: 300, highHz: 3400, seed: preset.id });
       const heard = listen(rx);
       expect(heard).toHaveLength(1);
       expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', preset: preset.name, prayers: SAMPLE_PRAYERS });
     });
   }
+
+  it('dataport-turbo: 30 prayers through a strong data-port link in about 0.7 s', () => {
+    const preset = presetByName('dataport-turbo');
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    expect(frameSeconds(preset, batch.length + 4)).toBeLessThan(0.75);
+    const rx = radioChannel(modulate(batch, preset, 'KD9XYZ'), { snrDb: 32, lowHz: 50, highHz: 7000, seed: 6 });
+    expect(listen(rx)[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
 
   it('dataport-fast: 30 prayers through a flat data port in under a second', () => {
     const preset = presetByName('dataport-fast');
