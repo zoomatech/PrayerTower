@@ -20,6 +20,7 @@ import { AiLinks } from '@/components/ai-links';
 import { AwardCard } from '@/components/award-card';
 import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
+import { ConversationPrefsCard } from '@/components/conversation-prefs-card';
 import { EncouragerCard } from '@/components/encourager-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
@@ -181,6 +182,7 @@ export default function Profile() {
         ) : null}
         <GratitudeCard />
         <EncouragerCard />
+        <ConversationPrefsCard />
         <AwardCard />
         <PrayedForYou />
         <View style={styles.chips}>

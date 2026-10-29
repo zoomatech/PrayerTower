@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -310,6 +310,7 @@ function Admin() {
         <NotebookSettingsSection />
         <GrowthSettingsSection />
         <PracticeSettingsSection />
+        <ConversationSettingsSection />
         <SkinSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
@@ -1464,6 +1465,41 @@ function GrowthSettingsSection() {
       <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
       <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Conversation helpers (docs/CONVERSATION_HELPERS.md): each off until switched on; members still choose on Me. */
+function ConversationSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<ConversationSettings | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.conversationSettings().then((r) => setS(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateConversationSettings>[0]) =>
+    api.admin
+      .updateConversationSettings(patch)
+      .then((r) => {
+        setS(r.settings);
+        resetFeatures();
+        setNote(t('talk.adminSave'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('talk.adminTitle')}</Text>
+      <Text style={type.small}>{t('talk.adminIntro')}</Text>
+      <Toggle label={t('talk.adminSuggestions')} hint={t('talk.adminSuggestionsHint')} value={s.reply_suggestions_enabled} onChange={(v) => save({ replySuggestionsEnabled: v })} />
+      <Toggle label={t('talk.adminMeaning')} hint={t('talk.adminMeaningHint')} value={s.meaning_prefs_enabled} onChange={(v) => save({ meaningPrefsEnabled: v })} />
+      <Toggle label={t('talk.adminCare')} hint={t('talk.adminCareHint')} value={s.trouble_nudge_enabled} onChange={(v) => save({ troubleNudgeEnabled: v })} />
+      <Toggle label={t('talk.adminPacks')} hint={t('talk.adminPacksHint')} value={s.greeting_packs_enabled} onChange={(v) => save({ greetingPacksEnabled: v })} />
+      <Toggle label={t('talk.adminOwnWords')} hint={t('talk.adminOwnWordsHint')} value={s.own_words_enabled} onChange={(v) => save({ ownWordsEnabled: v })} />
+      <Toggle label={t('talk.adminClosings')} hint={t('talk.adminClosingsHint')} value={s.kind_closings_enabled} onChange={(v) => save({ kindClosingsEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

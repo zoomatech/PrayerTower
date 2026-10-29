@@ -8,6 +8,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance 
 
 import { CrisisSupport } from '@/components/crisis';
 import { KindCloud } from '@/components/kind-cloud';
+import { ReplyHelpers } from '@/components/reply-helpers';
 import { Button, Chip, ErrorText, Field, RulesWarning } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -206,6 +207,12 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
             multiline
           />
           <KindCloud text={text} />
+          <ReplyHelpers
+            lastFromOther={[...(view?.messages ?? [])].reverse().find((m) => !m.mine)?.body ?? null}
+            empty={!view?.messages.length}
+            text={text}
+            onPick={setText}
+          />
           {warned ? <RulesWarning onPostAnyway={() => send(true)} busy={busy} /> : null}
           <Button testID="message-send" label={t('actions.send')} onPress={() => send()} busy={busy} disabled={!text.trim()} />
         </View>
