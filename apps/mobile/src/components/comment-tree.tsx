@@ -15,8 +15,10 @@ import type { Comment } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { LeafFrame, VineRow, type VineSide } from '@/components/vine-flow';
-import { LeafMark } from '@/layouts/motifs';
+import { StoneTablet } from '@/components/stone-tablet';
+import { isLit, LeafFrame, VineRow, type VineSide } from '@/components/vine-flow';
+import { LeafMark, textOn } from '@/layouts/motifs';
+import { hashId } from '@/layouts/placement';
 import type { vineTokens } from '@/layouts/vine';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
@@ -109,9 +111,17 @@ function Leaf({ comment, depth, props, tree }: { comment: Comment; depth: number
           <View style={styles.markBox}>
             <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={depth > 0 ? 14 : 18} />
           </View>
-        ) : (
-          <View style={[styles.leafShape, tablet ? styles.tabletMark : pointed ? styles.pointed : styles.round, { backgroundColor: tokens.leaf }]} />
+        ) : tablet ? null : (
+          <View style={[styles.leafShape, pointed ? styles.pointed : styles.round, { backgroundColor: tokens.leaf }]} />
         )}
+        {tablet ? (
+          // Drawn stone: a sub-tablet for each comment, smaller again for replies.
+          <View style={[styles.stone, highlighted && { borderColor: colors.primary }]}>
+            <StoneTablet stone={tokens.leaf} mortar={tokens.branch} depth={Math.min(depth + 1, 2)} seed={hashId(comment.id)}>
+              {props.renderBody(comment, depth < props.maxDepth)}
+            </StoneTablet>
+          </View>
+        ) : (
         <View
           style={[
             styles.body,
@@ -119,11 +129,11 @@ function Leaf({ comment, depth, props, tree }: { comment: Comment; depth: number
               backgroundColor: highlighted ? colors.primarySoft : tokens.leafSoft,
               borderColor: tokens.leaf,
             },
-            tablet && [styles.tablet, { borderColor: tokens.branch }, depth > 0 && styles.subTablet],
           ]}
         >
           {props.renderBody(comment, depth < props.maxDepth)}
         </View>
+        )}
       </View>
       <Branch parentId={comment.id} depth={depth + 1} props={props} tree={tree} />
     </Animated.View>
@@ -255,7 +265,7 @@ function VineTree(props: CommentTreeProps) {
                 {[0.35, 0.22, 0.12].map((o, k) => (
                   <View key={k} style={[styles.vineGhost, { opacity: o, backgroundColor: tokens.leaf, left: k * 14, top: k * 8, transform: [{ rotate: `${(k - 1) * 8}deg` }] }]} />
                 ))}
-                <Text style={styles.blurText}>{t('tree.more', { count: row.count })}</Text>
+                <Text style={[styles.blurText, isLit(tokens.vineStyle) ? { color: textOn(tokens.backdrop || '#0B1324') } : null]}>{t('tree.more', { count: row.count })}</Text>
               </Pressable>
             </VineRow>
           );
@@ -312,11 +322,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   markBox: { marginTop: 10, marginRight: space.xs, width: 18, alignItems: 'center' },
-  // A stone tablet: square corners at the foot, a rounded top, a heavier edge.
-  tabletMark: { width: 12, height: 16, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderRadius: 1 },
-  tablet: { borderWidth: 2, borderRadius: 4, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  // Replies are smaller sub-tablets.
-  subTablet: { borderWidth: 1.5, paddingVertical: space.xs, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+  // A drawn stone sub-tablet; a thin outline marks the comment that was linked to.
+  stone: { flex: 1, borderWidth: 2, borderColor: 'transparent', borderRadius: 6 },
   blur: {
     height: 48,
     justifyContent: 'center',

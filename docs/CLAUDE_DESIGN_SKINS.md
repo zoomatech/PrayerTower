@@ -46,6 +46,6 @@ Start from [docs/skin-template.json](skin-template.json). Fields:
 | `for` | `all`, `faith` (every community except Open Circle) or `open` (Open Circle only). |
 | `season` | Optional: `advent`, `christmas`, `lent`, `easter`, `pentecost`, `winter`, `spring`, `summer` or `autumn`. The skin then shows only in that season. |
 | `animations` | Optional; vine skins read `enter`, `answered` and `idleBird`. |
-| `tokens` | The look. Vine: `backdrop`, `stem`, `stemWidth` (2–14), `stemDouble`, `stemGlow`, `branch`, `leaf`, `leafSoft`, `tendril`, `leafShape`, `scenery` (`fairytale` or empty), `leafEvery`, `idleBirdSeconds`, `tipText`, `birdText`. Wall: `backdrop`. Tower: `stone`, `mortar`, `backdrop`, `climber`. Circuit: `backdrop`, `wire`, `burst`, `screen`, `tilt` (0–20). |
+| `tokens` | The look. Vine: `backdrop`, `stem`, `stemWidth` (2–14), `stemDouble`, `stemGlow`, `branch`, `leaf`, `leafSoft`, `tendril`, `leafShape`, `scenery` (`fairytale` or empty), `vineStyle` (`beanstalk`, `ink`, `neon`, `gate` or empty), `ink` (outline color for `ink`), `leafEvery`, `idleBirdSeconds`, `tipText`, `birdText`. Wall: `backdrop`. Tower: `stone`, `mortar`, `backdrop`, `climber`. Circuit: `backdrop`, `wire`, `burst`, `screen`, `tilt` (0–20). |
 
 A file can hold one skin or a list of them. The seasonal skins were added this way (`supabase/migrations/20261029031733_seasonal_skins.sql`).

@@ -12,6 +12,9 @@
 //  - 'ink'       a pen-and-ink drawing: dark outlines on trunk and leaves, flat colors.
 //  - 'neon'      not a plant at all: straight glowing rods with hard right-angle joins
 //                and cut-corner frames, the way neon tubes glow (Neon Cinderella).
+//  - 'gate'      fine lines of silver light on a night sky (Moonlit Gate): a thin
+//                line of light runs down from the gate drawn at the top of the feed,
+//                and each post sits in a little arched doorway of light.
 //
 // On a phone the stalk runs down the left edge and the leaves hang to its right;
 // on a wide lane (iPad, Mac) it runs down the middle with leaves on both sides.
@@ -23,7 +26,10 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { colors, radius, space } from '@/lib/theme';
 
 export type VineSide = 'left' | 'right';
-export type VineStyle = '' | 'beanstalk' | 'ink' | 'neon';
+export type VineStyle = '' | 'beanstalk' | 'ink' | 'neon' | 'gate';
+
+/** Styles drawn in light on a dark sky rather than as a plant. */
+export const isLit = (style: VineStyle) => style === 'neon' || style === 'gate';
 
 export interface VineLook {
   stem: string;
@@ -62,6 +68,7 @@ function mix(a: string, b: string, t: number) {
  */
 export function leafBox(look: VineLook) {
   if (look.vineStyle === 'neon') return '#F4EEFF';
+  if (look.vineStyle === 'gate') return '#EEF3FA';
   for (const t of [0.45, 0.35, 0.25, 0.15]) {
     const c = mix(look.leafSoft, look.leaf, t);
     if (HEX.test(c) && [COMMENT_TEXT, colors.textMuted, colors.primary].every((text) => contrastRatio(c, text) >= 4.5)) return c;
@@ -102,18 +109,36 @@ function curl(x: number, y: number, dir: 1 | -1, size = 1) {
   return `M ${x} ${y} c ${12 * d} -4, ${26 * d} -16, ${20 * d} -28 c ${-4 * d} -8, ${-15 * d} -6, ${-14 * d} 3 c ${1 * d} 6, ${8 * d} 6, ${8 * d} 0`;
 }
 
+/** A four-pointed star of light, centered on (x, y). */
+export function sparkle(x: number, y: number, r: number) {
+  const k = r * 0.28;
+  return `M ${x} ${y - r} L ${x + k} ${y - k} L ${x + r} ${y} L ${x + k} ${y + k} L ${x} ${y + r} L ${x - k} ${y + k} L ${x - r} ${y} L ${x - k} ${y - k} Z`;
+}
+
+/** An arched doorway: straight sides and foot, a pointed arch on top (Moonlit Gate's frames). */
+export function doorway(w: number, h: number, inset: number, arch: number) {
+  const l = inset;
+  const r = w - inset;
+  const top = inset;
+  const spring = top + arch;
+  return `M ${l} ${h - inset} L ${l} ${spring} C ${l} ${top + arch * 0.35}, ${w * 0.3} ${top}, ${w / 2} ${top} C ${w * 0.7} ${top}, ${r} ${top + arch * 0.35}, ${r} ${spring} L ${r} ${h - inset} Z`;
+}
+
 /** A small leaf on the stalk itself. */
 function sprig(x: number, y: number, dir: 1 | -1) {
   const d = dir;
   return `M ${x} ${y} q ${12 * d} -18, ${32 * d} -12 q ${-10 * d} 16, ${-32 * d} 12 z`;
 }
 
-/** A neon tube: a wide faint bloom, a brighter halo and a thin white-hot core. */
-function Rod({ d, color, width = 2.5 }: { d: string; color: string; width?: number }) {
+/**
+ * A neon tube: a wide faint bloom, a brighter halo and a thin white-hot core.
+ * `fine` is a thread of light (Moonlit Gate): the same layers, drawn closer in.
+ */
+export function Rod({ d, color, width = 2.5, fine = false }: { d: string; color: string; width?: number; fine?: boolean }) {
   return (
     <>
-      <Path d={d} stroke={color} strokeOpacity={0.14} strokeWidth={width + 14} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={d} stroke={color} strokeOpacity={0.35} strokeWidth={width + 6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={d} stroke={color} strokeOpacity={fine ? 0.1 : 0.14} strokeWidth={width + (fine ? 8 : 14)} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={d} stroke={color} strokeOpacity={fine ? 0.3 : 0.35} strokeWidth={width + (fine ? 3 : 6)} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <Path d={d} stroke={color} strokeWidth={width} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <Path d={d} stroke="#FFFFFF" strokeOpacity={0.85} strokeWidth={Math.max(0.8, width / 3)} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </>
@@ -155,8 +180,9 @@ export function VineRow({
   const sx = g.stalkX;
   const out: 1 | -1 = g.centered ? (leafSide === 'left' ? 1 : -1) : 1; // tendrils curl away from the leaf
   const neon = look.vineStyle === 'neon';
+  const gate = look.vineStyle === 'gate';
   const sw = look.stemWidth;
-  const sway = neon ? 0 : (seed % 2 === 0 ? 1 : -1) * Math.min(8, sw + 3);
+  const sway = neon || gate ? 0 : (seed % 2 === 0 ? 1 : -1) * Math.min(8, sw + 3);
   // The stem from the stalk out to the leaf's base, at the top middle of the leaf.
   const baseX = g.leafLeft + g.leafWidth / 2;
   const baseY = gap + 6;
@@ -164,7 +190,9 @@ export function VineRow({
   const stem =
     side === 'center' || !w
       ? ''
-      : neon
+      : gate
+        ? `M ${sx} ${baseY - 3} L ${baseX} ${baseY - 3}`
+        : neon
         ? `M ${sx} ${fromY} L ${sx} ${gap - 4} L ${baseX} ${gap - 4} L ${baseX} ${baseY}`
         : `M ${sx} ${fromY} C ${sx + (baseX - sx) * 0.15} ${gap - 14}, ${baseX - (baseX - sx) * 0.3} ${gap - 18}, ${baseX} ${baseY}`;
   const stemW = Math.max(2, sw * (depth > 0 ? 0.35 : 0.5));
@@ -172,7 +200,16 @@ export function VineRow({
 
   let stalk: ReactNode = null;
   if (w && h) {
-    if (neon) {
+    if (gate) {
+      // A thread of light straight down, with a few small stars caught on it.
+      stalk = (
+        <>
+          <Rod d={`M ${sx} 0 L ${sx} ${h}`} color={look.stem} width={1.4} fine />
+          {stem ? <Rod d={stem} color={look.stem} width={1.2} fine /> : null}
+          {[0.3, 0.72].map((t) => (h > 120 ? <Path key={t} d={sparkle(sx, h * t, 5)} fill="#FFFFFF" stroke={look.stem} strokeWidth={0.6} /> : null))}
+        </>
+      );
+    } else if (neon) {
       stalk = (
         <>
           <Rod d={`M ${sx} 0 L ${sx} ${h}`} color={look.stem} width={Math.max(2, sw - 1)} />
@@ -253,6 +290,8 @@ export function LeafFrame({
   const [size, setSize] = useState({ w: 0, h: 0 });
   const { w, h } = size;
   const neon = look.vineStyle === 'neon';
+  const gate = look.vineStyle === 'gate';
+  const arch = Math.min(72, Math.max(30, w * 0.22));
   const ink = look.vineStyle === 'ink' ? look.ink || '#3A2E1F' : '';
   const pad = LEAF_PAD[Math.min(depth, 2) as 0 | 1 | 2];
   // A leaf: widest a little above the middle, narrowing to a point at both ends.
@@ -269,14 +308,27 @@ export function LeafFrame({
   const frame = `M ${c} 2 L ${w - c} 2 L ${w - 2} ${c} L ${w - 2} ${h - c} L ${w - c} ${h - 2} L ${c} ${h - 2} L 2 ${h - c} L 2 ${c} Z`;
   return (
     <View
-      style={[styles.leaf, { paddingVertical: neon ? 14 : pad, paddingHorizontal: neon ? 14 : Math.max(10, w * 0.08) }]}
+      style={[
+        styles.leaf,
+        gate
+          ? { paddingTop: arch * 0.7 + 14, paddingBottom: 16, paddingHorizontal: 16 }
+          : { paddingVertical: neon ? 14 : pad, paddingHorizontal: neon ? 14 : Math.max(10, w * 0.08) },
+      ]}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         if (Math.abs(width - w) > 1 || Math.abs(height - h) > 1) setSize({ w: width, h: height });
       }}>
       {w ? (
         <Svg style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {neon ? (
+          {gate ? (
+            <>
+              {/* The doorway opens on the night sky, also where the page around it is light (a post's comments). */}
+              <Path d={doorway(w, h, 2, arch)} fill={look.backdrop || '#0B1324'} fillOpacity={0.92} />
+              <Rod d={doorway(w, h, 3, arch)} color={look.leaf} width={1.6} fine />
+              <Path d={doorway(w, h, 9, arch - 4)} stroke={look.leaf} strokeOpacity={0.55} strokeWidth={0.8} fill="none" />
+              <Path d={sparkle(w / 2, 3, 7)} fill="#FFFFFF" stroke={look.leaf} strokeWidth={0.8} />
+            </>
+          ) : neon ? (
             <>
               <Path d={frame} fill="#0B0820" fillOpacity={0.6} />
               <Rod d={frame} color={look.leaf} width={2.5} />
@@ -305,7 +357,7 @@ export function leafCardSurface(look: VineLook): ViewStyle {
   const ink = look.vineStyle === 'ink' ? look.ink || '#3A2E1F' : '';
   return {
     backgroundColor: leafBox(look),
-    borderColor: ink || (look.vineStyle === 'neon' ? look.leaf : 'transparent'),
+    borderColor: ink || (isLit(look.vineStyle) ? look.leaf : 'transparent'),
     borderRadius: look.vineStyle === 'neon' ? 4 : radius.md,
     padding: space.md,
   };

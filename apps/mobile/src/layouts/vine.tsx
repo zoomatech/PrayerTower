@@ -18,7 +18,8 @@ import { Animated, Easing, FlatList, Pressable, StyleSheet, Text, View } from 'r
 
 import { Button } from '@/components/ui';
 import { CardSurface } from '@/components/post-card';
-import { leafCardSurface, LeafFrame, VINE_GAP, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
+import { GateArch } from '@/components/gate-arch';
+import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
@@ -56,7 +57,7 @@ const DEFAULTS = {
   stemGlow: false,
   /** 'fairytale' puts neon outline drawings between the requests (Neon Cinderella). */
   scenery: '',
-  /** How the plant is drawn: '' (one stalk), 'beanstalk' (twisting strands), 'ink' (pen-and-ink), 'neon' (glowing rods, no plant). */
+  /** How the plant is drawn: '' (one stalk), 'beanstalk' (twisting strands), 'ink' (pen-and-ink), 'neon' (glowing rods, no plant), 'gate' (lines of silver light under a drawn gate). */
   vineStyle: '' as VineStyle,
   /** Outline color for the 'ink' style. */
   ink: '',
@@ -64,7 +65,7 @@ const DEFAULTS = {
 type VineTokens = typeof DEFAULTS;
 export const LEAF_SHAPES = ['round', 'pointed', 'flower', 'star', 'tablet'] as const;
 export type LeafShape = (typeof LEAF_SHAPES)[number];
-const VINE_STYLES: VineStyle[] = ['', 'beanstalk', 'ink', 'neon'];
+const VINE_STYLES: VineStyle[] = ['', 'beanstalk', 'ink', 'neon', 'gate'];
 
 /** Theme tokens override the defaults key by key; wrong types are ignored. */
 export function vineTokens(theme: FeedTheme | null): VineTokens {
@@ -98,6 +99,7 @@ type Item = (
   | { kind: 'more'; postId: string; count: number; side: VineSide; key: string }
   | { kind: 'leaf'; leaf: Leaf; key: string }
   | { kind: 'scene'; scene: SceneKind; key: string }
+  | { kind: 'gate'; key: string }
 ) & {
   /** The side the vine is coming from (the leaf above), or null at the top. */
   from: VineSide | null;
@@ -113,7 +115,7 @@ function Fruit({ card, pinned, tokens, side, from, gap, children }: { card: Card
   const reduced = useReducedMotion();
   const grow = useRef(new Animated.Value(reduced ? 1 : 0)).current;
   // The tags sit on the leaf: keep each tag color only where it reads at 4.5:1 there (WCAG AA).
-  const under = tokens.vineStyle === 'neon' ? tokens.backdrop || '#0B0820' : tokens.leaf;
+  const under = isLit(tokens.vineStyle) ? tokens.backdrop || '#0B0820' : tokens.leaf;
   const on = (color: string) => (/^#[0-9A-Fa-f]{6}$/.test(color) && /^#[0-9A-Fa-f]{6}$/.test(under) && contrastRatio(color, under) >= 4.5 ? color : textOn(under));
   useEffect(() => {
     if (reduced) return grow.setValue(1);
@@ -241,6 +243,8 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
     let line: VineSide | null = null;
+    // Moonlit Gate: the feed begins at a drawn gate, and its line of light runs down from the doorway.
+    if (tokens.vineStyle === 'gate' && cards.length) out.push({ kind: 'gate', key: 'gate', from: null });
     cards.forEach((card, i) => {
       // Leaves alternate down the vine, so it swoops from side to side; your own requests grow on your branch, on the right.
       const side: VineSide = card.isMine ? 'right' : line === 'left' ? 'right' : 'left';
@@ -269,7 +273,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
       }
     });
     return out;
-  }, [cards, leaves, tokens.leafEvery, tokens.scenery]);
+  }, [cards, leaves, tokens.leafEvery, tokens.scenery, tokens.vineStyle]);
 
   const onScroll = useCallback(() => {
     const now = Date.now();
@@ -313,6 +317,8 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
                 <Text style={[styles.moreText, tokens.backdrop ? { color: textOn(tokens.backdrop) } : null]}>{t('vine.moreComments', { count: item.count })}</Text>
               </Pressable>
             </VineRow>
+          ) : item.kind === 'gate' ? (
+            <GateArch line={tokens.stem} accent={tokens.tendril} testID="gate-arch" />
           ) : item.kind === 'scene' ? (
             <VineRow from={item.from} side="center" look={tokens} gap={VINE_GAP / 2}>
               <NeonScene kind={item.scene} line={tokens.stem} accent={tokens.leaf} />
