@@ -60,13 +60,14 @@ export interface PracticeSettings {
   weekly_intention_enabled: boolean;
   community_health_enabled: boolean;
   fresh_days_enabled: boolean;
+  circle_updates_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
             welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled,
             partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled, answered_stories_enabled, kindness_intro_enabled, check_back_enabled, kind_milestones_enabled, thank_note_enabled, calm_threads_enabled,
-            prayer_circles_enabled, encourager_checkin_enabled, encourager_checkin_days, kindness_weather_enabled, circle_welcome_enabled, path_back_enabled, empathy_practice_enabled, weekly_intention_enabled, community_health_enabled, fresh_days_enabled
+            prayer_circles_enabled, encourager_checkin_enabled, encourager_checkin_days, kindness_weather_enabled, circle_welcome_enabled, path_back_enabled, empathy_practice_enabled, weekly_intention_enabled, community_health_enabled, fresh_days_enabled, circle_updates_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -109,6 +110,7 @@ export const SettingsPatch = z.object({
   weeklyIntentionEnabled: z.boolean().optional(),
   communityHealthEnabled: z.boolean().optional(),
   freshDaysEnabled: z.boolean().optional(),
+  circleUpdatesEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -135,7 +137,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        empathy_practice_enabled = coalesce($33, empathy_practice_enabled),
        weekly_intention_enabled = coalesce($34, weekly_intention_enabled),
        community_health_enabled = coalesce($35, community_health_enabled),
-       fresh_days_enabled = coalesce($36, fresh_days_enabled)`,
+       fresh_days_enabled = coalesce($36, fresh_days_enabled),
+       circle_updates_enabled = coalesce($37, circle_updates_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -173,6 +176,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.weeklyIntentionEnabled ?? null,
       p.communityHealthEnabled ?? null,
       p.freshDaysEnabled ?? null,
+      p.circleUpdatesEnabled ?? null,
     ],
   );
   return settings(q);
@@ -209,6 +213,7 @@ export async function features(q: Queryable) {
     empathyPractice: s.empathy_practice_enabled,
     weeklyIntention: s.weekly_intention_enabled,
     freshDays: s.fresh_days_enabled,
+    circleUpdates: s.prayer_circles_enabled && s.circle_updates_enabled,
   };
 }
 

@@ -221,6 +221,7 @@ export interface Features {
   empathyPractice: boolean;
   weeklyIntention: boolean;
   freshDays: boolean;
+  circleUpdates: boolean;
   replyChoice: boolean;
   /** Comments at block breaks: a comment on one ~200-word part of a long post. */
   partComments: boolean;
@@ -344,6 +345,7 @@ export interface PracticeSettings {
   weekly_intention_enabled: boolean;
   community_health_enabled: boolean;
   fresh_days_enabled: boolean;
+  circle_updates_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -430,6 +432,8 @@ export interface CirclePost extends CircleReply {
   /** Only on the viewer's own posts. */
   prayed?: number;
   replies: CircleReply[];
+  /** Circle updates (off): how it's going, from the person who shared. */
+  update?: { text: string | null; answered: boolean; at: string };
 }
 export interface CircleView {
   circle: { id: string; name: string; about: string | null; isOwner: boolean; ownerId: string; full: boolean };
@@ -2077,7 +2081,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean; partCommentsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean; circleUpdatesEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -2341,6 +2345,7 @@ export const api = {
   removeCircleMember: (id: string, userId: string) => request<{ removed: boolean }>('DELETE', `/circles/${id}/members/${userId}`),
   circlePost: (id: string, body: string) => post<{ id: string }>(`/circles/${id}/posts`, { body }),
   circleReply: (postId: string, body: string) => post<{ id: string }>(`/circle-posts/${postId}/replies`, { body }),
+  circleUpdate: (postId: string, text: string, answered: boolean) => post<{ ok: boolean }>(`/circle-posts/${postId}/update`, { text, answered }),
   circlePray: (postId: string) => post<{ prayed: boolean }>(`/circle-posts/${postId}/pray`),
   removeCirclePost: (postId: string) => request<{ removed: boolean }>('DELETE', `/circle-posts/${postId}`),
   setCircleWelcome: (id: string, text: string) => put<{ welcome: string | null }>(`/circles/${id}/welcome`, { text }),

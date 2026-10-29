@@ -41,6 +41,11 @@ export const keys: Tree = named({
   pathBack: {
     adminHint: 'When a moderator removes a post or comment, the notice says the author may post it again with changes, and only the author can open their own words to edit. Never offered for posts wishing harm, flooding or automated accounts.',
   },
+  circleUpdates: {
+    answered: 'It worked out',
+    answeredBadge: 'Worked out 🌱',
+    adminHint: 'The person who shared in a circle can add how it’s going or mark that it worked out, and the people who sent support get a quiet in-app note. Three good things can also be shared to one of the member’s circles. Needs circles on.',
+  },
   freshDays: {
     advent: 'A new season begins today. Want to pick one small intention?',
     lent: 'A new season begins today. Want to pick one small intention?',

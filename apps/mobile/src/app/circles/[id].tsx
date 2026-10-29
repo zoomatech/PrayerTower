@@ -8,16 +8,49 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { KindCloud } from '@/components/kind-cloud';
 import { ReplyHelpers } from '@/components/reply-helpers';
-import { Button, Empty, ErrorText, Field, Loading, Screen } from '@/components/ui';
+import { Button, Chip, Empty, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api, type CirclePost, type CircleView } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { announce } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
 
+/** Circle updates: the person who shared says how it's going, or that it was answered. */
+function UpdateComposer({ p, onDone }: { p: CirclePost; onDone: () => void }) {
+  const t = useT();
+  const [text, setText] = useState(p.update?.text ?? '');
+  const [answered, setAnswered] = useState(p.update?.answered ?? false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <View style={styles.update}>
+      <Field label={t('circleUpdates.label')} value={text} onChangeText={setText} maxLength={600} multiline />
+      <KindCloud text={text} />
+      <Chip label={t('circleUpdates.answered')} selected={answered} onPress={() => setAnswered((a) => !a)} />
+      <Button
+        small
+        label={t('circleUpdates.save')}
+        disabled={!text.trim() && !answered}
+        onPress={() =>
+          api.circleUpdate(p.id, text.trim(), answered).then(
+            () => {
+              announce(t('circleUpdates.saved'));
+              onDone();
+            },
+            (e) => setError((e as Error).message),
+          )
+        }
+      />
+      <ErrorText error={error} />
+    </View>
+  );
+}
+
 function PostItem({ p, view, onChange }: { p: CirclePost; view: CircleView; onChange: () => void }) {
   const t = useT();
+  const { circleUpdates } = useFeatures();
+  const [updating, setUpdating] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mine = p.prayed !== undefined;
@@ -36,6 +69,26 @@ function PostItem({ p, view, onChange }: { p: CirclePost; view: CircleView; onCh
         {p.author.displayName ?? ''} · {day(p.createdAt)}
       </Text>
       <Text style={type.body}>{p.body}</Text>
+      {p.update ? (
+        <View style={styles.update} testID={`circle-update-${p.id}`}>
+          {p.update.answered ? <Text style={type.heading}>{t('circleUpdates.answeredBadge')}</Text> : null}
+          {p.update.text ? <Text style={type.body}>{p.update.text}</Text> : null}
+          <Text style={type.small}>{t('circleUpdates.when', { date: day(p.update.at) })}</Text>
+        </View>
+      ) : null}
+      {mine && circleUpdates ? (
+        updating ? (
+          <UpdateComposer
+            p={p}
+            onDone={() => {
+              setUpdating(false);
+              onChange();
+            }}
+          />
+        ) : (
+          <Button small variant="secondary" label={t('circleUpdates.open')} onPress={() => setUpdating(true)} />
+        )
+      ) : null}
       {mine ? (
         p.prayed ? <Text style={type.small}>{t('circles.prayedCount', { count: p.prayed })}</Text> : null
       ) : p.prayedByMe ? (
@@ -216,4 +269,5 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   welcome: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   welcomeEdit: { gap: space.sm },
+  update: { gap: space.xs, padding: space.sm, borderRadius: radius.md, backgroundColor: colors.primarySoft },
 });

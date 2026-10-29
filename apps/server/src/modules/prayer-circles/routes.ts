@@ -42,5 +42,6 @@ export function prayerCircleRoutes(app: FastifyInstance, db: Db) {
     return r;
   });
   app.post<Id>('/circle-posts/:id/pray', async (req) => circles.pray(db, requireUser(req), id.parse(req.params).id));
+  app.post<Id>('/circle-posts/:id/update', async (req) => circles.update(db, requireUser(req), id.parse(req.params).id, circles.Update.parse(req.body)));
   app.delete<Id>('/circle-posts/:id', async (req) => circles.removePost(db, requireUser(req), id.parse(req.params).id));
 }
