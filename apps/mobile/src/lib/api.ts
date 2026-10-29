@@ -355,6 +355,20 @@ export interface AdminRadioSettings {
   on_air_page_enabled: boolean;
 }
 
+/** A station health alert in Admin → Radio (server radio/health.ts). */
+export interface StationAlert {
+  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'queue_empty';
+  level: 'problem' | 'info';
+  detail: string;
+  callSign: string | null;
+  since: string | null;
+}
+export interface StationAlerts {
+  enabled: boolean;
+  overdueMinutes: number;
+  alerts: StationAlert[];
+}
+
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
 export interface StationBurst {
   id: string;
@@ -1162,6 +1176,8 @@ export const api = {
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
+    radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
+    updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),

@@ -6,6 +6,41 @@ and the first tests, from no radio at all up to a real burst on the air. The
 station software is already installed ([RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md));
 the format and every setting are in [RADIO_BURST.md](RADIO_BURST.md).
 
+## One-command install
+
+On a Pi that is already running Raspberry Pi OS:
+
+```
+curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/get-station.sh | sudo bash -s -- --hamlib
+```
+
+This fetches the code to `/opt/prayer-tower-src` and runs `install.sh`. That
+installs Node.js 22, the station service, the health check and, with
+`--hamlib`, rigctld set to the dummy radio. Add `--fldigi` for fldigi. Run the
+same command again to update; your settings files are kept. If the repository
+is private, add `--repo https://<token>@github.com/zoomatech/PrayerTower.git`.
+The token is not kept on disk.
+
+**A Pi that sets itself up on first boot.** This needs Raspberry Pi OS Trixie,
+from November 2025 or later.
+
+1. Write it to the SD card with Raspberry Pi Imager. The card's boot partition
+   then holds a `user-data` file, which cloud-init reads on first boot.
+2. Replace that file with
+   [`apps/station/install/pi/user-data`](../apps/station/install/pi/user-data).
+   First change the password (`change-me-now` is a placeholder) and the time
+   zone.
+3. Put the card in the Pi and power it on. It creates the `station` user,
+   then runs the one-command install, logging to
+   `/var/log/prayer-tower-install.log`.
+4. Sign in over SSH (`ssh station@prayer-station.local`). Fill in
+   `/etc/prayer-tower-station.env` and `/etc/prayer-tower-rigctld.env`, then
+   start the station:
+
+   ```
+   sudo systemctl start prayer-tower-station
+   ```
+
 ## What you need
 
 - An FM transceiver. A mobile with a 6-pin mini-DIN **data port** is best,
@@ -74,6 +109,67 @@ BURST_PLAY_CMD=aplay -q -D plughw:CARD=Device,DEV=0 {wav}
 Use the card name `aplay -l` showed. The station service may open the sound
 card (and nothing else in `/dev`) and runs in the `audio` group. Turn off hardware flow control on that
 serial port in any other program that opens it, or it may key the radio.
+
+## Rig control (frequency, mode and PTT through Hamlib)
+
+Off by default. With it on, the station sets the radio's frequency and mode
+when it starts and keys PTT through Hamlib's `rigctld`. After keying, it reads
+PTT back, so a radio that ignored the command is caught before any audio
+plays: the station unkeys and stops, the same as any other transmit failure.
+
+1. Install rigctld as a service:
+
+   ```
+   sudo apps/station/install/install.sh --hamlib
+   ```
+
+   This installs `libhamlib-utils` and `prayer-tower-rigctld.service`, which
+   listens on this machine only (127.0.0.1:4532). It also creates
+   `/etc/prayer-tower-rigctld.env`.
+2. In `/etc/prayer-tower-rigctld.env`, replace the placeholder radio. `RIG_MODEL=1` is Hamlib's dummy radio, so everything can be
+   tried with no radio connected. Find your radio's number with `rigctl -l`,
+   then set `RIG_DEVICE` (the CAT port, best as
+   `/dev/serial/by-id/...`) and `RIG_SPEED` (the CAT baud rate from the
+   radio's menu). For a PTT-only interface such as a Digirig keyed by RTS,
+   keep `RIG_MODEL=1` and set `RIG_EXTRA_ARGS=-p /dev/ttyUSB0 -P RTS`.
+3. In `/etc/prayer-tower-station.env`:
+
+   ```
+   RIG_CONTROL=rigctld
+   RIG_FREQ_HZ=145050000
+   RIG_MODE=FM
+   ```
+
+   On HF use `RIG_MODE=PKTUSB` (the radio's DATA mode) with
+   `RIG_PASSBAND_HZ=3000`. Leave `RIG_FREQ_HZ` or `RIG_MODE` out to keep
+   whatever the radio is set to. With rig control on, the
+   `BURST_PTT_ON_CMD` and `BURST_PTT_OFF_CMD` lines are not used.
+4. Restart both services, then check them:
+
+   ```
+   sudo systemctl restart prayer-tower-rigctld prayer-tower-station
+   rigctl -m 2 f            # the frequency, read through rigctld
+   sudo -u prayer-station node /opt/prayer-tower-station/dist/src/health.js
+   ```
+
+   The health check adds a `rig` line. It fails if rigctld is not answering,
+   or if the radio is transmitting between bursts (a stuck PTT).
+
+## Health alerts in Admin → Radio
+
+Off by default. In Admin → Radio (station mode), turn on **Station alerts**.
+About once a minute the station reports its own checks, and the server adds
+what it can see. Problems also reach admins as an in-app alert, at most once
+an hour.
+
+| Alert | What it means | Comes from |
+| --- | --- | --- |
+| No sound card | ALSA lists no sound card (`/proc/asound/cards`), so bursts can't play. Check the USB interface. | The station (BURST_MODE=audio) |
+| The radio did not key (PTT) | rigctld is not answering, the radio ignored PTT, or it is stuck transmitting. A failed burst whose error names PTT counts too. | The station (RIG_CONTROL=rigctld) and the burst log |
+| The last burst failed | Any other transmit error. The station has stopped itself until someone checks it. | The burst log |
+| A burst is overdue | A prayer has waited longer than the chosen limit (15, 30, 60 or 120 minutes; 30 by default). | The queue |
+| The station stopped reporting | No report for 10 minutes. | The station |
+| Nothing is waiting | The queue is empty. This is information, not a problem. | The queue |
 
 ## 4. Which preset
 
@@ -144,5 +240,10 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - Data port 1200 vs 9600, APRS off, AGC off, receive level about -11 dBFS, low power and heat: [SEAPAC 2025, "VARA FM setup"](https://seapac.org/workshop-presentations_files/2025/SEAPAC%202025%20VARA%20FM%20SETUP%20(3).pdf)
 - Digirig PTT by RTS, flow control off, keeping system sounds off the interface: [Digirig, "Getting started with Digirig Mobile"](https://digirig.net/?p=5478)
 - `rigctl`/`rigctld` options and `T` (set_ptt): [hamlib rigctl manual](https://hamlib.sourceforge.net/snapshots/man1/rigctl.1.html)
+- rigctld port 4532, the Extended Response Protocol (`+` prefix, `RPRT 0`), `F`/`M`/`T` and the mode names: [rigctld(1)](https://man.archlinux.org/man/rigctld.1.en)
+- Model 1 is the Hamlib dummy radio, model 2 is NET rigctl: [hamlib-utilities(7)](https://www.mankier.com/7/hamlib-utilities)
+- cloud-init on Raspberry Pi OS Trixie (`user-data` on the boot partition, from the 24 November 2025 image): [Raspberry Pi, "Cloud-init on Raspberry Pi OS"](https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/)
+- cloud-init `users` (`plain_text_passwd`, `lock_passwd`) and `packages`: [cloud-init docs](https://docs.cloud-init.io/en/latest/reference/yaml_examples/user_groups.html), [modules](https://docs.cloud-init.io/en/latest/reference/modules.html)
+- `libhamlib-utils` package in Debian trixie: [Debian manpages](https://dyn.manpages.debian.org/trixie/libhamlib-utils/rigctl.1.en.html)
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)

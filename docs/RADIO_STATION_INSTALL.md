@@ -20,6 +20,15 @@ sudo apt update && sudo apt full-upgrade -y && sudo reboot
 
 ## 2. Get the code and run the installer
 
+The quickest way is one command, which fetches the code and runs the
+installer below (details in [STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md#one-command-install)):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/get-station.sh | sudo bash -s -- --hamlib --fldigi
+```
+
+Or by hand:
+
 ```bash
 sudo apt install -y git
 git clone https://github.com/zoomatech/PrayerTower.git

@@ -1,0 +1,22 @@
+#cloud-config
+# Prayer Tower station: a Raspberry Pi that sets itself up on first boot.
+# Raspberry Pi OS (Trixie, November 2025 or later) reads this file from the SD
+# card's boot partition with cloud-init. Steps: docs/STATION_OPERATOR_GUIDE.md,
+# "One-command install". Change the user name, password and time zone first.
+hostname: prayer-station
+timezone: America/New_York
+ssh_pwauth: true
+users:
+  - name: station
+    groups: users,adm,sudo,audio,dialout
+    shell: /bin/bash
+    lock_passwd: false
+    # CHANGE THIS before first boot (it is a placeholder).
+    plain_text_passwd: change-me-now
+package_update: true
+packages:
+  - curl
+  - git
+runcmd:
+  # Installs the station worker and Hamlib rigctld (with the dummy radio as a placeholder).
+  - [bash, -c, "curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/get-station.sh | bash -s -- --hamlib > /var/log/prayer-tower-install.log 2>&1"]
