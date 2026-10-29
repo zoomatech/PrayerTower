@@ -152,6 +152,9 @@ jobs:
             echo "SUPABASE_SECRET_KEY=$SB_SECRET_KEY"
             echo "SUPABASE_PUBLISHABLE_KEY=$SB_PUBLISHABLE_KEY"
             echo "PUSH_ENABLED=0"
+            # One runner is one IP: the switches-on walks make thousands of requests a minute,
+            # and at the default 300 the next spec's sign-in got "Rate limit exceeded".
+            echo "RATE_LIMIT_PER_MINUTE=5000"
           } > apps/server/.env
       - run: npx playwright install --with-deps chromium
         working-directory: apps/e2e
