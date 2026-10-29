@@ -9,11 +9,12 @@ const sentence = (i: number) => `Day ${i} we sat in the waiting room and asked f
 
 test('a member comments on one part of a long request', async ({ page }) => {
   const reply = unique('That third week sounds so hard. Praying.');
-  const { rows: ruth } = await db.query<{ id: string }>("select id from auth.users where email = 'ruth@demo.prayertower.local'");
+  // Carol, not Ruth: 18-open-circle moves Ruth to Open Circle, and a post always lands in its author's community.
+  const { rows: carol } = await db.query<{ id: string }>("select id from auth.users where email = 'carol@demo.prayertower.local'");
   const body = `[Demo] ${Array.from({ length: 30 }, (_, i) => sentence(i + 1)).join(' ')}`;
   const { rows: post } = await db.query<{ id: string }>(
     "insert into public.posts (user_id, community_id, post_type, body) values ($1, public.default_community_id(), 'prayer_request', $2) returning id",
-    [ruth[0]!.id, body],
+    [carol[0]!.id, body],
   );
   await db.query('update public.conversation_settings set part_comments_enabled = true');
   try {
