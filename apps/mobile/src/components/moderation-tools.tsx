@@ -122,7 +122,7 @@ export function ModerationTools({ ruleChoices, onDecided }: { ruleChoices: Moder
             <Text style={type.small}>{t('modTools.crisisAlone')}</Text>
           ) : (
             <Chip
-              label={t('modTools.select')}
+              label={t('modTools.selectFrom', { name: i.author_name ?? t('modTools.unknown') })}
               selected={selected.includes(i.id)}
               onPress={() => setSelected((s) => (s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id]))}
             />

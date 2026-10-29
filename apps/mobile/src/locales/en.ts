@@ -1622,7 +1622,7 @@ const en = {
     anySource: "Any",
     none: "Nothing matches.",
     unknown: "Unknown",
-    select: "Select",
+    selectFrom: "Select (%{name})",
     selectAll: "Select all %{count}",
     selectNone: "Clear selection",
     selected: "%{count} selected",

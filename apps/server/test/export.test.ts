@@ -73,7 +73,10 @@ describe('download my data for Open Circle', () => {
   const RELIGIOUS = /pray|church|priest|pastor|sermon|scripture|bible|bless|faith|god/i;
   const keys = (v: unknown, out: string[] = []): string[] => {
     if (Array.isArray(v)) v.forEach((x) => keys(x, out));
-    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) out.push(k), keys(x, out);
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) {
+      out.push(k);
+      keys(x, out);
+    }
     return out;
   };
 
