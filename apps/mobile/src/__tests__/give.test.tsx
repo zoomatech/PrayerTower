@@ -60,6 +60,21 @@ describe('Give', () => {
     await waitFor(() => expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://www.zeffy.com/en-US/donation-form/x'));
   });
 
+  it('offers PayPal as a second button', async () => {
+    mocked.givingInfo.mockResolvedValue({ ...info, paypalUrl: 'https://www.paypal.com/donate/?hosted_button_id=X' });
+    await renderApp(<Give />);
+    expect(await screen.findByText('Give $10')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Give with PayPal'));
+    await waitFor(() => expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://www.paypal.com/donate/?hosted_button_id=X'));
+  });
+
+  it('shows PayPal alone when it is the only way to give', async () => {
+    mocked.givingInfo.mockResolvedValue({ ...info, provider: 'none', paypalUrl: 'https://www.paypal.com/donate/?hosted_button_id=X' });
+    await renderApp(<Give />);
+    expect(await screen.findByText('Give with PayPal')).toBeTruthy();
+    expect(screen.queryByTestId('give-submit')).toBeNull();
+  });
+
   it('shows the free radio prayer and asks for more', async () => {
     mocked.givingInfo.mockResolvedValue(info);
     await renderApp(<Give />);

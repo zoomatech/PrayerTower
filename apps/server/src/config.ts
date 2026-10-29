@@ -77,6 +77,10 @@ const Env = z.object({
   // Giving through Stripe (Admin → Giving). Unset: the Give button stays hidden for Stripe.
   STRIPE_SECRET_KEY: z.string().startsWith('sk_').optional(),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
+  // Zeffy's API key (Zeffy → Settings → Integrations), so Zeffy gifts are recorded without typing them in.
+  ZEFFY_API_KEY: z.string().min(10).optional(),
+  // A long random secret put at the end of the webhook address given to Zeffy (?token=…).
+  ZEFFY_WEBHOOK_TOKEN: z.string().min(24).optional(),
   /** Error reporting (see src/instrument.ts); unset = off. Read straight from the environment there. */
   SENTRY_DSN: z.string().optional(),
   /** Bearer token for GET /metrics; unset = no metrics endpoint. */

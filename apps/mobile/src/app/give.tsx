@@ -1,5 +1,5 @@
 // Give: gifts instead of ads. Shown only while an admin has turned giving on and
-// set up Stripe or a Zeffy link. A gift goes to everyone (the shared fund) or a
+// set up Stripe, a Zeffy link or a PayPal link. A gift goes to everyone (the shared fund) or a
 // token pool. Also shows this month's free radio prayers and asks for more.
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -114,13 +114,24 @@ export default function GiveScreen() {
                 <Text style={type.small}>{t('give.fees')}</Text>
               </>
             ) : null}
-            <Button
-              testID="give-submit"
-              label={info.provider === 'stripe' ? t('give.giveAmount', { amount: amountOk ? dollars(cents) : '' }) : t('give.open')}
-              onPress={give}
-              busy={busy}
-              disabled={info.provider === 'stripe' && !amountOk}
-            />
+            {info.provider !== 'none' ? (
+              <Button
+                testID="give-submit"
+                label={info.provider === 'stripe' ? t('give.giveAmount', { amount: amountOk ? dollars(cents) : '' }) : t('give.open')}
+                onPress={give}
+                busy={busy}
+                disabled={info.provider === 'stripe' && !amountOk}
+              />
+            ) : null}
+            {/* PayPal's own Donate page, a second way to give; staff record those gifts. */}
+            {info.paypalUrl ? (
+              <Button
+                testID="give-paypal"
+                variant={info.provider === 'none' ? 'primary' : 'secondary'}
+                label={t('give.paypal')}
+                onPress={() => WebBrowser.openBrowserAsync(info.paypalUrl!).catch((e) => setError((e as Error).message))}
+              />
+            ) : null}
           </View>
         ) : null}
 

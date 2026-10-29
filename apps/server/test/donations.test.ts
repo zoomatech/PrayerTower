@@ -1,9 +1,11 @@
 import { createHmac } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { withTx } from '../src/db.js';
 import { grantRole } from '../src/modules/accounts/index.js';
 import * as donations from '../src/modules/donations/index.js';
 import * as tokens from '../src/modules/tokens/index.js';
+import * as zeffy from '../src/modules/donations/zeffy.js';
 import { app, as, createUser, db, newRequest } from './helpers.js';
 
 const defaults = await donations.settings(db);
@@ -120,6 +122,44 @@ describe('giving', () => {
     await hooked.close();
   });
 
+  it('Zeffy: a webhook with the right token records the gift from the API, once, and a refund takes it back', async () => {
+    await donations.updateSettings(db, { enabled: true, provider: 'zeffy', donateUrl: 'https://www.zeffy.com/en-US/donation-form/example', regularPerDollar: 10, priestlyPerDollar: 1 });
+    const giver = await createUser('Zeffy Zoe');
+    const email = (await db.query<{ email: string }>(`select email from auth.users where id = $1`, [giver])).rows[0]!.email;
+    const paymentId = `zp_${Date.now()}`;
+    const payment: Record<string, unknown> = { id: paymentId, status: 'succeeded', amount: 2000, currency: 'USD', contactId: 'ct_1', refund: null };
+    const asked: string[] = [];
+    const fakeZeffy: zeffy.Fetch = async (url, init) => {
+      asked.push(url);
+      expect(init.headers.authorization).toBe('Bearer zeffy_test_key_placeholder');
+      if (url.endsWith('/contacts/ct_1')) return { ok: true, status: 200, json: async () => ({ id: 'ct_1', email: email.toUpperCase() }) };
+      if (url.includes(`/payments/${paymentId}`)) return { ok: true, status: 200, json: async () => payment };
+      if (url.includes('/payments?')) return { ok: true, status: 200, json: async () => ({ data: [payment], has_more: false }) };
+      return { ok: false, status: 404, json: async () => ({}) };
+    };
+    const keys = { apiKey: 'zeffy_test_key_placeholder', webhookToken: 'webhook-token-0123456789abcdef', fetch: fakeZeffy };
+    const hooked = buildApp({ db, verifyToken: async () => 'nobody', zeffy: keys });
+    // The body is never trusted: a forged amount here changes nothing.
+    const body = { type: 'payment.completed', data: { object: { id: paymentId, amount: 999_999 } } };
+    const post = (token: string) => hooked.inject({ method: 'POST', url: `/donations/zeffy-webhook?token=${token}`, payload: body });
+    expect((await post('wrong-token-0123456789abcdef')).statusCode).toBe(401);
+    expect((await post(keys.webhookToken)).json()).toMatchObject({ result: 'recorded' });
+    expect((await post(keys.webhookToken)).json()).toMatchObject({ result: 'skipped' }); // a retry records nothing twice
+    expect(await tokens.balanceOf(db, giver)).toBe(200); // $20 x 10 regular, matched by email
+    expect((await as(giver).get('/me/donations')).json().donations[0]).toMatchObject({ amount_cents: 2000, status: 'paid' });
+    // The catch-up sync sees the same payment and skips it.
+    expect(await withTx(db, (tx) => zeffy.syncRecent(tx, keys))).toEqual({ recorded: 0, refunded: 0, skipped: 1 });
+    expect(asked.some((u) => u.includes('created%5Bgte%5D='))).toBe(true);
+    // Refunded in Zeffy: the next sync refunds the gift.
+    payment.refund = { amount: 2000 };
+    expect(await withTx(db, (tx) => zeffy.syncRecent(tx, keys))).toEqual({ recorded: 0, refunded: 1, skipped: 0 });
+    expect(await tokens.balanceOf(db, giver)).toBe(0);
+    // Without a token set, the webhook is off.
+    const off = buildApp({ db, verifyToken: async () => 'nobody' });
+    expect((await off.inject({ method: 'POST', url: '/donations/zeffy-webhook?token=x', payload: body })).statusCode).toBe(503);
+    await Promise.all([hooked.close(), off.close()]);
+  });
+
   it('marks a bank transfer that never cleared as failed, not refunded', async () => {
     const giver = await createUser('Failed Fay');
     const { rows } = await db.query<{ id: string }>(
@@ -128,6 +168,17 @@ describe('giving', () => {
     );
     await donations.stripeEvent(db, { type: 'checkout.session.async_payment_failed', data: { object: { metadata: { donation_id: rows[0]!.id } } } });
     expect((await as(giver).get('/me/donations')).json().donations[0]).toMatchObject({ status: 'failed' });
+  });
+
+  it('offers PayPal as a second way to give, and records each PayPal gift once', async () => {
+    await as(admin).patch('/admin/donation-settings', { enabled: true, provider: 'none', paypalUrl: 'https://www.paypal.com/donate/?hosted_button_id=TEST' });
+    const info = (await as(admin).get('/donations/info')).json();
+    expect(info).toMatchObject({ enabled: true, provider: 'none', paypalUrl: 'https://www.paypal.com/donate/?hosted_button_id=TEST' });
+    expect((await as(admin).patch('/admin/donation-settings', { paypalUrl: 'http://insecure.example' })).statusCode).toBe(400);
+    const ref = `PP-${Date.now()}`;
+    expect((await as(admin).post('/admin/donations', { amountCents: 2500, via: 'paypal', reference: ref })).statusCode).toBe(201);
+    expect((await as(admin).post('/admin/donations', { amountCents: 2500, via: 'paypal', reference: ref })).statusCode).toBe(409);
+    await as(admin).patch('/admin/donation-settings', { paypalUrl: null });
   });
 
   it('lets an admin mark a manual gift refunded, keeping tokens already spent', async () => {
