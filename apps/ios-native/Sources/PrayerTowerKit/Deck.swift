@@ -10,6 +10,12 @@ public struct LayoutWords: Sendable, Equatable {
     public let again = "Start again"
     public let loadingMore = "Loading more requests…"
     public let turnHint = "Swipe up to turn the page"
+    /// The wall, tower and circuit (en.ts `wall`, `tower`, `circuit`).
+    public let wallSwipe = "Swipe up for the next post"
+    public let towerTop = "You reached the top of the tower."
+    public let circuitEnd = "End of the line. Pull down to power up new posts."
+    public func wallPosition(_ n: Int, of total: Int) -> String { "Post \(n) of \(total)" }
+    public func towerFloor(_ n: Int, of total: Int) -> String { "Floor \(n) of \(total)" }
     /// Asked before a swipe records anything: a swipe never prays by itself.
     public let confirm: String
 

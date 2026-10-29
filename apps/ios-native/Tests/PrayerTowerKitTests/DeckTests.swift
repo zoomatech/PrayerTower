@@ -29,4 +29,10 @@ import Testing
         #expect(LayoutWords(.faith).folio(0, of: 12) == "1 of 12 · Swipe up to turn the page")
         #expect(LayoutWords(.faith).folio(4, of: 12) == "5 of 12")
     }
+
+    @Test func namesThePlaceInTheWallAndTower() {
+        let w = LayoutWords(.neutral)
+        #expect(w.wallPosition(2, of: 9) == "Post 2 of 9" && w.towerFloor(1, of: 3) == "Floor 1 of 3")
+        #expect(![w.wallSwipe, w.towerTop, w.circuitEnd].joined().lowercased().contains("pray"))
+    }
 }

@@ -17,9 +17,9 @@ struct SkinnedFeed<Row: View>: View {
     var body: some View {
         switch theme.kind {
         case .vine: VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd)
-        case .wall: WallFeed(look: WallLook(theme), cards: cards, row: row, onEnd: onEnd)
-        case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd)
-        case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, row: row, onEnd: onEnd)
+        case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), row: row, onEnd: onEnd)
+        case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
+        case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hasMore: hasMore, row: row, onEnd: onEnd)
         case .carousel: SwipeFeed(cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd, onPray: onPray)
         case .flip: FlipFeed(cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
         case .column: List(cards) { card in row(card).task { if card.id == cards.last?.id { await onEnd() } } }
@@ -329,14 +329,25 @@ extension Path {
 struct WallFeed<Row: View>: View {
     let look: WallLook
     let cards: [Card]
+    let words: LayoutWords
     @ViewBuilder let row: (Card) -> Row
     let onEnd: () async -> Void
 
     var body: some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
-                ForEach(cards) { card in
-                    ScrollView { row(card).padding(24) }
+                ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            row(card)
+                            // "2 / 9", and on the first post how to reach the next.
+                            Text("\(i + 1) / \(cards.count)" + (i == 0 ? " · \(words.wallSwipe)" : ""))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel(words.wallPosition(i + 1, of: cards.count))
+                        }
+                        .padding(24)
+                    }
                         .scrollBounceBehavior(.basedOnSize)
                         .containerRelativeFrame([.horizontal, .vertical])
                         .task { if card.id == cards.last?.id { await onEnd() } }
@@ -358,6 +369,7 @@ struct TowerFeed<Row: View>: View {
     let look: TowerLook
     let cards: [Card]
     let wording: Wording
+    var hasMore = true
     @ViewBuilder let row: (Card) -> Row
     let onEnd: () async -> Void
     @State private var floor: String?
@@ -385,11 +397,24 @@ struct TowerFeed<Row: View>: View {
                     .id(card.id)
                     .task { if card.id == cards.last?.id { await onEnd() } }
                 }
+                if !hasMore, !cards.isEmpty {
+                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).padding(.vertical, 24)
+                }
             }
             .scrollTargetLayout()
             .padding(.vertical, 12)
         }
         .scrollPosition(id: $floor, anchor: .top)
+        .safeAreaInset(edge: .bottom) {
+            if let n = cards.firstIndex(where: { $0.id == floor }) ?? (cards.isEmpty ? nil : 0) {
+                Text(LayoutWords(wording).towerFloor(n + 1, of: cards.count))
+                    .font(.footnote.bold())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(.regularMaterial, in: .capsule)
+                    .padding(.bottom, 6)
+            }
+        }
         .background { StoneWalls(look: look).accessibilityHidden(true) }
         .background(Color(look.backdrop))
         .overlay(alignment: .trailing) {
@@ -485,6 +510,8 @@ struct Battlements: View {
 struct CircuitFeed<Row: View>: View {
     let look: CircuitLook
     let cards: [Card]
+    let words: LayoutWords
+    var hasMore = true
     @ViewBuilder let row: (Card) -> Row
     let onEnd: () async -> Void
     @Environment(\.accessibilityReduceMotion) private var still
@@ -505,6 +532,13 @@ struct CircuitFeed<Row: View>: View {
                             Rectangle().fill(Color(look.wire)).frame(width: 28, height: 2).padding(.trailing, 12).neonTube(Color(look.wire)).accessibilityHidden(true)
                         }
                         .task { if card.id == cards.last?.id { await onEnd() } }
+                }
+                if !hasMore, !cards.isEmpty {
+                    VStack(spacing: 8) {
+                        Circle().stroke(Color(look.wire), lineWidth: 2).frame(width: 18, height: 18).neonTube(Color(look.wire)).accessibilityHidden(true)
+                        Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center)
+                    }
+                    .padding(.trailing, 40)
                 }
             }
             .padding(.vertical, 24)
