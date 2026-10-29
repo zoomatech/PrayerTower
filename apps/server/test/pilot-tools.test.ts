@@ -40,6 +40,8 @@ describe('pilot tools', () => {
 
   it('keeps no app errors while the log is off, and groups them once it is on', async () => {
     await pilot.updateSettings(db, { errorCapture: false });
+    // A run on a database an earlier run used starts clean.
+    await db.query(`delete from public.error_reports where place = 'post/[id]'`);
     const report = { message: 'Cannot read properties of undefined (post 3f2a1c9e-1111-4222-8333-944455556666)', screen: 'post/[id]', platform: 'ios', appVersion: '1.0.0' };
     expect((await as(member).post('/pilot/errors', report)).statusCode).toBe(202);
     expect((await as(admin).get('/admin/errors?status=all')).json().errors.find((e: { place: string }) => e.place === 'post/[id]')).toBeUndefined();
