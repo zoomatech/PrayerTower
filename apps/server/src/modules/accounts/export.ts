@@ -18,6 +18,11 @@ const SECTIONS: Record<string, Section> = {
   followups: { table: 'request_followups', where: 'user_id = $1' },
   checkBacks: { table: 'check_backs', where: 'user_id = $1' },
   kindMilestonesSeen: { table: 'kind_milestones_seen', where: 'user_id = $1' },
+  commentThanks: { table: 'comment_thanks', where: 'from_id = $1' },
+  quietCounts: { table: 'quiet_count_prefs', where: 'user_id = $1' },
+  thankNotes: { table: 'thank_notes', where: 'user_id = $1' },
+  thankNoteGlad: { table: 'thank_note_glad', where: 'user_id = $1' },
+  heatedComments: { table: 'heated_comments', where: 'user_id = $1' },
   gratitudeDay: { table: 'gratitude_prefs', where: 'user_id = $1' },
   gratitude: { table: 'gratitude_entries', where: 'user_id = $1' },
   liftUp: { table: 'lift_up_entries', where: 'user_id = $1' },
@@ -28,6 +33,12 @@ const SECTIONS: Record<string, Section> = {
   kindnessHighlights: { table: 'kindness_nominations', where: 'author_id = $1' },
   encourager: { table: 'encourager_volunteers', where: 'user_id = $1' },
   encouragerMatches: { table: 'encourager_matches', where: 'newcomer_id = $1 or encourager_id = $1' },
+  encouragerCheckins: { table: 'encourager_checkins', where: 'user_id = $1' },
+  prayerCircles: { table: 'prayer_circles', where: 'owner_id = $1' },
+  prayerCircleMembership: { table: 'prayer_circle_members', where: 'user_id = $1' },
+  circlePosts: { table: 'circle_posts', where: 'user_id = $1' },
+  circleReplies: { table: 'circle_replies', where: 'user_id = $1' },
+  circlePrayed: { table: 'circle_prayed', where: 'user_id = $1' },
   rememberedHidden: { table: 'remembered_hidden', where: 'user_id = $1' },
   kindAsksSent: { table: 'kind_asks', where: 'sender_id = $1' },
   mendsWritten: { table: 'mends', where: 'author_id = $1', omit: ['hurt_id'] },
@@ -121,6 +132,10 @@ const SECTIONS: Record<string, Section> = {
 // test/export.test.ts fails when a new table points at profiles and is in
 // neither list.
 export const NOT_EXPORTED = [
+  // A moderator's decision on a heated thread, kept on the post; it holds no member's words.
+  'calm_threads',
+  // A circle's current invite code; it is a key to the circle, not the member's words.
+  'prayer_circle_invites',
   'account_deletion_requests',
   'activity_flags',
   'announcements',

@@ -20,6 +20,37 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  circles: {
+    title: 'Circles',
+    intro: 'A small, invite-only group (up to 12 people) that supports each other. What you share stays inside the circle.',
+    open: 'Circles',
+    shareLabel: 'What would you like support with?',
+    pray: 'Thinking of you',
+    prayed: 'You’re thinking of them',
+    prayedNote: 'Thank you. They’ll know someone is with them.',
+    prayedCount: '%{count} are thinking of you',
+    adminTitle: 'Circles',
+    adminHint: 'Members can start an invite-only small group (up to 12 people) with its own gentle feed, newest first. What is shared stays in the circle: never on the main feed, the radio or digests. The kind cloud checks every post and reply, members get a quiet in-app heads-up instead of a push, and only the asker sees how many are thinking of them. The person who started the circle can take down a post or remove someone.',
+  },
+  weather: {
+    numbers: '%{comments} comments · %{warm} warm · %{heated} heated · %{lifts} thinking of you',
+  },
+  thankNote: {
+    title: 'Thank everyone who supported you',
+    hint: 'Write one warm note. Everyone who supported this gets it, once.',
+    starter2: 'I felt your support, and it made a difference. ',
+    send: 'Send to everyone who supported you',
+    adminTitle: 'Thank the supporters',
+    adminHint: 'The person who asked can send one warm note to everyone who supported their post, with starters to help. Each supporter hears once and can answer “Glad to”; only the asker sees how many did.',
+  },
+  quietCounts: {
+    seen: 'Hide support numbers on posts I see',
+    seenHint: 'You’ll see “People are with you” instead of a number.',
+    mine: 'Hide the numbers on my posts from others',
+    mineHint: 'Others see “People are with you”. You still see your own numbers.',
+    praying: 'People are with you',
+    adminHint: 'Each member chooses, on Me, to hide support numbers on posts they see, on their own posts for others, or both, as Instagram lets people hide likes. Nothing changes for anyone who doesn’t choose it.',
+  },
   crosspost: {
     extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
   },

@@ -29,6 +29,7 @@ import { PartnerCard } from '@/components/partner-card';
 import { DailyReminderCard } from '@/components/daily-reminder-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { KindMilestones } from '@/components/kind-milestones';
+import { QuietCountsCard } from '@/components/comment-kindness';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
@@ -203,11 +204,13 @@ export default function Profile() {
         <GratitudeCard />
         <DailyReminderCard />
         <KindMilestones />
+        <QuietCountsCard />
         <LiftUpCard />
         <HighlightsLink />
         <MeaningProposals />
         {features.kindnessResearch ? <Button small variant="secondary" label={t('research.title')} onPress={() => router.push('/kindness-research')} /> : null}
         <EncouragerCard />
+        {features.prayerCircles ? <Button small variant="secondary" label={t('circles.open')} testID="open-circles" onPress={() => router.push('/circles')} /> : null}
         <PartnerCard />
         <ConversationPrefsCard />
         <AwardCard />

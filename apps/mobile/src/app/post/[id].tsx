@@ -5,7 +5,10 @@ import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from '
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
+import { CalmBanner } from '@/components/calm-thread';
 import { CheckBack } from '@/components/check-back';
+import { ThankNoteCard } from '@/components/thank-note';
+import { CommentKindness, useCommentKindness } from '@/components/comment-kindness';
 import { CoolDownCard } from '@/components/cool-down-card';
 import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
@@ -121,6 +124,7 @@ export default function PostScreen() {
   }, [celebrateParam, celebrate]);
 
   const { onAction, openReport, sheets } = useCardActions(load);
+  const kindness = useCommentKindness(id);
 
   const send = async (isUpdate = false, confirmed = false) => {
     setBusy(true);
@@ -271,6 +275,7 @@ export default function PostScreen() {
           </Text>
         ) : null}
       </View>
+      <CommentKindness k={kindness} commentId={c.id} isAsker={!!card?.isMine} isMine={!!c.isMine || c.author.id === profile?.id} />
       {card?.isMine && !c.isMine && c.author.id !== profile?.id ? <LiftedMeUp commentId={c.id} /> : null}
       {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
@@ -311,6 +316,7 @@ export default function PostScreen() {
         {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
         {card?.isMine && card.postType === 'prayer_request' && card.state !== 'answered' ? <CheckBack postId={card.id} /> : null}
+        {card && prayable ? <ThankNoteCard postId={card.id} asker={card.author.displayName} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         {harmSupport ? <HarmSupport note={harmSupport} /> : null}
@@ -529,6 +535,7 @@ export default function PostScreen() {
           <>
             <View style={styles.section}>
               <Text style={type.heading}>{t('post.comments')}</Text>
+              <CalmBanner postId={card.id} refresh={comments.length} />
               {comments.length === 0 ? <Empty text={t('post.noComments')} /> : null}
               {features.commentTree ? (
                 // Skins drawn in light (Moonlit Gate, Neon Cinderella) keep their night sky behind the comments.

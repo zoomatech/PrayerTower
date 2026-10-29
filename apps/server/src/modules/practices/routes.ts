@@ -61,6 +61,12 @@ export function practiceRoutes(app: FastifyInstance, db: Db) {
     return practices.endMatch(db, requireUser(req), matchId);
   });
 
+  app.post<Id>('/me/encourager/matches/:id/check-in', async (req) => {
+    const { id: matchId } = id.parse(req.params);
+    const { answer } = practices.CheckIn.parse(req.body);
+    return withTx(db, (tx) => practices.checkIn(tx, requireUser(req), matchId, answer));
+  });
+
   app.get('/me/remembered', async (req) => practices.remembered(db, requireUser(req)));
   app.post<Id>('/me/remembered/:id/hide', async (req) => {
     const { id: postId } = id.parse(req.params);

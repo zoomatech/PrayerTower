@@ -104,6 +104,24 @@ export interface MeaningLeaf {
   mine: boolean;
 }
 
+/** A thread that heated up: a calm note for everyone, or slow mode a moderator chose. */
+export type CalmState = { kind: 'warm' } | { kind: 'slow'; until: string; minutes: number };
+export interface CalmThread {
+  postId: string;
+  startedAt: string;
+  heated: number;
+  people: number;
+  preview: string;
+}
+
+/** The asker's one thank-you note to everyone who prayed; `glad` (how many answered "Glad to") only for the asker. */
+export interface ThankNote {
+  body: string;
+  createdAt: string;
+  gladByMe: boolean;
+  glad?: number;
+}
+
 /** A private kindness milestone: the highest level reached for one kind of kindness. */
 export interface KindMilestone {
   metric: 'people' | 'requests' | 'encouragements' | 'checkins' | 'words';
@@ -193,6 +211,10 @@ export interface Features {
   kindnessIntro: boolean;
   checkBack: boolean;
   kindMilestones: boolean;
+  thankNote: boolean;
+  calmThreads: boolean;
+  prayerCircles: boolean;
+  encouragerCheckin: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -205,6 +227,9 @@ export interface Features {
   kindnessResearch: boolean;
   meaningProposals: boolean;
   typePrompts: boolean;
+  authorHearts: boolean;
+  commentThanks: boolean;
+  quietCounts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Ten one-time backup codes for a lost phone, and passkey sign-in (web). */
@@ -290,6 +315,12 @@ export interface PracticeSettings {
   kindness_intro_enabled: boolean;
   check_back_enabled: boolean;
   kind_milestones_enabled: boolean;
+  thank_note_enabled: boolean;
+  calm_threads_enabled: boolean;
+  prayer_circles_enabled: boolean;
+  encourager_checkin_enabled: boolean;
+  encourager_checkin_days: number;
+  kindness_weather_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -303,6 +334,9 @@ export interface ConversationSettings {
   research_page_enabled: boolean;
   meaning_proposals_enabled: boolean;
   type_prompts_enabled: boolean;
+  author_hearts_enabled: boolean;
+  comment_thanks_enabled: boolean;
+  quiet_counts_enabled: boolean;
 }
 export interface ConversationPrefs {
   replySuggestions: boolean;
@@ -348,6 +382,44 @@ export interface EncouragerMatch {
   role: 'newcomer' | 'encourager';
   other: { id: string; displayName: string };
   endsAt: string;
+  /** Present while check-ins are on: the two-week "How is it going?" is waiting for this member. */
+  checkInDue?: boolean;
+}
+export type CheckInAnswer = 'good' | 'okay' | 'change';
+export interface CircleSummary {
+  id: string;
+  name: string;
+  about: string | null;
+  isOwner: boolean;
+  members: number;
+  lastPostAt: string | null;
+}
+export interface CircleReply {
+  id: string;
+  author: { id: string; displayName: string | null };
+  body: string;
+  createdAt: string;
+}
+export interface CirclePost extends CircleReply {
+  prayedByMe: boolean;
+  /** Only on the viewer's own posts. */
+  prayed?: number;
+  replies: CircleReply[];
+}
+export interface CircleView {
+  circle: { id: string; name: string; about: string | null; isOwner: boolean; ownerId: string; full: boolean };
+  members: { id: string; displayName: string | null }[];
+  invite: { code: string; expiresAt: string } | null;
+  posts: CirclePost[];
+}
+export type Weather = 'sunny' | 'fair' | 'cloudy' | 'stormy' | 'quiet';
+export interface WeatherWeek {
+  weekStart: string;
+  weather: Weather;
+  comments: number | null;
+  warm: number | null;
+  heated: number | null;
+  prayers: number | null;
 }
 export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
 export interface RememberedItem {
@@ -1860,16 +1932,18 @@ export const api = {
       request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    kindnessWeather: (weeks = 12) => get<{ enabled: boolean; weeks: WeatherWeek[] }>(`/admin/kindness-weather?weeks=${weeks}`),
+    encouragerCheckins: () => get<{ totals: Record<CheckInAnswer, number> }>('/admin/encourager-checkins'),
     meaningProposals: () => get<{ proposals: MeaningProposalQueueItem[] }>('/admin/meaning-proposals'),
     decideMeaningProposal: (id: string, d: { approve: boolean; label?: string; neutralLabel?: string; replaces?: string }) =>
       post<{ status: 'approved' | 'declined' }>(`/admin/meaning-proposals/${id}`, d),
     highlightQueue: () => get<{ items: HighlightQueueItem[] }>('/admin/kindness-highlights'),
     pickHighlight: (id: string, pick: boolean, shownText?: string) => post<{ items: HighlightQueueItem[] }>(`/admin/kindness-highlights/${id}`, { pick, ...(shownText ? { shownText } : {}) }),
     sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
-    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean }>) =>
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -2087,6 +2161,17 @@ export const api = {
   myWitnessStories: () => get<{ stories: { id: string; body: string; status: 'awaiting_consent' | 'approved' | 'declined'; createdAt: string }[] }>('/me/witness-stories'),
   decideWitnessStory: (id: string, approve: boolean) => post<{ ok: true }>(`/me/witness-stories/${id}/decision`, { approve }),
   draftWitnessStory: (caseId: string, body: string) => post<{ id: string }>(`/witness/cases/${caseId}/story`, { body }),
+  calmThread: (postId: string) => get<{ enabled: boolean; calm: CalmState | null }>(`/posts/${postId}/calm`),
+  calmThreads: () => get<{ threads: CalmThread[] }>('/moderation/calm-threads'),
+  decideCalmThread: (postId: string, action: 'settle' | 'slow', hours = 6) => post<{ enabled: boolean; calm: CalmState | null }>(`/moderation/calm-threads/${postId}`, { action, hours }),
+  thankNote: (postId: string) => get<{ enabled: boolean; note: ThankNote | null; canWrite: boolean }>(`/posts/${postId}/thank-note`),
+  sendThankNote: (postId: string, body: string) => post<{ sent: number }>(`/posts/${postId}/thank-note`, { body }),
+  gladThankNote: (postId: string) => post<{ glad: boolean }>(`/posts/${postId}/thank-note/glad`),
+  commentKindness: (postId: string) => get<{ hearts: string[]; thanked: string[] }>(`/posts/${postId}/comment-kindness`),
+  heartComment: (commentId: string, on: boolean) => put<{ on: boolean }>(`/comments/${commentId}/heart`, { on }),
+  thankComment: (commentId: string) => post<{ thanked: boolean }>(`/comments/${commentId}/thanks`),
+  quietCounts: () => get<{ enabled: boolean; hideSeen: boolean; hideMine: boolean }>('/me/quiet-counts'),
+  setQuietCounts: (patch: { hideSeen?: boolean; hideMine?: boolean }) => put<{ enabled: boolean; hideSeen: boolean; hideMine: boolean }>('/me/quiet-counts', patch),
   kindMilestones: () => get<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones'),
   kindMilestonesSeen: () => post<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones/seen'),
   checkBack: (postId: string) => get<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`),
@@ -2112,6 +2197,18 @@ export const api = {
   setVolunteer: (on: boolean, agree?: boolean) => put<EncouragerState>('/me/encourager/volunteer', { on, ...(agree ? { agree } : {}) }),
   askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
   endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
+  encouragerCheckIn: (id: string, answer: CheckInAnswer) => post<EncouragerState>(`/me/encourager/matches/${id}/check-in`, { answer }),
+  myCircles: () => get<{ enabled: boolean; circles: CircleSummary[] }>('/me/circles'),
+  createCircle: (name: string, about?: string) => post<{ id: string }>('/circles', { name, ...(about ? { about } : {}) }),
+  joinCircle: (code: string) => post<{ id: string }>('/circles/join', { code }),
+  circle: (id: string) => get<CircleView>(`/circles/${id}`),
+  circleInvite: (id: string) => post<{ code: string; expiresAt: string }>(`/circles/${id}/invite`),
+  leaveCircle: (id: string) => post<{ left: boolean }>(`/circles/${id}/leave`),
+  removeCircleMember: (id: string, userId: string) => request<{ removed: boolean }>('DELETE', `/circles/${id}/members/${userId}`),
+  circlePost: (id: string, body: string) => post<{ id: string }>(`/circles/${id}/posts`, { body }),
+  circleReply: (postId: string, body: string) => post<{ id: string }>(`/circle-posts/${postId}/replies`, { body }),
+  circlePray: (postId: string) => post<{ prayed: boolean }>(`/circle-posts/${postId}/pray`),
+  removeCirclePost: (postId: string) => request<{ removed: boolean }>('DELETE', `/circle-posts/${postId}`),
   remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
   hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
   conversationPrefs: () => get<{ prefs: ConversationPrefs }>('/me/conversation-prefs'),
