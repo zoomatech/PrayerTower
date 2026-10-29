@@ -62,6 +62,15 @@ describe('Emoji meanings', () => {
     expect(screen.queryByText('Praying for healing')).toBeNull();
   });
 
+  it('keeps to one row of icons: with meanings on the action icons, only the added words show here', async () => {
+    jest.mocked(api.features).mockResolvedValue({ features: { meaningReactions: true, meaningIconRow: true } } as Awaited<ReturnType<typeof api.features>>);
+    jest.mocked(api.meanings).mockResolvedValue({ leaves: [leaf('feel_better', 'Feel better', 'Feel better', false)] });
+    await renderApp(<MeaningReactions postId="p1" />);
+    expect(await screen.findByText('Feel better')).toBeTruthy();
+    expect(screen.queryByTestId('meaning-strength')).toBeNull();
+    expect(screen.queryByLabelText('Say it with an emoji')).toBeNull();
+  });
+
   it('shows nothing while off', async () => {
     on(false);
     await renderApp(<MeaningReactions postId="p1" />);

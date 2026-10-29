@@ -179,7 +179,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         </Text>
 
         {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press. */}
-        <View style={styles.actions}>
+        <View style={styles.actions} testID="card-actions">
           {card.actions.map((action) => {
             const active = action === 'commit' && !!card.myCommitment;
             return (

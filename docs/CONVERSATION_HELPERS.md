@@ -128,6 +128,9 @@ deletion and export.
 | The asker's heart, Thank for a comment, Quiet counts | Conversation helpers | this file |
 | Cool-down, lament posts, answered-prayer stories, kindness intro | Growth practices | GROWTH_PRACTICES.md |
 | Check back, quiet milestones, thank the pray-ers, calm threads | Growth practices | GROWTH_PRACTICES.md |
+| Prayer circles, encourager check-in, kindness weather report | Growth practices | GROWTH_PRACTICES.md |
 
 Every one of them has Open Circle wording, and `open-circle-wording.test.ts` checks it.
-For accessibility, see `ACCESSIBILITY_KINDNESS_TOOLS.md`.
+For accessibility, see `ACCESSIBILITY_KINDNESS_TOOLS.md`. The e2e walk `24-kindness-skins` opens the feed
+and a request on all 13 year-round skins with every switch on. It checks that each card keeps one row of
+at most six icons, that nothing scrolls sideways, and that axe finds no WCAG A/AA issue.
