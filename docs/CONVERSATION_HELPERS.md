@@ -93,3 +93,44 @@ Still one suggestion per move, as Smart Reply does: the pair replaces the guess 
 the post's words. A tap only fills the box, and own-words still applies.
 
 Code: `pairKey` in `lib/talk.ts`, `postType`/`lament` props on `ReplyHelpers`.
+
+## Comment kindness and quiet counts (off)
+
+Three ideas mined from `research/Kind_Interaction_UX_Research.md` (sections 4 and 6), each
+behind its own switch in Admin → Conversation helpers (migration 20261029018700). None
+shows a public number.
+
+- **The asker's heart.** The person who asked can tap **♡ Love this** under a comment on
+  their post. Everyone then sees "❤️ Loved by the person who asked", and the commenter
+  gets one quiet in-app note. YouTube found that a creator's heart in the first hour was
+  linked to about 22% more comments (arXiv 2404.03612).
+- **Thank someone for a comment.** Any member can tap **Thank** under someone else's
+  comment, once. Only the commenter hears ("Ana thanked you for your comment"), and
+  nothing is counted in public. Wikipedia's Thanks experiment raised thanks sent by 43%
+  and retention by about 2 points.
+- **Quiet counts.** On Me, a member can hide prayer numbers on posts they see, on their
+  own posts for others, or both. Instagram has made hiding like counts each person's own
+  choice since 2021. In place of the number, people see "People are praying with you"
+  (Open Circle: "People are with you"). Authors always see their own numbers.
+
+Code: `modules/comment-kindness`, `components/comment-kindness.tsx`. The tables
+`comment_hearts`, `comment_thanks` and `quiet_count_prefs` are included in account
+deletion and export.
+
+## Everything shipped on 2026-10-29 (all off by default)
+
+| Feature | Where to switch it on | Doc |
+| --- | --- | --- |
+| Meanings ride on the action icons (one row, hover / press and hold) | Conversation helpers → Meanings in the icon row | this file |
+| Member-made emoji meanings | Conversation helpers | this file |
+| Kindness research page | Conversation helpers | this file |
+| Reply prompts by kind of post | Conversation helpers | this file |
+| The asker's heart, Thank for a comment, Quiet counts | Conversation helpers | this file |
+| Cool-down, lament posts, answered-prayer stories, kindness intro | Growth practices | GROWTH_PRACTICES.md |
+| Check back, quiet milestones, thank the pray-ers, calm threads | Growth practices | GROWTH_PRACTICES.md |
+| Prayer circles, encourager check-in, kindness weather report | Growth practices | GROWTH_PRACTICES.md |
+
+Every one of them has Open Circle wording, and `open-circle-wording.test.ts` checks it.
+For accessibility, see `ACCESSIBILITY_KINDNESS_TOOLS.md`. The e2e walk `24-kindness-skins` opens the feed
+and a request on all 13 year-round skins with every switch on. It checks that each card keeps one row of
+at most six icons, that nothing scrolls sideways, and that axe finds no WCAG A/AA issue.

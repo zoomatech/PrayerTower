@@ -22,12 +22,16 @@ export interface ConversationSettings {
   research_page_enabled: boolean;
   meaning_proposals_enabled: boolean;
   type_prompts_enabled: boolean;
+  author_hearts_enabled: boolean;
+  comment_thanks_enabled: boolean;
+  quiet_counts_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<ConversationSettings> {
   const { rows } = await q.query<ConversationSettings>(
     `select reply_suggestions_enabled, meaning_prefs_enabled, trouble_nudge_enabled, greeting_packs_enabled, own_words_enabled, kind_closings_enabled,
-            talk_counts_enabled, meaning_row_enabled, research_page_enabled, meaning_proposals_enabled, type_prompts_enabled
+            talk_counts_enabled, meaning_row_enabled, research_page_enabled, meaning_proposals_enabled, type_prompts_enabled,
+            author_hearts_enabled, comment_thanks_enabled, quiet_counts_enabled
        from public.conversation_settings`,
   );
   return rows[0]!;
@@ -45,6 +49,9 @@ export const SettingsPatch = z.object({
   researchPageEnabled: z.boolean().optional(),
   meaningProposalsEnabled: z.boolean().optional(),
   typePromptsEnabled: z.boolean().optional(),
+  authorHeartsEnabled: z.boolean().optional(),
+  commentThanksEnabled: z.boolean().optional(),
+  quietCountsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -55,7 +62,9 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        own_words_enabled = coalesce($5, own_words_enabled), kind_closings_enabled = coalesce($6, kind_closings_enabled),
        talk_counts_enabled = coalesce($7, talk_counts_enabled), meaning_row_enabled = coalesce($8, meaning_row_enabled),
        research_page_enabled = coalesce($9, research_page_enabled),
-       meaning_proposals_enabled = coalesce($10, meaning_proposals_enabled), type_prompts_enabled = coalesce($11, type_prompts_enabled)`,
+       meaning_proposals_enabled = coalesce($10, meaning_proposals_enabled), type_prompts_enabled = coalesce($11, type_prompts_enabled),
+       author_hearts_enabled = coalesce($12, author_hearts_enabled), comment_thanks_enabled = coalesce($13, comment_thanks_enabled),
+       quiet_counts_enabled = coalesce($14, quiet_counts_enabled)`,
     [
       p.replySuggestionsEnabled ?? null,
       p.meaningPrefsEnabled ?? null,
@@ -68,6 +77,9 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.researchPageEnabled ?? null,
       p.meaningProposalsEnabled ?? null,
       p.typePromptsEnabled ?? null,
+      p.authorHeartsEnabled ?? null,
+      p.commentThanksEnabled ?? null,
+      p.quietCountsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -87,6 +99,9 @@ export async function features(q: Queryable) {
     kindnessResearch: s.research_page_enabled,
     meaningProposals: s.meaning_proposals_enabled,
     typePrompts: s.type_prompts_enabled,
+    authorHearts: s.author_hearts_enabled,
+    commentThanks: s.comment_thanks_enabled,
+    quietCounts: s.quiet_counts_enabled,
   };
 }
 

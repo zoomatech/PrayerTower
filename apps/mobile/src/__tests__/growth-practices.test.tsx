@@ -18,7 +18,7 @@ jest.mock('@/lib/api', () => ({
     answerFollowup: jest.fn(),
     gratitude: jest.fn(),
     saveGratitude: jest.fn(),
-    setGratitudeDay: jest.fn(), encourager: jest.fn(), askForEncourager: jest.fn(), endEncouragerMatch: jest.fn(), setVolunteer: jest.fn(), remembered: jest.fn(), hideRemembered: jest.fn(),
+    setGratitudeDay: jest.fn(), encourager: jest.fn(), askForEncourager: jest.fn(), endEncouragerMatch: jest.fn(), encouragerCheckIn: jest.fn(), setVolunteer: jest.fn(), remembered: jest.fn(), hideRemembered: jest.fn(),
   },
 }));
 
@@ -126,6 +126,19 @@ describe('Encourager', () => {
     await act(async () => fireEvent.press(screen.getByTestId('encourager-end-m1')));
     expect(api.endEncouragerMatch).toHaveBeenCalledWith('m1');
     expect(screen.queryByText('Your encourager: Carol')).toBeNull();
+  });
+
+  it('asks the two-week check-in privately, and a change ends the pairing', async () => {
+    on({ encourager: true });
+    jest.mocked(api.encourager).mockResolvedValue({ enabled: true, volunteer: false, canAsk: false, matches: [{ ...match, checkInDue: true }] });
+    jest.mocked(api.encouragerCheckIn).mockResolvedValue({ enabled: true, volunteer: false, canAsk: true, matches: [] });
+    await renderApp(<EncouragerCard />);
+    expect(await screen.findByText('Two weeks in: how is it going?')).toBeTruthy();
+    expect(screen.getByText('Only you see your answer.')).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByText('I’d like a change')));
+    expect(api.encouragerCheckIn).toHaveBeenCalledWith('m1', 'change');
+    expect(screen.queryByText('Two weeks in: how is it going?')).toBeNull();
+    expect(screen.getByText('Ask for an encourager')).toBeTruthy();
   });
 
   it('volunteering needs the guidelines agreed first', async () => {

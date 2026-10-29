@@ -171,3 +171,106 @@ Rules, following the gentle-rhythm practice:
 
 Code: `modules/kind-milestones`, `components/kind-milestones.tsx`, table
 `kind_milestones_seen` (included in account deletion and export).
+
+## Thank the pray-ers (off)
+
+Admin → Growth practices → **Thank the pray-ers** (migration 20261029018800). On their own
+post, once someone has prayed, the person who asked sees **Thank everyone who prayed**.
+They write one warm note of up to 600 characters. Three starters help them begin ("Thank
+you for carrying this with me…"), and the kind cloud checks it as usual.
+
+- Everyone who prayed or promised to pray gets the note once. Each post can have only one
+  note.
+- Each pray-er sees it on the post as "A thank-you from Ana" and can answer **Glad to**.
+- Only the person who asked sees how many said they were glad to. Strangers see nothing.
+- This sits beside the older quick thanks (a 77-character line with an icon). It is the
+  "gratitude letter" in research/Personal_Growth_Research.md, which found that writing
+  thanks lifts the writer as well as the reader.
+
+Code: `modules/thank-note`, `components/thank-note.tsx`. The tables `thank_notes` and
+`thank_note_glad` are included in account deletion and export.
+
+## Calm threads (off)
+
+Admin → Growth practices → **Calm threads** (migration 20261029018900). This is
+de-escalation for a whole comment thread, in the Ted Lasso spirit. It is the
+thread-wide partner of cool-down, which works between two people.
+
+- **Warm.** A thread turns warm when three comments the kind cloud would flag, from two
+  or more people, arrive within two hours. Everyone on the post then sees "Let’s take a
+  breath together… Be curious, not judgmental" above the comments. The note fades on its
+  own after six quiet hours.
+- **A person decides.** The thread appears under Moderation → **Warm threads**, showing
+  only counts ("3 heated comments from 2 people") and the post's first words. A
+  moderator reads the thread and chooses **It’s fine** or **Slow it down (6 hours)**.
+- **Slow mode.** Only a moderator can turn it on. Each person may then comment once
+  every 10 minutes, and anyone who tries sooner is told how long to wait. The app never
+  limits anyone on its own, following Steve's rule that a person reviews anything before
+  it is blocked.
+- **Privacy.** Only who commented and when is kept (`heated_comments`), never the words.
+
+Evidence: Facebook Groups' conflict alerts and comment slow-down, Hacker News's delay on
+deep replies, and Cornell's "conversations gone awry" work
+(research/Kind_Interaction_UX_Research.md, sections 2–3). Code: `modules/calm-threads`,
+`components/calm-thread.tsx`.
+
+## Prayer circles (off)
+
+Admin → Growth practices → **Prayer circles** (migration 20261029019000). A member starts
+an invite-only small group of up to 12 people. Each circle has its own gentle feed, with the
+newest posts first. Members open it from Me → **Prayer circles**.
+
+- **Invite only.** Only the person who started the circle can make an invite code. A code
+  is 8 characters and works for 7 days, and a new code replaces the old one. Nobody can join
+  a circle whose starter blocked them, or whose starter they blocked.
+- **Stays inside.** Circle posts are kept in their own tables (`circle_posts`,
+  `circle_replies`, `circle_prayed`). They never reach the main feed, the radio, search or
+  digests.
+- **Kindness tools come along.** The kind cloud checks every post and reply, and reply
+  starters help members begin. Each post has one action, "I prayed". Other members get one
+  quiet in-app heads-up per circle per day, with no push. Only the person who asked sees
+  how many prayed.
+- **A person decides.** The author or the circle's starter can take a post down, and the
+  starter can remove a member. The app never removes anything on its own. If the starter
+  leaves, the longest-standing member takes over, and a circle with no one left is deleted.
+- **Data.** Circles, memberships, posts, replies and "I prayed" taps are included in
+  Download my data. Account deletion removes them, and passes a circle the member started
+  on to its longest-standing other member.
+
+Code: `modules/prayer-circles`, `app/circles/`.
+
+## Encourager check-in (off)
+
+Admin → Growth practices → **Encourager check-in** (migration 20261029019100). It needs the
+Encourager to be on. This is the mentor and newcomer pairing: the Encourager already pairs
+a newcomer with a volunteer, and this adds a two-week check-in.
+
+- After `encourager_checkin_days` (14 by default), each side gets one quiet "How is it
+  going?" on their Encourager card, with three answers: **Going well**, **It’s okay** and
+  **I’d like a change**.
+- Answers are private. The other person is never told what was said.
+- "I’d like a change" ends the pairing gently. The newcomer can ask again, even past their
+  first days, and is never paired with the same person again. If the encourager asks for
+  the change, the newcomer gets a kind note saying they can ask for someone new.
+- Admins see only totals by answer.
+
+Code: `modules/practices` (`checkIn`, `checkInDueTask`), `components/encourager-card.tsx`.
+
+## Kindness weather report (off)
+
+Admin → Growth practices → **Kindness weather report** (migration 20261029019200). Admins get
+an anonymous, week-by-week view of how the community's conversations felt over the last 12
+weeks.
+
+- **Warm signals** are hearts from the asker, thank-yous, thank-you notes and "Glad to".
+  **Heated signals** are replies the kind cloud flagged (calm threads and cool-down) and
+  member reports.
+- Each week gets a sky, judged by heated signals per comment:
+  - **Sunny:** under 2% heated, and at least 10% warm.
+  - **Fair:** under 5% heated.
+  - **Cloudy:** under 12% heated.
+  - **Stormy:** 12% or more.
+- The report uses totals only and gives no score for any member. A week with fewer than 5
+  comments shows "Too quiet to say" and no numbers.
+
+Code: `modules/kindness-weather`, the Admin → Growth practices panel.

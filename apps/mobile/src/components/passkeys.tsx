@@ -78,7 +78,7 @@ export function PasskeysCard() {
   );
 }
 
-/** The sign-in screen's "Sign in with a passkey" (only while the switch is on, in a browser). */
+/** The sign-in screen's "Use a passkey" (only while the switch is on, in a browser). */
 export function PasskeySignIn({ on, onError }: { on: boolean; onError: (message: string) => void }) {
   const { t } = useLocale();
   const [busy, setBusy] = useState(false);
