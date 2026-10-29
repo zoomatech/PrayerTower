@@ -5,6 +5,13 @@
 <p><a href="{{ .ConfirmationURL }}">Elegir una contraseña nueva</a></p>
 <p>O escribe este código en la aplicación: <strong>{{ .Token }}</strong></p>
 <p style="font-size:13px;color:#6b6478">Si no lo pediste, puedes ignorar este correo. Tu contraseña no cambiará.</p>
+</body></html>{{ else if eq .Data.community "open-circle" }}<!doctype html>
+<html lang="en"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#1d3b39;max-width:560px">
+<h2>Reset your password</h2>
+<p>Someone asked to reset the password for your Open Circle account. Tap the link to choose a new one:</p>
+<p><a href="{{ .ConfirmationURL }}">Choose a new password</a></p>
+<p>Or enter this code in the app: <strong>{{ .Token }}</strong></p>
+<p style="font-size:13px;color:#4f6664">If you didn't ask for this, you can ignore this email. Your password won't change.</p>
 </body></html>{{ else }}<!doctype html>
 <html lang="en"><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#2a2438;max-width:560px">
 <h2>Reset your password</h2>
