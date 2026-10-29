@@ -204,15 +204,15 @@ export default function PostScreen() {
 
         {isWitness && card && !card.isMine ? (
           witnessed ? (
-            <Text style={type.small}>Added to the Witness team&apos;s list.</Text>
+            <Text style={type.small}>{t('witness.marked')}</Text>
           ) : (
             <View style={styles.section}>
-              <Text style={type.small}>Witness team (staff only)</Text>
-              <Field placeholder="Why this looks like a sincere need" value={witnessNote} onChangeText={setWitnessNote} maxLength={2000} />
+              <Text style={type.small}>{t('witness.markTitle')}</Text>
+              <Field placeholder={t('witness.markPlaceholder')} value={witnessNote} onChangeText={setWitnessNote} maxLength={2000} />
               <Button
                 small
                 variant="secondary"
-                label="Mark as a sincere need"
+                label={t('witness.mark')}
                 disabled={!witnessNote.trim()}
                 onPress={() =>
                   api

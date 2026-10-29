@@ -209,7 +209,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       {c && !c.isRequest ? (
         <View style={styles.row}>
           {c.kind === 'group' && (c.isOwner || c.isPublic) ? <Button small variant="secondary" label={t('conversation.invite')} onPress={openInvite} /> : null}
-          {c.kind === 'group' ? <Button small variant="secondary" label="Group events" onPress={() => router.push(`/events?groupId=${id}`)} /> : null}
+          {c.kind === 'group' ? <Button small variant="secondary" label={t('events.groupTitle')} onPress={() => router.push(`/events?groupId=${id}`)} /> : null}
           {other?.id ? <Button small variant="ghost" label={t('person.block', { name: other.name })} onPress={() => act(() => api.block(other.id!), 'leave')} /> : null}
           <Button small variant="ghost" label={c.kind === 'group' ? t('conversation.leave') : t('conversation.close')} onPress={() => act(() => api.leaveConversation(id), 'leave')} />
         </View>

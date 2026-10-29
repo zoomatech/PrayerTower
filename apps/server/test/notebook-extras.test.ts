@@ -102,6 +102,16 @@ describe('Post anatomy lines', () => {
   });
 });
 
+describe('Check-in affirmation', () => {
+  it('is off by default and reaches the app once an admin turns it on', async () => {
+    expect((await notebook.features(db)).checkinAffirmation).toBe(false);
+    await inTx(async (c) => {
+      expect((await notebook.updateSettings(c, { checkinAffirmationEnabled: true })).checkin_affirmation_enabled).toBe(true);
+      expect((await notebook.features(c)).checkinAffirmation).toBe(true);
+    });
+  });
+});
+
 describe('Tier upkeep', () => {
   it('holds a member one tier lower until they give or spend a token, only while on', async () => {
     const [member, friend] = [await createUser('Upkeep Member'), await createUser('Upkeep Friend')];

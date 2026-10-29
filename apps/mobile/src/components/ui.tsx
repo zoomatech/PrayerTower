@@ -113,22 +113,24 @@ export function RulesWarning({ onPostAnyway, busy }: { onPostAnyway: () => void;
 
 /** An error line. With onRetry it also offers "Try again", for a screen whose data didn't load. */
 export function ErrorText({ error, onRetry }: { error: string | null; onRetry?: () => void }) {
+  const t = useT();
   if (!error) return null;
   if (!onRetry) return <Text style={styles.error}>{error}</Text>;
   return (
     <View accessibilityLiveRegion="polite" style={{ gap: space.sm, alignItems: 'flex-start' }}>
       <Text style={styles.error}>{error}</Text>
-      <Button small variant="secondary" label="Try again" onPress={onRetry} />
+      <Button small variant="secondary" label={t('common.tryAgain')} onPress={onRetry} />
     </View>
   );
 }
 
 /** Shown while a screen's first load is on its way, so a slow connection never looks like an empty list. */
 export function Loading() {
+  const t = useT();
   return (
-    <View accessibilityRole="progressbar" accessibilityLabel="Loading" style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space.sm, padding: space.xl }}>
+    <View accessibilityRole="progressbar" accessibilityLabel={t('common.loading')} style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space.sm, padding: space.xl }}>
       <ActivityIndicator color={colors.primary} />
-      <Text style={type.small}>Loading…</Text>
+      <Text style={type.small}>{t('common.loading')}</Text>
     </View>
   );
 }

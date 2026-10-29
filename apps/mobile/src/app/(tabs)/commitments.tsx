@@ -5,11 +5,13 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 
 import { Button, Chip, Empty, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Commitments() {
   const { t, label } = useLocale();
+  const features = useFeatures();
   const freq = (f: Frequency) => label('frequency', f, FREQUENCY_LABELS[f]);
   const [items, setItems] = useState<Commitment[]>([]);
   const [review, setReview] = useState<WeeklyReview | null>(null);
@@ -62,6 +64,7 @@ export default function Commitments() {
         <ErrorText error={error} onRetry={load} />
         {!loaded && !error ? <Loading /> : null}
         {loaded && active.length === 0 ? <Empty text={t('promises.empty')} /> : null}
+        {features.checkinAffirmation && active.length > 0 ? <Text style={type.small}>{t('promises.affirmation')}</Text> : null}
         {active.map((c) => (
           <View key={c.id} style={styles.card}>
             <Text style={type.small}>{freq(c.frequency)}</Text>
