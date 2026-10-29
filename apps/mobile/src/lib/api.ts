@@ -75,6 +75,24 @@ export interface MeaningEmoji {
   meanings: { key: string; label: string; neutralLabel: string }[];
 }
 
+/** A member's own suggested meaning. */
+export interface MeaningProposal {
+  id: string;
+  emoji: string;
+  label: string;
+  status: 'pending' | 'approved' | 'declined';
+  createdAt: string;
+}
+/** Admin: a waiting suggestion, with the emoji's meanings now. */
+export interface MeaningProposalQueueItem {
+  id: string;
+  emoji: string;
+  icon: string;
+  label: string;
+  createdAt: string;
+  current: { key: string; label: string }[];
+}
+
 /** A chosen meaning on a post, shown as a leaf. */
 export interface MeaningLeaf {
   emoji: string;
@@ -158,6 +176,7 @@ export interface Features {
   talkCounts: boolean;
   meaningIconRow: boolean;
   kindnessResearch: boolean;
+  meaningProposals: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -232,6 +251,7 @@ export interface ConversationSettings {
   talk_counts_enabled: boolean;
   meaning_row_enabled: boolean;
   research_page_enabled: boolean;
+  meaning_proposals_enabled: boolean;
 }
 export interface ConversationPrefs {
   replySuggestions: boolean;
@@ -1500,10 +1520,13 @@ export const api = {
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    meaningProposals: () => get<{ proposals: MeaningProposalQueueItem[] }>('/admin/meaning-proposals'),
+    decideMeaningProposal: (id: string, d: { approve: boolean; label?: string; neutralLabel?: string; replaces?: string }) =>
+      post<{ status: 'approved' | 'declined' }>(`/admin/meaning-proposals/${id}`, d),
     highlightQueue: () => get<{ items: HighlightQueueItem[] }>('/admin/kindness-highlights'),
     pickHighlight: (id: string, pick: boolean, shownText?: string) => post<{ items: HighlightQueueItem[] }>(`/admin/kindness-highlights/${id}`, { pick, ...(shownText ? { shownText } : {}) }),
     sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
-    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean }>) =>
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean }>) =>
@@ -1589,6 +1612,8 @@ export const api = {
   conversations: () => get<{ conversations: ConversationSummary[] }>('/me/conversations'),
   conversation: (id: string, before?: string) => get<ConversationView>(`/conversations/${id}${before ? `?before=${before}` : ''}`),
   sendMessage: (id: string, body: string) => post<{ message: Pick<ChatMessage, 'id' | 'createdAt' | 'crisis'>; coolDown?: boolean }>(`/conversations/${id}/messages`, { body }),
+  meaningProposals: () => get<{ proposals: MeaningProposal[] }>('/me/meaning-proposals'),
+  proposeMeaning: (emoji: string, label: string) => post<{ proposals: MeaningProposal[] }>('/me/meaning-proposals', { emoji, label }),
   kindnessResearch: () => get<{ counts: TalkCountSummary }>('/kindness-research'),
   coolDown: () => get<{ coolDown: { id: string; line: number } | null }>('/me/cool-down'),
   coolDownDone: (id: string, choice: 'breather' | 'okay') => post<{ ok: true }>(`/me/cool-down/${id}`, { choice }),

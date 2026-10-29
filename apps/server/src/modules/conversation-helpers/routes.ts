@@ -3,6 +3,7 @@ import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { notFound } from '../../errors.js';
 import * as meanings from '../meaning-reactions/index.js';
+import * as proposals from '../meaning-reactions/proposals.js';
 import * as counts from './counts.js';
 import * as helpers from './index.js';
 
@@ -12,6 +13,13 @@ export function conversationHelperRoutes(app: FastifyInstance, db: Db) {
 
   // Counting patterns: move labels only, from members who chose to share.
   app.post('/talk-counts', async (req) => counts.record(db, requireUser(req), counts.Count.parse(req.body)));
+  // Member-made emoji meanings: suggest one; an admin reads it before it joins the tree.
+  app.get('/me/meaning-proposals', async (req) => ({ proposals: await proposals.mine(db, requireUser(req)) }));
+  app.post('/me/meaning-proposals', async (req, reply) => {
+    const r = await proposals.propose(db, requireUser(req), proposals.NewProposal.parse(req.body));
+    reply.code(201);
+    return { proposals: r };
+  });
   // The members' kindness research page: the same anonymous totals the admin sees.
   app.get('/kindness-research', async (req) => {
     requireUser(req);

@@ -21,6 +21,7 @@ const SECTIONS: Record<string, Section> = {
   partnerCheckins: { table: 'partner_checkins', where: 'from_id = $1' },
   coolDowns: { table: 'cool_downs', where: 'a_id = $1 or b_id = $1' },
   heatedReplies: { table: 'heated_replies', where: 'from_id = $1' },
+  meaningProposals: { table: 'meaning_proposals', where: 'user_id = $1', omit: ['decided_by'] },
   kindnessHighlights: { table: 'kindness_nominations', where: 'author_id = $1' },
   encourager: { table: 'encourager_volunteers', where: 'user_id = $1' },
   encouragerMatches: { table: 'encourager_matches', where: 'newcomer_id = $1 or encourager_id = $1' },

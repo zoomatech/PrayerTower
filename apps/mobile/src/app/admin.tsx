@@ -14,6 +14,7 @@ import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
+import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -1780,6 +1781,8 @@ function ConversationSettingsSection() {
       <Toggle label={t('talk.adminMeaningRow')} hint={t('talk.adminMeaningRowHint')} value={s.meaning_row_enabled} onChange={(v) => save({ meaningRowEnabled: v })} />
       <Toggle label={t('talk.adminCounts')} hint={t('talk.adminCountsHint')} value={s.talk_counts_enabled} onChange={(v) => save({ talkCountsEnabled: v })} />
       {s.talk_counts_enabled ? <TalkCountsView /> : null}
+      <Toggle label={t('meaningProposals.adminTitle')} hint={t('meaningProposals.adminHint')} value={s.meaning_proposals_enabled} onChange={(v) => save({ meaningProposalsEnabled: v })} />
+      {s.meaning_proposals_enabled ? <MeaningProposalsAdmin /> : null}
       <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
