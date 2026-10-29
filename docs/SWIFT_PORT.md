@@ -35,6 +35,7 @@ Each one reads the same admin switch as the Expo app and shows nothing while it 
 | Fresh-start days on Me: up to three dates, and today's fresh start | `freshDays` | `FreshDayRules`, `FreshDay` |
 | "Your prayer life" on Me, with gentle rhythm, weeks of prayer, welcome back, fresh starts and the weekly intention (1 to 6 days, or no aim) | `gentleRhythm`, `gentleStreak`, `weeklyIntention` | `PrayerStats`, `PrayerLifeSection` |
 | Three good things on Me: up to three a week, a reminder day, share as praise or to a circle | `gratitudeCard` (`circleUpdates` for circles) | `Gratitude`, `GratitudeSection` |
+| Kind words practice on Me: a made-up moment each week, three replies, and how each might land; nothing leaves the phone | `empathyPractice` | `KindWords`, `KindWordsSection` |
 
 Commit to Pray and Gift Tokens keep their icons in the row, and for now say they are coming soon (phases 2 and 4). Open Circle wording comes from the same words as `neutral.ts`, and a test checks the kind cloud has no religious words there.
 

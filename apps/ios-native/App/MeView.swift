@@ -25,6 +25,7 @@ struct MeView: View {
                 }
                 PrayerLifeSection()
                 GratitudeSection()
+                KindWordsSection()
                 FeedStyleSection()
                 if model.features["skinGallery"] || model.features["themeProposals"] {
                     Section {
