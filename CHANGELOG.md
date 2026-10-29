@@ -4,6 +4,19 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Answered-prayer stories and a 3-card kindness tools intro (both off) ([#138](https://github.com/zoomatech/PrayerTower/pull/138))
+- Radio regression covers the setup wizard, coverage map and digest ([#136](https://github.com/zoomatech/PrayerTower/pull/136))
+- Walks cover every screen; Open Circle wording, branding and hidden-screen fixes ([#129](https://github.com/zoomatech/PrayerTower/pull/129))
+- Giving split, "Praying for you now" on the Lock Screen, prayer chain by text (all off) ([#130](https://github.com/zoomatech/PrayerTower/pull/130))
+- One row of icons: emoji meanings on the action icons, never added icons (off) ([#135](https://github.com/zoomatech/PrayerTower/pull/135))
+- Station setup wizard, coverage map and weekly radio digest (off by default) ([#133](https://github.com/zoomatech/PrayerTower/pull/133))
+- Feed motion, drawn Blossom Garden, neon-tube Cinderella art and a Drawing style in the theme maker (behind the skin switches) ([#134](https://github.com/zoomatech/PrayerTower/pull/134))
+- Kindness batch: wording, partners, highlights, meaning row, cool-down, research page, lament, member meanings (all off) ([#125](https://github.com/zoomatech/PrayerTower/pull/125))
+- Drawn tower, moonlit gate in lines of light, and full-screen wall video (behind the skin switches) ([#132](https://github.com/zoomatech/PrayerTower/pull/132))
+- Thanksgiving burst for answered requests, listeners' "I'm praying too", radio regression pass (off by default) ([#131](https://github.com/zoomatech/PrayerTower/pull/131))
+- Drawn vine with comments in leaves, a member skin gallery, and iPad/Mac wide layouts ([#116](https://github.com/zoomatech/PrayerTower/pull/116))
+- Transmission windows, CW station ID, listener mode, operator log export (off by default) ([#128](https://github.com/zoomatech/PrayerTower/pull/128))
+- Sharing outside the app only with the author's consent (off); wider pilot walk ([#127](https://github.com/zoomatech/PrayerTower/pull/127))
 - Deploy to one free Oracle server instead of Fly.io (DEPLOY_TARGET=server) ([#126](https://github.com/zoomatech/PrayerTower/pull/126))
 - Station health page, listener acknowledgements, and simulation of every preset (off by default) ([#124](https://github.com/zoomatech/PrayerTower/pull/124))
 - Open Circle: hide the God role-play page, neutral wording on the radio listen screen ([#123](https://github.com/zoomatech/PrayerTower/pull/123))

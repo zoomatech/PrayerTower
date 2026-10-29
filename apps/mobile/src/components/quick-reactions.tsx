@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const KINDS: { kind: QuickReactionKind; icon: string }[] = [
   { kind: 'candle', icon: '🕯️' },
@@ -30,7 +31,7 @@ export function QuickReactionTray({ card, onChange, onClose }: { card: Card; onC
       // The card's counts line updates too.
       onChange(r);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     }
   };
 

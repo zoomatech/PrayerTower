@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { useCardActions } from "@/components/card-actions";
+import { TellFounder } from "@/components/tell-founder";
 import { Highlights } from "@/components/highlights";
 import { MacroNeeds } from "@/components/macro-needs";
 import { GivingAsk, ThanksCard, WorldwideCount } from "@/components/notebook";
@@ -152,6 +153,7 @@ export default function Feed() {
       <KindnessIntro />
       <LiveNow />
       <SurveyPrompts />
+      <TellFounder small />
       <Pressable
         style={styles.composer}
         onPress={() => router.push("/compose")}

@@ -82,6 +82,8 @@ import { securityRoutes } from './modules/security/routes.js';
 import { registerMetrics } from './metrics.js';
 import { announcementRoutes } from './modules/announcements/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
+import { pilotToolsRoutes } from './modules/pilot-tools/routes.js';
+import * as pilotTools from './modules/pilot-tools/index.js';
 import { inviteRoutes, signupConfigRoutes } from './modules/invites/routes.js';
 import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
@@ -132,6 +134,8 @@ export interface AppDeps {
   mailer?: Mailer | null;
   /** The web app's address, for invite links (…/sign-in?invite=CODE); null = no link. */
   webAppUrl?: string | null;
+  /** TestFlight public links for invite emails (Prayer Tower, Open Circle); null = not in a TestFlight pilot. */
+  testFlight?: { prayerTower: string | null; openCircle: string | null } | null;
   /** OpenAPI JSON and Swagger UI at /api/docs; null = off. Staff-only when restricted (production). */
   apiDocs?: { restricted: boolean; password: string | null; version: string } | null;
   /** Checks App Store signed transactions (token purchase); null = purchases can't be verified. */
@@ -153,7 +157,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null, practicePurchases = false, jaas = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, testFlight = null, appleVerifier = null, crosspost = null, practicePurchases = false, jaas = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -195,6 +199,10 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     // Unexpected failures only, for Admin → Operations and the ops alerts (route patterns, never ids).
     // Deliberate 5xx answers (a feature not set up, /health/ready during an outage) are not counted.
     void ops.recordError(db, { method: req.method, route: req.routeOptions.url ?? 'unmatched', status: 500 }).catch(() => undefined);
+    // With the error log on (Admin → Pilot tools), the message too, grouped by route.
+    void pilotTools
+      .record(db, { source: 'server', place: `${req.method} ${req.routeOptions.url ?? 'unmatched'}`, message: (err as Error).message || 'Unknown error', detail: (err as Error).stack ?? null, userId: req.auth?.userId ?? null })
+      .catch(() => undefined);
     return reply.code(500).send({ error: 'internal', message: 'Something went wrong' });
   });
 
@@ -386,7 +394,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);
-    inviteRoutes(authed, db, mailer, { webAppUrl, appStoreUrl: site?.appStoreUrl ?? null, playStoreUrl: site?.playStoreUrl ?? null });
+    pilotToolsRoutes(authed, db);
+    inviteRoutes(authed, db, mailer, { webAppUrl, appStoreUrl: site?.appStoreUrl ?? null, playStoreUrl: site?.playStoreUrl ?? null, testFlightUrl: testFlight?.prayerTower ?? null, openCircleTestFlightUrl: testFlight?.openCircle ?? null });
     announcementRoutes(authed, db);
     adminRoutes(authed, db, storage);
   });

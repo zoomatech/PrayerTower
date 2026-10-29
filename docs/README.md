@@ -24,6 +24,7 @@ Every current doc, grouped by who it's for. The pilot is **English only** and **
 | [NOTEBOOK_FEATURES.md](NOTEBOOK_FEATURES.md) | Notebook ideas with their own switches: worldwide count, thanksgiving card, notes for event hosts, "positive thoughts welcome" |
 | [RADIO_STATION.md](RADIO_STATION.md) | How radio prayers go out, and the radio rules |
 | [RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md) | Installing the station on a Raspberry Pi or Debian laptop |
+| [CONTROL_OPERATOR_QUICK_START.md](CONTROL_OPERATOR_QUICK_START.md) | One page for the control operator: day-one setup, the daily console check, and what to do for each alert |
 | [PILOT_RESULTS_TEMPLATE.md](PILOT_RESULTS_TEMPLATE.md) | Pilot results for the sponsorship ask |
 | [ABUSE_TESTS.md](ABUSE_TESTS.md) | Spam and token-farming attacks we tested, and the limits that stop them |
 | [HARMFUL_PRAYERS.md](HARMFUL_PRAYERS.md) | Prayers for harm, curses, revenge, threats, hate, abuse disclosures and heavy swearing: what is held for a person, what stays up, and why none of it goes out by radio. Off until switched on |

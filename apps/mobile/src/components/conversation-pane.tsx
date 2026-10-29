@@ -17,6 +17,7 @@ import { useFeatures } from '@/lib/features';
 import { chainOf } from '@/lib/talk';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const POLL_MS = 5000;
 
@@ -50,7 +51,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       setView(v);
       api.markConversationRead(id).catch(() => undefined);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     }
   }, [id]);
 
@@ -84,7 +85,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       await load();
       scroll.current?.scrollToEnd({ animated: true });
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
@@ -100,7 +101,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       }
       else await load();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     }
   };
 
@@ -112,7 +113,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       setReporting(null);
       setReason('');
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     }
   };
 
@@ -121,7 +122,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
     try {
       setConnections((await api.connections()).people);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     }
   };
 

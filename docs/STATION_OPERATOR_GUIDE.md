@@ -6,6 +6,8 @@ and the first tests, from no radio at all up to a real burst on the air. The
 station software is already installed ([RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md));
 the format and every setting are in [RADIO_BURST.md](RADIO_BURST.md).
 
+New to the station? Start with the one-page [control operator quick start](CONTROL_OPERATOR_QUICK_START.md).
+
 ## Features at a glance
 
 Every feature below is off until an admin turns it on. Admin → Radio holds the
@@ -405,6 +407,7 @@ One screen for the control operator: Me → **Operator console**. It is off unti
 
 | Part | What it shows |
 | --- | --- |
+| Problems right now | Shown first, in red, only when there is one: no sound card, the radio did not key, the last burst failed, a burst is overdue, or a station stopped reporting, with its call sign and detail. These are the same checks as the [health alerts](#health-alerts-in-admin--radio), shown whether or not those switches are on. |
 | Status | Whether the station may transmit now, and why not: held, outside the transmission windows, or sending under an override until a given time. |
 | Manual override | **Hold all transmissions**: the station is handed nothing new until **Resume** (a burst already on the air finishes). **Send for 15 / 30 / 60 min**: sends outside the windows and quiet hours, then the windows apply again on their own; **End override** stops it early. |
 | Station ID timer | For each station: when it last identified, how often it must (`STATION_ID_MINUTES`), and when the next ID is due. The station reports this as its `station_id` check. |

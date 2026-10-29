@@ -9,6 +9,7 @@ import { api, type PartnerState } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 type Mood = 'good' | 'okay' | 'hard';
 const MOODS: Mood[] = ['good', 'okay', 'hard'];
@@ -28,7 +29,8 @@ export function PartnerCard() {
 
   useEffect(() => {
     if (!partners) return;
-    api.partner().then(setS, (e) => setError((e as Error).message));
+    // A card that can't load stays hidden; only the error log hears about it.
+    api.partner().then(setS, (e) => void errorText(e));
   }, [partners]);
 
   if (!partners || !s?.enabled) return null;
@@ -40,7 +42,7 @@ export function PartnerCard() {
       setS(await fn());
       setNote(done ?? null);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

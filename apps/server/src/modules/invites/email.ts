@@ -20,6 +20,10 @@ export interface InviteLinks {
   webAppUrl: string | null;
   appStoreUrl: string | null;
   playStoreUrl: string | null;
+  /** The TestFlight public link (https://testflight.apple.com/join/…) while the iPhone app is in its pilot test. */
+  testFlightUrl?: string | null;
+  /** Open Circle's own TestFlight link, for invites to a secular community. */
+  openCircleTestFlightUrl?: string | null;
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -32,6 +36,7 @@ const TEXT = {
     steps: 'Get the app, tap "New here? Create an account", and enter the code.',
     open: 'Or open this link to sign up with the code filled in:',
     ios: 'iPhone and iPad (App Store)',
+    testFlight: 'iPhone and iPad (test version): install Apple\'s free TestFlight app from the App Store, then open',
     android: 'Android (Google Play)',
     web: 'Any browser',
     note: (n: string) => `Note from ${n}:`,
@@ -44,6 +49,7 @@ const TEXT = {
     steps: 'Descarga la aplicación, toca "¿Eres nuevo? Crea una cuenta" y escribe el código.',
     open: 'O abre este enlace para registrarte con el código ya escrito:',
     ios: 'iPhone y iPad (App Store)',
+    testFlight: 'iPhone y iPad (versión de prueba): instala la aplicación gratuita TestFlight de Apple desde el App Store y luego abre',
     android: 'Android (Google Play)',
     web: 'Cualquier navegador',
     note: (n: string) => `Nota de ${n}:`,
@@ -71,7 +77,9 @@ export function renderInviteEmail(input: {
   const lang = input.community?.secular ? 'en' : memberLang(input.lang);
   const t = input.community?.secular ? neutral(input.community.name) : TEXT[lang];
   const signUp = input.links.webAppUrl ? `${input.links.webAppUrl.replace(/\/$/, '')}/sign-in?invite=${encodeURIComponent(input.code)}` : null;
+  const testFlight = input.community?.secular ? input.links.openCircleTestFlightUrl : input.links.testFlightUrl;
   const stores = [
+    testFlight ? { label: t.testFlight, url: testFlight } : null,
     input.links.appStoreUrl ? { label: t.ios, url: input.links.appStoreUrl } : null,
     input.links.playStoreUrl ? { label: t.android, url: input.links.playStoreUrl } : null,
     input.links.webAppUrl ? { label: t.web, url: input.links.webAppUrl } : null,

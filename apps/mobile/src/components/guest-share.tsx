@@ -11,6 +11,7 @@ import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function GuestShare({ card }: { card: Card }) {
   const { t } = useLocale();
@@ -37,7 +38,7 @@ export function GuestShare({ card }: { card: Card }) {
         setError(null);
         return share(r.link);
       },
-      (e) => setError((e as Error).message),
+      (e) => setError(errorText(e)),
     );
   const stop = () =>
     api.revokeGuestLink(card.id).then(
@@ -45,7 +46,7 @@ export function GuestShare({ card }: { card: Card }) {
         setLink(null);
         setNote(t('growth.guestStopped'));
       },
-      (e) => setError((e as Error).message),
+      (e) => setError(errorText(e)),
     );
   const toChain = () =>
     api.sendToPrayerChain(card.id).then(
@@ -53,7 +54,7 @@ export function GuestShare({ card }: { card: Card }) {
         setNote(t('growth.chainSent', { count: r.recipients }));
         load();
       },
-      (e) => setError((e as Error).message),
+      (e) => setError(errorText(e)),
     );
 
   return (

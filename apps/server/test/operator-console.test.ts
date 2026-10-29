@@ -84,6 +84,16 @@ describe('operator console', () => {
     }
   });
 
+  it('shows the station problems first, whether or not the alert switches are on', async () => {
+    await station('/station/status', { callSign: `${CALL}P`, checks: [{ name: 'rig', ok: false, detail: 'rigctld not answering' }] });
+    try {
+      const v = (await as(operator).get('/radio/console')).json();
+      expect(v.problems).toContainEqual(expect.objectContaining({ kind: 'ptt_failed', callSign: `${CALL}P`, detail: 'rigctld not answering' }));
+    } finally {
+      await db.query('delete from public.station_status where call_sign = $1', [`${CALL}P`]);
+    }
+  });
+
   it('hold stops the station being handed anything until resumed', async () => {
     const p = await newRequest(poster, `Console held prayer ${RUN}.`);
     await as(member).post(`/posts/${p.id}/radio`, { idempotencyKey: `console-held-${RUN}` });

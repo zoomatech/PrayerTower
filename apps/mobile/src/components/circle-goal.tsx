@@ -8,6 +8,7 @@ import { Button, Field } from '@/components/ui';
 import { api, type CircleGoal as Status } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function CircleGoal({ postId }: { postId: string }) {
   const { t } = useLocale();
@@ -22,7 +23,7 @@ export function CircleGoal({ postId }: { postId: string }) {
   useEffect(load, [load]);
 
   if (!status?.enabled || (!status.goal && !status.canSet)) return null;
-  const fail = (e: unknown) => setNote((e as Error).message);
+  const fail = (e: unknown) => setNote(errorText(e));
   const save = () =>
     api.setCircleGoal(postId, Number(target), Number(days)).then((s) => {
       setStatus(s);

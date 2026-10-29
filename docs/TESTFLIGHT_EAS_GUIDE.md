@@ -2,6 +2,10 @@
 
 > Written 2026-10-28 from the current Expo and Apple documentation, which is linked at each step. The builds run in Expo's cloud, so **you don't need Xcode**, only Terminal. Plan about 1–2 hours the first time. Most of it is waiting for builds and for Apple.
 
+> **One command:** `scripts/testflight.sh` does steps 2 to 6 for you. It reads `deploy/production.env`, copies the app's settings to EAS, builds, sends the build to TestFlight and uploads the App Store text. `scripts/testflight.sh --check` only checks. Then paste the text from [store/TESTFLIGHT_TEST_INFO.md](store/TESTFLIGHT_TEST_INFO.md) and turn on the public link. The steps below are what the script does, in case one fails.
+>
+> The app already carries its privacy manifest (`ios.privacyManifests` in `app.json`, [Expo: Privacy manifests](https://docs.expo.dev/guides/apple-privacy/)). It also answers the encryption question (`ITSAppUsesNonExemptEncryption: false`: the app uses only the system's own HTTPS, [Apple: Complying with encryption export regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations)), so TestFlight doesn't ask about export compliance on each build.
+
 ## What you need first
 
 - [ ] **A paid Apple Developer Program membership**, signed in as the Account Holder or an Admin. ([Expo: Submit to the Apple App Store](https://docs.expo.dev/submit/ios/))

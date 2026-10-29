@@ -10,6 +10,7 @@ import { api, type GivingSplit, type MyGivingSplit } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export const dollars = (cents: number) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -58,7 +59,7 @@ export function GivingSplitChoice() {
   const choose = (percent: number) =>
     api.setGivingSplit(percent).then(
       (r) => (setMine(r.split), setNote(t('givingSplit.saved'))),
-      (e) => setNote((e as Error).message),
+      (e) => setNote(errorText(e)),
     );
   const options = [0, 10, 20, 30, 40, 50, 75, 100].filter((p) => p <= mine.maxPercent);
   return (

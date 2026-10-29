@@ -1,12 +1,13 @@
 // Pilot feedback: tell us what's broken, confusing or worth adding. Admins read
 // it on the admin screen.
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { errorText } from '@/lib/error-report';
 import { useLocale } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
@@ -18,6 +19,8 @@ const KINDS = [
 
 export default function FeedbackScreen() {
   const { t } = useLocale();
+  // From "Tell Steve": the same form, addressed to them.
+  const { to } = useLocalSearchParams<{ to?: string }>();
   const [kind, setKind] = useState<(typeof KINDS)[number]['value']>('bug');
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,7 +35,7 @@ export default function FeedbackScreen() {
       setSent(true);
       setBody('');
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
@@ -42,8 +45,10 @@ export default function FeedbackScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>{t('profile.feedback')}</Text>
-        <Text style={type.body}>{t('feedback.intro')}</Text>
+        <Text style={type.title} accessibilityRole="header">
+          {to ? t('pilot.tell', { name: to }) : t('profile.feedback')}
+        </Text>
+        <Text style={type.body}>{to ? t('pilot.tellIntro', { name: to }) : t('feedback.intro')}</Text>
         <View style={styles.row}>
           {KINDS.map((k) => (
             <Chip key={k.value} label={t(`feedback.kinds.${k.value}`)} selected={kind === k.value} onPress={() => setKind(k.value)} />

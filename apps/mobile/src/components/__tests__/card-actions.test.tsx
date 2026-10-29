@@ -5,9 +5,10 @@ import { fireEvent, screen } from '@testing-library/react-native';
 import { renderApp, sampleCard } from '@/__tests__/helpers';
 import { useCardActions } from '@/components/card-actions';
 import { PostCard } from '@/components/post-card';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 jest.mock('@/lib/api', () => ({
+  ApiError: jest.requireActual('@/lib/api').ApiError,
   api: {
     features: jest.fn(async () => ({ features: {} })),
     prayingNow: jest.fn(async () => ({ eventId: 'e1', integrityText: '' })),
@@ -51,7 +52,7 @@ describe('Praying Now', () => {
   });
 
   it('shows the server\'s reason when the prayer is refused', async () => {
-    mocked.prayingNow.mockRejectedValueOnce(new Error('Please wait a moment before praying again'));
+    mocked.prayingNow.mockRejectedValueOnce(new ApiError(429, 'too_soon', 'Please wait a moment before praying again'));
     await renderApp(<Harness card={sampleCard()} />);
     await fireEvent.press(screen.getByRole('button', { name: 'Praying Now' }));
     await fireEvent.press(screen.getByRole('button', { name: "I'm praying now" }));
