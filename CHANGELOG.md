@@ -4,6 +4,8 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Fix duplicate migration number that breaks db reset on main ([#121](https://github.com/zoomatech/PrayerTower/pull/121))
+- Conversation helpers: six greeting ideas plus anonymous counting, each off by default ([#120](https://github.com/zoomatech/PrayerTower/pull/120))
 - Go-live prep: email checks, App Store listing push, settings check, Open Circle sender ([#113](https://github.com/zoomatech/PrayerTower/pull/113))
 - Station: run on macOS, and several stations sharing one queue (off by default) ([#119](https://github.com/zoomatech/PrayerTower/pull/119))
 - Contributor recognition and re-mined ideas: lamps, matching, ledger, circle goals, giving ask, support links, Squire board, group gifts, prayer list (all off) ([#103](https://github.com/zoomatech/PrayerTower/pull/103))

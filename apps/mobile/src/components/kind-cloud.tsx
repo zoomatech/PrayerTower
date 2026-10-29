@@ -9,6 +9,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native';
 import { api, type HarmNote, type KindVerdict } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
+import { announce } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const WAIT_MS = 700;
@@ -38,12 +39,18 @@ export function useKindCloud(text: string): { on: boolean; verdict: KindVerdict 
 export function KindCloud({ text }: { text: string }) {
   const t = useT();
   const { verdict, harm } = useKindCloud(text);
-  if (!verdict && !harm) return null;
   const strong = verdict?.level === 'strong';
+  // iOS has no live regions: say the cloud out loud once when it appears or changes.
+  const spoken = verdict || harm ? [t('kindCloud.label'), harm?.message, strong ? t('kindCloud.strong') : t('kindCloud.ask')].filter(Boolean).join('. ') : null;
+  useEffect(() => {
+    if (spoken) announce(spoken);
+  }, [spoken]);
+  if (!verdict && !harm) return null;
   return (
     <View style={styles.corner} accessibilityLiveRegion="polite" accessibilityLabel={t('kindCloud.label')} testID="kind-cloud">
-      <View style={[styles.puff, styles.puffSmall]} />
-      <View style={[styles.puff, styles.puffLarge]} />
+      {/* The puffs are decoration only. */}
+      <View style={[styles.puff, styles.puffSmall]} aria-hidden importantForAccessibility="no-hide-descendants" />
+      <View style={[styles.puff, styles.puffLarge]} aria-hidden importantForAccessibility="no-hide-descendants" />
       <View style={styles.cloud}>
         <Text style={styles.prayer}>{t('kindCloud.prayer')}</Text>
         {/* A request that wishes harm gets the harm filter's gentle redirect, and any helplines. */}
@@ -64,7 +71,8 @@ export function KindCloud({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
-  corner: { alignSelf: 'flex-end', maxWidth: 260, marginTop: space.sm },
+  // Room to grow with larger text, but still a corner note rather than a banner.
+  corner: { alignSelf: 'flex-end', maxWidth: '85%', minWidth: 200, marginTop: space.sm },
   cloud: { backgroundColor: colors.primarySoft, borderRadius: radius.lg, paddingVertical: space.sm, paddingHorizontal: space.md, gap: space.xs },
   // Two puffs on top give it a cloud's outline.
   puff: { position: 'absolute', backgroundColor: colors.primarySoft, borderRadius: radius.pill },

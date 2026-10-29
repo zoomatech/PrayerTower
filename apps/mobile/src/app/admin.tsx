@@ -1698,6 +1698,9 @@ function PracticeSettingsSection() {
       <Toggle label={t('practices.adminEncourager')} hint={t('practices.adminEncouragerHint')} value={s.encourager_enabled} onChange={(v) => save({ encouragerEnabled: v })} />
       <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
       <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
+      <Toggle label={t('practices.adminLiftUp')} hint={t('practices.adminLiftUpHint')} value={s.lift_up_enabled} onChange={(v) => save({ liftUpEnabled: v })} />
+      <Toggle label={t('practices.adminGratitudeCount')} hint={t('practices.adminGratitudeCountHint')} value={s.gratitude_count_enabled} onChange={(v) => save({ gratitudeCountEnabled: v })} />
+      <Toggle label={t('practices.adminBelieve')} hint={t('practices.adminBelieveHint')} value={s.believe_enabled} onChange={(v) => save({ believeEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
       <Field label={t('repair.adminWelcomeText')} value={welcome} onChangeText={setWelcome} multiline maxLength={600} />
