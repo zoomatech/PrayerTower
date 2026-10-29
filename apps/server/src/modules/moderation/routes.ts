@@ -54,12 +54,12 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   // (modules/kindness), raised to a nudge when the AI would flag the text.
   app.post('/moderation/precheck', async (req) => {
     const userId = requireUser(req);
-    const { text } = z.object({ text: z.string().max(10_000) }).parse(req.body);
+    const { text, context } = z.object({ text: z.string().max(10_000), context: z.enum(['lament', 'lamentReply']).optional() }).parse(req.body);
     // The harmful-prayer check (free, no AI): a gentle word and any hotlines, only when it applies (docs/HARMFUL_PRAYERS.md).
     const harmWord = await harm.precheck(db, text, userId).catch(() => null);
     const harmPart = harmWord ? { harm: harmWord } : {};
     const kind = await kindness.enabled(db);
-    const rules = kind && text.trim() ? kindness.assess(text) : null;
+    const rules = kind && text.trim() ? kindness.assessIn(text, context) : null;
     let warn = false;
     if (classify && text.trim()) {
       const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));

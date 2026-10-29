@@ -24,14 +24,14 @@ A skin is a row in `feed_themes`. Its look is in `tokens` (JSON), so a new vine 
 |---|---|---|
 | Beanstalk | vine | Thick green stalk (10 pt), round leaves, pale green backdrop |
 | Golden Wood | vine | Silver-grey trunk, pointed gold leaves, cream backdrop, no bird |
-| Moonlit Gate | vine | Doubled silver line like engraved tracery, pointed pale leaves, cool stone backdrop |
-| Wall | wall | One post per screen on a dark backdrop, hard snap per swipe, like a short-video app |
-| Prayer Tower / Climbing Tower | tower | Stone pillars and a climber avatar 🧗; one request per floor; comments are stone tablets and sub-tablets |
+| Moonlit Gate | vine | Fine lines of silver light on a night sky: a drawn gate at the top of the feed (pillars, arch, ring of stars, a large star, two trees, a crescent moon), a thread of light down from its doorway, and each post in an arched doorway of light |
+| Wall | wall | One post per screen on a dark backdrop, hard snap per swipe, like a short-video app. Videos fill the page and play by themselves, muted and looping at the 7-second cap, only on the page on screen |
+| Prayer Tower / Climbing Tower | tower | Drawn walls of dressed stone, a climber on a rope, battlements at the top; one request per floor, carved on a stone tablet, with its newest comments on smaller sub-tablets hung below it |
 | Neon Cinderella | vine | Dark night backdrop, glowing pink stem, star-shaped leaves, and neon outline drawings (castle, pumpkin coach, glass slipper) after every third request |
 | Neon Circuit | circuit | Each post glows inside its own screen, tilted left or right; one live wire runs down the edge with a tap into each screen, and gentle bursts of light travel down it |
 | Blossom Garden | vine | Soft pink backdrop, green stem, five-petal flowers instead of leaves; comments bloom as flowers |
 
-Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `backdrop`, `stemWidth` (2–14), `stemDouble`, `leafShape` (`round`, `pointed`, `flower`, `star`, `tablet`), `stemGlow`, `scenery` (`fairytale` or empty), `leafEvery`, `idleBirdSeconds`, `birdText`, `tipText`. Wall tokens: `backdrop`. Tower tokens: `stone`, `mortar`, `backdrop`, `climber`. Circuit tokens: `backdrop`, `wire`, `burst`, `screen`, `tilt` (0–20 degrees).
+Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `backdrop`, `stemWidth` (2–14), `stemDouble`, `leafShape` (`round`, `pointed`, `flower`, `star`, `tablet`), `stemGlow`, `scenery` (`fairytale` or empty), `vineStyle` (`beanstalk`, `ink`, `neon`, `gate` or empty), `ink`, `leafEvery`, `idleBirdSeconds`, `birdText`, `tipText`. Wall tokens: `backdrop`. Tower tokens: `stone`, `mortar`, `backdrop`, `climber`. Circuit tokens: `backdrop`, `wire`, `burst`, `screen`, `tilt` (0–20 degrees).
 
 Open Circle gets the same skins. They carry no religious words, and the vine's Open Circle wording still replaces `birdText` and `tipText`.
 
@@ -82,7 +82,22 @@ Every vine skin draws the plant as a transparent picture (`react-native-svg`, `a
   - `beanstalk` (Beanstalk): two thick strands that twist round each other, with curling tendrils.
   - `ink` (Golden Wood): a pen-and-ink drawing, with dark outlines (`ink` color) on the trunk, leaves and boxes, and flat colors.
   - `neon` (Neon Cinderella): no plant at all. It draws straight glowing rods with right-angle joins and cut-corner frames. Each tube has a faint wide bloom, a brighter halo and a thin white core. The castle, coach and slipper drawings stay.
+  - `gate` (Moonlit Gate): fine lines of silver light on the night sky. The feed opens with a drawn gate, and its line of light runs down from the doorway. Each post and comment sits in an arched doorway drawn in light, with a star at the top of the arch. On a post's page the comments keep the night sky behind them.
 - Neon Circuit's wire and screens use the same tube look: a white core with the color blooming round it.
+
+## Drawn tower (2026-10-29)
+
+`apps/mobile/src/components/stone-tablet.tsx`, used by `layouts/tower.tsx` and the post page's comment tree on the tower skins:
+
+- The two walls are drawn stone: courses of dressed blocks, each a slightly different shade, with a lit top edge and mortar joints. They scroll past as the climber goes up.
+- The climber is drawn: helmet, jacket and pack, hands on a rope that hangs from the top of the screen, boots braced on the wall. A skin can still set its own `climber` emoji.
+- Each request is carved on a stone tablet (rounded top, square foot, bevelled edge, chisel marks, a pale smoothed face). Its newest comments (up to 3) hang below on smaller sub-tablets, each on a short iron chain. "N more comments" opens the post, where every comment is a sub-tablet and replies are smaller again.
+- The top floor has battlements.
+- The tablet face is picked so dark, muted and link text all keep 4.5:1.
+
+## Full-screen wall video (2026-10-29)
+
+`layouts/wall.tsx` tells each page whether it is the one on screen (`WallPage` in `components/media.tsx`). On that page a video fills a tall 9:16 frame and plays by itself, muted and looping, the way short-video apps do. It loops at the video cap (7 seconds by default) even if an older clip is longer, using expo-video's `timeUpdate` event ([Expo Video](https://docs.expo.dev/versions/latest/sdk/video/)). A sound button turns the sound on. Pages off screen show a play button and hold no player, so only one video plays at a time. With reduced motion on, nothing plays until the member taps. A video post leaves out its comment preview so the whole post fits one screen; its comments are one tap away.
 
 ## One row of action icons (Steve, 2026-10-29)
 
@@ -139,6 +154,7 @@ At 10 pilot members, one clip each a week, seen by the other 9: about 43 clips (
 
 ## Notes for the legal department
 
+- Moonlit Gate's gate and the tower's stonework and climber are our own drawings (`components/gate-arch.tsx`, `components/stone-tablet.tsx`). The gate is inspired by old moonlit-door drawings in general and copies no published illustration; it has no inscription, emblems or names from any book.
 - Beanstalk and Golden Wood are our own drawings in a general fairy-tale and pen-and-ink style. They copy no Disney or Tolkien artwork, and app text uses no Tolkien names.
 
 The skins use our own names (Golden Wood, Moonlit Gate). Middle-earth Enterprises holds many Tolkien trademarks ([Justia listing](https://trademarks.justia.com/owners/middle-earth-enterprises-llc-5365969)), so Tolkien's place names stay out of the app and store text until legal checks them. The skins are only inspired by golden woods and moonlit stone gates.

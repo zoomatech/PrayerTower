@@ -22,6 +22,7 @@ import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
+import { MeaningIcons } from './meaning-icon-row';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
@@ -104,6 +105,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           </Text>
         ) : null}
         {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+        {card.lament && features.lament ? <Text style={styles.tags}>🕯️ {t('lament.tag')}</Text> : null}
         {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
         <Pressable
@@ -168,6 +170,9 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
               />
             );
           })}
+          {/* Emoji meanings join the same row in every skin (off unless switched on). On the
+              request's own page the full meaning tree with its leaves sits below instead. */}
+          {startExpanded ? null : <MeaningIcons postId={card.id} postBody={card.body} />}
         </View>
 
         {card.topComment ? (
@@ -249,8 +254,9 @@ const styles = StyleSheet.create({
   bodyLine: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, marginLeft: 4 },
   more: { color: colors.primary, fontWeight: '600' },
   counts: type.small,
-  actions: { flexDirection: 'row', justifyContent: 'space-between', gap: space.xs },
-  actionCell: { flex: 1, alignItems: 'center', position: 'relative' },
+  // Wraps rather than squeezing when the emoji meanings join the row: every target stays 44 points.
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: space.xs },
+  actionCell: { flex: 1, minWidth: 44, alignItems: 'center', position: 'relative' },
   // 44 pt touch targets (Apple HIG).
   action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.background },
   actionActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },

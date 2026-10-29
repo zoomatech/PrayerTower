@@ -14,7 +14,7 @@
 // Research and sources: docs/KIND_CLOUD.md.
 import type { Queryable } from '../../db.js';
 
-export type CloudReason = 'threat' | 'foul' | 'aimed' | 'shouting';
+export type CloudReason = 'threat' | 'foul' | 'aimed' | 'shouting' | 'advice';
 export interface Verdict {
   level: 'ok' | 'nudge' | 'strong';
   reason?: CloudReason;
@@ -64,6 +64,36 @@ export function assess(raw: string): Verdict {
   const letters = raw.replace(/[^A-Za-z]/g, '');
   if (letters.length >= 20 && letters.replace(/[^A-Z]/g, '').length / letters.length > 0.7) return { level: 'nudge', reason: 'shouting' };
   return { level: 'ok' };
+}
+
+// Advice and silver linings, which grief research finds hurt more than help ("at least",
+// "everything happens for a reason", "you should"): Lehman, Ellard & Wortman 1986, in
+// docs/GROWTH_PRACTICES.md. Only asked about in replies to a lament.
+const ADVICE = [
+  /\byou\s+(?:should|need\s+to|have\s+to|must|ought\s+to|could\s+try)\b/,
+  /\bhave\s+you\s+(?:tried|thought\s+about|considered)\b/,
+  /\bwhy\s+don'?t\s+you\b/,
+  /\bat\s+least\b/,
+  /\beverything\s+happens\s+for\s+a\s+reason\b/,
+  /\b(?:just|try\s+to)\s+(?:stay\s+positive|be\s+positive|look\s+on\s+the\s+bright\s+side|move\s+on|get\s+over\s+it|cheer\s+up)\b/,
+  /\bit\s+could\s+be\s+worse\b/,
+  /\b(?:god|the\s+universe)\s+(?:never\s+gives|won'?t\s+give)\s+(?:you|us)\s+more\b/,
+  /\bi\s+know\s+(?:exactly\s+)?how\s+you\s+feel\b/,
+];
+
+/**
+ * Lament posts (docs/GROWTH_PRACTICES.md): the author's own swearing out of grief gets no
+ * cloud ('lament'), and a reply to a lament is asked, gently, to hold back advice
+ * ('lamentReply'). Threats always get the cloud.
+ */
+export function assessIn(raw: string, context?: 'lament' | 'lamentReply'): Verdict {
+  const v = assess(raw);
+  if (context === 'lament' && v.reason === 'foul') return { level: 'ok' };
+  if (context === 'lamentReply' && v.level === 'ok') {
+    const text = raw.toLowerCase().replace(/[’`]/g, "'");
+    if (ADVICE.some((r) => r.test(text))) return { level: 'nudge', reason: 'advice' };
+  }
+  return v;
 }
 
 export async function enabled(q: Queryable): Promise<boolean> {

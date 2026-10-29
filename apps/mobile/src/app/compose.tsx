@@ -52,6 +52,8 @@ export default function Compose() {
   const [anonymous, setAnonymous] = useState(profile?.anonymous_by_default ?? false);
   const [sensitive, setSensitive] = useState(false);
   const [allSupport, setAllSupport] = useState(false);
+  const [lament, setLament] = useState(false);
+  const [lamentRadio, setLamentRadio] = useState(false);
   const features = useFeatures();
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [busy, setBusy] = useState(false);
@@ -85,6 +87,7 @@ export default function Compose() {
           isAnonymous: anonymous,
           isSensitive: sensitive,
           allSupportWelcome: features.supportLabel && allSupport,
+          ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
         });
         if ('queued' in result) return leave();
         return afterCreate(result.post);
@@ -100,6 +103,7 @@ export default function Compose() {
         isAnonymous: anonymous,
         isSensitive: sensitive,
         allSupportWelcome: features.supportLabel && allSupport,
+        ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
         media,
       });
       afterCreate(created.post);
@@ -152,7 +156,7 @@ export default function Compose() {
           autoFocus
           accessibilityLabel={t('compose.bodyLabel')}
         />
-        <KindCloud text={body} />
+        <KindCloud text={body} context={features.lament && lament ? 'lament' : undefined} />
         <Text style={[type.small, words > MAX_POST_WORDS && { color: colors.danger }]}>
           {t('compose.words', { count: words, max: MAX_POST_WORDS })}
         </Text>
@@ -231,6 +235,12 @@ export default function Compose() {
         />
         {features.supportLabel ? (
           <Toggle label={t('notebook.supportToggle')} hint={t('notebook.supportHint')} value={allSupport} onChange={setAllSupport} />
+        ) : null}
+        {features.lament ? (
+          <>
+            <Toggle label={t('lament.toggle')} hint={t('lament.toggleHint')} value={lament} onChange={setLament} />
+            {lament ? <Toggle label={t('lament.radio')} hint={t('lament.radioHint')} value={lamentRadio} onChange={setLamentRadio} /> : null}
+          </>
         ) : null}
       </ScrollView>
     </Screen>
