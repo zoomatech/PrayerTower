@@ -56,6 +56,7 @@ export function GratitudeCard() {
     <View style={styles.card} testID="gratitude-card">
       <Text style={type.heading}>{t('practices.gratitudeTitle')}</Text>
       <Text style={type.small}>{t('practices.gratitudeIntro')}</Text>
+      {g.weeks ? <Text style={type.body}>{t('practices.gratitudeWeeks', { n: g.weeks })}</Text> : null}
       {items.map((v, i) => (
         <Field
           key={i}

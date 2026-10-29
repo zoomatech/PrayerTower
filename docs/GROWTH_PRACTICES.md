@@ -32,3 +32,15 @@ kind habits with nothing to lose. Each is **off** until an admin turns it on in
 
 - **Encourager** (Me): a member volunteers after agreeing to the guidelines (up to 2 newcomers at a time). A member younger than `newcomer_days` (30) can ask for one. They're matched with the volunteer in the same community who has the most room, never across a block. A match lasts `encourager_days` (30) and ends on its own. Either side can end it with one tap: no reason asked, and the other person isn't told. There are no streaks and no "your encourager is waiting." Evidence: Wikipedia Teahouse retention, Stack Overflow mentoring, the helper benefit in AA sponsorship.
 - **Answered & remembered** (Me → Look back, `app/remembered.tsx`): only the member's own answered requests that carry a grateful word (a testimony, or a grateful follow-up). Requests flagged sensitive or harmful, or whose words speak of a death or loss, never show. Any item can be hidden for good (`remembered_hidden`). It's never pushed. Evidence and warnings: Facebook "On This Day" harms, and Day One's per-journal opt-outs.
+
+## Ted Lasso nudges (migration 20261029017500)
+
+Each nudge has its own switch in **Admin → Growth practices**, and all are off by default.
+- **Who did you lift up this week?** (`lift_up_enabled`, Me): a private weekly reflection, one short answer per week (`lift_up_entries`). It has no reminders and no counts, and earlier weeks are never shown as missed. Noticing your own kindness helps you repeat it (research/Personal_Growth_Research.md).
+- **Weeks of gratitude** (`gratitude_count_enabled`): the gratitude card shows "Weeks you have counted good things: N". N counts every week the member ever filled in the card, so it only grows. It never resets and never mentions a missed week. This replaces the "gratitude streak" idea, because streaks that can be lost shame people.
+- **Believe moment** (`believe_enabled`): Ted Lasso's taped-up BELIEVE sign.
+  - Right after a member marks their prayer answered, the card invites them to share what happened (this opens the testimony box, unless they've already written one).
+  - The people who prayed get the usual answered notice. It now carries `believe: '1'`, so opening it shows "A prayer you carried was answered. Your prayers mattered."
+  - It fades in unless Reduce Motion is on, and screen readers read it as one message.
+  - Open Circle gets neutral wording.
+- Code: `practices/index.ts` (`liftUp`, `saveLiftUp`, `gratitudeWeeks`), `posts/routes.ts` (`answeredData`), `components/lift-up-card.tsx`, `components/believe-card.tsx`, and `app/post/[id].tsx`. Tests: `apps/server/test/believe-nudges.test.ts` and `apps/mobile/src/__tests__/believe-nudges.test.tsx`.
