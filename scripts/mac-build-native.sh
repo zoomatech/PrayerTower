@@ -57,7 +57,8 @@ fi
 [ -f Config.xcconfig ] || cp Config.example.xcconfig Config.xcconfig
 # The cross-posting Safari extension inside each app: apps/extension built for Safari, per edition.
 for EDITION in prayertower opencircle; do
-  if DIST="$(node "$ROOT/apps/extension/scripts/build.mjs" "$EDITION" --safari 2> "$LOGS/crosspost-$EDITION.txt")"; then
+  # An empty answer is a failure too, never a silent copy of nothing.
+  if DIST="$(node "$ROOT/apps/extension/scripts/build.mjs" "$EDITION" --safari 2> "$LOGS/crosspost-$EDITION.txt")" && [ -n "$DIST" ] && [ -d "$DIST" ]; then
     rm -rf "Crosspost/$EDITION" && cp -R "$DIST" "Crosspost/$EDITION"
   else
     record "Safari extension" FAIL "$LOGS/crosspost-$EDITION.txt"
