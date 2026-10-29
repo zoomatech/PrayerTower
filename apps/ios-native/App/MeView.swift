@@ -24,6 +24,7 @@ struct MeView: View {
                     Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
                 }
                 PrayerLifeSection()
+                GratitudeSection()
                 FeedStyleSection()
                 if model.features["skinGallery"] || model.features["themeProposals"] {
                     Section {
