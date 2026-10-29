@@ -49,7 +49,7 @@ const Env = z.object({
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_FROM: z.string().regex(/^(\+[1-9][0-9]{6,14}|MG[0-9a-fA-F]{32})$/).optional(),
   /** Bundle IDs (iOS) and package names (Android) that open shared links: the store app and the staging build. */
-  APP_LINK_APP_IDS: z.string().default('com.zoomatech.prayertower,com.zoomatech.prayertower.staging'),
+  APP_LINK_APP_IDS: z.string().default('com.zoomatech.prayertower,com.zoomatech.prayertower.staging,com.zoomatech.prayertower.native'),
   /** Comma-separated SHA-256 signing-certificate fingerprints for Android App Links; unset = no assetlinks.json. */
   ANDROID_CERT_SHA256: z.string().default(''),
   /**

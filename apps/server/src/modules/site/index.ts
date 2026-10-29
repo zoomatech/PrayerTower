@@ -64,6 +64,8 @@ export function appleAppSiteAssociation(l: AppLinks) {
         ...l.appleAppIds.map((appID) => ({ appID, paths: APP_LINK_PATHS })),
       ],
     },
+    // Passkeys in the native app: https://developer.apple.com/documentation/xcode/supporting-associated-domains
+    webcredentials: { apps: l.appleAppIds },
   };
 }
 

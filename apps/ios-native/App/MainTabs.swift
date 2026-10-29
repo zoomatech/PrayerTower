@@ -30,6 +30,9 @@ struct MeView: View {
                     Section { FreshDaysSection() } header: { Text("Days that matter") }
                 }
                 Section {
+                    NavigationLink("Sign-in security") { SignInSecurityView() }
+                }
+                Section {
                     Button("Sign out", role: .destructive) {
                         Task {
                             await model.store.signOut()
