@@ -12,7 +12,7 @@ const SCREENS = [
   '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/tour', '/notification-settings', '/feedback', '/rules',
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account', '/squire-board', '/prayer-list',
-  '/why-gifts', '/give',
+  '/why-gifts', '/give', '/listen', '/remembered', '/prayer-minute', '/prayer-chain', '/skin-idea',
 ];
 const shots = process.env.OPEN_CIRCLE_SHOTS;
 

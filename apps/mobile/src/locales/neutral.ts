@@ -341,6 +341,11 @@ export const keys: Tree = named({
     intro: 'Tokens you buy work just like tokens you earn. %{percent}% of every purchase goes to the Common Fund, which pays for direct help to people in real need.',
     priestly: '%{count} Lighthouse tokens',
   },
+  listen: {
+    intro: 'Hold this phone near a radio tuned to the Open Circle station. When a burst plays, the messages in it appear here. The sound stays on this phone.',
+    tell: 'Let senders know their message was heard',
+    tellHint: 'Only a fingerprint of each message goes back, never the words.',
+  },
   card: { pastorBadge: '%{title}, a verified mentor', answered: '✨ Worked out', praying: '%{count} thinking of this', firstToPray: 'Be the first to lift this up', testimony: 'Story' },
   enums: {
     action: { praying_now: 'Thinking of You', commit: 'Promise to Check In' },
