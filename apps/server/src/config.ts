@@ -80,6 +80,8 @@ const Env = z.object({
   APPLE_ROOT_CA_PATHS: z.string().default(''),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
+  /** Expo's push service; point it at a stand-in to test pushes without real devices. */
+  EXPO_PUSH_BASE_URL: z.string().url().default('https://exp.host'),
   /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */
   CORS_ORIGINS: z.string().default(''),
   /** API requests allowed per signed-in member per minute; 0 turns the limit off. */

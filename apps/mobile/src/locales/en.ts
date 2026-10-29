@@ -168,6 +168,17 @@ const en = {
     change: "Change goal",
     remove: "Remove goal",
   },
+  pushDelivery: {
+    title: 'Push delivery',
+    intro: "Records every push to each phone, so a retry never sends twice; reads Apple's and Google's answers back after 15 minutes and stops sending to phones that are gone; folds a second push about the same request; and caps everyday pushes each hour. Notices always stay in the app, and safety notices are never folded, capped or held. Off: pushes go out as before.",
+    toggle: 'Reliable push delivery',
+    fold: 'Fold pushes about the same request within (minutes, 0 = never)',
+    cap: 'Most everyday pushes per member per hour',
+    save: 'Save',
+    saved: 'Saved.',
+    health: 'Last 24 hours: %{delivered} delivered, %{sent} sent and awaiting a receipt, %{waiting} waiting (retry or quiet hours), %{folded} folded or over the hourly cap, %{failed} failed. Phones turned off: %{off}.',
+    error: '%{error}: %{n}',
+  },
   givingSplit: {
     title: 'Share of gifts to my own page',
     hint: 'When someone gives toward you, the app can ask them to send this share to your own Ko-fi, Zeffy or similar page. The app never holds the money; they send it themselves.',

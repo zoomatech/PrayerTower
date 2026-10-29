@@ -123,6 +123,7 @@ export const NOT_EXPORTED = [
   'legal_cases',
   'macro_needs',
   'podcast_shows',
+  'push_deliveries',
   'radio_setup_tests',
   'reading_plans',
   'seed_prayer_settings',

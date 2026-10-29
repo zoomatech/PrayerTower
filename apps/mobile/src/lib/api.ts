@@ -1225,6 +1225,12 @@ export type SpokenPrayerStatus =
   | { enabled: true; mine: true; invited: boolean; offerTokens: number; maxSeconds: number; maxOfferTokens: number; received: SpokenPrayer[] }
   | { enabled: true; mine: false; invited: boolean; offerTokens: number; maxSeconds: number; sent: boolean; prayed: boolean };
 
+/** Admin → Push delivery: the switch, its limits, and the last 24 hours by outcome. */
+export interface PushDelivery {
+  settings: { push_reliability_enabled: boolean; collapse_minutes: number; max_per_hour: number };
+  health: { byStatus: Partial<Record<'sent' | 'ok' | 'error' | 'retry' | 'held' | 'folded' | 'capped', number>>; errors: { error: string; n: number }[]; devicesTurnedOff: number };
+}
+
 /** A community members belong to; "neutral" wording (Open Circle) has no religious words. */
 export interface Community {
   slug: string;
@@ -1658,6 +1664,8 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    pushSettings: () => get<PushDelivery>('/admin/push-settings'),
+    updatePushSettings: (patch: { enabled?: boolean; collapseMinutes?: number; maxPerHour?: number }) => request<PushDelivery>('PATCH', '/admin/push-settings', patch),
     givingSplitSettings: () => get<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('/admin/giving-split-settings'),
     updateGivingSplitSettings: (patch: { enabled?: boolean; maxPercent?: number }) =>
       request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),

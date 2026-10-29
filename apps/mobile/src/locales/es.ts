@@ -171,6 +171,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     remove: "Remove goal",
   },
   givingSplit: en.givingSplit,
+  pushDelivery: en.pushDelivery,
   offline: en.offline,
   supportLink: {
     label: "Your support page (optional)",

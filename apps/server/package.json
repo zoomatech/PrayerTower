@@ -13,6 +13,7 @@
     "seed:demo": "tsx src/scripts/seed-demo.ts",
     "review-account": "tsx src/scripts/review-account.ts",
     "push-test": "tsx src/scripts/push-test.ts",
+    "fake-expo": "tsx src/scripts/fake-expo.ts",
     "mail-test": "tsx src/scripts/mail-test.ts",
     "check-config": "tsx src/scripts/check-config.ts",
     "query-audit": "tsx src/scripts/query-audit.ts",

@@ -21,6 +21,7 @@ import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
+import * as pushDelivery from '../notifications/delivery.js';
 import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
@@ -489,6 +490,14 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.get('/admin/conversation-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await conversationHelpers.settings(db) };
+  });
+  app.get('/admin/push-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await pushDelivery.settings(db), health: await pushDelivery.health(db) };
+  });
+  app.patch('/admin/push-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await pushDelivery.updateSettings(db, pushDelivery.SettingsPatch.parse(req.body)), health: await pushDelivery.health(db) };
   });
   app.get('/admin/giving-split-settings', async (req) => {
     await requireAdmin(req);

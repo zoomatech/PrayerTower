@@ -13,7 +13,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures } from '@/lib/features';
@@ -313,6 +313,7 @@ function Admin() {
         <NotebookSettingsSection />
         <GrowthSettingsSection />
         <GivingSplitSection />
+        <PushDeliverySection />
         <PracticeSettingsSection />
         <ConversationSettingsSection />
         <SkinSettingsSection />
@@ -1702,6 +1703,54 @@ function SkinSettingsSection() {
 }
 
 /** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
+/** Push delivery: retries without repeats, receipts, folding and an hourly cap (docs/PUSH_DELIVERY.md). */
+export function PushDeliverySection() {
+  const t = useT();
+  const [d, setD] = useState<PushDelivery | null>(null);
+  const [fold, setFold] = useState('');
+  const [cap, setCap] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: PushDelivery) => {
+    setD(x);
+    setFold(String(x.settings.collapse_minutes));
+    setCap(String(x.settings.max_per_hour));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.pushSettings().then(show).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updatePushSettings({ collapseMinutes: toInt(fold) ?? undefined, maxPerHour: toInt(cap) ?? undefined, ...patch })
+      .then((r) => {
+        show(r);
+        setNote(t('pushDelivery.saved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!d) return note ? <Text style={type.small}>{note}</Text> : null;
+  const n = (k: keyof PushDelivery['health']['byStatus']) => d.health.byStatus[k] ?? 0;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('pushDelivery.title')}</Text>
+      <Text style={type.small}>{t('pushDelivery.intro')}</Text>
+      <Toggle label={t('pushDelivery.toggle')} value={d.settings.push_reliability_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('pushDelivery.fold')} keyboardType="number-pad" value={fold} onChangeText={setFold} />
+      <Field label={t('pushDelivery.cap')} keyboardType="number-pad" value={cap} onChangeText={setCap} />
+      <Button label={t('pushDelivery.save')} onPress={() => save()} />
+      <Text style={type.small}>
+        {t('pushDelivery.health', { delivered: n('ok'), sent: n('sent'), waiting: n('retry') + n('held'), folded: n('folded') + n('capped'), failed: n('error'), off: d.health.devicesTurnedOff })}
+      </Text>
+      {d.health.errors.map((e) => (
+        <Text key={e.error} style={type.small}>
+          {t('pushDelivery.error', { error: e.error, n: e.n })}
+        </Text>
+      ))}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Giving split: members may ask that a share of gifts toward them go to their own page. */
 function GivingSplitSection() {
   const t = useT();
