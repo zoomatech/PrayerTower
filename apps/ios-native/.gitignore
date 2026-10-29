@@ -7,3 +7,5 @@ App/PrayerTowerNative.entitlements
 Widgets/Info.plist
 Widgets/PrayerTowerWidgets.entitlements
 OpenCircle/Info.plist
+Console/Info.plist
+Console/PrayerTowerConsole.entitlements

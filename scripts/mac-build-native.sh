@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One command on Steve's Mac for the native SwiftUI app (apps/ios-native, docs/SWIFT_PORT.md):
 #   1. swift test for the shared package (PrayerTowerKit, PrayerTowerSession),
-#   2. xcodegen generate, then build the app for the iOS Simulator (no signing needed),
+#   2. xcodegen generate, then build the app for the iOS Simulator and the Mac operator console (no signing needed),
 # and print a pass/fail table. Logs go to build-logs/native-<time>/.
 # Needs Xcode. XcodeGen comes from Homebrew when it can install there; otherwise (for example
 # when Homebrew belongs to another macOS account) it is built from its tagged source with
@@ -80,6 +80,15 @@ if grep -q "OpenCircleNative:" project.yml; then
     record "Open Circle app" FAIL "$LOGS/open-circle-build.txt"
     grep -E "error:" "$LOGS/open-circle-build.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
   fi
+fi
+
+# The Mac operator console (Console/), built for this Mac.
+if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerConsole -destination "platform=macOS" \
+     -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO build > "$LOGS/console-build.txt" 2>&1; then
+  record "Mac console" PASS "macOS"
+else
+  record "Mac console" FAIL "$LOGS/console-build.txt"
+  grep -E "error:" "$LOGS/console-build.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
 fi
 
 echo

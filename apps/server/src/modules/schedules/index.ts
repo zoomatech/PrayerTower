@@ -52,7 +52,7 @@ export async function setRadioEnabled(q: Queryable, on: boolean) {
 }
 
 export async function create(q: Queryable, userId: string, postId: string, input: z.infer<typeof NewSchedule>): Promise<Schedule> {
-  const post = await posts.getViewable(q, userId, postId);
+  const post = await posts.getActionable(q, userId, postId);
   if (!post) throw notFound('Post');
   if (input.action !== 'reach' && !(await radioEnabled(q))) throw badRequest('Scheduled radio sends are switched off');
   const runAt = new Date(input.runAt);
