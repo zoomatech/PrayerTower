@@ -849,6 +849,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     radioNeed: "By need",
     radioBurst: "Prayers per burst (station burst mode)",
     radioBurstOne: "1 (one at a time)",
+    amplifyBurstHint: "More than 50 copies needs a station in burst mode, which sends 1,000 copies in about half a second. A PSK31 station sends at most 50.",
     burstsTitle: "Latest bursts",
     burstsNone: "No bursts yet. The station logs each one here once BURST_MODE is set.",
     burstLine: "%{when}: %{prayers} prayers in %{seconds} s (%{bytes} bytes, %{frames} frames, %{preset}, %{mode})",

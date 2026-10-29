@@ -301,6 +301,15 @@ describe('burst station loop', () => {
     expect(bursts).toEqual([expect.objectContaining({ callSign: 'N0CALL', mode: 'simulate', preset: 'fm-standard', prayers: 4, frames: 1, decoded: 4, ok: true })]);
   });
 
+  it('amplifies 1,000 times in under a second of air time (fm-fast)', async () => {
+    const lines: string[] = [];
+    const { api, bursts } = fakeApi([{ id: 'amp', text: 'Pray for peace in our town.', repeats: 1000 }]);
+    const outcome = await runBurstOnce(api, simulateTransmitter(mkdtempSync(path.join(tmpdir(), 'burst-')), (m) => lines.push(m)), { ...cfg, preset: presetByName('fm-fast') }, quiet);
+    expect(outcome).toMatchObject({ kind: 'sent', sent: 1, frames: 1 });
+    expect((outcome as { seconds: number }).seconds).toBeLessThan(1);
+    expect(bursts[0]).toMatchObject({ prayers: 1000, decoded: 1000 });
+  });
+
   it('is idle with nothing queued', async () => {
     const { api } = fakeApi([]);
     expect(await runBurstOnce(api, simulateTransmitter(mkdtempSync(path.join(tmpdir(), 'burst-')), quiet), cfg, quiet)).toEqual({ kind: 'idle' });

@@ -349,10 +349,11 @@ function Admin() {
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
             <View style={styles.row}>
-              {[2, 3, 5, 10].map((n) => (
+              {[2, 3, 5, 10, 100, 1000].map((n) => (
                 <Chip key={n} label={`${n}x`} selected={radio.radio_amplify_repeats === n} onPress={() => saveRadio({ amplifyRepeats: n })} />
               ))}
             </View>
+            {radio.radio_amplify_repeats > 50 ? <Text style={type.small}>{t('admin.amplifyBurstHint')}</Text> : null}
             {radio.radio_transmitter === 'station' && radio.radio_station_requires_free && tokens?.radio_funding !== 'free' ? (
               <Text style={[type.small, { color: colors.danger }]}>{t('admin.paused')}</Text>
             ) : null}

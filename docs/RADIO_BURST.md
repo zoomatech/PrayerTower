@@ -65,6 +65,14 @@ in about 3.7 s on `fm-standard` and 2.6 s on `fm-fast` in the benchmark.
    [9600 data port](https://en.wikipedia.org/wiki/9600_port) skips those
    filters, which is why `dataport-fast` can use twice the bandwidth.
 
+## Amplify 1,000 times
+
+An amplified prayer is sent once for each copy Admin → Radio → Amplify asks for.
+In burst mode the copies compress to almost nothing: 1,000 copies of a prayer
+add about 35 bytes and go out in about half a second on `fm-fast`. That's the
+notebook's "1,000×/second" (page 15). Admin → Radio offers 100× and 1,000× next
+to the old 2-10×. A PSK31 station still sends at most 50 copies.
+
 ## Station settings
 
 In `/etc/prayer-tower-station.env` (see `apps/station/install/station.env.example`):
