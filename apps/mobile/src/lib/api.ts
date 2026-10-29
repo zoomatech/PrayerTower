@@ -219,6 +219,8 @@ export interface Features {
   pathBack: boolean;
   empathyPractice: boolean;
   replyChoice: boolean;
+  /** Comments at block breaks: a comment on one ~200-word part of a long post. */
+  partComments: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -353,6 +355,7 @@ export interface ConversationSettings {
   comment_thanks_enabled: boolean;
   quiet_counts_enabled: boolean;
   reply_choice_enabled: boolean;
+  part_comments_enabled: boolean;
 }
 export interface ConversationPrefs {
   replySuggestions: boolean;
@@ -1734,7 +1737,7 @@ export const api = {
   setTestimony: (id: string, body: string) => put<{ post: Card; crisis: boolean }>(`/posts/${id}/testimony`, { body }),
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
-  addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
+  addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean; part?: number } = {}) =>
     post<{ comment: { id: string; crisis: boolean; harm?: HarmNote | null }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
@@ -2044,7 +2047,7 @@ export const api = {
     highlightQueue: () => get<{ items: HighlightQueueItem[] }>('/admin/kindness-highlights'),
     pickHighlight: (id: string, pick: boolean, shownText?: string) => post<{ items: HighlightQueueItem[] }>(`/admin/kindness-highlights/${id}`, { pick, ...(shownText ? { shownText } : {}) }),
     sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
-    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean }>) =>
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean; partCommentsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean }>) =>
