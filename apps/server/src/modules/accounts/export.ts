@@ -36,6 +36,10 @@ const SECTIONS: Record<string, Section> = {
   hiddenPosts: { table: 'hidden_posts', where: 'user_id = $1' },
   commitments: { table: 'commitments', where: 'user_id = $1' },
   prayerList: { table: 'prayer_list_items', where: 'user_id = $1' },
+  // Cross-posting: never the stored Meta token or the extension key's hash.
+  crosspostSettings: { table: 'crosspost_settings', where: 'user_id = $1', omit: ['extension_key_hash'] },
+  crosspostAccounts: { table: 'crosspost_accounts', where: 'user_id = $1', omit: ['access_token'] },
+  crosspostImports: { table: 'crosspost_imports', where: 'user_id = $1' },
   readings: { table: 'reading_plan_reads', where: 'user_id = $1' },
   prayers: { table: 'prayer_events', where: 'user_id = $1' },
   prompts: { table: 'prayer_prompts', where: 'user_id = $1' },
@@ -118,6 +122,7 @@ export const NOT_EXPORTED = [
   'activity_flags',
   'announcements',
   'common_fund_entries',
+  'crosspost_oauth_states',
   // The error log names only the last member an error happened to (docs/PILOT_TOOLS.md).
   'error_reports',
   'evidence_holds',

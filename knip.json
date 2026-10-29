@@ -20,6 +20,12 @@
         "src/scripts/*.ts"
       ]
     },
+    "apps/extension": {
+      "entry": [
+        "src/*.js",
+        "scripts/*.mjs"
+      ]
+    },
     "apps/station": {
       "entry": [
         "scripts/*.ts",

@@ -413,6 +413,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         maxChars: z.number().int().min(50).max(2800).optional(),
         amplifyRepeats: z.number().int().min(2).max(1000).optional(),
         order: z.enum(['oldest', 'need']).optional(),
+        urgentFirst: z.boolean().optional(),
         batchMax: z.number().int().min(1).max(500).optional(),
         listenPage: z.boolean().optional(),
         receipts: z.boolean().optional(),
@@ -422,6 +423,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return {
       settings: await radio.updateStationSettings(db, {
         radio_order: input.order,
+        radio_urgent_first: input.urgentFirst,
         radio_batch_max: input.batchMax,
         listen_page_enabled: input.listenPage,
         radio_receipts_enabled: input.receipts,

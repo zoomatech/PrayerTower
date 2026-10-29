@@ -201,6 +201,11 @@ describe('every radio feature, every switch on, both editions', () => {
     // Microphone capture on the audio thread, and the packet fallback's cards.
     expect(pt.body).toContain('audioWorklet.addModule');
     expect(pt.body).toContain('PTDecoder.decodePackets');
+    expect(pt.body).toContain('PTDecoder.diagnose(');
+    // Every inline script on the page parses (an escape lost in the page template breaks the whole page).
+    for (const code of pt.body.split('<script>').slice(1).map((part) => part.slice(0, part.indexOf('</script>')))) {
+      expect(() => new Function(code)).not.toThrow();
+    }
     for (const [url, host] of [['/listen', 'opencircle.example'], ['/open-circle/listen', 'localhost'], ['/on-the-air', 'opencircle.example'], ['/open-circle/on-the-air', 'localhost']] as const) {
       const res = await app.inject({ method: 'GET', url, headers: { host } });
       expect(res.statusCode, url).toBe(200);
