@@ -92,6 +92,16 @@ export async function creditPurchase(q: Queryable, userId: string, amount: numbe
   return transfer(q, key, 'purchase', await systemAccount(q, 'mint', currency), await userAccount(q, userId, currency), amount, userId, 'Token purchase');
 }
 
+/** A paid gift to everyone: new Priestly tokens into the shared radio fund. */
+export async function creditFund(q: Queryable, amount: number, key: string, reason: string) {
+  return transfer(q, key, 'purchase', await systemAccount(q, 'mint', 'priestly'), await systemAccount(q, 'infrastructure', 'priestly'), amount, null, reason);
+}
+
+/** A paid gift to a pool: new regular tokens into the pool. */
+export async function creditPool(q: Queryable, poolId: string, amount: number, key: string, reason: string) {
+  return transfer(q, key, 'purchase', await systemAccount(q, 'mint'), await poolAccount(q, poolId), amount, null, reason);
+}
+
 export async function earn(q: Queryable, userId: string, amount: number, key: string, reason: string) {
   return transfer(q, key, 'earn', await systemAccount(q, 'mint'), await userAccount(q, userId), amount, null, reason);
 }

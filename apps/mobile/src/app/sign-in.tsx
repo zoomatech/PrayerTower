@@ -137,7 +137,7 @@ export default function SignIn() {
             label={mode === 'sign-in' ? t('signIn.signIn') : t('signIn.createAccount')}
             onPress={submit}
             busy={busy}
-            disabled={!email || password.length < 8 || (mode === 'sign-up' && (!name.trim() || (inviteOnly && !invite.trim())))}
+            disabled={!email || password.length < (mode === 'sign-up' ? 8 : 6) || (mode === 'sign-up' && (!name.trim() || (inviteOnly && !invite.trim())))}
           />
           {mode === 'sign-up' && inviteOnly ? <Text style={type.small}>{t('signIn.inviteHint')}</Text> : null}
           {mode === 'sign-up' ? <LegalLinks prefix={t('signIn.legalPrefix')} /> : null}

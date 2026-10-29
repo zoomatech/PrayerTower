@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as donations from '../donations/index.js';
 import * as materialMatch from '../material-match/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
@@ -63,12 +64,16 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
     throw conflict('Radio prayers are paused: the station only sends while they are free. An admin can turn on “Radio prayers are free” on the Admin screen.');
   }
   const repeats = amplify ? station.radio_amplify_repeats : 1;
-  const cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
+  let cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
+  // Everybody gets at least one: the month's free radio prayers, then any granted ones (modules/donations).
+  const gift = cost > 0 && !amplify ? await donations.radioFunding(q, userId) : null;
+  if (gift) cost = 0;
+  const fundedBy = s.radio_funding === 'free' ? 'free' : (gift ?? 'tokens');
   const t = cost > 0 ? await tokens.spendOnRadio(q, userId, cost, key) : null;
   const { rows } = await q.query<RadioPrayer>(
-    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key, repeats) values ($1, $2, $3, $4, $5, $6)
+    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key, repeats, funded_by) values ($1, $2, $3, $4, $5, $6, $7)
      returning id, post_id, cost, repeats, status, created_at, transmitted_at`,
-    [post.id, userId, t?.id ?? null, cost, key, repeats],
+    [post.id, userId, t?.id ?? null, cost, key, repeats, fundedBy],
   );
   // Equal material help for the afflicted, when that switch is on (modules/material-match).
   if (t) await materialMatch.onRadioSpend(q, rows[0]!.id, userId, cost);
