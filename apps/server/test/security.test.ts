@@ -89,6 +89,8 @@ describe('endpoint auth', () => {
       'POST /listen/heard',
       // Listener mode: whether the sign-in screen offers listening (two switches, nothing else).
       'GET /listen/config',
+      // A listener's "I'm praying too": fingerprints only, an anonymous count (404 while switched off).
+      'POST /listen/praying',
       // Prayers on the air: counts only (404 while switched off).
       'GET /on-the-air',
       'GET /open-circle/on-the-air',

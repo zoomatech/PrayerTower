@@ -5,13 +5,17 @@
 // quiet tree. Replies spread off a leaf as a side branch, but only to the
 // third level (comment_tree_max_depth): after that, parallel leaves only, so a
 // back-and-forth chain can't grow. For prayer and encouragement, not debate.
-// Colors come from the member's vine skin. On the Prayer Tower the leaves are
-// stone tablets, and replies are smaller sub-tablets (leafShape 'tablet').
-// Reduced motion turns the growing off.
+// Colors come from the member's vine skin. The tree reads top to bottom,
+// present to past: the newest comment is the top leaf, and each comment sits
+// inside a pointed leaf on a curving drawn vine (components/vine-flow.tsx);
+// replies hang below their comment on the same side, on smaller leaves. On the
+// Prayer Tower the leaves are stone tablets, and replies are smaller
+// sub-tablets (leafShape 'tablet'). Reduced motion turns the growing off.
 import type { Comment } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { LeafFrame, VineRow, type VineSide } from '@/components/vine-flow';
 import { LeafMark } from '@/layouts/motifs';
 import type { vineTokens } from '@/layouts/vine';
 import { useLocale } from '@/lib/i18n';
@@ -44,6 +48,14 @@ export function branchesOf(comments: Comment[]) {
     else children.set(key, [c]);
   }
   return children;
+}
+
+/** Newest first: present to past. Ties keep the later comment on top. */
+export function newestFirst(list: Comment[]) {
+  return list
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt) || b.i - a.i)
+    .map((x) => x.c);
 }
 
 /** The comment and every comment above it, so their branches start open. */
@@ -177,8 +189,96 @@ function Branch({ parentId, depth, props, tree }: { parentId: string | null; dep
   );
 }
 
+
+type Row =
+  | { kind: 'leaf'; comment: Comment; depth: number; side: VineSide }
+  | { kind: 'more'; parentId: string | null; count: number; depth: number; side: VineSide };
+
+/** The tree as one top-to-bottom run of leaves: each comment, then its replies under it. */
+export function vineRows(tree: Map<string | null, Comment[]>, open: Set<string | null>, leavesShown: number): Row[] {
+  const rows: Row[] = [];
+  const walk = (parentId: string | null, depth: number, parentSide: VineSide | null) => {
+    const leaves = newestFirst(tree.get(parentId) ?? []);
+    const shown = open.has(parentId) ? leaves : leaves.slice(0, leavesShown);
+    shown.forEach((c, i) => {
+      // Comments alternate sides down the vine; replies hang on their comment's side.
+      const side: VineSide = parentSide ?? (i % 2 === 0 ? 'left' : 'right');
+      rows.push({ kind: 'leaf', comment: c, depth: Math.min(depth, 2), side });
+      walk(c.id, depth + 1, side);
+    });
+    if (leaves.length > shown.length) {
+      const side: VineSide = parentSide ?? (shown.length % 2 === 0 ? 'left' : 'right');
+      rows.push({ kind: 'more', parentId, count: leaves.length - shown.length, depth: Math.min(depth, 2), side });
+    }
+  };
+  walk(null, 0, null);
+  return rows;
+}
+
+function Grow({ children }: { children: ReactNode }) {
+  const reduced = useReducedMotion();
+  const grow = useRef(new Animated.Value(reduced ? 1 : 0)).current;
+  useEffect(() => {
+    if (reduced) return grow.setValue(1);
+    Animated.spring(grow, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
+  }, [grow, reduced]);
+  return <Animated.View style={{ opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }}>{children}</Animated.View>;
+}
+
+function VineTree(props: CommentTreeProps) {
+  const { t } = useLocale();
+  const { tokens } = props;
+  const tree = useMemo(() => branchesOf(props.comments), [props.comments]);
+  const [open, setOpen] = useState(() => ancestorsOf(props.comments, props.highlightId));
+  const rows = useMemo(() => vineRows(tree, open, props.leavesShown), [tree, open, props.leavesShown]);
+  const mark = (depth: number) =>
+    tokens.leafShape === 'flower' || tokens.leafShape === 'star' ? <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={depth > 0 ? 16 : 22} /> : undefined;
+  return (
+    <View testID="comment-tree">
+      {rows.map((row, i) => {
+        const from = i === 0 ? null : rows[i - 1]!.side;
+        const gap = row.depth > 0 ? 28 : undefined;
+        if (row.kind === 'more') {
+          const key = `blur-${row.parentId ?? 'root'}`;
+          return (
+            <VineRow key={key} from={from} side={row.side} look={tokens} gap={gap} depth={row.depth} seed={i}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('tree.more', { count: row.count })}
+                onPress={() => {
+                  // The older leaves come forward out of the blur.
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setOpen((prev) => new Set(prev).add(row.parentId));
+                }}
+                style={[styles.vineBlur, row.side === 'left' ? styles.blurLeft : styles.blurRight]}
+                testID={key}>
+                {[0.35, 0.22, 0.12].map((o, k) => (
+                  <View key={k} style={[styles.vineGhost, { opacity: o, backgroundColor: tokens.leaf, left: k * 14, top: k * 8, transform: [{ rotate: `${(k - 1) * 8}deg` }] }]} />
+                ))}
+                <Text style={styles.blurText}>{t('tree.more', { count: row.count })}</Text>
+              </Pressable>
+            </VineRow>
+          );
+        }
+        const c = row.comment;
+        return (
+          <VineRow key={c.id} from={from} side={row.side} look={tokens} gap={gap} depth={row.depth} seed={i} testID={`leaf-${c.id}`}>
+            <Grow>
+              <LeafFrame side={row.side} look={tokens} depth={row.depth} highlighted={c.id === props.highlightId} mark={mark(row.depth)}>
+                {props.renderBody(c, row.depth < props.maxDepth)}
+              </LeafFrame>
+            </Grow>
+          </VineRow>
+        );
+      })}
+    </View>
+  );
+}
+
 export function CommentTree(props: CommentTreeProps) {
   const tree = useMemo(() => branchesOf(props.comments), [props.comments]);
+  // Stone tablets on the Prayer Tower keep their stacked branches.
+  if (props.tokens.leafShape !== 'tablet') return <VineTree {...props} />;
   return (
     <View testID="comment-tree">
       <Branch parentId={null} depth={0} props={props} tree={tree} />
@@ -232,4 +332,8 @@ const styles = StyleSheet.create({
   },
   ghostTablet: { width: 26, height: 30, borderRadius: 3, borderTopLeftRadius: 13, borderTopRightRadius: 13 },
   blurText: { ...type.small, color: colors.text, fontWeight: '700' },
+  vineBlur: { height: 56, justifyContent: 'center', paddingLeft: 64, width: '70%' },
+  blurLeft: { alignSelf: 'flex-start' },
+  blurRight: { alignSelf: 'flex-end' },
+  vineGhost: { position: 'absolute', width: 44, height: 30, borderTopLeftRadius: 22, borderBottomRightRadius: 22, borderTopRightRadius: 3, borderBottomLeftRadius: 3 },
 });

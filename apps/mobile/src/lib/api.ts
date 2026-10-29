@@ -162,6 +162,7 @@ export interface Features {
   /** Deepest reply level while the tree is on (0 = top-level comments only). */
   commentTreeMaxDepth: number;
   themeProposals: boolean;
+  skinGallery: boolean;
   /** Longest video a member can attach, in seconds. */
   videoMaxSeconds: number;
 }
@@ -175,6 +176,20 @@ export interface SkinSettings {
   video_max_seconds: number;
   seasonal_enabled: boolean;
   seasonal_auto: boolean;
+  gallery_enabled: boolean;
+}
+
+/** One skin in Me → Skin gallery. */
+export interface GallerySkin {
+  slug: string;
+  name: string;
+  layout: string;
+  season: string | null;
+  tokens: Record<string, unknown>;
+  maker: { id: string; name: string } | null;
+  likes: number;
+  liked: boolean;
+  inUse: boolean;
 }
 
 export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
@@ -1254,6 +1269,8 @@ export const api = {
   proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>
     post<{ proposal: ThemeProposal }>('/me/theme-proposals', input),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
+  skinGallery: () => get<{ skins: GallerySkin[] }>('/skins/gallery'),
+  likeSkin: (slug: string, on: boolean) => request<{ skins: GallerySkin[] }>(on ? 'PUT' : 'DELETE', `/skins/${encodeURIComponent(slug)}/like`),
   mediaUploadUrl: (contentType: string) =>
     post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
   person: (id: string) => get<{ person: Person; posts: Card[] }>(`/people/${id}`),
@@ -1398,6 +1415,8 @@ export const api = {
     operatorLog: () => get<{ enabled: boolean }>('/admin/operator-log'),
     setOperatorLog: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/operator-log', { enabled }),
     operatorLogCsv: () => getText('/admin/operator-log?format=csv'),
+    radioFollowups: () => get<{ thanksgiving: boolean; prayingToo: boolean }>('/admin/radio-followups'),
+    setRadioFollowups: (patch: { thanksgiving?: boolean; prayingToo?: boolean }) => request<{ thanksgiving: boolean; prayingToo: boolean }>('PATCH', '/admin/radio-followups', patch),
     listenerMode: () => get<{ enabled: boolean; active: boolean }>('/admin/listener-mode'),
     setListenerMode: (enabled: boolean) => request<{ enabled: boolean; active: boolean }>('PATCH', '/admin/listener-mode', { enabled }),
     updateRadioHealth: (patch: { enabled?: boolean; acks?: Partial<{ enabled: boolean; timeoutMinutes: number; maxRetries: number }> }) => request<StationHealth>('PATCH', '/admin/radio-health', patch),
@@ -1470,7 +1489,7 @@ export const api = {
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
-    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
       request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
@@ -1542,8 +1561,9 @@ export const api = {
   endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
-  radioListen: () => get<{ enabled: boolean; receipts: boolean }>('/radio/listen'),
-  listenConfig: () => get<{ enabled: boolean; receipts: boolean }>('/listen/config'),
+  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/radio/listen'),
+  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/listen/config'),
+  listenPraying: (report: { callSign: string; hashes: string[] }) => post<{ matched: number }>('/listen/praying', report),
   /** "On the air" receipts: fingerprints of prayers heard on the Listen screen, never the words. */
   listenHeard: (report: { callSign: string; preset: string; snrDb: number; hashes: string[] }) => post<{ matched: number }>('/listen/heard', report),
   highlights: () => get<Highlights>('/highlights'),
