@@ -62,7 +62,7 @@ const SPELLING: Record<string, string> = {
 
 /** The text with disguises taken off, in lower case. Ordinary text comes back the same, apart from case and spacing. */
 export function unmask(text: string): string {
-  let t = text.normalize('NFKC').replace(/[​-‍⁠﻿]/g, '').replace(/[‘’]/g, "'").toLowerCase();
+  let t = text.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/[\u2018\u2019]/g, "'").toLowerCase();
   for (const [re, word] of EMOJI) t = t.replace(re, word);
   // Letters split by dots, dashes, underscores or asterisks inside a word: k.i.l.l, d-i-e, k*ll.
   t = t.replace(/\b(?:[a-z0-9@$!][._*-]){2,}[a-z0-9@$!]\b/g, (w) => w.replace(/[._*-]/g, ''));
