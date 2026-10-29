@@ -27,7 +27,7 @@ Tokens are never cash and the app never holds anyone's money, so the split is th
 | GET | `/posts/:id/giving-split` | members who can see the post |
 | GET / PATCH | `/admin/giving-split-settings` | admins (`{ enabled, maxPercent }`) |
 
-Migration: `20261029056000_giving_split.sql`.
+Migration: `20261029062100_giving_split.sql`.
 
 ## Known limits
 

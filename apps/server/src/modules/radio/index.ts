@@ -54,6 +54,7 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   if (existing.rows[0]) return existing.rows[0];
   // Sensitive requests never go out (the transmit job would refuse them), so don't take tokens for one.
   if (post.is_sensitive) throw conflict("Sensitive requests aren't sent by radio.");
+  if (post.is_lament && !post.lament_radio) throw conflict('This is a lament. It goes on the radio only if the person who posted it says so.');
   // 'free' mode: no tokens move; Priestly tokens are donations only.
   if (await moderation.awaitingCrisisReview(q, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
   // Paid Amplify is off unless an admin set its price (token_settings.amplify_paid_cost).
@@ -100,10 +101,11 @@ function holdReason(r: { moderation_status: string; is_sensitive: boolean; pendi
   // Flagged by the harmful-prayer check: never sent until a moderator clears it (modules/harm).
   return r.pending_review || r.harm_category ? 'wait' : null;
 }
+// A lament stays off the air unless its author said it may go out: treated like a sensitive request.
 /** The words to send: the request, or for a thanksgiving (thanksgiving.ts) the text made when it was queued. */
 const SEND_TEXT = `case when r.kind = 'thanksgiving' then r.sent_text else p.body end`;
 const QUEUED_PRAYER = `select r.id, r.post_id, ${SEND_TEXT} as body, p.user_id as poster_id, r.user_id as sender_id, r.repeats,
-            p.moderation_status, p.is_sensitive, p.harm_category,
+            p.moderation_status, (p.is_sensitive or (p.is_lament and not p.lament_radio)) as is_sensitive, p.harm_category,
             exists (select 1 from public.moderation_items m
                      where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending') as pending_review
        from public.radio_prayers r join public.posts p on p.id = r.post_id`;
@@ -274,7 +276,7 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
     const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(
-      `select r.id, ${SEND_TEXT} as body, p.moderation_status, p.is_sensitive, p.harm_category, r.repeats
+      `select r.id, ${SEND_TEXT} as body, p.moderation_status, (p.is_sensitive or (p.is_lament and not p.lament_radio)) as is_sensitive, p.harm_category, r.repeats
          from public.radio_prayers r join public.posts p on p.id = r.post_id
         where r.status = 'queued' and p.harm_category is null
           and not exists (select 1 from public.moderation_items m

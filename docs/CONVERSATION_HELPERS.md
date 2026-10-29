@@ -34,3 +34,36 @@ The greeting research found **no published counts** of greeting → reply → fo
 - The server keeps **weekly totals** (`talk_chain_counts`, `emoji_reply_counts`). They have no member column. A separate daily cap (`talk_count_quota`, 200 a day, kept for two days) stops anyone from skewing the totals.
 - **Admin → Conversation helpers** shows the last 12 weeks. Any pattern with fewer than 5 counts is folded into "Other patterns", so a small pilot can't single anyone out.
 - Note for the legal team: these are aggregate, de-identified counts collected with opt-in. The privacy policy may want a line about them.
+
+## Meanings in the icon row (off)
+
+Admin → Conversation helpers → **Meanings in the icon row**. Needs **Emoji meanings** on too.
+The emoji join the single icon row on every post card, so every feed skin (vine, tower,
+neon, wall, and the rest) gets them without its own code: all skins draw cards with
+`PostCard`. A tap adds the emoji's first meaning. Press and hold (or the screen reader's
+"choose" action) opens up to five meanings in a sheet at the bottom of the screen, so no
+skin clips it. Hovering with an iPad pointer or a Mac shows the words above the icon.
+Each icon is 44 points, has a spoken label, and reading the chosen meaning is announced.
+The meaning list is fetched once per session, not once per card.
+
+## Kindness research page (off)
+
+Admin → Conversation helpers → **Kindness research page**. Members then find
+**Me → How we talk here**: the same anonymous Counting patterns totals the admin sees,
+drawn as two simple bar charts (greeting → reply → follow-up chains, and emoji used as a
+reply, with the meaning words). One colour, ranked, each bar labelled with its number,
+at most eight bars a chart. Anything seen fewer than five times stays folded into
+"other", exactly as in the admin view. Route: `GET /kindness-research` (404 while off).
+
+## Members suggest meanings (off)
+
+Admin → Conversation helpers → **Members suggest meanings** (needs Emoji meanings on).
+On Me, **Suggest an emoji meaning** lets a member pick one of the emoji and write a few
+kind words (2 to 40 letters). Words the kind cloud would flag, words the emoji already
+has, and a sixth waiting suggestion are refused. Each suggestion waits under the switch
+in Admin, showing the emoji's meanings now but never who suggested it. The admin can
+reword it (faith and Open Circle wording) and **Add it** or **Decline**. An emoji holds
+five meanings at most: when it's full, the admin picks one to retire. A retired meaning
+keeps its row, so leaves already on posts still show. The member sees each suggestion as
+waiting, added or not added. Routes: `GET/POST /me/meaning-proposals`,
+`GET /admin/meaning-proposals`, `POST /admin/meaning-proposals/:id`.

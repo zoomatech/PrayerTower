@@ -23,6 +23,9 @@ import { CommunityPicker } from '@/components/community-picker';
 import { ConversationPrefsCard } from '@/components/conversation-prefs-card';
 import { EncouragerCard } from '@/components/encourager-card';
 import { LiftUpCard } from '@/components/lift-up-card';
+import { HighlightsLink } from '@/components/kindness-highlights';
+import { MeaningProposals } from '@/components/meaning-proposals';
+import { PartnerCard } from '@/components/partner-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
@@ -185,7 +188,11 @@ export default function Profile() {
         ) : null}
         <GratitudeCard />
         <LiftUpCard />
+        <HighlightsLink />
+        <MeaningProposals />
+        {features.kindnessResearch ? <Button small variant="secondary" label={t('research.title')} onPress={() => router.push('/kindness-research')} /> : null}
         <EncouragerCard />
+        <PartnerCard />
         <ConversationPrefsCard />
         <AwardCard />
         <PrayedForYou />

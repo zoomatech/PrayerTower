@@ -1,4 +1,4 @@
-// "Praying for you now" Live Activity (migration 20261029057000_prayed_for_live.sql,
+// "Praying for you now" Live Activity (migration 20261029062200_prayed_for_live.sql,
 // docs/GROWTH.md): a member puts one of their own open requests on their Lock Screen
 // for up to 8 hours, and it updates as people pray. The Lock Screen is seen by others,
 // so it carries first names and a count only, never the request's words, and never

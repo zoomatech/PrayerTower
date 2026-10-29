@@ -98,6 +98,8 @@ function RootStack() {
           <Stack.Screen name="remembered" />
           <Stack.Screen name="mend/[id]" />
           <Stack.Screen name="meaning-words" />
+          <Stack.Screen name="highlights" />
+          <Stack.Screen name="kindness-research" />
           <Stack.Screen name="prayer-minute" />
           <Stack.Screen name="skin-idea" />
           <Stack.Screen name="skin-gallery" />
@@ -108,6 +110,7 @@ function RootStack() {
           <Stack.Screen name="prayer-cast" />
           <Stack.Screen name="listen" />
           <Stack.Screen name="highlights" />
+          <Stack.Screen name="kindness-research" />
           <Stack.Screen name="awards" />
           <Stack.Screen name="branch" />
           <Stack.Screen name="ai-chat" />

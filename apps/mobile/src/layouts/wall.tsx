@@ -2,11 +2,15 @@
 // per swipe, like a short-video app. No fold or tilt, just a snap to the top of
 // each post, on a dark backdrop from the theme's tokens. A post taller than the
 // screen keeps its own height, so nothing is cut off. The feed's header (the
-// composer box) is its own first page on a light panel. Same cards and action
-// row as every layout.
+// composer box) is its own first page on a light panel. Same cards and the
+// single row of action icons as every layout. A video fills its page and
+// plays by itself, muted and looping at the 7-second limit, only while its
+// page is the one on screen (components/media.tsx, WallPage).
 import type { Card, FeedTheme } from '@prayer-tower/shared';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
+
+import { WallPage } from '@/components/media';
 
 import { Tr, useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -49,6 +53,13 @@ export function WallLayout({ cards, theme, pinnedId, renderCard, header, refresh
     }
     return out;
   }, [pages.length, heights, height]);
+  // The page mostly on screen is the one whose video plays.
+  const [active, setActive] = useState(0);
+  const viewability = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  const onViewable = useRef(({ viewableItems }: { viewableItems: { index?: number | null; isViewable: boolean }[] }) => {
+    const first = viewableItems.find((v) => v.isViewable);
+    if (first?.index != null) setActive(first.index);
+  }).current;
   const measure = useCallback((index: number, h: number) => setHeights((prev) => (prev[index] === h ? prev : { ...prev, [index]: h })), []);
 
   return (
@@ -67,7 +78,10 @@ export function WallLayout({ cards, theme, pinnedId, renderCard, header, refresh
               ) : item.kind === 'card' ? (
                 <View style={styles.inner}>
                   {item.card.id === pinnedId ? <Tr k="feed.pinned" style={light} /> : null}
-                  <View style={styles.card}>{renderCard(item.card)}</View>
+                  <WallPage.Provider value={{ active: index === active }}>
+                    {/* A video post fills the page; its comments are one tap away on the icon row. */}
+                    <View style={styles.card}>{renderCard(item.card.media.some((m) => m.kind === 'video') ? { ...item.card, topComment: null } : item.card)}</View>
+                  </WallPage.Provider>
                   <Text style={light} accessibilityLabel={t('wall.position', { n: index - first + 1, total: cards.length })}>
                     {index - first + 1} / {cards.length}
                     {index === first && !header ? ` · ${t('wall.swipe')}` : ''}
@@ -81,6 +95,9 @@ export function WallLayout({ cards, theme, pinnedId, renderCard, header, refresh
               )}
             </View>
           )}
+          extraData={active}
+          viewabilityConfig={viewability}
+          onViewableItemsChanged={onViewable}
           snapToOffsets={offsets}
           snapToEnd={false}
           decelerationRate="fast"

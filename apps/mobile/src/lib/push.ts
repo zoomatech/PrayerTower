@@ -53,10 +53,11 @@ function openFrom(response: Notifications.NotificationResponse | null) {
   else if (typeof data?.storyId === 'string') router.push('/help-stories');
   else if (typeof data?.eventId === 'string') router.push(`/event/${data.eventId}`);
   else if (typeof data?.postId === 'string') router.push(`/post/${data.postId}${data.believe ? '?believe=1' : ''}`);
+  else if (data?.screen === 'highlights') router.push('/highlights');
   else if (data?.screen === 'prayer-minute') router.push('/prayer-minute');
   else if (data?.screen === 'give') router.push('/give');
   else if (data?.screen === 'radio-requests') router.push('/radio-requests');
-  else if (data?.screen === 'gratitude' || data?.screen === 'encourager') router.push('/profile');
+  else if (data?.screen === 'gratitude' || data?.screen === 'encourager' || data?.screen === 'partner') router.push('/profile');
   else if (data?.screen === 'prayer-list') router.push('/prayer-list');
   else if (typeof data?.personId === 'string') router.push(`/people/${data.personId}`);
 }

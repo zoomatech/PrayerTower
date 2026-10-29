@@ -5,8 +5,11 @@ import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from '
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
+import { CoolDownCard } from '@/components/cool-down-card';
+import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
+import { isLit } from '@/components/vine-flow';
 import { CrisisSupport } from '@/components/crisis';
 import { GuestShare } from '@/components/guest-share';
 import { LiveFollow } from '@/components/live-follow';
@@ -17,6 +20,7 @@ import { AiPrayers } from '@/components/ai-prayers';
 import { KindCloud } from '@/components/kind-cloud';
 import { FollowupCard } from '@/components/followup-card';
 import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
+import { LiftedMeUp } from '@/components/kindness-highlights';
 import { ReplyHelpers } from '@/components/reply-helpers';
 import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
 import { CircleGoal } from '@/components/circle-goal';
@@ -27,7 +31,7 @@ import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
-import { breakpoints, colors, space, type } from '@/lib/theme';
+import { breakpoints, colors, radius, space, type } from '@/lib/theme';
 import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
 
@@ -63,6 +67,7 @@ export default function PostScreen() {
   // Two taps to delete: the first asks "Tap again to delete".
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [coolNudge, setCoolNudge] = useState(0);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
   const radioOn = useFeature('radio');
@@ -117,6 +122,7 @@ export default function PostScreen() {
       setWarnedFor(null);
       const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
       if (r.comment.crisis) setSupport(true);
+      if (r.coolDown) setCoolNudge((n) => n + 1);
       setText('');
       setReplyTo(null);
       await load();
@@ -240,6 +246,7 @@ export default function PostScreen() {
           </Text>
         ) : null}
       </View>
+      {card?.isMine && !c.isMine && c.author.id !== profile?.id ? <LiftedMeUp commentId={c.id} /> : null}
       {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
   );
@@ -263,6 +270,7 @@ export default function PostScreen() {
             onClose={() => setBelieve(null)}
           />
         ) : null}
+        {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
@@ -373,7 +381,7 @@ export default function PostScreen() {
         {card && prayable ? <CircleGoal postId={id} /> : null}
         {card && prayable ? <AiPrayers postId={id} /> : null}
 
-        {!prayable || !radioOn ? null : radioSent ? (
+        {!prayable || !radioOn || (features.lament && card?.lament && !card.lamentRadio) ? null : radioSent ? (
           <Text style={type.small}>{t('post.radioSent')}</Text>
         ) : tokens && tokens.priestly.balance >= tokens.priestly.radioPrayerCost ? (
           <Button
@@ -460,14 +468,17 @@ export default function PostScreen() {
               <Text style={type.heading}>{t('post.comments')}</Text>
               {comments.length === 0 ? <Empty text={t('post.noComments')} /> : null}
               {features.commentTree ? (
-                <CommentTree
-                  comments={comments}
-                  tokens={treeTokens}
-                  leavesShown={features.commentTreeLeaves}
-                  maxDepth={features.commentTreeMaxDepth}
-                  highlightId={sharedCommentId ?? null}
-                  renderBody={commentBody}
-                />
+                // Skins drawn in light (Moonlit Gate, Neon Cinderella) keep their night sky behind the comments.
+                <View style={isLit(treeTokens.vineStyle) && comments.length ? [styles.night, { backgroundColor: treeTokens.backdrop || '#0B1324' }] : null}>
+                  <CommentTree
+                    comments={comments}
+                    tokens={treeTokens}
+                    leavesShown={features.commentTreeLeaves}
+                    maxDepth={features.commentTreeMaxDepth}
+                    highlightId={sharedCommentId ?? null}
+                    renderBody={commentBody}
+                  />
+                </View>
               ) : (
                 comments.map((c) => (
                   <View
@@ -487,8 +498,10 @@ export default function PostScreen() {
                 </Text>
               ) : null}
               <WelcomeCard />
+              {features.lament && card?.lament && !card.isMine ? <Text style={type.small}>{t('lament.replyHint')}</Text> : null}
+              <CoolDownCard nudge={coolNudge} />
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
-              <KindCloud text={text} />
+              <KindCloud text={text} context={features.lament && card?.lament && !card.isMine ? 'lamentReply' : undefined} />
               <ReplyHelpers
                 // Answer the comment being replied to, or else the request itself.
                 lastFromOther={(replyTo && !replyTo.isMine ? replyTo.body : null) ?? (card.isMine ? null : card.body)}
@@ -512,6 +525,7 @@ export default function PostScreen() {
 }
 
 const styles = StyleSheet.create({
+  night: { borderRadius: radius.lg, paddingHorizontal: space.sm, paddingBottom: space.md },
   noteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   roomy: { maxWidth: 880 },
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
