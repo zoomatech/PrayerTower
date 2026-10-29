@@ -68,5 +68,25 @@ describe('staff audit log', () => {
     expect(rows[1]!.body).toMatchObject({ note: 'For [email]', count: 1 });
     expect(JSON.stringify(rows)).not.toMatch(/example\.org|Ruth/);
   });
-});
 
+  it('pages back without skipping entries that share a time', async () => {
+    const admin = await createUser('Miriam');
+    await grantRole(db, admin, 'admin', null);
+    // Five entries at one instant, as one transaction writes them, plus one a moment earlier.
+    await db.query(
+      `insert into public.staff_audit_log (actor_id, action, params, status, created_at)
+       select $1, 'PATCH /admin/test-' || n, '{}', 200, case when n = 0 then now() - interval '1 second' else now() end
+         from generate_series(0, 5) n`,
+      [admin],
+    );
+    const seen: string[] = [];
+    let last: { id: string; created_at: string } | undefined;
+    for (let i = 0; i < 10; i++) {
+      const page = (await as(admin).get(`/admin/audit-log?actorId=${admin}&limit=2${last ? `&before=${encodeURIComponent(last.created_at)}&beforeId=${last.id}` : ''}`)).json().entries;
+      if (!page.length) break;
+      seen.push(...page.map((e: { action: string }) => e.action));
+      last = page.at(-1);
+    }
+    expect(seen.sort()).toEqual([0, 1, 2, 3, 4, 5].map((n) => `PATCH /admin/test-${n}`));
+  });
+});
