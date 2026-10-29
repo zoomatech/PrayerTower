@@ -124,7 +124,7 @@ struct ModerationView: View {
             if let h = item.history { Text(Moderation.goldfish(h, words: w)).font(.footnote) }
             if item.source == "crisis" {
                 // Someone may be in danger: reach out and keep it up; remove only method details. Never suspend.
-                HStack {
+                AdaptiveStack {
                     Button(w("moderation.reachedOut")) { Task { await decide(item, .reachedOut) } }.buttonStyle(.bordered)
                     Button(w("moderation.removeMethod")) { Task { await decide(item, .removeMethod) } }.buttonStyle(.borderedProminent)
                 }
@@ -132,7 +132,7 @@ struct ModerationView: View {
                 Picker(w("moderation.ruleBroken"), selection: Binding(get: { rules[item.id] ?? "other" }, set: { rules[item.id] = $0 })) {
                     ForEach(Moderation.ruleChoices(features: model.features), id: \.self) { Text(rule($0)).tag($0) }
                 }
-                HStack {
+                AdaptiveStack {
                     Button(w("moderation.keep")) { Task { await decide(item, .keep) } }.buttonStyle(.bordered)
                     Button(w("moderation.remove")) { Task { await decide(item, .remove(rules[item.id] ?? "other")) } }.buttonStyle(.borderedProminent)
                 }

@@ -15,7 +15,7 @@ struct PrayerLifeSection: View {
             if let s = stats, s.enabled {
                 let f = model.features, third = s.third(f, w)
                 Section {
-                    HStack {
+                    AdaptiveStack {
                         number(s.daysPrayed, w("stats.days"))
                         number(s.peoplePrayedFor, w("stats.people"))
                         number(third.value, third.label)
