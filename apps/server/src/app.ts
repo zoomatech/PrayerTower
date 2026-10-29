@@ -32,6 +32,7 @@ import { futureRoutes } from './modules/future/routes.js';
 import { aiRoutes } from './modules/ai/routes.js';
 import { lampRoutes } from './modules/lamps/routes.js';
 import { circleGoalRoutes } from './modules/circle-goals/routes.js';
+import { squireRoutes } from './modules/squire/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
 import { liveRoutes } from './modules/live/routes.js';
@@ -278,6 +279,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     aiRoutes(authed, db, converse);
     lampRoutes(authed, db);
     circleGoalRoutes(authed, db);
+    squireRoutes(authed, db);
     liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);

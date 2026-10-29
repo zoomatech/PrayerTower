@@ -287,6 +287,8 @@ export interface Person {
   pastor: PastorBadge | null;
   /** An outside support page (Ko-fi, Patreon…), only while switched on. */
   supportUrl?: string | null;
+  /** On the public Prayer Squire track (opt-in board). */
+  squire?: boolean;
 }
 
 /** A verified church pastor's badge: "Pastor · Grace Chapel". */

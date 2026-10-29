@@ -90,6 +90,7 @@ export default function PersonScreen() {
                 ✝ {person.pastor.title} · {person.pastor.church}
               </Text>
             ) : null}
+            {person.squire ? <Text style={styles.pastor}>{t('squire.badge')}</Text> : null}
             {person.whyHere.length ? (
               <Text style={type.body}>{person.whyHere.map((w) => WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS] ?? w).join(' · ')}</Text>
             ) : null}

@@ -290,6 +290,18 @@ export const keys: Tree = named({
     inputsHostHint: 'What people would like covered. Only you and staff see these.',
     inputsPlaceholder: 'For example: please talk about how to help the families affected by the flood',
   },
+  squire: {
+    title: "Kindness board",
+    open: "Kindness board",
+    badge: "On the kindness board",
+    off: "The kindness board is not open.",
+    intro: "Members of your community who chose to show how often they supported others in the last %{days} days. Only verified check-ins count.",
+    join: "Show me on the board",
+    joinHint: "Your name and how many times you supported others show here and on your profile. Turn it off at any time.",
+    anonymous: "You post anonymously, so your support stays private: it counts, but only you see it.",
+    empty: "No one is on the board yet.",
+    counts: "%{count} check-ins for %{people} people",
+  },
   circleGoal: {
     progress: '%{done} of %{target} people have checked in',
     met: 'Goal met: %{done} people checked in (goal %{target})',

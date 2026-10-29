@@ -70,6 +70,7 @@ export interface Features {
   poolLedger: boolean;
   circleGoals: boolean;
   supportLinks: boolean;
+  squireBoard: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -185,6 +186,8 @@ export interface NotebookSettings {
   giving_ask_enabled: boolean;
   giving_ask_after_days: number;
   support_links_enabled: boolean;
+  squire_board_enabled: boolean;
+  squire_board_days: number;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -747,6 +750,16 @@ export type CircleGoal =
   | { enabled: true; canSet: boolean; goal: { target: number; endsAt: string; prayed: number; met: boolean; ended: boolean } | null };
 
 /** Lamp awards: thanks with a note, recognition only. */
+export type SquireBoard =
+  | { enabled: false }
+  | {
+      enabled: true;
+      days: number;
+      onBoard: boolean;
+      canJoin: boolean;
+      entries: { rank: number; personId: string; name: string; prayers: number; peoplePrayedFor: number; you: boolean }[];
+    };
+
 export type Lamps = {
   enabled: boolean;
   count: number;
@@ -1186,7 +1199,7 @@ export const api = {
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1218,6 +1231,8 @@ export const api = {
   circleGoal: (postId: string) => get<CircleGoal>(`/posts/${postId}/circle-goal`),
   setCircleGoal: (postId: string, target: number, days: number) => request<CircleGoal>('PUT', `/posts/${postId}/circle-goal`, { target, days }),
   removeCircleGoal: (postId: string) => request<CircleGoal>('DELETE', `/posts/${postId}/circle-goal`),
+  squireBoard: () => get<SquireBoard>('/squire-board'),
+  setSquireBoard: (on: boolean) => request<SquireBoard>('PUT', '/me/squire-board', { public: on }),
   lamps: (personId: string) => get<Lamps>(`/people/${personId}/lamps`),
   giveLamp: (personId: string, note: string) => post<{ id: string }>(`/people/${personId}/lamps`, { note }),
   aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),

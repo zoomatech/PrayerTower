@@ -118,6 +118,7 @@ export interface Profile {
   show_prayer_stats: boolean;
   town: string | null;
   support_url: string | null;
+  squire_public: boolean;
   open_to_other_communities: boolean;
   digest_sent_week: string | null;
   notification_prefs: NotificationPrefs;
@@ -418,7 +419,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
             trauma_content_opt_out = default, anonymous_by_default = default, updates_in_first_comment = default,
             prompts_enabled = default, prompt_min_hours = default, prompt_tone = default, locale = default,
             digest_enabled = default, digest_sent_week = default, notification_prefs = default,
-            show_prayer_stats = default, town = null, support_url = null, open_to_other_communities = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
+            show_prayer_stats = default, town = null, support_url = null, squire_public = default, open_to_other_communities = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
       where id = $1`,
     [userId],
   );

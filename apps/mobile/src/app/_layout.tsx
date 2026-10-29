@@ -79,6 +79,7 @@ function RootStack() {
           <Stack.Screen name="legal" />
           <Stack.Screen name="podcasts" />
           <Stack.Screen name="why-gifts" />
+          <Stack.Screen name="squire-board" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="survey/[id]" />
