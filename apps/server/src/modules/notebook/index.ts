@@ -49,6 +49,7 @@ export interface NotebookSettings {
   circle_goals_enabled: boolean;
   giving_ask_enabled: boolean;
   giving_ask_after_days: number;
+  support_links_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
@@ -56,7 +57,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -91,6 +92,7 @@ export const SettingsPatch = z.object({
   circleGoalsEnabled: z.boolean().optional(),
   givingAskEnabled: z.boolean().optional(),
   givingAskAfterDays: z.number().int().min(1).max(365).optional(),
+  supportLinksEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -113,7 +115,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        lamps_enabled = coalesce($24, lamps_enabled), lamps_per_week = coalesce($25, lamps_per_week),
        pool_ledger_enabled = coalesce($26, pool_ledger_enabled),
        circle_goals_enabled = coalesce($27, circle_goals_enabled),
-       giving_ask_enabled = coalesce($28, giving_ask_enabled), giving_ask_after_days = coalesce($29, giving_ask_after_days)`,
+       giving_ask_enabled = coalesce($28, giving_ask_enabled), giving_ask_after_days = coalesce($29, giving_ask_after_days),
+       support_links_enabled = coalesce($30, support_links_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -144,6 +147,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.circleGoalsEnabled ?? null,
       p.givingAskEnabled ?? null,
       p.givingAskAfterDays ?? null,
+      p.supportLinksEnabled ?? null,
     ],
   );
   return settings(q);
@@ -175,6 +179,7 @@ export async function features(q: Queryable) {
     lamps: s.lamps_enabled,
     poolLedger: s.pool_ledger_enabled,
     circleGoals: s.circle_goals_enabled,
+    supportLinks: s.support_links_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,

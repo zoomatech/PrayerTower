@@ -285,6 +285,8 @@ export interface Person {
   following: boolean;
   followers: number;
   pastor: PastorBadge | null;
+  /** An outside support page (Ko-fi, Patreon…), only while switched on. */
+  supportUrl?: string | null;
 }
 
 /** A verified church pastor's badge: "Pastor · Grace Chapel". */
@@ -389,6 +391,7 @@ export interface Profile {
   /** Gentle prayer stats on Me (on by default). */
   show_prayer_stats?: boolean;
   town?: string | null;
+  support_url?: string | null;
   open_to_other_communities?: boolean;
   /** Missing on profiles fetched before the setting existed. */
   notification_prefs?: NotificationPrefs;

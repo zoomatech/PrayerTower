@@ -69,6 +69,7 @@ export interface Features {
   lamps: boolean;
   poolLedger: boolean;
   circleGoals: boolean;
+  supportLinks: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -183,6 +184,7 @@ export interface NotebookSettings {
   circle_goals_enabled: boolean;
   giving_ask_enabled: boolean;
   giving_ask_after_days: number;
+  support_links_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -1184,7 +1186,7 @@ export const api = {
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
