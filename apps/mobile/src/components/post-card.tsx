@@ -20,6 +20,7 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
+import { hasParts, PostParts, type PartComments } from './post-parts';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
 import { useMeaningChooser, type MeaningChooser } from './meaning-chooser';
@@ -49,7 +50,13 @@ export interface CardHandlers {
 /** A feed skin can restyle the card's box (the drawn vine puts a smaller, greener box inside a leaf). */
 export const CardSurface = createContext<ViewStyle | null>(null);
 
-export const PostCard = memo(function PostCard({ card, onAction, onHide, expanded: startExpanded = false }: { card: Card; expanded?: boolean } & CardHandlers) {
+export const PostCard = memo(function PostCard({
+  card,
+  onAction,
+  onHide,
+  expanded: startExpanded = false,
+  parts,
+}: { card: Card; expanded?: boolean; /** Comments at block breaks, on the request's own page. */ parts?: PartComments } & CardHandlers) {
   const [expanded, setExpanded] = useState(startExpanded);
   const [tray, setTray] = useState(false);
   const [quick, setQuick] = useState({ candles: card.counts.candles ?? 0, standing: card.counts.standing ?? 0 });
@@ -136,14 +143,18 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           accessibilityActions={features.reactionTray ? [{ name: 'longpress', label: t('quick.tray') }] : undefined}
           onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && setTray(true)}
           style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
-          <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
-            {expanded || !card.truncated ? card.body : `${card.preview}… `}
-            {card.truncated && !expanded ? (
-              <Text style={styles.more} onPress={() => setExpanded(true)}>
-                {t('card.more')}
-              </Text>
-            ) : null}
-          </Text>
+          {parts && expanded && !bg && hasParts(card.body) ? (
+            <PostParts body={card.body} style={type.body} parts={parts} />
+          ) : (
+            <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
+              {expanded || !card.truncated ? card.body : `${card.preview}… `}
+              {card.truncated && !expanded ? (
+                <Text style={styles.more} onPress={() => setExpanded(true)}>
+                  {t('card.more')}
+                </Text>
+              ) : null}
+            </Text>
+          )}
           {card.truncated && !expanded ? <SparkleWords body={card.body} /> : null}
         </Pressable>
 

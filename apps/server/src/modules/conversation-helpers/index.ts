@@ -26,13 +26,14 @@ export interface ConversationSettings {
   comment_thanks_enabled: boolean;
   quiet_counts_enabled: boolean;
   reply_choice_enabled: boolean;
+  part_comments_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<ConversationSettings> {
   const { rows } = await q.query<ConversationSettings>(
     `select reply_suggestions_enabled, meaning_prefs_enabled, trouble_nudge_enabled, greeting_packs_enabled, own_words_enabled, kind_closings_enabled,
             talk_counts_enabled, meaning_row_enabled, research_page_enabled, meaning_proposals_enabled, type_prompts_enabled,
-            author_hearts_enabled, comment_thanks_enabled, quiet_counts_enabled, reply_choice_enabled
+            author_hearts_enabled, comment_thanks_enabled, quiet_counts_enabled, reply_choice_enabled, part_comments_enabled
        from public.conversation_settings`,
   );
   return rows[0]!;
@@ -54,6 +55,7 @@ export const SettingsPatch = z.object({
   commentThanksEnabled: z.boolean().optional(),
   quietCountsEnabled: z.boolean().optional(),
   replyChoiceEnabled: z.boolean().optional(),
+  partCommentsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -66,7 +68,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        research_page_enabled = coalesce($9, research_page_enabled),
        meaning_proposals_enabled = coalesce($10, meaning_proposals_enabled), type_prompts_enabled = coalesce($11, type_prompts_enabled),
        author_hearts_enabled = coalesce($12, author_hearts_enabled), comment_thanks_enabled = coalesce($13, comment_thanks_enabled),
-       quiet_counts_enabled = coalesce($14, quiet_counts_enabled), reply_choice_enabled = coalesce($15, reply_choice_enabled)`,
+       quiet_counts_enabled = coalesce($14, quiet_counts_enabled), reply_choice_enabled = coalesce($15, reply_choice_enabled),
+       part_comments_enabled = coalesce($16, part_comments_enabled)`,
     [
       p.replySuggestionsEnabled ?? null,
       p.meaningPrefsEnabled ?? null,
@@ -83,6 +86,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.commentThanksEnabled ?? null,
       p.quietCountsEnabled ?? null,
       p.replyChoiceEnabled ?? null,
+      p.partCommentsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -106,6 +110,7 @@ export async function features(q: Queryable) {
     commentThanks: s.comment_thanks_enabled,
     quietCounts: s.quiet_counts_enabled,
     replyChoice: s.reply_choice_enabled,
+    partComments: s.part_comments_enabled,
   };
 }
 

@@ -1,7 +1,7 @@
-import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type FeedTheme, type TokenSummary } from '@prayer-tower/shared';
+import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, postParts, type Card, type Comment, type FeedTheme, type TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
@@ -74,6 +74,8 @@ export default function PostScreen() {
   // A comment taken down by a moderator comes back here to change and post again (path back).
   const [text, setText] = useState(typeof draft === 'string' ? draft.slice(0, 5000) : '');
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  // Comments at block breaks: the part of a long post the next comment is about.
+  const [part, setPart] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Two taps to delete: the first asks "Tap again to delete".
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -129,6 +131,20 @@ export default function PostScreen() {
 
   const { onAction, openReport, sheets } = useCardActions(load);
   const kindness = useCommentKindness(id);
+  const partTotal = useMemo(() => (card ? postParts(card.body).length : 1), [card]);
+  const partComments = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const c of comments) if (c.part != null) counts[c.part] = (counts[c.part] ?? 0) + 1;
+    return {
+      counts,
+      picked: part,
+      onPick: (i: number) => {
+        setReplyTo(null);
+        setPart(i);
+        AccessibilityInfo.announceForAccessibility(t('partComments.commenting', { part: i + 1, total: partTotal }));
+      },
+    };
+  }, [comments, part, partTotal, t]);
 
   const send = async (isUpdate = false, confirmed = false) => {
     setBusy(true);
@@ -140,12 +156,14 @@ export default function PostScreen() {
         return;
       }
       setWarnedFor(null);
-      const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
+      const onPart = features.partComments && !replyTo && !isUpdate && part !== null ? part : undefined;
+      const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate, part: onPart });
       if (r.comment.crisis) setSupport(true);
       if (r.comment.harm?.resources?.length) setHarmSupport(r.comment.harm);
       if (r.coolDown) setCoolNudge((n) => n + 1);
       setText('');
       setReplyTo(null);
+      setPart(null);
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -232,6 +250,7 @@ export default function PostScreen() {
       <Text style={styles.commentAuthor}>
         {c.isUpdate ? t('card.update') : ''}
         {c.author.displayName}
+        {features.partComments && c.part != null ? <Text style={styles.partLabel}> · {t('partComments.label', { part: c.part + 1 })}</Text> : null}
       </Text>
       <Text style={type.body}>{c.body}</Text>
       <View style={styles.row}>
@@ -302,7 +321,7 @@ export default function PostScreen() {
     <Screen style={roomy ? styles.roomy : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
+        {card ? <PostCard card={card} onAction={onAction} expanded parts={features.partComments ? partComments : undefined} /> : null}
         {card && believe && features.believe && card.state === 'answered' && (believe === 'mine') === card.isMine ? (
           <BelieveCard
             mine={believe === 'mine'}
@@ -577,6 +596,14 @@ export default function PostScreen() {
                   {t('post.replyingTo', { name: replyTo.author.displayName })}
                 </Text>
               ) : null}
+              {features.partComments && part !== null && !replyTo ? (
+                <View style={styles.row}>
+                  <Text style={type.small}>{t('partComments.commenting', { part: part + 1, total: partTotal })}</Text>
+                  <Text style={styles.reply} onPress={() => setPart(null)} accessibilityRole="button">
+                    {t('partComments.cancel')}
+                  </Text>
+                </View>
+              ) : null}
               <ReplyChoiceGate postId={card.id}>
                 <WelcomeCard />
                 {features.lament && card?.lament && !card.isMine ? <Text style={type.small}>{t('lament.replyHint')}</Text> : null}
@@ -617,6 +644,7 @@ const styles = StyleSheet.create({
   comment: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, gap: 2 },
   sharedComment: { borderLeftColor: colors.primary, backgroundColor: colors.primarySoft, paddingVertical: space.xs },
   commentAuthor: { fontWeight: '700', color: colors.text },
+  partLabel: { fontWeight: '400', color: colors.textMuted },
   reply: { color: colors.primary, fontSize: 13 },
   report: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
   row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },

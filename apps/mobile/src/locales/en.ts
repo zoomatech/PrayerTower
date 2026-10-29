@@ -2642,6 +2642,15 @@ const en = {
     adminTitle: 'Who can reply',
     adminHint: 'The person who asked chooses who may comment on their post: everyone, only people who prayed or supported it, or no comments at all. They can always post updates and change it any time. While off, everyone can comment.',
   },
+  partComments: {
+    commentHere: 'Comment on this part',
+    count: '{{count}} on this part',
+    commenting: 'Commenting on part {{part}} of {{total}}',
+    cancel: 'Comment on the whole post instead',
+    label: 'On part {{part}}',
+    adminTitle: 'Comments at block breaks',
+    adminHint: 'A long post is shown in parts of about 200 words, with "Comment on this part" after each. The comments still appear together at the end, each marked with its part. While off, comments are on the whole post.',
+  },
   thankNote: {
     title: 'Thank everyone who prayed',
     hint: 'Write one warm note. Everyone who prayed for this gets it, once.',
