@@ -226,6 +226,10 @@ export interface Card {
   isSensitive: boolean;
   /** The poster welcomes prayer and positive thoughts from people of any faith or none. */
   allSupportWelcome: boolean;
+  /** A lament: grief or anguish to be heard, with gentle replies and no advice. */
+  lament?: boolean;
+  /** The author said this lament may go out by radio. */
+  lamentRadio?: boolean;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */

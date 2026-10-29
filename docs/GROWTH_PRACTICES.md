@@ -79,3 +79,25 @@ blocked, held or hidden by this. Only who replied to whom and when is kept
 (`heated_replies`), never the words, and the pair is offered at most once a day. Group
 conversations don't count, since a heated line there isn't aimed at one person.
 Code: `apps/server/src/modules/cool-down`, `components/cool-down-card.tsx`.
+
+## Lament posts (off)
+
+Admin → Growth practices → **Lament posts**. In the composer a member can turn on
+**This is a lament**: grief or anguish to be heard, not fixed. (They can also turn it on
+or off later, from their own post.) The post then:
+
+- gets a small 🕯️ Lament tag on its card;
+- gets no kind-cloud nudge for the author's own strong words (`context: 'lament'` on
+  `/moderation/precheck`); threats still get the firmer cloud;
+- shows repliers "Gentle words only, please, and no advice", and the cloud gently asks
+  about advice and silver linings ("at least…", "have you tried…", "everything happens
+  for a reason", "I know how you feel"). It's a nudge, never a block;
+- stays off the radio (not queued, and the station and live amplifier skip it) unless
+  the author turns on **Okay to send by radio**. Unmarking a lament takes back that yes.
+
+Why no advice: bereaved people rate advice, "I know how you feel" and forced cheerfulness
+as unhelpful, and simply being there as helpful (Lehman, Ellard & Wortman 1986, *Journal
+of Consulting and Clinical Psychology* 54(4), listed at
+https://www2.psych.ubc.ca/~dlehman/darrinpubs.htm; a 2023 condolence study found the
+same, https://www.psypost.org/condolences-study-reveals-what-not-to-say-when-consoling-the-bereaved/).
+Code: `posts.is_lament`, `posts.lament_radio`, `kindness.assessIn`, `components/lament-controls.tsx`.

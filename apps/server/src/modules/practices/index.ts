@@ -43,12 +43,13 @@ export interface PracticeSettings {
   partner_days: number;
   highlights_enabled: boolean;
   cool_down_enabled: boolean;
+  lament_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
             welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled,
-            partners_enabled, partner_days, highlights_enabled, cool_down_enabled
+            partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -74,6 +75,7 @@ export const SettingsPatch = z.object({
   partnerDays: z.number().int().min(7).max(90).optional(),
   highlightsEnabled: z.boolean().optional(),
   coolDownEnabled: z.boolean().optional(),
+  lamentEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -89,7 +91,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        lift_up_enabled = coalesce($13, lift_up_enabled), gratitude_count_enabled = coalesce($14, gratitude_count_enabled),
        believe_enabled = coalesce($15, believe_enabled),
        partners_enabled = coalesce($16, partners_enabled), partner_days = coalesce($17, partner_days),
-       highlights_enabled = coalesce($18, highlights_enabled), cool_down_enabled = coalesce($19, cool_down_enabled)`,
+       highlights_enabled = coalesce($18, highlights_enabled), cool_down_enabled = coalesce($19, cool_down_enabled),
+       lament_enabled = coalesce($20, lament_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -110,6 +113,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.partnerDays ?? null,
       p.highlightsEnabled ?? null,
       p.coolDownEnabled ?? null,
+      p.lamentEnabled ?? null,
     ],
   );
   return settings(q);
@@ -132,6 +136,7 @@ export async function features(q: Queryable) {
     partners: s.partners_enabled,
     kindnessHighlights: s.highlights_enabled,
     coolDown: s.cool_down_enabled,
+    lament: s.lament_enabled,
   };
 }
 

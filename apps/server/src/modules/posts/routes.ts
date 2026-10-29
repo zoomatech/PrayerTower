@@ -70,6 +70,10 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     return { post: (await posts.cards(db, [req.params.id], userId))[0], crisis };
   });
 
+  app.put<{ Params: { id: string } }>('/posts/:id/lament', async (req) =>
+    posts.setLament(db, requireUser(req), req.params.id, posts.LamentPatch.parse(req.body)),
+  );
+
   app.put<{ Params: { id: string } }>('/posts/:id/testimony', async (req) => {
     const userId = requireUser(req);
     const { body } = posts.Testimony.parse(req.body);

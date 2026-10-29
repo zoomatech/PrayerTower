@@ -1869,6 +1869,17 @@ const en = {
     adminTitle: 'Kindness research page',
     adminHint: 'Lets members see the Counting patterns totals as simple charts on Me → How we talk here. Rows under five stay folded.',
   },
+  lament: {
+    tag: 'Lament',
+    toggle: 'This is a lament',
+    toggleHint: 'Grief or anguish you want heard, not fixed. Your own strong words get no cloud, and people replying are asked to be gentle and hold back advice.',
+    radio: 'Okay to send by radio',
+    radioHint: 'A lament stays off the radio unless you say yes.',
+    replyHint: 'This is a lament: words of grief to be heard. Gentle words only, please, and no advice.',
+    adviceAsk: 'This is a lament. Could you just be with them, without advice?',
+    adminTitle: 'Lament posts',
+    adminHint: 'Members can mark a post as grief or anguish. The kind cloud lets their own strong words be, replies get a gentle no-advice nudge (never a block), and the post stays off the radio unless the author opts in.',
+  },
   coolDown: {
     title: 'A breather?',
     lines: {

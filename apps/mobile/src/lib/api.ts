@@ -50,7 +50,7 @@ import type { Move, Pack } from './talk';
 /** The kind cloud's verdict on a draft: ok, a gentle nudge, or a firmer ask (threats, a stream of swearing). Never a refusal. */
 export interface KindVerdict {
   level: 'ok' | 'nudge' | 'strong';
-  reason?: 'threat' | 'foul' | 'aimed' | 'shouting';
+  reason?: 'threat' | 'foul' | 'aimed' | 'shouting' | 'advice';
 }
 
 /** A gentle redirect for a request that wishes harm (thread "Prepare for harmful prayer requests"), shown in the kind cloud. */
@@ -147,6 +147,7 @@ export interface Features {
   partners: boolean;
   kindnessHighlights: boolean;
   coolDown: boolean;
+  lament: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -219,6 +220,7 @@ export interface PracticeSettings {
   partner_days: number;
   highlights_enabled: boolean;
   cool_down_enabled: boolean;
+  lament_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -940,6 +942,8 @@ export interface NewPost {
   isSensitive?: boolean;
   /** "Prayer and positive thoughts welcome" from people of any faith or none. */
   allSupportWelcome?: boolean;
+  isLament?: boolean;
+  lamentRadio?: boolean;
   media?: { kind: 'image' | 'video'; storagePath: string; durationMs?: number }[];
 }
 
@@ -1306,7 +1310,8 @@ export const api = {
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
-  precheck: (text: string) => post<Precheck>('/moderation/precheck', { text }).catch((): Precheck => ({ warn: false })),
+  precheck: (text: string, context?: 'lament' | 'lamentReply') => post<Precheck>('/moderation/precheck', { text, context }).catch((): Precheck => ({ warn: false })),
+  setLament: (id: string, patch: { lament?: boolean; radio?: boolean }) => request<{ lament: boolean; lamentRadio: boolean }>('PUT', `/posts/${id}/lament`, patch),
   appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
   appeals: () => get<{ appeals: Appeal[] }>('/moderation/appeals'),
   decideAppeal: (id: string, action: 'uphold' | 'overturn', note?: string) =>
@@ -1501,7 +1506,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>

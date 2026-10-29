@@ -101,6 +101,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           </Text>
         ) : null}
         {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+        {card.lament && features.lament ? <Text style={styles.tags}>🕯️ {t('lament.tag')}</Text> : null}
         {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
         <Pressable

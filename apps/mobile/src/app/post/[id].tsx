@@ -6,6 +6,7 @@ import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
 import { CoolDownCard } from '@/components/cool-down-card';
+import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
@@ -265,6 +266,7 @@ export default function PostScreen() {
             onClose={() => setBelieve(null)}
           />
         ) : null}
+        {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
@@ -374,7 +376,7 @@ export default function PostScreen() {
         {card && prayable ? <CircleGoal postId={id} /> : null}
         {card && prayable ? <AiPrayers postId={id} /> : null}
 
-        {!prayable || !radioOn ? null : radioSent ? (
+        {!prayable || !radioOn || (features.lament && card?.lament && !card.lamentRadio) ? null : radioSent ? (
           <Text style={type.small}>{t('post.radioSent')}</Text>
         ) : tokens && tokens.priestly.balance >= tokens.priestly.radioPrayerCost ? (
           <Button
@@ -488,9 +490,10 @@ export default function PostScreen() {
                 </Text>
               ) : null}
               <WelcomeCard />
+              {features.lament && card?.lament && !card.isMine ? <Text style={type.small}>{t('lament.replyHint')}</Text> : null}
               <CoolDownCard nudge={coolNudge} />
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
-              <KindCloud text={text} />
+              <KindCloud text={text} context={features.lament && card?.lament && !card.isMine ? 'lamentReply' : undefined} />
               <ReplyHelpers
                 // Answer the comment being replied to, or else the request itself.
                 lastFromOther={(replyTo && !replyTo.isMine ? replyTo.body : null) ?? (card.isMine ? null : card.body)}

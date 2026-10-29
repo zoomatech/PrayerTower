@@ -46,6 +46,10 @@ export const NewPost = z.object({
   isSensitive: z.boolean().default(false),
   /** "Prayer and positive thoughts welcome": support from people of any faith or none. */
   allSupportWelcome: z.boolean().default(false),
+  /** A lament (grief or anguish): heard, not fixed. Only kept while the Lament switch is on. */
+  isLament: z.boolean().optional(),
+  /** The author's yes to a lament going out by radio. */
+  lamentRadio: z.boolean().optional(),
   media: z
     // durationMs: the clip's length from the picker, checked against the video cap (modules/skins).
     .array(z.object({ kind: z.enum(['image', 'video']), storagePath: z.string().min(1).max(500), durationMs: z.number().int().min(0).max(86_400_000).optional() }))
@@ -65,6 +69,8 @@ export interface PostRow {
   is_anonymous: boolean;
   is_sensitive: boolean;
   all_support_welcome: boolean;
+  is_lament: boolean;
+  lament_radio: boolean;
   crisis: boolean;
   /** Set by the harmful-prayer check (modules/harm) until a moderator clears it. */
   harm_category: string | null;
@@ -96,8 +102,9 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
   ]);
   if (!typeAllowed) throw badRequest('This kind of post is not available in your community');
   const { rows } = await q.query<PostRow>(
-    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id, all_support_welcome)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
+    `insert into public.posts (user_id, post_type, kind, realm, urgency, body, background, is_anonymous, is_sensitive, community_id, all_support_welcome, is_lament, lament_radio)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+             $12 and (select lament_enabled from public.practice_settings), $12 and $13 and (select lament_enabled from public.practice_settings)) returning *`,
     [
       userId,
       input.postType,
@@ -110,6 +117,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
       input.isSensitive,
       communityId,
       input.allSupportWelcome,
+      input.isLament ?? false,
+      input.lamentRadio ?? false,
     ],
   );
   const post = rows[0]!;
@@ -244,6 +253,22 @@ export async function setTestimony(q: Queryable, userId: string, postId: string,
 export async function removeTestimony(q: Queryable, userId: string, postId: string) {
   const { rowCount } = await q.query(`update public.posts set testimony = null, testimony_at = null where id = $1 and user_id = $2`, [postId, userId]);
   if (!rowCount) throw notFound('Post');
+}
+
+export const LamentPatch = z.object({ lament: z.boolean().optional(), radio: z.boolean().optional() });
+
+/** The author marks or unmarks a lament, and says yes or no to radio. Off with the Lament switch. */
+export async function setLament(q: Queryable, userId: string, postId: string, p: z.infer<typeof LamentPatch>) {
+  const { rows: s } = await q.query<{ on: boolean }>('select lament_enabled as on from public.practice_settings');
+  if (!s[0]?.on) throw badRequest('Lament posts are switched off');
+  const { rows } = await q.query<{ is_lament: boolean; lament_radio: boolean }>(
+    `update public.posts set is_lament = coalesce($3, is_lament),
+            lament_radio = coalesce($3, is_lament) and coalesce($4, lament_radio)
+      where id = $1 and user_id = $2 returning is_lament, lament_radio`,
+    [postId, userId, p.lament ?? null, p.radio ?? null],
+  );
+  if (!rows[0]) throw notFound('Post');
+  return { lament: rows[0].is_lament, lamentRadio: rows[0].lament_radio };
 }
 
 /** Everyone who prayed for or committed to a request, except its poster. */
@@ -663,6 +688,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         background: r.background,
         isSensitive: r.is_sensitive,
         allSupportWelcome: r.all_support_welcome,
+        lament: r.is_lament,
+        lamentRadio: r.lament_radio,
         crisis: r.crisis,
         media: r.media,
         counts: r.counts,
