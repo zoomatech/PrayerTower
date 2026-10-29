@@ -48,7 +48,10 @@ if command -v npm >/dev/null && [ -d "$ROOT/node_modules" ]; then
 fi
 
 cd "$APP"
-if swift test > "$LOGS/swift-test.txt" 2>&1; then
+# SKIP_BUILD=1 (scripts/mac-archive-native.sh) only prepares the project: words, the Safari
+# extension's files and xcodegen.
+if [ -n "${SKIP_BUILD:-}" ]; then :
+elif swift test > "$LOGS/swift-test.txt" 2>&1; then
   record "Shared tests" PASS "$(grep -oE 'Test run with [0-9]+ tests' "$LOGS/swift-test.txt" | tail -1)"
 else
   record "Shared tests" FAIL "$LOGS/swift-test.txt"
@@ -68,6 +71,7 @@ if "$XCODEGEN" generate > "$LOGS/xcodegen.txt" 2>&1; then
 else
   record "Xcode project" FAIL "$LOGS/xcodegen.txt"
 fi
+if [ -n "${SKIP_BUILD:-}" ]; then printf '%s\n' "${RESULTS[@]}"; exit $FAILED; fi
 
 SIM=$(xcrun simctl list devices available -j 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((x["udid"] for k,v in d.items() if "iOS" in k for x in v if x["name"].startswith("iPhone")), ""))')
 DEST=${SIM:+"id=$SIM"}
