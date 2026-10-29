@@ -50,6 +50,9 @@ create table public.donations (
 );
 create unique index donations_provider_ref on public.donations (provider, provider_ref) where provider_ref is not null;
 create index donations_donor on public.donations (donor_id, created_at desc);
+create index donations_target_user on public.donations (target_user_id);
+create index donations_target_pool on public.donations (target_pool_id);
+create index donations_recorded_by on public.donations (recorded_by);
 
 -- How a radio prayer was paid for: tokens, the monthly gift to everyone, or a granted allowance.
 alter table public.radio_prayers
@@ -66,6 +69,7 @@ create table public.radio_allocation_requests (
   created_at timestamptz not null default now(),
   decided_at timestamptz
 );
+create index radio_allocation_decided_by on public.radio_allocation_requests (decided_by);
 create unique index radio_allocation_one_pending on public.radio_allocation_requests (user_id) where status = 'pending';
 
 create table public.radio_allowances (
