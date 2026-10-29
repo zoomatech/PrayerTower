@@ -1552,6 +1552,7 @@ const en = {
     season: { advent: 'Advent', christmas: 'Christmas', lent: 'Lent', easter: 'Easter', pentecost: 'Pentecost', winter: 'Winter', spring: 'Spring', summer: 'Summer', autumn: 'Autumn' },
   },
   skinIdea: {
+    previewHeading: 'Preview',
     open: 'Make your own feed skin',
     title: 'Make your own feed skin',
     intro: 'Pick a layout, colors and shapes, and watch the preview. You can use your skin in Feed style right away. Everyone else can choose it once an admin approves it.',

@@ -6,13 +6,13 @@
 import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { SkinPreview } from '@/components/skin-preview';
 import { Button, Chip, Empty, ErrorText, Field, Screen, Toggle } from '@/components/ui';
 import { api, type MakerLayout, type ThemeProposal } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
-import { colors, radius, space, type } from '@/lib/theme';
+import { breakpoints, colors, radius, space, type } from '@/lib/theme';
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 const LAYOUTS: MakerLayout[] = ['vine', 'wall', 'tower', 'circuit'];
@@ -42,6 +42,8 @@ const COLOR_FIELDS: Record<MakerLayout, { key: string; start: string }[]> = {
 
 export default function ThemeMaker() {
   const { t } = useLocale();
+  // iPad and Mac: the form on the left and a large live preview that stays in view on the right.
+  const wide = useWindowDimensions().width >= breakpoints.split;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [layout, setLayout] = useState<MakerLayout>('vine');
@@ -96,8 +98,8 @@ export default function ThemeMaker() {
   };
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <Screen style={wide ? styles.wideScreen : undefined}>
+      <ScrollView style={styles.fill} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
         <Text style={type.title}>{t('skinIdea.title')}</Text>
         <Text style={type.body}>{t('skinIdea.intro')}</Text>
@@ -113,7 +115,7 @@ export default function ThemeMaker() {
           ))}
         </View>
 
-        <SkinPreview layout={layout} tokens={tokens} testID="maker-preview" />
+        {wide ? null : <SkinPreview layout={layout} tokens={tokens} testID="maker-preview" />}
 
         <Text style={type.heading}>{t('skinIdea.colorsHeading')}</Text>
         {fields.map((f) => (
@@ -159,11 +161,20 @@ export default function ThemeMaker() {
           </View>
         ))}
       </ScrollView>
+      {wide ? (
+        <View style={styles.side}>
+          <Text style={type.heading}>{t('skinIdea.previewHeading')}</Text>
+          <SkinPreview layout={layout} tokens={tokens} height={380} testID="maker-preview" />
+        </View>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  wideScreen: { maxWidth: 1080, flexDirection: 'row', gap: space.lg },
+  side: { width: 400, paddingTop: 120, paddingRight: space.lg, gap: space.sm },
   content: { padding: space.lg, gap: space.md, paddingBottom: 80 },
   row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   sent: { ...type.body, color: colors.primary, fontWeight: '700' },

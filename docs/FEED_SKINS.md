@@ -79,6 +79,15 @@ Every vine skin now draws the vine as a transparent picture (`react-native-svg`,
 - The feed reads top to bottom, newest first. Under each request, its newest comments (up to 3, newest first) hang on smaller leaves, alternating sides, spreading down toward the next older request. "N more comments" fades into ghost leaves and opens the request. The server sends these only while comments as leaves is on (`Card.leafComments`), and leaves out anyone the viewer blocked.
 - Tag colors on a leaf (Pinned, Answered, Your branch, Your tendril) keep 4.5:1 contrast with the leaf color; a skin whose leaf color is too close gets dark or light text instead.
 
+## iPad and Mac (wide screens)
+
+- Window widths: 768 pt and up counts as wide (an upright iPad), and 1280 pt and up as very wide (iPad landscape, a Mac window).
+- **Feed:** on a wide window the feed sits beside the week's highlights. On a very wide window the plain column shows two cards side by side. The skins get one roomier lane (880 pt), so the vine swoops across more space and the leaves stay easy to read. The tower keeps its own 680 pt width.
+- **Post page:** while comments as leaves is on, the post page widens to 880 pt on a very wide window.
+- **Theme maker:** the form is on the left, and a large live preview (380 pt tall) stays in view on the right.
+- **Skin gallery:** 1, 2 or 3 columns, with larger previews on wide windows.
+- Screenshots: `build/screenshots/skins/wide/` (iPad landscape 1366×1024 and Mac 1512×900).
+
 ## Comment trees
 
 `apps/mobile/src/components/comment-tree.tsx`. On a vine skin the comments on a request read top to bottom, present to past: the newest comment is the top leaf, each comment sits inside a pointed leaf on the same drawn vine, alternating sides, and replies hang below their comment on the same side on smaller leaves (to the third level). The older comments past the first few fade into the blur until tapped. New leaves grow in with a short spring, and tapping the blur brings the older leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it. Stars mark the leaves on Neon Cinderella and flowers on Blossom Garden. On the tower, comments stay stone tablets and smaller sub-tablets.

@@ -30,10 +30,10 @@ export default function SkinGallery() {
       })
       .catch((e: Error) => setError(e.message));
 
-  // One column on a phone, two on a tablet, three on a wide screen.
+  // One column on a phone, two on a tablet, three on a wide screen, with room for each preview.
   const columns = width >= breakpoints.twoColumnFeed ? 3 : width >= breakpoints.split ? 2 : 1;
   return (
-    <Screen>
+    <Screen style={columns > 1 ? { maxWidth: columns * 340 } : undefined}>
       <ScrollView contentContainerStyle={styles.content}>
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
         <Text style={type.title}>{t('gallery.title')}</Text>
@@ -43,7 +43,7 @@ export default function SkinGallery() {
         <View style={styles.grid}>
           {skins?.map((s) => (
             <View key={s.slug} style={[styles.card, { width: columns === 1 ? '100%' : `${100 / columns - 2}%` }]} testID={`gallery-${s.slug}`}>
-              <SkinPreview layout={s.layout} tokens={s.tokens} height={140} />
+              <SkinPreview layout={s.layout} tokens={s.tokens} height={columns > 1 ? 180 : 140} />
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>{s.name}</Text>
