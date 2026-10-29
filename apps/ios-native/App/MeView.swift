@@ -46,6 +46,10 @@ struct MeView: View {
                 }
                 if let error { Section { Text(error).foregroundStyle(.red) } }
                 Section {
+                    NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
+                    NavigationLink(w("profile.scheduled")) { ScheduledGiftsView() }
+                }
+                Section {
                     NavigationLink("Sign-in security") { SignInSecurityView() }
                     Button(w(exporting ? "profile.exporting" : "profile.export")) { Task { await export() } }.disabled(exporting)
                     Button(w("profile.signOut"), role: .destructive) {

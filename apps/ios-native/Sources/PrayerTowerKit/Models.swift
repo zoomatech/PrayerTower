@@ -79,10 +79,13 @@ public struct Profile: Codable, Sendable, Equatable {
     public let digestEnabled: Bool?
     /// Missing means on.
     public let showPrayerStats: Bool?
+    /// Missing on profiles fetched before the setting existed.
+    public let notificationPrefs: NotificationPrefs?
 
     public init(
         id: String, displayName: String, anonymousByDefault: Bool? = nil, whyHere: [String]? = nil, traumaContentOptOut: Bool? = nil,
-        updatesInFirstComment: Bool? = nil, promptsEnabled: Bool? = nil, promptTone: String? = nil, digestEnabled: Bool? = nil, showPrayerStats: Bool? = nil
+        updatesInFirstComment: Bool? = nil, promptsEnabled: Bool? = nil, promptTone: String? = nil, digestEnabled: Bool? = nil, showPrayerStats: Bool? = nil,
+        notificationPrefs: NotificationPrefs? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -94,6 +97,7 @@ public struct Profile: Codable, Sendable, Equatable {
         self.promptTone = promptTone
         self.digestEnabled = digestEnabled
         self.showPrayerStats = showPrayerStats
+        self.notificationPrefs = notificationPrefs
     }
 
     enum CodingKeys: String, CodingKey {
@@ -107,6 +111,7 @@ public struct Profile: Codable, Sendable, Equatable {
         case promptTone = "prompt_tone"
         case digestEnabled = "digest_enabled"
         case showPrayerStats = "show_prayer_stats"
+        case notificationPrefs = "notification_prefs"
     }
 }
 

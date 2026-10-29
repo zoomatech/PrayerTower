@@ -3,7 +3,7 @@ import Foundation
 /// A JSON value: inside a skin's `tokens` (unknown or wrongly typed tokens are simply ignored),
 /// and in PATCH bodies that mix types. `int` is only ever sent, never read back.
 public enum JSONValue: Codable, Sendable, Equatable {
-    case string(String), number(Double), int(Int), bool(Bool), null, other
+    case string(String), number(Double), int(Int), bool(Bool), array([JSONValue]), object([String: JSONValue]), null, other
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
@@ -11,6 +11,8 @@ public enum JSONValue: Codable, Sendable, Equatable {
         else if let b = try? c.decode(Bool.self) { self = .bool(b) }
         else if let n = try? c.decode(Double.self) { self = .number(n) }
         else if let s = try? c.decode(String.self) { self = .string(s) }
+        else if let a = try? c.decode([JSONValue].self) { self = .array(a) }
+        else if let o = try? c.decode([String: JSONValue].self) { self = .object(o) }
         else { self = .other }
     }
 
@@ -20,6 +22,8 @@ public enum JSONValue: Codable, Sendable, Equatable {
         case let .string(s): try c.encode(s)
         case let .number(n): try c.encode(n)
         case let .int(i): try c.encode(i)
+        case let .array(a): try c.encode(a)
+        case let .object(o): try c.encode(o)
         case let .bool(b): try c.encode(b)
         case .null, .other: try c.encodeNil()
         }
