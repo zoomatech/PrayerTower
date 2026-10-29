@@ -10,6 +10,7 @@ import { CheckBack } from '@/components/check-back';
 import { ThankNoteCard } from '@/components/thank-note';
 import { CommentKindness, useCommentKindness } from '@/components/comment-kindness';
 import { CoolDownCard } from '@/components/cool-down-card';
+import { KeepOnAir } from '@/components/keep-on-air';
 import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
@@ -314,6 +315,9 @@ export default function PostScreen() {
             }
             onClose={() => setBelieve(null)}
           />
+        ) : null}
+        {card?.isMine && features.keepOnAir && radioOn && card.postType === 'prayer_request' && card.state !== 'answered' && !card.isSensitive ? (
+          <KeepOnAir postId={card.id} on={!!card.keepOnAir} onChange={(v) => setCard({ ...card, keepOnAir: v })} />
         ) : null}
         {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}

@@ -45,6 +45,8 @@ import * as radioSchedule from '../radio/schedule.js';
 import * as operatorConsole from '../radio/console.js';
 import * as operatorAlerts from '../radio/operator-alerts.js';
 import * as beacon from '../radio/beacon.js';
+import * as sky from '../radio/sky.js';
+import * as ceaseless from '../radio/ceaseless.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -302,6 +304,23 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/radio-beacon', async (req) => {
     await requireAdmin(req);
     return beacon.update(db, beacon.BeaconSettings.parse(req.body));
+  });
+  app.get('/admin/radio-ceaseless', async (req) => {
+    await requireAdmin(req);
+    return ceaseless.settings(db);
+  });
+  app.patch('/admin/radio-ceaseless', async (req) => {
+    await requireAdmin(req);
+    return ceaseless.update(db, ceaseless.CeaselessSettings.parse(req.body));
+  });
+  app.get('/admin/radio-sky', async (req) => {
+    await requireAdmin(req);
+    return { settings: await sky.settings(db), now: await sky.now(db) };
+  });
+  app.patch('/admin/radio-sky', async (req) => {
+    await requireAdmin(req);
+    await sky.update(db, sky.SkyPatch.parse(req.body));
+    return { settings: await sky.settings(db), now: await sky.now(db) };
   });
   app.get('/radio/console', async (req) => {
     await requireOperator(req);

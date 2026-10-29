@@ -14,7 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures, useFeatures } from '@/lib/features';
@@ -379,6 +379,8 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <RadioScheduleSection /> : null}
             {radio.radio_transmitter === 'station' ? <OperatorLogSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioConsoleSection /> : null}
+            {radio.radio_transmitter === 'station' ? <SkyTargetSection /> : null}
+            <CeaselessSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -773,6 +775,107 @@ function RadioScheduleSection() {
             <Button small variant="ghost" label={t('admin.scheduleAdd')} onPress={() => setDraft({ ...draft, windows: [...draft.windows, { days: [1, 2, 3, 4, 5], start: '18:00', end: '21:00' }] })} />
             <Button small label={t('admin.scheduleSave')} disabled={!valid} onPress={() => save({ timeZone: draft.timeZone.trim(), quietStart: draft.quietStart, quietEnd: draft.quietEnd, windows: draft.windows })} />
           </View>
+          <ErrorText error={error} />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** Prayer without ceasing (radio/ceaseless.ts), off by default. */
+function CeaselessSection() {
+  const t = useT();
+  const [s, setS] = useState<{ enabled: boolean; gapMinutes: number } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioCeaseless().then(setS).catch(() => undefined);
+    }, []),
+  );
+  if (!s) return null;
+  const save = (patch: { enabled?: boolean; gapMinutes?: number }) => api.admin.setRadioCeaseless(patch).then(setS).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.ceaseless')} hint={t('admin.ceaselessHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      {s.enabled ? (
+        <View style={styles.row}>
+          {[15, 30, 60, 120].map((m) => (
+            <Chip key={m} label={t('admin.ceaselessGap', { minutes: m })} selected={s.gapMinutes === m} onPress={() => save({ gapMinutes: m })} />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** The dish's sky target (radio/sky.ts), off by default. */
+function SkyTargetSection() {
+  const t = useT();
+  const [data, setData] = useState<{ settings: SkySettings; now: SkyNow | null } | null>(null);
+  const [place, setPlace] = useState({ lat: '', lon: '' });
+  const [custom, setCustom] = useState({ name: '', ra: '', dec: '' });
+  const [error, setError] = useState<string | null>(null);
+  const show = (r: { settings: SkySettings; now: SkyNow | null }) => {
+    setData(r);
+    setPlace({ lat: r.settings.location ? String(r.settings.location.lat) : '', lon: r.settings.location ? String(r.settings.location.lon) : '' });
+    setCustom({ name: r.settings.custom?.name ?? '', ra: r.settings.custom ? String(r.settings.custom.raHours) : '', dec: r.settings.custom ? String(r.settings.custom.decDeg) : '' });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioSky().then(show).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const save = (patch: Partial<SkySettings>) => {
+    setError(null);
+    api.admin.setRadioSky(patch).then(show).catch((e: Error) => setError(e.message));
+  };
+  const s = data.settings;
+  const num = (v: string) => (v.trim() === '' ? NaN : Number(v));
+  return (
+    <View>
+      <Toggle label={t('admin.sky')} hint={t('admin.skyHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      {s.enabled ? (
+        <>
+          <View style={styles.row}>
+            {(['zenith', 'moon', 'alpha_centauri', 'custom'] as const).map((k) => (
+              <Chip key={k} label={t(`operatorConsole.skyTarget.${k}`)} selected={s.target === k} onPress={() => save({ target: k })} />
+            ))}
+          </View>
+          {s.target === 'custom' ? (
+            <>
+              <Field label={t('admin.skyCustomName')} value={custom.name} onChangeText={(v) => setCustom((c) => ({ ...c, name: v }))} maxLength={40} />
+              <Field label={t('admin.skyCustomRa')} value={custom.ra} onChangeText={(v) => setCustom((c) => ({ ...c, ra: v }))} keyboardType="numbers-and-punctuation" />
+              <Field label={t('admin.skyCustomDec')} value={custom.dec} onChangeText={(v) => setCustom((c) => ({ ...c, dec: v }))} keyboardType="numbers-and-punctuation" />
+              <Button
+                small
+                label={t('admin.skySave')}
+                disabled={!custom.name.trim() || Number.isNaN(num(custom.ra)) || Number.isNaN(num(custom.dec))}
+                onPress={() => save({ custom: { name: custom.name.trim(), raHours: num(custom.ra), decDeg: num(custom.dec) } })}
+              />
+            </>
+          ) : null}
+          <Field label={t('admin.skyLat')} value={place.lat} onChangeText={(v) => setPlace((p) => ({ ...p, lat: v }))} keyboardType="numbers-and-punctuation" />
+          <Field label={t('admin.skyLon')} value={place.lon} onChangeText={(v) => setPlace((p) => ({ ...p, lon: v }))} keyboardType="numbers-and-punctuation" />
+          <Button
+            small
+            label={t('admin.skySave')}
+            disabled={Number.isNaN(num(place.lat)) || Number.isNaN(num(place.lon))}
+            onPress={() => save({ location: { lat: num(place.lat), lon: num(place.lon) } })}
+          />
+          <Text style={type.small}>{t('admin.skyMinElevation')}</Text>
+          <View style={styles.row}>
+            {[0, 5, 10, 20, 30].map((m) => (
+              <Chip key={m} label={`${m}°`} selected={s.minElevation === m} onPress={() => save({ minElevation: m })} />
+            ))}
+          </View>
+          <Toggle label={t('admin.skyHold')} hint={t('admin.skyHoldHint')} value={s.holdBelow} onChange={(v) => save({ holdBelow: v })} />
+          {data.now ? (
+            <Text style={type.small}>
+              {t('operatorConsole.skyPoint', { target: data.now.name ?? t(`operatorConsole.skyTarget.${data.now.target}`), az: data.now.az.toFixed(1), el: data.now.el.toFixed(1) })}
+            </Text>
+          ) : (
+            <Text style={type.small}>{t('admin.skyNeedsPlace')}</Text>
+          )}
           <ErrorText error={error} />
         </>
       ) : null}

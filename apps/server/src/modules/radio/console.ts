@@ -7,9 +7,11 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import * as beacon from './beacon.js';
+import * as ceaseless from './ceaseless.js';
 import * as nodes from './nodes.js';
 import * as oplog from './oplog.js';
 import * as schedule from './schedule.js';
+import * as sky from './sky.js';
 
 export interface ConsoleSettings {
   enabled: boolean;
@@ -50,10 +52,12 @@ export async function override(q: Queryable, o: z.infer<typeof Override>, now = 
   );
 }
 
-/** May the station be handed prayers now? Not while held; outside the windows only while the override lasts. */
+/** May the station be handed prayers now? Not while held or the dish target is down; outside the windows only while the override lasts. */
 export async function mayTransmit(q: Queryable, now = new Date()): Promise<boolean> {
   const s = await settings(q);
   if (s.paused) return false;
+  // The dish target below its minimum elevation (sky.ts), when that hold is on: the override does not lift it.
+  if (!(await sky.allowsTransmit(q, now))) return false;
   if (s.windowOverrideUntil && s.windowOverrideUntil > now) return true;
   return schedule.onAir(await schedule.get(q), now);
 }
@@ -103,6 +107,8 @@ export async function view(q: Queryable, now = new Date()) {
       return { callSign: st.call_sign, lastHeartbeat: st.reported_at.toISOString(), ...id, nextIdAt };
     }),
     relays: await nodes.relays(q, now),
+    sky: await sky.now(q, now),
+    ceaseless: await ceaseless.summary(q),
     beacon: { enabled: b.enabled, minutes: b.minutes, recent: b.enabled ? await beacon.recent(q, now) : [] },
     log: log.map((r) => ({ at: r.time_utc, callSign: r.call_sign, station: r.station, preset: r.preset, status: r.status, heard: r.heard, error: r.error, text: r.contents.slice(0, 140) })),
   };

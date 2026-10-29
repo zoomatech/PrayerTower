@@ -1,5 +1,5 @@
 // A mock Hamlib rigctld for tests: answers F/f, M/m and T/t in the Extended
-// Response Protocol and records each command. `stuckPtt` makes the radio
+// Response Protocol (and rotctld's P/p) and records each command. `stuckPtt` makes the radio
 // ignore T (as a radio with a bad CAT cable would).
 import { createServer, type Server } from 'node:net';
 import type { AddressInfo } from 'node:net';
@@ -7,13 +7,13 @@ import type { AddressInfo } from 'node:net';
 export interface MockRig {
   port: number;
   commands: string[];
-  state: { freq: number; mode: string; passband: number; ptt: number };
+  state: { freq: number; mode: string; passband: number; ptt: number; az: number; el: number };
   stuckPtt: boolean;
   close(): Promise<void>;
 }
 
 export async function startMockRigctld(): Promise<MockRig> {
-  const mock: MockRig = { port: 0, commands: [], state: { freq: 145_000_000, mode: 'FM', passband: 15_000, ptt: 0 }, stuckPtt: false, close: async () => undefined };
+  const mock: MockRig = { port: 0, commands: [], state: { freq: 145_000_000, mode: 'FM', passband: 15_000, ptt: 0, az: 0, el: 0 }, stuckPtt: false, close: async () => undefined };
   const server: Server = createServer((sock) => {
     let buf = '';
     sock.on('data', (d) => {
@@ -40,6 +40,12 @@ export async function startMockRigctld(): Promise<MockRig> {
           if (!mock.stuckPtt) s.ptt = Number(a);
           out = `set_ptt: ${a}\n`;
         } else if (c === 't') out = `get_ptt:\nPTT: ${s.ptt}\n`;
+        // rotctld's commands, so one mock serves as a rotator too.
+        else if (c === 'P') {
+          [s.az, s.el] = [Number(a), Number(b)];
+          if (s.el > 90 || s.az < 0 || s.az > 360) code = -1;
+          out = `set_pos: ${a} ${b}\n`;
+        } else if (c === 'p') out = `get_pos:\nAzimuth: ${s.az}\nElevation: ${s.el}\n`;
         else code = -4;
         sock.write(`${out}RPRT ${code}\n`);
       }
