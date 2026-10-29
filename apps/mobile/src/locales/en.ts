@@ -323,9 +323,9 @@ const en = {
     planNext: "Next day",
     planCircleToday: "%{circle}: %{readers} of %{reading} read this day",
     adminParallels: "Parallels",
-    adminParallelsHint: "Me → Parallels: curated passages side by side across texts (the flood in Genesis and Gilgamesh, creation, Moses beside Hammurabi). Open Circle sees them without the Bible.",
+    adminParallelsHint: "Me → Parallels: curated passages side by side across texts (the flood in Genesis and Gilgamesh, creation, Moses beside Hammurabi). The Bible passages show in faith communities only.",
     adminPlans: "Reading plans",
-    adminPlansHint: "Me → Reading plans: plans read from the library at each member's own pace (Oldest texts in 30 days, Wisdom of the East, the Gospels, Psalms, Proverbs), alone or with a circle, with an optional evening reminder. Open Circle gets the plans without the Bible.",
+    adminPlansHint: "Me → Reading plans: plans read from the library at each member's own pace (Oldest texts in 30 days, Wisdom of the East, the Gospels, Psalms, Proverbs), alone or with a circle, with an optional evening reminder. Plans from the Bible are for faith communities only.",
   },
   readingPlan: {
     title: "Bible reading plan",
