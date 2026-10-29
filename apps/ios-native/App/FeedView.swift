@@ -16,6 +16,10 @@ struct FeedView: View {
     @State private var gifting: Card?
     @State private var notice: String?
     @State private var error: String?
+    /// Set while showing the feed saved on the device, because the server can't be reached.
+    @State private var savedAt: Date?
+    @State private var pending = 0
+    @State private var dropped: [String] = []
 
     var body: some View {
         NavigationStack {
@@ -24,6 +28,11 @@ struct FeedView: View {
                     SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id })
                 } else {
                     List {
+                        OfflineBanner(savedAt: savedAt, pending: pending, dropped: dropped) { Task { await load() } } onDismiss: {
+                            dropped = []
+                            Task { await OfflineStore.shared.dismissDropped() }
+                        }
+                        SurveyPrompts()
                         ForEach(posts) { card in
                             row(card).task { if card.id == posts.last?.id { await more() } }
                         }
@@ -74,7 +83,11 @@ struct FeedView: View {
 
     private func load() async {
         do {
-            let page = try await model.store.api.feed()
+            let saved = try await model.store.api.cachedFeed()
+            let page = saved.value
+            savedAt = saved.savedAt
+            pending = await OfflineStore.shared.pending().count
+            dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
             posts = page.posts
             theme = page.theme
             nextPage = page.nextPage
@@ -97,7 +110,13 @@ struct FeedView: View {
 
     private func act(_ action: CardAction, on card: Card) {
         switch action {
-        case .prayingNow: Task { await run(card, action) { _ = try await model.store.api.prayingNow(postId: card.id) } }
+        case .prayingNow:
+            Task {
+                await run(card, action) {
+                    // Offline, the tap waits on the device and is sent once the server answers again.
+                    if try await model.store.api.prayingNowOrQueue(postId: card.id) == nil { pending = await OfflineStore.shared.pending().count }
+                }
+            }
         case .wellWishes: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "well_wishes") } }
         case .encouragement: encouraging = card
         case .share: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "share") } }
@@ -190,6 +209,36 @@ struct EncourageSheet: View {
                         .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+        }
+    }
+}
+
+/// "You're offline. Showing prayers saved …", how many actions wait to send, and any the
+/// server refused once back online.
+struct OfflineBanner: View {
+    @Environment(AppModel.self) private var model
+    let savedAt: Date?
+    let pending: Int
+    let dropped: [String]
+    let onRetry: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        let w = model.words
+        if savedAt != nil || pending > 0 || !dropped.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                if let savedAt {
+                    Text("\(w("offline.notice")) \(w("offline.saved", ["when": savedAt.formatted(date: .abbreviated, time: .shortened)]))").bold()
+                }
+                if pending > 0 { Text(pending == 1 ? w("offline.waitingOne") : w("offline.waitingMany", count: pending)) }
+                ForEach(dropped, id: \.self) { Text(w("offline.notSent", ["what": $0])).foregroundStyle(.red) }
+                HStack {
+                    if savedAt != nil { Button(w("offline.retry"), action: onRetry) }
+                    if !dropped.isEmpty { Button(w("offline.ok"), action: onDismiss) }
+                }
+                .buttonStyle(.borderless)
+            }
+            .accessibilityElement(children: .contain)
         }
     }
 }

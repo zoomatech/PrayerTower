@@ -29,6 +29,8 @@ struct StaffSection: View {
             Section(w("profile.admin")) {
                 NavigationLink(w("profile.moderation")) { ModerationView() }
                 if Staff.isAdmin(roles) {
+                    NavigationLink(w("admin.metrics")) { AdminHubView() }
+                    NavigationLink(w("profile.settings")) { AdminBoardsView() }
                     NavigationLink(w("admin.announcements")) { AnnouncementsAdminView() }
                     NavigationLink(w("admin.invites")) { InvitesView() }
                     NavigationLink(w("waitlist.title")) { WaitlistView() }
@@ -36,6 +38,10 @@ struct StaffSection: View {
                     NavigationLink(w("pilotTools.openLog")) { ErrorLogView() }
                     NavigationLink(w("admin.auditLog")) { AuditLogView() }
                     NavigationLink(w("admin.ops")) { OpsView() }
+                    NavigationLink(w("admin.surveys")) { SurveysAdminView() }
+                    NavigationLink(w("admin.legal")) { LegalCasesView() }
+                    NavigationLink(w("admin.podcasts")) { PodcastsAdminView() }
+                    NavigationLink(w("invites.import")) { ImportView() }
                 }
             }
         }
