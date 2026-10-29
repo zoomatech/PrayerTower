@@ -24,6 +24,7 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+          - PrayerTowerScripture
       # The Pray now widget and the Praying for you Live Activity, embedded in the app.
       - target: PrayerTowerWidgets
     info:
