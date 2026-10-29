@@ -99,6 +99,13 @@ export const keys: Tree = named({
     radioFree: 'Free radio messages left this month: {{count}}',
     radioGranted: 'Extra radio messages granted to you: {{count}}',
   },
+  signalQueue: {
+    intro: 'Your radio messages, newest first. Once one goes out it gets a signal code. Anyone who decodes it on the air sees the same code.',
+    empty: 'You have not sent a radio message yet. Send one from any request.',
+  },
+  scheduleRadio: {
+    hint: 'It goes out at the time you pick. If radio messages cost Lighthouse tokens, they are taken then.',
+  },
   listen: {
     intro: 'Hold this phone near a radio tuned to the station. When a burst plays, the messages in it appear here. The sound stays on this phone.',
     tell: 'Let senders know their message was heard',

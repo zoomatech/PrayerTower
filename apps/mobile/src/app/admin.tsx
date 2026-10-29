@@ -382,6 +382,7 @@ function Admin() {
             <CeaselessSection />
             <ScheduledRadioToggle />
             <HeardTrailToggle />
+            <SignalQueueToggle />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -780,6 +781,21 @@ function RadioScheduleSection() {
         </>
       ) : null}
     </View>
+  );
+}
+
+/** My signal queue and signal codes (radio/signal-queue.ts), off by default. */
+function SignalQueueToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.signalQueueSetting().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.signalQueue')} hint={t('admin.signalQueueHint')} value={on} onChange={(v) => api.admin.setSignalQueue(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
   );
 }
 

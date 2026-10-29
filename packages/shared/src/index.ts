@@ -750,3 +750,23 @@ export function seasonsOn(date: Date): SkinSeason[] {
   const weather: SkinSeason = m === 11 || m <= 1 ? 'winter' : m <= 4 ? 'spring' : m <= 7 ? 'summer' : 'autumn';
   return church ? [church, weather] : [weather];
 }
+
+/** The letters of a signal code: no I, O, 0 or 1, so it reads back without mistakes (32 of them, 5 bits each). */
+export const SIGNAL_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/**
+ * A radio prayer's signal code, "Q7MK-4XPL-9RT2": 60 bits of the fingerprint of
+ * the exact text that went out (sha256, first 32 hex digits). A listener who
+ * decodes the same prayer computes the same code, so sender and listener can
+ * match a transmission without either learning who the other is.
+ */
+export function signalCode(fingerprint: string): string | null {
+  if (!/^[0-9a-f]{15}/i.test(fingerprint)) return null;
+  let v = BigInt(`0x${fingerprint.slice(0, 15)}`);
+  let out = '';
+  for (let i = 0; i < 12; i++) {
+    out = SIGNAL_CHARS[Number(v & 31n)]! + out;
+    v >>= 5n;
+  }
+  return `${out.slice(0, 4)}-${out.slice(4, 8)}-${out.slice(8)}`;
+}

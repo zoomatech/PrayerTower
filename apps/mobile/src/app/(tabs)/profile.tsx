@@ -226,6 +226,7 @@ export default function Profile() {
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
           {giving?.enabled || (radioOn && giving?.allocationRequests) ? <Button small variant="secondary" label={t('give.open')} onPress={() => router.push('/give')} /> : null}
+          {radioOn && features.signalQueue ? <Button small variant="secondary" label={t('signalQueue.title')} onPress={() => router.push('/signal-queue')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
           {features.whyGifts ? <Button small variant="secondary" label={t('whyGifts.link')} onPress={() => router.push('/why-gifts')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}

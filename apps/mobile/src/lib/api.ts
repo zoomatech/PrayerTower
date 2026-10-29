@@ -245,6 +245,8 @@ export interface Features {
   scheduledRadio: boolean;
   /** "Where it was heard": the receivers that decoded a radio prayer. */
   heardTrail: boolean;
+  /** My signal queue, and signal codes on the Listen screen. */
+  signalQueue: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -934,6 +936,22 @@ export interface RadioTrailEntry {
   amplified: boolean;
   nodes: { name: string; snrDb: number; at: string }[];
   phones: number;
+}
+
+/** One of my radio prayers (My signal queue). */
+export interface SignalEntry {
+  id: string;
+  postId: string;
+  excerpt: string;
+  status: 'waiting' | 'sending' | 'sent' | 'not_sent';
+  kind: string;
+  amplified: boolean;
+  queuedAt: string;
+  sentAt: string | null;
+  callSign: string | null;
+  preset: string | null;
+  heardCount: number;
+  signalCode: string | null;
 }
 
 export interface ScheduledSpend {
@@ -1777,6 +1795,7 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
   precheck: (text: string, context?: 'lament' | 'lamentReply') => post<Precheck>('/moderation/precheck', { text, context }).catch((): Precheck => ({ warn: false })),
+  signalQueue: () => get<{ signals: SignalEntry[] }>('/me/signal-queue'),
   radioTrail: (id: string) => get<{ trail: RadioTrailEntry[] }>(`/posts/${id}/radio-trail`),
   setKeepOnAir: (id: string, on: boolean) => request<{ keepOnAir: boolean }>('PUT', `/posts/${id}/keep-on-air`, { on }),
   setLament: (id: string, patch: { lament?: boolean; radio?: boolean }) => request<{ lament: boolean; lamentRadio: boolean }>('PUT', `/posts/${id}/lament`, patch),
@@ -1904,6 +1923,8 @@ export const api = {
     radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
     setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
     operatorAlerts: () => get<{ enabled: boolean }>('/admin/radio-operator-alerts'),
+    signalQueueSetting: () => get<{ enabled: boolean }>('/admin/signal-queue'),
+    setSignalQueue: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/signal-queue', { enabled }),
     heardTrail: () => get<{ enabled: boolean }>('/admin/heard-trail'),
     setHeardTrail: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/heard-trail', { enabled }),
     scheduledRadio: () => get<{ enabled: boolean }>('/admin/scheduled-radio'),

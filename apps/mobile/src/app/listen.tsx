@@ -5,6 +5,7 @@
 // sound never leaves the phone; with receipts on, the listener may send back
 // fingerprints of the prayers heard so their senders learn they were heard.
 // Every prayer decoded is kept on the phone as "Prayers heard on air" (heard-log.ts).
+import { signalCode } from '@prayer-tower/shared';
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioStream, type AudioStreamBuffer } from 'expo-audio';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ import { useAuth } from '@/lib/auth';
 import { addHeard, clearHeard, loadHeard, type HeardPrayer } from '@/lib/heard-log';
 import { BurstListener, prayerHash, receiptHashes, toMono, type HeardFrame } from '@/lib/burst-listen';
 import { flushPraying, tapPraying, tappedHashes } from '@/lib/praying-too';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -26,6 +28,7 @@ type Heard = HeardFrame & { key: string; at: Date; told: boolean };
 export default function ListenScreen() {
   const { t } = useLocale();
   const { session } = useAuth();
+  const features = useFeatures();
   const [saved, setSaved] = useState<HeardPrayer[]>([]);
   const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean; prayingToo?: boolean } | null>(null);
   const [praying, setPraying] = useState<Set<string>>(new Set());
@@ -156,6 +159,7 @@ export default function ListenScreen() {
                   <View key={`${p.at}-${i}`} style={styles.card}>
                     <Text style={type.body}>{p.text}</Text>
                     <Text style={type.small}>{t('listen.savedFrom', { callSign: p.callSign, time: new Date(p.at).toLocaleString() })}</Text>
+                    {features.signalQueue && p.hash && signalCode(p.hash) ? <Text style={type.small}>{t('signalQueue.listenCode', { code: signalCode(p.hash) })}</Text> : null}
                     {config.prayingToo && p.hash ? (
                       praying.has(p.hash) ? (
                         <Text style={type.small}>{t('listen.prayingDone')}</Text>

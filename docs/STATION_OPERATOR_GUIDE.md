@@ -24,6 +24,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
 | Operator alerts (push on station problems) | Admin → Radio → Operator alerts | [Operator alerts](#operator-alerts) |
 | Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
+| My signal queue and signal codes (a member's own radio prayers; the same code on the Listen screen) | Admin → Radio → My signal queue | [My signal queue](#my-signal-queue) |
 | Where it was heard (receivers that decoded each radio prayer, shown to the sender and asker) | Admin → Radio → Where it was heard | [Where it was heard](#where-it-was-heard) |
 | Scheduled radio sends (a request goes out by radio, or amplified, at a set time) | Admin → Radio → Scheduled radio sends | [Scheduled radio sends](#scheduled-radio-sends) |
 | Prayer without ceasing (kept requests go out again when the air is quiet) | Admin → Radio → Prayer without ceasing | [Prayer without ceasing](#prayer-without-ceasing) |
@@ -424,6 +425,12 @@ Off until an admin turns on **Operator alerts** in Admin → Radio (under the op
 Off until an admin turns on **Reception beacon** in Admin → Radio (under the operator console switch) and picks how often: every 30, 60 (the default), 120 or 240 minutes. Each time, the station sends the setup wizard's short test burst ("Station test" and a code, with its call sign in the frame). The station needs no new settings, and the setup wizard itself can stay off. Every listener node and listening page that decodes the beacon reports it, and each receiver is kept with its signal-to-noise ratio. The operator console shows the last 24 hours: when each beacon went out, which receivers heard it and how strongly, or that none did. This makes changes in reception through the day easy to see.
 
 No beacon goes out while the console's hold is on or outside the transmission windows. Turning the beacon off drops any beacon still waiting for the station. While a beacon is waiting (up to 5 minutes), a setup wizard test has to wait for it.
+
+## My signal queue
+
+From the first prototype's Signal Queue tab. Off until an admin turns on **My signal queue** in Admin → Radio.
+
+While it is on, members have **My signal queue** on their profile: their own radio prayers, newest first, each waiting, going out, sent or not sent, amplified or not, with the call sign and preset it went out on and how many receivers reported it. Each one that went out has a signal code such as `Q7MK-4XPL-9RT2`: 60 bits of the fingerprint of the exact text sent (the same fingerprint the station reports and listeners send back), written in 32 letters and digits with no I, O, 0 or 1. The Listen screen shows the same code under each prayer it decodes, so a sender and a listener can match a transmission without either learning who the other is. Re-sends from [prayer without ceasing](#prayer-without-ceasing) are left out of the list.
 
 ## Where it was heard
 
