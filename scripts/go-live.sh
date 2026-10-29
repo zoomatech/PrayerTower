@@ -77,6 +77,11 @@ for item in "SUPABASE_ACCESS_TOKEN|invite hook, auth settings and emails set for
   v=${item%%|*}; what=${item#*|}
   if [ -n "${!v:-}" ]; then printf '  [x] %-22s %s\n' "$v" "$what"; else printf '  [ ] %-22s %s\n' "$v" "$what"; fi
 done
+# The email sender signs in before anything deploys (it never prints the password).
+if [ -n "${SMTP_URL:-}" ]; then
+  log "Checking the email sender (SMTP_URL)"
+  (cd "$root" && npm run --silent mail-test -w @prayer-tower/server) || die "the email sender didn't work; fix SMTP_URL or MAIL_FROM (STEVE_TODO.md A4)"
+fi
 [ "$mode" = --check ] && exit 0
 
 # 2. Database: link the project and push every migration in supabase/migrations.
