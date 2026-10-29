@@ -62,6 +62,7 @@ import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as audit from '../audit/index.js';
 import * as moderationTools from '../moderation/tools.js';
+import * as goldfish from '../goldfish/index.js';
 import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
@@ -930,6 +931,17 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/moderation-tools', async (req) => {
     await requireAdmin(req);
     return { settings: await moderationTools.updateSettings(db, moderationTools.SettingsPatch.parse(req.body)) };
+  });
+
+  // Goldfish memory: recent removals in the queue fade after a set time (docs/GENTLE_REPAIR.md).
+  app.get('/admin/goldfish', async (req) => {
+    await requireAdmin(req);
+    return { settings: await goldfish.settings(db) };
+  });
+
+  app.patch('/admin/goldfish', async (req) => {
+    await requireAdmin(req);
+    return { settings: await goldfish.updateSettings(db, goldfish.SettingsPatch.parse(req.body)) };
   });
 
   // Staff audit log, newest first; ?before= pages back, ?actorId= / ?targetId= filter.

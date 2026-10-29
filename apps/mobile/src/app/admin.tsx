@@ -14,7 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures, useFeatures } from '@/lib/features';
@@ -321,6 +321,7 @@ function Admin() {
         <ReminderSettingsSection />
         <PracticeModeSection />
         <ModerationToolsSection />
+        <GoldfishSection />
         <PracticeSettingsSection />
         <ConversationSettingsSection />
         <SkinSettingsSection />
@@ -2002,6 +2003,45 @@ export function ModerationToolsSection() {
       <Toggle label={t('modTools.adminToggle')} value={s.tools_enabled} onChange={(v) => save({ enabled: v })} />
       <Field label={t('modTools.adminMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
       <Button label={t('modTools.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Goldfish memory (docs/GENTLE_REPAIR.md): recent removals in the queue, which fade after a set time. */
+export function GoldfishSection() {
+  const t = useT();
+  const [s, setS] = useState<GoldfishSettings | null>(null);
+  const [days, setDays] = useState('');
+  const [repeat, setRepeat] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: GoldfishSettings) => {
+    setS(x);
+    setDays(String(x.goldfish_days));
+    setRepeat(String(x.goldfish_repeat));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.goldfish().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateGoldfish({ days: toInt(days) ?? undefined, repeat: toInt(repeat) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('goldfish.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('goldfish.adminTitle')}</Text>
+      <Toggle label={t('goldfish.adminToggle')} hint={t('goldfish.adminHint')} value={s.goldfish_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('goldfish.adminDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
+      <Field label={t('goldfish.adminRepeat')} keyboardType="number-pad" value={repeat} onChangeText={setRepeat} />
+      <Button label={t('goldfish.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

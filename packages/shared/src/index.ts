@@ -364,6 +364,8 @@ export interface ModerationItem {
   author_note?: string | null;
   /** Hidden until a moderator decides (a held post). */
   auto_hidden?: boolean;
+  /** Goldfish memory (off): the author's recent removals, which fade, and serious ones, which don't. */
+  history?: { recent: number; serious: number; days: number; repeat: boolean };
 }
 
 export interface Appeal {

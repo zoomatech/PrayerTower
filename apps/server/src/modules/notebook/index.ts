@@ -20,6 +20,7 @@ import * as events from '../events/index.js';
 import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as reminders from '../reminders/index.js';
+import * as goldfish from '../goldfish/index.js';
 import * as moderationTools from '../moderation/tools.js';
 import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
@@ -245,6 +246,8 @@ export async function features(q: Queryable) {
     ...(await reminders.features(q)),
     /** Moderation search, bulk decisions and audit log filters (modules/moderation/tools, Admin → Moderation tools). */
     ...(await moderationTools.features(q)),
+    /** Goldfish memory: recent removals in the queue, which fade (modules/goldfish, Admin → Moderation tools). */
+    ...(await goldfish.features(q)),
     /** Conversation helpers: reply suggestions, meaning words, care after "how are you", greeting packs, own words, kind closings. */
     ...(await conversationHelpers.features(q)),
     /** Feed skins, comment trees, skin ideas and the video cap (modules/skins, Admin → Feed skins). */
