@@ -1,6 +1,6 @@
-import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
+import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type FeedTheme, type TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
@@ -12,7 +12,7 @@ import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
 import { KindCloud } from '@/components/kind-cloud';
-import { MeaningReactions } from '@/components/meaning-reactions';
+import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -31,15 +31,18 @@ export default function PostScreen() {
   const { t } = useLocale();
   const features = useFeatures();
   const { materialMatch, kindCloud } = features;
-  // The comment tree takes its colors from the member's feed style (vine skins), else the vine's own.
-  const [treeTokens, setTreeTokens] = useState(() => vineTokens(null));
+  // The comment tree and the emoji word leaves take their look from the member's feed skin.
+  // The tree falls back to the vine's own colors; the word leaves stay plain chips without a skin.
+  const [skin, setSkin] = useState<FeedTheme | null>(null);
   useEffect(() => {
-    if (!features.commentTree) return;
+    if (!features.commentTree && !features.meaningReactions) return;
     api
       .feedThemes()
-      .then((r) => setTreeTokens(r.theme?.layout === 'tower' ? tabletTokens(r.theme) : vineTokens(r.theme?.layout === 'vine' ? r.theme : null)))
+      .then((r) => setSkin(r.theme ?? null))
       .catch(() => undefined);
-  }, [features.commentTree]);
+  }, [features.commentTree, features.meaningReactions]);
+  const treeTokens = useMemo(() => (skin?.layout === 'tower' ? tabletTokens(skin) : vineTokens(skin?.layout === 'vine' ? skin : null)), [skin]);
+  const leafTokens = useMemo(() => wordLeafTokens(skin), [skin]);
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -230,7 +233,7 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
-        {card ? <MeaningReactions postId={card.id} /> : null}
+        {card ? <MeaningReactions postId={card.id} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
