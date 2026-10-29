@@ -42,9 +42,14 @@ if ! xcodebuild -project PrayerTowerNative.xcodeproj -scheme "$SCHEME" -destinat
 fi
 BUILT="$ROOT/build-logs/derived-native/Build/Products/Debug-iphonesimulator/$SCHEME.app"
 
+SAVED=0
 for PATTERN in "${DEVICES[@]}"; do
   TYPE=$(xcrun simctl list devicetypes -j | python3 -c "import json,re,sys; t=[x for x in json.load(sys.stdin)['devicetypes'] if re.fullmatch(r'''$PATTERN''', x['name'])]; print(t[-1]['identifier'] + '|' + t[-1]['name'] if t else '')")
-  if [ -z "$TYPE" ]; then echo "No device type matches '$PATTERN'; skipped."; continue; fi
+  if [ -z "$TYPE" ]; then
+    echo "No device type matches '$PATTERN'; skipped. Device types here:"
+    xcrun simctl list devicetypes | grep -E "iPhone|iPad" | tail -8
+    continue
+  fi
   NAME="${TYPE#*|}"
   UDID=$(xcrun simctl create "Store shots $NAME" "${TYPE%%|*}" "$RUNTIME")
   # Boots in the background; Simulator.app is never opened.
@@ -56,9 +61,14 @@ for PATTERN in "${DEVICES[@]}"; do
     xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1 || true
     xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData -PTScreen "$SCREEN" > /dev/null
     sleep 4
-    xcrun simctl io "$UDID" screenshot "$OUT/$NAME/$SCREEN.png" > /dev/null 2>&1 && echo "Saved $NAME/$SCREEN.png"
+    if xcrun simctl io "$UDID" screenshot "$OUT/$NAME/$SCREEN.png" > "$LOGS/shot.txt" 2>&1; then
+      echo "Saved $NAME/$SCREEN.png"; SAVED=$((SAVED + 1))
+    else
+      echo "Screenshot failed: $NAME/$SCREEN: $(tail -1 "$LOGS/shot.txt")"
+    fi
   done
   xcrun simctl shutdown "$UDID"
   xcrun simctl delete "$UDID"
 done
-echo "Screenshots: $OUT"
+if [ "$SAVED" -eq 0 ]; then echo "error: no screenshots were saved"; exit 1; fi
+echo "Screenshots ($SAVED): $OUT"
