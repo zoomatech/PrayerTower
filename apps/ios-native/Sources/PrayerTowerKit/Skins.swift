@@ -185,11 +185,12 @@ public struct VineLook: Sendable, Equatable {
             let c = leafSoft.mix(leaf, t)
             if Skin.readable(on: c, wording) { return c }
         }
-        return leafSoft
+        // A made-up soft color too dark for the card's text falls back to pale paper.
+        return Skin.readable(on: leafSoft, wording) ? leafSoft : RGB(hex: "#FBFAF7")!
     }
 
     /// The text color for the end-of-feed line on the backdrop.
-    public var tipColor: RGB { backdrop.map { $0.isDark ? RGB(hex: "#F3EDFF")! : RGB.commentText } ?? .commentText }
+    public var tipColor: RGB { backdrop.map { BackdropText(on: $0).light ? RGB(hex: "#F3EDFF")! : RGB.commentText } ?? .commentText }
 }
 
 /// Prayer Tower / Climbing Tower (`towerTokens()` in layouts/tower.tsx).
@@ -241,6 +242,24 @@ public struct CircuitLook: Sendable, Equatable {
 public struct WallLook: Sendable, Equatable {
     public var backdrop = RGB(hex: "#101418")!
     public init(_ theme: FeedTheme?) { backdrop = theme?.color("backdrop") ?? backdrop }
+}
+
+/// Text drawn straight on a skin's backdrop (the end-of-feed lines, the wall's posts, the
+/// circuit's screens): light or dark text, whichever reads better, and a plate behind it when
+/// neither reaches 7:1, so smaller and secondary text still keeps 4.5:1 on any color a member picks.
+public struct BackdropText: Sendable, Equatable {
+    /// Light text, so the dark color scheme.
+    public let light: Bool
+    public let plate: Bool
+
+    public init(on c: RGB) {
+        let onLight = c.contrast(.commentText), onDark = c.contrast(RGB(hex: "#F3EDFF")!)
+        light = onDark > onLight
+        plate = max(onLight, onDark) < 7
+    }
+
+    /// The text color it picks.
+    public var color: RGB { light ? RGB(hex: "#F3EDFF")! : .commentText }
 }
 
 public enum Skin {
