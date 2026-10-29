@@ -23,9 +23,9 @@ it('shows each radio prayer with where it is, and the code of one that went out'
   expect(screen.getByText('Q7MK-4XPL-9RT2')).toBeTruthy();
   expect(screen.getByText(/^Sent · amplified · .* · K0GIN · fm-standard$/)).toBeTruthy();
   expect(screen.getByText(/^Waiting · /)).toBeTruthy();
-  expect(screen.getByText('Reported by 3 receivers')).toBeTruthy();
+  expect(screen.getByText('Receivers reported hearing it 3 times')).toBeTruthy();
   expect(screen.getByText(/^Sent · sent for every request · /)).toBeTruthy();
-  expect(screen.getByText('Reported by 1 receiver')).toBeTruthy();
+  expect(screen.getByText('A receiver reported hearing it')).toBeTruthy();
 });
 
 it('says when the queue is switched off', async () => {

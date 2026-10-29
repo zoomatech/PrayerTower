@@ -2318,7 +2318,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     amplified: "amplified",
     thanksgiving: "answered",
     auto: "sent for every request",
-    heard: { one: "Reported by 1 receiver", other: "Reported by %{count} receivers" },
+    heard: { one: "A receiver reported hearing it", other: "Receivers reported hearing it %{count} times" },
     codeLabel: "Signal code %{code}",
     listenCode: "Signal code %{code}",
   },
