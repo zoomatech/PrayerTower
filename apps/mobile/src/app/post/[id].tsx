@@ -12,6 +12,7 @@ import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
 import { KindCloud } from '@/components/kind-cloud';
+import { FollowupCard } from '@/components/followup-card';
 import { MeaningReactions } from '@/components/meaning-reactions';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
@@ -230,6 +231,7 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
+        {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
         {card ? <MeaningReactions postId={card.id} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />

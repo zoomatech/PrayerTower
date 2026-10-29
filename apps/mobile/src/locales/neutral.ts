@@ -173,6 +173,14 @@ export const keys: Tree = named({
   kindCloud: {
     prayer: 'Take a breath. Kind words travel far.',
   },
+  practices: {
+    followupIntro: "People were thinking of you. If you'd like, let them know how it's going. There's no wrong answer, and you can say nothing at all.",
+    followupPlaceholder: 'A few words for the people who supported you (optional)',
+    gratitudeShare: 'Share as good news',
+    rhythmMonth: 'Days you showed up this month',
+    rhythmSummary: 'You have supported people on %{days} days, %{month} of them this month, %{people} people in all.',
+    rhythmNote: 'Every day you show up adds to this. Nothing is ever taken away.',
+  },
   promises: {
     week: 'Your week of kindness',
     affirmation: 'By checking in, you are saying you truly kept this promise. We take you at your word.',
