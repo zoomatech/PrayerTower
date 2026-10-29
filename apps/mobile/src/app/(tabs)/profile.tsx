@@ -27,6 +27,7 @@ import { HighlightsLink } from '@/components/kindness-highlights';
 import { MeaningProposals } from '@/components/meaning-proposals';
 import { PartnerCard } from '@/components/partner-card';
 import { GratitudeCard } from '@/components/gratitude-card';
+import { KindMilestones } from '@/components/kind-milestones';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
@@ -188,6 +189,7 @@ export default function Profile() {
           </View>
         ) : null}
         <GratitudeCard />
+        <KindMilestones />
         <LiftUpCard />
         <HighlightsLink />
         <MeaningProposals />
