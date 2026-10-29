@@ -45,6 +45,7 @@ import * as prayingToo from '../radio/praying-too.js';
 import * as radioSetup from '../radio/setup.js';
 import * as coverage from '../radio/coverage.js';
 import * as radioDigest from '../radio/digest.js';
+import * as radioPacket from '../radio/packet.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -203,6 +204,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return {
       enabled: await radioNodes.enabled(db),
       multiStation: await radioNodes.multiStation(db),
+      signaturesRequired: await radioNodes.signaturesRequired(db),
       nodes: await radioNodes.list(db),
       reports: await radioNodes.latestReports(db),
       stations: await radioNodes.stationCounts(db),
@@ -211,10 +213,13 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
 
   app.patch('/admin/radio-nodes', async (req) => {
     await requireAdmin(req);
-    const { enabled, multiStation } = z.object({ enabled: z.boolean().optional(), multiStation: z.boolean().optional() }).parse(req.body);
+    const { enabled, multiStation, signaturesRequired } = z
+      .object({ enabled: z.boolean().optional(), multiStation: z.boolean().optional(), signaturesRequired: z.boolean().optional() })
+      .parse(req.body);
     if (enabled !== undefined) await radioNodes.setEnabled(db, enabled);
     if (multiStation !== undefined) await radioNodes.setMultiStation(db, multiStation);
-    return { enabled: await radioNodes.enabled(db), multiStation: await radioNodes.multiStation(db) };
+    if (signaturesRequired !== undefined) await radioNodes.setSignaturesRequired(db, signaturesRequired);
+    return { enabled: await radioNodes.enabled(db), multiStation: await radioNodes.multiStation(db), signaturesRequired: await radioNodes.signaturesRequired(db) };
   });
 
   // The key is in this answer only; the server keeps its hash.
@@ -365,6 +370,19 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     const { location } = z.object({ location: coverage.Location.nullable() }).parse(req.body);
     await coverage.place(db, id, location);
     return coverage.map(db);
+  });
+
+  // Packet fallback (radio/packet.ts): short IDs and counts over 1200-baud APRS packets.
+  app.get('/admin/radio-packet', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await radioPacket.enabled(db) };
+  });
+
+  app.patch('/admin/radio-packet', async (req) => {
+    await requireAdmin(req);
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+    await radioPacket.setEnabled(db, enabled);
+    return { enabled };
   });
 
   // Weekly radio prayer digest (radio/digest.ts).

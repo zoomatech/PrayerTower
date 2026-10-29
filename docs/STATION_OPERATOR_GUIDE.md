@@ -438,6 +438,17 @@ With **Email it to admins on Mondays** on (and SMTP set up), the
 `radio_digest_weekly` job emails last week's digest to every admin at 07:00
 UTC each Monday, once per week.
 
+## Security
+
+What protects the station, and the few things an operator decides.
+
+- **Keys stay in files only root and the station user can read.** `install.sh` creates `/etc/prayer-tower-station.env`, `-listener.env` and `-rigctld.env` as mode 0640 (root, group `prayer-station`); the Mac installer makes its copies 0600. The server keeps only a SHA-256 hash of each node key and compares the main station key in constant time. Never paste a key into chat or email: Admin → Radio shows a new node's key once.
+- **The server address must be https.** The station and listener refuse a plain `http://` `PRAYER_TOWER_API_URL` (their keys would cross the network unencrypted), except to this machine (`localhost`, `127.0.0.1`) or with `ALLOW_INSECURE_HTTP=1` for a test server.
+- **rigctld has no password.** Hamlib says so ("No authentication whatsoever; DO NOT leave this TCP port open wide to the Internet"), and its `--password` option is not implemented. Anything that can reach port 4532 can key the transmitter. So the service listens on 127.0.0.1 only (`-T 127.0.0.1`), and systemd also blocks every other address (`IPAddressDeny=any`, `IPAddressAllow=localhost`). Keep the station computer for the station: every program and user on it can reach rigctld. Don't add `-T 0.0.0.0` to `RIG_EXTRA_ARGS`; for remote control use an SSH tunnel.
+- **The station only runs commands the operator set.** `BURST_PLAY_CMD` and the PTT commands come from the env file; the WAV path it fills in is quoted. The station sends rigctld only numbers and modes it has checked (`RIG_MODE` must be one of Hamlib's mode names).
+- **Signed listener reports.** A listener node normally sends its key with each report. With `LISTEN_SIGN=on` it signs each report instead: an HMAC-SHA256, keyed with the SHA-256 of its key, over the time, the route and the body. The key never crosses the network, a report can't be changed on the way, and a captured report can't be sent again: each signature's time must be within 5 minutes and newer than the node's last one. Once every node runs with `LISTEN_SIGN=on`, Admin → Radio → **Require signed listener reports** refuses unsigned ones. A signed report and a key-carrying one prove the same thing, that the sender holds the key, so a node whose key leaks must still be removed in Admin → Radio and given a new one.
+- **Test bursts and receipts reveal no prayers.** Listeners send back fingerprints, never words, and a fingerprint matches only prayers this call sign sent in the last day.
+
 ## 4. Which preset
 
 Start slow and speed up once the path is proven. `node /opt/prayer-tower-station/dist/src/burst/cli.js presets`
@@ -506,6 +517,7 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - Deviation target and monitor-radio level method: [Masters Communications, "Setting audio levels"](https://masterscommunications.com/products/radio-adapter/faq/setting-audio-levels.html)
 - Data port 1200 vs 9600, APRS off, AGC off, receive level about -11 dBFS, low power and heat: [SEAPAC 2025, "VARA FM setup"](https://seapac.org/workshop-presentations_files/2025/SEAPAC%202025%20VARA%20FM%20SETUP%20(3).pdf)
 - Digirig PTT by RTS, flow control off, keeping system sounds off the interface: [Digirig, "Getting started with Digirig Mobile"](https://digirig.net/?p=5478)
+- rigctld has no authentication and `-A/--password` is not implemented; the default listening address is 0.0.0.0: [rigctld(1), OPTIONS and SECURITY](https://man.archlinux.org/man/rigctld.1.en)
 - `rigctl`/`rigctld` options and `T` (set_ptt): [hamlib rigctl manual](https://hamlib.sourceforge.net/snapshots/man1/rigctl.1.html)
 - rigctld port 4532, the Extended Response Protocol (`+` prefix, `RPRT 0`), `F`/`M`/`T` and the mode names: [rigctld(1)](https://man.archlinux.org/man/rigctld.1.en)
 - Model 1 is the Hamlib dummy radio, model 2 is NET rigctl: [hamlib-utilities(7)](https://www.mankier.com/7/hamlib-utilities)

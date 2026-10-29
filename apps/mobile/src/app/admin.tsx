@@ -11,7 +11,7 @@ import { HarmSettingsSection } from '@/components/harm-admin';
 import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
-import { CoverageSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
+import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
@@ -360,6 +360,7 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
+            {radio.radio_transmitter === 'station' ? <PacketFallbackSection /> : null}
             {radio.radio_transmitter === 'station' ? <CoverageSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioDigestSection /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
@@ -569,7 +570,7 @@ function RadioNodesSection({ burst }: { burst: boolean }) {
       load();
     }
   };
-  const save = (patch: { enabled?: boolean; multiStation?: boolean }) => api.admin.setRadioNodesEnabled(patch).then(load).catch(() => undefined);
+  const save = (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => api.admin.setRadioNodesEnabled(patch).then(load).catch(() => undefined);
   const shown = data.nodes.filter((n) => (n.role === 'listener' ? data.enabled : data.multiStation));
   return (
     <View>
@@ -592,6 +593,9 @@ function RadioNodesSection({ burst }: { burst: boolean }) {
             <Chip label={t('admin.listenersOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
           </View>
           <Text style={type.small}>{t('admin.listenersHint')}</Text>
+          {data.enabled ? (
+            <Toggle label={t('admin.signedReports')} hint={t('admin.signedReportsHint')} value={data.signaturesRequired} onChange={(v) => save({ signaturesRequired: v })} />
+          ) : null}
         </>
       ) : null}
       {shown.map((n) => (

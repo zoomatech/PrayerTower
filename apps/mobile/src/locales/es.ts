@@ -1037,6 +1037,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     listenersOff: "Listener nodes off",
     listenersOn: "Listener nodes on",
     listenersHint: "Listener nodes are receive-only Raspberry Pis with a radio. They decode the station's bursts and report the signal strength they measured, so a station on BURST_PRESET=auto (with BURST_AUTO_REPORT=server) picks the fastest preset every listener can still decode. They never send prayers' words.",
+    signedReports: 'Require signed listener reports',
+    signedReportsHint: 'Each listener node must sign its reports with its key (LISTEN_SIGN=on) instead of sending the key. Turn on only after every node is updated: an unsigned node is then refused.',
     listenerLine: "%{name}: last report %{seen}",
     listenerNever: "never",
     listenerOn: "On",
@@ -2067,6 +2069,11 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     tilesHint: 'Leave it empty for a plain grid. With OpenStreetMap tiles, the map shows their credit line.',
     save: 'Save map settings',
     badLocation: 'Write it as latitude, longitude, for example 39.8, -89.6',
+  },
+  packet: {
+    off: 'Packet fallback off',
+    on: 'Packet fallback on',
+    hint: 'For a station whose radio cannot carry the bursts: with BURST_MODE=packet it sends each prayer\'s short ID and the count as standard 1200-baud APRS packets, never the words. Listener nodes that decode them mark the prayers heard.',
   },
   radioDigest: {
     off: 'Weekly digest off',
