@@ -63,7 +63,7 @@ struct FeedView: View {
     private func row(_ card: Card) -> some View {
         CardRow(card: card, active: done[card.id] ?? [], onAction: { act($0, on: card) }, onMeaning: { item, meaning in
             Task { await choose(meaning, of: item, on: card) }
-        }, onOpen: { opened = card.id })
+        }, onOpen: { opened = card.id }, onOpenPost: { opened = $0 })
     }
 
     private func load() async {
@@ -133,10 +133,14 @@ struct CardRow: View {
     let onMeaning: (ActionItem, MeaningEmoji.Meaning) -> Void
     /// Opens the post with its comments.
     var onOpen: (() -> Void)?
+    /// Opens another post by id: an answered-prayer story and the request it answers.
+    var onOpenPost: ((String) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
+                // Answered: a gold mark, as the Expo card's banner and border.
+                if card.isAnswered { Text(model.words("card.answered")).font(.subheadline.bold()).foregroundStyle(Color.answeredText) }
                 Text(card.author.displayName).font(.subheadline.bold())
                 Text(card.preview)
                 if card.counts.prayers > 0 {
@@ -149,6 +153,14 @@ struct CardRow: View {
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(onOpen == nil ? [] : .isButton)
             .accessibilityAction { onOpen?() }
+            if model.features["answeredStories"] {
+                if let a = card.answers {
+                    Button("🌅 " + model.words("answeredStory.answers", ["preview": a.preview])) { onOpenPost?(a.id) }.font(.footnote).buttonStyle(.borderless)
+                }
+                if let id = card.storyId {
+                    Button("🌅 " + model.words("answeredStory.read")) { onOpenPost?(id) }.font(.footnote).buttonStyle(.borderless)
+                }
+            }
             ActionRowView(
                 items: ActionRow.items(actions: card.actions ?? (card.isMine ? [] : ["praying_now"]), features: model.features, tree: model.tree, wording: model.wording),
                 wording: model.wording,
@@ -158,6 +170,9 @@ struct CardRow: View {
             )
         }
         .padding(.vertical, 4)
+        .overlay {
+            if card.isAnswered { RoundedRectangle(cornerRadius: 10).stroke(Color.answeredGold, lineWidth: 2).padding(-6).accessibilityHidden(true) }
+        }
     }
 }
 
@@ -185,4 +200,15 @@ struct EncourageSheet: View {
             }
         }
     }
+}
+
+extension Color {
+    /// The Expo theme's gold: plain gold for lines and fills, and gold text that keeps 4.5:1
+    /// (#7D6308 on light backgrounds, the brighter gold on dark ones).
+    static let answeredGold = Color(red: 0xC9 / 255, green: 0xA2 / 255, blue: 0x27 / 255)
+    static let answeredText = Color(uiColor: UIColor { t in
+        t.userInterfaceStyle == .dark
+            ? UIColor(red: 0xC9 / 255, green: 0xA2 / 255, blue: 0x27 / 255, alpha: 1)
+            : UIColor(red: 0x7D / 255, green: 0x63 / 255, blue: 0x08 / 255, alpha: 1)
+    })
 }
