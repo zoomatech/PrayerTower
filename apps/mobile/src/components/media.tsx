@@ -51,7 +51,7 @@ export function CardMedia({ media, expanded }: { media: Card['media']; expanded:
           />
         ),
       )}
-      {!expanded && ready.length > 1 ? <Text style={styles.more}>+{ready.length - 1} more</Text> : null}
+      {!expanded && ready.length > 1 ? <Text style={styles.more}>{t('common.morePhotos', { count: ready.length - 1 })}</Text> : null}
     </View>
   );
 }

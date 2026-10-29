@@ -6,7 +6,9 @@
 //   * the "Prayer and positive thoughts welcome" label (note of 2026-09-19);
 //   * Witness stories, off by default (the switch lives here; the code is in witness/);
 //   * the "don't pressure people" rule and the public ad-free promise page (20261029004700);
-//   * the "no misleading claims" and "no automated accounts" rules (20261029006000).
+//   * the "no misleading claims" and "no automated accounts" rules (20261029006000);
+//   * the post anatomy lines from Mockups 1 and 2 (20261029009200);
+//   * tier upkeep, Notes Page 3 (20261029009300; the rule itself is in tiers/).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
@@ -33,13 +35,18 @@ export interface NotebookSettings {
   prize_choice_enabled: boolean;
   waitlist_enabled: boolean;
   cross_community_enabled: boolean;
+  post_lines_enabled: boolean;
+  tier_upkeep_enabled: boolean;
+  tier_upkeep_days: number;
+  checkin_affirmation_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
   const { rows } = await q.query<NotebookSettings>(
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
-            urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled from public.notebook_settings`,
+            urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -62,6 +69,10 @@ export const SettingsPatch = z.object({
   prizeChoiceEnabled: z.boolean().optional(),
   waitlistEnabled: z.boolean().optional(),
   crossCommunityEnabled: z.boolean().optional(),
+  postLinesEnabled: z.boolean().optional(),
+  tierUpkeepEnabled: z.boolean().optional(),
+  tierUpkeepDays: z.number().int().min(1).max(365).optional(),
+  checkinAffirmationEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -75,7 +86,10 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        automation_rule_enabled = coalesce($11, automation_rule_enabled),
        urgency_glow_enabled = coalesce($12, urgency_glow_enabled), reaction_tray_enabled = coalesce($13, reaction_tray_enabled), member_town_enabled = coalesce($14, member_town_enabled), prize_choice_enabled = coalesce($15, prize_choice_enabled),
        waitlist_enabled = coalesce($16, waitlist_enabled),
-       cross_community_enabled = coalesce($17, cross_community_enabled)`,
+       cross_community_enabled = coalesce($17, cross_community_enabled),
+       post_lines_enabled = coalesce($18, post_lines_enabled),
+       tier_upkeep_enabled = coalesce($19, tier_upkeep_enabled), tier_upkeep_days = coalesce($20, tier_upkeep_days),
+       checkin_affirmation_enabled = coalesce($21, checkin_affirmation_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -94,6 +108,10 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.prizeChoiceEnabled ?? null,
       p.waitlistEnabled ?? null,
       p.crossCommunityEnabled ?? null,
+      p.postLinesEnabled ?? null,
+      p.tierUpkeepEnabled ?? null,
+      p.tierUpkeepDays ?? null,
+      p.checkinAffirmationEnabled ?? null,
     ],
   );
   return settings(q);
@@ -118,6 +136,8 @@ export async function features(q: Queryable) {
     memberTown: s.member_town_enabled,
     prizeChoice: s.prize_choice_enabled,
     crossCommunity: s.cross_community_enabled,
+    postLines: s.post_lines_enabled,
+    checkinAffirmation: s.checkin_affirmation_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,

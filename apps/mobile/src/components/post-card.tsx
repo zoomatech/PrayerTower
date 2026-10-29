@@ -51,6 +51,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
+  const lines = features.postLines;
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
   // A background shows only on short, text-only posts.
@@ -60,20 +61,30 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
     label('prayerKind', card.kind, PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS]),
   ].filter(Boolean);
 
+  const typeLabel = <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
+
   return (
     <View style={[styles.card, answered && styles.answered]}>
       {answered ? <Text style={styles.answeredBanner}>{t('card.answered')}</Text> : null}
       <View style={styles.header}>
         <UrgencyLight urgency={card.urgency} />
         <Text
-          style={styles.author}
+          style={lines ? [styles.author, styles.authorShort] : styles.author}
           numberOfLines={2}
           accessibilityLabel={card.author.tier && TIER_NAMES[card.author.tier] ? `${card.author.displayName}, ${n(TIER_NAMES[card.author.tier]!)}` : card.author.displayName}
           onPress={!card.author.anonymous && card.author.id && !card.isMine ? () => router.push(`/people/${card.author.id}`) : undefined}>
           {card.author.town ? t('town.in', { name: card.author.displayName, town: card.author.town }) : card.author.displayName}
           {card.author.tier ? ` ${icon(card.author.tier, TIER_ICONS)}` : ''}
         </Text>
-        <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>
+        {lines ? (
+          // Mockups 1 and 2: the post type in script above a line extending from the name.
+          <View style={styles.extender}>
+            {typeLabel}
+            <View style={styles.rule} />
+          </View>
+        ) : (
+          typeLabel
+        )}
         {onHide && !card.isMine ? (
           <Text style={styles.hide} onPress={() => onHide(card)} accessibilityRole="button" accessibilityLabel={t('card.hide')}>
             ✕
@@ -81,93 +92,96 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         ) : null}
       </View>
 
-      {card.author.pastor ? (
-        <Text style={styles.pastor} accessibilityLabel={t('card.pastorBadge', { title: card.author.pastor.title, church: card.author.pastor.church })}>
-          ✝ {card.author.pastor.title} · {card.author.pastor.church}
-        </Text>
-      ) : null}
-      {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
-      {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
-
-      <Pressable
-        onPress={open}
-        onLongPress={features.reactionTray ? () => setTray(true) : undefined}
-        accessibilityRole="link"
-        accessibilityActions={features.reactionTray ? [{ name: 'longpress', label: t('quick.tray') }] : undefined}
-        onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && setTray(true)}
-        style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
-        <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
-          {expanded || !card.truncated ? card.body : `${card.preview}… `}
-          {card.truncated && !expanded ? (
-            <Text style={styles.more} onPress={() => setExpanded(true)}>
-              {t('card.more')}
-            </Text>
-          ) : null}
-        </Text>
-        {card.truncated && !expanded ? <SparkleWords body={card.body} /> : null}
-      </Pressable>
-
-      {tray && features.reactionTray ? <QuickReactionTray card={card} onChange={setQuick} onClose={() => setTray(false)} /> : null}
-
-      <CardMedia media={card.media} expanded={expanded} />
-
-      {card.testimony ? (
-        <View style={styles.testimony}>
-          <Text style={styles.testimonyLabel}>{t('card.testimony')}</Text>
-          <Text style={type.body} numberOfLines={expanded ? undefined : 4} onPress={open}>
-            {card.testimony}
+      {/* With the lines on, a line runs down the left of everything that belongs to this post. */}
+      <View style={lines ? [styles.body, styles.bodyLine] : styles.body} testID={lines ? 'post-lines' : undefined}>
+        {card.author.pastor ? (
+          <Text style={styles.pastor} accessibilityLabel={t('card.pastorBadge', { title: card.author.pastor.title, church: card.author.pastor.church })}>
+            ✝ {card.author.pastor.title} · {card.author.pastor.church}
           </Text>
-        </View>
-      ) : null}
+        ) : null}
+        {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+        {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
-      <Text style={styles.counts}>
-        {!isPrayable(card.postType)
-          ? ''
-          : card.counts.prayers > 0
-            ? t('card.praying', { count: card.counts.prayers })
-            : card.isMine
-              ? t('post.prayed', { count: 0 })
-              : card.postType === 'praise'
-                ? ''
-                : t('card.firstToPray')}
-        {card.counts.commitments > 0 ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
-        {card.counts.encouragements > 0 ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
-        {features.reactionTray && quick.candles ? ` · 🕯️ ${quick.candles}` : ''}
-        {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
-      </Text>
-
-      <View style={styles.actions}>
-        {card.actions.map((action) => {
-          const active = action === 'commit' && !!card.myCommitment;
-          return (
-            <Pressable
-              key={action}
-              accessibilityRole="button"
-              accessibilityLabel={label('action', action, ACTION_LABELS[action])}
-              onPress={() => onAction(card, action)}
-              style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
-              <Text style={styles.actionIcon}>{icon(action, ACTION_ICONS)}</Text>
-              {/* Two lines, so labels aren't cut off at large text sizes. */}
-              <Text style={[styles.actionLabel, active && { color: colors.primary }]} numberOfLines={2}>
-                {active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
+        <Pressable
+          onPress={open}
+          onLongPress={features.reactionTray ? () => setTray(true) : undefined}
+          accessibilityRole="link"
+          accessibilityActions={features.reactionTray ? [{ name: 'longpress', label: t('quick.tray') }] : undefined}
+          onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && setTray(true)}
+          style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
+          <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
+            {expanded || !card.truncated ? card.body : `${card.preview}… `}
+            {card.truncated && !expanded ? (
+              <Text style={styles.more} onPress={() => setExpanded(true)}>
+                {t('card.more')}
               </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {card.topComment ? (
-        <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
-          <Text style={styles.commentAuthor}>
-            {card.topComment.isUpdate ? t('card.update') : ''}
-            {card.topComment.author.displayName}
+            ) : null}
           </Text>
-          <Text style={type.body} numberOfLines={3}>
-            {card.topComment.body}
-          </Text>
-          {card.counts.comments > 1 ? <Text style={styles.more}>{t('card.viewAll', { count: card.counts.comments })}</Text> : null}
+          {card.truncated && !expanded ? <SparkleWords body={card.body} /> : null}
         </Pressable>
-      ) : null}
+
+        {tray && features.reactionTray ? <QuickReactionTray card={card} onChange={setQuick} onClose={() => setTray(false)} /> : null}
+
+        <CardMedia media={card.media} expanded={expanded} />
+
+        {card.testimony ? (
+          <View style={styles.testimony}>
+            <Text style={styles.testimonyLabel}>{t('card.testimony')}</Text>
+            <Text style={type.body} numberOfLines={expanded ? undefined : 4} onPress={open}>
+              {card.testimony}
+            </Text>
+          </View>
+        ) : null}
+
+        <Text style={styles.counts}>
+          {!isPrayable(card.postType)
+            ? ''
+            : card.counts.prayers > 0
+              ? t('card.praying', { count: card.counts.prayers })
+              : card.isMine
+                ? t('post.prayed', { count: 0 })
+                : card.postType === 'praise'
+                  ? ''
+                  : t('card.firstToPray')}
+          {card.counts.commitments > 0 ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
+          {card.counts.encouragements > 0 ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
+          {features.reactionTray && quick.candles ? ` · 🕯️ ${quick.candles}` : ''}
+          {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
+        </Text>
+
+        <View style={styles.actions}>
+          {card.actions.map((action) => {
+            const active = action === 'commit' && !!card.myCommitment;
+            return (
+              <Pressable
+                key={action}
+                accessibilityRole="button"
+                accessibilityLabel={label('action', action, ACTION_LABELS[action])}
+                onPress={() => onAction(card, action)}
+                style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
+                <Text style={styles.actionIcon}>{icon(action, ACTION_ICONS)}</Text>
+                {/* Two lines, so labels aren't cut off at large text sizes. */}
+                <Text style={[styles.actionLabel, active && { color: colors.primary }]} numberOfLines={2}>
+                  {active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {card.topComment ? (
+          <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
+            <Text style={styles.commentAuthor}>
+              {card.topComment.isUpdate ? t('card.update') : ''}
+              {card.topComment.author.displayName}
+            </Text>
+            <Text style={type.body} numberOfLines={3}>
+              {card.topComment.body}
+            </Text>
+            {card.counts.comments > 1 ? <Text style={styles.more}>{t('card.viewAll', { count: card.counts.comments })}</Text> : null}
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 });
@@ -192,6 +206,11 @@ const styles = StyleSheet.create({
   backdrop: { borderRadius: radius.md, minHeight: 160, padding: space.xl, justifyContent: 'center' },
   backdropText: { fontSize: 22, lineHeight: 30, fontWeight: '600', textAlign: 'center' },
   author: { flex: 1, fontWeight: '700', fontSize: 16, color: colors.text },
+  authorShort: { flex: 0, flexShrink: 1 },
+  extender: { flex: 1, minWidth: 64, alignItems: 'flex-end', alignSelf: 'flex-end', paddingBottom: 6 },
+  rule: { alignSelf: 'stretch', height: 1, backgroundColor: colors.border },
+  body: { gap: space.md },
+  bodyLine: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, marginLeft: 4 },
   more: { color: colors.primary, fontWeight: '600' },
   counts: type.small,
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },

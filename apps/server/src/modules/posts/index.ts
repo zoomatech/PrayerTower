@@ -372,10 +372,13 @@ export async function listComments(q: Queryable, postId: string, viewerId: strin
      order by c.id`,
     [postId, viewerId],
   );
+  const ids = new Set(rows.map((r) => r.id));
   const children = new Map<string | null, CommentRow[]>();
   for (const c of rows) {
-    const key = c.parent_id && rows.some((r) => r.id === c.parent_id) ? c.parent_id : null;
-    children.set(key, [...(children.get(key) ?? []), c]);
+    const key = c.parent_id && ids.has(c.parent_id) ? c.parent_id : null;
+    const list = children.get(key);
+    if (list) list.push(c);
+    else children.set(key, [c]);
   }
   const out: (ReturnType<typeof presentComment> & { depth: number })[] = [];
   const walk = (parent: string | null, depth: number) => {

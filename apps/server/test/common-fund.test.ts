@@ -53,6 +53,7 @@ describe('Common Prayer Fund', () => {
       const html = fund.reportHtml(r, (s) => s);
       expect(html).toContain('$100.00');
       expect(html).not.toContain('Fund Admin');
+      expect(html).toContain('There is no application and no means test.');
     } finally {
       await c.query('rollback');
       c.release();
