@@ -146,3 +146,28 @@ request, the person who asked sees **Check back with me** and picks **In 3 days*
 This sits beside the 21-day follow-up: that one asks once on its own, while check back
 is chosen by the person who asked. Code: `modules/check-back`, `components/check-back.tsx`,
 the `check_back_due` cron (hourly at :30), and `quiet` on `notifications.notify`.
+
+## Quiet milestones (off)
+
+Admin → Growth practices → **Quiet milestones** (migration 20261029018600). On Me, a
+member sees private markers for kindness toward others. Each line shows the highest
+level reached, from the first time and then 10, 25, 50, 100, 250, 500 and 1,000:
+
+- people prayed for (Open Circle: lifted up);
+- requests prayed for;
+- encouragements sent;
+- prayer promises kept (check-ins);
+- kind words left on others' posts.
+
+A milestone reached since the last visit shows **New** once and is then marked seen.
+
+Rules, following the gentle-rhythm practice:
+
+- Only the member sees it. There is no admin view, no leaderboard and no comparison.
+- Counts only grow, so nothing can be lost.
+- Nothing about the member's own posts is counted, and answered prayers are never
+  counted.
+- Nothing is pushed. It is simply there on Me.
+
+Code: `modules/kind-milestones`, `components/kind-milestones.tsx`, table
+`kind_milestones_seen` (included in account deletion and export).
