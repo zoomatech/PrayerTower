@@ -19,8 +19,9 @@ targets:
     type: application
     platform: iOS
     sources: [App]
-    # A shared scheme, so scripts/mac-build-native.sh can build with xcodebuild -scheme.
-    scheme: {}
+    # A shared scheme, so scripts/mac-build-native.sh can build and test with xcodebuild -scheme.
+    scheme:
+      testTargets: [PrayerTowerUIWalks]
     dependencies:
       - package: PrayerTowerKit
         products:
@@ -153,7 +154,9 @@ targets:
   OpenCircleWidgets:
     type: app-extension
     platform: iOS
-    sources: [Widgets]
+    sources:
+      - path: Widgets
+        excludes: [Info.plist, PrayerTowerWidgets.entitlements]
     dependencies:
       - package: PrayerTowerKit
         products:
@@ -243,6 +246,20 @@ targets:
         SWIFT_VERSION: "5.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
+
+  # UI walks of the main screens on the Simulator, with the app's on-device sample data
+  # (-PTSampleData): no server or account. Run headless by scripts/mac-build-native.sh.
+  PrayerTowerUIWalks:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UIWalks]
+    dependencies:
+      - target: PrayerTowerNative
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.uiwalks
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
 
   # The Mac operator console for the station's control operator (Console/, docs/SWIFT_PORT.md):
   # the operator console, station health, keying controls and a menu bar item, in place of the web console.

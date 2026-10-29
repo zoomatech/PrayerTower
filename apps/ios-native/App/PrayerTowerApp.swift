@@ -58,6 +58,10 @@ final class AppModel {
     init(store: SessionStore) { self.store = store }
 
     static func makeStore() -> SessionStore {
+        if SampleServer.isOn() {
+            Tour.markSeen(SampleServer.memberId)
+            return .sampleData()
+        }
         let info = Bundle.main.infoDictionary ?? [:]
         func url(_ key: String) -> URL { URL(string: info[key] as? String ?? "") ?? URL(string: "http://127.0.0.1")! }
         return SessionStore(

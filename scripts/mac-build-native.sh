@@ -80,6 +80,21 @@ else
   grep -E "error:" "$LOGS/app-build.txt" | sort -u | head -20 > "$LOGS/errors.txt"
 fi
 
+# UI walks of the main screens (apps/ios-native/UIWalks) with the app's sample data. xcodebuild
+# boots the Simulator in the background: no Simulator window opens. Shut down afterwards.
+if [ -n "$SIM" ]; then
+  if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerNative -destination "id=$SIM" \
+       -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO test > "$LOGS/ui-walks.txt" 2>&1; then
+    record "UI walks" PASS "$(grep -oE 'Executed [0-9]+ tests?, with 0 failures' "$LOGS/ui-walks.txt" | tail -1)"
+  else
+    record "UI walks" FAIL "$LOGS/ui-walks.txt"
+    grep -E "error:|failed" "$LOGS/ui-walks.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
+  fi
+  xcrun simctl shutdown "$SIM" > /dev/null 2>&1 || true
+else
+  record "UI walks" FAIL "no iPhone Simulator installed"
+fi
+
 # The Open Circle edition: the same screens under its own name and bundle id.
 if grep -q "OpenCircleNative:" project.yml; then
   if xcodebuild -project PrayerTowerNative.xcodeproj -scheme OpenCircleNative -destination "$DEST" \
