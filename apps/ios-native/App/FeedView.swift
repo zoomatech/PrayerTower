@@ -35,6 +35,12 @@ struct FeedView: View {
                 }
             }
             .navigationDestination(item: $opened) { PostDetailView(postId: $0) }
+            // A tap on the Pray now widget or the Live Activity opens its request.
+            .onChange(of: model.openPost, initial: true) { _, id in
+                guard let id else { return }
+                opened = id
+                model.openPost = nil
+            }
             .sheet(item: $committing) { card in
                 CommitSheet(card: card) { message in
                     done[card.id, default: []].insert(.commit)
@@ -61,6 +67,7 @@ struct FeedView: View {
             posts = page.posts
             nextPage = page.nextPage
             error = nil
+            await WidgetBridge.update(page, model: model)
         } catch let e as APIError where e.needsCode {
             model.state = .needsCode
         } catch let e as APIError where e.signedOut {

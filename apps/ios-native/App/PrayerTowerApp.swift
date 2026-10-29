@@ -11,6 +11,7 @@ struct PrayerTowerApp: App {
             RootView()
                 .environment(model)
                 .task { await model.start() }
+                .onOpenURL { url in model.openPost = PrayNow.postId(from: url) }
         }
     }
 }
@@ -34,6 +35,8 @@ final class AppModel {
     var talkPrefs: ConversationPrefs?
     /// Emoji meanings for the action row, loaded only while both meaning switches are on.
     var tree: [MeaningEmoji] = []
+    /// A request to open from a widget or Live Activity tap.
+    var openPost: String?
 
     init(store: SessionStore) { self.store = store }
 
