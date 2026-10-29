@@ -124,20 +124,31 @@ export function defaultRecordCommand(platform = process.platform) {
   return platform === 'darwin' ? 'rec -q -t raw -b 16 -e signed-integer -r 48000 -c 1 -' : 'arecord -q -t raw -f S16_LE -r 48000 -c 1';
 }
 
-/** Run the recorder and feed the decoder; restarts the recorder if it stops. */
+/**
+ * Run the recorder and feed the decoder; restarts the recorder if it stops.
+ * The command is split on spaces and run without a shell (no quoting: sound card
+ * names such as plughw:CARD=Device,DEV=0 have no spaces).
+ */
 export function startRecorder(command: string, dec: RollingDecoder, log: (m: string) => void = console.log): { stop(): void } {
+  const [file, ...args] = command.trim().split(/\s+/);
+  if (!file) throw new Error('LISTEN_RECORD_CMD is empty');
   let child: ChildProcess | null = null;
   let stopped = false;
   const start = () => {
     const carry = { rest: Buffer.alloc(0) };
-    child = spawn('sh', ['-c', command], { stdio: ['ignore', 'pipe', 'pipe'] });
+    child = spawn(file, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout!.on('data', (d: Buffer) => dec.push(s16le(d, carry)));
     child.stderr!.on('data', (d: Buffer) => log(`[listener] recorder: ${d.toString().trim().slice(0, 200)}`));
-    child.on('exit', (code) => {
-      if (stopped) return;
-      log(`[listener] recorder exited (${code}); restarting in 5 s`);
+    // 'exit' may not follow a failed start ('error'), so either one restarts it, once.
+    let restarted = false;
+    const restart = (why: string) => {
+      if (stopped || restarted) return;
+      restarted = true;
+      log(`[listener] recorder ${why}; restarting in 5 s`);
       setTimeout(() => !stopped && start(), 5_000);
-    });
+    };
+    child.on('error', (err) => restart(`failed: ${err.message}`));
+    child.on('exit', (code) => restart(`exited (${code})`));
   };
   start();
   return {

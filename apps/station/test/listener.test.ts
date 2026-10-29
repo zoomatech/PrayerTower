@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -6,7 +6,7 @@ import { autoChooser, parseCandidates } from '../src/burst/auto.js';
 import { buildBurst, planFrames } from '../src/burst/burst.js';
 import { presetByName } from '../src/burst/presets.js';
 import { fingerprint } from '../src/burst/sha256.js';
-import { defaultRecordCommand, httpListenerApi, listenOnce, RollingDecoder, s16le, type ListenerApi } from '../src/listener.js';
+import { defaultRecordCommand, httpListenerApi, listenOnce, RollingDecoder, s16le, startRecorder, type ListenerApi } from '../src/listener.js';
 
 function recorder() {
   const calls: { kind: string; body: Record<string, unknown> }[] = [];
@@ -61,6 +61,30 @@ describe('listener node', () => {
     dec.push(new Float32Array([...silence(0.3), ...burst.audio, ...silence(0.3)]));
     expect(await listenOnce(dec, failing, { searchHz: 0, receipts: false }, (m) => logs.push(m))).toHaveLength(1);
     expect(logs.some((l) => l.includes('channel report failed (500)'))).toBe(true);
+  });
+
+  it('runs the recorder without a shell, decodes what it records, and restarts a recorder that fails', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'recorder-'));
+    const pcm = Buffer.alloc((burst.audio.length + 48_000) * 2);
+    burst.audio.forEach((v, i) => pcm.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(v * 32767))), (24_000 + i) * 2));
+    writeFileSync(path.join(dir, 'burst.pcm'), pcm);
+    const script = path.join(dir, 'rec.cjs');
+    writeFileSync(script, "process.stdout.write(require('fs').readFileSync(process.argv[2]))");
+    const dec = new RollingDecoder();
+    const logs: string[] = [];
+    const rec = startRecorder(`${process.execPath} ${script} ${path.join(dir, 'burst.pcm')}`, dec, (m) => logs.push(m));
+    await new Promise((r) => setTimeout(r, 800));
+    rec.stop();
+    const frames = dec.decode();
+    expect(frames.map((f) => f.prayers)).toEqual([prayers]);
+    expect(logs.some((l) => l.includes('restarting in 5 s'))).toBe(true);
+
+    const missing: string[] = [];
+    const bad = startRecorder('no-such-recorder-here -q', new RollingDecoder(), (m) => missing.push(m));
+    await new Promise((r) => setTimeout(r, 200));
+    bad.stop();
+    expect(missing.filter((l) => l.includes('restarting'))).toHaveLength(1);
+    expect(missing[0]).toMatch(/ENOENT/);
   });
 
   it('turns 16-bit PCM into samples, carrying an odd byte to the next chunk', () => {

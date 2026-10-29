@@ -75,18 +75,21 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
     return report;
   });
 
+  app.post<{ Params: { id: string } }>('/station/radio-prayers/:id/result', async (req) => {
+    const node = await requireStation(req);
+    const result = radio.StationResult.parse(req.body);
+    await withTx(db, (tx) => radio.reportResult(tx, req.params.id, result, node));
+    return { ok: true };
+  });
+}
+
+/** Listener nodes' reports (own keys, x-node-key), registered with a per-address rate limit in app.ts. */
+export function nodeRoutes(app: FastifyInstance, db: Db) {
   // A listener node heard the station: what it measured (never the prayers' words).
   app.post('/node/channel-report', async (req) => {
     const node = await nodes.authenticate(db, req.headers['x-node-key'] as string | undefined, 'listener');
     if (!(await nodes.enabled(db))) throw notFound('Listener reports');
     await nodes.recordReport(db, node.id, nodes.ChannelReportInput.parse(req.body));
-    return { ok: true };
-  });
-
-  app.post<{ Params: { id: string } }>('/station/radio-prayers/:id/result', async (req) => {
-    const node = await requireStation(req);
-    const result = radio.StationResult.parse(req.body);
-    await withTx(db, (tx) => radio.reportResult(tx, req.params.id, result, node));
     return { ok: true };
   });
 }
