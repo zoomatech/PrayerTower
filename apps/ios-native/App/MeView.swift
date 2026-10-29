@@ -69,6 +69,9 @@ struct MeView: View {
                 Section {
                     NavigationLink(w("accountSecurity.title")) { AccountSecurityView() }
                     NavigationLink("Sign-in security") { SignInSecurityView() }
+                    if model.features["signalQueue"] && model.me?.community?.shows("radio") ?? true {
+                        NavigationLink(w("signalQueue.title")) { SignalQueueView() }
+                    }
                     Button(w(exporting ? "profile.exporting" : "profile.export")) { Task { await export() } }.disabled(exporting)
                     Button(w("profile.signOut"), role: .destructive) {
                         Task {

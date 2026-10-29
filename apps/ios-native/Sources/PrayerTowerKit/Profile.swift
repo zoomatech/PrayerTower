@@ -30,6 +30,12 @@ public struct TokenSummary: Codable, Sendable, Equatable {
         public let balance: Int
         public let towardNext: Int
         public let prayersPerToken: Int
+        /// Priestly tokens one radio prayer costs (0 while radio prayers are free).
+        public var radioPrayerCost: Int? = nil
+        /// How many times Amplify sends it; nil when Amplify isn't available.
+        public var amplifyRepeats: Int? = nil
+        /// Priestly tokens one Amplify costs; nil when paid Amplify is off.
+        public var amplifyCost: Int? = nil
     }
     public let balance: Int
     public let priestly: Priestly
