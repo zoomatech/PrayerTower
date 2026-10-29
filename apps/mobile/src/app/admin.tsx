@@ -11,7 +11,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type SkinSettings, type ThemeProposal, type PilotWeek, type AiSettings, type LiveSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type SkinSettings, type ThemeProposal, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -315,6 +315,8 @@ function Admin() {
         <AwardSection />
         <AiSection />
         <LiveSection />
+        <GivingSection />
+        <SecuritySection />
         <ReminderToneSection />
 
         {radio ? (
@@ -330,6 +332,19 @@ function Admin() {
               value={radio.radio_station_requires_free}
               onChange={(v) => saveRadio({ stationRequiresFree: v })}
             />
+            <Text style={type.small}>{t('admin.radioOrder')}</Text>
+            <View style={styles.row}>
+              <Chip label={t('admin.radioOldest')} selected={radio.radio_order !== 'need'} onPress={() => saveRadio({ order: 'oldest' })} />
+              <Chip label={t('admin.radioNeed')} selected={radio.radio_order === 'need'} onPress={() => saveRadio({ order: 'need' })} />
+            </View>
+            {radio.radio_order === 'need' ? <Text style={type.small}>{t('admin.radioNeedHint')}</Text> : null}
+            <Text style={type.small}>{t('admin.radioBurst')}</Text>
+            <View style={styles.row}>
+              {[1, 10, 50, 100, 500].map((n) => (
+                <Chip key={n} label={n === 1 ? t('admin.radioBurstOne') : String(n)} selected={radio.radio_batch_max === n} onPress={() => saveRadio({ batchMax: n })} />
+              ))}
+            </View>
+            {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
@@ -618,6 +633,112 @@ function LiveSection() {
       <Field label={t('admin.field.jitsiUrl')} value={draft.url} onChangeText={(url) => setDraft((d) => ({ ...d, url }))} autoCapitalize="none" keyboardType="url" />
       <Field label={t('admin.field.liveMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
       <Button label={t('admin.btn.saveLive')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Two-step sign-in with an authenticator app. Off by default; members who turned it on keep it. */
+function SecuritySection() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.securitySettings().then((r) => setOn(r.settings.two_step_enabled), (e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (v: boolean) =>
+    api.admin
+      .updateSecuritySettings({ twoStepEnabled: v })
+      .then((r) => (setOn(r.settings.two_step_enabled), resetFeatures(), setNote(t('admin.saved.security'))))
+      .catch((e) => setNote((e as Error).message));
+  if (on === null) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.security')}</Text>
+      <Toggle label={t('admin.toggle.twoStep')} hint={t('admin.toggle.twoStepHint')} value={on} onChange={save} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Giving instead of ads: the switch, how people give, and gifts that came in. Off by default. */
+function GivingSection() {
+  const t = useT();
+  const [s, setS] = useState<AdminDonationSettings | null>(null);
+  const [keys, setKeys] = useState({ stripe: false, webhook: false });
+  const [gifts, setGifts] = useState<AdminGift[]>([]);
+  const [draft, setDraft] = useState({ url: '', monthly: '', max: '', amount: '', reference: '' });
+  const [note, setNote] = useState<string | null>(null);
+  const fail = (e: unknown) => setNote((e as Error).message);
+  const show = (x: AdminDonationSettings) => {
+    setS(x);
+    setDraft((d) => ({ ...d, url: x.donate_url ?? '', monthly: String(x.everyone_monthly), max: String(x.allocation_max_per_request) }));
+  };
+  const loadGifts = () => api.admin.gifts().then((r) => setGifts(r.donations), fail);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin
+        .donationSettings()
+        .then((r) => (show(r.settings), setKeys({ stripe: r.stripeKeySet, webhook: r.webhookSecretSet })))
+        .catch(fail);
+      api.admin.gifts().then((r) => setGifts(r.donations), fail);
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateDonationSettings>[0]) =>
+    api.admin
+      .updateDonationSettings(patch)
+      .then((r) => (show(r.settings), setNote(t('admin.saved.giving'))))
+      .catch(fail);
+  const saveDraft = () =>
+    save({
+      donateUrl: draft.url.trim() || null,
+      everyoneMonthly: toInt(draft.monthly) ?? undefined,
+      allocationMaxPerRequest: toInt(draft.max) ?? undefined,
+    });
+  const record = () => {
+    const cents = Math.round(Number(draft.amount.replace(/[$,]/g, '')) * 100);
+    if (!(cents > 0)) return;
+    api.admin
+      .recordGift(cents, draft.reference.trim())
+      .then(() => (setDraft((d) => ({ ...d, amount: '', reference: '' })), setNote(t('admin.giftRecorded')), loadGifts()))
+      .catch(fail);
+  };
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.giving')}</Text>
+      <Toggle label={t('admin.toggle.giving')} hint={t('admin.toggle.givingHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Text style={type.small}>{t('admin.givingProvider')}</Text>
+      <View style={styles.row}>
+        {(['none', 'zeffy', 'stripe'] as const).map((p) => (
+          <Chip key={p} label={t(`admin.provider.${p}`)} selected={s.provider === p} onPress={() => save({ provider: p })} />
+        ))}
+      </View>
+      {s.provider === 'stripe' && (!keys.stripe || !keys.webhook) ? <Text style={[type.small, { color: colors.danger }]}>{t('admin.stripeKeysMissing')}</Text> : null}
+      {s.provider === 'zeffy' ? (
+        <Field label={t('admin.field.donateUrl')} value={draft.url} onChangeText={(url) => setDraft((d) => ({ ...d, url }))} autoCapitalize="none" keyboardType="url" />
+      ) : null}
+      <Field label={t('admin.field.everyoneMonthly')} keyboardType="number-pad" value={draft.monthly} onChangeText={(monthly) => setDraft((d) => ({ ...d, monthly }))} />
+      <Toggle
+        label={t('admin.toggle.allocationRequests')}
+        hint={t('admin.toggle.allocationRequestsHint')}
+        value={s.allocation_requests_enabled}
+        onChange={(v) => save({ allocationRequestsEnabled: v })}
+      />
+      <Field label={t('admin.field.allocationMax')} keyboardType="number-pad" value={draft.max} onChangeText={(max) => setDraft((d) => ({ ...d, max }))} />
+      <Button label={t('admin.btn.saveGiving')} onPress={saveDraft} />
+      <Text style={type.small}>{t('admin.recordGift')}</Text>
+      <Field label={t('admin.field.giftAmount')} keyboardType="decimal-pad" value={draft.amount} onChangeText={(amount) => setDraft((d) => ({ ...d, amount }))} />
+      <Field label={t('admin.field.giftReference')} value={draft.reference} onChangeText={(reference) => setDraft((d) => ({ ...d, reference }))} />
+      <Button small variant="secondary" label={t('admin.btn.recordGift')} onPress={record} disabled={!(Number(draft.amount.replace(/[$,]/g, '')) > 0)} />
+      {gifts.slice(0, 20).map((g) => (
+        <Text key={g.id} style={type.small}>
+          {new Date(g.created_at).toLocaleDateString()} · ${(g.amount_cents / 100).toFixed(2)} · {g.provider} · {g.status}
+          {g.donor_name ? ` · ${g.donor_name}` : ''}
+        </Text>
+      ))}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
@@ -1138,6 +1259,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.tierUpkeep')} hint={t('admin.toggle.tierUpkeepHint')} value={s.tier_upkeep_enabled} onChange={(v) => save({ tierUpkeepEnabled: v })} />
       <Field label={t('admin.field.tierUpkeepDays')} keyboardType="number-pad" value={upkeepDays} onChangeText={setUpkeepDays} />
       <Toggle label={t('admin.toggle.checkinAffirmation')} hint={t('admin.toggle.checkinAffirmationHint')} value={s.checkin_affirmation_enabled} onChange={(v) => save({ checkinAffirmationEnabled: v })} />
+      <Toggle label={t('admin.toggle.whyGifts')} hint={t('admin.toggle.whyGiftsHint')} value={s.why_gifts_enabled} onChange={(v) => save({ whyGiftsEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />

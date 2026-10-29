@@ -47,6 +47,8 @@ export default function Profile() {
   const [stats, setStats] = useState<PrayerStats | null>(null);
   // "Buy tokens" shows only while an admin has turned purchases on.
   const [storeOn, setStoreOn] = useState(false);
+  // "Give" shows only while giving is on; staff see radio requests while members can ask.
+  const [giving, setGiving] = useState<{ enabled: boolean; allocationRequests: boolean } | null>(null);
   const features = useFeatures();
 
   // If the counts can't load, say so instead of showing zeros that look real.
@@ -57,6 +59,7 @@ export default function Profile() {
     api.tokens().then(setTokens).catch((e) => setCountsError((e as Error).message));
     api.feedThemes().then(setFeedStyles).catch(() => undefined);
     api.tokenStore().then((l) => setStoreOn(l.enabled)).catch(() => undefined);
+    api.givingInfo().then(setGiving).catch(() => undefined);
     loadStats();
   }, []);
   useFocusEffect(loadCounts);
@@ -167,7 +170,9 @@ export default function Profile() {
           <LiveHostLink />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
           {storeOn ? <Button small variant="secondary" label={t('tokenStore.open')} onPress={() => router.push('/token-store')} /> : null}
+          {giving?.enabled || (radioOn && giving?.allocationRequests) ? <Button small variant="secondary" label={t('give.open')} onPress={() => router.push('/give')} /> : null}
           {radioOn ? <Button small variant="secondary" label={t('profile.prayerCast')} onPress={() => router.push('/prayer-cast')} /> : null}
+          {features.whyGifts ? <Button small variant="secondary" label={t('whyGifts.link')} onPress={() => router.push('/why-gifts')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
           {features.prayerChain ? <Button small variant="secondary" label={t('growth.chainOpen')} onPress={() => router.push('/prayer-chain')} /> : null}
           {features.prayerMinute ? <Button small variant="secondary" label={t('growth.minuteOpen')} onPress={() => router.push('/prayer-minute')} /> : null}
@@ -259,6 +264,9 @@ export default function Profile() {
         {roles.some((r) => r === 'witness' || r === 'moderator' || r === 'admin') ? (
           <Button variant="secondary" label={t('profile.witness')} onPress={() => router.push('/witness')} />
         ) : null}
+        {radioOn && giving?.allocationRequests && roles.some((r) => r === 'moderator' || r === 'admin' || r === 'pastor_counselor') ? (
+          <Button variant="secondary" label={t('radioRequests.title')} onPress={() => router.push('/radio-requests')} />
+        ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label={t('profile.admin')} onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
         <Button variant="ghost" label={t('profile.tour')} onPress={() => router.push('/tour')} />
@@ -279,6 +287,7 @@ export default function Profile() {
             }
           }}
         />
+        <Button variant="ghost" label={t('accountSecurity.title')} onPress={() => router.push('/account-security')} />
         <Button variant="ghost" label={t('profile.signOut')} onPress={signOut} />
         <Button variant="ghost" label={t('profile.deleteAccount')} onPress={() => router.push('/delete-account')} />
         <LegalLinks contact />

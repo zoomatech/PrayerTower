@@ -49,6 +49,10 @@ What the script does, in order:
 
 A project made by hand in the dashboard works too: name it **Prayer Tower** and keep the defaults (Data API on; "Automatically expose new tables" and "Enable automatic RLS" off, because the migrations revoke all Data API access and the API server talks to Postgres directly). Click **Copy** next to the database password and save it in your password manager. The script finds the project by name. When it asks for the password, copy it again, and it reads it from the clipboard.
 
+**Emails on a Free project:** Supabase won't take the custom sign-up and password emails (`supabase/templates`) until the project has its own SMTP sender. Its message is "Email template modification is not available for free tier projects using the default email provider". Until then members get Supabase's plain emails, which carry the link but not the code, and Supabase sends only a few an hour. Put `SMTP_URL` and `WEB_APP_URL` in `deploy/production.env` and run `scripts/supabase-setup.sh` again: it sets the sender, the site address and the redirect links (`prayertower://**`, `opencircle://**`), then uploads the emails ([email templates](https://supabase.com/docs/guides/auth/auth-email-templates), [redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls)).
+
+**Forgot password:** sign-in → "Forgot your password?" sends Supabase's reset email. The member taps its link on the phone, or types its 6-digit code into the app (our template only), and then chooses a new password. Me → Password and email changes the password or the email; a new email takes effect once its confirmation link is tapped ([updateUser](https://supabase.com/docs/reference/javascript/auth-updateuser)).
+
 The token must be able to create projects, read API keys and their secrets, read the pooler config, and change Auth settings. A full-access token works. If the dashboard only offers scoped tokens, give it Read-write on everything. Free projects pause after a week with too little database activity, which the running API and worker prevent ([pausing](https://supabase.com/kb/faqs/platform/free-project-pausing)).
 
 **By hand instead:**

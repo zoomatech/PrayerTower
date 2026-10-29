@@ -50,6 +50,7 @@ const app = buildApp({
   stationKey: config.STATION_API_KEY ?? null,
   rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
   clientIpHeader: config.CLIENT_IP_HEADER ?? null,
+  stripe: config.STRIPE_SECRET_KEY ? { secretKey: config.STRIPE_SECRET_KEY, webhookSecret: config.STRIPE_WEBHOOK_SECRET ?? null } : null,
   metricsToken: config.METRICS_TOKEN ?? null,
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,

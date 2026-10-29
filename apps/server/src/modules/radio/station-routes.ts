@@ -2,6 +2,7 @@
 // (header x-station-key), not a member login, and only ever sees request text.
 import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { AppError } from '../../errors.js';
@@ -23,6 +24,16 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
     const next = await withTx(db, (tx) => radio.claimNext(tx));
     if (!next) return reply.code(204).send();
     return { radioPrayer: next };
+  });
+
+  // Burst mode: several prayers at once (at most the admin's radio_batch_max); 204 when there are none.
+  app.post('/station/claim-batch', async (req, reply) => {
+    await requireStation(req);
+    const { max } = z.object({ max: z.number().int().min(1).max(500).default(50) }).parse(req.body ?? {});
+    await ops.beat(db, 'station');
+    const batch = await withTx(db, (tx) => radio.claimBatch(tx, max));
+    if (!batch.length) return reply.code(204).send();
+    return { radioPrayers: batch };
   });
 
   app.post<{ Params: { id: string } }>('/station/radio-prayers/:id/result', async (req) => {

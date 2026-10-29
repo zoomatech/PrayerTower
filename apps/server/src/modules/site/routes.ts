@@ -1,9 +1,11 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import type { Db } from '../../db.js';
 import { languages } from '../../language.js';
 import * as site from './index.js';
 import * as openCircle from './open-circle.js';
 import { promisePage } from './promise.js';
+import * as whyGifts from './why-gifts.js';
 import { waitlistPage } from '../waitlist/page.js';
 import * as waitlist from '../waitlist/index.js';
 
@@ -69,6 +71,25 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db
     app.get(`${openCircle.PREFIX}/promise`, async (_req, reply) =>
       (await promiseOn()) ? reply.type(html).send(prefixed) : reply.code(404).type(html).send(notFound()),
     );
+  }
+
+  // Why we run on gifts, not ads, only while Admin → Notebook ideas has it on. The app reads the same words as JSON.
+  const ocName = oc?.name ?? 'Open Circle';
+  app.get('/why-gifts', async (req, reply) => {
+    const { wording } = z.object({ wording: z.enum(['faith', 'neutral']).default('faith') }).parse(req.query);
+    if (!db || !(await whyGifts.enabled(db))) return reply.code(404).send({ error: 'not_found', message: 'This page is switched off' });
+    return whyGifts.copy(db, wording === 'faith' ? 'Prayer Tower' : ocName, wording === 'faith');
+  });
+  app.get('/why-donations', async (req, reply) => {
+    if (!db || !(await whyGifts.enabled(db))) return reply.code(404).type(html).send(notFound());
+    const o = ocHere(req);
+    return reply.type(html).send(o && oc ? whyGifts.page(await whyGifts.copy(db, oc.name, false), openCircle.brand(oc, '')) : whyGifts.page(await whyGifts.copy(db, 'Prayer Tower', true)));
+  });
+  if (oc) {
+    app.get(`${openCircle.PREFIX}/why-donations`, async (_req, reply) => {
+      if (!db || !(await whyGifts.enabled(db))) return reply.code(404).type(html).send(notFound());
+      return reply.type(html).send(whyGifts.page(await whyGifts.copy(db, oc.name, false), openCircle.brand(oc, openCircle.PREFIX)));
+    });
   }
 
   // The waitlist, only while Admin → Notebook ideas has it on.

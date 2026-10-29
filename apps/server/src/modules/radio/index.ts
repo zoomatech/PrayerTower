@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, conflict, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
+import * as donations from '../donations/index.js';
 import * as materialMatch from '../material-match/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
@@ -63,12 +64,16 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
     throw conflict('Radio prayers are paused: the station only sends while they are free. An admin can turn on “Radio prayers are free” on the Admin screen.');
   }
   const repeats = amplify ? station.radio_amplify_repeats : 1;
-  const cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
+  let cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
+  // Everybody gets at least one: the month's free radio prayers, then any granted ones (modules/donations).
+  const gift = cost > 0 && !amplify ? await donations.radioFunding(q, userId) : null;
+  if (gift) cost = 0;
+  const fundedBy = s.radio_funding === 'free' ? 'free' : (gift ?? 'tokens');
   const t = cost > 0 ? await tokens.spendOnRadio(q, userId, cost, key) : null;
   const { rows } = await q.query<RadioPrayer>(
-    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key, repeats) values ($1, $2, $3, $4, $5, $6)
+    `insert into public.radio_prayers (post_id, user_id, transfer_id, cost, idempotency_key, repeats, funded_by) values ($1, $2, $3, $4, $5, $6, $7)
      returning id, post_id, cost, repeats, status, created_at, transmitted_at`,
-    [post.id, userId, t?.id ?? null, cost, key, repeats],
+    [post.id, userId, t?.id ?? null, cost, key, repeats, fundedBy],
   );
   // Equal material help for the afflicted, when that switch is on (modules/material-match).
   if (t) await materialMatch.onRadioSpend(q, rows[0]!.id, userId, cost);
@@ -186,11 +191,15 @@ export interface StationSettings {
   radio_max_chars: number;
   /** How many times Amplify sends a prayer (placeholder; "1,000x" is not possible on PSK31). */
   radio_amplify_repeats: number;
+  /** Which queued prayer goes next: first in, or by need (most urgent, fewest praying, then oldest). */
+  radio_order: 'oldest' | 'need';
+  /** Burst mode: the most prayers the station may claim at once (1 = one at a time). */
+  radio_batch_max: number;
 }
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max from public.token_settings',
   );
   return rows[0]!;
 }
@@ -201,9 +210,11 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
         set radio_transmitter = coalesce($1, radio_transmitter),
             radio_station_requires_free = coalesce($2, radio_station_requires_free),
             radio_max_chars = coalesce($3, radio_max_chars),
-            radio_amplify_repeats = coalesce($4, radio_amplify_repeats)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats`,
-    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null],
+            radio_amplify_repeats = coalesce($4, radio_amplify_repeats),
+            radio_order = coalesce($5, radio_order),
+            radio_batch_max = coalesce($6, radio_batch_max)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max`,
+    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null, patch.radio_order ?? null, patch.radio_batch_max ?? null],
   );
   return rows[0]!;
 }
@@ -211,8 +222,11 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
 /** A claim the station hasn't reported on within this long is handed out again. */
 const CLAIM_TIMEOUT_MINUTES = 15;
 
+/** The queue order for claimNext: by need puts the most urgent, least-prayed-for request first. */
+const NEED_ORDER = `p.urgency desc, (select count(*) from public.prayer_events e where e.post_id = p.id) asc, r.id`;
+
 /**
- * Hand the station the oldest queued prayer it may send, or null. Never sends
+ * Hand the station the next queued prayer it may send (oldest first, or by need), or null. Never sends
  * a name: only the request text. Skips (and fails) requests that were removed,
  * are marked sensitive, or have moderation still pending.
  */
@@ -235,7 +249,7 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
         where r.status = 'queued'
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
-        order by r.id limit 1 for update of r skip locked`,
+        order by ${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
     );
     const r = rows[0];
     if (!r) return null;
@@ -248,6 +262,18 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
     return { id: r.id, text: r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars), repeats: r.repeats };
   }
   return null;
+}
+
+/** Burst mode: up to `max` prayers (capped by radio_batch_max), in the order claimNext hands them out. */
+export async function claimBatch(q: Queryable, max: number) {
+  const limit = Math.max(1, Math.min(max, (await stationSettings(q)).radio_batch_max));
+  const out: { id: string; text: string; repeats: number }[] = [];
+  while (out.length < limit) {
+    const next = await claimNext(q);
+    if (!next) break;
+    out.push(next);
+  }
+  return out;
 }
 
 export const StationResult = z.object({

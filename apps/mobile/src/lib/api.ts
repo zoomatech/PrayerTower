@@ -64,6 +64,7 @@ export interface Features {
   /** Post anatomy lines from Mockups 1 and 2. */
   postLines: boolean;
   checkinAffirmation: boolean;
+  whyGifts: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -74,6 +75,8 @@ export interface Features {
   prayerChain: boolean;
   prayedForWidget: boolean;
   prayerMinute: boolean;
+  /** Members can turn on two-step sign-in with an authenticator app. */
+  twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -164,6 +167,7 @@ export interface NotebookSettings {
   tier_upkeep_enabled: boolean;
   tier_upkeep_days: number;
   checkin_affirmation_enabled: boolean;
+  why_gifts_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -278,6 +282,9 @@ export interface AdminRadioSettings {
   radio_station_requires_free: boolean;
   radio_max_chars: number;
   radio_amplify_repeats: number;
+  radio_order: 'oldest' | 'need';
+  /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
+  radio_batch_max: number;
 }
 
 export interface PowerPrayerStatus {
@@ -480,6 +487,17 @@ export interface PodcastEpisode {
   /** Null: a draft. */
   publishedAt: string | null;
 }
+/** Why the app runs on gifts, not ads (GET /why-gifts): the website's words for this edition. */
+export interface WhyGifts {
+  title: string;
+  intro: string;
+  points: { heading: string; body: string }[];
+  /** The website's Give link (the app opens Me → Give instead). */
+  giveUrl: string | null;
+  /** The public fund report's path on the API host, while it is published. */
+  fundPath: string | null;
+}
+
 export interface PodcastShow {
   id: string;
   slug: string;
@@ -729,6 +747,57 @@ export interface TokenPurchase {
   purchased_at: string | null;
 }
 
+/** Giving (off until an admin turns it on and sets up Stripe or a Zeffy link). */
+export interface GivingInfo {
+  enabled: boolean;
+  provider: 'none' | 'stripe' | 'zeffy';
+  url: string | null;
+  minCents: number;
+  maxCents: number;
+  everyoneMonthly: number;
+  allocationRequests: boolean;
+}
+export type GiftTarget = { kind: 'everyone' } | { kind: 'member'; userId: string } | { kind: 'pool'; poolId: string };
+export interface MyGift {
+  id: string;
+  amount_cents: number;
+  status: 'pending' | 'paid' | 'refunded';
+  target_kind: GiftTarget['kind'];
+  created_at: string;
+}
+export interface RadioAllowance {
+  enabled: boolean;
+  freeThisMonth: number;
+  granted: number;
+  canRequest: boolean;
+  pendingRequest: number | null;
+  maxPerRequest: number;
+}
+export interface AllocationRequestRow {
+  id: string;
+  count: number;
+  note: string;
+  name: string;
+  sent_last_30_days: number;
+  created_at: string;
+}
+export interface AdminDonationSettings {
+  enabled: boolean;
+  provider: 'none' | 'stripe' | 'zeffy';
+  donate_url: string | null;
+  min_cents: number;
+  max_cents: number;
+  priestly_per_dollar: number;
+  regular_per_dollar: number;
+  everyone_monthly: number;
+  allocation_requests_enabled: boolean;
+  allocation_max_per_request: number;
+}
+export interface AdminGift extends MyGift {
+  provider: 'stripe' | 'zeffy' | 'manual';
+  donor_name?: string | null;
+}
+
 export const api = {
   /** Public: whether sign-up needs an invite code. */
   signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
@@ -736,6 +805,7 @@ export const api = {
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   surveys: () => get<{ surveys: Survey[] }>('/surveys'),
   podcasts: () => get<{ shows: PodcastShow[] }>('/podcasts'),
+  whyGifts: (wording: 'faith' | 'neutral') => get<WhyGifts>(`/why-gifts?wording=${wording}`),
   answerSurvey: (id: string, answers: SurveyAnswer[]) => post<{ ok: true }>(`/surveys/${id}/responses`, { answers }),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
   me: () => cachedGet<{ profile: Profile; roles: Role[]; community?: Community | null }>('me', '/me'),
@@ -962,8 +1032,23 @@ export const api = {
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
+    donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
+    updateDonationSettings: (
+      patch: Partial<{
+        enabled: boolean;
+        provider: 'none' | 'stripe' | 'zeffy';
+        donateUrl: string | null;
+        everyoneMonthly: number;
+        allocationRequestsEnabled: boolean;
+        allocationMaxPerRequest: number;
+      }>,
+    ) => request<{ settings: AdminDonationSettings }>('PATCH', '/admin/donation-settings', patch),
+    gifts: () => get<{ donations: AdminGift[] }>('/admin/donations'),
+    recordGift: (amountCents: number, reference: string) => post('/admin/donations', { amountCents, reference: reference || undefined }),
+    securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
+    updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
       patch: Partial<{
@@ -1005,7 +1090,7 @@ export const api = {
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1101,6 +1186,14 @@ export const api = {
   tokenPurchases: () => get<{ purchases: TokenPurchase[] }>('/me/token-purchases'),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
+  givingInfo: () => get<GivingInfo>('/donations/info'),
+  giveCheckout: (amountCents: number, target: GiftTarget, showDonor: boolean) =>
+    post<{ donationId: string; url: string }>('/donations/checkout', { amountCents, target, showDonor, idempotencyKey: `give-${Date.now()}` }),
+  myGifts: () => get<{ donations: MyGift[] }>('/me/donations'),
+  radioAllowance: () => get<RadioAllowance>('/me/radio-allowance'),
+  askForRadioPrayers: (count: number, note: string) => post('/me/radio-allocation-requests', { count, note }),
+  radioRequests: () => get<{ requests: AllocationRequestRow[] }>('/staff/radio-allocation-requests'),
+  decideRadioRequest: (id: string, grant: number) => post(`/staff/radio-allocation-requests/${id}/decide`, { grant }),
   features: () => get<{ features: Features }>('/features'),
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
