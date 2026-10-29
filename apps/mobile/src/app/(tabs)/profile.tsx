@@ -39,6 +39,7 @@ import { useAuth } from '@/lib/auth';
 import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
+import { env } from '@/lib/env';
 import { saveJson } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -319,7 +320,7 @@ export default function Profile() {
             setExporting(true);
             try {
               const data = await api.exportMyData();
-              await saveJson(`prayer-tower-data-${data.exportedAt.slice(0, 10)}.json`, data);
+              await saveJson(`${env.edition}-data-${data.exportedAt.slice(0, 10)}.json`, data);
             } catch (e) {
               setError((e as Error).message);
             } finally {

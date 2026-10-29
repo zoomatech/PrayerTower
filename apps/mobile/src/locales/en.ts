@@ -682,8 +682,8 @@ const en = {
   },
   deleteAccount: {
     intro: "This happens right away and can't be undone. We delete:",
-    list: "• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and prayer history\n• your tokens",
-    keep: "We keep only what we must: the token ledger and moderators' past decisions, under \"Deleted member\" with no name or email. A request that already holds tokens others gave is emptied and taken down rather than erased.",
+    list: "• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and prayer history\n• your tokens\n• everything else tied to your account",
+    keep: "We keep only what we must: the token ledger and moderators' past decisions, under \"Deleted member\" with no name or email. A request that already holds tokens others gave is emptied and taken down rather than erased. A group chat you started stays open for the others, without your messages.",
     confirm: "Type DELETE to confirm",
   },
   feedback: {
@@ -2327,6 +2327,16 @@ const en = {
     countsEmojiRow: '%{emoji} “%{meaning}” in reply to %{move}: %{n}',
     move: { greeting: 'greeting', howAreYou: 'how are you', thanks: 'thanks', trouble: 'a trouble', goodNews: 'good news', farewell: 'goodbye', other: 'other' },
     adminSave: 'Saved.',
+  },
+  offline: {
+    notice: "You're offline.",
+    saved: 'Showing prayers saved %{when}.',
+    waitingOne: '1 action is waiting to send.',
+    waitingMany: '%{count} actions are waiting to send.',
+    sending: 'Sending what you did while offline…',
+    notSent: 'Not sent: %{what}',
+    ok: 'OK',
+    retry: 'Try again',
   },
 };
 

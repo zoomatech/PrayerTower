@@ -72,12 +72,10 @@ export default function Feed() {
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [page, mn] = await Promise.all([
-        api.feed(0, filter),
-        api.macroNeeds().catch(() => ({ needs: [] })),
-      ]);
-      setNeeds(mn.needs);
+      // The feed shows as soon as it arrives; the side panels fill in on their own.
+      api.macroNeeds().then((mn) => setNeeds(mn.needs), () => undefined);
       api.highlights().then(setHighlights, () => undefined);
+      const page = await api.feed(0, filter);
       setCards(page.posts);
       setTheme(page.theme ?? null);
       setPinnedId(page.pinnedId);

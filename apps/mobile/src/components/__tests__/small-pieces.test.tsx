@@ -58,9 +58,9 @@ describe('OfflineBanner', () => {
   });
 
   it('lists what the server turned down and lets the member dismiss it', async () => {
-    offline({ dropped: ['Your post "Hello"'] });
+    offline({ dropped: [{ label: 'Your post', message: '"Hello"' }] });
     await renderApp(<OfflineBanner />);
-    expect(screen.getByText('Not sent: Your post "Hello"')).toBeTruthy();
+    expect(screen.getByText('Not sent: Your post: "Hello"')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(dismissDropped).toHaveBeenCalled());
   });
