@@ -39,6 +39,10 @@ struct MeView: View {
                 }
                 if let error { Section { Text(error).foregroundStyle(.red) } }
                 Section {
+                    NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
+                    NavigationLink(w("profile.scheduled")) { ScheduledGiftsView() }
+                }
+                Section {
                     NavigationLink("Sign-in security") { SignInSecurityView() }
                     if model.features["signalQueue"] && model.me?.community?.shows("radio") ?? true {
                         NavigationLink(w("signalQueue.title")) { SignalQueueView() }
