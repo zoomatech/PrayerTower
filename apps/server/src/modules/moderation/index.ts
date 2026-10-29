@@ -189,10 +189,16 @@ export async function report(q: Queryable, reporterId: string, input: z.infer<ty
   return rows[0]!;
 }
 
-/** Someone who may be in danger comes first, then hidden content waiting on a person, then oldest first. Optionally only one target's items. */
-export async function pending(q: Queryable, limit = 100, targetId?: string) {
+/**
+ * Someone who may be in danger comes first, then items handed to the viewer, then hidden
+ * content waiting on a person (a member's explanation of a held post lifts it), then oldest
+ * first. With moderator care on, items the viewer handed on leave their queue. `hard` marks
+ * text a moderator may want blurred. Optionally only one target's items.
+ */
+export async function pending(q: Queryable, limit = 100, targetId?: string, viewerId?: string) {
   const { rows } = await q.query(
-    `select m.*, coalesce(po.body, c.body, r.note, x.body, ev.title || E'\n' || ev.description, '[Spoken prayer, ' || sp.duration_seconds || ' seconds of audio]') as content
+    `select m.*, (m.source in ('harm', 'crisis') or m.auto_hidden) as hard, hf.display_name as handoff_from_name,
+            coalesce(po.body, c.body, r.note, x.body, ev.title || E'\n' || ev.description, '[Spoken prayer, ' || sp.duration_seconds || ' seconds of audio]') as content
        from public.moderation_items m
        left join public.posts po on m.target_type = 'post' and po.id = m.target_id
        left join public.comments c on m.target_type = 'comment' and c.id = m.target_id
@@ -200,10 +206,13 @@ export async function pending(q: Queryable, limit = 100, targetId?: string) {
        left join public.messages x on m.target_type = 'message' and x.id = m.target_id
        left join public.events ev on m.target_type = 'event' and ev.id = m.target_id
        left join public.spoken_prayers sp on m.target_type = 'spoken_prayer' and sp.id = m.target_id
+       left join public.profiles hf on hf.id = m.handoff_from
       where m.status = 'pending' and ($2::uuid is null or m.target_id = $2)
-      order by (m.source = 'crisis') desc, m.auto_hidden desc, m.id
+        and ($3::uuid is null or m.handoff_from is distinct from $3)
+      order by (m.source = 'crisis') desc, (m.handoff_to is not null and m.handoff_to = $3) desc,
+               m.auto_hidden desc, (m.author_note is not null) desc, m.id
       limit $1`,
-    [limit, targetId ?? null],
+    [limit, targetId ?? null, viewerId ?? null],
   );
   return rows;
 }
@@ -342,9 +351,19 @@ export const NewAppeal = z.object({ message: z.string().trim().min(1).max(1000) 
 
 /** One appeal per removal, by the member it was applied to. */
 export async function appeal(q: Queryable, userId: string, itemId: string, input: z.infer<typeof NewAppeal>) {
-  const { rows } = await q.query<{ user_id: string; status: string }>('select user_id, status from public.moderation_items where id = $1', [itemId]);
+  const { rows } = await q.query<{ user_id: string; status: string; source: string; auto_hidden: boolean; author_note: string | null }>(
+    'select user_id, status, source, auto_hidden, author_note from public.moderation_items where id = $1',
+    [itemId],
+  );
   const item = rows[0];
   if (!item || item.user_id !== userId) throw notFound('Moderation decision');
+  // A post held by the harmful-prayer check: the member's word goes with it to the moderator, once.
+  if (item.status === 'pending' && item.source === 'harm' && item.auto_hidden) {
+    if (!(await harm.settings(q)).explain_held) throw badRequest('Explaining a held post is switched off');
+    if (item.author_note) throw conflict('You already explained this one');
+    await q.query('update public.moderation_items set author_note = $2, author_noted_at = now() where id = $1', [itemId, input.message]);
+    return { id: itemId };
+  }
   if (item.status !== 'actioned') throw badRequest('Only removals can be appealed');
   const res = await q.query<{ id: string }>(
     `insert into public.moderation_appeals (moderation_item_id, user_id, message) values ($1, $2, $3)

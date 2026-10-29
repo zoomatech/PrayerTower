@@ -40,7 +40,7 @@ const HARM_WISH = [
 ];
 
 const CURSE = [
-  new RegExp(`(?<!\\b(?:break|breaking|broke|lift|lifting|remove|removing|from|of) (?:the |this |a |every )?)\\b(?:i |we )?(?:curse|hex|jinx|cast a spell on|put a curse on|place a curse on|damn)\\s+${OTHER}`, 'i'),
+  new RegExp(`(?<!\\b(?:break|breaking|broke|lift|lifting|remove|removing|from|of) (?:the |this |a |every )?)(?<!\\b(?:who|that) )\\b(?:i |we )?(?:curse|hex|jinx|cast a spell on|put a curse on|place a curse on|damn)\\s+${OTHER}`, 'i'),
   new RegExp(`\\b(?:may|let) ${OTHER} be (?:cursed|damned)\\b`, 'i'),
   /\b(?:a )?curse (?:on|upon) (?:him|her|them|you|his|her|their)\b/i,
 ];
@@ -114,6 +114,8 @@ export interface HarmSettings {
   foul_junk_filter: boolean;
   flood_per_day: number;
   extra_hate_words: string[];
+  /** A member whose post was held can explain it to the moderator. */
+  explain_held: boolean;
 }
 const COLUMNS = [
   'enabled',
@@ -127,6 +129,7 @@ const COLUMNS = [
   'foul_junk_filter',
   'flood_per_day',
   'extra_hate_words',
+  'explain_held',
 ] as const satisfies readonly (keyof HarmSettings)[];
 
 export async function settings(q: Queryable): Promise<HarmSettings> {
@@ -148,6 +151,7 @@ export const SettingsPatch = z
     foul_junk_filter: z.boolean(),
     flood_per_day: z.number().int().min(1).max(1000),
     extra_hate_words: z.array(z.string().trim().min(2).max(60)).max(500),
+    explain_held: z.boolean(),
   })
   .partial();
 
@@ -319,12 +323,24 @@ export async function apply(q: Queryable, userId: string, target: Target, id: st
   // One queue item per account per day once it floods; one per item before that.
   if (!flooding || today[0]!.bundled === 0) {
     const { rows } = await q.query<{ community_id: string }>(`select community_id from public.${table} where id = $1`, [id]);
-    await q.query(
+    const { rows: item } = await q.query<{ id: string }>(
       `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, reason, ai_categories, auto_hidden)
        values ($1, $2, $3, $4, 'harm', $5, $6, $7)
-       on conflict (target_type, target_id) where source = 'harm' do nothing`,
+       on conflict (target_type, target_id) where source = 'harm' do nothing returning id`,
       [target, id, userId, rows[0]!.community_id, flooding ? FLOOD_REASON : HARM_REASON[d.category], { harm: d.categories }, d.action === 'hold' || (flooding && d.action !== 'support')],
     );
+    // A held post (not a flood): the member is told it waits for a person, and can explain it.
+    if (item[0] && d.action === 'hold' && !flooding) {
+      await notifications.notify(q, userId, {
+        kind: 'held_for_review',
+        title: `Your ${target === 'post' ? 'request' : target} is waiting for a moderator`,
+        body: s.explain_held
+          ? 'A person will read it before others see it. If you want, tell them what is going on.'
+          : 'A person will read it before others see it.',
+        data: { itemId: item[0].id, explainable: s.explain_held },
+        dedupeKey: `held_for_review:${item[0].id}`,
+      });
+    }
   }
   const g = guidance(d);
   // Someone disclosing abuse hears from us privately, with the hotlines, once a day at most.

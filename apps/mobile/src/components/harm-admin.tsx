@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Field, Toggle } from '@/components/ui';
-import { api, type HarmFlood, type HarmSettings } from '@/lib/api';
+import { api, type HarmFlood, type HarmSettings, type ModeratorCare } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -51,10 +51,47 @@ export function HarmSettingsSection() {
       ))}
       <Toggle label={t('harm.abuse')} value={s.abuse_action === 'support'} onChange={(v) => save({ abuse_action: v ? 'support' : 'allow' })} />
       <Toggle label={t('harm.junk')} value={s.foul_junk_filter} onChange={(v) => save({ foul_junk_filter: v })} />
+      <Toggle label={t('harm.explain')} value={s.explain_held} onChange={(v) => save({ explain_held: v })} />
       <Field label={t('harm.foulAt')} keyboardType="number-pad" value={draft.foul} onChangeText={(foul) => setDraft((d) => ({ ...d, foul }))} />
       <Field label={t('harm.floodPerDay')} keyboardType="number-pad" value={draft.flood} onChangeText={(flood) => setDraft((d) => ({ ...d, flood }))} />
       <Field label={t('harm.words')} multiline autoCapitalize="none" value={draft.words} onChangeText={(words) => setDraft((d) => ({ ...d, words }))} />
       <Button label={t('harm.save')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Moderator care: blur, breaks, handing items on. Off by default. */
+export function ModeratorCareSection() {
+  const t = useT();
+  const [s, setS] = useState<ModeratorCare['settings'] | null>(null);
+  const [draft, setDraft] = useState({ minutes: '', items: '', length: '' });
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: ModeratorCare['settings']) => {
+    setS(x);
+    setDraft({ minutes: String(x.break_after_minutes), items: String(x.break_after_hard_items), length: String(x.break_minutes) });
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.moderatorCare().then((r) => show(r.settings), (e) => setNote((e as Error).message));
+    }, []),
+  );
+  const num = (v: string) => (/^\d+$/.test(v.trim()) ? Number(v) : undefined);
+  const save = (patch: Partial<ModeratorCare['settings']> = {}) =>
+    api
+      .updateModeratorCare({ break_after_minutes: num(draft.minutes), break_after_hard_items: num(draft.items), break_minutes: num(draft.length) || undefined, ...patch })
+      .then((r) => (show(r.settings), setNote(t('modCare.saved'))))
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('modCare.section')}</Text>
+      <Toggle label={t('modCare.enabled')} hint={t('modCare.enabledHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Toggle label={t('modCare.blur')} value={s.blur_hard} onChange={(v) => save({ blur_hard: v })} />
+      <Field label={t('modCare.breakAfterMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
+      <Field label={t('modCare.breakAfterItems')} keyboardType="number-pad" value={draft.items} onChangeText={(items) => setDraft((d) => ({ ...d, items }))} />
+      <Field label={t('modCare.breakMinutes')} keyboardType="number-pad" value={draft.length} onChangeText={(length) => setDraft((d) => ({ ...d, length }))} />
+      <Button label={t('modCare.save')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

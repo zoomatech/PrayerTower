@@ -63,6 +63,9 @@ export default function Notifications() {
               {n.kind === 'moderation_notice' && typeof n.data.itemId === 'string' ? (
                 <Button small variant="secondary" label={t('notices.appeal')} onPress={() => router.push(`/appeal/${n.data.itemId}`)} />
               ) : null}
+              {n.kind === 'held_for_review' && n.data.explainable === true && typeof n.data.itemId === 'string' ? (
+                <Button small variant="secondary" label={t('notices.explain')} onPress={() => router.push(`/appeal/${n.data.itemId}?held=1`)} />
+              ) : null}
             </Pressable>
           );
         })}

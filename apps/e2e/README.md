@@ -21,6 +21,7 @@ Playwright drives the app's web build against the local API and Supabase, signed
 | `10-export` | A member downloads their data from Me as a JSON file |
 | `18-open-circle` | An Open Circle member posts, then visits 28 member screens twice (feature switches off, then all on). No screen may show a religious word or fail an axe WCAG A/AA check. Set `OPEN_CIRCLE_SHOTS` to a folder to keep a screenshot of each. |
 | `19-staff-a11y` | An admin opens all 14 staff screens with every feature switch on; none may fail an axe WCAG A/AA check |
+| `22-harmful-prayers` | An admin turns on the harmful-prayer check and moderator care; grief, illness and Scripture post normally; a threat is held, the poster explains it, and the moderator reads it blurred-then-tapped and keeps it |
 
 ## Running it
 

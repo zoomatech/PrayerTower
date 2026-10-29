@@ -5,6 +5,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
+import * as care from '../moderator-care/index.js';
 import * as harm from './index.js';
 
 export function harmRoutes(app: FastifyInstance, db: Db) {
@@ -46,5 +47,24 @@ export function harmRoutes(app: FastifyInstance, db: Db) {
     if (userId === moderatorId) throw forbidden('Another moderator must decide about your own posts');
     const { action } = harm.FloodDecision.parse(req.body);
     return withTx(db, (tx) => harm.decideFlood(tx, moderatorId, userId, action));
+  });
+
+  // Moderator care: blur hard items, offer breaks, hand an item to someone else.
+  app.get('/moderation/care', async (req) => {
+    const moderatorId = await requireModerator(req);
+    const settings = await care.settings(db);
+    return { settings, colleagues: settings.enabled ? await care.colleagues(db, moderatorId) : [] };
+  });
+
+  app.patch('/admin/moderator-care-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await care.updateSettings(db, care.SettingsPatch.parse(req.body)) };
+  });
+
+  app.post<{ Params: { id: string } }>('/moderation/items/:id/handoff', async (req) => {
+    const moderatorId = await requireModerator(req);
+    const input = care.Handoff.parse(req.body);
+    await withTx(db, (tx) => care.handoff(tx, moderatorId, req.params.id, input));
+    return { ok: true };
   });
 }

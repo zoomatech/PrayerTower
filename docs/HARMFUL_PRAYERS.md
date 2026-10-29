@@ -81,3 +81,15 @@ The queue shows the reason: "Possible threat: a person should read this", "Praye
 - `apps/server/src/modules/harm/` (the check, the actions, floods, routes)
 - Migrations `20261029013000_harm_enum.sql`, `20261029013100_harmful_prayers.sql`
 - Tests: `apps/server/test/harm-check.test.ts` (the patterns) and `apps/server/test/harm.test.ts` (end to end)
+
+## Moderator care (off by default)
+
+**Admin → Moderator care** (`PATCH /admin/moderator-care-settings`). Research on moderator wellbeing recommends optional "content soothing" such as blurring, break prompts triggered by exposure time or severity, and an easy way to get a second opinion so nobody decides a hard case alone ([Wellbeing-Centered UX: Supporting Content Moderators, 2025](https://arxiv.org/pdf/2509.07187); [Zevo Health: moderator wellbeing](https://www.zevohealth.com/blog/7-tips-for-managing-content-moderator-wellbeing/), which also recommends 2–5 minute micro-breaks).
+
+- **Blur until tapped** (`blur_hard`, on): threats, hate, harm, crisis and auto-hidden items show "Hard to read … Tap to read it".
+- **A break offer** after `break_after_minutes` (20) in the queue or `break_after_hard_items` (10) hard items read. The moderator chooses "Take a break" (`break_minutes`, 5; the queue steps aside with a countdown and can be ended early) or "Keep going". It is an offer, never a lock: crisis alerts still reach the other moderators.
+- **Hand off** any item to a named moderator or to "anyone else", with a note. It leaves your queue and goes to the top of theirs (after crisis items); they get a notice without the content.
+
+## Explaining a held post
+
+When a post is held, its author gets a notice ("Your request is waiting for a moderator") with **Explain it**. Their explanation (once, up to 1,000 characters) is shown with the item, and items with an explanation sort ahead of other held items. Admins can turn this off (`explain_held`). The moderator's keep or remove decision then works as usual, and a removal can still be appealed. Floods don't get the notice.

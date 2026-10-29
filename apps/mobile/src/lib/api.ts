@@ -672,6 +672,11 @@ export type HarmSettings = {
   foul_junk_filter: boolean;
   flood_per_day: number;
   extra_hate_words: string[];
+  explain_held: boolean;
+};
+export type ModeratorCare = {
+  settings: { enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
+  colleagues: { id: string; display_name: string }[];
 };
 export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
 export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
@@ -1168,6 +1173,9 @@ export const api = {
       '/moderation/activity-flags',
     ),
   decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  moderatorCare: () => get<ModeratorCare>('/moderation/care'),
+  updateModeratorCare: (patch: Partial<ModeratorCare['settings']>) => request<{ settings: ModeratorCare['settings'] }>('PATCH', '/admin/moderator-care-settings', patch),
+  handoff: (itemId: string, toUserId?: string, note?: string) => post<{ ok: boolean }>(`/moderation/items/${itemId}/handoff`, { toUserId, note }),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
   harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),
