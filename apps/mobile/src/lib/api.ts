@@ -78,6 +78,42 @@ export interface Features {
   prayerMinute: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
+  /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
+  feedSkins: boolean;
+  commentTree: boolean;
+  /** Leaves shown on a branch before the rest fade into a blur. */
+  commentTreeLeaves: number;
+  /** Deepest reply level while the tree is on (0 = top-level comments only). */
+  commentTreeMaxDepth: number;
+  themeProposals: boolean;
+  /** Longest video a member can attach, in seconds. */
+  videoMaxSeconds: number;
+}
+
+export interface SkinSettings {
+  skins_enabled: boolean;
+  comment_tree_enabled: boolean;
+  comment_tree_leaves: number;
+  comment_tree_max_depth: number;
+  proposals_enabled: boolean;
+  video_max_seconds: number;
+}
+
+export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
+
+export interface ThemeProposal {
+  id: string;
+  name: string;
+  description: string;
+  layout: MakerLayout;
+  colors: { stem?: string; leaf?: string; backdrop?: string };
+  /** The look the member built in the theme maker. */
+  tokens: Record<string, unknown>;
+  status: 'pending' | 'approved' | 'declined';
+  reviewNote: string | null;
+  themeSlug: string | null;
+  createdAt: string;
+  from?: { id: string; name: string };
 }
 
 export interface GrowthSettings {
@@ -255,6 +291,8 @@ export interface AdminRadioSettings {
   radio_order: 'oldest' | 'need';
   /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
   radio_batch_max: number;
+  /** The public /listen page that decodes bursts from a phone's microphone. */
+  listen_page_enabled: boolean;
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -624,7 +662,7 @@ export interface NewPost {
   isSensitive?: boolean;
   /** "Prayer and positive thoughts welcome" from people of any faith or none. */
   allSupportWelcome?: boolean;
-  media?: { kind: 'image' | 'video'; storagePath: string }[];
+  media?: { kind: 'image' | 'video'; storagePath: string; durationMs?: number }[];
 }
 
 /** Annual Prayer Warrior Award (off by default). */
@@ -700,7 +738,25 @@ export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_min
 export type AiTurn = { role: 'user' | 'assistant'; content: string };
 export type CircleRole = 'harmed' | 'caused' | 'unsure';
 export type CircleRequest = { id: string; userId: string; displayName: string; role: CircleRole; summary: string; status: 'open' | 'closed'; createdAt: string };
-export type AiSettings = { chat_daily_limit: number; facilitator_enabled: boolean; facilitator_daily_limit: number };
+export type AiSettings = {
+  chat_daily_limit: number;
+  facilitator_enabled: boolean;
+  facilitator_daily_limit: number;
+  auto_pray_enabled: boolean;
+  auto_pray_per_day: number;
+  auto_pray_daily_limit: number;
+  auto_pray_days: number;
+};
+
+/** Auto-Pray: AI prayers under a request, counted apart from prayers by people. */
+export type AiPrayers = {
+  enabled: boolean;
+  optedIn: boolean;
+  until: string | null;
+  count: number;
+  prayers: { id: string; body: string; createdAt: string }[];
+  isMine?: boolean;
+};
 export type MyAwards = { enabled: false; awards: [] } | { enabled: true; prize: { tokens: number; priestly: number; note: string }; publicHall: boolean; awards: Award[] };
 export type AwardHall =
   | { enabled: false; years: [] }
@@ -919,6 +975,9 @@ export const api = {
     }),
   myBranch: () => get<{ posts: Card[] }>('/me/branch'),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
+  myThemeProposals: () => get<{ proposals: ThemeProposal[] }>('/me/theme-proposals'),
+  proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>
+    post<{ proposal: ThemeProposal }>('/me/theme-proposals', input),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
     post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
@@ -959,7 +1018,7 @@ export const api = {
     updateLiveSettings: (patch: { enabled?: boolean; jitsiUrl?: string; maxMinutes?: number }) =>
       request<{ settings: LiveSettings }>('PATCH', '/admin/live-settings', patch),
     aiSettings: () => get<{ settings: AiSettings; aiConnected: boolean }>('/admin/ai-settings'),
-    updateAiSettings: (patch: { chatDailyLimit?: number; facilitatorEnabled?: boolean; facilitatorDailyLimit?: number }) =>
+    updateAiSettings: (patch: { chatDailyLimit?: number; facilitatorEnabled?: boolean; facilitatorDailyLimit?: number; autoPrayEnabled?: boolean; autoPrayPerDay?: number; autoPrayDailyLimit?: number; autoPrayDays?: number }) =>
       request<{ settings: AiSettings; aiConnected: boolean }>('PATCH', '/admin/ai-settings', patch),
     futureSettings: () => get<{ settings: { ai_chat_enabled: boolean; ai_chat_warning: string } }>('/admin/future-settings'),
     updateFutureSettings: (patch: { aiChatEnabled?: boolean; aiChatWarning?: string }) =>
@@ -1057,7 +1116,7 @@ export const api = {
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
@@ -1112,6 +1171,12 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number }>) =>
+      request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
+    themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
+    approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
+    declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
     updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean }>) =>
@@ -1138,6 +1203,8 @@ export const api = {
   myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
   createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number }) =>
     post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
+  aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),
+  setAutoPray: (postId: string, on: boolean) => request<AiPrayers>('PUT', `/posts/${postId}/auto-pray`, { on }),
   fundTokenPool: (id: string, amount: number) => post<{ matched: number; poolBalance: number; balance: number }>(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
   closeTokenPool: (id: string) => post(`/token-pools/${id}/close`, {}),
   drawFromPool: (id: string, postId: string) => post<{ amount: number; reach: number }>(`/token-pools/${id}/draw`, { postId }),

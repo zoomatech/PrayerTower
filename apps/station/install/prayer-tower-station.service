@@ -21,16 +21,20 @@ StateDirectory=prayer-tower-station
 Restart=on-failure
 RestartSec=30
 RestartPreventExitStatus=3
-# The worker only talks HTTP to the API and to fldigi on this machine.
+# The worker only talks HTTP to the API, to fldigi and to rigctld on this machine.
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
-PrivateDevices=yes
+# Burst mode (BURST_MODE=audio) plays through the sound card: the only device
+# it may open is ALSA's /dev/snd (docs/STATION_OPERATOR_GUIDE.md).
+DevicePolicy=closed
+DeviceAllow=char-alsa rw
+SupplementaryGroups=audio
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes
-RestrictAddressFamilies=AF_INET AF_INET6
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 LockPersonality=yes
 
 [Install]

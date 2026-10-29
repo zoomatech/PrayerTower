@@ -15,7 +15,7 @@ The flow:
 
 Until the station is switched on, the placeholder transmitter only logs.
 
-**Burst mode** sends a whole batch of prayers, compressed, in one short burst (30 prayers in under 2 seconds on an FM radio). It is off by default; see [RADIO_BURST.md](RADIO_BURST.md).
+**Burst mode** sends a whole batch of prayers, compressed, in one short burst (30 prayers in under 2 seconds on an FM radio). It is off by default; see [RADIO_BURST.md](RADIO_BURST.md), and [STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md) for the radio setup and first tests.
 
 ## Rules the software enforces
 

@@ -103,6 +103,9 @@ to the old 2-10×. A PSK31 station still sends at most 50 copies.
 
 ## Station settings
 
+Setting up the radio, sound card and push-to-talk, and the first tests, are in
+[STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md).
+
 In `/etc/prayer-tower-station.env` (see `apps/station/install/station.env.example`):
 
 | Setting | Default | Meaning |
@@ -138,6 +141,31 @@ A live check on 2026-10-29 sent 20 queued prayers from the local API through
 decoded all 20, and all 20 were marked transmitted.
 
 To turn it on: set Admin → Radio → "Prayers per burst" above 1, set `BURST_MODE` (start with `simulate`), and run `sudo systemctl restart prayer-tower-station`.
+
+## Listen in a browser
+
+`/listen` on the Prayer Tower website decodes bursts from a phone or laptop
+microphone, so anyone near a radio can read the prayers as they play. It is
+off until Admin → Radio → "Listening page on" (shown once "Prayers per burst"
+is above 1); while off, `/listen` is a 404.
+
+- The decoding runs in the browser. The sound never leaves the device.
+- The page turns off the browser's echo cancelling, noise suppression and
+  automatic gain, which would otherwise wreck the signal.
+- It can also decode a recording (any audio file the browser can open).
+- It shows each frame's call sign, preset and measured signal, and can save a
+  channel report (`channel.json`) for `BURST_PRESET=auto`.
+- Through a speaker and a microphone, the slower presets (`fm-robust`,
+  `fm-robust-fec`, `fm-standard`) work best. The fast and QAM presets want a
+  cable from the radio to the computer.
+- It opens codec 0 and codec 3 frames (the station nearly always picks codec
+  3). A frame packed with DEFLATE or Brotli says so, and the station CLI
+  decodes it from a recording.
+
+The page's decoder is the station's own code (`src/burst/web.ts`), bundled
+into `apps/server/src/modules/listen/decoder.generated.ts`. After changing
+the decoder, run `npm run build:listen -w @prayer-tower/station`; a station
+test fails while the bundle is out of date.
 
 ## Auto preset
 
