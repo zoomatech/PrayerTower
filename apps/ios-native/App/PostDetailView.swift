@@ -21,6 +21,7 @@ struct PostDetailView: View {
     @State private var reporting: (type: String, id: String)?
     @State private var committing: Card?
     @State private var encouraging: Card?
+    @State private var gifting: Card?
     @State private var deleteArmed = false
     @State private var busy = false
     @State private var notice: String?
@@ -67,6 +68,7 @@ struct PostDetailView: View {
             Text(w("coolDown.lines.l\(Int.random(in: 0...3))"))
         }
         .sheet(item: $committing) { card in CommitSheet(card: card) { notice = $0 } }
+        .sheet(item: $gifting) { card in GiftSheet(card: card) { notice = $0 } }
         .sheet(item: $encouraging) { card in
             EncourageSheet(card: card) { note in
                 Task {
@@ -291,7 +293,7 @@ struct PostDetailView: View {
                 encouraging = card
                 return
             case .giftTokens:
-                notice = "\(action.name(model.wording)) is coming to this app soon. For now, use it in the Prayer Tower app."
+                gifting = card
                 return
             }
             AccessibilityNotification.Announcement("\(action.name(model.wording)): done").post()
