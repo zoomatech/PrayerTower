@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import * as beacon from './beacon.js';
+import * as ceaseless from './ceaseless.js';
 import * as nodes from './nodes.js';
 import * as oplog from './oplog.js';
 import * as schedule from './schedule.js';
@@ -107,6 +108,7 @@ export async function view(q: Queryable, now = new Date()) {
     }),
     relays: await nodes.relays(q, now),
     sky: await sky.now(q, now),
+    ceaseless: await ceaseless.summary(q),
     beacon: { enabled: b.enabled, minutes: b.minutes, recent: b.enabled ? await beacon.recent(q, now) : [] },
     log: log.map((r) => ({ at: r.time_utc, callSign: r.call_sign, station: r.station, preset: r.preset, status: r.status, heard: r.heard, error: r.error, text: r.contents.slice(0, 140) })),
   };

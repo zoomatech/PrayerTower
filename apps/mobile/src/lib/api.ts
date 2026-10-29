@@ -239,6 +239,8 @@ export interface Features {
   /** Ten one-time backup codes for a lost phone, and passkey sign-in (web). */
   backupCodes: boolean;
   passkeys: boolean;
+  /** "Keep on the air" on a member's own request (prayer without ceasing). */
+  keepOnAir: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -728,6 +730,8 @@ export interface RadioConsole {
   log: { at: string; callSign: string; station: string; preset: string; status: string; heard: boolean; error: string | null; text: string }[];
   beacon: { enabled: boolean; minutes: number; recent: RadioBeacon[] };
   sky: SkyNow | null;
+  /** Prayer without ceasing: kept requests re-sent when the air is quiet. Null while off. */
+  ceaseless: { enabled: boolean; gapMinutes: number; inRotation: number; sentLastDay: number } | null;
   relays: { node: string; reportedAt: string; callSign: string; relayedLastHour: number; secondsLastHour: number; budgetSeconds: number; skipped: Record<string, number> }[];
 }
 
@@ -1758,6 +1762,7 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
   precheck: (text: string, context?: 'lament' | 'lamentReply') => post<Precheck>('/moderation/precheck', { text, context }).catch((): Precheck => ({ warn: false })),
+  setKeepOnAir: (id: string, on: boolean) => request<{ keepOnAir: boolean }>('PUT', `/posts/${id}/keep-on-air`, { on }),
   setLament: (id: string, patch: { lament?: boolean; radio?: boolean }) => request<{ lament: boolean; lamentRadio: boolean }>('PUT', `/posts/${id}/lament`, patch),
   appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
   appeals: () => get<{ appeals: Appeal[] }>('/moderation/appeals'),
@@ -1883,6 +1888,8 @@ export const api = {
     radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
     setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
     operatorAlerts: () => get<{ enabled: boolean }>('/admin/radio-operator-alerts'),
+    radioCeaseless: () => get<{ enabled: boolean; gapMinutes: number }>('/admin/radio-ceaseless'),
+    setRadioCeaseless: (patch: { enabled?: boolean; gapMinutes?: number }) => request<{ enabled: boolean; gapMinutes: number }>('PATCH', '/admin/radio-ceaseless', patch),
     radioSky: () => get<{ settings: SkySettings; now: SkyNow | null }>('/admin/radio-sky'),
     setRadioSky: (patch: Partial<SkySettings>) => request<{ settings: SkySettings; now: SkyNow | null }>('PATCH', '/admin/radio-sky', patch),
     radioBeacon: () => get<{ enabled: boolean; minutes: number }>('/admin/radio-beacon'),

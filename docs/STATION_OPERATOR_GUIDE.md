@@ -24,6 +24,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
 | Operator alerts (push on station problems) | Admin → Radio → Operator alerts | [Operator alerts](#operator-alerts) |
 | Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
+| Prayer without ceasing (kept requests go out again when the air is quiet) | Admin → Radio → Prayer without ceasing | [Prayer without ceasing](#prayer-without-ceasing) |
 | Dish and sky target (where to point, rotator follows, hold while low) | Admin → Radio → Dish and sky target, plus `ROTATOR=rotctld` to turn a rotator | [Dish and sky target](#dish-and-sky-target) |
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
 | Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
@@ -406,6 +407,7 @@ One screen for the control operator: Me → **Operator console**. It is off unti
 | Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10 with their wait, urgency and repeats. |
 | Relays | Each [store-and-forward relay](RADIO_BURST.md#store-and-forward-relay) that reported in the last hour: frames re-sent and air time used of its budget, and frames it did not re-send by reason. A relay sends this with its listener heartbeat. |
 | Reception beacon | When the [reception beacon](#reception-beacon) is on: the last day's beacons and every receiver that heard each one, with its SNR. |
+| Prayer without ceasing | When [prayer without ceasing](#prayer-without-ceasing) is on: how many kept requests are in the rotation, the quiet time before one goes out, and how many went out again in the last day. |
 | Dish and sky target | When the [sky target](#dish-and-sky-target) is on and the dish location is set: where to point now (azimuth and elevation), when the target next rises or sets past the lowest useful elevation, and whether transmissions are held because it is too low. |
 | Log | The last 20 transmissions in 24 hours (the same rows as the [operator log](#operator-log)): time, call sign, preset, sent or failed, heard by a listener, and the text. |
 
@@ -420,6 +422,12 @@ Off until an admin turns on **Operator alerts** in Admin → Radio (under the op
 Off until an admin turns on **Reception beacon** in Admin → Radio (under the operator console switch) and picks how often: every 30, 60 (the default), 120 or 240 minutes. Each time, the station sends the setup wizard's short test burst ("Station test" and a code, with its call sign in the frame). The station needs no new settings, and the setup wizard itself can stay off. Every listener node and listening page that decodes the beacon reports it, and each receiver is kept with its signal-to-noise ratio. The operator console shows the last 24 hours: when each beacon went out, which receivers heard it and how strongly, or that none did. This makes changes in reception through the day easy to see.
 
 No beacon goes out while the console's hold is on or outside the transmission windows. Turning the beacon off drops any beacon still waiting for the station. While a beacon is waiting (up to 5 minutes), a setup wizard test has to wait for it.
+
+## Prayer without ceasing
+
+From the notebook's Digital Prayer Signal Codec page ("prayer without ceasing"). Off until an admin turns on **Prayer without ceasing** in Admin → Radio and picks the quiet time: 15, 30 (the default), 60 or 120 minutes.
+
+While it is on, a member sees **Keep on the air** on their own prayer request. When nothing else is waiting and the station has sent nothing for the quiet time, the server queues one kept request again, free, the one sent longest ago first. Members' new radio prayers always go first. A re-send goes out like any radio prayer: the hold, the transmission windows, the sky-target hold, moderation and the content checks all apply. A request drops out of the rotation when it is answered, removed, marked sensitive, or a lament kept off the radio, or when its author turns **Keep on the air** off. Turning the switch off drops any re-send still waiting for the station.
 
 ## Dish and sky target
 
