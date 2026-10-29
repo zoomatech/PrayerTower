@@ -87,6 +87,15 @@ The modes:
 - **fldigi**: each frame is one line of text, `PTB1 CALL <base64>`, sent in a fast fldigi mode. This uses an existing fldigi setup with no new audio wiring. It is slower than `audio`, because the frame goes through fldigi's character coding.
 - **simulate**: nothing is keyed. Each burst is written to `BURST_DIR`, decoded back, and the log shows exactly what a receiver would hear. Use this to try burst mode against the live queue before going on the air.
 
+Each burst is logged to Prayer Tower (`POST /station/bursts`). With "Prayers per
+burst" above 1, Admin → Radio lists the latest bursts: prayers, air time, bytes,
+frames, preset and mode. In `simulate` mode it also shows how many prayers a
+receiver decoded back, and a line turns red if any were lost or the burst failed.
+
+A live check on 2026-10-29 sent 20 queued prayers from the local API through
+`simulate` on `fm-fast`. They went in one 0.56 s frame of 117 bytes, a receiver
+decoded all 20, and all 20 were marked transmitted.
+
 To turn it on: set Admin → Radio → "Prayers per burst" above 1, set `BURST_MODE` (start with `simulate`), and run `sudo systemctl restart prayer-tower-station`.
 
 ## Receiving (anyone can decode)

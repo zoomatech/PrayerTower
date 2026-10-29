@@ -11,11 +11,26 @@ export interface ClaimedPrayer {
   repeats?: number;
 }
 
+export interface BurstLog {
+  callSign: string;
+  mode: 'audio' | 'fldigi' | 'simulate';
+  preset: string;
+  prayers: number;
+  frames: number;
+  bytes: number;
+  seconds: number;
+  decoded: number | null;
+  ok: boolean;
+  error?: string;
+}
+
 export interface StationApi {
   claim(): Promise<ClaimedPrayer | null>;
   /** Up to `max` prayers at once (burst mode); empty when none are waiting. */
   claimBatch?(max: number): Promise<ClaimedPrayer[]>;
   report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string }): Promise<void>;
+  /** Log a burst for Admin → Radio (burst mode). Best effort: a failure here never stops the station. */
+  reportBurst?(burst: BurstLog): Promise<void>;
 }
 
 export interface StationConfig {
@@ -115,6 +130,10 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
     async report(id, result) {
       const res = await post(`/station/radio-prayers/${id}/result`, result);
       if (!res.ok) throw new Error(`report failed (${res.status})`);
+    },
+    async reportBurst(burst) {
+      const res = await post('/station/bursts', burst);
+      if (!res.ok) throw new Error(`burst log failed (${res.status})`);
     },
   };
 }
