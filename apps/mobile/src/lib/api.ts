@@ -195,6 +195,7 @@ export interface Features {
   restingThreads: boolean;
   thisHelped: boolean;
   offerSorry: boolean;
+  videoCircles: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -1447,7 +1448,17 @@ export type OncallStatus = {
   notes: { id: string; author_name: string | null; body: string; created_at: string }[];
 };
 export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
-export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
+export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number; circles_enabled: boolean };
+/** A private video circle about a Mend (docs/VIDEO_CIRCLES.md). */
+export interface VideoCircle {
+  id: string;
+  role: 'hurt' | 'author' | 'moderator';
+  status: 'asked_hurt' | 'asked_author' | 'ready' | 'declined' | 'ended';
+  note: string | null;
+  questions: string[];
+  canAnswer: boolean;
+  roomUrl: string | null;
+}
 export type AiTurn = { role: 'user' | 'assistant'; content: string };
 export type CircleRole = 'harmed' | 'caused' | 'unsure';
 export type CircleRequest = { id: string; userId: string; displayName: string; role: CircleRole; summary: string; status: 'open' | 'closed'; createdAt: string };
@@ -1908,7 +1919,7 @@ export const api = {
       get<{ year: number; awards: Award[]; standings: { rank: number; userId: string; name: string; prayers: number; checkins: number; peoplePrayedFor: number }[] }>(`/admin/awards/${year}`),
     selectAwards: (year: number) => post<{ year: number; awards: Award[] }>(`/admin/awards/${year}/select`),
     liveSettings: () => get<{ settings: LiveSettings }>('/admin/live-settings'),
-    updateLiveSettings: (patch: { enabled?: boolean; jitsiUrl?: string; maxMinutes?: number }) =>
+    updateLiveSettings: (patch: { enabled?: boolean; jitsiUrl?: string; maxMinutes?: number; circlesEnabled?: boolean }) =>
       request<{ settings: LiveSettings }>('PATCH', '/admin/live-settings', patch),
     aiSettings: () => get<{ settings: AiSettings; aiConnected: boolean }>('/admin/ai-settings'),
     updateAiSettings: (patch: { chatDailyLimit?: number; facilitatorEnabled?: boolean; facilitatorDailyLimit?: number; autoPrayEnabled?: boolean; autoPrayPerDay?: number; autoPrayDailyLimit?: number; autoPrayDays?: number }) =>
@@ -2455,6 +2466,10 @@ export const api = {
   closeMend: (id: string) => post<{ mend: Mend }>(`/mends/${id}/close`),
   mendQueue: () => get<{ mends: Mend[] }>('/moderation/mends'),
   reviewMend: (id: string, approve: boolean, note?: string) => post<{ status: MendStatus }>(`/moderation/mends/${id}`, note ? { approve, note } : { approve }),
+  videoCircle: (mendId: string) => get<{ circle: VideoCircle | null }>(`/mends/${mendId}/video-circle`),
+  offerVideoCircle: (mendId: string, note?: string) => post<{ circle: VideoCircle }>(`/moderation/mends/${mendId}/video-circle`, note ? { note } : {}),
+  answerVideoCircle: (id: string, join: boolean) => post<{ circle: VideoCircle }>(`/video-circles/${id}/answer`, { join }),
+  endVideoCircle: (id: string) => post<{ circle: VideoCircle }>(`/video-circles/${id}/end`),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   freshDays: () => get<{ days: FreshStartDay[] }>('/me/fresh-days'),
   addFreshDay: (input: { month: number; day: number; label: string }) => post<{ days: FreshStartDay[] }>('/me/fresh-days', input),
