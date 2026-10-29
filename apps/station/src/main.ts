@@ -32,6 +32,7 @@ import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTra
 import { runBurstOnce } from './burst/worker.js';
 import { RIG_MODES, rigctldClient, tuneRig, type Rig } from './rig.js';
 import { StationId } from './station-id.js';
+import { runSetupTestOnce } from './setup-test.js';
 import { stationChecks } from './status.js';
 
 const env = (name: string, fallback?: string) => {
@@ -181,9 +182,20 @@ else if (usesFldigi) await fldigi.setModem(cfg.modem);
 console.log(
   `[station] ${callSign} ready, ${burst ? `burst ${burstMode} ${burst.cfg.choosePreset ? 'auto preset' : burst.cfg.preset.name}, up to ${burst.cfg.maxPrayers} prayers a burst` : cfg.modem}, polling every ${pollMs / 1000}s`,
 );
+// The setup wizard's tests (setup-test.ts), checked before each claim; burst mode only.
+const setupTests = async () => {
+  if (!burst || !api.setupTest || !api.setupResult) return;
+  try {
+    await runSetupTestOnce({ setupTest: api.setupTest, setupResult: api.setupResult }, burst.tx, burst.cfg);
+  } catch (err) {
+    console.error(`[station] setup test: ${(err as Error).message}`);
+  }
+};
+
 while (!stopping) {
   beat();
   await reportStatus();
+  await setupTests();
   try {
     const idle = burst ? (await runBurstOnce(api, burst.tx, burst.cfg)).kind === 'idle' : (await runOnce(api, fldigi, cfg)) === 'idle';
     if (idle) await new Promise((r) => setTimeout(r, pollMs));

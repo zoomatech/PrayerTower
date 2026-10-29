@@ -50,7 +50,7 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
   if (layout === 'wall') return frame(wallBackdrop(theme), <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   if (layout !== 'vine') return frame(colors.background, <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   const v = vineTokens(theme);
-  const mark = (size: number) => (v.leafShape === 'flower' || v.leafShape === 'star' ? <LeafMark shape={v.leafShape} leaf={v.leaf} accent={v.tendril} size={size} /> : undefined);
+  const mark = (size: number) => (v.vineStyle !== 'floral' && (v.leafShape === 'flower' || v.leafShape === 'star') ? <LeafMark shape={v.leafShape} leaf={v.leaf} accent={v.tendril} size={size} /> : undefined);
   // The drawn vine in miniature: a request in its leaf, then a comment leaf below it on the other side.
   return (
     <View style={[styles.preview, styles.vinePreview, { height, backgroundColor: v.backdrop || colors.background }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={testID}>

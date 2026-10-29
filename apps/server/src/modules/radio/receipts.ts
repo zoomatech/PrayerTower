@@ -50,6 +50,8 @@ export const HeardReport = z.object({
   preset: z.string().trim().min(1).max(40),
   snrDb: z.number().min(-50).max(100),
   hashes: z.array(z.string().regex(/^[0-9a-f]{32}$/)).min(1).max(500),
+  /** The receiver's loudest sample around the frame, in dBFS (listener nodes; the setup wizard's level check). */
+  peakDbfs: z.number().min(-200).max(20).optional(),
 });
 
 /** How long after it went out a prayer can still be reported heard. */

@@ -14,9 +14,10 @@
 import { COMMENT_TEXT, contrastRatio, type Card, type Comment, type FeedTheme, type PostState } from '@prayer-tower/shared';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, FlatList, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui';
+import { BlurredLeaves } from '@/components/comment-tree';
 import { CardSurface } from '@/components/post-card';
 import { GateArch } from '@/components/gate-arch';
 import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
@@ -65,7 +66,7 @@ const DEFAULTS = {
 type VineTokens = typeof DEFAULTS;
 export const LEAF_SHAPES = ['round', 'pointed', 'flower', 'star', 'tablet'] as const;
 export type LeafShape = (typeof LEAF_SHAPES)[number];
-const VINE_STYLES: VineStyle[] = ['', 'beanstalk', 'ink', 'neon', 'gate'];
+const VINE_STYLES: VineStyle[] = ['', 'beanstalk', 'ink', 'neon', 'gate', 'floral'];
 
 /** Theme tokens override the defaults key by key; wrong types are ignored. */
 export function vineTokens(theme: FeedTheme | null): VineTokens {
@@ -110,7 +111,7 @@ const MAX_TENDRILS = 5;
 /** Space above a comment leaf: closer than between requests, so they read as the request's own. */
 const COMMENT_GAP = 26;
 
-function Fruit({ card, pinned, tokens, side, from, gap, children }: { card: Card; pinned: boolean; tokens: VineTokens; side: VineSide; from: VineSide | null; gap: number; children: React.ReactNode }) {
+function Fruit({ card, pinned, tokens, side, from, gap, fresh, children }: { card: Card; pinned: boolean; tokens: VineTokens; side: VineSide; from: VineSide | null; gap: number; fresh: boolean; children: React.ReactNode }) {
   const { t } = useLocale();
   const reduced = useReducedMotion();
   const grow = useRef(new Animated.Value(reduced ? 1 : 0)).current;
@@ -119,18 +120,30 @@ function Fruit({ card, pinned, tokens, side, from, gap, children }: { card: Card
   const on = (color: string) => (/^#[0-9A-Fa-f]{6}$/.test(color) && /^#[0-9A-Fa-f]{6}$/.test(under) && contrastRatio(color, under) >= 4.5 ? color : textOn(under));
   useEffect(() => {
     if (reduced) return grow.setValue(1);
-    Animated.spring(grow, { toValue: 1, friction: 7, tension: 50, useNativeDriver: false }).start();
-  }, [grow, reduced]);
+    // A new post unfurls from its stem once the stalk has grown down to it; the first page just settles in.
+    const spring = Animated.spring(grow, { toValue: 1, friction: fresh ? 6 : 7, tension: fresh ? 30 : 50, useNativeDriver: false });
+    if (fresh) Animated.sequence([Animated.delay(450), spring]).start();
+    else spring.start();
+  }, [grow, reduced, fresh]);
   const surface = useMemo(() => leafCardSurface(tokens), [tokens]);
-  const mark = tokens.leafShape === 'flower' || tokens.leafShape === 'star' ? <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={26} /> : undefined;
+  const mark = tokens.vineStyle !== 'floral' && (tokens.leafShape === 'flower' || tokens.leafShape === 'star') ? <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={26} /> : undefined;
 
   return (
-    <VineRow from={from} side={side} look={tokens} gap={gap} seed={hashId(card.id)}>
+    <VineRow from={from} side={side} look={tokens} gap={gap} seed={hashId(card.id)} grow={fresh}>
       <Animated.View
         accessibilityLabel={t(`vine.ripeness.${card.state}`)}
         style={[
           card.state === 'answered' && { ...styles.bloom, shadowColor: colors.gold },
-          { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
+          fresh
+            ? {
+                opacity: grow,
+                transform: [
+                  { translateY: grow.interpolate({ inputRange: [0, 1], outputRange: [-40, 0] }) },
+                  { rotate: grow.interpolate({ inputRange: [0, 1], outputRange: [side === 'left' ? '-14deg' : '14deg', '0deg'] }) },
+                  { scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
+                ],
+              }
+            : { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
         <LeafFrame side={side} look={tokens} bare mark={mark}>
           <CardSurface.Provider value={surface}>
@@ -275,6 +288,20 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
     return out;
   }, [cards, leaves, tokens.leafEvery, tokens.scenery, tokens.vineStyle]);
 
+  // Posts that were already here when the feed opened settle in; ones that arrive later grow in.
+  const known = useRef<Set<string> | null>(null);
+  if (known.current === null && cards.length) known.current = new Set(cards.map((c) => c.id));
+  useEffect(() => {
+    if (known.current) for (const c of cards) known.current.add(c.id);
+  }, [cards]);
+  // When a comment or post arrives, the leaves below shuffle down to make room.
+  const reduced = useReducedMotion();
+  const shown = useRef(items.length);
+  useEffect(() => {
+    if (items.length !== shown.current && shown.current > 0 && !reduced) LayoutAnimation.configureNext(LayoutAnimation.create(420, LayoutAnimation.Types.spring, LayoutAnimation.Properties.scaleXY));
+    shown.current = items.length;
+  }, [items.length, reduced]);
+
   const onScroll = useCallback(() => {
     const now = Date.now();
     if (now - lastScroll.current > 1000) {
@@ -290,7 +317,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         keyExtractor={(it) => (it.kind === 'fruit' ? it.card.id : it.key)}
         renderItem={({ item }) =>
           item.kind === 'fruit' ? (
-            <Fruit card={item.card} pinned={item.card.id === pinnedId} tokens={tokens} side={item.side} from={item.from} gap={item.gap}>
+            <Fruit card={item.card} pinned={item.card.id === pinnedId} tokens={tokens} side={item.side} from={item.from} gap={item.gap} fresh={!!known.current && !known.current.has(item.card.id)}>
               {/* Its comments hang below as their own leaves, so the card doesn't repeat one. */}
               {renderCard(item.card.leafComments?.length ? { ...item.card, topComment: null } : item.card)}
             </Fruit>
@@ -310,11 +337,11 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
             </VineRow>
           ) : item.kind === 'more' ? (
             <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={2} seed={item.count}>
-              <Pressable accessibilityRole="button" onPress={() => router.push(`/post/${item.postId}`)} style={[styles.more, item.side === 'left' ? styles.moreLeft : styles.moreRight]}>
-                {[0.35, 0.22, 0.12].map((o, k) => (
-                  <View key={k} style={[styles.ghost, { opacity: o, backgroundColor: tokens.leaf, left: k * 12, top: 6 + k * 6, transform: [{ rotate: `${(k - 1) * 8}deg` }] }]} />
-                ))}
-                <Text style={[styles.moreText, tokens.backdrop ? { color: textOn(tokens.backdrop) } : null]}>{t('vine.moreComments', { count: item.count })}</Text>
+              <Pressable accessibilityRole="button" onPress={() => router.push(`/post/${item.postId}`)}>
+                {/* The older comments wait behind frosted glass. */}
+                <BlurredLeaves look={tokens} depth={1} side={item.side} peek={[]}>
+                  <Text style={styles.moreText}>{t('vine.moreComments', { count: item.count })}</Text>
+                </BlurredLeaves>
               </Pressable>
             </VineRow>
           ) : item.kind === 'gate' ? (
@@ -368,11 +395,8 @@ const styles = StyleSheet.create({
   scriptureText: { fontSize: 15, lineHeight: 21, fontStyle: 'italic', fontFamily: 'serif', color: colors.text },
   commentName: { fontSize: 13, fontWeight: '700', color: COMMENT_TEXT },
   commentBody: { fontSize: 14, lineHeight: 19, color: COMMENT_TEXT },
-  more: { height: 44, justifyContent: 'center', paddingLeft: 56, width: '62%' },
-  moreLeft: { alignSelf: 'flex-start' },
-  moreRight: { alignSelf: 'flex-end' },
-  ghost: { position: 'absolute', width: 38, height: 26, borderTopLeftRadius: 20, borderBottomRightRadius: 20, borderTopRightRadius: 3, borderBottomLeftRadius: 3 },
-  moreText: { ...type.small, color: colors.text, fontWeight: '700' },
+  // On its own light pill, so it reads over the frosted leaves on any skin.
+  moreText: { ...type.small, color: colors.text, fontWeight: '700', backgroundColor: colors.surface, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs, overflow: 'hidden' },
   tip: { alignItems: 'center', gap: space.sm },
   tipStem: { width: 4, height: 40, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
   blossom: { width: 22, height: 22, borderRadius: radius.pill, backgroundColor: colors.gold, borderWidth: 4, borderColor: colors.goldSoft },
