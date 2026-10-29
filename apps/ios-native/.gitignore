@@ -6,3 +6,5 @@ App/Info.plist
 App/PrayerTowerNative.entitlements
 Widgets/Info.plist
 Widgets/PrayerTowerWidgets.entitlements
+Console/Info.plist
+Console/PrayerTowerConsole.entitlements

@@ -44,6 +44,7 @@ struct PostDetailView: View {
                 if let radio = Binding($card) { RadioSection(card: radio) }
                 if card.isMine { Section { LiveFollowView(card: card) } }
                 if prayable, let prayers { Section { prayedList(prayers) } }
+                if prayable { Section { PowerPrayerSection(card: card) } }
                 Section(w("post.comments")) { commentList }
                 if let rc = replyChoice, rc.enabled, rc.isMine { Section { replyChoicePicker(rc) } }
                 if ReplyChoiceState.showsComposer(replyChoice) {
