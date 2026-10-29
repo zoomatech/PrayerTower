@@ -38,13 +38,15 @@ The greeting research found **no published counts** of greeting → reply → fo
 ## Meanings in the icon row (off)
 
 Admin → Conversation helpers → **Meanings in the icon row**. Needs **Emoji meanings** on too.
-The emoji join the single icon row on every post card, so every feed skin (vine, tower,
-neon, wall, and the rest) gets them without its own code: all skins draw cards with
-`PostCard`. A tap adds the emoji's first meaning. Press and hold (or the screen reader's
-"choose" action) opens up to five meanings in a sheet at the bottom of the screen, so no
-skin clips it. Hovering with an iPad pointer or a Mac shows the words above the icon.
-Each icon is 44 points, has a spoken label, and reading the chosen meaning is announced.
-The meaning list is fetched once per session, not once per card.
+Every card keeps its one row of action icons in every feed skin (Steve, 2026-10-29: one
+row, meanings on hover or long press). No icons are added. The actions that match an
+emoji carry its meanings: Praying Now 🙏, Well Wishes ❤️, Encourage 🫂 and Commit 💪
+(`ACTION_EMOJI` in `components/meaning-chooser.tsx`). Hovering with an iPad pointer or a
+Mac shows the action's name with the emoji's meanings. Pressing and holding (or the
+screen reader's "choose" action) opens up to five meanings in a sheet at the bottom of
+the screen, so no skin clips it. A plain tap still does the action. Every target stays
+44 points. On the request's own page the full meaning tree with its leaves sits below
+instead. The meaning list is fetched once per session, not once per card.
 
 ## Kindness research page (off)
 

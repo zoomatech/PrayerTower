@@ -25,8 +25,8 @@ export function growthRoutes(app: FastifyInstance, db: Db) {
   // 2. Prayer chain.
   app.get('/me/prayer-chain', async (req) => ({ people: await growth.listChain(db, requireUser(req)) }));
   app.post('/me/prayer-chain', async (req, reply) => {
-    const { email } = growth.ChainMember.parse(req.body);
-    const r = await withTx(db, (tx) => growth.addChainMember(tx, requireUser(req), email));
+    const to = growth.ChainMember.parse(req.body);
+    const r = await withTx(db, (tx) => growth.addChainMember(tx, requireUser(req), to));
     reply.code(201);
     return r;
   });
@@ -124,15 +124,17 @@ function chainPage(opts: site.SiteOptions, token: string, e: NonNullable<Awaited
   const s = e.secular;
   const name = esc(e.ownerName);
   const what = s ? `${name}'s requests for support` : `${name}'s prayer requests`;
+  const by = e.byText ? 'by text message' : 'by email';
+  const msgs = e.byText ? 'texts' : 'emails';
   const body =
     e.status === 'confirmed'
-      ? `<h1>You're on ${name}'s list.</h1><p>You'll get ${what} by email.</p>
-<form method="post" action="/chain/${esc(token)}"><input type="hidden" name="join" value="no"><button class="button" type="submit" style="border:0;cursor:pointer">Stop these emails</button></form>`
+      ? `<h1>You're on ${name}'s list.</h1><p>You'll get ${what} ${by}.</p>
+<form method="post" action="/chain/${esc(token)}"><input type="hidden" name="join" value="no"><button class="button" type="submit" style="border:0;cursor:pointer">Stop these ${msgs}</button></form>`
       : e.status === 'left'
-        ? `<h1>You won't get any more emails.</h1><p>You won't get ${what}. Changed your mind?</p>
+        ? `<h1>You won't get any more ${msgs}.</h1><p>You won't get ${what}. Changed your mind?</p>
 <form method="post" action="/chain/${esc(token)}"><input type="hidden" name="join" value="yes"><button class="button" type="submit" style="border:0;cursor:pointer">Join again</button></form>`
         : `<h1>${s ? `${name} would like to keep you posted.` : `${name} asked you to join their prayer chain.`}</h1>
-<p>If you say yes, you'll get ${what} by email, each with a one-tap link to let them know you ${s ? 'are thinking of them' : 'prayed'}. No app or account needed.</p>
+<p>If you say yes, you'll get ${what} ${by}, each with a one-tap link to let them know you ${s ? 'are thinking of them' : 'prayed'}. No app or account needed.</p>
 <form method="post" action="/chain/${esc(token)}" style="display:inline"><input type="hidden" name="join" value="yes"><button class="button" type="submit" style="border:0;cursor:pointer">Yes, send them to me</button></form>
 <form method="post" action="/chain/${esc(token)}" style="display:inline"><input type="hidden" name="join" value="no"><button class="button" type="submit" style="border:0;cursor:pointer">No thanks</button></form>`;
   return site.layout(s ? 'Keep in touch' : 'Prayer chain', body, '', 'en', brandFor(opts, s));

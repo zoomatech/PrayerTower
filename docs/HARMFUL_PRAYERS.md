@@ -33,6 +33,8 @@ Each category's action is an admin setting: `hold`, `review` or `allow` (abuse: 
 
 Before posting, `POST /moderation/precheck` returns `harm: { category, action, title, message, resources[] }` (or `null`). The gentle "Are you sure?" cloud (thread "Research UI that encourages kind interaction") shows the message and any hotline links. The same object comes back from `POST /posts`, comments and messages. The words redirect, never lecture. For example, for a prayer for harm: "The Psalms are honest about enemies, and they leave vengeance to God. Try asking for justice, protection, and healing for what they did to you."
 
+Open Circle members (and any community with neutral wording) get the same redirects without religious words: no God, Psalms or Bible verses. For example: "It is fine to be honest about someone who hurt you. Try asking for fairness, safety, and healing for what they did to you." The hotlines are the same.
+
 Abuse hotlines (US), from the CDC's [Get Help Right Now](https://www.cdc.gov/howrightnow/get-help) page: 911 if in danger; National Domestic Violence Hotline 1-800-799-7233 or text START to 88788 (also on [MNADV](https://www.mnadv.org/get-help/24-hour-national-hotline/)); RAINN 800-656-4673; Childhelp 1-800-422-4453.
 
 ## Floods

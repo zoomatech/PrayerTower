@@ -16,6 +16,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
+import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
@@ -226,6 +227,8 @@ export async function features(q: Queryable) {
     materialMatch: match[0]?.enabled === true,
     /** Growth ideas (modules/growth, Admin → Growth). */
     ...(await growth.features(q)),
+    /** Giving split (modules/giving-split, Admin → Giving split). */
+    ...(await givingSplit.features(q)),
     /** Growth practices: follow-ups, gratitude card, gentle rhythm (modules/practices, Admin → Growth practices). */
     ...(await practices.features(q)),
     /** Conversation helpers: reply suggestions, meaning words, care after "how are you", greeting packs, own words, kind closings. */

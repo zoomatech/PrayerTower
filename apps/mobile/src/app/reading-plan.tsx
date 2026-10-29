@@ -12,7 +12,7 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function ReadingPlanScreen() {
-  const { t } = useLocale();
+  const { t, wording } = useLocale();
   const [now, setNow] = useState<ReadingPlanToday | null>(null);
   const [plans, setPlans] = useState<StaffReadingPlan[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +41,17 @@ export default function ReadingPlanScreen() {
       load();
     }, fail);
 
+  // A Bible plan and church partners are for faith communities; Open Circle never sees them, even from a link.
+  if (wording === 'neutral') {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+          <Text style={type.body}>{t('ai.chatUnavailable')}</Text>
+        </ScrollView>
+      </Screen>
+    );
+  }
   const plan = now?.enabled ? now.plan : null;
   return (
     <Screen>

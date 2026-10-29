@@ -69,6 +69,7 @@
       [
         "expo-widgets",
         {
+          "enablePushNotifications": true,
           "widgets": [
             {
               "name": "PrayNow",

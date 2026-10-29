@@ -10,6 +10,7 @@ import { useLocale } from '@/lib/i18n';
 import { parseLocal, REPEAT_OPTIONS, WHEN_OPTIONS } from '@/lib/schedule';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
+import { PostGivingSplit } from './giving-split';
 import { KindCloud } from './kind-cloud';
 import { OutsideShareButton } from './outside-share';
 import { Button, Chip, ErrorText, Field, RulesWarning } from './ui';
@@ -204,6 +205,7 @@ export function useCardActions(onChanged: () => void) {
       <>
         <Text style={type.heading}>{label('action', 'gift_tokens', 'Gift Tokens')}</Text>
         <Text style={type.body}>{t('actions.giftNote')}</Text>
+        <PostGivingSplit postId={sheet.card.id} name={sheet.card.author.anonymous ? null : sheet.card.author.displayName} />
         <Field label={t('actions.howMany')} value={text} onChangeText={setText} keyboardType="number-pad" maxLength={5} />
         <Text style={styles.label}>{t('actions.when')}</Text>
         <View style={styles.chips}>

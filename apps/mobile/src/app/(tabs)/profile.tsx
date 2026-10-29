@@ -30,6 +30,7 @@ import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
+import { GivingSplitChoice } from '@/components/giving-split';
 import { SupportLinkField } from '@/components/support-link';
 import { TownField } from '@/components/town-field';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
@@ -286,7 +287,8 @@ export default function Profile() {
           <Toggle label={t('across.toggle')} hint={t('across.toggleHint')} value={!!profile.open_to_other_communities} onChange={(v) => update({ openToOtherCommunities: v })} />
         ) : null}
         {features.memberTown ? <TownField town={profile.town} onSave={(town) => update({ town })} /> : null}
-        {features.supportLinks ? <SupportLinkField url={profile.support_url} onSave={(supportUrl) => update({ supportUrl })} /> : null}
+        {features.supportLinks || features.givingSplit ? <SupportLinkField url={profile.support_url} onSave={(supportUrl) => update({ supportUrl })} /> : null}
+        <GivingSplitChoice key={profile.support_url ?? ''} />
         <CommunityPicker />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />
