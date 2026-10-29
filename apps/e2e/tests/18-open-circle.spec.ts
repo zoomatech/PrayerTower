@@ -3,7 +3,7 @@
 // violation (axe-core, as in 07-accessibility). Set OPEN_CIRCLE_SHOTS to a
 // folder to keep a screenshot of each screen.
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Response } from '@playwright/test';
 
 import { db, DEMO_PASSWORD, postIdByText, unique } from './helpers';
 
@@ -89,7 +89,16 @@ test('an Open Circle member never sees religious wording or an accessibility vio
 async function walk(page: Page, postId: string, written: string[], prefix: string) {
   const found: string[] = [];
   const a11y: string[] = [];
+  // As in 22-pilot-walk: no screen may crash or get a server error.
+  let here = '';
+  const onError = (e: Error) => a11y.push(`${here}: page error ${e.message.slice(0, 200)}`);
+  const onResponse = (r: Response) => {
+    if (r.status() >= 500) a11y.push(`${here}: ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`);
+  };
+  page.on('pageerror', onError);
+  page.on('response', onResponse);
   for (const path of [...SCREENS, `/post/${postId}`]) {
+    here = path;
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
@@ -99,5 +108,7 @@ async function walk(page: Page, postId: string, written: string[], prefix: strin
     for (const v of violations) a11y.push(`${path}: ${v.id} (${v.impact}) ${v.help} → ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`);
     if (shots) await page.screenshot({ path: `${shots}/${prefix}${path === '/' ? 'feed' : path.slice(1).replace(/\//g, '-').replace(/-[0-9a-f-]{36}$/, '')}.png`, fullPage: true });
   }
+  page.off('pageerror', onError);
+  page.off('response', onResponse);
   return { words: found, a11y };
 }
