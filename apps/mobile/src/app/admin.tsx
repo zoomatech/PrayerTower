@@ -1389,6 +1389,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.squireBoard')} hint={t('admin.toggle.squireBoardHint')} value={s.squire_board_enabled} onChange={(v) => save({ squireBoardEnabled: v })} />
       <Toggle label={t('admin.toggle.groupGifts')} hint={t('admin.toggle.groupGiftsHint')} value={s.group_gifts_enabled} onChange={(v) => save({ groupGiftsEnabled: v })} />
       <Toggle label={t('admin.toggle.prayerList')} hint={t('admin.toggle.prayerListHint')} value={s.prayer_list_enabled} onChange={(v) => save({ prayerListEnabled: v })} />
+      <Toggle label={t('admin.toggle.readingPlan')} hint={t('admin.toggle.readingPlanHint')} value={s.reading_plan_enabled} onChange={(v) => save({ readingPlanEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />

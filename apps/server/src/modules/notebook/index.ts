@@ -58,6 +58,7 @@ export interface NotebookSettings {
   squire_board_days: number;
   group_gifts_enabled: boolean;
   prayer_list_enabled: boolean;
+  reading_plan_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
@@ -65,7 +66,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, kind_cloud_enabled, meaning_reactions_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled, squire_board_enabled, squire_board_days, group_gifts_enabled, prayer_list_enabled from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, kind_cloud_enabled, meaning_reactions_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled, squire_board_enabled, squire_board_days, group_gifts_enabled, prayer_list_enabled, reading_plan_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -107,6 +108,7 @@ export const SettingsPatch = z.object({
   squireBoardDays: z.number().int().min(1).max(365).optional(),
   groupGiftsEnabled: z.boolean().optional(),
   prayerListEnabled: z.boolean().optional(),
+  readingPlanEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -135,7 +137,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        support_links_enabled = coalesce($32, support_links_enabled),
        squire_board_enabled = coalesce($33, squire_board_enabled), squire_board_days = coalesce($34, squire_board_days),
        group_gifts_enabled = coalesce($35, group_gifts_enabled),
-       prayer_list_enabled = coalesce($36, prayer_list_enabled)`,
+       prayer_list_enabled = coalesce($36, prayer_list_enabled),
+       reading_plan_enabled = coalesce($37, reading_plan_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -173,6 +176,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.squireBoardDays ?? null,
       p.groupGiftsEnabled ?? null,
       p.prayerListEnabled ?? null,
+      p.readingPlanEnabled ?? null,
     ],
   );
   return settings(q);
@@ -212,6 +216,7 @@ export async function features(q: Queryable) {
     squireBoard: s.squire_board_enabled,
     groupGifts: s.group_gifts_enabled,
     prayerList: s.prayer_list_enabled,
+    readingPlan: s.reading_plan_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,

@@ -116,6 +116,7 @@ export interface Features {
   squireBoard: boolean;
   groupGifts: boolean;
   prayerList: boolean;
+  readingPlan: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -237,6 +238,7 @@ export interface NotebookSettings {
   squire_board_days: number;
   group_gifts_enabled: boolean;
   prayer_list_enabled: boolean;
+  reading_plan_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -813,6 +815,21 @@ export type SquireBoard =
 export type PrayerListItem = { id: string; name: string; note: string; remind: 'off' | 'daily' | 'weekly'; nextReminderAt: string | null; lastPrayedAt: string | null; prayedCount: number };
 export type PrayerList = { enabled: false } | { enabled: true; items: PrayerListItem[] };
 
+export type ReadingPlanToday =
+  | { enabled: false }
+  | {
+      enabled: true;
+      plan: {
+        id: string;
+        title: string;
+        day: number;
+        days: number;
+        conversationId: string | null;
+        reading: { reference: string; url: string; read: boolean; readers: number } | null;
+      } | null;
+    };
+export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
+
 export type Lamps = {
   enabled: boolean;
   count: number;
@@ -1256,7 +1273,7 @@ export const api = {
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1299,6 +1316,11 @@ export const api = {
     request<PrayerList>('PATCH', `/me/prayer-list/${id}`, input),
   removePrayerListItem: (id: string) => request<PrayerList>('DELETE', `/me/prayer-list/${id}`),
   prayedForListItem: (id: string) => post<PrayerList>(`/me/prayer-list/${id}/prayed`, {}),
+  readingPlan: () => get<ReadingPlanToday>('/reading-plan'),
+  markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),
+  staffReadingPlans: () => get<{ plans: StaffReadingPlan[] }>('/staff/reading-plans'),
+  createReadingPlan: (input: { title: string; startsOn: string; references: string[]; conversationId?: string | null }) => post<{ id: string }>('/staff/reading-plans', input),
+  archiveReadingPlan: (planId: string) => post<{ archived: true }>(`/staff/reading-plans/${planId}/archive`, {}),
   lamps: (personId: string) => get<Lamps>(`/people/${personId}/lamps`),
   giveLamp: (personId: string, note: string) => post<{ id: string }>(`/people/${personId}/lamps`, { note }),
   aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),

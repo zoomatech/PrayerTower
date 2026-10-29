@@ -36,6 +36,7 @@ import { circleGoalRoutes } from './modules/circle-goals/routes.js';
 import { squireRoutes } from './modules/squire/routes.js';
 import { groupGiftRoutes } from './modules/group-gifts/routes.js';
 import { prayerListRoutes } from './modules/prayer-list/routes.js';
+import { readingPlanRoutes } from './modules/reading-plan/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
 import { liveRoutes } from './modules/live/routes.js';
@@ -292,6 +293,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     squireRoutes(authed, db);
     groupGiftRoutes(authed, db);
     prayerListRoutes(authed, db);
+    readingPlanRoutes(authed, db);
     liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
