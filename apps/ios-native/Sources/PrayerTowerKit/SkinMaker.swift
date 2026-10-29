@@ -185,3 +185,72 @@ extension APIClient {
         return r.proposal
     }
 }
+
+/// One skin in Me → Skin gallery (`GET /skins/gallery`, apps/mobile/src/app/skin-gallery.tsx).
+public struct GallerySkin: Codable, Sendable, Equatable, Identifiable {
+    public struct Maker: Codable, Sendable, Equatable { public let id: String; public let name: String }
+    public let slug: String
+    public let name: String
+    public let layout: String
+    public let season: String?
+    public let tokens: [String: JSONValue]
+    public let maker: Maker?
+    public let likes: Int
+    public let liked: Bool
+    public let inUse: Bool
+    public var id: String { slug }
+
+    enum CodingKeys: String, CodingKey { case slug, name, layout, season, tokens, maker, likes, liked, inUse }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        slug = try c.decode(String.self, forKey: .slug)
+        name = try c.decode(String.self, forKey: .name)
+        layout = try c.decode(String.self, forKey: .layout)
+        season = try c.decodeIfPresent(String.self, forKey: .season)
+        tokens = (try? c.decode([String: JSONValue].self, forKey: .tokens)) ?? [:]
+        maker = try c.decodeIfPresent(Maker.self, forKey: .maker)
+        likes = try c.decodeIfPresent(Int.self, forKey: .likes) ?? 0
+        liked = try c.decodeIfPresent(Bool.self, forKey: .liked) ?? false
+        inUse = try c.decodeIfPresent(Bool.self, forKey: .inUse) ?? false
+    }
+
+    public var theme: FeedTheme { FeedTheme(slug: slug, name: name, layout: layout, tokens: tokens) }
+
+    /// Built-in skin names are app wording (Open Circle has its own); a member's skin keeps the name they gave it.
+    public func displayName(_ wording: Wording) -> String { maker == nil ? Skin.name(name, wording) : name }
+
+    /// "by Ruth" or "Built in", and the season it belongs to.
+    public var byline: String {
+        let who = maker.map { "by \($0.name)" } ?? "Built in"
+        return season.map { "\(who) · \($0.prefix(1).uppercased() + $0.dropFirst())" } ?? who
+    }
+
+    public func likeLabel(_ wording: Wording) -> String {
+        "\(liked ? "Unlike" : "Like") \(displayName(wording)), \(likes) likes"
+    }
+}
+
+public struct GallerySkins: Codable, Sendable, Equatable { public let skins: [GallerySkin] }
+
+extension Skin {
+    /// A built-in skin's name in the community's wording (the literals in locales/neutral.ts).
+    public static func name(_ name: String, _ wording: Wording) -> String {
+        guard wording == .neutral else { return name }
+        return ["Prayer Tower": "Open Circle", "Swipe to pray": "Swipe through"][name] ?? name
+    }
+}
+
+extension APIClient {
+    /// Every skin this member can use right now, with likes.
+    public func skinGallery() async throws -> [GallerySkin] {
+        let r: GallerySkins = try await get("/skins/gallery")
+        return r.skins
+    }
+
+    /// Likes or unlikes a skin, and returns the gallery again.
+    public func likeSkin(_ slug: String, _ on: Bool) async throws -> [GallerySkin] {
+        let path = "/skins/\(slug.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? slug)/like"
+        let r: GallerySkins = try await send(request(on ? "PUT" : "DELETE", path))
+        return r.skins
+    }
+}

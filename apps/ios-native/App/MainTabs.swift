@@ -26,8 +26,11 @@ struct MeView: View {
         NavigationStack {
             List {
                 FeedStyleSection()
-                if model.features["themeProposals"] {
-                    Section { NavigationLink("Make your own feed skin") { ThemeMakerView() } }
+                if model.features["skinGallery"] || model.features["themeProposals"] {
+                    Section {
+                        if model.features["skinGallery"] { NavigationLink("Skin gallery") { SkinGalleryView() } }
+                        if model.features["themeProposals"] { NavigationLink("Make your own feed skin") { ThemeMakerView() } }
+                    }
                 }
                 if model.features["freshDays"] {
                     if let line = freshDay?.line { Section { Text(line) } }
@@ -67,7 +70,7 @@ struct FeedStyleSection: View {
                             Task { await choose(t.slug) }
                         } label: {
                             HStack {
-                                Text(t.name)
+                                Text(Skin.name(t.name, model.wording))
                                 Spacer()
                                 if current == t.slug { Image(systemName: "checkmark") }
                             }

@@ -49,6 +49,7 @@ The native feed reads the member's skin from `GET /feed` (`theme`) and draws it 
 - **Flip**: one request per page, turned with a fold (`scrollTransition`), with "1 of 12" and the last page's thank-you.
 - Neon Cinderella's castle, pumpkin coach, midnight clock and glass slipper are the Expo app's own drawings: the same SVG path data (`NeonArt.swift`), each line stroked as a glowing tube with a white-hot core.
 - **Make your own feed skin** (Me, behind the `themeProposals` switch): layout, colors with a color picker, drawing style, comment shape and stem, with a live preview drawn by the real feed skins (`SkinMaker`, `ThemeMakerView`). The skin is the member's in Feed style at once; others get it once an admin approves it.
+- **Skin gallery** (Me, behind the `skinGallery` switch): every skin the member can use, with a preview, who made it, likes and "Use this skin"; built-in names follow Open Circle wording (`GallerySkin`, `SkinGalleryView`).
 - Every drawing is hidden from VoiceOver, and the spark, bursts and climber stop with Reduce Motion.
 
 ## Port order
