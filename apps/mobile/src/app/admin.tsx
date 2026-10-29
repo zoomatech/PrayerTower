@@ -381,6 +381,7 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <SkyTargetSection /> : null}
             <CeaselessSection />
             <ScheduledRadioToggle />
+            <HeardTrailToggle />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -779,6 +780,21 @@ function RadioScheduleSection() {
         </>
       ) : null}
     </View>
+  );
+}
+
+/** "Where it was heard" (radio/trail.ts), off by default. */
+function HeardTrailToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.heardTrail().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.heardTrail')} hint={t('admin.heardTrailHint')} value={on} onChange={(v) => api.admin.setHeardTrail(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
   );
 }
 

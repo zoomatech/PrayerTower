@@ -47,6 +47,7 @@ import * as operatorAlerts from '../radio/operator-alerts.js';
 import * as beacon from '../radio/beacon.js';
 import * as sky from '../radio/sky.js';
 import * as ceaseless from '../radio/ceaseless.js';
+import * as trail from '../radio/trail.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -303,6 +304,15 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/radio-beacon', async (req) => {
     await requireAdmin(req);
     return beacon.update(db, beacon.BeaconSettings.parse(req.body));
+  });
+  app.get('/admin/heard-trail', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await trail.enabled(db) };
+  });
+  app.patch('/admin/heard-trail', async (req) => {
+    await requireAdmin(req);
+    await trail.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await trail.enabled(db) };
   });
   app.get('/admin/scheduled-radio', async (req) => {
     await requireAdmin(req);

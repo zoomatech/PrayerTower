@@ -1097,6 +1097,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     radioConsoleHint: "One screen for the control operator: the queue, the transmission window, each station's ID timer, the log, and hold or send-now overrides. Give someone the Radio operator role to let them use it.",
     operatorAlerts: "Operator alerts",
     operatorAlertsHint: "Sends radio operators and admins a notice when a station problem starts (no sound card, the radio did not key, a failed burst, overdue prayers, a station that stopped reporting), and a quiet note when it clears.",
+    heardTrail: "Where it was heard",
+    heardTrailHint: "The member who sent a radio prayer and the person who asked see each listener node that decoded it, with its signal, and how many phones did. Only real reports, never an estimate.",
     scheduledRadio: "Scheduled radio sends",
     scheduledRadioHint: "Members can set a request to go out by radio, or amplified, at a chosen time, once or weekly. The radio prayer's price and rules apply when the time comes.",
     ceaseless: "Prayer without ceasing",
@@ -2204,6 +2206,14 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     read: 'Read how it turned out',
     adminTitle: 'Answered-prayer stories',
     adminHint: 'The person who asked can post a short follow-up that links to their request. Everyone who prayed gets a note, and both posts link to each other.',
+  },
+  radioTrail: {
+    title: "Where it was heard",
+    sent: "Went out %{time}",
+    sentAmplified: "Went out amplified %{time}",
+    node: "%{name} (%{snr} dB)",
+    phones: "%{count} phones or listening pages",
+    none: "No receiver has reported it yet.",
   },
   scheduleRadio: {
     open: "Schedule a radio send",

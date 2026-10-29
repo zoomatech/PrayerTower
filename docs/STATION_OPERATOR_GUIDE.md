@@ -24,6 +24,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
 | Operator alerts (push on station problems) | Admin → Radio → Operator alerts | [Operator alerts](#operator-alerts) |
 | Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
+| Where it was heard (receivers that decoded each radio prayer, shown to the sender and asker) | Admin → Radio → Where it was heard | [Where it was heard](#where-it-was-heard) |
 | Scheduled radio sends (a request goes out by radio, or amplified, at a set time) | Admin → Radio → Scheduled radio sends | [Scheduled radio sends](#scheduled-radio-sends) |
 | Prayer without ceasing (kept requests go out again when the air is quiet) | Admin → Radio → Prayer without ceasing | [Prayer without ceasing](#prayer-without-ceasing) |
 | Dish and sky target (where to point, rotator follows, hold while low) | Admin → Radio → Dish and sky target, plus `ROTATOR=rotctld` to turn a rotator | [Dish and sky target](#dish-and-sky-target) |
@@ -423,6 +424,12 @@ Off until an admin turns on **Operator alerts** in Admin → Radio (under the op
 Off until an admin turns on **Reception beacon** in Admin → Radio (under the operator console switch) and picks how often: every 30, 60 (the default), 120 or 240 minutes. Each time, the station sends the setup wizard's short test burst ("Station test" and a code, with its call sign in the frame). The station needs no new settings, and the setup wizard itself can stay off. Every listener node and listening page that decodes the beacon reports it, and each receiver is kept with its signal-to-noise ratio. The operator console shows the last 24 hours: when each beacon went out, which receivers heard it and how strongly, or that none did. This makes changes in reception through the day easy to see.
 
 No beacon goes out while the console's hold is on or outside the transmission windows. Turning the beacon off drops any beacon still waiting for the station. While a beacon is waiting (up to 5 minutes), a setup wizard test has to wait for it.
+
+## Where it was heard
+
+From the HAM Operators notebook page ("a trail of all the places and ears that have heard that prayer"), with real reports only. Off until an admin turns on **Where it was heard** in Admin → Radio.
+
+While it is on, every receiver that decodes a radio prayer is kept: a [listener node](#listener-nodes-receive-only-real-data-for-the-auto-preset) by its name with its best signal-to-noise ratio, and a phone or listening page only as a count (never who or where). The member who sent the prayer and the person who asked see **Where it was heard** on the request: each time it went out (and whether amplified), from which call sign, the nodes that heard it and how many phones did. Nobody else sees it. Nothing is estimated: a prayer no receiver reported says so. It needs listener nodes or [receipts](RADIO_BURST.md) on for reports to arrive. Reports for packet fallback IDs count the same way.
 
 ## Scheduled radio sends
 

@@ -25,6 +25,7 @@ import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
 import * as safety from '../safety/index.js';
+import * as trail from '../radio/trail.js';
 import * as schedules from '../schedules/index.js';
 import * as ceaseless from '../radio/ceaseless.js';
 import * as safetyCenter from '../safety-center/index.js';
@@ -259,6 +260,8 @@ export async function features(q: Queryable) {
     keepOnAir: (await ceaseless.settings(q)).enabled,
     /** Scheduled radio and amplify sends (modules/schedules, Admin → Radio → Scheduled radio sends). */
     scheduledRadio: await schedules.radioEnabled(q),
+    /** "Where it was heard": the receivers that decoded a radio prayer (radio/trail.ts). */
+    heardTrail: await trail.enabled(q),
   };
 }
 

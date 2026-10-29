@@ -243,6 +243,8 @@ export interface Features {
   keepOnAir: boolean;
   /** Schedule a radio or amplify send for a set time. */
   scheduledRadio: boolean;
+  /** "Where it was heard": the receivers that decoded a radio prayer. */
+  heardTrail: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -923,6 +925,15 @@ export interface TokenPool {
   match: { mode: 'ratio' | 'quadratic'; ratio: number; cap: number; matched: number } | null;
   /** Only when listed for a request: why the member can't draw, or null. */
   blockedReason?: string | null;
+}
+
+/** One transmission of a request, and the receivers that really decoded it. */
+export interface RadioTrailEntry {
+  sentAt: string;
+  callSign: string | null;
+  amplified: boolean;
+  nodes: { name: string; snrDb: number; at: string }[];
+  phones: number;
 }
 
 export interface ScheduledSpend {
@@ -1766,6 +1777,7 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
   precheck: (text: string, context?: 'lament' | 'lamentReply') => post<Precheck>('/moderation/precheck', { text, context }).catch((): Precheck => ({ warn: false })),
+  radioTrail: (id: string) => get<{ trail: RadioTrailEntry[] }>(`/posts/${id}/radio-trail`),
   setKeepOnAir: (id: string, on: boolean) => request<{ keepOnAir: boolean }>('PUT', `/posts/${id}/keep-on-air`, { on }),
   setLament: (id: string, patch: { lament?: boolean; radio?: boolean }) => request<{ lament: boolean; lamentRadio: boolean }>('PUT', `/posts/${id}/lament`, patch),
   appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
@@ -1892,6 +1904,8 @@ export const api = {
     radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
     setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
     operatorAlerts: () => get<{ enabled: boolean }>('/admin/radio-operator-alerts'),
+    heardTrail: () => get<{ enabled: boolean }>('/admin/heard-trail'),
+    setHeardTrail: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/heard-trail', { enabled }),
     scheduledRadio: () => get<{ enabled: boolean }>('/admin/scheduled-radio'),
     setScheduledRadio: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/scheduled-radio', { enabled }),
     radioCeaseless: () => get<{ enabled: boolean; gapMinutes: number }>('/admin/radio-ceaseless'),

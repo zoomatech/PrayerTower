@@ -10,6 +10,7 @@ import { CheckBack } from '@/components/check-back';
 import { ThankNoteCard } from '@/components/thank-note';
 import { CommentKindness, useCommentKindness } from '@/components/comment-kindness';
 import { CoolDownCard } from '@/components/cool-down-card';
+import { RadioTrail } from '@/components/radio-trail';
 import { ScheduleRadio } from '@/components/schedule-radio';
 import { KeepOnAir } from '@/components/keep-on-air';
 import { LamentControls } from '@/components/lament-controls';
@@ -470,6 +471,7 @@ export default function PostScreen() {
             onPress={() => sendRadio()}
           />
         ) : null}
+        {card && features.heardTrail ? <RadioTrail postId={card.id} /> : null}
         {prayable && radioOn && features.scheduledRadio && !(features.lament && card?.lament && !card.lamentRadio) && card ? (
           <ScheduleRadio postId={card.id} canAmplify={!!tokens?.priestly.amplifyRepeats} />
         ) : null}

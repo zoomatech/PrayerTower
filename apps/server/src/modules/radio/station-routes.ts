@@ -133,15 +133,15 @@ export function nodeRoutes(app: FastifyInstance, db: Db) {
     const report = receipts.HeardReport.parse(req.body);
     // A setup wizard test burst (setup.ts) is not a prayer: it never reaches receipts.
     const tests = wizard ? await setup.heard(db, report, node.name) : 0;
-    return { matched: (await withTx(db, (tx) => receipts.heard(tx, report))) + tests };
+    return { matched: (await withTx(db, (tx) => receipts.heard(tx, report, { id: node.id, name: node.name }))) + tests };
   });
 
   // A listener decoded the packet fallback's short IDs (packet.ts): heard, like a burst receipt.
   app.post('/node/heard-ids', async (req) => {
-    await nodes.authenticateRequest(db, req, 'listener');
+    const node = await nodes.authenticateRequest(db, req, 'listener');
     if (!(await packet.enabled(db))) throw notFound('Packet fallback');
     const report = packet.HeardIds.parse(req.body);
-    return { matched: await withTx(db, (tx) => packet.heardIds(tx, report)) };
+    return { matched: await withTx(db, (tx) => packet.heardIds(tx, report, { id: node.id, name: node.name })) };
   });
 
   // About once a minute, so acknowledgements know a listener is running (authenticate marks it seen).
