@@ -102,6 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCommunity(null);
         setWording('faith');
         setProfileError(null);
+        // Signed out some other way (the sign-in expired, or ended on another device): the saved
+        // feed and queued actions are this member's only, never the next one's on this device.
+        setTimeout(() => void clearOffline(), 0);
       }
     });
     return () => data.subscription.unsubscribe();
