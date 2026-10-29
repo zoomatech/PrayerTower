@@ -32,9 +32,16 @@ final class AccessibilityAuditTests: XCTestCase {
                 try XCTContext.runActivity(named: "\(name) at \(size)") { _ in
                     let link = app.buttons[name]
                     for _ in 0..<5 where !link.isHittable { app.collectionViews.firstMatch.swipeUp() }
+                    XCTAssertTrue(link.waitForExistence(timeout: 5), "\(name) link at \(size)")
                     link.tap()
                     try audit(app, "\(name) at \(size)")
-                    app.navigationBars.buttons.element(boundBy: 0).tap()
+                    // Back to the list; a skin whose bar has no back button (seen once at the largest
+                    // text) gets a fresh launch instead.
+                    let back = app.navigationBars.buttons.firstMatch
+                    if back.waitForExistence(timeout: 3) { back.tap() } else {
+                        app.terminate()
+                        app.launch()
+                    }
                 }
             }
             app.terminate()
