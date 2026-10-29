@@ -5,18 +5,20 @@ import { useEffect, useState } from 'react';
 
 import { api, type Features } from './api';
 
-const OFF: Features = { worldwideCount: false, thanksCard: false, sermonInputs: false, supportLabel: false, witnessStories: false, pressureRule: false, misleadingRule: false, automationRule: false, urgencyGlow: false, reactionTray: false, memberTown: false, prizeChoice: false, crossCommunity: false, postLines: false, checkinAffirmation: false, whyGifts: false, poolMatching: false, legalReview: false, podcasts: false, materialMatch: false, guestPrayer: false, prayerChain: false, prayedForWidget: false, prayerMinute: false, twoStep: false, feedSkins: false, commentTree: false, commentTreeLeaves: 5, commentTreeMaxDepth: 2, themeProposals: false, videoMaxSeconds: 7, lamps: false, poolLedger: false, circleGoals: false, supportLinks: false, squireBoard: false };
+const OFF: Features = { worldwideCount: false, thanksCard: false, sermonInputs: false, supportLabel: false, witnessStories: false, pressureRule: false, misleadingRule: false, automationRule: false, urgencyGlow: false, reactionTray: false, memberTown: false, prizeChoice: false, crossCommunity: false, postLines: false, checkinAffirmation: false, whyGifts: false, poolMatching: false, legalReview: false, podcasts: false, materialMatch: false, guestPrayer: false, prayerChain: false, prayedForWidget: false, prayerMinute: false, twoStep: false, feedSkins: false, commentTree: false, commentTreeLeaves: 5, commentTreeMaxDepth: 2, themeProposals: false, videoMaxSeconds: 7, lamps: false, poolLedger: false, circleGoals: false, supportLinks: false, squireBoard: false, groupGifts: false };
 let cached: Promise<Features> | null = null;
 
 export function loadFeatures(): Promise<Features> {
-  cached ??= api.features().then(
-    // A switch the server doesn't send (an older server) stays off.
-    (r) => ({ ...OFF, ...r.features }),
-    () => {
-      cached = null;
-      return OFF;
-    },
-  );
+  cached ??= Promise.resolve()
+    .then(() => api.features())
+    .then(
+      // A switch the server doesn't send (an older server) stays off.
+      (r) => ({ ...OFF, ...r.features }),
+      () => {
+        cached = null;
+        return OFF;
+      },
+    );
   return cached;
 }
 
