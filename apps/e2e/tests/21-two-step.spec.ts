@@ -5,7 +5,8 @@ import { createHmac } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { db, DEMO_PASSWORD, signIn } from './helpers';
 
-const EMAIL = 'james@demo.prayertower.local';
+// Not James: 05-account deletes his account.
+const EMAIL = 'ethel@demo.prayertower.local';
 
 function base32(secret: string) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -35,7 +36,7 @@ test.afterAll(async () => {
 
 test('a member turns on two-step sign-in, signs in with a code, and turns it off', async ({ page }) => {
   await db.query('update public.security_settings set two_step_enabled = true');
-  await signIn(page, 'james');
+  await signIn(page, 'ethel');
   await page.getByText('Me', { exact: true }).click();
   await page.getByText('Password and email').click();
   await page.getByTestId('two-step-start').click();

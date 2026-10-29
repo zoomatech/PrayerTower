@@ -1,11 +1,13 @@
 // Forgot password, then change it back from Me → Password and email. The reset
 // email is read from the local Supabase mail catcher (Mailpit).
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { db, DEMO_PASSWORD } from './helpers';
 
 const MAIL = process.env.E2E_MAIL_URL ?? 'http://127.0.0.1:54324';
 const EMAIL = 'ruth@demo.prayertower.local';
 const TEMP = 'a-brand-new-pass-1';
+/** The tab bar, in either edition: 18-open-circle moves Ruth to Open Circle, whose feed isn't "Prayers". */
+const signedIn = (page: Page) => expect(page.getByText('Me', { exact: true })).toBeVisible();
 
 /** The code from the newest password reset email to this address. */
 async function resetCode(to: string): Promise<string> {
@@ -38,7 +40,7 @@ test('a member resets a forgotten password with the emailed code, then changes i
   await page.getByTestId('new-password').fill(TEMP);
   await page.getByTestId('new-password-again').fill(TEMP);
   await page.getByTestId('save-password').click();
-  await expect(page.getByText('Prayers').first()).toBeVisible();
+  await signedIn(page);
 
   // Signed out and back in with the new password, then put the demo password back.
   await page.getByText('Me', { exact: true }).click();
@@ -46,7 +48,7 @@ test('a member resets a forgotten password with the emailed code, then changes i
   await page.locator('input').nth(0).fill(EMAIL);
   await page.locator('input[type=password]').fill(TEMP);
   await page.getByRole('button', { name: /sign in/i }).last().click();
-  await expect(page.getByText('Prayers').first()).toBeVisible();
+  await signedIn(page);
   await page.getByText('Me', { exact: true }).click();
   await page.getByText('Password and email').click();
   await page.getByTestId('new-password').fill(DEMO_PASSWORD);
