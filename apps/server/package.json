@@ -14,6 +14,7 @@
     "review-account": "tsx src/scripts/review-account.ts",
     "push-test": "tsx src/scripts/push-test.ts",
     "mail-test": "tsx src/scripts/mail-test.ts",
+    "check-config": "tsx src/scripts/check-config.ts",
     "query-audit": "tsx src/scripts/query-audit.ts",
     "load-test": "tsx src/scripts/load-test.ts",
     "coverage": "vitest run --coverage"

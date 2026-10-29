@@ -115,10 +115,17 @@ export function loadDotEnv() {
   }
 }
 
+// Treat empty strings from .env files as unset.
+const cleaned = (env: NodeJS.ProcessEnv) => Object.fromEntries(Object.entries(env).filter(([, v]) => v !== ''));
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  // Treat empty strings from .env files as unset.
-  const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== ''));
-  return Env.parse(cleaned);
+  return Env.parse(cleaned(env));
+}
+
+/** Settings the server would refuse at start-up, as "NAME: what's wrong" (never the value). */
+export function configProblems(env: NodeJS.ProcessEnv = process.env): string[] {
+  const result = Env.safeParse(cleaned(env));
+  return result.success ? [] : result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
 }
 
 // Product constants that are still open decisions live here so they change in one place.
