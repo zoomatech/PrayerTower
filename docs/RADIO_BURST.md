@@ -23,8 +23,11 @@ about 21 bytes a prayer (4.4x). One prayer on its own takes about 24 bytes.
 | `fm-turbo` | FM audio, full-quieting signal, audio level set well | 9.2 kbit/s | 0.8 s | 1.5 s | about 22 dB |
 | `fm-robust-fec` | Any FM radio, weakest paths | 4.0 kbit/s (2.0 of data) | 2.9 s | 5.3 s | about 5 dB |
 | `fm-turbo-fec` | FM audio, strong signal | 9.2 kbit/s (6.1 of data) | 1.1 s | 2.0 s | about 15 dB |
+| `fm-qam16` | FM audio with flat, unclipped audio | 6.5 kbit/s (4.9 of data) | 1.3 s | 2.4 s | about 12 dB |
+| `fm-qam64` | FM audio, strong signal, flat unclipped audio | 11.3 kbit/s (8.5 of data) | 0.8 s | 1.5 s | about 18 dB |
 | `dataport-fast` | The radio's 9600 data port, or an SDR | 13 kbit/s | 0.65 s | 1.2 s | about 18-20 dB |
 | `dataport-turbo` | 9600 data port or SDR, strong signal | 17 kbit/s | 0.5 s | 1.0 s | about 24 dB |
+| `dataport-qam64` | 9600 data port or SDR | 21 kbit/s (16 of data) | 0.55 s | 1.0 s | about 20 dB |
 
 The 100-prayer column uses the benchmark's generated requests
 (`src/burst/sample.ts`) and includes the 0.1 s lead-in. Each frame also has a
@@ -40,6 +43,18 @@ the noise; `fm-turbo-fec` is a little faster than `fm-fast` and also about
 decodes them. The gain is smaller than the 4-5 dB such a code gives a
 coherent modem, because differential PSK compares two noisy symbols; a
 pilot-aided coherent preset is the next step for more.
+
+The three `-qam` presets are coherent: instead of comparing each symbol with
+the one before, the receiver measures every carrier's gain and phase from
+pilot carriers (every sixth carrier) and reads the data against that, so
+amplitude can carry bits too (16-QAM and 64-QAM) and the noise isn't doubled.
+With a rate-3/4 convolutional code, `fm-qam64` sends as fast as `fm-turbo` on
+4-6 dB less signal (in the simulated FM path it decodes at a noise level
+where `fm-turbo` fails), and `fm-qam16` is about 20% faster than
+`fm-standard` on the same signal. QAM needs audio that keeps its level
+steady: turn off the radio's mic compressor or speech processor, keep the
+level out of clipping, and prefer the data port. They are opt-in
+(`BURST_PRESET=fm-qam64`); every receiver decodes them.
 
 The receiver follows a sound card clock difference of up to ±300 ppm through
 frames of 20 seconds or more, and an SSB tuning error of up to about ±10 Hz
@@ -198,7 +213,7 @@ prefix: 1,152 samples, 24 ms. Carrier k sits at k x 46.875 Hz.
 sync symbol       bins 16-63, known phases S
 header symbols    bins 16-63, DBPSK, 6 symbols (256 bits; the last is zero padded)
 reference symbol  the preset's bins, known phases R
-payload symbols   the preset's bins, differential PSK
+payload symbols   the preset's bins, differential PSK (or coherent QAM, presets 9-11)
 ```
 
 | Preset | id | Bins | Bits per carrier per symbol | Parity P |
@@ -211,6 +226,9 @@ payload symbols   the preset's bins, differential PSK
 | dataport-turbo | 6 | 8-111 | 4 | 32 |
 | fm-robust-fec | 7 | 16-63 | 2 | 16, inner code rate 1/2 |
 | fm-turbo-fec | 8 | 12-66 | 4 | 16, inner code rate 2/3 |
+| fm-qam16 | 9 | 16-63 | 4 (16-QAM) | 16, inner code rate 3/4 |
+| fm-qam64 | 10 | 12-66 | 6 (64-QAM) | 16, inner code rate 3/4 |
+| dataport-qam64 | 11 | 8-111 | 6 (64-QAM) | 16, inner code rate 3/4 |
 
 - **Known phases.** xorshift32 (x ^= x << 13; x ^= x >> 17; x ^= x << 5),
   seeded with 0x50545331 for S and 0x50545232 for R. For each carrier, from
@@ -222,17 +240,28 @@ payload symbols   the preset's bins, differential PSK
   Gray code (s XOR s>>1) is g. The carrier's phase is the previous symbol's
   phase plus s x 360° / 2^bits. The header is referenced to the sync symbol
   and the payload to the reference symbol.
-- **Inner code (presets 7 and 8).** Before modulation, the payload bytes
+- **Inner code (presets 7-11).** Before modulation, the payload bytes
   (most significant bit first) go through a constraint-length-7
   convolutional encoder with generators 171 and 133 (octal), starting in
   state 0 and flushed with six 0 bits. For each input bit the encoder emits
   the 171 output then the 133 output (neither inverted). Rate 2/3 keeps
   output bits by the repeating pattern 1, 1, 1, 0 (the 133 output of every
-  second input bit is dropped). The n coded bits are then scattered: coded
+  second input bit is dropped), and rate 3/4 by 1, 1, 0, 1, 1, 0. The n coded bits are then scattered: coded
   bit i goes to position (i x q) mod n, where q is the first number at or
   above round(0.618034 x n) that shares no factor with n. The scattered bits
   are laid on carriers as in "Bits to carriers" and the last symbol is zero
   padded.
+- **Coherent QAM payload (presets 9-11).** Not differential. Carrier index
+  k counts from 0 at the preset's first bin; carrier k is a pilot when
+  k mod 6 = 0 or k is the last carrier, otherwise a data carrier. In payload
+  symbol s (1 for the first after the reference symbol), a pilot has unit
+  amplitude and phase R[k] + ((s x (k + 1)) mod 4) x 90°, where R is the
+  reference symbol's phase. Data carriers, from the lowest up, take the
+  scattered coded bits in groups of 4 (16-QAM) or 6 (64-QAM): the first half
+  of each group is the in-phase level and the second half the quadrature
+  level, each a Gray code (index i has code i XOR i>>1) for level
+  2i - (L - 1), L = 4 or 8 levels, scaled so the constellation's average
+  power is 1 (divide by sqrt(10) or sqrt(42)).
 - **Level.** The frame is scaled to an RMS of 0.2 of full scale, with peaks
   limited to 0.95.
 - **Between frames.** 50 ms of silence. A burst starts with 100 ms of silence.
@@ -247,7 +276,7 @@ receiver choices, not part of the format.
 
 - The format is fully published here and in the source code, and uses only
   openly documented standards (DEFLATE, Brotli, Reed-Solomon, the K=7
-  convolutional code, OFDM with differential PSK). Compression is used to shorten transmissions, not to
+  convolutional code, OFDM with differential PSK or QAM with pilots). Compression is used to shorten transmissions, not to
   obscure their meaning; anyone can decode them with the published tool.
 - The call sign travels in every frame header in plain ASCII.
 - See [RADIO_STATION.md](RADIO_STATION.md) for the station's other rules
@@ -261,4 +290,5 @@ receiver choices, not part of the format.
 - DEFLATE: [RFC 1951](https://www.rfc-editor.org/rfc/rfc1951). Brotli: [RFC 7932](https://www.rfc-editor.org/rfc/rfc7932).
 - Short-string compressors considered (Unishox2, Smaz, Shoco): [Unishox2](https://github.com/siara-cc/Unishox2)
 - Convolutional code (K=7, generators 171/133, punctured rates): [CCSDS 131.0-B-3, TM Synchronization and Channel Coding](https://ecss.nl/wp-content/uploads/2020/04/CCSDS-131.0-B-3_forECSS(Draft-16Oct2019).pdf), [GNU Radio wiki, CC Encoder Definition](https://wiki.gnuradio.org/index.php/CC_Encoder_Definition)
+- Pilot-aided channel estimation in OFDM: [NXP (Freescale) application note AN3059, "Channel Estimation in OFDM Systems"](https://community.freescale.com/docs/en/application-note/AN3059.pdf)
 - Context mixing and the lpaq family: [Matt Mahoney, Large Text Compression Benchmark](https://mattmahoney.net/dc/text.html)
