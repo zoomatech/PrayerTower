@@ -79,13 +79,19 @@ public struct Community: Codable, Sendable, Equatable {
     public let wording: String
     /// The kinds of post this community has turned on (discussion, news and blog are off by default).
     public let enabledPostTypes: [String]?
+    /// Features this community's admin hid (COMMUNITY_FEATURES: groups, events, care, …).
+    public let hiddenFeatures: [String]?
 
-    public init(slug: String, name: String, wording: String, enabledPostTypes: [String]? = nil) {
+    public init(slug: String, name: String, wording: String, enabledPostTypes: [String]? = nil, hiddenFeatures: [String]? = nil) {
         self.slug = slug
         self.name = name
         self.wording = wording
         self.enabledPostTypes = enabledPostTypes
+        self.hiddenFeatures = hiddenFeatures
     }
+
+    /// As the Expo app's `useFeature`: on unless the community hid it.
+    public func shows(_ feature: String) -> Bool { !(hiddenFeatures ?? []).contains(feature) }
 }
 
 public struct Me: Codable, Sendable, Equatable {
