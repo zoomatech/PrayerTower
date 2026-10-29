@@ -78,6 +78,11 @@ it('draws the map with tiles and their credit line', async () => {
   expect(screen.getByText('© OpenStreetMap contributors')).toBeTruthy();
 });
 
+it('credits OpenStreetMap only for its own tile servers', async () => {
+  await renderApp(<CoverageMap data={{ ...coverage, tileUrl: 'https://openstreetmap.org.evil.test/{z}/{x}/{y}.png' }} width={320} />);
+  expect(screen.queryByText('© OpenStreetMap contributors')).toBeNull();
+});
+
 it('places an unplaced node by hand', async () => {
   admin.radioCoverage.mockResolvedValue(coverage);
   admin.placeRadioNode.mockResolvedValue(coverage);

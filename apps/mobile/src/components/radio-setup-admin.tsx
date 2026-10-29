@@ -207,7 +207,9 @@ export function CoverageMap({ data, width, height = 240 }: { data: RadioCoverage
       tiles.push({ key: `${tx}/${ty}`, x: tx * TILE - left, y: ty * TILE - top, uri });
     }
   }
-  const osm = data.tileUrl.includes('openstreetmap.org');
+  // OpenStreetMap's own tile servers need their credit line under the map.
+  const host = /^https:\/\/([^/:?#]+)/i.exec(data.tileUrl)?.[1]?.toLowerCase() ?? '';
+  const osm = host === 'openstreetmap.org' || host.endsWith('.openstreetmap.org');
   return (
     <View>
       <View style={[styles.map, { width, height }]} accessibilityRole="image" accessibilityLabel={t('coverage.mapLabel', { count: data.points.length })}>
