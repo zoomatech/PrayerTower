@@ -767,6 +767,8 @@ const en = {
     otherCodec: "This burst was packed in a way this screen can't open (codec %{codec}).",
     tell: "Let senders know their prayer was heard",
     tellHint: "Only a fingerprint of each prayer goes back, never the words.",
+    hf: "Shortwave (SSB) radio",
+    hfHint: "Allows for a radio tuned up to 50 Hz off. Decoding is slower.",
     told: "Its sender was told it was heard.",
     tips: "Tips: turn the radio up until the meter sits in the middle, keep the phone still, and keep the room quiet. The slower presets survive a speaker best.",
     off: "Listening isn't turned on yet.",

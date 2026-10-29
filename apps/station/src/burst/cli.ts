@@ -1,7 +1,9 @@
 // Burst tools for operators and listeners (node dist/src/burst/cli.js ...):
 //
 //   decode <file.wav> [report.json]  print every prayer decoded from a recording; with a
-//                               report file, also write the measured SNR for BURST_PRESET=auto
+//                               report file, also write the measured SNR for BURST_PRESET=auto.
+//                               From an HF (SSB) receiver, set BURST_SEARCH_HZ=50 to allow
+//                               for tuning up to 50 Hz off (slower)
 //   decode-text <file.txt>      the same for fldigi text frames (BURST_MODE=fldigi)
 //   encode <out.wav> [preset]   make a burst from prayers on stdin, one per line
 //   presets                     list the modem presets and their speeds
@@ -29,7 +31,7 @@ switch (cmd) {
   case 'decode': {
     if (!arg) throw new Error('usage: decode <file.wav> [report.json]');
     const wav = fromWav(readFileSync(arg));
-    const heard = listen(resample(wav.samples, wav.sampleRate, SAMPLE_RATE));
+    const heard = listen(resample(wav.samples, wav.sampleRate, SAMPLE_RATE), Number(process.env.BURST_SEARCH_HZ ?? 0) || 0);
     if (!heard.length) out('No burst frames decoded.');
     for (const h of heard) {
       out(`-- de ${h.callSign} (${h.preset}, ${h.snrDb.toFixed(1)} dB SNR${h.corrected ? ', errors corrected' : ''}), ${h.prayers.length} prayer(s)`);

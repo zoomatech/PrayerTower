@@ -13,10 +13,11 @@ jest.mock('@/lib/api', () => {
   return { api };
 });
 const frame = { callSign: 'KD9XYZ', preset: 'fm-robust-fec', snrDb: 21.34, corrected: true, prayers: ['Pray for Ana.', 'Pray for Ana.', 'Pray for rain.'], codec: 3, start: 0, end: 48000 };
+const searches: number[] = [];
 jest.mock('@/lib/burst-listen', () => {
   let decoded = false;
   return {
-    BurstListener: jest.fn().mockImplementation(() => ({ push: jest.fn(), meter: 0.4, decode: () => (decoded ? [] : ((decoded = true), [frame])) })),
+    BurstListener: jest.fn().mockImplementation(() => ({ push: jest.fn(), meter: 0.4, decode: (searchHz: number) => (searches.push(searchHz), decoded ? [] : ((decoded = true), [frame])) })),
     toMono: () => new Float32Array(0),
     receiptHashes: (f: { prayers: string[] }) => [...new Set(f.prayers)].map((p) => `hash:${p}`),
   };
@@ -52,6 +53,13 @@ describe('Listen', () => {
     expect(screen.getByText('• Pray for rain.')).toBeTruthy();
     expect(mocked.listenHeard).toHaveBeenCalledWith({ callSign: 'KD9XYZ', preset: 'fm-robust-fec', snrDb: 21.3, hashes: ['hash:Pray for Ana.', 'hash:Pray for rain.'] });
     expect(await screen.findByText('Its sender was told it was heard.')).toBeTruthy();
+    // A shortwave radio may be tuned off: the decoder then searches 50 Hz either way.
+    expect(searches).toEqual([0]);
+    await fireEvent.press(screen.getByRole('switch', { name: /Shortwave \(SSB\) radio/ }));
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+    expect(searches.at(-1)).toBe(50);
     await fireEvent.press(screen.getByRole('button', { name: 'Stop' }));
     expect(stream.stop).toHaveBeenCalled();
     jest.useRealTimers();

@@ -17,6 +17,7 @@ import { demodulate, frameSeconds, modulate } from '../src/burst/ofdm.js';
 import { PRESETS, presetByName } from '../src/burst/presets.js';
 import { rsDecode, rsEncode } from '../src/burst/rs.js';
 import { fingerprint } from '../src/burst/sha256.js';
+import { hfChannel, HF_CHANNELS } from '../src/burst/hf-channel.js';
 import { samplePrayers } from '../src/burst/sample.js';
 import { decodeTextFrames, encodeTextFrame } from '../src/burst/text-frame.js';
 import { simulateTransmitter, type BurstTransmitter } from '../src/burst/transmit.js';
@@ -389,6 +390,56 @@ describe('browser listening page', () => {
     expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', prayers: SAMPLE_PRAYERS });
     expect(context.PTDecoder!.channelReport(heard)?.snrDb).toBeGreaterThan(20);
     expect(context.PTDecoder!.fingerprint(SAMPLE_PRAYERS[0]!)).toBe(sentHash(SAMPLE_PRAYERS[0]!));
+  });
+});
+
+describe('HF (shortwave SSB) presets', () => {
+  const prayers = samplePrayers(10);
+  const ssb = { lowHz: 300, highHz: 2700 };
+  const heardAll = (rx: Float32Array, searchHz = 0) => listen(rx, searchHz).flatMap((h) => h.prayers).join('\n') === prayers.join('\n');
+
+  // hf-fast is for good paths: on the "poor" channel it wants about 20 dB.
+  for (const [name, moderateDb, poorDb] of [['hf-robust', 12, 12], ['hf-standard', 12, 12], ['hf-fast', 15, 22]] as const) {
+    it(`${name}: decodes through CCIR 520 moderate fading at ${moderateDb} dB and poor at ${poorDb} dB in a 300-2700 Hz SSB filter`, () => {
+      const p = presetByName(name);
+      const b = buildBurst(planFrames(prayers, p, 60), p, 'KD9XYZ');
+      for (const [ch, snrDb] of [['moderate', moderateDb], ['poor', poorDb]] as const) {
+        for (const seed of [1, 2, 3]) expect(heardAll(hfChannel(b.audio, { ...HF_CHANNELS[ch], ...ssb, snrDb, offsetHz: 4, seed }))).toBe(true);
+      }
+    });
+  }
+
+  it('hf-robust still gets through moderate fading at 9 dB, where the FM presets lose the header', () => {
+    for (const [name, want] of [['hf-robust', true], ['fm-robust-fec', false]] as const) {
+      const p = presetByName(name);
+      const b = buildBurst(planFrames(prayers, p, 60), p, 'KD9XYZ');
+      const got = [11, 12, 13].filter((seed) => heardAll(hfChannel(b.audio, { ...HF_CHANNELS.moderate, ...ssb, snrDb: 9, offsetHz: 0, seed }))).length;
+      if (want) expect(got).toBe(3);
+      else expect(got).toBeLessThan(3);
+    }
+  });
+
+  it('a receiver 35 Hz off decodes once it searches (BURST_SEARCH_HZ / searchHz)', () => {
+    const p = presetByName('hf-standard');
+    const b = buildBurst(planFrames(prayers, p, 60), p, 'KD9XYZ');
+    const rx = hfChannel(b.audio, { ...HF_CHANNELS.quiet, ...ssb, snrDb: 20, offsetHz: -35, seed: 5 });
+    expect(heardAll(rx)).toBe(false);
+    expect(heardAll(rx, 50)).toBe(true);
+  });
+
+  it('finds frames whatever phase the receiver turns them to (the sync search is phase-blind)', () => {
+    const p = presetByName('fm-standard');
+    const b = buildBurst(planFrames(prayers, p, 60), p, 'KD9XYZ');
+    for (const seed of [21, 22, 23, 24, 25]) expect(heardAll(hfChannel(b.audio, { ...HF_CHANNELS.quiet, lowHz: 200, highHz: 3500, snrDb: 25, offsetHz: 0, seed }))).toBe(true);
+  });
+
+  it('simulate mode can send through the HF path (BURST_SIM_HF)', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'burst-hf-'));
+    const lines: string[] = [];
+    const tx = simulateTransmitter(dir, (m) => lines.push(m), { hf: 'moderate', snrDb: 15 });
+    const p = presetByName('hf-standard');
+    const sent = await tx.send(planFrames(prayers, p, 60), p, 'KD9XYZ');
+    expect(sent.decoded).toBe(prayers.length);
   });
 });
 

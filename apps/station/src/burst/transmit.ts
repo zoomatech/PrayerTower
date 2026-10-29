@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Fldigi } from '../fldigi.js';
+import { hfChannel, HF_CHANNELS } from './hf-channel.js';
 import { buildBurst, listen, type Burst } from './burst.js';
 import { reportFrom, writeReport } from './auto.js';
 import { encodeTextFrame } from './text-frame.js';
@@ -98,15 +99,24 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
  * Simulate mode: write the burst to a WAV file and decode it back. With
  * `snrDb`, white noise at that SNR (in 2.5 kHz) is added first; with
  * `reportFile`, the simulated receiver writes its channel report there, as a
- * real receiver would for BURST_PRESET=auto.
+ * real receiver would for BURST_PRESET=auto. With `hf`, the audio goes through
+ * a simulated HF SSB path instead (hf-channel.ts: CCIR 520 fading, a
+ * receiver 20 Hz off, at snrDb or 15 dB) and the receiver searches 50 Hz.
  */
-export function simulateTransmitter(dir: string, log: (m: string) => void, opts: { snrDb?: number; reportFile?: string } = {}): BurstTransmitter {
+export function simulateTransmitter(
+  dir: string,
+  log: (m: string) => void,
+  opts: { snrDb?: number; reportFile?: string; hf?: keyof typeof HF_CHANNELS } = {},
+): BurstTransmitter {
+  let seed = 1;
   return {
     mode: 'simulate',
     async send(batches, preset, callSign) {
       const burst = buildBurst(batches, preset, callSign);
       const wav = writeWav(dir, burst);
-      const heard = listen(opts.snrDb === undefined ? burst.audio : addNoise(burst.audio, opts.snrDb));
+      const heard = opts.hf
+        ? listen(hfChannel(burst.audio, { ...HF_CHANNELS[opts.hf], snrDb: opts.snrDb ?? 15, offsetHz: 20, lowHz: 300, highHz: 2700, seed: seed++ }), 50)
+        : listen(opts.snrDb === undefined ? burst.audio : addNoise(burst.audio, opts.snrDb));
       const report = reportFrom(heard);
       if (opts.reportFile && report) await writeReport(opts.reportFile, report);
       const count = heard.reduce((n, h) => n + h.prayers.length, 0);
