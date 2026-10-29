@@ -183,6 +183,11 @@ export interface Features {
   prayedForLive: boolean;
   /** Mobile numbers on the prayer chain, by text message (docs/GROWTH.md). */
   prayerChainSms: boolean;
+  /** Gentle reminders (Admin → Gentle reminders): a daily reminder at the member's time, and weeks of prayer. */
+  dailyReminder: boolean;
+  gentleStreak: boolean;
+  /** Moderation tools (Admin → Moderation tools): search, bulk decisions, audit log filters. */
+  moderationTools: boolean;
   safetyCenter: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
@@ -227,6 +232,9 @@ export interface Features {
   quietCounts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
+  /** Ten one-time backup codes for a lost phone, and passkey sign-in (web). */
+  backupCodes: boolean;
+  passkeys: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -1374,6 +1382,65 @@ export type SpokenPrayerStatus =
   | { enabled: true; mine: true; invited: boolean; offerTokens: number; maxSeconds: number; maxOfferTokens: number; received: SpokenPrayer[] }
   | { enabled: true; mine: false; invited: boolean; offerTokens: number; maxSeconds: number; sent: boolean; prayed: boolean };
 
+/** A waiting or decided report found by a moderation search. */
+export interface ModerationSearchItem extends ModerationItem {
+  author_name: string | null;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  rule: ModerationRule | null;
+}
+
+export interface ModerationSearch {
+  q?: string;
+  status?: 'pending' | 'decided';
+  source?: ModerationItem['source'];
+  before?: string;
+}
+
+export interface SecuritySettings {
+  two_step_enabled: boolean;
+  backup_codes_enabled: boolean;
+  passkeys_enabled: boolean;
+}
+
+/** Admin → Practice mode: try the paid services before their keys are set (docs/PRACTICE_MODE.md). */
+export interface PracticeModeSettings {
+  ai: boolean;
+  live: boolean;
+  purchases: boolean;
+}
+
+/** What is really connected; a practice switch does nothing once its real service is. */
+export interface PracticeConnected {
+  ai: boolean;
+  jaas: boolean;
+  videoServer: boolean;
+  appStore: boolean;
+  practicePurchasesAllowed: boolean;
+}
+
+export interface ReminderSettings {
+  daily_reminder_enabled: boolean;
+  gentle_streak_enabled: boolean;
+  quiet_after: number;
+}
+
+/** The member's own daily reminder: a time and days in their time zone. */
+export interface DailyReminder {
+  hour: number;
+  minute: number;
+  /** 0 = Sunday … 6 = Saturday. */
+  days: number[];
+  timeZone: string;
+  nextAt: string;
+}
+
+/** Admin → Push delivery: the switch, its limits, and the last 24 hours by outcome. */
+export interface PushDelivery {
+  settings: { push_reliability_enabled: boolean; collapse_minutes: number; max_per_hour: number };
+  health: { byStatus: Partial<Record<'sent' | 'ok' | 'error' | 'retry' | 'held' | 'folded' | 'capped', number>>; errors: { error: string; n: number }[]; devicesTurnedOff: number };
+}
+
 /** A community members belong to; "neutral" wording (Open Circle) has no religious words. */
 export interface Community {
   slug: string;
@@ -1414,6 +1481,8 @@ export interface TokenPurchase {
   currency: 'regular' | 'priestly';
   status: 'credited' | 'refunded';
   purchased_at: string | null;
+  /** A practice purchase (Admin → Practice mode): no money moved. */
+  practice?: boolean;
 }
 
 /** Cross-posting: the member's own Facebook and Threads posts copied here. */
@@ -1486,7 +1555,11 @@ export interface AdminGift extends MyGift {
 
 export const api = {
   /** Public: whether sign-up needs an invite code. */
-  signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
+  signupConfig: () => get<{ inviteOnly: boolean; passkeys?: boolean; backupCodes?: boolean }>('/signup-config'),
+  backupCodes: () => get<{ enabled: false } | { enabled: true; remaining: number; createdAt: string | null }>('/me/two-step/backup-codes'),
+  makeBackupCodes: () => post<{ codes: string[] }>('/me/two-step/backup-codes', {}),
+  /** From a password-only sign-in: spends a backup code and turns two-step sign-in off. */
+  useBackupCode: (code: string) => post<{ ok: true }>('/me/two-step/recover', { code }),
   announcements: () => get<{ announcements: Announcement[] }>('/announcements'),
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   surveys: () => get<{ surveys: Survey[] }>('/surveys'),
@@ -1541,6 +1614,9 @@ export const api = {
     post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
+  dailyReminder: () => get<{ enabled: false } | { enabled: true; reminder: DailyReminder | null }>('/me/daily-reminder'),
+  setDailyReminder: (r: { hour: number; minute: number; days: number[]; timeZone: string } | { off: true }) =>
+    put<{ enabled: false } | { enabled: true; reminder: DailyReminder | null }>('/me/daily-reminder', r),
   exportMyData: () => request<{ exportedAt: string } & Record<string, unknown>>('GET', '/me/export'),
   /** Page 0 is saved for offline reading; when offline it comes back with `savedAt`. */
   feed: (page = 0, filter: 'all' | 'testimonies' = 'all'): Promise<FeedPage & { savedAt?: number }> =>
@@ -1625,6 +1701,10 @@ export const api = {
   report: (targetType: 'post' | 'comment' | 'message' | 'event' | 'spoken_prayer', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
+  moderationSearch: (s: ModerationSearch) =>
+    get<{ items: ModerationSearchItem[] }>(`/moderation/search?${new URLSearchParams(Object.entries(s).filter(([, v]) => v) as [string, string][])}`),
+  bulkDecide: (input: { ids: string[]; action: 'dismiss' | 'remove'; rule?: ModerationRule; note?: string }) =>
+    post<{ decided: string[]; skipped: { id: string; reason: string }[] }>('/moderation/items/bulk', input),
   escalate: (itemId: string, note: string) => post<unknown>(`/moderation/items/${itemId}/escalate`, { note }),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
@@ -1743,7 +1823,7 @@ export const api = {
     emailInvite: (code: string, input: { email: string; language?: 'en' | 'es'; message?: string }) =>
       post<{ sent: boolean; language: 'en' | 'es' }>(`/admin/invites/${encodeURIComponent(code)}/email`, input),
     setInviteOnly: (inviteOnly: boolean) => request<{ inviteOnly: boolean }>('PATCH', '/admin/invite-settings', { inviteOnly }),
-    auditLog: (q: { before?: string; limit?: number } = {}) =>
+    auditLog: (q: { before?: string; limit?: number; action?: string; q?: string; since?: string } = {}) =>
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
@@ -1799,8 +1879,10 @@ export const api = {
     recordGift: (gift: { amountCents: number; reference: string; via: 'manual' | 'zeffy' | 'paypal'; donorId?: string | null; target?: GiftTarget }) =>
       post('/admin/donations', { ...gift, reference: gift.reference || undefined }),
     syncZeffy: () => post<{ recorded: number; refunded: number; skipped: number }>('/admin/donations/zeffy-sync'),
-    securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
-    updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),
+    securitySettings: () => get<{ settings: SecuritySettings }>('/admin/security-settings'),
+    updateSecuritySettings: (patch: { twoStepEnabled?: boolean; backupCodesEnabled?: boolean; passkeysEnabled?: boolean }) =>
+      request<{ settings: SecuritySettings }>('PATCH', '/admin/security-settings', patch),
+    resetTwoStep: (userId: string) => post<{ ok: true }>(`/admin/people/${userId}/two-step-reset`, {}),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
       patch: Partial<{
@@ -1834,6 +1916,17 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    moderationTools: () => get<{ settings: { tools_enabled: boolean; bulk_max: number } }>('/admin/moderation-tools'),
+    updateModerationTools: (patch: { enabled?: boolean; bulkMax?: number }) =>
+      request<{ settings: { tools_enabled: boolean; bulk_max: number } }>('PATCH', '/admin/moderation-tools', patch),
+    practiceMode: () => get<{ settings: PracticeModeSettings; connected: PracticeConnected }>('/admin/practice-mode'),
+    updatePracticeMode: (patch: Partial<PracticeModeSettings>) =>
+      request<{ settings: PracticeModeSettings; connected: PracticeConnected }>('PATCH', '/admin/practice-mode', patch),
+    reminderSettings: () => get<{ settings: ReminderSettings }>('/admin/reminder-settings'),
+    updateReminderSettings: (patch: { dailyReminderEnabled?: boolean; gentleStreakEnabled?: boolean; quietAfter?: number }) =>
+      request<{ settings: ReminderSettings }>('PATCH', '/admin/reminder-settings', patch),
+    pushSettings: () => get<PushDelivery>('/admin/push-settings'),
+    updatePushSettings: (patch: { enabled?: boolean; collapseMinutes?: number; maxPerHour?: number }) => request<PushDelivery>('PATCH', '/admin/push-settings', patch),
     givingSplitSettings: () => get<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('/admin/giving-split-settings'),
     updateGivingSplitSettings: (patch: { enabled?: boolean; maxPercent?: number }) =>
       request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),
@@ -2017,7 +2110,7 @@ export const api = {
       };
     }>('/me/safety'),
   tokenStore: () =>
-    get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[] }>('/token-store'),
+    get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[]; practice?: boolean }>('/token-store'),
   /** A StoreKit 2 signed transaction; the server checks it with Apple before crediting. */
   buyTokens: (signedTransaction: string) => post<{ purchase: TokenPurchaseResult }>('/token-store/purchases', { platform: 'ios', signedTransaction }),
   tokenPurchases: () => get<{ purchases: TokenPurchase[] }>('/me/token-purchases'),

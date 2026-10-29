@@ -2,6 +2,7 @@
 // requests prayed for, and a streak. Only the member sees them, they can be
 // turned off, and nothing here ranks members against each other.
 import type { Queryable } from '../../db.js';
+import { weeksOfPrayer } from '../reminders/index.js';
 
 export interface PrayerStats {
   enabled: boolean;
@@ -19,6 +20,10 @@ export interface PrayerStats {
   welcomeBack: boolean;
   /** Monday or the 1st of the month, in the member's time zone. */
   freshStart: 'week' | 'month' | null;
+  /** Weeks of prayer (modules/reminders): weeks with a prayer, a total that only grows. */
+  weeksPrayed: number;
+  /** Weeks in a row allowing one rest week between; null under 2. */
+  weekRun: number | null;
 }
 
 const DAY = 86_400_000;
@@ -57,7 +62,7 @@ export function streaks(dates: string[], today: string) {
 export async function prayerStats(q: Queryable, userId: string, timeZone: string): Promise<PrayerStats> {
   const { rows: p } = await q.query<{ show_prayer_stats: boolean }>('select show_prayer_stats from public.profiles where id = $1', [userId]);
   const enabled = p[0]?.show_prayer_stats ?? true;
-  const empty = { daysPrayed: 0, peoplePrayedFor: 0, requestsPrayedFor: 0, currentStreak: 0, longestStreak: 0, week: [], monthDays: 0, welcomeBack: false, freshStart: null };
+  const empty = { daysPrayed: 0, peoplePrayedFor: 0, requestsPrayedFor: 0, currentStreak: 0, longestStreak: 0, week: [], monthDays: 0, welcomeBack: false, freshStart: null, weeksPrayed: 0, weekRun: null };
   if (!enabled) return { enabled, ...empty };
 
   const { rows: days } = await q.query<{ day: string }>(
@@ -84,6 +89,7 @@ export async function prayerStats(q: Queryable, userId: string, timeZone: string
     requestsPrayedFor: counts[0]!.requests,
     ...streaks(dates, today),
     ...rhythm(dates, today),
+    ...weeksOfPrayer(dates, today),
     week: Array.from({ length: 7 }, (_, i) => isoOf(t - 6 + i)).map((date) => ({ date, prayed: set.has(date) })),
   };
 }

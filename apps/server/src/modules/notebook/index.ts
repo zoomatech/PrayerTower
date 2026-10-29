@@ -19,6 +19,8 @@ import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
 import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
+import * as reminders from '../reminders/index.js';
+import * as moderationTools from '../moderation/tools.js';
 import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
@@ -239,6 +241,10 @@ export async function features(q: Queryable) {
     ...(await givingSplit.features(q)),
     /** Growth practices: follow-ups, gratitude card, gentle rhythm (modules/practices, Admin → Growth practices). */
     ...(await practices.features(q)),
+    /** Daily reminder and weeks of prayer (modules/reminders, Admin → Gentle reminders). */
+    ...(await reminders.features(q)),
+    /** Moderation search, bulk decisions and audit log filters (modules/moderation/tools, Admin → Moderation tools). */
+    ...(await moderationTools.features(q)),
     /** Conversation helpers: reply suggestions, meaning words, care after "how are you", greeting packs, own words, kind closings. */
     ...(await conversationHelpers.features(q)),
     /** Feed skins, comment trees, skin ideas and the video cap (modules/skins, Admin → Feed skins). */

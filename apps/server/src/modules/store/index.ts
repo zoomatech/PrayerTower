@@ -19,6 +19,7 @@ import type { Queryable } from '../../db.js';
 import { AppError, badRequest, conflict, forbidden } from '../../errors.js';
 import * as future from '../future/index.js';
 import * as notifications from '../notifications/index.js';
+import * as practice from '../practice-mode/index.js';
 import * as tokens from '../tokens/index.js';
 
 /** What the store module needs from Apple's verifier (tests pass one built on a test certificate chain). */
@@ -60,12 +61,46 @@ async function verify<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/** Practice purchases (Admin → Practice mode) work only before the App Store connection is set, and never in production. */
+export async function practiceOn(q: Queryable, verifier: AppleVerifier | null, practiceAllowed: boolean) {
+  return !verifier && practiceAllowed && (await practice.settings(q)).purchases;
+}
+
+type Transaction = Pick<
+  JWSTransactionDecodedPayload,
+  'transactionId' | 'originalTransactionId' | 'productId' | 'appAccountToken' | 'revocationDate' | 'type' | 'quantity' | 'price' | 'currency' | 'environment' | 'purchaseDate'
+>;
+
+async function transaction(q: Queryable, verifier: AppleVerifier | null, signed: string, practiceAllowed: boolean): Promise<Transaction> {
+  const p = practice.readPracticeTransaction(signed);
+  if (p) {
+    if (!(await practiceOn(q, verifier, practiceAllowed))) throw forbidden('Practice purchases are off');
+    // No price, so nothing goes to the Common Prayer Fund report.
+    return {
+      transactionId: `practice-${p.transactionId}`,
+      productId: p.productId,
+      appAccountToken: p.appAccountToken,
+      type: 'Consumable' as Transaction['type'],
+      quantity: 1,
+      environment: 'Practice' as Transaction['environment'],
+      purchaseDate: Date.now(),
+    };
+  }
+  if (!verifier) throw new AppError(503, 'store_not_configured', 'The App Store connection is not set up yet');
+  return verify(() => verifier.verifyAndDecodeTransaction(signed));
+}
+
 /** Credit a verified App Store purchase to the member, once per transaction. */
-export async function purchase(q: Queryable, verifier: AppleVerifier | null, userId: string, input: z.infer<typeof Purchase>): Promise<PurchaseResult> {
+export async function purchase(
+  q: Queryable,
+  verifier: AppleVerifier | null,
+  userId: string,
+  input: z.infer<typeof Purchase>,
+  practiceAllowed = false,
+): Promise<PurchaseResult> {
   const s = await future.settings(q);
   if (!s.purchases_enabled) throw forbidden('Buying tokens is not available yet. You can earn tokens by praying.');
-  if (!verifier) throw new AppError(503, 'store_not_configured', 'The App Store connection is not set up yet');
-  const t = await verify(() => verifier.verifyAndDecodeTransaction(input.signedTransaction));
+  const t = await transaction(q, verifier, input.signedTransaction, practiceAllowed);
   if (!t.transactionId || !t.productId) throw badRequest('This purchase is incomplete');
   // The app sets appAccountToken to the member's id, so a transaction can't be replayed by another account.
   if (t.appAccountToken?.toLowerCase() !== userId.toLowerCase()) throw forbidden('This purchase belongs to another account');
@@ -138,7 +173,7 @@ export async function purchase(q: Queryable, verifier: AppleVerifier | null, use
 /** The member's purchases, newest first. */
 export async function mine(q: Queryable, userId: string) {
   const { rows } = await q.query(
-    `select id, store_product_id, tokens, currency, status, price_milli, price_currency, purchased_at, refunded_at
+    `select id, store_product_id, tokens, currency, status, price_milli, price_currency, purchased_at, refunded_at, environment = 'Practice' as practice
        from public.token_purchases where user_id = $1 order by created_at desc limit 50`,
     [userId],
   );

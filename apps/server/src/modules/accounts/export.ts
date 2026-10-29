@@ -3,6 +3,7 @@
 // fraud flags, witness notes) and other people's identities in staff fields
 // are left out. Photo and video files stay in Storage; their paths are listed.
 import type { Queryable } from '../../db.js';
+import { isSecular } from '../communities/index.js';
 
 type Section = { table: string; where: string; omit?: string[] };
 
@@ -121,6 +122,7 @@ const SECTIONS: Record<string, Section> = {
   reportsMade: { table: 'moderation_items', where: 'reporter_id = $1', omit: ['user_id', 'decided_by', 'ai_categories', 'source'] },
   assistantUse: { table: 'ai_usage', where: 'user_id = $1' },
   announcementsDismissed: { table: 'announcement_dismissals', where: 'user_id = $1' },
+  dailyReminder: { table: 'daily_reminders', where: 'user_id = $1' },
   partnerPool: { table: 'partner_pool', where: 'user_id = $1' },
   partnerships: { table: 'partnerships', where: 'a_id = $1 or b_id = $1' },
 };
@@ -149,6 +151,7 @@ export const NOT_EXPORTED = [
   'oncall_settings',
   'oncall_shifts',
   'podcast_shows',
+  'push_deliveries',
   'radio_setup_tests',
   'reading_plans',
   'seed_prayer_settings',
@@ -157,6 +160,9 @@ export const NOT_EXPORTED = [
   'surveys',
   'talk_count_quota',
   'token_ledger_checks',
+  // Hashes of two-step backup codes and wrong guesses: of no use to the member, and safer kept in.
+  'two_step_backup_attempts',
+  'two_step_backup_codes',
   'welcome_dismissed',
   'witness_cases',
   'witness_notes',
@@ -179,11 +185,59 @@ export async function exportData(q: Queryable, userId: string) {
     );
     data[key] = rows.map((r) => r.row);
   }
-  return {
+  const out = {
     exportedAt: new Date().toISOString(),
     format: 'member-data/1',
     account: { email: auth[0]?.email ?? null, createdAt: auth[0]?.created_at ?? null },
     profile: profile[0] ?? null,
     ...data,
   };
+  // Open Circle: the file's own names (sections and fields) use plain words too.
+  // What the member wrote stays exactly as written.
+  return (await isSecular(q, userId)) ? (neutralKeys(out) as typeof out) : out;
+}
+
+// Longest first, so "prayerWarrior" is handled before "prayer". Case follows the
+// original: "prayer" → "support", "Prayer" → "Support", "PRAYER" → "SUPPORT".
+const PLAIN: [RegExp, string][] = [
+  [/prayer[_ ]?warrior/gi, 'kindness_champion'],
+  [/prayed/gi, 'supported'],
+  [/praying/gi, 'supporting'],
+  [/prayers|prayer|pray/gi, 'support'],
+  [/priestly/gi, 'lighthouse'],
+  [/churches|church/gi, 'group'],
+  [/pastor/gi, 'leader'],
+  [/sermon/gi, 'talk'],
+  [/scripture|bible/gi, 'reading'],
+  [/blessings|blessing/gi, 'kindness'],
+  [/faith/gi, 'belief'],
+];
+const sameCase = (found: string, word: string) =>
+  found === found.toUpperCase() ? word.toUpperCase() : found[0] === found[0]!.toUpperCase() ? word[0]!.toUpperCase() + word.slice(1) : word;
+/** A key in plain words, keeping camelCase or snake_case. */
+export function plainKey(key: string) {
+  let k = key;
+  for (const [re, word] of PLAIN) {
+    k = k.replace(re, (found) => {
+      // kindness_champion inside a camelCase key becomes kindnessChampion.
+      const w = /_/.test(key) || !word.includes('_') ? word : word.replace(/_(.)/g, (_, c: string) => c.toUpperCase());
+      return sameCase(found, w);
+    });
+  }
+  return k;
+}
+
+function neutralKeys(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(neutralKeys);
+  if (!v || typeof v !== 'object' || v instanceof Date) return v;
+  const out: Record<string, unknown> = {};
+  const entries = Object.entries(v);
+  const taken = new Set(entries.map(([k]) => k));
+  for (const [k, x] of entries) {
+    const plain = plainKey(k);
+    // Never let a renamed key overwrite another one: keep the original name then.
+    const name = plain !== k && (taken.has(plain) || plain in out) ? k : plain;
+    out[name] = neutralKeys(x);
+  }
+  return out;
 }

@@ -182,6 +182,9 @@ export const keys: Tree = named({
     firmHint: 'For example: "Remember, you promised to be there for Billy."',
   },
   profile: {
+    // Hidden for Open Circle (the church page is faith-only); plain words in case a screen shows them.
+    churchApply: 'Lead a local group? Add it',
+    myChurch: 'My group',
     prayers: 'Times supported',
     priestly: 'Lighthouse',
     nextTier: '%{count} more to become a %{tier}.',
@@ -346,6 +349,16 @@ export const keys: Tree = named({
     beFirst: 'Be the first to lift someone up this week.',
     window: 'Support for others in the last %{count} days.',
     anonymous: 'Anonymous helper',
+  },
+  reminders: {
+    intro: "A gentle nudge at a time you choose. It's skipped on days you've already supported someone.",
+    weeks: 'Weeks of kindness',
+    weeksSummary: 'You have supported people on %{days} days, %{people} people in all, in %{weeks} different weeks.',
+    weekRun: '%{count} weeks of kindness in a row, with room to rest.',
+    weeksNote: 'Every week you support someone adds to this, and it never goes down.',
+    adminDailyHint: 'Skipped on a day they already supported someone. After the number of unused reminders below, it quietly drops to once a week until they do again.',
+    adminWeeks: 'Weeks of kindness instead of days in a row',
+    adminWeeksHint: 'Me shows the weeks they supported someone, a total that only grows, and "weeks in a row" that allows a rest week and is only shown from 2 up.',
   },
   offline: { saved: 'Showing posts saved %{when}.' },
   conversation: { invited: 'You were invited to this group. Join to talk and cheer each other on.' },

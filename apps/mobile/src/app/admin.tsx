@@ -17,7 +17,7 @@ import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui'
 import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
-import { resetFeatures } from '@/lib/features';
+import { resetFeatures, useFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -35,6 +35,9 @@ const toInt = (s: string) => (s.trim() === '' ? null : Number.parseInt(s, 10));
 
 function Admin() {
   const { t, language } = useLocale();
+  const features = useFeatures();
+  // A member who lost their phone and backup codes: the first tap asks, the second turns two-step sign-in off.
+  const [resetAsk, setResetAsk] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [days, setDays] = useState(7);
@@ -314,6 +317,10 @@ function Admin() {
         <NotebookSettingsSection />
         <GrowthSettingsSection />
         <GivingSplitSection />
+        <PushDeliverySection />
+        <ReminderSettingsSection />
+        <PracticeModeSection />
+        <ModerationToolsSection />
         <PracticeSettingsSection />
         <ConversationSettingsSection />
         <SkinSettingsSection />
@@ -498,6 +505,21 @@ function Admin() {
                   <Chip key={r} label={t(`admin.role.${r}`)} selected={p.roles.includes(r)} onPress={() => toggleRole(p, r)} />
                 ))}
               </View>
+              {features.twoStep || features.backupCodes ? (
+                <Button
+                  small
+                  variant="ghost"
+                  label={resetAsk === p.id ? t('backupCodes.adminResetSure') : t('backupCodes.adminReset')}
+                  onPress={() =>
+                    resetAsk === p.id
+                      ? run(async () => {
+                          await api.admin.resetTwoStep(p.id);
+                          setResetAsk(null);
+                        }, t('backupCodes.adminResetDone', { name: p.display_name }))
+                      : setResetAsk(p.id)
+                  }
+                />
+              ) : null}
             </View>
           ))}
         </View>
@@ -1128,23 +1150,25 @@ function LiveSection() {
 /** Two-step sign-in with an authenticator app. Off by default; members who turned it on keep it. */
 function SecuritySection() {
   const t = useT();
-  const [on, setOn] = useState<boolean | null>(null);
+  const [s, setS] = useState<SecuritySettings | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      api.admin.securitySettings().then((r) => setOn(r.settings.two_step_enabled), (e) => setNote((e as Error).message));
+      api.admin.securitySettings().then((r) => setS(r.settings), (e) => setNote((e as Error).message));
     }, []),
   );
-  const save = (v: boolean) =>
+  const save = (patch: { twoStepEnabled?: boolean; backupCodesEnabled?: boolean; passkeysEnabled?: boolean }) =>
     api.admin
-      .updateSecuritySettings({ twoStepEnabled: v })
-      .then((r) => (setOn(r.settings.two_step_enabled), resetFeatures(), setNote(t('admin.saved.security'))))
+      .updateSecuritySettings(patch)
+      .then((r) => (setS(r.settings), resetFeatures(), setNote(t('admin.saved.security'))))
       .catch((e) => setNote((e as Error).message));
-  if (on === null) return note ? <Text style={type.small}>{note}</Text> : null;
+  if (s === null) return note ? <Text style={type.small}>{note}</Text> : null;
   return (
     <View style={styles.section}>
       <Text style={type.heading}>{t('admin.security')}</Text>
-      <Toggle label={t('admin.toggle.twoStep')} hint={t('admin.toggle.twoStepHint')} value={on} onChange={save} />
+      <Toggle label={t('admin.toggle.twoStep')} hint={t('admin.toggle.twoStepHint')} value={s.two_step_enabled} onChange={(v) => save({ twoStepEnabled: v })} />
+      <Toggle label={t('backupCodes.adminToggle')} hint={t('backupCodes.adminHint')} value={s.backup_codes_enabled} onChange={(v) => save({ backupCodesEnabled: v })} />
+      <Toggle label={t('passkeys.adminToggle')} hint={t('passkeys.adminHint')} value={s.passkeys_enabled} onChange={(v) => save({ passkeysEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
@@ -1757,7 +1781,54 @@ function SkinSettingsSection() {
   );
 }
 
-/** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
+/** Push delivery: retries without repeats, receipts, folding and an hourly cap (docs/PUSH_DELIVERY.md). */
+export function PushDeliverySection() {
+  const t = useT();
+  const [d, setD] = useState<PushDelivery | null>(null);
+  const [fold, setFold] = useState('');
+  const [cap, setCap] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: PushDelivery) => {
+    setD(x);
+    setFold(String(x.settings.collapse_minutes));
+    setCap(String(x.settings.max_per_hour));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.pushSettings().then(show).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updatePushSettings({ collapseMinutes: toInt(fold) ?? undefined, maxPerHour: toInt(cap) ?? undefined, ...patch })
+      .then((r) => {
+        show(r);
+        setNote(t('pushDelivery.saved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!d) return note ? <Text style={type.small}>{note}</Text> : null;
+  const n = (k: keyof PushDelivery['health']['byStatus']) => d.health.byStatus[k] ?? 0;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('pushDelivery.title')}</Text>
+      <Text style={type.small}>{t('pushDelivery.intro')}</Text>
+      <Toggle label={t('pushDelivery.toggle')} value={d.settings.push_reliability_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('pushDelivery.fold')} keyboardType="number-pad" value={fold} onChangeText={setFold} />
+      <Field label={t('pushDelivery.cap')} keyboardType="number-pad" value={cap} onChangeText={setCap} />
+      <Button label={t('pushDelivery.save')} onPress={() => save()} />
+      <Text style={type.small}>
+        {t('pushDelivery.health', { delivered: n('ok'), sent: n('sent'), waiting: n('retry') + n('held'), folded: n('folded') + n('capped'), failed: n('error'), off: d.health.devicesTurnedOff })}
+      </Text>
+      {d.health.errors.map((e) => (
+        <Text key={e.error} style={type.small}>
+          {t('pushDelivery.error', { error: e.error, n: e.n })}
+        </Text>
+      ))}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Giving split: members may ask that a share of gifts toward them go to their own page. */
 function GivingSplitSection() {
   const t = useT();
@@ -1795,6 +1866,128 @@ function GivingSplitSection() {
   );
 }
 
+/** Gentle reminders: a daily reminder that never mentions a missed day, and weeks of prayer (docs/GENTLE_REMINDERS.md). */
+export function PracticeModeSection() {
+  const t = useT();
+  const [d, setD] = useState<{ settings: PracticeModeSettings; connected: PracticeConnected } | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceMode().then(setD).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Partial<PracticeModeSettings>) =>
+    api.admin
+      .updatePracticeMode(patch)
+      .then((r) => (setD(r), resetFeatures(), setNote(t('practiceMode.saved'))))
+      .catch((e) => setNote((e as Error).message));
+  if (!d) return note ? <Text style={type.small}>{note}</Text> : null;
+  const c = d.connected;
+  const list = [
+    c.ai && t('practiceMode.aiOn'),
+    c.videoServer && t('practiceMode.videoOn'),
+    c.jaas && t('practiceMode.jaasOn'),
+    c.appStore && t('practiceMode.storeOn'),
+  ].filter(Boolean);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('practiceMode.title')}</Text>
+      <Text style={type.small}>{t('practiceMode.intro')}</Text>
+      <Text style={type.small}>{list.length ? t('practiceMode.connected', { list: list.join(', ') }) : t('practiceMode.nothing')}</Text>
+      <Toggle label={t('practiceMode.ai')} hint={t('practiceMode.aiHint')} value={d.settings.ai} onChange={(v) => save({ ai: v })} />
+      <Toggle label={t('practiceMode.live')} hint={t('practiceMode.liveHint')} value={d.settings.live} onChange={(v) => save({ live: v })} />
+      <Toggle label={t('practiceMode.purchases')} hint={t('practiceMode.purchasesHint')} value={d.settings.purchases} onChange={(v) => save({ purchases: v })} />
+      {c.practicePurchasesAllowed ? null : <Text style={type.small}>{t('practiceMode.noPracticeBuy')}</Text>}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+export function ReminderSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<ReminderSettings | null>(null);
+  const [quiet, setQuiet] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: ReminderSettings) => {
+    setS(x);
+    setQuiet(String(x.quiet_after));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.reminderSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { dailyReminderEnabled?: boolean; gentleStreakEnabled?: boolean } = {}) =>
+    api.admin
+      .updateReminderSettings({ quietAfter: toInt(quiet) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('reminders.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('reminders.adminTitle')}</Text>
+      <Text style={type.small}>{t('reminders.adminIntro')}</Text>
+      <Toggle
+        label={t('reminders.adminDaily')}
+        hint={t('reminders.adminDailyHint')}
+        value={s.daily_reminder_enabled}
+        onChange={(v) => save({ dailyReminderEnabled: v })}
+      />
+      <Field label={t('reminders.adminQuiet')} keyboardType="number-pad" value={quiet} onChangeText={setQuiet} />
+      <Toggle
+        label={t('reminders.adminWeeks')}
+        hint={t('reminders.adminWeeksHint')}
+        value={s.gentle_streak_enabled}
+        onChange={(v) => save({ gentleStreakEnabled: v })}
+      />
+      <Button label={t('reminders.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Moderation tools: search, bulk decisions and audit log filters (docs/MODERATION_TOOLS.md). */
+export function ModerationToolsSection() {
+  const t = useT();
+  const [s, setS] = useState<{ tools_enabled: boolean; bulk_max: number } | null>(null);
+  const [max, setMax] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: { tools_enabled: boolean; bulk_max: number }) => {
+    setS(x);
+    setMax(String(x.bulk_max));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.moderationTools().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateModerationTools({ bulkMax: toInt(max) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('modTools.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('modTools.adminTitle')}</Text>
+      <Text style={type.small}>{t('modTools.adminIntro')}</Text>
+      <Toggle label={t('modTools.adminToggle')} value={s.tools_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('modTools.adminMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
+      <Button label={t('modTools.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
 function GrowthSettingsSection() {
   const t = useT();
   const [s, setS] = useState<GrowthSettings | null>(null);
