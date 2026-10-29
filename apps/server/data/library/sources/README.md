@@ -26,6 +26,7 @@ Project Gutenberg header and licence.
 | `odyssey-butler-1900.txt` | The Odyssey (prose) | Samuel Butler | 1900 | https://www.gutenberg.org/cache/epub/1727/pg1727.txt |
 | `gilgamesh-deluge-budge-1920.txt` | The Babylonian Story of the Deluge as Told by Assyrian Tablets from Nineveh (Gilgamesh Tablet XI, the flood told by Uta-Napishtim, in full; summaries of the other tablets) | E. A. Wallis Budge | 1920 | https://www.gutenberg.org/cache/epub/7096/pg7096.txt |
 | `gilgamesh-thompson-1928.txt` | The Epic of Gilgamish (all twelve tablets in English hexameters, including the flood in Tablet XI; OCR of a Google scan) | R. Campbell Thompson | 1928 | https://archive.org/download/thompson-1928-gilgamesh/Thompson_1928_Gilgamesh_djvu.txt |
+| `kjv-strongs/` (66 `.usfm` books, `copr.htm`) | King James (Authorized) Version, 1769 standardized text, protocanon only, with Strong's numbers (USFM `\w word|strong="H7225"\w*`) | eBible.org (ID ENGKJV / eng-kjv2006). Licence: "Public Domain" (outside the UK; the Crown's letters patent apply only in the UK) | 1769 | https://ebible.org/Scriptures/eng-kjv2006_usfm.zip (details: https://ebible.org/find/details.php?id=eng-kjv2006) |
 
 ## Not found before 1931
 
