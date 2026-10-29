@@ -354,6 +354,7 @@ const en = {
     chatLink: 'Imagine a conversation with God',
     chatTitle: 'Imagine a conversation with God',
     chatIntro: 'A role-play to help you reflect and pray. Nothing you write here is saved.',
+    chatUnavailable: 'This isn’t available.',
     placeholder: 'Write what is on your heart…',
     send: 'Send',
     you: 'You',

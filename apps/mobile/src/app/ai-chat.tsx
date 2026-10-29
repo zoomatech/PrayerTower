@@ -51,10 +51,22 @@ export default function AiChat() {
     }
   };
 
+  const back = <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />;
+  // Switched off, or an Open Circle member (who never sees the God role-play): say only that it isn't available.
+  if (enabled === false) {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content}>
+          {back}
+          <Text style={type.body}>{t('ai.chatUnavailable')}</Text>
+        </ScrollView>
+      </Screen>
+    );
+  }
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
+        {back}
         <Text style={type.title}>{t('ai.chatTitle')}</Text>
         {warning ? (
           <View style={styles.warning} accessibilityRole="alert">
