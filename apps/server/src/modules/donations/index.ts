@@ -417,6 +417,20 @@ export async function requestAllocation(q: Queryable, userId: string, input: z.i
       'insert into public.radio_allocation_requests (user_id, count, note) values ($1, $2, $3) returning id',
       [userId, input.count, input.note],
     );
+    // Tell the staff who can answer it, so it doesn't wait unseen.
+    const { rows: staff } = await q.query<{ user_id: string; name: string }>(
+      `select distinct r.user_id, (select coalesce(nullif(display_name, ''), 'A member') from public.profiles where id = $1) as name
+         from public.user_roles r where r.role = any(array['admin', 'moderator', 'pastor_counselor']::public.app_role[]) and r.user_id <> $1`,
+      [userId],
+    );
+    for (const r of staff) {
+      await notifications.notify(q, r.user_id, {
+        kind: 'radio_request',
+        title: 'Someone asked for more radio prayers',
+        body: `${r.name} asked for ${input.count} more. Open Me → Radio prayer requests to answer.`,
+        data: { screen: 'radio-requests' },
+      });
+    }
     return { id: rows[0]!.id };
   } catch (err) {
     if ((err as { code?: string }).code === '23505') throw conflict('You already have a request waiting');

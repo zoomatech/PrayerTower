@@ -4,6 +4,8 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Giving notices: thank-you, gift to you, and radio request answers ([#105](https://github.com/zoomatech/PrayerTower/pull/105))
+- Kind cloud and emoji meanings, both off by default ([#92](https://github.com/zoomatech/PrayerTower/pull/92))
 - Open Circle wording on Give and invites; website Give link falls back to PayPal ([#99](https://github.com/zoomatech/PrayerTower/pull/99))
 - Feed skins, Prayer Tower climb, neon and floral skins, theme maker, comment trees, 7-second video cap ([#93](https://github.com/zoomatech/PrayerTower/pull/93))
 - Burst mode: browser listening page (/listen, off by default) and station operator guide ([#102](https://github.com/zoomatech/PrayerTower/pull/102))

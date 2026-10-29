@@ -178,6 +178,7 @@ describe('giving', () => {
       expect(`${toFriend!.title} ${toFriend!.body}`).not.toMatch(/pray|priestly/i);
 
       const ask = await donations.requestAllocation(c, asker, { count: 2, note: '' });
+      expect((await notices(admin)).at(-1)).toMatchObject({ kind: 'radio_request', body: 'Notice Asa asked for 2 more. Open Me → Radio prayer requests to answer.' });
       await donations.decide(c, admin, ask.id, { grant: 0 });
       expect(await notices(asker)).toEqual([expect.objectContaining({ kind: 'radio_request_decided', body: "Staff couldn't grant more this time." })]);
     } finally {

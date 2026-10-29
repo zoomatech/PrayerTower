@@ -362,6 +362,11 @@ function Admin() {
               <Chip label={t('admin.receiptsOn')} selected={radio.radio_receipts_enabled} onPress={() => saveRadio({ receipts: true })} />
             </View>
             <Text style={type.small}>{t('admin.receiptsHint')}</Text>
+            <View style={styles.row}>
+              <Chip label={t('admin.onAirOff')} selected={!radio.on_air_page_enabled} onPress={() => saveRadio({ onAirPage: false })} />
+              <Chip label={t('admin.onAirOn')} selected={radio.on_air_page_enabled} onPress={() => saveRadio({ onAirPage: true })} />
+            </View>
+            <Text style={type.small}>{t('admin.onAirHint')}</Text>
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>

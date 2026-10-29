@@ -54,6 +54,7 @@ function openFrom(response: Notifications.NotificationResponse | null) {
   else if (typeof data?.postId === 'string') router.push(`/post/${data.postId}`);
   else if (data?.screen === 'prayer-minute') router.push('/prayer-minute');
   else if (data?.screen === 'give') router.push('/give');
+  else if (data?.screen === 'radio-requests') router.push('/radio-requests');
   else if (data?.screen === 'prayer-list') router.push('/prayer-list');
   else if (typeof data?.personId === 'string') router.push(`/people/${data.personId}`);
 }
