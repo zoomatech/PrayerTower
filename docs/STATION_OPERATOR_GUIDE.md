@@ -288,6 +288,37 @@ If the internet or Prayer Tower is down, the node keeps the reports it could not
 
 ![Listener nodes](images/radio/listener-nodes.png)
 
+### Listener with an RTL-SDR dongle
+
+A listener node doesn't need a radio. An RTL-SDR USB dongle (about $30, the kind sold
+for TV and scanner use) and a small antenna can do the receiving. Off by default.
+
+1. Install with `--sdr`:
+   - On a Pi: `... | sudo bash -s -- --listener-only --sdr`. This installs `rtl-sdr`
+     (`rtl_fm`), lets the listener service open the dongle, and adds the lines below to
+     `/etc/prayer-tower-listener.env`.
+   - On a Mac: `install-mac.sh --listener-only --sdr`. This installs Homebrew's `librtlsdr`.
+2. Plug in the dongle, then check it with `rtl_test -t`.
+3. In the listener settings, set the station's frequency:
+
+   ```
+   LISTEN_SOURCE=rtlsdr
+   LISTEN_SDR_FREQ=146.52M
+   ```
+
+   That is all FM needs. Optional settings:
+
+   | Setting | What it does |
+   | --- | --- |
+   | `LISTEN_SDR_GAIN` | Gain in dB. Auto by default. |
+   | `LISTEN_SDR_PPM` | Corrects the dongle's frequency error. Cheap dongles are often 20 to 60 ppm off; a TCXO dongle is about 1. |
+   | `LISTEN_SDR_DEVICE` | Picks a dongle when there are several. |
+   | `LISTEN_SDR_MODE=usb` | For an HF station. Below 24 MHz the dongle also needs `LISTEN_SDR_DIRECT=on` (direct sampling) or an upconverter. The 50 Hz tuning search is then on by default. |
+
+4. Restart the listener. It runs `rtl_fm` with no squelch, so the start of a burst is never cut
+   off, and decodes it like audio from a sound card. Admin → Radio and the coverage map show
+   the node as "RTL-SDR" with its frequency.
+
 ## Several stations (one shared queue)
 
 Off by default. Several stations, for example one on FM and one on HF, or the

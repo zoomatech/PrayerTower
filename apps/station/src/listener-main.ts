@@ -2,6 +2,7 @@
 // (docs/STATION_OPERATOR_GUIDE.md, "Listener nodes"):
 //   PRAYER_TOWER_API_URL, NODE_KEY (from Admin → Radio → Listener nodes; required)
 //   LISTEN_RECORD_CMD (arecord on Linux, sox's rec on macOS: 48 kHz mono 16-bit raw on stdout)
+//   LISTEN_SOURCE (soundcard; rtlsdr: an RTL-SDR dongle through rtl_fm, with LISTEN_SDR_FREQ and the rest in sdr.ts)
 //   LISTEN_SEARCH_HZ (0; 50 for an HF SSB receiver), LISTEN_DECODE_SECONDS (6),
 //   LISTEN_RECEIPTS (on: report decoded prayers' fingerprints, for acknowledgements and receipts), LISTEN_REPORT_FILE (also write the report here for a station on this machine)
 //   LISTEN_SIGN (off; on: sign each report with the key instead of sending it, docs "Signed listener reports")
@@ -14,6 +15,7 @@ import path from 'node:path';
 import { audioTransmitter, simulateTransmitter } from './burst/transmit.js';
 import { Relay, relayConfig } from './relay.js';
 import { checkApiUrl } from './secure-url.js';
+import { receiverOf, rtlFmCommand, sdrSettings } from './sdr.js';
 import { defaultRecordCommand, httpListenerApi, listenOnce, Outbox, parseLocation, RollingDecoder, startRecorder } from './listener.js';
 
 const need = (name: string) => {
@@ -29,8 +31,11 @@ const num = (name: string, fallback: number, min: number, max: number) => {
 
 const api = httpListenerApi(checkApiUrl(need('PRAYER_TOWER_API_URL')), need('NODE_KEY'), fetch, { sign: process.env.LISTEN_SIGN === 'on' });
 const stateDir = process.env.STATE_DIRECTORY?.split(':')[0];
+// An RTL-SDR dongle instead of a radio on the sound card (sdr.ts); off unless LISTEN_SOURCE=rtlsdr.
+const sdr = sdrSettings(process.env);
 const cfg = {
-  searchHz: num('LISTEN_SEARCH_HZ', 0, 0, 200),
+  // An SSB receiver may be tuned a little off, so on USB the search is on unless set.
+  searchHz: num('LISTEN_SEARCH_HZ', sdr?.mode === 'usb' ? 50 : 0, 0, 200),
   receipts: (process.env.LISTEN_RECEIPTS ?? 'on') !== 'off',
   reportFile: process.env.LISTEN_REPORT_FILE || undefined,
   // Reports that fail during an internet or server outage are sent when it comes back.
@@ -66,12 +71,13 @@ if (relayCfg) {
 }
 
 const dec = new RollingDecoder();
-const command = process.env.LISTEN_RECORD_CMD || defaultRecordCommand();
+const command = sdr ? rtlFmCommand(sdr) : process.env.LISTEN_RECORD_CMD || defaultRecordCommand();
 const recorder = startRecorder(command, dec);
 console.log(`[listener] listening (${command}), decoding every ${everyMs / 1000}s${cfg.searchHz ? `, ±${cfg.searchHz} Hz search` : ''}`);
 
 // The server resends prayers nobody heard only while a listener is running (radio/acks.ts).
-const beat = () => api.heartbeat(location, relay?.status()).catch((err: Error) => console.error(`[listener] ${err.message}`));
+const receiver = receiverOf(sdr);
+const beat = () => api.heartbeat(location, relay?.status(), receiver).catch((err: Error) => console.error(`[listener] ${err.message}`));
 void beat();
 const beating = setInterval(beat, 60_000);
 

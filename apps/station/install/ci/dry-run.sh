@@ -53,11 +53,18 @@ if [ "$platform" = linux ]; then
   SUDO=sudo
   env_file=/etc/prayer-tower-station.env
   app=/opt/prayer-tower-station
-  dump() { sudo journalctl -u prayer-tower-station -u prayer-tower-rigctld --no-pager -n 80 || true; cat "$work/mock.log" || true; }
+  dump() {
+    sudo journalctl -u prayer-tower-station -u prayer-tower-rigctld -u prayer-tower-station-health --no-pager -n 80 || true
+    sudo ls -la /var/lib/prayer-tower-station/ || true
+    cat "$work/mock.log" || true
+  }
 
-  step "Install (with Hamlib and a listener node)"
-  sudo bash "$install/install.sh" --hamlib --listener
+  step "Install (with Hamlib and a listener node with an RTL-SDR dongle)"
+  sudo bash "$install/install.sh" --hamlib --listener --sdr
   [ -f "$app/dist/src/main.js" ] || fail "the worker is not in $app"
+  command -v rtl_fm > /dev/null || fail "rtl_fm (--sdr) is not installed"
+  [ -f /etc/systemd/system/prayer-tower-listener.service.d/rtl-sdr.conf ] || fail "the listener can't open a USB dongle"
+  sudo grep -q '^LISTEN_SOURCE=rtlsdr$' /etc/prayer-tower-listener.env || fail "--sdr did not set LISTEN_SOURCE"
   for u in prayer-tower-station.service prayer-tower-station-health.timer prayer-tower-listener.service prayer-tower-rigctld.service; do
     systemctl is-enabled --quiet "$u" || fail "$u is not enabled"
   done
@@ -76,7 +83,7 @@ if [ "$platform" = linux ]; then
   sudo systemctl start prayer-tower-station-health.service || fail "the health check failed"
 
   step "Install again (update): settings kept, station restarted"
-  sudo bash "$install/install.sh" --hamlib --listener
+  sudo bash "$install/install.sh" --hamlib --listener --sdr
   sudo grep -q '^STATION_API_KEY=ci-station-key$' "$env_file" || fail "the update lost the settings"
   sleep 3
   systemctl is-active --quiet prayer-tower-station || fail "the station is not running after the update"
@@ -85,6 +92,7 @@ if [ "$platform" = linux ]; then
   sudo bash "$install/install.sh" --uninstall
   [ ! -e "$app" ] || fail "$app is still there"
   [ ! -e /etc/systemd/system/prayer-tower-station.service ] || fail "the service is still installed"
+  [ ! -e /etc/systemd/system/prayer-tower-listener.service.d ] || fail "the listener's dongle drop-in is still there"
   [ -f "$env_file" ] || fail "uninstall removed the settings file"
 elif [ "$platform" = mac ]; then
   SUDO=
@@ -96,9 +104,11 @@ elif [ "$platform" = mac ]; then
   dump() { tail -n 80 "$logs/station.log" "$logs/rigctld.log" 2>/dev/null || true; cat "$work/mock.log" || true; }
   running() { launchctl print "gui/$uid/$label.$1" 2>/dev/null | grep -q 'state = running'; }
 
-  step "Install (with Hamlib and a listener node)"
-  bash "$install/mac/install-mac.sh" --hamlib --listener
+  step "Install (with Hamlib and a listener node with an RTL-SDR dongle)"
+  bash "$install/mac/install-mac.sh" --hamlib --listener --sdr
   [ -f "$base/station/dist/src/main.js" ] || fail "the worker is not in $base/station"
+  command -v rtl_fm > /dev/null || [ -x "$(brew --prefix)/bin/rtl_fm" ] || fail "rtl_fm (--sdr) is not installed"
+  grep -q '^LISTEN_SOURCE=rtlsdr$' "$conf/listener.env" || fail "--sdr did not set LISTEN_SOURCE"
   [ -f "$conf/station.env" ] && [ -f "$conf/rigctld.env" ] && [ -f "$conf/listener.env" ] || fail "settings files missing"
   plutil -lint "$HOME/Library/LaunchAgents/$label.rigctld.plist" || fail "rigctld agent plist"
   sleep 3
@@ -106,7 +116,7 @@ elif [ "$platform" = mac ]; then
 
   step "Simulate mode against the stand-in API (installing again starts the station)"
   configure "$conf/station.env"
-  bash "$install/mac/install-mac.sh" --hamlib --listener
+  bash "$install/mac/install-mac.sh" --hamlib --listener --sdr
   plutil -lint "$HOME/Library/LaunchAgents/$label.station.plist" || fail "station agent plist"
   wait_for_burst || fail "no burst was sent, decoded and reported"
   running station || fail "the station stopped"

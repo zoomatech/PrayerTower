@@ -10,6 +10,7 @@
 #   sudo apps/station/install/install.sh --hamlib    # also install Hamlib rigctld (rig control)
 #   sudo apps/station/install/install.sh --listener  # also install the receive-only listener node
 #   sudo apps/station/install/install.sh --listener-only  # a listener node only: the station service stays off
+#   sudo apps/station/install/install.sh --listener-only --sdr  # ...listening with an RTL-SDR USB dongle (rtl_fm)
 #   sudo apps/station/install/install.sh --uninstall # remove (keeps the settings file)
 set -euo pipefail
 
@@ -32,6 +33,7 @@ if [ "${1:-}" = "--uninstall" ]; then
   log "Removing the station service"
   systemctl disable --now "${units[@]}" prayer-tower-rigctld.service prayer-tower-listener.service 2>/dev/null || true
   for u in "${units[@]}" prayer-tower-rigctld.service prayer-tower-listener.service; do rm -f "/etc/systemd/system/$u"; done
+  rm -rf /etc/systemd/system/prayer-tower-listener.service.d
   rm -f /etc/systemd/journald.conf.d/prayer-station.conf
   systemctl daemon-reload
   rm -rf "$app"
@@ -43,12 +45,14 @@ with_fldigi=0
 with_hamlib=0
 with_listener=0
 listener_only=0
+with_sdr=0
 for arg in "$@"; do
   case "$arg" in
     --fldigi) with_fldigi=1 ;;
     --hamlib) with_hamlib=1 ;;
     --listener) with_listener=1 ;;
     --listener-only) with_listener=1; listener_only=1 ;;
+    --sdr) with_sdr=1; with_listener=1 ;;
     *) die "unknown option $arg" ;;
   esac
 done
@@ -62,6 +66,11 @@ fi
 if [ "$with_listener" = 1 ]; then
   # arecord, for recording from the receiver's sound card.
   apt-get install -y -qq alsa-utils
+fi
+if [ "$with_sdr" = 1 ]; then
+  # rtl_fm and rtl_test (https://osmocom.org/projects/rtl-sdr). The package keeps the TV
+  # driver off the dongle (librtlsdr-blacklist.conf) and lets the plugdev group open it.
+  apt-get install -y -qq rtl-sdr
 fi
 if [ "$with_hamlib" = 1 ]; then
   # rigctld and rigctl (https://hamlib.github.io/)
@@ -136,10 +145,18 @@ if [ "$with_listener" = 1 ]; then
   log "Installing the listener node"
   [ -f "$listener_env" ] || install -m 0640 -o root -g "$user" "$here/listener.env.example" "$listener_env"
   install_unit prayer-tower-listener.service
+  dropin=/etc/systemd/system/prayer-tower-listener.service.d
+  if [ "$with_sdr" = 1 ]; then
+    # The listener's sandbox opens only the sound card; an RTL-SDR dongle is a USB device.
+    install -d "$dropin"
+    printf '%s\n' '# Installed by install.sh --sdr: lets the listener open an RTL-SDR dongle (LISTEN_SOURCE=rtlsdr).' \
+      '[Service]' 'DeviceAllow=char-usb_device rw' 'SupplementaryGroups=plugdev' > "$dropin/rtl-sdr.conf"
+    grep -q '^LISTEN_SOURCE=' "$listener_env" || printf '%s\n' '' '# RTL-SDR dongle (install.sh --sdr): set the station frequency, e.g. 146.52M.' 'LISTEN_SOURCE=rtlsdr' 'LISTEN_SDR_FREQ=' >> "$listener_env"
+  fi
   systemctl daemon-reload
   systemctl enable prayer-tower-listener.service
-  if grep -q '^NODE_KEY=$' "$listener_env"; then
-    echo "Fill in $listener_env (NODE_KEY from Admin → Radio → Listener nodes), then: sudo systemctl start prayer-tower-listener"
+  if grep -q '^NODE_KEY=$' "$listener_env" || grep -q '^LISTEN_SDR_FREQ=$' "$listener_env"; then
+    echo "Fill in $listener_env (NODE_KEY from Admin → Radio → Listener nodes, and LISTEN_SDR_FREQ with --sdr), then: sudo systemctl start prayer-tower-listener"
   else
     systemctl restart prayer-tower-listener.service
   fi
