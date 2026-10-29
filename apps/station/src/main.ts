@@ -15,6 +15,8 @@
 // Rig control (docs/STATION_OPERATOR_GUIDE.md, "Rig control"), off unless RIG_CONTROL=rigctld:
 //   RIG_HOST (127.0.0.1), RIG_PORT (4532), RIG_FREQ_HZ and RIG_MODE (left as the radio is when unset),
 //   RIG_PASSBAND_HZ (0, the radio's default). Burst audio mode then keys PTT through rigctld.
+// Dish rotator (docs/STATION_OPERATOR_GUIDE.md, "Dish and sky target"), off unless ROTATOR=rotctld:
+//   ROTATOR_HOST (127.0.0.1), ROTATOR_PORT (4533), ROTATOR_STEP_DEG (2), ROTATOR_MIN_EL (0), ROTATOR_MAX_EL (90).
 // STATION_FREQ_HZ: the frequency for the operator log when RIG_FREQ_HZ is not set.
 // Station ID (docs/STATION_OPERATOR_GUIDE.md, "Station ID"), off unless STATION_ID=cw: the call sign
 //   in Morse code after a burst, the first time and then every STATION_ID_MINUTES (10);
@@ -31,6 +33,7 @@ import { presetByName } from './burst/presets.js';
 import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTransmitter } from './burst/transmit.js';
 import { runBurstOnce } from './burst/worker.js';
 import { RIG_MODES, rigctldClient, tuneRig, type Rig } from './rig.js';
+import { DishFollower, rotctldClient } from './rotator.js';
 import { StationId } from './station-id.js';
 import { runSetupTestOnce } from './setup-test.js';
 import { runPacketOnce } from './packet/worker.js';
@@ -85,6 +88,18 @@ if (rigControl === 'rigctld') {
   const freq = process.env.RIG_FREQ_HZ ? int('RIG_FREQ_HZ', '0', 100_000, 10_000_000_000) : undefined;
   await tuneRig(rig, { frequencyHz: freq, mode, passbandHz: int('RIG_PASSBAND_HZ', '0', 0, 100_000) });
 }
+
+const rotatorMode = env('ROTATOR', 'off');
+if (!['off', 'rotctld'].includes(rotatorMode)) throw new Error('ROTATOR must be off or rotctld');
+const dish =
+  rotatorMode === 'rotctld'
+    ? new DishFollower(rotctldClient(env('ROTATOR_HOST', '127.0.0.1'), int('ROTATOR_PORT', '4533', 1, 65535)), () => api.skyTarget?.() ?? Promise.resolve(null), {
+        stepDeg: int('ROTATOR_STEP_DEG', '2', 1, 30),
+        everyMs: 60_000,
+        minEl: int('ROTATOR_MIN_EL', '0', 0, 90),
+        maxEl: int('ROTATOR_MAX_EL', '90', 0, 90),
+      })
+    : undefined;
 
 const idMode = env('STATION_ID', 'off');
 if (!['off', 'cw'].includes(idMode)) throw new Error('STATION_ID must be off or cw');
@@ -178,6 +193,7 @@ const reportStatus = async () => {
     const checks: { name: string; ok: boolean; detail: string }[] = await stationChecks({ audio: burstMode === 'audio' || packetMode, rig });
     // The operator console's ID timer (STATION_ID=cw).
     if (stationId) checks.push({ name: 'station_id', ok: true, detail: stationId.statusDetail() });
+    if (dish) checks.push({ name: 'rotator', ok: !dish.lastError, detail: dish.statusDetail() });
     await api.reportStatus?.({ callSign, checks });
   } catch (err) {
     console.error(`[station] could not report status: ${(err as Error).message}`);
@@ -206,6 +222,8 @@ const setupTests = async () => {
 while (!stopping) {
   beat();
   await reportStatus();
+  const turned = await dish?.tick();
+  if (turned) console.log(`[station] dish to az ${turned.az.toFixed(1)} el ${turned.el.toFixed(1)}`);
   await setupTests();
   try {
     const idle = packetMode && burst
