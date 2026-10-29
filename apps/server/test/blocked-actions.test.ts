@@ -34,12 +34,13 @@ describe('spending on a blocked person’s request', () => {
     expect((await as(giver).post(`/posts/${post.id}/scheduled-spends`, { amount: 1, runAt: soon() })).statusCode).toBe(201);
   });
 
-  it('does not tell a blocked pray-er the request was answered', async () => {
+  it('does not thank a blocked pray-er or tell them the request was answered', async () => {
     const poster = await createUser('Answered Blocker');
     const prayer = await createUser('Answered Blocked Prayer');
     const post = await newRequest(poster, 'Pray for my sister, her test results come back Friday.');
     await db.query(`insert into public.prayer_events (post_id, user_id, kind) values ($1, $2, 'praying_now')`, [post.id, prayer]);
     expect((await as(prayer).put(`/people/${poster}/block`)).statusCode).toBe(200);
+    expect((await as(poster).post(`/posts/${post.id}/thanks`, { message: 'Thank you all.' })).json()).toEqual({ sent: 0 });
     expect((await as(poster).post(`/posts/${post.id}/answered`)).statusCode).toBe(200);
     const { rows } = await db.query(`select 1 from public.notifications where user_id = $1 and data ->> 'postId' = $2`, [prayer, post.id]);
     expect(rows).toEqual([]);
