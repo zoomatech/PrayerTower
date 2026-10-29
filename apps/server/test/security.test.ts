@@ -107,6 +107,8 @@ describe('endpoint auth', () => {
       'POST /circle/:token',
       'GET /chain/:token',
       'POST /chain/:token',
+      // Sharing with consent: the share card the author chose (a 404 otherwise).
+      'GET /card/:token',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

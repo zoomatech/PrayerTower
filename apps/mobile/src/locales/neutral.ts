@@ -52,6 +52,7 @@ export const keys: Tree = named({
     adminWidgetHint: 'The widget also shows who thought of the member today: first names only, never anyone who did so anonymously.',
     adminMinute: 'Kindness minute',
     adminMinuteHint: 'Members pick one minute a day, get a gentle reminder then, and spend it thinking of others alongside everyone who chose it, with a real live count.',
+    shareLinkMessage: 'Could you send some support? %{url}',
     guestShare: 'Let friends without the app send support',
     guestShareHint: 'Anyone with the link can read this request and tap "I\'m thinking of you". No account needed.',
     guestShareMessage: "Thinking of me? %{preview} Tap here to let me know (no app needed): %{url}",

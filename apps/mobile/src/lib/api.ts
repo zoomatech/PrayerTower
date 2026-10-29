@@ -128,6 +128,8 @@ export interface Features {
   prayerChain: boolean;
   prayedForWidget: boolean;
   prayerMinute: boolean;
+  /** Sharing outside the app only with the author's consent (docs/GROWTH.md). */
+  shareConsent: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -312,6 +314,19 @@ export interface GrowthSettings {
   prayed_for_widget_enabled: boolean;
   prayer_minute_enabled: boolean;
   guest_email_days: number;
+  share_consent_enabled: boolean;
+}
+/** Who may share a post outside the app, chosen by its author. */
+export type ShareLevel = 'private' | 'link' | 'card';
+export interface ShareState {
+  mine: boolean;
+  level: ShareLevel;
+  canShare: boolean;
+  cardAllowed: boolean;
+  /** True on a share card: the message may carry the post's words. */
+  words: boolean;
+  /** /post/<id> (members-only app link) or /card/<token> (public card, on the site host). */
+  path: string;
 }
 export interface GuestLink {
   token: string;
@@ -1473,7 +1488,7 @@ export const api = {
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
-    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
+    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
     updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
@@ -1621,6 +1636,8 @@ export const api = {
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
   revokeGuestLink: (postId: string) => request<{ revoked: true }>('DELETE', `/posts/${postId}/guest-link`),
+  shareState: (postId: string) => get<{ share: ShareState | null }>(`/posts/${postId}/share`),
+  setShareLevel: (postId: string, level: ShareLevel) => request<{ share: ShareState }>('PUT', `/posts/${postId}/share`, { level }),
   prayerChain: () => get<{ people: ChainPerson[] }>('/me/prayer-chain'),
   addToPrayerChain: (email: string) => post<{ id: string }>('/me/prayer-chain', { email }),
   removeFromPrayerChain: (id: string) => request<{ removed: true }>('DELETE', `/me/prayer-chain/${id}`),

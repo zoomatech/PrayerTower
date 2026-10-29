@@ -10,6 +10,7 @@ Steve asked on 2026-10-28 for "a way to boost usage that the other Social Media 
 | 2 | Email prayer chain | Under Me → **My prayer chain**, the member adds the people already on their email prayer chain. Each address gets one email asking to join. On an open request, **Send to my prayer chain** emails the request, with the link from feature 1, to everyone who said yes. Each request goes out once, and every email has a stop link. | `prayer_chain_enabled` (also needs feature 1 on) |
 | 3 | "Prayed for you today" on the widget | The existing Pray now widget adds one line: "💛 Ana and 2 others prayed for you today". | `prayed_for_widget_enabled` |
 | 4 | Prayer minute | Under Me → **My prayer minute**, the member picks one minute a day. At that minute they get a gentle notice saying how many others chose the same moment. The screen shows a real count of people who have it open and three requests that were prayed for least today. | `prayer_minute_enabled` |
+| 5 | Sharing only with consent | Under their own post, the author picks **Who can share this outside the app?**: **Only me** (the default), **Members can send a link** (the link needs the app; the words never leave), or **Anyone can share a card** (a web page at `/card/<code>` with the words, and the first name unless the post is anonymous). Everyone else's **Share outside** button sends only what the author chose, or says the post stays inside the app. Comments can be shared only by the person who wrote them. | `share_consent_enabled` |
 
 In Open Circle, links are `/circle/<code>` instead of `/pray/<code>`. The pages wear Open Circle's brand, and the wording is "I'm thinking of you", "support circle" and "kindness minute". No religious words appear.
 
@@ -22,6 +23,8 @@ In Open Circle, links are `/circle/<code>` instead of `/pray/<code>`. The pages 
 - **Prayer chain consent:** nothing is sent to an address until it says yes on the web page. Opening the emailed link changes nothing; only the button does, so mail scanners can't sign anyone up. An address that said no is never asked again by the same member. Invites with no answer are deleted after 30 days. A chain holds up to `prayer_chain_max` people (50 by default), and a member can add up to 20 a day.
 - **Widget names** are first names only, and never anyone who prayed anonymously. If only anonymous people prayed, it shows a count.
 - **Prayer minute counts are real:** people who chose the same moment in any time zone, and people with the screen open in the last two minutes. The screen never shows the member's own, sensitive, crisis, answered, hidden or blocked requests.
+
+- **Sharing consent:** with feature 5 on, nothing about a post leaves the app unless its author chose it. Only the author can change the choice. Going back to **Only me** deletes the card link for good; a new card gets a new link. A post that mentions crisis can never be a card. The card page is read-only, `noindex`, and a 404 while the switch is off or the post is hidden. If the author also made a guest link (feature 1), the card points to it.
 
 ## Server settings
 
@@ -40,6 +43,9 @@ The app builds the share link from `EXPO_PUBLIC_LINK_URL`, the same as other sha
 | GET / PATCH | `/admin/growth-settings` | admins |
 | GET / POST / DELETE | `/posts/:id/guest-link` | the asker |
 | GET / POST | `/pray/:token`, `/circle/:token` | anyone (the public page and its form) |
+| GET | `/posts/:id/share` | anyone who can see the post (what they may send) |
+| PUT | `/posts/:id/share` | the author (`{ level: 'private' \| 'link' \| 'card' }`) |
+| GET | `/card/:token` | anyone (the share card) |
 | GET / POST / DELETE | `/me/prayer-chain`, `/me/prayer-chain/:id` | members |
 | POST | `/posts/:id/prayer-chain` | the asker |
 | GET / POST | `/chain/:token` | anyone with the emailed link (join or stop) |
