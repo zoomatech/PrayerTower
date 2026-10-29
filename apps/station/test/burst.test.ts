@@ -2,8 +2,10 @@
 // end to end through a simulated radio channel.
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import vm from 'node:vm';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { bundle, OUTPUT } from '../scripts/build-listen.js';
 import { autoChooser, DEFAULT_AUTO_PRESETS, parseCandidates, pickPreset, readReport } from '../src/burst/auto.js';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { cmCompress, cmDecompress } from '../src/burst/cm.js';
@@ -359,6 +361,24 @@ describe('auto preset', () => {
     const choose = (now: number) => autoChooser({ report: file, candidates: parseCandidates(DEFAULT_AUTO_PRESETS.join(',')), marginDb: 3, maxAgeMs: 30 * 60_000 }, quiet, () => now)();
     expect((await choose(Date.parse('2026-10-29T00:10:00Z'))).name).toBe('fm-turbo');
     expect((await choose(Date.parse('2026-10-29T01:00:00Z'))).name).toBe('fm-robust-fec');
+  });
+});
+
+describe('browser listening page', () => {
+  it('the committed decoder bundle is up to date (npm run build:listen -w @prayer-tower/station)', async () => {
+    expect(readFileSync(OUTPUT, 'utf8')).toBe(await bundle());
+  });
+
+  it('the bundle decodes a burst recorded at 44.1 kHz in a plain JavaScript context, with no Node APIs', async () => {
+    const source = await bundle();
+    const js = JSON.parse(source.slice(source.indexOf('= ') + 2, source.lastIndexOf(';'))) as string;
+    const context: { PTDecoder?: { decodeAudio(x: Float32Array, rate: number): Array<{ callSign: string; prayers: string[] | null; snrDb: number }>; channelReport(f: unknown[]): { snrDb: number } | null } } = {};
+    vm.runInNewContext(`${js}; this.PTDecoder = PTDecoder;`, context);
+    const burst = buildBurst([encodeBatch(SAMPLE_PRAYERS)], presetByName('fm-robust-fec'), 'KD9XYZ');
+    const heard = context.PTDecoder!.decodeAudio(resample(burst.audio, 48_000, 44_100), 44_100);
+    expect(heard).toHaveLength(1);
+    expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', prayers: SAMPLE_PRAYERS });
+    expect(context.PTDecoder!.channelReport(heard)?.snrDb).toBeGreaterThan(20);
   });
 });
 

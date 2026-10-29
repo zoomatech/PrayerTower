@@ -347,6 +347,15 @@ function Admin() {
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
+            {radio.radio_batch_max > 1 ? (
+              <>
+                <View style={styles.row}>
+                  <Chip label={t('admin.listenPageOff')} selected={!radio.listen_page_enabled} onPress={() => saveRadio({ listenPage: false })} />
+                  <Chip label={t('admin.listenPageOn')} selected={radio.listen_page_enabled} onPress={() => saveRadio({ listenPage: true })} />
+                </View>
+                <Text style={type.small}>{t('admin.listenPageHint')}</Text>
+              </>
+            ) : null}
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
