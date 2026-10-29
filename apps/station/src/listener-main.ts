@@ -4,9 +4,11 @@
 //   LISTEN_RECORD_CMD (arecord on Linux, sox's rec on macOS: 48 kHz mono 16-bit raw on stdout)
 //   LISTEN_SEARCH_HZ (0; 50 for an HF SSB receiver), LISTEN_DECODE_SECONDS (6),
 //   LISTEN_RECEIPTS (on: report decoded prayers' fingerprints, for acknowledgements and receipts), LISTEN_REPORT_FILE (also write the report here for a station on this machine)
+//   LISTEN_SIGN (off; on: sign each report with the key instead of sending it, docs "Signed listener reports")
 //   NODE_LOCATION (unset: share nothing): "lat,lon" or "lat,lon,Place" for Admin → Radio's coverage map, rounded to about a city
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { checkApiUrl } from './secure-url.js';
 import { defaultRecordCommand, httpListenerApi, listenOnce, parseLocation, RollingDecoder, startRecorder } from './listener.js';
 
 const need = (name: string) => {
@@ -20,7 +22,7 @@ const num = (name: string, fallback: number, min: number, max: number) => {
   return n;
 };
 
-const api = httpListenerApi(need('PRAYER_TOWER_API_URL'), need('NODE_KEY'));
+const api = httpListenerApi(checkApiUrl(need('PRAYER_TOWER_API_URL')), need('NODE_KEY'), fetch, { sign: process.env.LISTEN_SIGN === 'on' });
 const cfg = {
   searchHz: num('LISTEN_SEARCH_HZ', 0, 0, 200),
   receipts: (process.env.LISTEN_RECEIPTS ?? 'on') !== 'off',

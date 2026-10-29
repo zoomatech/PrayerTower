@@ -630,6 +630,8 @@ export interface RadioNodes {
   enabled: boolean;
   /** Several stations share the queue, each with its own key. */
   multiStation: boolean;
+  /** Listener nodes must sign each request (LISTEN_SIGN=on) instead of sending their key. */
+  signaturesRequired: boolean;
   /** Prayers each station holds now and sent in the last 24 hours; node null is the main station. */
   stations: { node: string | null; sending: number; sent: number }[];
   nodes: RadioNode[];
@@ -1596,9 +1598,11 @@ export const api = {
     radioCoverage: () => get<RadioCoverage>('/admin/radio-coverage'),
     updateRadioCoverage: (patch: { enabled?: boolean; tileUrl?: string; station?: { lat: number; lon: number } | null }) => request<RadioCoverage>('PATCH', '/admin/radio-coverage', patch),
     placeRadioNode: (id: string, location: { lat: number; lon: number; place?: string } | null) => request<RadioCoverage>('PUT', `/admin/radio-nodes/${id}/location`, { location }),
+    radioPacket: () => get<{ enabled: boolean }>('/admin/radio-packet'),
+    setRadioPacket: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-packet', { enabled }),
     radioDigest: () => get<RadioDigest>('/admin/radio-digest'),
     updateRadioDigest: (patch: { enabled?: boolean; email?: boolean }) => request<RadioDigest>('PATCH', '/admin/radio-digest', patch),
-    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
+    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => request<{ enabled: boolean; multiStation: boolean; signaturesRequired: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
     removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
