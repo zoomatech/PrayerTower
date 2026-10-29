@@ -112,6 +112,16 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
         ) : null}
         {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
         {card.lament && features.lament ? <Text style={styles.tags}>🕯️ {t('lament.tag')}</Text> : null}
+        {features.answeredStories && card.answers ? (
+          <Text style={styles.storyLink} onPress={() => router.push(`/post/${card.answers!.id}`)} accessibilityRole="link">
+            🌅 {t('answeredStory.answers', { preview: card.answers.preview })}
+          </Text>
+        ) : null}
+        {features.answeredStories && card.storyId ? (
+          <Text style={styles.storyLink} onPress={() => router.push(`/post/${card.storyId}`)} accessibilityRole="link">
+            🌅 {t('answeredStory.read')}
+          </Text>
+        ) : null}
         {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
         <Pressable
@@ -274,6 +284,7 @@ const styles = StyleSheet.create({
   testimonyLabel: { color: colors.goldText, fontWeight: '700', fontSize: 13 },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   tags: { ...type.small, marginTop: -space.sm },
+  storyLink: { ...type.small, color: colors.primary, textDecorationLine: 'underline', minHeight: 44, paddingVertical: space.xs },
   pastor: { color: colors.primary, fontWeight: '600', fontSize: 13, marginTop: -space.sm },
   backdrop: { borderRadius: radius.md, minHeight: 160, padding: space.xl, justifyContent: 'center' },
   backdropText: { fontSize: 22, lineHeight: 30, fontWeight: '600', textAlign: 'center' },

@@ -231,23 +231,39 @@ export interface Guidance {
   resources: Resource[];
 }
 
-/** Open Circle (secular) wording for the categories whose usual word speaks of God or Scripture. */
-const SECULAR: Partial<Record<Category, { title: string; message: string }>> = {
+// Open Circle (and any community with neutral wording): the same gentle words, without the religious ones.
+const NEUTRAL: Record<Category, { title: string; message: string }> = {
   threat: {
     title: 'That sounds like a lot of anger',
-    message: 'Anger can be said honestly here. If you are thinking of hurting someone, please talk to someone you trust first. You could ask for support with the anger, and for protection and justice.',
+    message: 'Anger is honest. If you are thinking of hurting someone, please talk to someone you trust first. You could ask for support with the anger, and for safety and fairness.',
   },
-  hate: { title: 'Speak for people, not against them', message: 'Every group here is made of people someone loves. Try sharing what happened, and what would help.' },
+  hate: {
+    title: 'Speak up for people, not against them',
+    message: 'Every group here is made of people someone loves. Try saying what happened, and what would help.',
+  },
   harm_wish: {
-    title: 'Ask for justice and safety',
-    message: 'It is human to want someone who hurt you to suffer. Try asking for justice, for protection, and for healing from what they did to you.',
+    title: 'Ask for fairness, not for harm',
+    message: 'It is fine to be honest about someone who hurt you. Try asking for fairness, safety, and healing for what they did to you.',
   },
-  curse: { title: 'Wish for good, never for harm', message: 'You can pour out your hurt here. Try asking for fairness, for protection, and for your own healing.' },
-  revenge: { title: 'Ask for justice and healing', message: 'Revenge rarely brings peace. Try asking for justice, and for support while you heal.' },
-  foul: { title: 'Tell us what is going on', message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to support you.' },
+  curse: {
+    title: 'Wish for good, never for harm',
+    message: 'You can pour out your hurt here. Try asking for things to be made right, and for your own safety and healing.',
+  },
+  revenge: {
+    title: 'Ask for fairness, not revenge',
+    message: 'Revenge rarely heals what happened. Try asking for fairness and for your own healing.',
+  },
+  abuse_disclosure: {
+    title: 'You are not alone',
+    message: 'Thank you for trusting us with this. What happened to you is not your fault. If you are in danger, call 911. These lines are free, confidential and open all day and night.',
+  },
+  foul: {
+    title: 'Tell us what is going on',
+    message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to support you.',
+  },
 };
 
-/** A gentle word for the member: a redirect, never a lecture. Secular members get wording with no religious words. */
+/** A gentle word for the member: a redirect, never a lecture. `secular` gives Open Circle's wording. */
 export function guidance(d: Decision, secular = false): Guidance {
   const abuse = d.categories.includes('abuse_disclosure');
   const resources = abuse ? ABUSE_RESOURCES : [];
@@ -282,17 +298,16 @@ export function guidance(d: Decision, secular = false): Guidance {
       message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to pray for you.',
     },
   };
-  const shown = abuse && d.category !== 'threat' && d.category !== 'hate' ? 'abuse_disclosure' : d.category;
-  const t = (secular && SECULAR[shown]) || text[shown];
+  const t = (secular ? NEUTRAL : text)[abuse && d.category !== 'threat' && d.category !== 'hate' ? 'abuse_disclosure' : d.category];
   return { category: d.category, action: d.action, title: t.title, message: t.message + (d.action === 'filter' ? '' : held), resources };
 }
 
 /** For the precheck: the gentle word before posting, or null when the check is off or nothing applies. */
-export async function precheck(q: Queryable, userId: string, text: string): Promise<Guidance | null> {
+export async function precheck(q: Queryable, text: string, userId?: string): Promise<Guidance | null> {
   const s = await settings(q);
   if (!s.enabled || !text.trim()) return null;
   const d = decide(check(text, s.extra_hate_words), s);
-  return d ? guidance(d, await communities.isSecular(q, userId)) : null;
+  return d ? guidance(d, userId ? await communities.isSecular(q, userId) : false) : null;
 }
 
 // Before and after saving -------------------------------------------------------------
@@ -371,13 +386,14 @@ export async function apply(q: Queryable, userId: string, target: Target, id: st
       });
     }
   }
-  const g = guidance(d, await communities.isSecular(q, userId));
+  const secular = await communities.isSecular(q, userId);
+  const g = guidance(d, secular);
   // Someone disclosing abuse hears from us privately, with the hotlines, once a day at most.
   if (d.categories.includes('abuse_disclosure') && s.abuse_action === 'support') {
     await notifications.notify(q, userId, {
       kind: 'support_resources',
       title: 'You are not alone',
-      body: `${guidance({ ...d, category: 'abuse_disclosure', action: 'support' }).message} Domestic violence: 1-800-799-7233 (or text START to 88788). Sexual assault: 800-656-4673. Child abuse: 1-800-422-4453.`,
+      body: `${guidance({ ...d, category: 'abuse_disclosure', action: 'support' }, secular).message} Domestic violence: 1-800-799-7233 (or text START to 88788). Sexual assault: 800-656-4673. Child abuse: 1-800-422-4453.`,
       data: { resources: ABUSE_RESOURCES },
       dedupeKey: `support_resources:${userId}:${new Date().toISOString().slice(0, 10)}`,
     });

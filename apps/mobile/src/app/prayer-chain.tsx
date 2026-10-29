@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Empty, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api, type ChainPerson } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -13,6 +14,8 @@ export default function PrayerChainScreen() {
   const { t } = useLocale();
   const [people, setPeople] = useState<ChainPerson[] | null>(null);
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const { prayerChainSms } = useFeatures();
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -20,10 +23,11 @@ export default function PrayerChainScreen() {
   }, []);
   useEffect(load, [load]);
 
-  const add = () =>
-    api.addToPrayerChain(email.trim()).then(
+  const add = (to: { email: string } | { phone: string }) =>
+    api.addToPrayerChain(to).then(
       () => {
         setEmail('');
+        setPhone('');
         load();
       },
       (e) => setError((e as Error).message),
@@ -36,13 +40,20 @@ export default function PrayerChainScreen() {
         <Text style={type.title}>{t('growth.chainTitle')}</Text>
         <Text style={type.body}>{t('growth.chainIntro')}</Text>
         <Field label={t('growth.chainEmail')} value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" maxLength={254} />
-        <Button label={t('growth.chainAdd')} disabled={!email.includes('@')} onPress={add} />
+        <Button label={t('growth.chainAdd')} disabled={!email.includes('@')} onPress={() => add({ email: email.trim() })} />
+        {prayerChainSms ? (
+          <>
+            <Field label={t('growth.chainPhone')} value={phone} onChangeText={setPhone} autoComplete="tel" keyboardType="phone-pad" maxLength={24} />
+            <Text style={type.small}>{t('growth.chainPhoneHint')}</Text>
+            <Button label={t('growth.chainAddPhone')} disabled={phone.replace(/\D/g, '').length < 7} onPress={() => add({ phone: phone.trim() })} />
+          </>
+        ) : null}
         <ErrorText error={error} onRetry={people ? undefined : load} />
         {!people && !error ? <Loading /> : null}
         {people?.length === 0 ? <Empty text={t('growth.chainEmpty')} /> : null}
         {people?.map((p) => (
           <View key={p.id} style={styles.card}>
-            <Text style={type.body}>{p.email}</Text>
+            <Text style={type.body}>{p.email ?? p.phone}</Text>
             <Text style={type.small}>{t(`growth.chainStatus.${p.status}`)}</Text>
             <Button small variant="ghost" label={t('growth.chainRemove')} onPress={() => api.removeFromPrayerChain(p.id).then(load, (e) => setError((e as Error).message))} />
           </View>

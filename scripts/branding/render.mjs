@@ -38,7 +38,9 @@ try {
     await shoot(page, svg(mark, 1024, { bg: m.bg, scale: 0.72 }), path.join(out, 'open-circle-icon.png'), 1024);
     await shoot(page, svg(mark, 1024), path.join(out, 'open-circle-splash-icon.png'), 1024);
     await shoot(page, svg(mark, 48, { bg: m.bg, scale: 0.8 }), path.join(out, 'open-circle-favicon.png'), 48);
-    console.log(`Drew the Open Circle icon, splash and favicon. Splash background ${m.bg[0]} (app.config.js).`);
+    // The installed web app's icons (apps/mobile/web-edition.js puts them in place of public/icon-*.png).
+    for (const size of [192, 512]) await shoot(page, svg(mark, size, { bg: m.bg, scale: 0.72 }), path.join(out, `open-circle-icon-${size}.png`), size);
+    console.log(`Drew the Open Circle icon, web icons, splash and favicon. Splash background ${m.bg[0]} (app.config.js).`);
   } else if (arg === '--preview') {
     const dir = path.resolve(previewDir ?? path.join(root, 'build/icon-options'));
     await mkdir(dir, { recursive: true });

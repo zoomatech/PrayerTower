@@ -71,6 +71,7 @@ export interface PostRow {
   all_support_welcome: boolean;
   is_lament: boolean;
   lament_radio: boolean;
+  answers_post_id: string | null;
   crisis: boolean;
   /** Set by the harmful-prayer check (modules/harm) until a moderator clears it. */
   harm_category: string | null;
@@ -581,7 +582,15 @@ export interface CardCounts {
 export async function cards(q: Queryable, postIds: string[], viewerId: string | null) {
   if (postIds.length === 0) return [];
   const { rows } = await q.query<
-    PostRow & { display_name: string; handle: string | null; private_tier: boolean; counts: CardCounts; media: { kind: string; storagePath: string }[] }
+    PostRow & {
+      display_name: string;
+      handle: string | null;
+      private_tier: boolean;
+      counts: CardCounts;
+      media: { kind: string; storagePath: string }[];
+      answers: { id: string; preview: string } | null;
+      story_id: string | null;
+    }
   >(
     `select po.*, pr.display_name, pr.handle, pr.anonymous_by_default as private_tier,
             json_build_object(
@@ -596,7 +605,11 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
               'standing', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'standing')
             ) as counts,
             coalesce((select json_agg(json_build_object('kind', m.kind, 'storagePath', m.storage_path) order by m.position)
-                        from public.post_media m where m.post_id = po.id), '[]') as media
+                        from public.post_media m where m.post_id = po.id), '[]') as media,
+            -- "Prayer answered" stories: the request a story answers, and a request's story.
+            (select json_build_object('id', o.id, 'preview', left(o.body, 120)) from public.posts o
+              where o.id = po.answers_post_id and o.moderation_status = 'visible') as answers,
+            (select s.id from public.posts s where s.answers_post_id = po.id and s.moderation_status = 'visible') as story_id
        from public.posts po join public.profiles pr on pr.id = po.user_id
       where po.id = any($1::uuid[])`,
     [postIds],
@@ -722,6 +735,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         allSupportWelcome: r.all_support_welcome,
         lament: r.is_lament,
         lamentRadio: r.lament_radio,
+        answers: r.answers,
+        storyId: r.story_id,
         crisis: r.crisis,
         media: r.media,
         counts: r.counts,

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
-import { AppError, notFound } from '../../errors.js';
+import { AppError, badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
 import { isBlocked } from '../messages/index.js';
 import * as notifications from '../notifications/index.js';
@@ -69,6 +69,14 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const { testimony } = z.object({ testimony: z.string().trim().min(1).max(2000).optional() }).parse(req.body ?? {});
     const crisis = await withTx(db, (tx) => markAnsweredAndTell(tx, userId, req.params.id, testimony));
     return { post: (await posts.cards(db, [req.params.id], userId))[0], crisis };
+  });
+
+  app.post<{ Params: { id: string } }>('/posts/:id/answered-story', async (req, reply) => {
+    const userId = requireUser(req);
+    const { body } = AnsweredStory.parse(req.body);
+    const r = await withTx(db, (tx) => postAnsweredStory(tx, userId, req.params.id, body));
+    reply.code(201);
+    return { post: (await posts.cards(db, [r.id], userId))[0], crisis: r.crisis };
   });
 
   app.put<{ Params: { id: string } }>('/posts/:id/lament', async (req) =>
@@ -196,6 +204,50 @@ export async function markAnsweredAndTell(tx: Parameters<typeof posts.setTestimo
   if (testimony) return shareTestimony(tx, userId, postId, testimony);
   await tellPrayersAnswered(tx, userId, post);
   return false;
+}
+
+/**
+ * "Prayer answered" stories (docs/GROWTH_PRACTICES.md): the poster tells how a request
+ * turned out in a post of its own, linked to the request. The request is marked answered
+ * if it wasn't, and everyone who prayed hears about the story once.
+ */
+export const AnsweredStory = z.object({ body: z.string().trim().min(1).max(2000) });
+
+export async function postAnsweredStory(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, body: string) {
+  if (!(await practiceSettings(tx)).answered_stories_enabled) throw badRequest('Answered stories are switched off');
+  const request = await posts.get(tx, postId);
+  if (!request || request.moderation_status !== 'visible') throw notFound('Post');
+  if (request.user_id !== userId) throw forbidden('Only the person who posted the request can share how it turned out');
+  if (request.post_type !== 'prayer_request') throw badRequest('Only a request can have an answered story');
+  const { rowCount } = await tx.query('select 1 from public.posts where answers_post_id = $1', [postId]);
+  if (rowCount) throw conflict('This request already has its story');
+  if (request.state !== 'answered') {
+    await posts.markAnswered(tx, userId, postId);
+    await growth.queueGuestAnswered(tx, postId);
+    await radioThanks.onAnswered(tx, postId);
+  }
+  const story = await posts.create(
+    tx,
+    userId,
+    posts.NewPost.parse({ postType: 'testimony', body, isAnonymous: request.is_anonymous, isSensitive: request.is_sensitive }),
+  );
+  await tx.query('update public.posts set answers_post_id = $2 where id = $1', [story.id, postId]);
+  if (story.moderation_status === 'visible') {
+    const who = request.is_anonymous ? null : ((await getProfile(tx, userId))?.display_name || null);
+    const excerpt = body.slice(0, 120) + (body.length > 120 ? '…' : '');
+    const data = { ...(await answeredData(tx, story.id)), answeredId: postId };
+    for (const recipientId of await posts.prayedBy(tx, postId, userId)) {
+      await notifications.notify(tx, recipientId, {
+        kind: 'testimony',
+        title: 'A prayer you prayed was answered',
+        body: `${who ?? 'Someone'} shared what God did: "${excerpt}"`,
+        data,
+        dedupeKey: `story:${postId}`,
+        t: { key: 'testimony', params: { who, excerpt } },
+      });
+    }
+  }
+  return { id: story.id, crisis: story.crisis };
 }
 
 /** With the Believe moment on (docs/GROWTH_PRACTICES.md), the post opens with a "Believe" card for the people who prayed. */
