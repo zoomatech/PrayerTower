@@ -6,6 +6,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { cmCompress, cmDecompress } from '../src/burst/cm.js';
+import { convDecode, convEncode } from '../src/burst/conv.js';
 import { decodeBatch, encodeBatch } from '../src/burst/codec.js';
 import { fft } from '../src/burst/fft.js';
 import { frameSeconds, modulate } from '../src/burst/ofdm.js';
@@ -136,6 +137,23 @@ describe('Reed-Solomon', () => {
   });
 });
 
+describe('convolutional code (the -fec presets)', () => {
+  it('soft Viterbi recovers bytes from noisy soft bits at both rates', () => {
+    const rand = rng(9);
+    const gauss = () => Math.sqrt(-2 * Math.log(rand() + 1e-12)) * Math.cos(2 * Math.PI * rand());
+    const data = Uint8Array.from({ length: 200 }, () => Math.floor(rand() * 256));
+    for (const code of ['r12', 'r23'] as const) {
+      const coded = convEncode(data, code);
+      // BPSK-style soft bits (+1 for a 0, -1 for a 1) with noise loud enough to flip about 1 bit in 25.
+      const llr = Float32Array.from(coded, (b) => (b ? -1 : 1) + 0.57 * gauss());
+      let flipped = 0;
+      coded.forEach((b, i) => (b !== (llr[i]! < 0 ? 1 : 0) ? flipped++ : 0));
+      expect(flipped).toBeGreaterThan(coded.length / 50);
+      expect(convDecode(llr, data.length, code)).toEqual(data);
+    }
+  });
+});
+
 describe('batch compression', () => {
   it('round-trips and shrinks a batch of real-looking requests by more than 4x', () => {
     const batch = encodeBatch(SAMPLE_PRAYERS);
@@ -179,6 +197,16 @@ describe('burst modem through a simulated FM radio', () => {
       expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', preset: preset.name, prayers: SAMPLE_PRAYERS });
     });
   }
+
+  it('fm-robust-fec decodes at a noise level where fm-robust gives up, and is no slower', () => {
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    const plain = presetByName('fm-robust');
+    const fec = presetByName('fm-robust-fec');
+    expect(frameSeconds(fec, batch.length)).toBeLessThan(frameSeconds(plain, batch.length) * 1.1);
+    const channel = { snrDb: -5, lowHz: 300, highHz: 3400, seed: 2 };
+    expect(listen(radioChannel(modulate(batch, plain, 'KD9XYZ'), channel))).toHaveLength(0);
+    expect(listen(radioChannel(modulate(batch, fec, 'KD9XYZ'), channel))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
 
   it('dataport-turbo: 30 prayers through a strong data-port link in about 0.7 s', () => {
     const preset = presetByName('dataport-turbo');
