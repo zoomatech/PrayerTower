@@ -43,7 +43,7 @@ import { macroNeedRoutes } from './modules/macro-needs/routes.js';
 import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
-import { stationRoutes } from './modules/radio/station-routes.js';
+import { nodeRoutes, stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
@@ -186,6 +186,13 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (station) => {
     markScope(station, catalog, 'station');
     stationRoutes(station, db, stationKey);
+  });
+
+  // Listener nodes (radio/nodes.ts): their own keys, limited per IP address.
+  app.register(async (node) => {
+    markScope(node, catalog, 'station');
+    if (rateLimitPerMinute > 0) await node.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 30, timeWindow: '1 minute' });
+    nodeRoutes(node, db);
   });
 
   // The API description, for developers (staff-only in production).
