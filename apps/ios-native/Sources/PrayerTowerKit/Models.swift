@@ -31,6 +31,20 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let createdAt: String
     /// The actions this viewer may take, in the server's order (`ACTION_ORDER`). Older servers may leave it out.
     public let actions: [String]?
+    /// open | actively_prayed | amplified | answered
+    public let state: String?
+    public let answeredAt: String?
+    /// The poster's own words on how it was answered.
+    public let testimony: String?
+    public let background: String?
+    public let media: [CardMedia]?
+}
+
+/// A photo or video on a post; `url` is a short-lived signed read URL.
+public struct CardMedia: Codable, Sendable, Equatable {
+    public let kind: String
+    public let storagePath: String
+    public let url: String?
 }
 
 public struct FeedPage: Codable, Sendable, Equatable {

@@ -9,6 +9,7 @@ struct FeedView: View {
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
     @State private var composing = false
+    @State private var opened: Card?
     @State private var notice: String?
     @State private var error: String?
 
@@ -18,7 +19,7 @@ struct FeedView: View {
                 ForEach(posts) { card in
                     CardRow(card: card, active: done[card.id] ?? [], onAction: { act($0, on: card) }, onMeaning: { item, meaning in
                         Task { await choose(meaning, of: item, on: card) }
-                    })
+                    }, onOpen: { opened = card })
                     .task { if card.id == posts.last?.id { await more() } }
                 }
             }
@@ -31,6 +32,7 @@ struct FeedView: View {
                     Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
                 }
             }
+            .navigationDestination(item: $opened) { PostDetailView(postId: $0.id) }
             .sheet(isPresented: $composing) { ComposeView { _ in Task { await load() } } }
             .refreshable { await load() }
             .task { await load() }
@@ -103,6 +105,8 @@ struct CardRow: View {
     let active: Set<CardAction>
     let onAction: (CardAction) -> Void
     let onMeaning: (ActionItem, MeaningEmoji.Meaning) -> Void
+    /// Opens the post with its comments.
+    var onOpen: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -114,7 +118,11 @@ struct CardRow: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .contentShape(.rect)
+            .onTapGesture { onOpen?() }
             .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(onOpen == nil ? [] : .isButton)
+            .accessibilityAction { onOpen?() }
             ActionRowView(
                 items: ActionRow.items(actions: card.actions ?? (card.isMine ? [] : ["praying_now"]), features: model.features, tree: model.tree, wording: model.wording),
                 wording: model.wording,

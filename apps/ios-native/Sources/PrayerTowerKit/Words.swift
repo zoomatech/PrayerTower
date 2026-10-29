@@ -13,11 +13,11 @@ public struct Words: Sendable {
     }
 
     /// The text for a key, with `%{name}` filled in. With `count`, `.one` or `.other` is chosen
-    /// (as i18n-js does) and `%{count}` is filled. An unknown key shows the key, so it's noticed.
+    /// (or `.zero` when there is one, as i18n-js does) and `%{count}` is filled. An unknown key shows the key, so it's noticed.
     public func callAsFunction(_ key: String, _ vars: [String: String] = [:], count: Int? = nil) -> String {
         var text = table[key]
         if let count {
-            text = table["\(key).\(count == 1 ? "one" : "other")"] ?? text
+            text = (count == 0 ? table["\(key).zero"] : nil) ?? table["\(key).\(count == 1 ? "one" : "other")"] ?? text
         }
         var out = text ?? key
         var all = vars
