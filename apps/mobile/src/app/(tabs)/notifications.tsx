@@ -6,6 +6,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-n
 import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
+import { notificationTarget } from '@/lib/notification-target';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function Notifications() {
@@ -57,13 +58,7 @@ export default function Notifications() {
         {!loaded && !error ? <Loading /> : null}
         {loaded && items.length === 0 ? <Empty text={t('notices.empty')} /> : null}
         {items.map((n) => {
-          const postId = typeof n.data.postId === 'string' ? n.data.postId : null;
-          const conversationId = typeof n.data.conversationId === 'string' ? n.data.conversationId : null;
-          const eventId = typeof n.data.eventId === 'string' ? n.data.eventId : null;
-          const careRequestId = typeof n.data.careRequestId === 'string' ? n.data.careRequestId : null;
-          const storyId = typeof n.data.storyId === 'string' ? n.data.storyId : null;
-          const mendId = typeof n.data.mendId === 'string' ? n.data.mendId : null;
-          const target = mendId ? `/mend/${mendId}` : storyId ? '/help-stories' : careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}${n.data.believe ? '?believe=1' : ''}` : n.data.screen === 'highlights' ? '/highlights' : n.data.screen === 'prayer-minute' ? '/prayer-minute' : n.data.screen === 'give' ? '/give' : n.data.screen === 'radio-requests' ? '/radio-requests' : n.data.screen === 'gratitude' || n.data.screen === 'encourager' || n.data.screen === 'partner' ? '/profile' : n.data.screen === 'prayer-list' ? '/prayer-list' : n.data.screen === 'crosspost' ? '/crosspost' : typeof n.data.personId === 'string' ? `/people/${n.data.personId}` : null;
+          const target = notificationTarget(n.data);
           return (
             <Pressable
               key={n.id}
