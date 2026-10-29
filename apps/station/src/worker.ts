@@ -10,6 +10,16 @@ export interface ClaimedPrayer {
   id: string;
   text: string;
   repeats?: number;
+  /** Urgent (server urgent.ts): an urgent burst carries only urgent prayers, on this preset. */
+  urgent?: boolean;
+  preset?: string;
+}
+
+/** The server's band plan pick (GET /station/band): the band for the next burst. */
+export interface BandPick {
+  band: { label: string; freqHz: number; mode: 'fm' | 'usb'; preset?: string };
+  reason: string;
+  mufMhz: number | null;
 }
 
 export interface BurstLog {
@@ -39,6 +49,8 @@ export interface StationApi {
   setupResult?: SetupApi['setupResult'];
   /** Where to point the dish (rotator.ts); null while the sky target is off. */
   skyTarget?(): Promise<{ az: number; el: number } | null>;
+  /** The band plan's pick for the next burst (BAND_PLAN=server); null while the plan is off. */
+  band?(): Promise<BandPick | null>;
 }
 
 export interface StationConfig {
@@ -164,6 +176,13 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
       if (!res.ok) throw new Error(`sky target failed (${res.status})`);
       const json = (await res.json()) as { az: number; el: number };
       return { az: json.az, el: json.el };
+    },
+    async band() {
+      const res = await fetchImpl(`${baseUrl.replace(/\/$/, '')}/station/band`, { headers: { 'x-station-key': stationKey } });
+      // 204: the band plan is off or empty; 404: an older server without it.
+      if (res.status === 204 || res.status === 404) return null;
+      if (!res.ok) throw new Error(`band plan failed (${res.status})`);
+      return (await res.json()) as BandPick;
     },
     async reportStatus(status) {
       const res = await post('/station/status', status);

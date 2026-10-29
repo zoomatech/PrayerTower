@@ -49,6 +49,8 @@ struct ConsoleView: View {
                     }
                 }
                 IDTimerSection(stations: c.stations)
+                if let u = c.urgent { Section(w("urgentRadio.title")) { UrgentRows(urgent: u, words: w) } }
+                if let b = c.band { Section(w("bandPlan.title")) { BandOutlookRows(outlook: b, words: w) } }
                 QueueSection(queue: c.queue)
                 if !c.relays.isEmpty { RelaysSection(relays: c.relays) }
                 if c.beacon.enabled { BeaconSection(beacon: c.beacon) }

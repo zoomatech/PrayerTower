@@ -10,6 +10,7 @@ import * as ops from '../ops/index.js';
 import * as health from './health.js';
 import * as radio from './index.js';
 import * as acks from './acks.js';
+import * as bandPlan from './band-plan.js';
 import { cardFor, type ListenerRouteOptions } from './listener-routes.js';
 import * as receipts from './receipts.js';
 import * as nodes from './nodes.js';
@@ -38,6 +39,14 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
   const fail = (): never => {
     throw new AppError(401, 'unauthenticated', 'Bad station key');
   };
+
+  // The band plan's pick for the next burst (band-plan.ts; BAND_PLAN=server on the station); 204 while the plan is off or empty.
+  app.get('/station/band', async (req, reply) => {
+    await requireStation(req);
+    const pick = await bandPlan.current(db);
+    if (!pick) return reply.code(204).send();
+    return pick;
+  });
 
   // Claim the next prayer to send; 204 when there is nothing to send.
   app.post('/station/claim', async (req, reply) => {
