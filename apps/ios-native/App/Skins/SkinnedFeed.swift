@@ -8,16 +8,21 @@ struct SkinnedFeed<Row: View>: View {
     let theme: FeedTheme
     let cards: [Card]
     let wording: Wording
+    var hasMore = true
     @ViewBuilder let row: (Card) -> Row
     let onEnd: () async -> Void
+    /// Swipe to pray: what a confirmed swipe right does.
+    var onPray: (Card) -> Void = { _ in }
 
     var body: some View {
-        switch theme.kind.drawn {
+        switch theme.kind {
         case .vine: VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd)
         case .wall: WallFeed(look: WallLook(theme), cards: cards, row: row, onEnd: onEnd)
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd)
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, row: row, onEnd: onEnd)
-        case .column, .carousel, .flip: List(cards) { card in row(card).task { if card.id == cards.last?.id { await onEnd() } } }
+        case .carousel: SwipeFeed(cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd, onPray: onPray)
+        case .flip: FlipFeed(cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
+        case .column: List(cards) { card in row(card).task { if card.id == cards.last?.id { await onEnd() } } }
         }
     }
 }

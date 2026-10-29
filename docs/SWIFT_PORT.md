@@ -45,7 +45,9 @@ The native feed reads the member's skin from `GET /feed` (`theme`) and draws it 
 - **Wall**: one post per screen with a hard snap (`scrollTargetBehavior(.paging)`).
 - **Prayer Tower / Climbing Tower**: stone walls, battlements, tablets and hanging sub-tablets, and a climber on a rope who rises as the member reads down.
 - **Neon Circuit**: tilted glowing screens and a live wire with bursts of light.
-- Swipe and Flip fall back to the plain column for now. Neon Cinderella's castle, coach and slipper are SF Symbols for now, not the Expo app's own drawings.
+- **Swipe to pray**: one card at a time; a swipe right or the Pray button asks before it prays, so a swipe never records a prayer by itself. Next, Pray and VoiceOver actions do the same without a swipe.
+- **Flip**: one request per page, turned with a fold (`scrollTransition`), with "1 of 12" and the last page's thank-you.
+- Neon Cinderella's castle, coach and slipper are SF Symbols for now, not the Expo app's own drawings.
 - Every drawing is hidden from VoiceOver, and the spark, bursts and climber stop with Reduce Motion.
 
 ## Port order

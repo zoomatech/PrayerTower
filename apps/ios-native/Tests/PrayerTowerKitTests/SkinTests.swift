@@ -52,9 +52,9 @@ private func theme(_ layout: String, _ json: String) throws -> FeedTheme {
         #expect(RGB(hex: "#12345") == nil && RGB(hex: "123456x") == nil)
     }
 
-    @Test func fallsBackToTheColumnForLayoutsNotDrawnYet() throws {
-        #expect(try theme("carousel", "{}").kind.drawn == .column)
-        #expect(try theme("tower", "{}").kind.drawn == .tower)
+    @Test func fallsBackToTheColumnForUnknownLayouts() throws {
+        #expect(try theme("carousel", "{}").kind == .carousel)
+        #expect(try theme("tower", "{}").kind == .tower)
         #expect(try theme("something-new", "{}").kind == .column)
         #expect(try JSONDecoder().decode(FeedTheme.self, from: Data(##"{"slug":"x","name":"X","layout":"vine","tokens":null}"##.utf8)).tokens.isEmpty)
     }

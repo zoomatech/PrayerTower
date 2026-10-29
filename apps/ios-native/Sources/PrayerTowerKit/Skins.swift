@@ -70,11 +70,9 @@ public struct FeedThemeChoices: Codable, Sendable, Equatable {
     public let theme: FeedTheme?
 }
 
-/// `FeedLayoutKind` in packages/shared. The native app draws column, vine, wall, tower and
-/// circuit; carousel and flip fall back to the column for now.
+/// `FeedLayoutKind` in packages/shared; an unknown layout is drawn as the column.
 public enum SkinLayout: String, Sendable, CaseIterable {
     case column, vine, carousel, flip, wall, tower, circuit
-    public var drawn: SkinLayout { self == .carousel || self == .flip ? .column : self }
 }
 
 /// An sRGB color from a `#RRGGBB` token.
