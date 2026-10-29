@@ -36,6 +36,10 @@ struct StaffSection: View {
                     NavigationLink(w("pilotTools.openLog")) { ErrorLogView() }
                     NavigationLink(w("admin.auditLog")) { AuditLogView() }
                     NavigationLink(w("admin.ops")) { OpsView() }
+                    NavigationLink(w("admin.surveys")) { SurveysAdminView() }
+                    NavigationLink(w("admin.legal")) { LegalCasesView() }
+                    NavigationLink(w("admin.podcasts")) { PodcastsAdminView() }
+                    NavigationLink(w("invites.import")) { ImportView() }
                 }
             }
         }

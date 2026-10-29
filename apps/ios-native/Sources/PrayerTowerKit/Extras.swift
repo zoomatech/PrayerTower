@@ -39,6 +39,11 @@ public struct PodcastShow: Codable, Sendable, Equatable, Identifiable {
     public let description: String
     public let author: String
     public let episodes: [PodcastEpisode]
+    /// Only in the admin's list.
+    public var slug: String? = nil
+    public var community: String? = nil
+    public var category: String? = nil
+    public var published: Bool? = nil
 }
 
 public struct LiveRoom: Codable, Sendable, Equatable, Identifiable {
