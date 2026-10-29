@@ -767,7 +767,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     remove: "Eliminar",
     removeSuspend: "Eliminar y suspender 7 días",
     target: {"post": "Petición", "comment": "Comentario", "reaction": "Mensaje de ánimo", "message": "Mensaje privado", "event": "Evento"},
-    source: {"ai": "Marcado automáticamente", "report": "Denunciado por un miembro", "crisis": "Podría necesitar apoyo"},
+    source: {"ai": "Marcado automáticamente", "report": "Denunciado por un miembro", "crisis": "Podría necesitar apoyo", "harm": "Harmful-prayer check"},
   },
   witness: {
     markTitle: 'Witness team (staff only)',
@@ -856,6 +856,12 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     radioNeed: "By need",
     radioBurst: "Prayers per burst (station burst mode)",
     radioBurstOne: "1 (one at a time)",
+    amplifyBurstHint: "More than 50 copies needs a station in burst mode, which sends 1,000 copies in about half a second. A PSK31 station sends at most 50.",
+    burstsTitle: "Latest bursts",
+    burstsNone: "No bursts yet. The station logs each one here once BURST_MODE is set.",
+    burstLine: "%{when}: %{prayers} prayers in %{seconds} s (%{bytes} bytes, %{frames} frames, %{preset}, %{mode})",
+    burstDecoded: "Receiver check: %{decoded} of %{prayers} decoded.",
+    burstFailed: "Failed: %{error}",
     radioBurstHint: "A station with BURST_MODE set claims up to this many prayers and sends them compressed in one short burst. A PSK31 station still sends one at a time. See docs/RADIO_BURST.md.",
     radioNeedHint: "Donations fill a shared fund and prayers go out free: the most urgent first, then the one with the fewest people praying, then the oldest.",
     giving: 'Giving',
@@ -1442,6 +1448,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     history: 'Your purchases',
     refunded: 'Refunded',
   },
+  harm: en.harm,
   enums: {
     moderationRule: {
       harm: 'Ora por el bien, nunca por el mal',

@@ -168,6 +168,11 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return { settings: await radio.stationSettings(db) };
   });
 
+  app.get('/admin/radio-bursts', async (req) => {
+    await requireAdmin(req);
+    return { bursts: await radio.recentBursts(db) };
+  });
+
   app.patch('/admin/radio-settings', async (req) => {
     await requireAdmin(req);
     const input = z
@@ -175,7 +180,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         transmitter: z.enum(['log', 'station']).optional(),
         stationRequiresFree: z.boolean().optional(),
         maxChars: z.number().int().min(50).max(2800).optional(),
-        amplifyRepeats: z.number().int().min(2).max(50).optional(),
+        amplifyRepeats: z.number().int().min(2).max(1000).optional(),
         order: z.enum(['oldest', 'need']).optional(),
         batchMax: z.number().int().min(1).max(500).optional(),
       })

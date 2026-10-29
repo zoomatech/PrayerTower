@@ -257,6 +257,23 @@ export interface AdminRadioSettings {
   radio_batch_max: number;
 }
 
+/** One burst the station sent (burst mode), newest first in Admin → Radio. */
+export interface StationBurst {
+  id: string;
+  created_at: string;
+  call_sign: string;
+  mode: 'audio' | 'fldigi' | 'simulate';
+  preset: string;
+  prayers: number;
+  frames: number;
+  bytes: number;
+  seconds: number;
+  /** Prayers decoded back from the burst audio (simulate mode); null when not checked. */
+  decoded: number | null;
+  ok: boolean;
+  error: string | null;
+}
+
 export interface PowerPrayerStatus {
   reach: number;
   freeLeft: number;
@@ -645,6 +662,22 @@ export interface AwardSettings {
   public_hall: boolean;
 }
 export type LiveRoom = { id: string; title: string; roomUrl: string; hostName: string; isMine: boolean; startedAt: string };
+/** Harmful prayers (docs/HARMFUL_PRAYERS.md). Off by default. */
+export type HarmLevel = 'hold' | 'review' | 'allow';
+export type HarmSettings = {
+  enabled: boolean;
+  threat_action: HarmLevel;
+  hate_action: HarmLevel;
+  harm_wish_action: HarmLevel;
+  curse_action: HarmLevel;
+  revenge_action: HarmLevel;
+  abuse_action: 'support' | 'allow';
+  foul_hold_at: number;
+  foul_junk_filter: boolean;
+  flood_per_day: number;
+  extra_hate_words: string[];
+};
+export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
 export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
 export type AiTurn = { role: 'user' | 'assistant'; content: string };
 export type CircleRole = 'harmed' | 'caused' | 'unsure';
@@ -1001,6 +1034,7 @@ export const api = {
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
+    radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
@@ -1138,6 +1172,10 @@ export const api = {
       '/moderation/activity-flags',
     ),
   decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
+  updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
+  harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),
+  decideHarmFlood: (userId: string, action: 'release' | 'remove') => post<{ items: number }>(`/moderation/harm-floods/${userId}`, { action }),
   scriptureLeaves: () => get<{ leaves: { id: string; reference: string; text: string; translation: string | null }[] }>('/scripture-leaves'),
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
