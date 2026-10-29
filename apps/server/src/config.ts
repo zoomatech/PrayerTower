@@ -23,6 +23,10 @@ const Env = z.object({
   OPEN_CIRCLE_APP_STORE_URL: z.url().optional(),
   /** Open Circle's contact address; unset = SUPPORT_EMAIL. */
   OPEN_CIRCLE_SUPPORT_EMAIL: z.string().optional(),
+  /** The TestFlight public link for the pilot (App Store Connect → TestFlight → External Testing → Public Link); invite emails show it to iPhone users. */
+  TESTFLIGHT_URL: z.url().optional(),
+  /** Open Circle's TestFlight public link, for invites to a secular community. */
+  OPEN_CIRCLE_TESTFLIGHT_URL: z.url().optional(),
   /** Store links shown on the landing page once the app is listed. */
   APP_STORE_URL: z.url().optional(),
   // The web app (PWA) address; invite emails link to its /sign-in?invite=CODE.

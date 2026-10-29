@@ -7,6 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, Field } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 /** On Me: set or clear the link. */
 export function SupportLinkField({ url, onSave }: { url: string | null | undefined; onSave: (url: string | null) => Promise<void> }) {
@@ -17,7 +18,7 @@ export function SupportLinkField({ url, onSave }: { url: string | null | undefin
   const save = () =>
     onSave(value.trim() || null).then(
       () => setNote(t('supportLink.saved')),
-      (e) => setNote((e as Error).message),
+      (e) => setNote(errorText(e)),
     );
   return (
     <View style={styles.box}>

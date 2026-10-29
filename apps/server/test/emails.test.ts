@@ -57,6 +57,17 @@ describe('emails in the member’s language', () => {
     expect(renderInviteEmail({ ...m, to: m.to, code: 'X', lang: 'en', from: 'A', links: { webAppUrl: null, appStoreUrl: null, playStoreUrl: null } }).html).toContain('lang="en"');
   });
 
+  it('tells iPhone users how to join the TestFlight pilot, with each edition\'s own link', () => {
+    const links = { webAppUrl: null, appStoreUrl: null, playStoreUrl: null, testFlightUrl: 'https://testflight.apple.com/join/PRAY1234', openCircleTestFlightUrl: 'https://testflight.apple.com/join/OPEN5678' };
+    const pt = renderInviteEmail({ to: 'a@example.org', code: 'ABCD2345', lang: 'en', from: 'Steve', links });
+    expect(pt.text).toContain("install Apple's free TestFlight app from the App Store, then open: https://testflight.apple.com/join/PRAY1234");
+    expect(pt.html).toContain('href="https://testflight.apple.com/join/PRAY1234"');
+    const oc = renderInviteEmail({ to: 'a@example.org', code: 'ABCD2345', lang: 'en', from: 'Steve', links, community: { name: 'Open Circle', secular: true } });
+    expect(oc.text).toContain('https://testflight.apple.com/join/OPEN5678');
+    expect(oc.text).not.toContain('PRAY1234');
+    expect(renderInviteEmail({ to: 'a@example.org', code: 'X', lang: 'en', from: 'Steve', links: { ...links, testFlightUrl: null } }).text).not.toContain('TestFlight');
+  });
+
   it('lets admins email an active invite code, in the admin’s language by default', async () => {
     const admin = await createUser('Mail Admin');
     await grantRole(db, admin, 'admin', null);

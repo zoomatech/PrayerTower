@@ -6,13 +6,13 @@ import { renderApp, sampleCard } from '@/__tests__/helpers';
 import Profile from '@/app/(tabs)/profile';
 import { useCardActions } from '@/components/card-actions';
 import { PostCard } from '@/components/post-card';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 // Calls this file doesn't set answer with an empty object, as a quiet server would.
 jest.mock('@/lib/api', () => {
   const fns: Record<string, jest.Mock> = {};
   const api = new Proxy(fns, { get: (target, key: string) => (target[key] ??= jest.fn(async () => ({}))) });
-  return { api };
+  return { api, ApiError: jest.requireActual('@/lib/api').ApiError };
 });
 jest.mock('@/lib/auth', () => ({
   useAuth: () => ({
@@ -86,7 +86,7 @@ describe('Gift tokens to a request', () => {
   });
 
   it('shows why a gift failed (for example, not enough tokens)', async () => {
-    mocked.boost.mockRejectedValueOnce(new Error('Not enough tokens'));
+    mocked.boost.mockRejectedValueOnce(new ApiError(409, 'not_enough_tokens', 'Not enough tokens'));
     await renderApp(<Harness card={sampleCard()} />);
     await fireEvent.press(screen.getByRole('button', { name: 'Gift Tokens' }));
     await fireEvent.changeText(screen.getByLabelText('How many tokens'), '500');

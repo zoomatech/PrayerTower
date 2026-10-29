@@ -9,6 +9,7 @@ import { api, type LiftUp } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
@@ -28,7 +29,8 @@ export function LiftUpCard() {
         setL(x);
         if (x.enabled) setBody(x.body);
       },
-      (e) => setError((e as Error).message),
+      // A card that can't load stays hidden; only the error log hears about it.
+      (e) => void errorText(e),
     );
   }, [liftUp]);
 
@@ -40,7 +42,7 @@ export function LiftUpCard() {
       setL(await api.saveLiftUp(body.trim(), zone()));
       setNote(body.trim() ? t('practices.liftUpSaved') : null);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

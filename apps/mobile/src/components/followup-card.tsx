@@ -10,6 +10,7 @@ import { api, type FollowupAnswer } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const CHOICES: { answer: FollowupAnswer; key: string }[] = [
   { answer: 'grateful', key: 'practices.followupGrateful' },
@@ -51,7 +52,7 @@ export function FollowupCard({ postId, isMine, onAnswered }: { postId: string; i
       setDone(answer === 'private' ? t('practices.followupQuiet') : t('practices.followupThanks'));
       onAnswered?.(answer);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

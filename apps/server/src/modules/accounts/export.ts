@@ -143,6 +143,8 @@ export const NOT_EXPORTED = [
   'announcements',
   'common_fund_entries',
   'crosspost_oauth_states',
+  // The error log names only the last member an error happened to (docs/PILOT_TOOLS.md).
+  'error_reports',
   'evidence_holds',
   'harm_events',
   'invite_codes',

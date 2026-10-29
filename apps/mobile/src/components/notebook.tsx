@@ -11,6 +11,7 @@ import { api, type EventInput, type WorldwideStats } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function WorldwideCount() {
   const { t, language } = useLocale();
@@ -133,7 +134,7 @@ export function EventInputs({ eventId }: { eventId: string }) {
   const [crisis, setCrisis] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => {
-    api.eventInputs(eventId).then(setData, (e) => setError((e as Error).message));
+    api.eventInputs(eventId).then(setData, (e) => setError(errorText(e)));
   }, [eventId]);
   useFocusEffect(
     useCallback(() => {
@@ -149,7 +150,7 @@ export function EventInputs({ eventId }: { eventId: string }) {
         setCrisis(r.input.crisis);
         load();
       })
-      .catch((e) => setError((e as Error).message));
+      .catch((e) => setError(errorText(e)));
   return (
     <View style={styles.inputs}>
       <Text style={type.heading}>{data.canSeeAll ? t('notebook.inputsHostTitle') : t('notebook.inputsTitle')}</Text>
@@ -163,7 +164,7 @@ export function EventInputs({ eventId }: { eventId: string }) {
             <Text
               style={styles.remove}
               accessibilityRole="button"
-              onPress={() => api.removeEventInput(eventId, i.id).then(load, (e) => setError((e as Error).message))}
+              onPress={() => api.removeEventInput(eventId, i.id).then(load, (e) => setError(errorText(e)))}
             >
               {t('notebook.inputsRemove')}
             </Text>

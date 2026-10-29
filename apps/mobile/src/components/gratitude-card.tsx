@@ -11,6 +11,7 @@ import { api, type CircleSummary, type Gratitude } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
@@ -34,7 +35,8 @@ export function GratitudeCard() {
     api
       .gratitude(zone())
       .then(show)
-      .catch((e) => setError((e as Error).message));
+      // A card that can't load stays hidden; only the error log hears about it.
+      .catch((e) => void errorText(e));
   }, [gratitudeCard]);
   // Circle updates: three good things can go to one of the member's circles, by their choice.
   useEffect(() => {
@@ -52,7 +54,7 @@ export function GratitudeCard() {
       show(await fn());
       setNote(done ?? null);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

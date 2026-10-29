@@ -9,6 +9,7 @@ import { api, type MyAwards, type PrizeChoice } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function AwardCard() {
   const { t } = useLocale();
@@ -22,7 +23,7 @@ export function AwardCard() {
   }, []);
   useFocusEffect(load);
   if (!data?.enabled || !data.awards?.length) return null;
-  const fail = (e: unknown) => setNote((e as Error).message);
+  const fail = (e: unknown) => setNote(errorText(e));
   return (
     <View style={styles.card} role="group" aria-label={t('award.heading')}>
       {data.awards.map((a) =>
