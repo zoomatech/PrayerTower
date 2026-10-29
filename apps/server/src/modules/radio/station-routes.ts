@@ -36,6 +36,13 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
     return { radioPrayers: batch };
   });
 
+  // Burst mode: one log line per burst, shown in Admin → Radio.
+  app.post('/station/bursts', async (req) => {
+    await requireStation(req);
+    await radio.recordBurst(db, radio.BurstReport.parse(req.body));
+    return { ok: true };
+  });
+
   app.post<{ Params: { id: string } }>('/station/radio-prayers/:id/result', async (req) => {
     await requireStation(req);
     const result = radio.StationResult.parse(req.body);

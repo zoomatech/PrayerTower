@@ -283,6 +283,53 @@ export const StationResult = z.object({
   error: z.string().max(500).optional(),
 });
 
+export const BurstReport = z.object({
+  callSign: z.string().trim().min(3).max(20),
+  mode: z.enum(['audio', 'fldigi', 'simulate']),
+  preset: z.string().trim().min(1).max(40),
+  prayers: z.number().int().min(0).max(5000),
+  frames: z.number().int().min(0).max(1000),
+  bytes: z.number().int().min(0).max(10_000_000),
+  seconds: z.number().min(0).max(100_000),
+  decoded: z.number().int().min(0).max(5000).nullable().optional(),
+  ok: z.boolean(),
+  error: z.string().max(500).optional(),
+});
+
+/** Log one burst from the station (burst mode). Keeps the latest 500. */
+export async function recordBurst(q: Queryable, b: z.infer<typeof BurstReport>) {
+  await q.query(
+    `insert into public.station_bursts (call_sign, mode, preset, prayers, frames, bytes, seconds, decoded, ok, error)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    [b.callSign, b.mode, b.preset, b.prayers, b.frames, b.bytes, b.seconds, b.decoded ?? null, b.ok, b.ok ? null : (b.error ?? 'station error')],
+  );
+  await q.query(`delete from public.station_bursts where id <= (select id from public.station_bursts order by id desc offset 500 limit 1)`);
+}
+
+export interface StationBurst {
+  id: string;
+  created_at: string;
+  call_sign: string;
+  mode: string;
+  preset: string;
+  prayers: number;
+  frames: number;
+  bytes: number;
+  seconds: number;
+  decoded: number | null;
+  ok: boolean;
+  error: string | null;
+}
+
+export async function recentBursts(q: Queryable, limit = 10): Promise<StationBurst[]> {
+  const { rows } = await q.query<StationBurst>(
+    `select id::text, created_at, call_sign, mode, preset, prayers, frames, bytes, seconds::float8 as seconds, decoded, ok, error
+       from public.station_bursts order by id desc limit $1`,
+    [limit],
+  );
+  return rows;
+}
+
 export async function reportResult(q: Queryable, id: string, result: z.infer<typeof StationResult>) {
   const { rows } = await q.query<{ id: string; post_id: string; poster_id: string; sender_id: string }>(
     `update public.radio_prayers r

@@ -182,4 +182,17 @@ describe('radio station', () => {
     expect((await station('/station/claim-batch')).statusCode).toBe(204);
     for (const r of [...one, ...three]) await station(`/station/radio-prayers/${r.id}/result`, { ok: true, callSign: 'N0CALL' });
   });
+
+  it('logs each burst for Admin → Radio, newest first, from the station only', async () => {
+    const burst = { callSign: 'N0CALL', mode: 'simulate', preset: 'fm-fast', prayers: 20, frames: 1, bytes: 117, seconds: 0.56, decoded: 20, ok: true };
+    expect((await station('/station/bursts', burst)).statusCode).toBe(200);
+    expect((await station('/station/bursts', { ...burst, mode: 'audio', decoded: null, ok: false, error: 'sound card busy' })).statusCode).toBe(200);
+    expect((await station('/station/bursts', burst, 'wrong-key-wrong-key-wrong-key-00')).statusCode).toBe(401);
+    expect((await station('/station/bursts', { ...burst, mode: 'smoke-signals' })).statusCode).toBe(400);
+    const outsider = await createUser('Not Admin');
+    expect((await as(outsider).get('/admin/radio-bursts')).statusCode).toBe(403);
+    const { bursts } = (await as(admin).get('/admin/radio-bursts')).json();
+    expect(bursts[0]).toMatchObject({ mode: 'audio', ok: false, error: 'sound card busy', decoded: null, prayers: 20 });
+    expect(bursts[1]).toMatchObject({ mode: 'simulate', ok: true, error: null, decoded: 20, seconds: 0.56, preset: 'fm-fast', bytes: 117 });
+  });
 });

@@ -17,7 +17,7 @@ import { simulateTransmitter, type BurstTransmitter } from '../src/burst/transmi
 import { fromWav, resample, toWav } from '../src/burst/wav.js';
 import { runBurstOnce } from '../src/burst/worker.js';
 import { DEFAULT_BLOCKLIST } from '../src/text.js';
-import { httpApi, TransmitError, type ClaimedPrayer, type StationApi } from '../src/worker.js';
+import { httpApi, TransmitError, type BurstLog, type ClaimedPrayer, type StationApi } from '../src/worker.js';
 import { SAMPLE_PRAYERS } from './fixtures/sample-prayers.js';
 
 /** Seeded random numbers, so a failing channel test fails the same way every run. */
@@ -264,12 +264,14 @@ describe('fldigi text frames', () => {
 
 function fakeApi(queue: ClaimedPrayer[]) {
   const reports: { id: string; ok: boolean; pieces?: number; error?: string }[] = [];
+  const bursts: BurstLog[] = [];
   const api: StationApi = {
     claim: async () => queue.shift() ?? null,
     claimBatch: async (max) => queue.splice(0, max),
     report: async (id, r) => void reports.push({ id, ...r }),
+    reportBurst: async (b) => void bursts.push(b),
   };
-  return { api, reports };
+  return { api, reports, bursts };
 }
 
 const cfg = { callSign: 'N0CALL', preset: presetByName('fm-standard'), maxPrayers: 50, maxFrameSeconds: 20, blocklist: DEFAULT_BLOCKLIST };
@@ -279,7 +281,7 @@ describe('burst station loop', () => {
   it('sends a batch in one burst, reports every prayer, and a receiver hears them all (simulate mode)', async () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'burst-'));
     const lines: string[] = [];
-    const { api, reports } = fakeApi([
+    const { api, reports, bursts } = fakeApi([
       { id: 'a', text: 'Pray for Señor Núñez.' },
       { id: 'b', text: 'Pray for this shit to end' },
       { id: 'c', text: 'Pray for peace.', repeats: 3 },
@@ -296,6 +298,7 @@ describe('burst station loop', () => {
     const wav = fromWav(readFileSync(path.join(dir, wavs[0]!)));
     expect(listen(wav.samples)[0]?.prayers).toEqual(['Pray for Senor Nunez.', 'Pray for peace.', 'Pray for peace.', 'Pray for peace.']);
     expect(lines.some((l) => l.includes('a receiver decodes 4 prayer(s)'))).toBe(true);
+    expect(bursts).toEqual([expect.objectContaining({ callSign: 'N0CALL', mode: 'simulate', preset: 'fm-standard', prayers: 4, frames: 1, decoded: 4, ok: true })]);
   });
 
   it('is idle with nothing queued', async () => {
@@ -306,14 +309,16 @@ describe('burst station loop', () => {
   it('on a transmit failure unkeys, reports every prayer as failed and stops', async () => {
     let stopped = false;
     const tx: BurstTransmitter = {
+      mode: 'audio',
       send: async () => {
         throw new Error('sound card busy');
       },
       stop: async () => void (stopped = true),
     };
-    const { api, reports } = fakeApi([{ id: 'a', text: 'Pray for Ana.' }, { id: 'b', text: 'Pray for Ben.' }]);
+    const { api, reports, bursts } = fakeApi([{ id: 'a', text: 'Pray for Ana.' }, { id: 'b', text: 'Pray for Ben.' }]);
     await expect(runBurstOnce(api, tx, cfg, quiet, [])).rejects.toBeInstanceOf(TransmitError);
     expect(stopped).toBe(true);
+    expect(bursts).toEqual([expect.objectContaining({ mode: 'audio', prayers: 2, ok: false, error: 'sound card busy' })]);
     expect(reports).toEqual([
       { id: 'a', ok: false, callSign: 'N0CALL', error: 'sound card busy' },
       { id: 'b', ok: false, callSign: 'N0CALL', error: 'sound card busy' },
