@@ -20,6 +20,12 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  answeredStory: {
+    open: 'Share how it turned out',
+    hint: 'A short story that links back to this request. Everyone who lifted you up gets a note.',
+    adminTitle: 'Good-news stories',
+    adminHint: 'The person who asked can post a short follow-up that links to their request. Everyone who supported them gets a note, and both posts link to each other.',
+  },
   common: { praiseGod: 'Wonderful news!' },
   tabs: { prayers: 'Support' },
   menu: { newRequest: 'New Request', tour: 'How Open Circle Works' },

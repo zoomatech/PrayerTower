@@ -1797,6 +1797,17 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     approve: 'Add it',
     decline: 'Decline',
   },
+  answeredStory: {
+    open: 'Share how God answered',
+    label: 'How it turned out',
+    hint: 'A short story that links back to this request. Everyone who prayed gets a note.',
+    placeholder: 'What happened?',
+    post: 'Share the story',
+    answers: 'Answers: “%{preview}”',
+    read: 'Read how it turned out',
+    adminTitle: 'Answered-prayer stories',
+    adminHint: 'The person who asked can post a short follow-up that links to their request. Everyone who prayed gets a note, and both posts link to each other.',
+  },
   lament: {
     tag: 'Lament',
     toggle: 'This is a lament',

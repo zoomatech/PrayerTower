@@ -78,6 +78,8 @@ export default function PostScreen() {
   const [support, setSupport] = useState(false);
   // The answered / testimony panel: closed, or open with the draft text.
   const [testimony, setTestimony] = useState<string | null>(null);
+  // The "how it turned out" story panel: closed, or open with the draft text.
+  const [story, setStory] = useState<string | null>(null);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [witnessNote, setWitnessNote] = useState('');
@@ -176,6 +178,18 @@ export default function PostScreen() {
       setError((e as Error).message);
     }
     load();
+  };
+
+  const shareStory = async () => {
+    try {
+      const r = await api.answeredStory(id, story!.trim());
+      if (r.crisis) setSupport(true);
+      setStory(null);
+      celebrate();
+      router.push(`/post/${r.post.id}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   const saveTestimony = async () => {
@@ -370,6 +384,29 @@ export default function PostScreen() {
               <Button small variant="ghost" label={t('post.testimonyRemove')} onPress={() => api.removeTestimony(id).then(load, (e) => setError((e as Error).message))} />
             ) : null}
           </View>
+        ) : null}
+
+        {features.answeredStories && card?.isMine && card.postType === 'prayer_request' && !card.storyId ? (
+          story !== null ? (
+            <View style={{ gap: space.sm }}>
+              <Text style={type.small}>{t('answeredStory.hint')}</Text>
+              <Field
+                label={t('answeredStory.label')}
+                placeholder={t('answeredStory.placeholder')}
+                value={story}
+                onChangeText={setStory}
+                maxLength={2000}
+                multiline
+              />
+              <KindCloud text={story} />
+              <View style={styles.row}>
+                <Button small label={t('answeredStory.post')} disabled={!story.trim()} onPress={shareStory} />
+                <Button small variant="ghost" label={t('common.cancel')} onPress={() => setStory(null)} />
+              </View>
+            </View>
+          ) : (
+            <Button variant="secondary" label={t('answeredStory.open')} onPress={() => setStory('')} />
+          )
         ) : null}
 
         {card && prayable ? <GuestShare card={card} /> : null}
