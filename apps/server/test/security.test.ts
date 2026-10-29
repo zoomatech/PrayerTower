@@ -122,6 +122,16 @@ describe('endpoint auth', () => {
       'GET /crosspost/threads/webhook',
       // Sharing with consent: the share card the author chose (a 404 otherwise).
       'GET /card/:token',
+      // Listener sign-up (404 while switched off; joining and making a key are rate limited, a key only from an unguessable one-use link).
+      'GET /listeners',
+      'GET /open-circle/listeners',
+      'POST /listeners/join',
+      'GET /listeners/setup/:token',
+      'GET /open-circle/listeners/setup/:token',
+      'POST /listeners/setup/:token/key',
+      // Thank-you cards: an unguessable link each (404 while switched off).
+      'GET /qsl/:token',
+      'GET /open-circle/qsl/:token',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

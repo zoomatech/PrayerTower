@@ -214,7 +214,7 @@ export class Outbox {
 }
 
 /** Prayer Tower's listener endpoints: POST /node/channel-report, /node/heard and /node/heartbeat, with the node key (x-node-key) or, signed, without it. */
-export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch, opts: { sign?: boolean } = {}): ListenerApi {
+export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch, opts: { sign?: boolean; log?: (m: string) => void } = {}): ListenerApi {
   const base = baseUrl.replace(/\/$/, '');
   // Each signature's timestamp must be newer than the last (the server refuses replays).
   let lastTs = 0;
@@ -238,6 +238,9 @@ export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typ
       const res = await post('/node/heard', r);
       // 404: receipts, acknowledgements and listener reports are all switched off.
       if (!res.ok && res.status !== 404) throw new ReportError(`receipt failed (${res.status})`, res.status);
+      // A thank-you card for confirmed reception, while the station gives them (server radio/qsl.ts).
+      const body = res.ok ? ((await res.json().catch(() => null)) as { card?: { path: string; new: boolean } } | null) : null;
+      if (body?.card?.new) (opts.log ?? console.log)(`[listener] the station sent a thank-you card: ${base}${body.card.path}`);
     },
     async heardIds(r) {
       const res = await post('/node/heard-ids', r);

@@ -10,6 +10,8 @@ import { languages } from '../../language.js';
 
 export interface SiteOptions {
   supportEmail: string | null;
+  /** This host's public https address (PUBLIC_SITE_URL), for the listener setup page; unset = the address each request came to. */
+  publicUrl?: string | null;
   /** Folder holding PRIVACY_POLICY.md and TERMS_OF_USE.md (or their _DRAFT versions). */
   legalDir: string | null;
   appStoreUrl: string | null;

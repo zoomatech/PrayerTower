@@ -56,6 +56,7 @@ const app = buildApp({
   metricsToken: config.METRICS_TOKEN ?? null,
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,
+  publicSiteUrl: config.PUBLIC_SITE_URL ?? null,
   testFlight: { prayerTower: config.TESTFLIGHT_URL ?? null, openCircle: config.OPEN_CIRCLE_TESTFLIGHT_URL ?? null },
   appleVerifier: appleVerifier(config),
   crosspost: crosspostOptions(config),
@@ -69,6 +70,7 @@ const app = buildApp({
   deletionPage: { supabaseUrl: config.SUPABASE_URL, publishableKey: config.SUPABASE_PUBLISHABLE_KEY ?? null, supportEmail: config.SUPPORT_EMAIL ?? null },
   site: {
     supportEmail: config.SUPPORT_EMAIL ?? null,
+    publicUrl: config.PUBLIC_SITE_URL ?? null,
     legalDir: config.SITE_LEGAL_DIR ?? defaultLegalDir(),
     appStoreUrl: config.APP_STORE_URL ?? null,
     playStoreUrl: config.PLAY_STORE_URL ?? null,
