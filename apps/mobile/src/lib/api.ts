@@ -171,6 +171,9 @@ export interface Features {
   /** Share a passage from text search into a new post, and the daily passage card (docs/LIBRARY_SEARCH.md). */
   libraryShare: boolean;
   libraryDaily: boolean;
+  /** Parallels across texts and reading plans from the library (docs/LIBRARY_SEARCH.md). */
+  libraryParallels: boolean;
+  libraryPlans: boolean;
   /** Growth ideas (docs/GROWTH.md). */
   guestPrayer: boolean;
   prayerChain: boolean;
@@ -1507,7 +1510,22 @@ export type LibraryHit = { ref: string; text: string; complete: boolean; work: {
 export type LibraryDaily =
   | { enabled: false }
   | { enabled: true; day: string; share: boolean; passage: { collection: LibraryCollectionId; ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string } };
-export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean };
+export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean };
+/** Passages from one place in a collection, with their citation. */
+export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string };
+export type ParallelThemes = { enabled: false } | { enabled: true; themes: { id: string; title: string; intro: string; texts: string[] }[] };
+export type ParallelTheme = { id: string; title: string; intro: string; sides: (LibraryExcerpt & { label: string | null })[] };
+export type PlanProgress = { read: number; next: number | null; finished: boolean; reminders: boolean; circle: { id: string; name: string } | null };
+export type ReadingPlan = { id: string; title: string; intro: string; days: number; faith: boolean; following: PlanProgress | null; circles: { id: string; name: string; readers: number }[] };
+export type ReadingPlans = { enabled: false } | { enabled: true; circles: { id: string; name: string }[]; plans: ReadingPlan[] };
+export type ReadingPlanDay = {
+  plan: { id: string; title: string; days: number };
+  day: number;
+  reading: LibraryExcerpt;
+  read: boolean;
+  following: PlanProgress | null;
+  circle: { id: string; name: string; readers: number; reading: number } | null;
+};
 export type LibraryResults = { total: number; source: string; hits: LibraryHit[] };
 export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
 
@@ -2257,6 +2275,13 @@ export const api = {
   readingPlan: () => get<ReadingPlanToday>('/reading-plan'),
   library: () => get<LibraryOverview>('/library'),
   libraryDaily: () => get<LibraryDaily>('/library/daily'),
+  parallels: () => get<ParallelThemes>('/library/parallels'),
+  parallel: (id: string) => get<ParallelTheme>(`/library/parallels/${encodeURIComponent(id)}`),
+  readingPlans: () => get<ReadingPlans>('/library/plans'),
+  followPlan: (id: string, input: { circleId?: string | null; reminders?: boolean } = {}) => request<ReadingPlans>('PUT', `/library/plans/${encodeURIComponent(id)}/follow`, input),
+  unfollowPlan: (id: string) => request<ReadingPlans>('DELETE', `/library/plans/${encodeURIComponent(id)}/follow`),
+  planDay: (id: string, day: number) => get<ReadingPlanDay>(`/library/plans/${encodeURIComponent(id)}/days/${day}`),
+  readPlanDay: (id: string, day: number) => request<ReadingPlanDay>('POST', `/library/plans/${encodeURIComponent(id)}/days/${day}/read`, {}),
   searchLibrary: (input: { q: string; collection: LibraryCollectionId; offset?: number; limit?: number }) =>
     get<LibraryResults>(`/library/search?${new URLSearchParams({ q: input.q, collection: input.collection, offset: String(input.offset ?? 0), limit: String(input.limit ?? 20) })}`),
   markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),

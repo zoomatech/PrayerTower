@@ -97,6 +97,8 @@ function RootStack() {
           <Stack.Screen name="safety" />
           <Stack.Screen name="reading-plan" />
           <Stack.Screen name="library" />
+          <Stack.Screen name="parallels" />
+          <Stack.Screen name="reading-plans" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="crosspost" />

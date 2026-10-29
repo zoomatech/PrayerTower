@@ -12,7 +12,7 @@ import { forbidden } from '../../errors.js';
 import * as communities from '../communities/index.js';
 import { PassageIndex, parseSynonyms, type Passage } from './search.js';
 
-type Work = { id: string; title: string; author: string; rights: 'public_domain' };
+export type Work = { id: string; title: string; author: string; rights: 'public_domain' };
 type CollectionFile = { format_version: 1; id: string; title: string; faith: boolean; source: string; works: Work[]; passages: Passage[] };
 type Collection = { id: string; title: string; faith: boolean; source: string; works: Map<string, Work>; index: PassageIndex };
 
@@ -50,29 +50,42 @@ export function collection(id: CollectionId): Collection {
 }
 
 export async function settings(q: Queryable) {
-  const { rows } = await q.query<{ enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean }>(
-    'select enabled, share_enabled as "shareEnabled", daily_enabled as "dailyEnabled" from public.library_settings',
+  const { rows } = await q.query<{ enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean }>(
+    `select enabled, share_enabled as "shareEnabled", daily_enabled as "dailyEnabled", parallels_enabled as "parallelsEnabled",
+            plans_enabled as "plansEnabled" from public.library_settings`,
   );
-  return rows[0] ?? { enabled: false, shareEnabled: false, dailyEnabled: false };
+  return rows[0] ?? { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false };
 }
 
 const enabled = async (q: Queryable) => (await settings(q)).enabled;
 
-export const SettingsPatch = z.object({ enabled: z.boolean().optional(), shareEnabled: z.boolean().optional(), dailyEnabled: z.boolean().optional() });
+export const SettingsPatch = z.object({
+  enabled: z.boolean().optional(),
+  shareEnabled: z.boolean().optional(),
+  dailyEnabled: z.boolean().optional(),
+  parallelsEnabled: z.boolean().optional(),
+  plansEnabled: z.boolean().optional(),
+});
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
   await q.query(
     `update public.library_settings set enabled = coalesce($1, enabled), share_enabled = coalesce($2, share_enabled),
-       daily_enabled = coalesce($3, daily_enabled)`,
-    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null],
+       daily_enabled = coalesce($3, daily_enabled), parallels_enabled = coalesce($4, parallels_enabled), plans_enabled = coalesce($5, plans_enabled)`,
+    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null],
   );
   return settings(q);
 }
 
-/** The switches the app needs: sharing and the daily card only count while search itself is on. */
+/** The switches the app needs: sharing, the daily card, parallels and reading plans only count while search itself is on. */
 export async function features(q: Queryable) {
   const s = await settings(q);
-  return { library: s.enabled, libraryShare: s.enabled && s.shareEnabled, libraryDaily: s.enabled && s.dailyEnabled };
+  return {
+    library: s.enabled,
+    libraryShare: s.enabled && s.shareEnabled,
+    libraryDaily: s.enabled && s.dailyEnabled,
+    libraryParallels: s.enabled && s.parallelsEnabled,
+    libraryPlans: s.enabled && s.plansEnabled,
+  };
 }
 
 /** "Psalms 23:1 (King James Bible)" or "Meditations, Book IV (Marcus Aurelius)": what a shared passage is credited to. */
@@ -84,14 +97,14 @@ export function citation(id: CollectionId, ref: string, work: Work) {
 }
 
 /** The collections this member may search. */
-async function offered(q: Queryable, userId: string): Promise<CollectionId[] | null> {
+export async function offered(q: Queryable, userId: string): Promise<CollectionId[] | null> {
   if (!(await enabled(q))) return null;
   const secular = await communities.isSecular(q, userId);
   // Open Circle gets every collection but the Bible and its Apocrypha.
   return COLLECTIONS.filter((id) => !(secular && TITLES[id].faith));
 }
 
-const TITLES: Record<CollectionId, { title: string; faith: boolean }> = {
+export const TITLES: Record<CollectionId, { title: string; faith: boolean }> = {
   'bible-kjv': { title: 'King James Bible', faith: true },
   'apocrypha-kjv': { title: 'King James Apocrypha', faith: true },
   'ancient-writings': { title: 'Ancient writings', faith: false },

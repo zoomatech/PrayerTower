@@ -77,7 +77,7 @@ public enum AppRoute: Hashable, Sendable {
 
     static let screens: [String: AppRoute] = [
         "highlights": .highlights, "prayer-minute": .prayerMinute, "give": .give, "gratitude": .me, "encourager": .me, "partner": .me,
-        "prayer-list": .prayerList, "account-security": .accountSecurity, "circle": .circles, "feed": .feed,
+        "prayer-list": .prayerList, "reading-plans": .me, "account-security": .accountSecurity, "circle": .circles, "feed": .feed,
         "radio-requests": .unsupported("radio-requests"), "feedback-triage": .unsupported("feedback-triage"), "crosspost": .unsupported("crosspost"),
     ]
 

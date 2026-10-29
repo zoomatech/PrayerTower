@@ -7,7 +7,7 @@ import { PassageIndex, parseSynonyms, stem } from '../src/modules/library/search
 import { as, createUser, db } from './helpers.js';
 
 afterAll(async () => {
-  await db.query('update public.library_settings set enabled = false, share_enabled = false, daily_enabled = false');
+  await db.query('update public.library_settings set enabled = false, share_enabled = false, daily_enabled = false, parallels_enabled = false, plans_enabled = false');
   await db.end();
 });
 
