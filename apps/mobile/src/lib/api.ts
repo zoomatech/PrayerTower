@@ -103,6 +103,7 @@ export interface Features {
   /** Post anatomy lines from Mockups 1 and 2. */
   postLines: boolean;
   checkinAffirmation: boolean;
+  whyGifts: boolean;
   /** The kind cloud on composers: a gentle "Are you sure?" (server modules/kindness). */
   kindCloud: boolean;
   /** Emoji reactions that open to positive meanings, shown as leaves. */
@@ -177,6 +178,7 @@ export interface NotebookSettings {
   tier_upkeep_enabled: boolean;
   tier_upkeep_days: number;
   checkin_affirmation_enabled: boolean;
+  why_gifts_enabled: boolean;
   kind_cloud_enabled: boolean;
   meaning_reactions_enabled: boolean;
   promise_page_enabled: boolean;
@@ -294,6 +296,8 @@ export interface AdminRadioSettings {
   radio_max_chars: number;
   radio_amplify_repeats: number;
   radio_order: 'oldest' | 'need';
+  /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
+  radio_batch_max: number;
 }
 
 export interface PowerPrayerStatus {
@@ -496,6 +500,17 @@ export interface PodcastEpisode {
   /** Null: a draft. */
   publishedAt: string | null;
 }
+/** Why the app runs on gifts, not ads (GET /why-gifts): the website's words for this edition. */
+export interface WhyGifts {
+  title: string;
+  intro: string;
+  points: { heading: string; body: string }[];
+  /** The website's Give link (the app opens Me → Give instead). */
+  giveUrl: string | null;
+  /** The public fund report's path on the API host, while it is published. */
+  fundPath: string | null;
+}
+
 export interface PodcastShow {
   id: string;
   slug: string;
@@ -803,6 +818,7 @@ export const api = {
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   surveys: () => get<{ surveys: Survey[] }>('/surveys'),
   podcasts: () => get<{ shows: PodcastShow[] }>('/podcasts'),
+  whyGifts: (wording: 'faith' | 'neutral') => get<WhyGifts>(`/why-gifts?wording=${wording}`),
   answerSurvey: (id: string, answers: SurveyAnswer[]) => post<{ ok: true }>(`/surveys/${id}/responses`, { answers }),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
   me: () => cachedGet<{ profile: Profile; roles: Role[]; community?: Community | null }>('me', '/me'),
@@ -1030,7 +1046,7 @@ export const api = {
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need' }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
@@ -1082,7 +1098,7 @@ export const api = {
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; whyGiftsEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>

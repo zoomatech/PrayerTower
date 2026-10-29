@@ -42,6 +42,7 @@ export interface NotebookSettings {
   tier_upkeep_enabled: boolean;
   tier_upkeep_days: number;
   checkin_affirmation_enabled: boolean;
+  why_gifts_enabled: boolean;
   kind_cloud_enabled: boolean;
   meaning_reactions_enabled: boolean;
 }
@@ -51,7 +52,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, kind_cloud_enabled, meaning_reactions_enabled from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, kind_cloud_enabled, meaning_reactions_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -78,6 +79,7 @@ export const SettingsPatch = z.object({
   tierUpkeepEnabled: z.boolean().optional(),
   tierUpkeepDays: z.number().int().min(1).max(365).optional(),
   checkinAffirmationEnabled: z.boolean().optional(),
+  whyGiftsEnabled: z.boolean().optional(),
   kindCloudEnabled: z.boolean().optional(),
   meaningReactionsEnabled: z.boolean().optional(),
 });
@@ -97,8 +99,9 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        post_lines_enabled = coalesce($18, post_lines_enabled),
        tier_upkeep_enabled = coalesce($19, tier_upkeep_enabled), tier_upkeep_days = coalesce($20, tier_upkeep_days),
        checkin_affirmation_enabled = coalesce($21, checkin_affirmation_enabled),
-       kind_cloud_enabled = coalesce($22, kind_cloud_enabled),
-       meaning_reactions_enabled = coalesce($23, meaning_reactions_enabled)`,
+       why_gifts_enabled = coalesce($22, why_gifts_enabled),
+       kind_cloud_enabled = coalesce($23, kind_cloud_enabled),
+       meaning_reactions_enabled = coalesce($24, meaning_reactions_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -121,6 +124,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.tierUpkeepEnabled ?? null,
       p.tierUpkeepDays ?? null,
       p.checkinAffirmationEnabled ?? null,
+      p.whyGiftsEnabled ?? null,
       p.kindCloudEnabled ?? null,
       p.meaningReactionsEnabled ?? null,
     ],
@@ -149,6 +153,7 @@ export async function features(q: Queryable) {
     crossCommunity: s.cross_community_enabled,
     postLines: s.post_lines_enabled,
     checkinAffirmation: s.checkin_affirmation_enabled,
+    whyGifts: s.why_gifts_enabled,
     /** The kind cloud on the composer (modules/kindness). */
     kindCloud: s.kind_cloud_enabled,
     /** Emoji reactions that open to positive meanings (modules/meaning-reactions). */
