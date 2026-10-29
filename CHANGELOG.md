@@ -4,6 +4,11 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Account security (reset, change, two-step sign-in), radio by need, giving (off by default) ([#85](https://github.com/zoomatech/PrayerTower/pull/85))
+- Radio burst mode: many prayers compressed into one short burst, off by default ([#88](https://github.com/zoomatech/PrayerTower/pull/88))
+- Check-in affirmation behind an off switch; last hard-coded text into en.ts ([#86](https://github.com/zoomatech/PrayerTower/pull/86))
+- Tier upkeep switch, no-means-test line, FK indexes, CI start retry ([#84](https://github.com/zoomatech/PrayerTower/pull/84))
+- Post anatomy lines from Mockups 1 and 2, behind an off switch ([#83](https://github.com/zoomatech/PrayerTower/pull/83))
 - Count public per-address limits per visitor behind Fly; recheck scheduled gifts at run time ([#82](https://github.com/zoomatech/PrayerTower/pull/82))
 - Macro needs: Open Circle wording for the count line; tests for macro needs and highlights ([#81](https://github.com/zoomatech/PrayerTower/pull/81))
 - App tests: announcements, live rooms, community choice and circle requests ([#80](https://github.com/zoomatech/PrayerTower/pull/80))

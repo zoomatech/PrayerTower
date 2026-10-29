@@ -798,6 +798,8 @@ export interface GivingInfo {
   enabled: boolean;
   provider: 'none' | 'stripe' | 'zeffy';
   url: string | null;
+  /** PayPal's Donate link, a second way to give; null when not set. */
+  paypalUrl: string | null;
   minCents: number;
   maxCents: number;
   everyoneMonthly: number;
@@ -807,7 +809,7 @@ export type GiftTarget = { kind: 'everyone' } | { kind: 'member'; userId: string
 export interface MyGift {
   id: string;
   amount_cents: number;
-  status: 'pending' | 'paid' | 'refunded';
+  status: 'pending' | 'paid' | 'refunded' | 'failed';
   target_kind: GiftTarget['kind'];
   created_at: string;
 }
@@ -831,6 +833,8 @@ export interface AdminDonationSettings {
   enabled: boolean;
   provider: 'none' | 'stripe' | 'zeffy';
   donate_url: string | null;
+  paypal_url: string | null;
+  zeffy_amount_unit: 'cents' | 'dollars';
   min_cents: number;
   max_cents: number;
   priestly_per_dollar: number;
@@ -840,7 +844,7 @@ export interface AdminDonationSettings {
   allocation_max_per_request: number;
 }
 export interface AdminGift extends MyGift {
-  provider: 'stripe' | 'zeffy' | 'manual';
+  provider: 'stripe' | 'zeffy' | 'paypal' | 'manual';
   donor_name?: string | null;
 }
 
@@ -1082,19 +1086,24 @@ export const api = {
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
-    donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
+    donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
       patch: Partial<{
         enabled: boolean;
         provider: 'none' | 'stripe' | 'zeffy';
         donateUrl: string | null;
+        paypalUrl: string | null;
+        zeffyAmountUnit: 'cents' | 'dollars';
         everyoneMonthly: number;
         allocationRequestsEnabled: boolean;
         allocationMaxPerRequest: number;
       }>,
     ) => request<{ settings: AdminDonationSettings }>('PATCH', '/admin/donation-settings', patch),
     gifts: () => get<{ donations: AdminGift[] }>('/admin/donations'),
-    recordGift: (amountCents: number, reference: string) => post('/admin/donations', { amountCents, reference: reference || undefined }),
+    refundGift: (id: string) => post<{ refunded: true }>(`/admin/donations/${id}/refund`),
+    recordGift: (gift: { amountCents: number; reference: string; via: 'manual' | 'zeffy' | 'paypal'; donorId?: string | null; target?: GiftTarget }) =>
+      post('/admin/donations', { ...gift, reference: gift.reference || undefined }),
+    syncZeffy: () => post<{ recorded: number; refunded: number; skipped: number }>('/admin/donations/zeffy-sync'),
     securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
     updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),

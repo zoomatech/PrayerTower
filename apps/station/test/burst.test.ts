@@ -9,7 +9,7 @@ import { cmCompress, cmDecompress } from '../src/burst/cm.js';
 import { convDecode, convEncode } from '../src/burst/conv.js';
 import { decodeBatch, encodeBatch } from '../src/burst/codec.js';
 import { fft } from '../src/burst/fft.js';
-import { frameSeconds, modulate } from '../src/burst/ofdm.js';
+import { demodulate, frameSeconds, modulate } from '../src/burst/ofdm.js';
 import { PRESETS, presetByName } from '../src/burst/presets.js';
 import { rsDecode, rsEncode } from '../src/burst/rs.js';
 import { samplePrayers } from '../src/burst/sample.js';
@@ -191,7 +191,7 @@ describe('burst modem through a simulated FM radio', () => {
   for (const preset of fmPresets) {
     it(`${preset.name}: 30 prayers survive filtering, clock drift and noise`, () => {
       const audio = modulate(encodeBatch(SAMPLE_PRAYERS), preset, 'KD9XYZ');
-      const rx = radioChannel(audio, { snrDb: [0, 15, 15, 22, 30][preset.bitsPerSymbol]!, lowHz: 300, highHz: 3400, seed: preset.id });
+      const rx = radioChannel(audio, { snrDb: [0, 15, 15, 22, 30, 0, 24][preset.bitsPerSymbol]!, lowHz: 300, highHz: 3400, seed: preset.id });
       const heard = listen(rx);
       expect(heard).toHaveLength(1);
       expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', preset: preset.name, prayers: SAMPLE_PRAYERS });
@@ -207,6 +207,45 @@ describe('burst modem through a simulated FM radio', () => {
     expect(listen(radioChannel(modulate(batch, plain, 'KD9XYZ'), channel))).toHaveLength(0);
     expect(listen(radioChannel(modulate(batch, fec, 'KD9XYZ'), channel))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
   });
+
+  it('fm-qam64 decodes at a noise level where fm-turbo gives up, at the same speed', () => {
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    const plain = presetByName('fm-turbo');
+    const qam = presetByName('fm-qam64');
+    expect(frameSeconds(qam, batch.length)).toBeLessThan(frameSeconds(plain, batch.length) * 1.05);
+    const channel = { snrDb: 10, lowHz: 300, highHz: 3400, seed: 1 };
+    expect(listen(radioChannel(modulate(batch, plain, 'KD9XYZ'), channel))).toHaveLength(0);
+    expect(listen(radioChannel(modulate(batch, qam, 'KD9XYZ'), channel))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
+
+  it('dataport-qam64: 30 prayers through a data-port link in under 0.6 s', () => {
+    const preset = presetByName('dataport-qam64');
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    expect(frameSeconds(preset, batch.length + 4)).toBeLessThan(0.6);
+    const rx = radioChannel(modulate(batch, preset, 'KD9XYZ'), { snrDb: 26, lowHz: 50, highHz: 7000, seed: 6 });
+    expect(listen(rx)[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
+
+  for (const name of ['fm-qam16', 'fm-qam64']) {
+    it(`${name}: a long frame survives a 300 ppm clock difference, and an SSB receiver 8 Hz off`, () => {
+      const preset = presetByName(name);
+      const rand = rng(5);
+      const batch = Uint8Array.from({ length: 9000 }, (_, i) => (i ? 97 + Math.floor(rand() * 26) : 0));
+      const audio = modulate(batch, preset, 'KD9XYZ');
+      expect(audio.length / 48_000).toBeGreaterThan(8);
+      for (const ratio of [1.0003, 0.9997]) {
+        const rx = new Float32Array(Math.floor(audio.length / ratio));
+        for (let i = 0; i < rx.length; i++) {
+          const t = i * ratio;
+          const a = Math.floor(t);
+          rx[i] = (audio[a] ?? 0) * (1 - (t - a)) + (audio[a + 1] ?? 0) * (t - a);
+        }
+        expect(demodulate(rx)[0]?.batch).toEqual(batch);
+      }
+      const short = modulate(encodeBatch(SAMPLE_PRAYERS), preset, 'KD9XYZ');
+      for (const hz of [8, -8]) expect(listen(shiftForTest(short, hz))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+    });
+  }
 
   it('dataport-turbo: 30 prayers through a strong data-port link in about 0.7 s', () => {
     const preset = presetByName('dataport-turbo');
