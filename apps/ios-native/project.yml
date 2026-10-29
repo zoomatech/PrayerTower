@@ -1,6 +1,8 @@
 # The native iPhone app (docs/SWIFT_PORT.md). Not the pilot: the Expo app in
 # apps/mobile stays the pilot. Generate the Xcode project on a Mac with
 #   brew install xcodegen && xcodegen generate
+# (scripts/mac-build-native.sh first builds the Safari extension into Crosspost/<edition>/;
+# run it once, or `node ../extension/scripts/build.mjs prayertower --safari` and copy dist/ there.)
 # then open PrayerTowerNative.xcodeproj. Shared code is the Swift package in this
 # folder (PrayerTowerKit, PrayerTowerSession), tested on Linux in CI.
 name: PrayerTowerNative
@@ -26,6 +28,8 @@ targets:
           - PrayerTowerSession
       # The Pray now widget and the Praying for you Live Activity, embedded in the app.
       - target: PrayerTowerWidgets
+      # Cross-posting in Safari (apps/extension), embedded in the app as a Safari web extension.
+      - target: PrayerTowerCrosspost
     info:
       path: App/Info.plist
       properties:
@@ -68,7 +72,7 @@ targets:
   # The separately branded, non-religious edition (Steve, 2026-10-28), as the Expo app's
   # EXPO_PUBLIC_EDITION=open-circle: the same screens, always the neutral words, its own name,
   # bundle id and link scheme, and new members join the Open Circle community. "Open Circle" is
-  # a placeholder name until Steve picks one. The home-screen widget comes later.
+  # a placeholder name until Steve picks one.
   OpenCircleNative:
     type: application
     platform: iOS
@@ -81,6 +85,8 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+      - target: OpenCircleWidgets
+      - target: OpenCircleCrosspost
     info:
       path: OpenCircle/Info.plist
       properties:
@@ -99,6 +105,11 @@ targets:
         PTPrivacyURL: $(PT_PRIVACY_URL)
         PTSupportEmail: $(PT_SUPPORT_EMAIL)
         PTEdition: open-circle
+    entitlements:
+      path: OpenCircle/OpenCircleNative.entitlements
+      properties:
+        com.apple.developer.associated-domains: ["webcredentials:$(PT_PASSKEY_DOMAIN)"]
+        com.apple.security.application-groups: [group.com.zoomatech.opencircle.native]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native
@@ -123,6 +134,7 @@ targets:
       path: Widgets/Info.plist
       properties:
         CFBundleDisplayName: Prayer Tower
+        PTEdition: prayer-tower
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:
@@ -133,6 +145,102 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.widgets
         SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+
+  # Open Circle's own Pray now widget and Live Activity: the same code with its edition's words,
+  # link scheme and app group.
+  OpenCircleWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets]
+    dependencies:
+      - package: PrayerTowerKit
+        products:
+          - PrayerTowerKit
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    info:
+      path: OpenCircleWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Open Circle
+        PTEdition: open-circle
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: OpenCircleWidgets/OpenCircleWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.zoomatech.opencircle.native]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native.widgets
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+
+  # Cross-posting in Safari on iPhone and iPad: the browser extension in apps/extension, built for
+  # Safari into Crosspost/prayertower/ by scripts/mac-build-native.sh (node apps/extension/scripts/build.mjs
+  # prayertower --safari), as Apple's safari-web-extension-packager lays it out.
+  PrayerTowerCrosspost:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Crosspost/SafariWebExtensionHandler.swift
+      - path: Crosspost/prayertower/manifest.json
+        buildPhase: resources
+      - path: Crosspost/prayertower/icons
+        type: folder
+        buildPhase: resources
+      - path: Crosspost/prayertower/src
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - sdk: SafariServices.framework
+    info:
+      path: Crosspost/PrayerTowerCrosspost-Info.plist
+      properties:
+        CFBundleDisplayName: Prayer Tower Cross-posting
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.crosspost
+        SWIFT_VERSION: "5.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+
+  # Cross-posting in Safari on iPhone and iPad: the browser extension in apps/extension, built for
+  # Safari into Crosspost/opencircle/ by scripts/mac-build-native.sh (node apps/extension/scripts/build.mjs
+  # opencircle --safari), as Apple's safari-web-extension-packager lays it out.
+  OpenCircleCrosspost:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Crosspost/SafariWebExtensionHandler.swift
+      - path: Crosspost/opencircle/manifest.json
+        buildPhase: resources
+      - path: Crosspost/opencircle/icons
+        type: folder
+        buildPhase: resources
+      - path: Crosspost/opencircle/src
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - sdk: SafariServices.framework
+    info:
+      path: Crosspost/OpenCircleCrosspost-Info.plist
+      properties:
+        CFBundleDisplayName: Open Circle Cross-posting
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native.crosspost
+        SWIFT_VERSION: "5.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
 

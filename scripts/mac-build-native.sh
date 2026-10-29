@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # One command on Steve's Mac for the native SwiftUI app (apps/ios-native, docs/SWIFT_PORT.md):
 #   1. swift test for the shared package (PrayerTowerKit, PrayerTowerSession),
-#   2. xcodegen generate, then build the app for the iOS Simulator and the Mac operator console (no signing needed),
+#   2. xcodegen generate (after building the cross-posting Safari extension into Crosspost/), then build
+#      both apps (with their widgets and Safari extensions) for the iOS Simulator and the Mac operator console (no signing needed),
 # and print a pass/fail table. Logs go to build-logs/native-<time>/.
 # Needs Xcode. XcodeGen comes from Homebrew when it can install there; otherwise (for example
 # when Homebrew belongs to another macOS account) it is built from its tagged source with
@@ -54,6 +55,14 @@ else
 fi
 
 [ -f Config.xcconfig ] || cp Config.example.xcconfig Config.xcconfig
+# The cross-posting Safari extension inside each app: apps/extension built for Safari, per edition.
+for EDITION in prayertower opencircle; do
+  if DIST="$(node "$ROOT/apps/extension/scripts/build.mjs" "$EDITION" --safari 2> "$LOGS/crosspost-$EDITION.txt")"; then
+    rm -rf "Crosspost/$EDITION" && cp -R "$DIST" "Crosspost/$EDITION"
+  else
+    record "Safari extension" FAIL "$LOGS/crosspost-$EDITION.txt"
+  fi
+done
 if "$XCODEGEN" generate > "$LOGS/xcodegen.txt" 2>&1; then
   record "Xcode project" PASS "PrayerTowerNative.xcodeproj"
 else

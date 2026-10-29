@@ -116,5 +116,7 @@ public enum Edition: String, Sendable {
     public init(_ info: [String: Any]?) { self = (info?["PTEdition"] as? String) == "open-circle" ? .openCircle : .prayerTower }
     /// Each edition's link scheme (prayertower://, opencircle://).
     public static let schemes: Set<String> = ["prayertower", "opencircle"]
+    /// This build's edition, from PTEdition in its Info.plist (the app's or the widget's).
+    public static let current = Edition(Bundle.main.infoDictionary)
     public var scheme: String { self == .openCircle ? "opencircle" : "prayertower" }
 }
