@@ -219,6 +219,8 @@ export interface DecodedFrame extends FrameHeader {
   end: number;
   /** Reed-Solomon fixed at least one byte. */
   corrected: boolean;
+  /** Estimated signal-to-noise ratio in a 2.5 kHz bandwidth (the speed table's scale), from the payload. */
+  snrDb: number;
 }
 
 /** Carrier values (complex) of the symbol whose useful part starts at `at`. */
@@ -242,6 +244,9 @@ interface Track {
   off: number;
   rate: number;
   bias: number;
+  /** Payload signal and noise power per carrier, summed over symbols, for the frame's SNR estimate. */
+  signal: number;
+  noise: number;
 }
 
 /**
@@ -332,6 +337,9 @@ function demodDiff(
     }
     let slope = 0;
     for (let k = 0; k < c; k++) slope += ((first + k - kMean) * (err[k]! - errMean)) / kVar;
+    // A phase change between two symbols each at signal-to-noise ratio g wanders by about 1/g radians squared.
+    for (let k = 0; k < c; k++) track.noise += (err[k]! - errMean) ** 2;
+    track.signal += c;
     // A clock difference makes each symbol arrive a little earlier or later
     // than the one before, which shows up as a phase slope of 2*pi*d/N radians
     // per bin (the window moves are already undone above). So the slope
@@ -459,6 +467,11 @@ function demodQam(x: Float32Array, at: number, preset: BurstPreset, symbols: num
       resid += (yr[k]! - (hr[k]! * xr[k]! - hi[k]! * xi[k]!)) ** 2 + (yi[k]! - (hr[k]! * xi[k]! + hi[k]! * xr[k]!)) ** 2;
     }
     noise = s === 1 ? resid / c : 0.8 * noise + (0.2 * resid) / c;
+    let power = 0;
+    for (let k = 0; k < c; k++) power += hr[k]! ** 2 + hi[k]! ** 2;
+    track.signal += power / c;
+    // Each carrier's channel comes from its 2F neighbours, which adds about 1/(2F) to the residual.
+    track.noise += resid / c / (1 + 1 / (2 * F));
     for (let k = 0; k < c; k++) {
       if (isPilot(k, c)) continue;
       const g = hr[k]! ** 2 + hi[k]! ** 2 || 1e-12;
@@ -467,6 +480,15 @@ function demodQam(x: Float32Array, at: number, preset: BurstPreset, symbols: num
       qamSoft(zr, zi, bits, g / (noise || 1e-12), soft);
     }
   }
+}
+
+/**
+ * Signal-to-noise ratio in 2.5 kHz from the payload's per-carrier ratio (each
+ * carrier is one FFT bin, SAMPLE_RATE / N hertz, wide), as dB.
+ */
+function frameSnr(track: Track, c: number): number {
+  const perCarrier = track.signal / Math.max(track.noise, 1e-12);
+  return 10 * Math.log10((perCarrier * c * (SAMPLE_RATE / N)) / 2500);
 }
 
 /** Shift every frequency in x by hz (via the analytic signal), as an SSB receiver's tuning knob would. */
@@ -549,7 +571,7 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     let best = i;
     for (let j = i; j < Math.min(corr.length, i + S); j++) if (corr[j]! > corr[best]!) best = j;
     const at = Math.max(0, best - BACKOFF);
-    const track: Track = { fresh: true, off: 0, rate: 0, bias: 0 };
+    const track: Track = { fresh: true, off: 0, rate: 0, bias: 0, signal: 0, noise: 0 };
     const hv = demodDiff(x, at, SYNC_FIRST, SYNC_CARRIERS, hdrSyms, 1, track);
     const header = decodeHeader(ungroup(hv, 1, HEADER_BYTES + HEADER_PARITY));
     const preset = header && PRESETS.find((p) => p.id === header.presetId);
@@ -574,6 +596,8 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
       srcAt = refAt - from;
       track.bias = 0;
     }
+    track.signal = 0;
+    track.noise = 0;
     const margins: number[] = [];
     const soft: number[] | undefined = preset.inner ? [] : undefined;
     let pv: number[] = [];
@@ -595,7 +619,7 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     }
     const end = refAt + BACKOFF - GUARD + (syms + 1) * S + Math.round(track.off);
     if (result) {
-      frames.push({ ...header, preset: preset.name, batch: result.batch, corrected: result.corrected, start: best - GUARD, end });
+      frames.push({ ...header, preset: preset.name, batch: result.batch, corrected: result.corrected, start: best - GUARD, end, snrDb: frameSnr(track, c) });
       i = end - 1;
     } else {
       i = best;

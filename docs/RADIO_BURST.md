@@ -108,7 +108,12 @@ In `/etc/prayer-tower-station.env` (see `apps/station/install/station.env.exampl
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `BURST_MODE` | `off` | `off` (PSK31, one prayer at a time), `audio`, `fldigi` or `simulate` |
-| `BURST_PRESET` | `fm-standard` | One of the presets above (`cli.js presets` lists them) |
+| `BURST_PRESET` | `fm-standard` | One of the presets above (`cli.js presets` lists them), or `auto` (below) |
+| `BURST_AUTO_REPORT` | `BURST_DIR/channel.json` | `auto`: the receiver's channel report, a file or an http(s) URL |
+| `BURST_AUTO_PRESETS` | the FM presets except QAM | `auto`: comma-separated presets it may choose from. Add `fm-qam16,fm-qam64` once the audio is known to be flat and unclipped |
+| `BURST_AUTO_MARGIN_DB` | `3` | `auto`: SNR to spare above a preset's working level |
+| `BURST_AUTO_MAX_AGE_MIN` | `30` | `auto`: an older report is ignored |
+| `BURST_SIM_SNR_DB` | none | `simulate`: add noise at this SNR before decoding back |
 | `BURST_MAX_PRAYERS` | `50` | Most prayers claimed per burst. The server also caps it at Admin → Radio → "Prayers per burst" (`radio_batch_max`, default 1). |
 | `BURST_MAX_FRAME_SECONDS` | `20` | Longest frame. A bigger batch becomes several frames in the same key-up. |
 | `BURST_PLAY_CMD` | `aplay -q {wav}` | Plays the burst to the radio's sound card. `{wav}` is the file. Example: `aplay -q -D plughw:1,0 {wav}` |
@@ -133,6 +138,34 @@ A live check on 2026-10-29 sent 20 queued prayers from the local API through
 decoded all 20, and all 20 were marked transmitted.
 
 To turn it on: set Admin → Radio → "Prayers per burst" above 1, set `BURST_MODE` (start with `simulate`), and run `sudo systemctl restart prayer-tower-station`.
+
+## Auto preset
+
+`BURST_PRESET=auto` lets a receiver steer the speed. A receiver that hears
+the station measures the signal-to-noise ratio of every frame (from how far
+each carrier lands from where it should, on the same 2.5 kHz scale as the
+speed table; within about 1 dB in tests) and writes a channel report:
+
+```
+node dist/src/burst/cli.js decode rx.wav channel.json
+```
+
+```json
+{ "snrDb": 21.4, "at": "2026-10-29T02:10:00.000Z", "callSign": "KD9XYZ", "preset": "fm-robust-fec" }
+```
+
+Before each burst the station reads the latest report (copy it to
+`BURST_AUTO_REPORT`, or serve it at a URL) and sends on the fastest preset
+in `BURST_AUTO_PRESETS` whose working SNR (`cli.js presets` shows it) plus
+`BURST_AUTO_MARGIN_DB` is below the measurement. With no report, or one older
+than `BURST_AUTO_MAX_AGE_MIN`, it uses the most robust preset in the list, so
+a station that stops hearing back slows down rather than going silent. The
+station log says which preset it picked and why.
+
+In `simulate` mode the station is its own receiver: it writes the report
+itself, so `BURST_MODE=simulate BURST_PRESET=auto BURST_SIM_SNR_DB=20` shows
+the whole loop (first burst on `fm-robust-fec`, then the fastest preset that
+fits 20 dB).
 
 ## Receiving (anyone can decode)
 
