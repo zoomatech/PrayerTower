@@ -129,7 +129,10 @@ if [ "$with_sdr" = 1 ] && ! grep -q '^LISTEN_SOURCE=' "$conf/listener.env"; then
   printf '%s\n' '' '# RTL-SDR dongle (--sdr): set the station frequency, e.g. 146.52M.' 'LISTEN_SOURCE=rtlsdr' 'LISTEN_SDR_FREQ=' >> "$conf/listener.env"
 fi
 # On a Mac, bursts play with afplay and the listener records with sox.
-grep -q '^BURST_PLAY_CMD=' "$conf/station.env" || printf '%s\n' '# macOS: afplay plays to the default output; pick the USB interface in System Settings > Sound.' 'BURST_PLAY_CMD=afplay {wav}' >> "$conf/station.env"
+# Quoted: run.sh reads the settings with bash, where an unquoted space ends the value.
+grep -q '^BURST_PLAY_CMD=' "$conf/station.env" || printf '%s\n' '# macOS: afplay plays to the default output; pick the USB interface in System Settings > Sound.' "BURST_PLAY_CMD='afplay {wav}'" >> "$conf/station.env"
+# Earlier installers wrote it unquoted, which stopped the station from starting.
+sed -i '' "s/^BURST_PLAY_CMD=afplay {wav}$/BURST_PLAY_CMD='afplay {wav}'/" "$conf/station.env"
 
 # One launchd agent per job (launchd.plist(5)). KeepAlive restarts a job that
 # fails; run.sh turns the station's "transmit failed" exit (3) into a clean
