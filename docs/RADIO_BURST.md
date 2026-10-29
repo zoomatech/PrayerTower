@@ -399,6 +399,7 @@ Off until Admin → Radio → "On-the-air receipts on" (`token_settings.radio_re
 
 - **On the air.** When the station reports a prayer sent, the member who sent it gets a notice: "It went out at 2:05 PM UTC from N0CALL on fm-qam16." The time is in the member's quiet-hours time zone if they set one, otherwise UTC. It works with the PSK31 loop and the log transmitter too, without a preset.
 - **Heard.** In burst mode the station also reports `sentHash` for each prayer: the first 32 hex digits of SHA-256 of the exact (ASCII-folded) text it sent. A listener's `/listen` page or the app's Listen screen, with the listener's agreement, sends `POST /listen/heard` with the call sign, preset, SNR and those fingerprints, never the words. Each fingerprint matches prayers that call sign sent in the last 24 hours. The first report of each tells its sender and the person who asked; later reports only count (`radio_prayers.heard_count`, best `heard_snr_db`). The route is public, limited to 20 requests a minute per IP address, and a 404 while receipts are off.
+- **Automatic sends.** A request sent for every request ([fair air](STATION_OPERATOR_GUIDE.md#fair-air)) tells its asker "Your request went out on the air". A request kept on the air ([prayer without ceasing](STATION_OPERATOR_GUIDE.md#prayer-without-ceasing)) sends no notice for its repeat sends; where it was heard still shows on the request.
 
 ## Prayers on the air (public page)
 

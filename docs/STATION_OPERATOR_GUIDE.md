@@ -408,7 +408,7 @@ One screen for the control operator: Me → **Operator console**. It is off unti
 | Status | Whether the station may transmit now, and why not: held, outside the transmission windows, or sending under an override until a given time. |
 | Manual override | **Hold all transmissions**: the station is handed nothing new until **Resume** (a burst already on the air finishes). **Send for 15 / 30 / 60 min**: sends outside the windows and quiet hours, then the windows apply again on their own; **End override** stops it early. |
 | Station ID timer | For each station: when it last identified, how often it must (`STATION_ID_MINUTES`), and when the next ID is due. The station reports this as its `station_id` check. |
-| Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10 with their wait, urgency and repeats. |
+| Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10, in the order the station will be handed them, with their wait, urgency and repeats. |
 | Relays | Each [store-and-forward relay](RADIO_BURST.md#store-and-forward-relay) that reported in the last hour: frames re-sent and air time used of its budget, and frames it did not re-send by reason. A relay sends this with its listener heartbeat. |
 | Reception beacon | When the [reception beacon](#reception-beacon) is on: the last day's beacons and every receiver that heard each one, with its SNR. |
 | Prayer without ceasing | When [prayer without ceasing](#prayer-without-ceasing) is on: how many kept requests are in the rotation, the quiet time before one goes out, and how many went out again in the last day. |
@@ -433,7 +433,7 @@ Two settings in Admin → Radio, both off by default.
 
 **Every request on the air once.** From the notebook's Page 2: "a lack of tokens will never stop a prayer request from being seen and minimally broadcast." Every 5 minutes the server queues one free send for each prayer request from the last day that has not been on the radio yet. It leaves out sensitive requests, laments kept off the radio, requests waiting on a moderator, answered ones, and communities with the radio hidden. The station sends these after the prayers members sent themselves. Turning it off drops any still waiting.
 
-**Radio sends per member a day.** From the Donor Influence page (people amplifying prayers "on both sides" to flood the air). Choose no limit, 3, 10 or 30. Within 24 hours a member can send at most that many radio prayers; an amplified send counts once for each time it goes out. Past the limit the member is told why. A scheduled radio send that would pass it stops with the same message.
+**Radio sends per member a day.** From the Donor Influence page (people amplifying prayers "on both sides" to flood the air). Choose no limit, 3, 10 or 30. Within 24 hours a member can send at most that many radio prayers; an amplified send counts once for each time it goes out. Past the limit the member is told why. A scheduled radio send that would pass it is skipped that week, with the same message to the member; a repeating schedule goes on the next week.
 
 ## My signal queue
 

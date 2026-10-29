@@ -116,9 +116,18 @@ export async function runOne(q: Queryable, s: Schedule & { user_id: string }) {
     if ((err as { code?: string }).code === 'insufficient_tokens') {
       return finish(q, s, 'failed', s.action === 'reach' ? `You didn't have ${s.amount} tokens when it was time.` : "You didn't have enough Priestly tokens when it was time.");
     }
-    // The radio's own refusals (paused, sensitive, a lament kept off the air, no price set) end the schedule.
-    if (s.action !== 'reach' && err instanceof AppError && err.statusCode < 500) return finish(q, s, 'failed', err.message);
-    throw err;
+    // Over the daily radio cap (fair-air.ts) is a busy day, not a reason to stop: this week's send is skipped.
+    if (err instanceof AppError && err.code === 'radio_daily_cap') {
+      await notifications.notify(q, s.user_id, {
+        kind: 'scheduled_spend',
+        title: "This week's scheduled radio send was skipped",
+        body: err.message,
+        data: { postId: s.post_id, scheduleId: s.id },
+      });
+    }
+    // The radio's own other refusals (paused, sensitive, a lament kept off the air, no price set) end the schedule.
+    else if (s.action !== 'reach' && err instanceof AppError && err.statusCode < 500) return finish(q, s, 'failed', err.message);
+    else throw err;
   }
   const runs = s.runs + 1;
   if (runs >= s.repeat_weeks) {

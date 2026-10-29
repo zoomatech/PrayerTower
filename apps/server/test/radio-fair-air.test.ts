@@ -59,6 +59,22 @@ describe('fair air', () => {
     expect(batch.map((b) => b.text)).toEqual([`Pray for the night nurses. ${RUN}`, `Pray for my sister's exams. ${RUN}`]);
   });
 
+  it("tells the asker their own request went out, not that they sent a radio prayer", async () => {
+    const receiptsDefault = (await radio.stationSettings(db)).radio_receipts_enabled;
+    await radio.updateStationSettings(db, { radio_receipts_enabled: true });
+    try {
+      const post = await newRequest(poster, `Pray for the ferry crew tonight. ${RUN}`);
+      expect(await fairAir.queueNew(db)).toBe(1);
+      const sent = (await claim()).find((b) => b.text === `Pray for the ferry crew tonight. ${RUN}`)!;
+      const res = await app.inject({ method: 'POST', url: `/station/radio-prayers/${sent.id}/result`, headers: { 'x-station-key': STATION_KEY }, payload: { ok: true, callSign: `K${RUN}` } });
+      expect(res.statusCode).toBe(200);
+      const notes = (await as(poster).get('/me/notifications')).json().notifications as { kind: string; title: string; data: { postId?: string } }[];
+      expect(notes.find((n) => n.kind === 'radio_on_air' && n.data.postId === post.id)?.title).toBe('Your request went out on the air');
+    } finally {
+      await radio.updateStationSettings(db, { radio_receipts_enabled: receiptsDefault });
+    }
+  });
+
   it('caps radio sends per member a day, amplified ones counting each time they go out', async () => {
     expect((await as(admin).patch('/admin/radio-fair-air', { dailyCap: 4 })).json().dailyCap).toBe(4);
     const posts = await Promise.all([1, 2, 3].map((i) => newRequest(poster, `Cap test ${i}. ${RUN}`)));

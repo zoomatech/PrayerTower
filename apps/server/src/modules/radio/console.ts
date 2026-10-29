@@ -10,6 +10,7 @@ import * as beacon from './beacon.js';
 import * as ceaseless from './ceaseless.js';
 import * as nodes from './nodes.js';
 import * as oplog from './oplog.js';
+import { queueOrder } from './queue-order.js';
 import * as schedule from './schedule.js';
 import * as sky from './sky.js';
 
@@ -79,10 +80,12 @@ export async function view(q: Queryable, now = new Date()) {
             min(created_at) filter (where status = 'queued') as oldest
        from public.radio_prayers where status in ('queued', 'sending')`,
   );
+  // In the order the station will be handed them (claimNext).
+  const { rows: order } = await q.query<{ radio_urgent_first: boolean; radio_order: string }>('select radio_urgent_first, radio_order from public.token_settings');
   const { rows: next } = await q.query<{ id: string; text: string; urgency: number; created_at: Date; repeats: number }>(
     `select r.id, left(p.body, 140) as text, p.urgency, r.created_at, r.repeats
        from public.radio_prayers r join public.posts p on p.id = r.post_id
-      where r.status = 'queued' order by r.id limit 10`,
+      where r.status = 'queued' order by ${queueOrder(order[0]!)} limit 10`,
   );
   const { rows: stations } = await q.query<{ call_sign: string; reported_at: Date; checks: { name: string; ok: boolean; detail: string }[] }>(
     'select call_sign, reported_at, checks from public.station_status order by call_sign',
