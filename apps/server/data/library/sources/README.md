@@ -24,6 +24,8 @@ Project Gutenberg header and licence.
 | `hesiod-homeric-hymns-evelyn-white-1914.txt` | Hesiod, the Homeric Hymns, and Homerica | Hugh G. Evelyn-White | 1914 | https://www.gutenberg.org/cache/epub/348/pg348.txt |
 | `iliad-butler-1898.txt` | The Iliad (prose) | Samuel Butler | 1898 | https://www.gutenberg.org/cache/epub/2199/pg2199.txt |
 | `odyssey-butler-1900.txt` | The Odyssey (prose) | Samuel Butler | 1900 | https://www.gutenberg.org/cache/epub/1727/pg1727.txt |
+| `gilgamesh-deluge-budge-1920.txt` | The Babylonian Story of the Deluge as Told by Assyrian Tablets from Nineveh (Gilgamesh Tablet XI, the flood told by Uta-Napishtim, in full; summaries of the other tablets) | E. A. Wallis Budge | 1920 | https://www.gutenberg.org/cache/epub/7096/pg7096.txt |
+| `gilgamesh-thompson-1928.txt` | The Epic of Gilgamish (all twelve tablets in English hexameters, including the flood in Tablet XI; OCR of a Google scan) | R. Campbell Thompson | 1928 | https://archive.org/download/thompson-1928-gilgamesh/Thompson_1928_Gilgamesh_djvu.txt |
 
 ## Not found before 1931
 
