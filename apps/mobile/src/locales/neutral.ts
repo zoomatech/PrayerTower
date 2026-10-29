@@ -24,6 +24,19 @@ export const keys: Tree = named({
   tabs: { prayers: 'Support' },
   menu: { newRequest: 'New Request', tour: 'How Open Circle Works' },
   widget: { heading: 'Lift someone up', empty: 'Open the app to see who could use some support.' },
+  give: {
+    radioTitle: 'Radio messages',
+    radioFree: 'Free radio messages left this month: {{count}}',
+    radioGranted: 'Extra radio messages granted to you: {{count}}',
+  },
+  radioRequests: {
+    title: 'Radio message requests',
+    sent: 'Radio messages sent in the last 30 days: {{count}}',
+  },
+  invites: {
+    notePlaceholder: 'For example, Tuesday book club',
+    shareMessage: 'You are invited to Open Circle. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
+  },
   growth: {
     guestShare: 'Let friends without the app send support',
     guestShareHint: 'Anyone with the link can read this request and tap "I\'m thinking of you". No account needed.',
@@ -156,6 +169,9 @@ export const keys: Tree = named({
     prayed: { zero: 'No one has checked in yet', one: '1 person has been thinking of this', other: '%{count} people have been thinking of this' },
     thankEveryone: 'Thank everyone who supported you',
     shareComment: '“%{body}” (%{name}, on an Open Circle request) %{url}',
+  },
+  kindCloud: {
+    prayer: 'Take a breath. Kind words travel far.',
   },
   promises: {
     week: 'Your week of kindness',

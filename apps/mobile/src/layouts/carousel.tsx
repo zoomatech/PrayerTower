@@ -8,6 +8,7 @@ import { Animated, PanResponder, Platform, ScrollView, StyleSheet, Text, useWind
 
 import { Button } from '@/components/ui';
 import { Tr, useT } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/motion';
 import { colors, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -20,6 +21,7 @@ export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const x = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   const card: Card | undefined = cards[index];
 
   // Fetch the next page before the deck runs out.
@@ -34,7 +36,8 @@ export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing
 
   const advance = (direction: 1 | -1, pray: boolean) => {
     const current = cards[index];
-    Animated.timing(x, { toValue: direction * width * 1.2, duration: 220, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+    // Reduce Motion: the card leaves at once instead of flying off.
+    Animated.timing(x, { toValue: direction * width * 1.2, duration: reduced ? 0 : 220, useNativeDriver: Platform.OS !== 'web' }).start(() => {
       x.setValue(0);
       setIndex((i) => i + 1);
       if (pray && current && onAction) onAction(current, 'praying_now');
@@ -77,7 +80,7 @@ export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing
             <Animated.View style={[styles.hint, styles.hintSkip, { opacity: skipHint }]} pointerEvents="none">
               <Tr k="layout.next" style={styles.hintText} />
             </Animated.View>
-            <Animated.View {...pan.panHandlers} style={{ transform: [{ translateX: x }, { rotate }] }}>
+            <Animated.View {...pan.panHandlers} style={{ transform: reduced ? [{ translateX: x }] : [{ translateX: x }, { rotate }] }}>
               {renderCard(card)}
             </Animated.View>
           </View>

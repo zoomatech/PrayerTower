@@ -46,6 +46,45 @@ import { supabase } from './supabase';
 
 
 /** Switches for the notebook ideas built in Batch 7. */
+/** The kind cloud's verdict on a draft: ok, a gentle nudge, or a firmer ask (threats, a stream of swearing). Never a refusal. */
+export interface KindVerdict {
+  level: 'ok' | 'nudge' | 'strong';
+  reason?: 'threat' | 'foul' | 'aimed' | 'shouting';
+}
+
+/** A gentle redirect for a request that wishes harm (thread "Prepare for harmful prayer requests"), shown in the kind cloud. */
+export interface HarmNote {
+  category: string;
+  action?: string;
+  title?: string;
+  message: string;
+  resources?: { name?: string; label?: string; phone?: string; url?: string }[];
+}
+
+export interface Precheck {
+  warn: boolean;
+  cloud?: KindVerdict;
+  harm?: HarmNote | null;
+}
+
+/** Emoji meanings: an emoji and its up-to-five positive meanings (first = what a tap adds). */
+export interface MeaningEmoji {
+  key: string;
+  emoji: string;
+  meanings: { key: string; label: string; neutralLabel: string }[];
+}
+
+/** A chosen meaning on a post, shown as a leaf. */
+export interface MeaningLeaf {
+  emoji: string;
+  icon: string;
+  meaning: string;
+  label: string;
+  neutralLabel: string;
+  count: number;
+  mine: boolean;
+}
+
 export interface Features {
   worldwideCount: boolean;
   thanksCard: boolean;
@@ -66,6 +105,10 @@ export interface Features {
   checkinAffirmation: boolean;
   whyGifts: boolean;
   poolMatching: boolean;
+  /** The kind cloud on composers: a gentle "Are you sure?" (server modules/kindness). */
+  kindCloud: boolean;
+  /** Emoji reactions that open to positive meanings, shown as leaves. */
+  meaningReactions: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -78,6 +121,42 @@ export interface Features {
   prayerMinute: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
+  /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
+  feedSkins: boolean;
+  commentTree: boolean;
+  /** Leaves shown on a branch before the rest fade into a blur. */
+  commentTreeLeaves: number;
+  /** Deepest reply level while the tree is on (0 = top-level comments only). */
+  commentTreeMaxDepth: number;
+  themeProposals: boolean;
+  /** Longest video a member can attach, in seconds. */
+  videoMaxSeconds: number;
+}
+
+export interface SkinSettings {
+  skins_enabled: boolean;
+  comment_tree_enabled: boolean;
+  comment_tree_leaves: number;
+  comment_tree_max_depth: number;
+  proposals_enabled: boolean;
+  video_max_seconds: number;
+}
+
+export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
+
+export interface ThemeProposal {
+  id: string;
+  name: string;
+  description: string;
+  layout: MakerLayout;
+  colors: { stem?: string; leaf?: string; backdrop?: string };
+  /** The look the member built in the theme maker. */
+  tokens: Record<string, unknown>;
+  status: 'pending' | 'approved' | 'declined';
+  reviewNote: string | null;
+  themeSlug: string | null;
+  createdAt: string;
+  from?: { id: string; name: string };
 }
 
 export interface GrowthSettings {
@@ -138,6 +217,8 @@ export interface NotebookSettings {
   checkin_affirmation_enabled: boolean;
   why_gifts_enabled: boolean;
   pool_matching_enabled: boolean;
+  kind_cloud_enabled: boolean;
+  meaning_reactions_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -628,7 +709,7 @@ export interface NewPost {
   isSensitive?: boolean;
   /** "Prayer and positive thoughts welcome" from people of any faith or none. */
   allSupportWelcome?: boolean;
-  media?: { kind: 'image' | 'video'; storagePath: string }[];
+  media?: { kind: 'image' | 'video'; storagePath: string; durationMs?: number }[];
 }
 
 /** Annual Prayer Warrior Award (off by default). */
@@ -867,6 +948,10 @@ export const api = {
   across: () => get<{ card: Card | null }>('/across'),
   quickReact: (postId: string, kind: 'candle' | 'standing', on: boolean) =>
     request<{ candles: number; standing: number; mine: ('candle' | 'standing')[] }>(on ? 'PUT' : 'DELETE', `/posts/${postId}/quick-reactions/${kind}`),
+  reactionMeanings: () => get<{ emoji: MeaningEmoji[] }>('/reaction-meanings'),
+  meanings: (postId: string) => get<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`),
+  chooseMeaning: (postId: string, emoji: string, meaning: string) => put<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`, { emoji, meaning }),
+  removeMeaning: (postId: string, emoji: string) => request<{ leaves: MeaningLeaf[] }>('DELETE', `/posts/${postId}/meanings/${emoji}`),
   declineAward: (id: string) => post<{ declined: true }>(`/me/awards/${id}/decline`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
@@ -923,6 +1008,9 @@ export const api = {
     }),
   myBranch: () => get<{ posts: Card[] }>('/me/branch'),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
+  myThemeProposals: () => get<{ proposals: ThemeProposal[] }>('/me/theme-proposals'),
+  proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>
+    post<{ proposal: ThemeProposal }>('/me/theme-proposals', input),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
     post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
@@ -945,7 +1033,7 @@ export const api = {
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
-  precheck: (text: string) => post<{ warn: boolean }>('/moderation/precheck', { text }).catch(() => ({ warn: false })),
+  precheck: (text: string) => post<Precheck>('/moderation/precheck', { text }).catch((): Precheck => ({ warn: false })),
   appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
   appeals: () => get<{ appeals: Appeal[] }>('/moderation/appeals'),
   decideAppeal: (id: string, action: 'uphold' | 'overturn', note?: string) =>
@@ -1116,9 +1204,15 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number }>) =>
+      request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
+    themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
+    approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
+    declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>

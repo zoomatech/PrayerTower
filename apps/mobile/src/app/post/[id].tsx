@@ -1,15 +1,18 @@
-import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
+import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type FeedTheme, type TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
 import { useCelebration } from '@/components/celebration';
+import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
 import { GuestShare } from '@/components/guest-share';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
+import { KindCloud } from '@/components/kind-cloud';
+import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -18,13 +21,28 @@ import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
 import { colors, space, type } from '@/lib/theme';
+import { tabletTokens } from '@/layouts/tower';
+import { vineTokens } from '@/layouts/vine';
 
 export default function PostScreen() {
   const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
   const { celebrate, overlay } = useCelebration();
   const { profile, roles } = useAuth();
   const { t } = useLocale();
-  const { materialMatch } = useFeatures();
+  const features = useFeatures();
+  const { materialMatch, kindCloud } = features;
+  // The comment tree and the emoji word leaves take their look from the member's feed skin.
+  // The tree falls back to the vine's own colors; the word leaves stay plain chips without a skin.
+  const [skin, setSkin] = useState<FeedTheme | null>(null);
+  useEffect(() => {
+    if (!features.commentTree && !features.meaningReactions) return;
+    api
+      .feedThemes()
+      .then((r) => setSkin(r.theme ?? null))
+      .catch(() => undefined);
+  }, [features.commentTree, features.meaningReactions]);
+  const treeTokens = useMemo(() => (skin?.layout === 'tower' ? tabletTokens(skin) : vineTokens(skin?.layout === 'vine' ? skin : null)), [skin]);
+  const leafTokens = useMemo(() => wordLeafTokens(skin), [skin]);
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -80,7 +98,8 @@ export default function PostScreen() {
     setBusy(true);
     setError(null);
     try {
-      if (!confirmed && (await api.precheck(text.trim())).warn) {
+      // With the kind cloud on, the cloud speaks while typing and nothing waits here.
+      if (!confirmed && !kindCloud && (await api.precheck(text.trim())).warn) {
         setWarnedFor({ text, isUpdate });
         return;
       }
@@ -156,11 +175,65 @@ export default function PostScreen() {
   // Discussion, news and blog posts aren't prayed for: no answered/testimony, radio, Power Prayer or prayer list.
   const prayable = card ? isPrayable(card.postType) : true;
 
+  // One comment's words and actions; the plain list and the comment tree both use it.
+  const commentBody = (c: Comment, canReply: boolean) => (
+    <>
+      <Text style={styles.commentAuthor}>
+        {c.isUpdate ? t('card.update') : ''}
+        {c.author.displayName}
+      </Text>
+      <Text style={type.body}>{c.body}</Text>
+      <View style={styles.row}>
+        {canReply ? (
+          <Text style={styles.reply} onPress={() => setReplyTo(c)}>
+            {t('post.reply')}
+          </Text>
+        ) : null}
+        <Text
+          style={styles.reply}
+          onPress={() =>
+            // Shareable comments: the words plus a link that opens this request at the comment.
+            Share.share({
+              message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
+            }).catch(() => undefined)
+          }
+          accessibilityRole="button"
+        >
+          {t('post.share')}
+        </Text>
+        {card && !c.isMine && c.author.id !== profile?.id ? (
+          <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
+            {t('post.report')}
+          </Text>
+        ) : null}
+        {c.isMine ? (
+          <Text
+            style={styles.report}
+            accessibilityRole="button"
+            onPress={() =>
+              confirmDelete === c.id
+                ? api
+                    .deleteComment(c.id)
+                    .then(() => {
+                      setConfirmDelete(null);
+                      load();
+                    })
+                    .catch((e) => setError((e as Error).message))
+                : setConfirmDelete(c.id)
+            }>
+            {confirmDelete === c.id ? t('post.tapAgain') : t('post.deleteShort')}
+          </Text>
+        ) : null}
+      </View>
+    </>
+  );
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
+        {card ? <MeaningReactions postId={card.id} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
@@ -352,58 +425,25 @@ export default function PostScreen() {
             <View style={styles.section}>
               <Text style={type.heading}>{t('post.comments')}</Text>
               {comments.length === 0 ? <Empty text={t('post.noComments')} /> : null}
-              {comments.map((c) => (
-                <View
-                  key={c.id}
-                  style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }, c.id === sharedCommentId && styles.sharedComment]}
-                >
-                  <Text style={styles.commentAuthor}>
-                    {c.isUpdate ? t('card.update') : ''}
-                    {c.author.displayName}
-                  </Text>
-                  <Text style={type.body}>{c.body}</Text>
-                  <View style={styles.row}>
-                    <Text style={styles.reply} onPress={() => setReplyTo(c)}>
-                      {t('post.reply')}
-                    </Text>
-                    <Text
-                      style={styles.reply}
-                      onPress={() =>
-                        // Shareable comments: the words plus a link that opens this request at the comment.
-                        Share.share({
-                          message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
-                        }).catch(() => undefined)
-                      }
-                      accessibilityRole="button"
-                    >
-                      {t('post.share')}
-                    </Text>
-                    {card && !c.isMine && c.author.id !== profile?.id ? (
-                      <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
-                        {t('post.report')}
-                      </Text>
-                    ) : null}
-                    {c.isMine ? (
-                      <Text
-                        style={styles.report}
-                        accessibilityRole="button"
-                        onPress={() =>
-                          confirmDelete === c.id
-                            ? api
-                                .deleteComment(c.id)
-                                .then(() => {
-                                  setConfirmDelete(null);
-                                  load();
-                                })
-                                .catch((e) => setError((e as Error).message))
-                            : setConfirmDelete(c.id)
-                        }>
-                        {confirmDelete === c.id ? t('post.tapAgain') : t('post.deleteShort')}
-                      </Text>
-                    ) : null}
+              {features.commentTree ? (
+                <CommentTree
+                  comments={comments}
+                  tokens={treeTokens}
+                  leavesShown={features.commentTreeLeaves}
+                  maxDepth={features.commentTreeMaxDepth}
+                  highlightId={sharedCommentId ?? null}
+                  renderBody={commentBody}
+                />
+              ) : (
+                comments.map((c) => (
+                  <View
+                    key={c.id}
+                    style={[styles.comment, { marginLeft: Math.min(c.depth ?? 0, 4) * space.lg }, c.id === sharedCommentId && styles.sharedComment]}
+                  >
+                    {commentBody(c, true)}
                   </View>
-                </View>
-              ))}
+                ))
+              )}
             </View>
 
             <View style={styles.section}>
@@ -413,6 +453,7 @@ export default function PostScreen() {
                 </Text>
               ) : null}
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
+              <KindCloud text={text} />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>
                 <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />

@@ -34,14 +34,17 @@ describe('Why gifts, not ads', () => {
     expect((await app.inject({ method: 'GET', url: '/why-donations', headers: { host: 'opencircle.example' } })).body).toContain('Open Circle runs on gifts');
   });
 
-  it('links the Zeffy page while giving is on through Zeffy', async () => {
+  it('links the Zeffy page, or PayPal\'s, while giving is on', async () => {
     await setOn(true);
     await db.query("update public.donation_settings set enabled = true, provider = 'zeffy', donate_url = 'https://www.zeffy.com/en-US/donation-form/prayer-tower'");
     try {
       const pt = await app.inject({ method: 'GET', url: '/why-donations' });
       expect(pt.body).toContain('<a class="button" href="https://www.zeffy.com/en-US/donation-form/prayer-tower">Give</a>');
+      // With only a PayPal Donate link, the website links PayPal.
+      await db.query("update public.donation_settings set provider = 'none', donate_url = null, paypal_url = 'https://www.paypal.com/donate/?hosted_button_id=X'");
+      expect((await app.inject({ method: 'GET', url: '/why-donations' })).body).toContain('href="https://www.paypal.com/donate/?hosted_button_id=X"');
     } finally {
-      await db.query("update public.donation_settings set enabled = false, provider = 'none', donate_url = null");
+      await db.query("update public.donation_settings set enabled = false, provider = 'none', donate_url = null, paypal_url = null");
     }
   });
 

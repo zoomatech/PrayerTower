@@ -8,7 +8,7 @@ import { supabase } from './supabase';
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime'] as const;
 type Allowed = (typeof ALLOWED)[number];
 
-export async function uploadAsset(asset: ImagePickerAsset): Promise<{ kind: 'image' | 'video'; storagePath: string }> {
+export async function uploadAsset(asset: ImagePickerAsset): Promise<{ kind: 'image' | 'video'; storagePath: string; durationMs?: number }> {
   const kind = asset.type === 'video' ? 'video' : 'image';
   const contentType: Allowed = (ALLOWED as readonly string[]).includes(asset.mimeType ?? '')
     ? (asset.mimeType as Allowed)
@@ -19,5 +19,6 @@ export async function uploadAsset(asset: ImagePickerAsset): Promise<{ kind: 'ima
   const body = await fetch(asset.uri).then((res) => res.arrayBuffer());
   const { error } = await supabase.storage.from('post-media').uploadToSignedUrl(path, token, body, { contentType });
   if (error) throw new Error(`Upload failed: ${error.message}`);
-  return { kind, storagePath: path };
+  // The clip's length goes with it, so the server can apply the video cap.
+  return kind === 'video' && asset.duration != null ? { kind, storagePath: path, durationMs: Math.round(asset.duration) } : { kind, storagePath: path };
 }

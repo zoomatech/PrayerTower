@@ -125,7 +125,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
 export interface FeedTheme {
   slug: string;
   name: string;
-  layout: 'column' | 'vine' | 'carousel' | 'flip';
+  layout: 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit';
   cardTemplates: Record<string, unknown>;
   animations: Record<string, unknown>;
   tokens: Record<string, unknown>;
@@ -139,7 +139,7 @@ export async function theme(q: Queryable, viewerId: string): Promise<FeedTheme |
        join public.feed_themes t on t.id = coalesce(
          m.feed_theme_id,
          (select theme_id from public.community_feed_themes d where d.community_id = m.community_id and d.is_default))
-      where m.user_id = $1 and t.status <> 'retired'
+      where m.user_id = $1 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
       order by m.is_primary desc
       limit 1`,
     [viewerId],
@@ -154,12 +154,20 @@ export async function themeChoices(q: Queryable, viewerId: string) {
        from public.community_memberships m
        join public.community_feed_themes d on d.community_id = m.community_id
        join public.feed_themes t on t.id = d.theme_id
-      where m.user_id = $1 and m.is_primary and t.status <> 'retired'
-      order by d.is_default desc, t.name`,
+      where m.user_id = $1 and m.is_primary and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+     union
+     -- Skins the member made themselves (theme maker), before or after an admin shares them.
+     select t.slug, t.name, t.layout, t.status, false as is_default, (m.feed_theme_id = t.id) as chosen
+       from public.community_memberships m
+       join public.feed_themes t on t.owner_id = m.user_id
+      where m.user_id = $1 and m.is_primary and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+        and not exists (select 1 from public.community_feed_themes d where d.community_id = m.community_id and d.theme_id = t.id)
+      order by is_default desc, name`,
     [viewerId],
   );
   const current = rows.find((r) => r.chosen) ?? rows.find((r) => r.is_default);
-  return { themes: rows.map(({ chosen: _c, ...t }) => t), current: current?.slug ?? null };
+  // The full current theme too, so screens outside the feed (comment trees) can use its colors.
+  return { themes: rows.map(({ chosen: _c, ...t }) => t), current: current?.slug ?? null, theme: await theme(q, viewerId) };
 }
 
 /** Choose a feed style offered in the primary community; null returns to the community default. */
@@ -168,11 +176,15 @@ export async function chooseTheme(q: Queryable, viewerId: string, slug: string |
     `update public.community_memberships m
         set feed_theme_id = case when $2::text is null then null else (
           select t.id from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
-           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired') end
+           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+          union all
+          select t.id from public.feed_themes t where t.owner_id = $1 and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+          limit 1) end
       where m.user_id = $1 and m.is_primary
         and ($2::text is null or exists (
           select 1 from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
-           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired'))`,
+           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings)))
+        or exists (select 1 from public.feed_themes t where t.owner_id = $1 and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))))`,
     [viewerId, slug],
   );
   if (!rowCount) throw notFound('Feed style');
