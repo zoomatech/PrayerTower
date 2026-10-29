@@ -264,6 +264,7 @@ export const keys: Tree = named({
     intro: 'How the Helpers team helped people who asked for support, shared with their permission and without names.',
   },
   notebook: {
+    givingAskBody: "Open Circle runs on gifts, shared by need, so nobody's attention is for sale. If it has helped you, would you give?",
     worldwide: '%{formatted} acts of support worldwide in the last day, by %{people} people',
     prayedForYou: '%{count} people have supported your requests.',
     thanksPost: 'Share good news',

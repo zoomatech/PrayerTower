@@ -46,6 +46,8 @@ export interface NotebookSettings {
   lamps_per_week: number;
   pool_ledger_enabled: boolean;
   circle_goals_enabled: boolean;
+  giving_ask_enabled: boolean;
+  giving_ask_after_days: number;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
@@ -53,7 +55,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -86,6 +88,8 @@ export const SettingsPatch = z.object({
   lampsPerWeek: z.number().int().min(1).max(20).optional(),
   poolLedgerEnabled: z.boolean().optional(),
   circleGoalsEnabled: z.boolean().optional(),
+  givingAskEnabled: z.boolean().optional(),
+  givingAskAfterDays: z.number().int().min(1).max(365).optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -107,7 +111,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        pool_matching_enabled = coalesce($23, pool_matching_enabled),
        lamps_enabled = coalesce($24, lamps_enabled), lamps_per_week = coalesce($25, lamps_per_week),
        pool_ledger_enabled = coalesce($26, pool_ledger_enabled),
-       circle_goals_enabled = coalesce($27, circle_goals_enabled)`,
+       circle_goals_enabled = coalesce($27, circle_goals_enabled),
+       giving_ask_enabled = coalesce($28, giving_ask_enabled), giving_ask_after_days = coalesce($29, giving_ask_after_days)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -136,6 +141,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.lampsPerWeek ?? null,
       p.poolLedgerEnabled ?? null,
       p.circleGoalsEnabled ?? null,
+      p.givingAskEnabled ?? null,
+      p.givingAskAfterDays ?? null,
     ],
   );
   return settings(q);
@@ -230,6 +237,27 @@ export async function thanksCard(q: Queryable, userId: string) {
 
 export async function dismissThanksCard(q: Queryable, userId: string) {
   await q.query('update public.profiles set thanks_card_dismissed_at = now() where id = $1', [userId]);
+}
+
+// Gentle giving ask (research/Contributing_Without_Ad_Money.md, suggestion 11) ---------
+
+/** Shown once: giving is set up, the member has been here long enough, never saw it, never gave. */
+export async function givingAsk(q: Queryable, userId: string) {
+  const s = await settings(q);
+  if (!s.giving_ask_enabled) return { show: false };
+  const { rows } = await q.query<{ show: boolean }>(
+    `select (select enabled from public.donation_settings)
+            and pr.giving_ask_seen_at is null
+            and pr.created_at <= now() - make_interval(days => $2)
+            and not exists (select 1 from public.donations d where d.donor_id = $1 and d.status = 'paid') as show
+       from public.profiles pr where pr.id = $1`,
+    [userId, s.giving_ask_after_days],
+  );
+  return { show: rows[0]?.show === true };
+}
+
+export async function seenGivingAsk(q: Queryable, userId: string) {
+  await q.query('update public.profiles set giving_ask_seen_at = coalesce(giving_ask_seen_at, now()) where id = $1', [userId]);
 }
 
 // Sermon and meeting inputs ------------------------------------------------------------
