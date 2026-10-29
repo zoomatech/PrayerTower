@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { stationSettings } from './index.js';
+import * as schedule from './schedule.js';
 
 export const StationStatus = z.object({
   callSign: z.string().trim().min(3).max(20),
@@ -91,7 +92,8 @@ export async function alerts(q: Queryable, now = new Date()): Promise<{ enabled:
   );
   const { queued, oldest } = q2[0]!;
   if (!queued) list.push({ kind: 'queue_empty', level: 'info', detail: 'Nothing is waiting to go out.', callSign: null, since: null });
-  else if (oldest && now.getTime() - oldest.getTime() > s.station_overdue_minutes * 60_000) {
+  // Outside the transmission windows prayers are meant to wait (schedule.ts).
+  else if (oldest && now.getTime() - oldest.getTime() > s.station_overdue_minutes * 60_000 && schedule.onAir(await schedule.get(q), now)) {
     const mins = Math.round((now.getTime() - oldest.getTime()) / 60_000);
     list.push({ kind: 'burst_overdue', level: 'problem', detail: `${queued} waiting; the oldest for ${mins} min.`, callSign: null, since: oldest.toISOString() });
   }

@@ -514,6 +514,20 @@ export interface StationAlert {
   callSign: string | null;
   since: string | null;
 }
+export interface RadioWindow {
+  days: number[];
+  start: string;
+  end: string;
+}
+
+export interface RadioSchedule {
+  enabled: boolean;
+  timeZone: string;
+  windows: RadioWindow[];
+  quietStart: string | null;
+  quietEnd: string | null;
+}
+
 export interface StationHealth {
   enabled: boolean;
   health: {
@@ -1401,6 +1415,13 @@ export const api = {
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
     radioHealth: () => get<StationHealth>('/admin/radio-health'),
+    radioSchedule: () => get<{ schedule: RadioSchedule; onAirNow: boolean }>('/admin/radio-schedule'),
+    updateRadioSchedule: (patch: Partial<RadioSchedule>) => request<{ schedule: RadioSchedule; onAirNow: boolean }>('PATCH', '/admin/radio-schedule', patch),
+    operatorLog: () => get<{ enabled: boolean }>('/admin/operator-log'),
+    setOperatorLog: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/operator-log', { enabled }),
+    operatorLogCsv: () => getText('/admin/operator-log?format=csv'),
+    listenerMode: () => get<{ enabled: boolean; active: boolean }>('/admin/listener-mode'),
+    setListenerMode: (enabled: boolean) => request<{ enabled: boolean; active: boolean }>('PATCH', '/admin/listener-mode', { enabled }),
     updateRadioHealth: (patch: { enabled?: boolean; acks?: Partial<{ enabled: boolean; timeoutMinutes: number; maxRetries: number }> }) => request<StationHealth>('PATCH', '/admin/radio-health', patch),
     radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
@@ -1547,6 +1568,7 @@ export const api = {
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
   radioListen: () => get<{ enabled: boolean; receipts: boolean }>('/radio/listen'),
+  listenConfig: () => get<{ enabled: boolean; receipts: boolean }>('/listen/config'),
   /** "On the air" receipts: fingerprints of prayers heard on the Listen screen, never the words. */
   listenHeard: (report: { callSign: string; preset: string; snrDb: number; hashes: string[] }) => post<{ matched: number }>('/listen/heard', report),
   highlights: () => get<Highlights>('/highlights'),

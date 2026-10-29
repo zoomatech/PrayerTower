@@ -28,7 +28,7 @@ export interface StationApi {
   claim(): Promise<ClaimedPrayer | null>;
   /** Up to `max` prayers at once (burst mode); empty when none are waiting. */
   claimBatch?(max: number): Promise<ClaimedPrayer[]>;
-  report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string; preset?: string; sentHash?: string }): Promise<void>;
+  report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string; preset?: string; sentHash?: string; frequencyHz?: number }): Promise<void>;
   /** Log a burst for Admin → Radio (burst mode). Best effort: a failure here never stops the station. */
   reportBurst?(burst: BurstLog): Promise<void>;
   /** The station's own checks for Admin → Radio health alerts (status.ts). Best effort, like reportBurst. */
@@ -41,6 +41,8 @@ export interface StationConfig {
   maxPieceChars: number;
   txTimeoutMs: number;
   blocklist: readonly string[];
+  /** RIG_FREQ_HZ or STATION_FREQ_HZ, reported with each prayer for the operator log. */
+  frequencyHz?: number;
 }
 
 export type Outcome = 'idle' | 'sent' | 'rejected';
@@ -91,7 +93,7 @@ export async function runOnce(
     await reportWithRetry(api, prayer.id, { ok: false, callSign: cfg.callSign, error: message }, retryMs).catch(() => undefined);
     throw new TransmitError(message);
   }
-  await reportWithRetry(api, prayer.id, { ok: true, callSign: cfg.callSign, pieces: pieces.length }, retryMs);
+  await reportWithRetry(api, prayer.id, { ok: true, callSign: cfg.callSign, pieces: pieces.length, frequencyHz: cfg.frequencyHz }, retryMs);
   log(`[station] ${prayer.id} sent in ${pieces.length} piece(s)`);
   return 'sent';
 }

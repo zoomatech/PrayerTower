@@ -33,6 +33,8 @@ export const keys: Tree = named({
     intro: 'Hold this phone near a radio tuned to the station. When a burst plays, the messages in it appear here. The sound stays on this phone.',
     tell: 'Let senders know their message was heard',
     tellHint: 'Only a fingerprint of each message goes back, never the words.',
+    savedTitle: 'Messages heard on air',
+    savedNone: 'Messages this phone decodes are kept here.',
   },
   radioRequests: {
     title: 'Radio message requests',
@@ -71,6 +73,7 @@ export const keys: Tree = named({
     tagline: 'Real people cheering you on, by name, right now.',
     inviteHint: 'Open Circle is invite-only during the pilot. Ask the person who invited you for a code.',
     inviteNeeded: 'Open Circle is invite-only right now. Enter your invite code.',
+    listen: 'Listen to radio messages (no account needed)',
   },
   onboarding: {
     intro: 'A few questions so the requests you see fit you. You can change these any time.',
