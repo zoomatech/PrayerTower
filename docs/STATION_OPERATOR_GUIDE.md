@@ -146,7 +146,7 @@ Use the card name `aplay -l` showed. The station service may open the sound
 card (and nothing else in `/dev`) and runs in the `audio` group. Turn off hardware flow control on that
 serial port in any other program that opens it, or it may key the radio.
 
-So the radio is never left on the air, the station runs the unkey command after every burst, even a failed one. It also runs it when the key command itself fails, since the radio may have keyed first. If the unkey command fails, it waits half a second and tries once more. A play or PTT command that runs past its time limit is stopped along with anything it started.
+So the radio is never left on the air, the station runs the unkey command after every burst, even a failed one. It also runs it when the key command itself fails, since the radio may have keyed first. If the unkey command fails, it waits half a second and tries once more. A play or PTT command that runs past its time limit is stopped along with anything it started. The station also unkeys once when it starts, in case it last stopped in the middle of a burst while `rigctld` was holding PTT.
 
 ## Rig control (frequency, mode and PTT through Hamlib)
 
