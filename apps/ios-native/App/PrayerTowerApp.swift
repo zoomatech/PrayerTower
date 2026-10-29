@@ -52,6 +52,10 @@ final class AppModel {
     init(store: SessionStore) { self.store = store }
 
     static func makeStore() -> SessionStore {
+        #if DEBUG
+        // -PTDemo: sample data with no server, for the snapshot and performance tests.
+        if let posts = Demo.posts(fromArguments: ProcessInfo.processInfo.arguments) { return SessionStore(demoPosts: posts) }
+        #endif
         let info = Bundle.main.infoDictionary ?? [:]
         func url(_ key: String) -> URL { URL(string: info[key] as? String ?? "") ?? URL(string: "http://127.0.0.1")! }
         return SessionStore(
@@ -75,7 +79,7 @@ final class AppModel {
         wording = Wording(self.me?.community)
         talkPrefs = Talk.anyOn(features) ? ((try? await store.api.conversationPrefs()) ?? ConversationPrefs()) : nil
         tree = features["meaningReactions"] && features["meaningIconRow"] ? ((try? await store.api.reactionMeanings()) ?? []) : []
-        if let p = self.me?.profile, p.onboardedAt != nil, !Tour.seen(p.id) { showTour = true }
+        if let p = self.me?.profile, p.onboardedAt != nil, !Tour.seen(p.id), !store.isDemo { showTour = true }
     }
 }
 

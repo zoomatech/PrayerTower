@@ -15,6 +15,8 @@ public enum SignInState: Sendable, Equatable {
 public final class SessionStore: Sendable {
     public let auth: AuthClient
     public let api: APIClient
+    /// Signed in on sample data with no server (`Demo`): the snapshot and performance tests.
+    public let isDemo: Bool
 
     public init(supabaseURL: URL, publishableKey: String, apiURL: URL, storage: any AuthLocalStorage) {
         let auth = AuthClient(
@@ -25,10 +27,19 @@ public final class SessionStore: Sendable {
         )
         self.auth = auth
         self.api = APIClient(baseURL: apiURL) { try? await auth.session.accessToken }
+        isDemo = false
+    }
+
+    /// Signed in on the sample data (`Demo.client`): nothing reaches Supabase or the API.
+    public init(demoPosts: Int) {
+        auth = AuthClient(url: Demo.baseURL.appendingPathComponent("auth/v1"), headers: [:], localStorage: MemoryStorage(), logger: nil)
+        api = Demo.client(posts: demoPosts)
+        isDemo = true
     }
 
     /// The state for the session saved on this device (on app start).
     public func current() async -> SignInState {
+        if isDemo { return .signedIn }
         guard auth.currentSession != nil else { return .signedOut }
         return await codeStillNeeded() ? .needsCode : .signedIn
     }

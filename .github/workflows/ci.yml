@@ -73,6 +73,36 @@ jobs:
       - uses: actions/checkout@v4
       - run: swift test
 
+  # The native iPhone app on a GitHub-hosted Mac (free for public repositories), headless:
+  # the app, widgets and Mac console build; the accessibility audit on every skin, snapshots of
+  # every main screen (light, dark, largest text) and the launch and 1,000-post scrolling
+  # measurements run in the iPhone simulator (scripts/mac-build-native.sh). Snapshot images and
+  # the logs are kept; a new snapshot is recorded on the first run and fails it once.
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/mac-build-native.sh
+      - name: Performance numbers
+        if: ${{ !cancelled() }}
+        run: |
+          f=$(ls -d build-logs/native-*/performance.txt 2>/dev/null | tail -1)
+          if [ -s "$f" ]; then { echo '### Native app performance'; echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ios-snapshots
+          path: apps/ios-native/SnapshotTests/__Snapshots__
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: ios-logs
+          path: |
+            build-logs/native-*/*.txt
+          if-no-files-found: ignore
+
   # Known vulnerabilities in dependencies. The server, station and shared
   # packages run in production, so any high one fails the build; the app's
   # build tooling (Expo CLI) fails only on critical. The full report is kept.

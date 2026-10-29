@@ -12,6 +12,10 @@ options:
 packages:
   PrayerTowerKit:
     path: .
+  # Snapshot tests only (SnapshotTests/); the app itself doesn't link it.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: 1.17.0
 targets:
   PrayerTowerNative:
     type: application
@@ -19,7 +23,7 @@ targets:
     sources: [App, Shared]
     # A shared scheme, so scripts/mac-build-native.sh can build and test with xcodebuild -scheme.
     scheme:
-      testTargets: [PrayerTowerNativeUITests]
+      testTargets: [PrayerTowerNativeUITests, PrayerTowerNativeSnapshotTests]
     dependencies:
       - package: PrayerTowerKit
         products:
@@ -90,7 +94,27 @@ targets:
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
 
-  # Xcode's accessibility audit on the sign-in screen and every feed skin (UITests/).
+  # Every main screen in light and dark at the largest text size, on the sample data (SnapshotTests/).
+  PrayerTowerNativeSnapshotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [SnapshotTests]
+    dependencies:
+      - target: PrayerTowerNative
+      - package: SnapshotTesting
+        products: [SnapshotTesting]
+      - package: PrayerTowerKit
+        products: [PrayerTowerKit, PrayerTowerSession]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.snapshots
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/PrayerTowerNative.app/PrayerTowerNative"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+  # Xcode's accessibility audit on the sign-in screen and every feed skin (UITests/), and launch
+  # time and feed scrolling (PerformanceTests).
   PrayerTowerNativeUITests:
     type: bundle.ui-testing
     platform: iOS

@@ -388,12 +388,8 @@ struct MediaView: View {
             if media.kind == "video" {
                 VideoPlayer(player: AVPlayer(url: url)).frame(height: 240).clipShape(.rect(cornerRadius: 12))
             } else {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    Color.secondary.opacity(0.1).frame(height: 200)
-                }
-                .clipShape(.rect(cornerRadius: 12))
+                CachedPhoto(path: media.storagePath, url: url)
+                    .clipShape(.rect(cornerRadius: 12))
                 .accessibilityLabel("Photo")
             }
         }

@@ -71,22 +71,25 @@ else
   grep -E "error:" "$LOGS/app-build.txt" | sort -u | head -20 > "$LOGS/errors.txt"
 fi
 
-# The accessibility audit UI tests (apps/ios-native/UITests) need an iPhone simulator; without
-# one they are only compiled.
+# The UI tests (apps/ios-native/UITests: the accessibility audit, launch time and feed scrolling)
+# and the snapshot tests (SnapshotTests) need an iPhone simulator; without one they are only
+# compiled. xcodebuild runs the simulator headless: no Simulator window opens.
 if [ -n "$SIM" ]; then
   if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerNative -destination "$DEST" \
-       -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO \
-       -only-testing:PrayerTowerNativeUITests test > "$LOGS/ui-tests.txt" 2>&1; then
-    record "Accessibility" PASS "audit on sign-in and every skin"
+       -derivedDataPath "$ROOT/build-logs/derived-native" -resultBundlePath "$LOGS/tests.xcresult" CODE_SIGNING_ALLOWED=NO \
+       test > "$LOGS/ui-tests.txt" 2>&1; then
+    record "UI and snapshots" PASS "audit, snapshots, performance"
   else
-    record "Accessibility" FAIL "$LOGS/ui-tests.txt"
-    grep -E "error:|failed" "$LOGS/ui-tests.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
+    record "UI and snapshots" FAIL "$LOGS/ui-tests.txt"
+    grep -E "error:|failed|recorded" "$LOGS/ui-tests.txt" | sort -u | head -30 >> "$LOGS/errors.txt"
   fi
+  # The performance numbers (launch time, scrolling hitches, CPU, memory).
+  grep -E "measured \[" "$LOGS/ui-tests.txt" | sed -E 's/.*measured/measured/' > "$LOGS/performance.txt" || true
 elif xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerNative -destination "$DEST" \
        -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO build-for-testing > "$LOGS/ui-tests.txt" 2>&1; then
-  record "Accessibility" SKIP "tests compiled; no iPhone simulator to run them"
+  record "UI and snapshots" SKIP "tests compiled; no iPhone simulator to run them"
 else
-  record "Accessibility" FAIL "$LOGS/ui-tests.txt"
+  record "UI and snapshots" FAIL "$LOGS/ui-tests.txt"
   grep -E "error:" "$LOGS/ui-tests.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
 fi
 
@@ -102,5 +105,6 @@ fi
 echo
 printf '%s\n' "${RESULTS[@]}"
 [ -s "$LOGS/errors.txt" ] && { echo; echo "First errors:"; cat "$LOGS/errors.txt"; }
+[ -s "$LOGS/performance.txt" ] && { echo; echo "Performance:"; cat "$LOGS/performance.txt"; }
 echo "Logs: $LOGS"
 exit $FAILED
