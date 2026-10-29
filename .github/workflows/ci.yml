@@ -81,9 +81,27 @@ jobs:
   ios:
     runs-on: macos-15
     timeout-minutes: 60
+    # contents: write lets the job commit newly recorded snapshot images back to the PR branch.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
       - run: bash scripts/mac-build-native.sh
+      # A snapshot test with no reference image records one and fails once. On a PR from this repo,
+      # commit the new images to the branch so they show in the PR's diff for review (the job logs
+      # and artifacts can't be fetched everywhere). Only new files: a changed screen still fails.
+      - name: Commit newly recorded snapshots
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          dir=apps/ios-native/SnapshotTests/__Snapshots__
+          [ -d "$dir" ] || exit 0
+          git add "$dir"
+          git diff --cached --quiet --diff-filter=A && exit 0
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Native snapshots: record new reference images from CI"
+          git push origin HEAD:${{ github.head_ref }}
       # The result table, first errors and performance numbers as annotations, so they can be
       # read from the checks API without downloading the logs.
       - name: Results as annotations
