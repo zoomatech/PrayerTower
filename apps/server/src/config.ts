@@ -69,6 +69,11 @@ const Env = z.object({
   MODERATION_CLAUDE_MODEL: z.string().default('claude-opus-5-5'),
   /** Claude model for the "not God" conversation and the circle facilitator (both off until an admin turns them on). */
   AI_CHAT_MODEL: z.string().default('claude-opus-5-5'),
+  /** Jitsi as a Service (8x8) for live rooms, the paid option in docs/LIVE_VIDEO.md. All three unset = not used. */
+  JAAS_APP_ID: z.string().regex(/^vpaas-magic-cookie-[0-9a-f]+$/).optional(),
+  JAAS_API_KEY_ID: z.string().min(10).optional(),
+  /** PEM private key for that API key; \n in one line is read as a line break. */
+  JAAS_PRIVATE_KEY: z.string().optional(),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */
   STATION_API_KEY: z.string().min(24).optional(),
   /** In-app token purchase (App Store). Off until purchases_enabled is on AND the Apple root certificate is set. */
@@ -80,6 +85,8 @@ const Env = z.object({
   APPLE_ROOT_CA_PATHS: z.string().default(''),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
+  /** Expo's push service; point it at a stand-in to test pushes without real devices. */
+  EXPO_PUSH_BASE_URL: z.string().url().default('https://exp.host'),
   /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */
   CORS_ORIGINS: z.string().default(''),
   /** API requests allowed per signed-in member per minute; 0 turns the limit off. */

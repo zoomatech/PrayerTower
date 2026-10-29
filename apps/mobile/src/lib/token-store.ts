@@ -54,3 +54,19 @@ export async function prices(productIds: string[]): Promise<Record<string, strin
 export async function buy(productId: string, userId: string) {
   await iap().requestPurchase({ request: { apple: { sku: productId, appAccountToken: userId } }, type: 'in-app' });
 }
+
+/**
+ * A practice purchase, sent in place of StoreKit while Admin → Practice mode has
+ * purchases on and no App Store connection is set. No money moves; the server
+ * marks it "Practice".
+ */
+export function practiceTransaction(productId: string, userId: string) {
+  const hex = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  const transactionId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20)}`;
+  const json = JSON.stringify({ productId, appAccountToken: userId, transactionId });
+  return `practice.${base64url(json)}`;
+}
+
+function base64url(text: string) {
+  return btoa(unescape(encodeURIComponent(text))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}

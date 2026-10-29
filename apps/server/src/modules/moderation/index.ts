@@ -39,7 +39,7 @@ export const RULES = {
 export type Rule = keyof typeof RULES;
 /** Rules an admin turns on, and the notebook_settings column that holds each switch. */
 const SWITCHED_RULES = { pressure: 'pressure_rule_enabled', misleading: 'misleading_rule_enabled', automation: 'automation_rule_enabled' } as const;
-const RULE_KEYS = Object.keys(RULES) as [Rule, ...Rule[]];
+export const RULE_KEYS = Object.keys(RULES) as [Rule, ...Rule[]];
 
 const NOUN = { post: 'request', comment: 'comment', reaction: 'encouragement', message: 'message', event: 'event', spoken_prayer: 'spoken prayer' } as const;
 

@@ -60,6 +60,19 @@ jobs:
       - name: Migration versions are unique
         run: scripts/check-migrations.sh
 
+  # The native iPhone app's shared Swift code (apps/ios-native, docs/SWIFT_PORT.md):
+  # the API kit and Supabase sign-in, built and unit-tested on Linux. The SwiftUI
+  # screens build on a Mac (scripts/mac-build.sh).
+  swift:
+    runs-on: ubuntu-latest
+    container: swift:6.4.1-noble
+    defaults:
+      run:
+        working-directory: apps/ios-native
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+
   # Known vulnerabilities in dependencies. The server, station and shared
   # packages run in production, so any high one fails the build; the app's
   # build tooling (Expo CLI) fails only on critical. The full report is kept.

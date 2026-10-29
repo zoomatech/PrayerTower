@@ -16,6 +16,7 @@ import { api } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { MendQueue } from '@/components/gentle-repair';
+import { ModerationTools } from '@/components/moderation-tools';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter((r) => r !== 'safe_messaging');
@@ -97,6 +98,7 @@ function Moderation() {
         {/* On a break the queue steps aside until the moderator comes back (moderator care). */}
         {care.onBreak ? null : (
           <>
+        <ModerationTools ruleChoices={ruleChoices} onDecided={load} />
         <HarmFloods onError={setError} />
         <MendQueue />
         {flags.length ? <Text style={type.heading}>{t('moderation.flagsTitle')}</Text> : null}

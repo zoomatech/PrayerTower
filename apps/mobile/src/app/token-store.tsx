@@ -14,7 +14,7 @@ import * as store from '@/lib/token-store';
 export default function TokenStoreScreen() {
   const { t } = useLocale();
   const { session } = useAuth();
-  const [listing, setListing] = useState<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[] } | null>(null);
+  const [listing, setListing] = useState<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[]; practice?: boolean } | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [purchases, setPurchases] = useState<TokenPurchase[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -27,9 +27,11 @@ export default function TokenStoreScreen() {
   }, []);
   useEffect(load, [load]);
 
-  const ready = !!listing?.enabled && store.storeAvailable;
+  // Practice mode (Admin → Practice mode): no App Store, no money, works on any device.
+  const practice = !!listing?.enabled && !!listing.practice;
+  const ready = !!listing?.enabled && (store.storeAvailable || practice);
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || practice) return;
     let stop: (() => void) | undefined;
     let live = true;
     store
@@ -52,13 +54,20 @@ export default function TokenStoreScreen() {
       live = false;
       stop?.();
     };
-  }, [ready, listing, load, t]);
+  }, [ready, practice, listing, load, t]);
 
   const buy = (p: TokenProduct) => {
     if (!p.appleProductId || !session) return;
     setBusy(p.sku);
     setNotice(null);
     setError(null);
+    if (practice) {
+      api
+        .buyTokens(store.practiceTransaction(p.appleProductId, session.user.id))
+        .then((r) => (setBusy(null), setNotice(t('tokenStore.practiceAdded', { count: r.purchase.tokens })), load()))
+        .catch((e) => (setBusy(null), setError((e as Error).message)));
+      return;
+    }
     store.buy(p.appleProductId, session.user.id).catch((e) => (setBusy(null), setError((e as Error).message)));
   };
 
@@ -70,7 +79,8 @@ export default function TokenStoreScreen() {
         <ErrorText error={error} onRetry={listing ? undefined : load} />
         {!listing && !error ? <Loading /> : null}
         {listing && !listing.enabled ? <Text style={type.body}>{t('tokenStore.off')}</Text> : null}
-        {listing?.enabled && !store.storeAvailable ? <Text style={type.body}>{t('tokenStore.iosOnly')}</Text> : null}
+        {listing?.enabled && !ready ? <Text style={type.body}>{t('tokenStore.iosOnly')}</Text> : null}
+        {practice ? <Text style={[type.body, { color: colors.goldText }]}>{t('tokenStore.practice')}</Text> : null}
         {ready ? (
           <>
             <Text style={type.body}>{t('tokenStore.intro', { percent: listing!.commonFundPercent ?? 0 })}</Text>
@@ -81,7 +91,13 @@ export default function TokenStoreScreen() {
                 <View key={p.sku} style={styles.card}>
                   <Text style={type.heading}>{t(p.currency === 'priestly' ? 'tokenStore.priestly' : 'tokenStore.regular', { count: p.tokens })}</Text>
                   <Button
-                    label={busy === p.sku ? t('tokenStore.finishing') : t('tokenStore.buy', { price: prices[p.appleProductId!] ?? p.priceLabel ?? '' })}
+                    label={
+                      busy === p.sku
+                        ? t('tokenStore.finishing')
+                        : practice
+                          ? t('tokenStore.practiceBuy')
+                          : t('tokenStore.buy', { price: prices[p.appleProductId!] ?? p.priceLabel ?? '' })
+                    }
                     disabled={!!busy}
                     onPress={() => buy(p)}
                   />
@@ -96,6 +112,7 @@ export default function TokenStoreScreen() {
               <Text key={p.id} style={type.small}>
                 {p.purchased_at ? new Date(p.purchased_at).toLocaleDateString() : ''} · {t(p.currency === 'priestly' ? 'tokenStore.priestly' : 'tokenStore.regular', { count: p.tokens })}
                 {p.status === 'refunded' ? ` · ${t('tokenStore.refunded')}` : ''}
+                {p.practice ? ` · ${t('tokenStore.practiceLabel')}` : ''}
               </Text>
             ))}
           </>

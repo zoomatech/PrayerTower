@@ -4,6 +4,7 @@ import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
+import * as practice from '../practice-mode/index.js';
 import * as autoPray from './auto-pray.js';
 import * as ai from './index.js';
 import type { Converse } from './provider.js';
@@ -11,10 +12,10 @@ import type { Converse } from './provider.js';
 // The "not God" conversation and the circle facilitator (docs/AI_COMPANIONS.md).
 export function aiRoutes(app: FastifyInstance, db: Db, converse: Converse | null) {
   app.get('/ai-chat', async (req) => ai.chatInfo(db, requireUser(req)));
-  app.post('/ai-chat', async (req) => ai.chat(db, converse, requireUser(req), ai.ChatInput.parse(req.body)));
+  app.post('/ai-chat', async (req) => ai.chat(db, await practice.converser(db, converse), requireUser(req), ai.ChatInput.parse(req.body)));
 
   app.get('/ai-facilitator', async (req) => ai.facilitatorInfo(db, requireUser(req)));
-  app.post('/ai-facilitator', async (req) => ai.facilitate(db, converse, requireUser(req), ai.FacilitateInput.parse(req.body)));
+  app.post('/ai-facilitator', async (req) => ai.facilitate(db, await practice.converser(db, converse), requireUser(req), ai.FacilitateInput.parse(req.body)));
   app.post('/circle-requests', async (req, reply) => {
     const r = await ai.requestCircle(db, requireUser(req), ai.CircleRequest.parse(req.body));
     return reply.code(201).send(r);

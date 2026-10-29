@@ -66,6 +66,8 @@ describe('endpoint auth', () => {
       'POST /donations/zeffy-webhook', // checks its own ?token=
       // App Store Server Notifications: Apple's signature on the payload is the check.
       'POST /store/apple/notifications',
+      // A practice live room's page: fixed text, no data; the room name is long and random.
+      'GET /live/practice/:name',
       // The same public pages in Spanish.
       'GET /es',
       'GET /es/',

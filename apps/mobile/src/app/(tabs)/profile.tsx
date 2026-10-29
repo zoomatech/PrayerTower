@@ -26,6 +26,7 @@ import { LiftUpCard } from '@/components/lift-up-card';
 import { HighlightsLink } from '@/components/kindness-highlights';
 import { MeaningProposals } from '@/components/meaning-proposals';
 import { PartnerCard } from '@/components/partner-card';
+import { DailyReminderCard } from '@/components/daily-reminder-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { KindMilestones } from '@/components/kind-milestones';
 import { LanguagePicker } from '@/components/language-picker';
@@ -150,8 +151,10 @@ export default function Profile() {
           <View
             style={styles.prayerLife}
             accessibilityLabel={
-              // Gentle rhythm: days this month (which only adds) instead of days in a row.
-              features.gentleRhythm
+              // Weeks of prayer, or gentle rhythm (days this month), instead of days in a row.
+              features.gentleStreak
+                ? t('reminders.weeksSummary', { days: stats.daysPrayed, weeks: stats.weeksPrayed, people: stats.peoplePrayedFor })
+                : features.gentleRhythm
                 ? t('practices.rhythmSummary', { days: stats.daysPrayed, month: stats.monthDays, people: stats.peoplePrayedFor })
                 : t('stats.summary', { days: stats.daysPrayed, people: stats.peoplePrayedFor, streak: stats.currentStreak })
             }>
@@ -166,8 +169,12 @@ export default function Profile() {
                 <Text style={type.small}>{t('stats.people')}</Text>
               </View>
               <View style={styles.stat}>
-                <Text style={styles.statValue}>{features.gentleRhythm ? stats.monthDays : stats.currentStreak}</Text>
-                <Text style={type.small}>{features.gentleRhythm ? t('practices.rhythmMonth') : t('stats.streak')}</Text>
+                <Text style={styles.statValue}>
+                  {features.gentleStreak ? stats.weeksPrayed : features.gentleRhythm ? stats.monthDays : stats.currentStreak}
+                </Text>
+                <Text style={type.small}>
+                  {features.gentleStreak ? t('reminders.weeks') : features.gentleRhythm ? t('practices.rhythmMonth') : t('stats.streak')}
+                </Text>
               </View>
             </View>
             <View style={styles.week} accessible={false}>
@@ -180,8 +187,12 @@ export default function Profile() {
               <Text style={type.body}>{stats.freshStart === 'month' ? t('practices.freshMonth') : t('practices.freshWeek')}</Text>
             ) : null}
             <Text style={type.small}>
-              {features.gentleRhythm
-                ? t('practices.rhythmNote')
+              {features.gentleStreak
+                ? stats.weekRun
+                  ? t('reminders.weekRun', { count: stats.weekRun })
+                  : t('reminders.weeksNote')
+                : features.gentleRhythm
+                  ? t('practices.rhythmNote')
                 : stats.currentStreak > 1
                   ? t('stats.streakNote', { count: stats.currentStreak })
                   : t('stats.gentle')}{' '}
@@ -190,6 +201,7 @@ export default function Profile() {
           </View>
         ) : null}
         <GratitudeCard />
+        <DailyReminderCard />
         <KindMilestones />
         <LiftUpCard />
         <HighlightsLink />
@@ -328,7 +340,7 @@ export default function Profile() {
             setExporting(true);
             try {
               const data = await api.exportMyData();
-              await saveJson(`${env.edition}-data-${data.exportedAt.slice(0, 10)}.json`, data);
+              await saveJson(`${wording === 'neutral' ? 'open-circle' : env.edition}-data-${data.exportedAt.slice(0, 10)}.json`, data);
             } catch (e) {
               setError((e as Error).message);
             } finally {

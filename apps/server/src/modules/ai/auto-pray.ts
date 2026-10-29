@@ -9,6 +9,7 @@ import { forbidden, notFound } from '../../errors.js';
 import * as posts from '../posts/index.js';
 import { mentionsCrisis } from '../safety/index.js';
 import { settings } from './index.js';
+import * as practice from '../practice-mode/index.js';
 import type { Converse } from './provider.js';
 
 export const AUTO_PRAY_SYSTEM = `You write one short Christian intercessory prayer for a prayer request posted in Prayer Tower, a prayer community. The app shows it labeled as written by an AI.
@@ -74,8 +75,9 @@ export async function setOptIn(q: Queryable, userId: string, postId: string, on:
  * Writes the AI prayers that are due: each opted-in request gets up to per_day a day,
  * spread out, under the app-wide daily limit. Without an AI connected it does nothing.
  */
-export async function writeDue(q: Queryable, converse: Converse | null): Promise<number> {
+export async function writeDue(q: Queryable, real: Converse | null): Promise<number> {
   const s = await settings(q);
+  const converse = await practice.converser(q, real);
   if (!s.auto_pray_enabled || !converse) return 0;
   const { rows: today } = await q.query<{ n: number }>(`select count(*)::int as n from public.ai_prayers where created_at > now() - interval '1 day'`);
   let left = s.auto_pray_daily_limit - today[0]!.n;

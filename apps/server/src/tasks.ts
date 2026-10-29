@@ -6,6 +6,8 @@ import { scanTask as activityScanTask } from './modules/activity/index.js';
 import { remindTask } from './modules/events/index.js';
 import { scanTask, type Classifier } from './modules/moderation/index.js';
 import { createClassifier } from './modules/moderation/providers.js';
+import { receiptsTask as pushReceiptsTask } from './modules/notifications/delivery.js';
+import { dueTask as dailyRemindersTask } from './modules/reminders/index.js';
 import { sendPushTask } from './modules/notifications/index.js';
 import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
 import { transmitTask, type Transmitter } from './modules/radio/index.js';
@@ -67,6 +69,8 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     check_back_due: checkBack.dueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
+    notifications_push_receipts: pushReceiptsTask(db, config, overrides.fetch),
+    reminders_daily_due: dailyRemindersTask(),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
     commitments_send_due_reminders: sendDueRemindersTask(),
     prayer_list_send_due_reminders: prayerListRemindersTask(),
@@ -150,6 +154,10 @@ export const crontab = [
   // Every minute: the prayer minute notice for members whose chosen minute it is (only while switched on).
   '* * * * * growth_prayer_minute ?max=1&jobKey=growth_prayer_minute',
   '* * * * * live_activity_refresh ?max=1&jobKey=live_activity_refresh',
+  // Every 5 minutes: read back Expo push receipts (only while Admin → Push delivery is on).
+  // Every 5 minutes: members' own daily reminders (only while Admin → Gentle reminders is on).
+  '*/5 * * * * reminders_daily_due ?max=3&fill=1h&jobKey=reminders_daily_due',
+  '*/5 * * * * notifications_push_receipts ?max=3&jobKey=notifications_push_receipts',
   // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
   '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',
   // Every 5 minutes: check connected Facebook and Threads accounts for new posts (only while cross-posting is on).

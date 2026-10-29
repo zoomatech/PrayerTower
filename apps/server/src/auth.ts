@@ -63,7 +63,9 @@ export function makeAuthHook(verify: TokenVerifier, db: Queryable) {
     );
     const profile = rows[0];
     if (!profile) throw new AppError(401, 'unauthenticated', 'No profile for this user');
-    if (profile.two_step && aal !== 'aal2') {
+    // The one route open before the code: spending a backup code after losing the phone.
+    const recovering = req.method === 'POST' && req.url.split('?')[0] === '/me/two-step/recover';
+    if (profile.two_step && aal !== 'aal2' && !recovering) {
       throw new AppError(401, 'two_step_required', 'Enter the code from your authenticator app to finish signing in');
     }
     const suspended = profile.suspended_until && profile.suspended_until > new Date();
