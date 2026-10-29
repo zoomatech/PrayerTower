@@ -41,7 +41,7 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
     const userId = requireUser(req);
     const data = await exportData(db, userId);
     const day = data.exportedAt.slice(0, 10);
-    reply.header('content-disposition', `attachment; filename="prayer-tower-data-${day}.json"`);
+    reply.header('content-disposition', `attachment; filename="my-data-${day}.json"`);
     reply.header('cache-control', 'no-store');
     return data;
   });

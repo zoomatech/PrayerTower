@@ -171,6 +171,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     remove: "Remove goal",
   },
   givingSplit: en.givingSplit,
+  offline: en.offline,
   supportLink: {
     label: "Your support page (optional)",
     hint: "A Ko-fi, Patreon, Buy Me a Coffee, PayPal.me, Liberapay, GitHub Sponsors, Zeffy or Open Collective page. Members of your community see it on your profile.",

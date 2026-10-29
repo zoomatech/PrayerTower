@@ -47,6 +47,21 @@ describe('requests', () => {
 });
 
 describe('no signal', () => {
+  it('opens a request saved with the feed, and keeps the switches that were on', async () => {
+    fetchMock.mockReturnValueOnce(ok({ posts: [{ id: 'p1', body: 'Pray for my mom' }], nextPage: null, pinnedId: null }));
+    await client.api.feed();
+    fetchMock.mockReturnValueOnce(ok({ features: { feedSkins: true } }));
+    await client.api.features();
+    await settle();
+    fetchMock.mockImplementation(noSignal);
+    const opened = await client.api.post('p1');
+    expect(opened.post.body).toBe('Pray for my mom');
+    expect(typeof opened.savedAt).toBe('number');
+    await expect(client.api.post('p2')).rejects.toBeInstanceOf(offline.OfflineError);
+    expect((await client.api.features()).features.feedSkins).toBe(true);
+    fetchMock.mockReset();
+  });
+
   it('shows the last feed it saw, marked with when it was saved', async () => {
     const page = { posts: [{ id: 'p1' }], nextPage: 1, pinnedId: null };
     fetchMock.mockReturnValueOnce(ok(page));
@@ -103,7 +118,7 @@ describe('the offline queue', () => {
     });
     expect(JSON.parse((await AsyncStorage.getItem('offline:queue:v1')) ?? '[]')).toEqual([]);
     const { result } = await renderHook(() => offline.useOffline());
-    expect(result.current.dropped).toEqual(['Your post: Your post is too long']);
+    expect(result.current.dropped).toEqual([{ label: 'Your post', message: 'Your post is too long' }]);
   });
 
   it('sends queued actions in the order they were made', async () => {

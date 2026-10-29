@@ -273,7 +273,7 @@ export const keys: Tree = named({
     },
   },
   deleteAccount: {
-    list: '• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and support history\n• your tokens',
+    list: '• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and support history\n• your tokens\n• everything else tied to your account',
   },
   feedback: { intro: 'Tell us what broke, what confused you, or what you wish Open Circle did. The pilot team reads every note.' },
   highlights: {
@@ -284,6 +284,7 @@ export const keys: Tree = named({
     window: 'Support for others in the last %{count} days.',
     anonymous: 'Anonymous helper',
   },
+  offline: { saved: 'Showing posts saved %{when}.' },
   conversation: { invited: 'You were invited to this group. Join to talk and cheer each other on.' },
   groups: { intro: 'Talk and cheer each other on about a need, a place, or a topic.', namePlaceholder: 'Morning walking group', topicPlaceholder: 'We meet up at 7am' },
   events: { intro: 'Get together on a video call or meet in person.', titlePlaceholder: 'Wednesday night meetup', placePlaceholder: 'Community Center, 12 Main St' },
