@@ -7,6 +7,7 @@ import { renderApp } from '@/__tests__/helpers';
 import Give from '@/app/give';
 import RadioRequests from '@/app/radio-requests';
 import { api } from '@/lib/api';
+import { resetFeatures } from '@/lib/features';
 
 jest.mock('@/lib/api', () => {
   const fns: Record<string, jest.Mock> = {};
@@ -54,6 +55,25 @@ describe('Give', () => {
     await fireEvent.press(await screen.findByText('Give $10'));
     await waitFor(() => expect(mocked.giveCheckout).toHaveBeenCalledWith(1000, { kind: 'member', userId: 'u-ruth' }, false));
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
+  });
+
+  it("shows a member's giving split and makes the gift smaller by that share when the giver splits", async () => {
+    resetFeatures();
+    mocked.features.mockResolvedValue({ features: { givingSplit: true } });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ to: 'u-ruth', name: 'Ruth' });
+    mocked.givingInfo.mockResolvedValue(info);
+    mocked.memberGivingSplit.mockImplementation(async (_id: string, cents: number) => ({ split: { url: 'https://ko-fi.com/ruth', percent: 20, shareCents: cents / 5 } }));
+    mocked.giveCheckout.mockResolvedValue({ donationId: 'd3', url: 'https://checkout.stripe.com/c/pay/cs_3' });
+    await renderApp(<Give />);
+    expect(await screen.findByText("Ruth asks that 20% of gifts toward them go to their own page. Of this gift, that's $2.")).toBeTruthy();
+    await fireEvent.press(screen.getByText('Split my gift: $8 here, $2 to their page'));
+    await fireEvent.press(await screen.findByText('Give $8'));
+    await waitFor(() => expect(mocked.giveCheckout).toHaveBeenCalledWith(800, { kind: 'member', userId: 'u-ruth' }, false));
+    await fireEvent.press(screen.getByText('Open their page'));
+    expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://ko-fi.com/ruth');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    mocked.features.mockResolvedValue({});
+    resetFeatures();
   });
 
   it('opens the Zeffy page', async () => {

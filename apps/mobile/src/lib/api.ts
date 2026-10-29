@@ -130,6 +130,9 @@ export interface Features {
   prayerMinute: boolean;
   /** Sharing outside the app only with the author's consent (docs/GROWTH.md). */
   shareConsent: boolean;
+  /** Giving split (docs/GIVING_SPLIT.md): a share of gifts to the member's own support page. */
+  givingSplit: boolean;
+  givingSplitMax: number;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -284,6 +287,17 @@ export interface GrowthSettings {
   prayer_minute_enabled: boolean;
   guest_email_days: number;
   share_consent_enabled: boolean;
+}
+export interface GivingSplit {
+  url: string;
+  percent: number;
+  shareCents: number | null;
+}
+export interface MyGivingSplit {
+  enabled: boolean;
+  maxPercent: number;
+  percent: number;
+  supportUrl: string | null;
 }
 /** Who may share a post outside the app, chosen by its author. */
 export type ShareLevel = 'private' | 'link' | 'card';
@@ -1441,6 +1455,9 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    givingSplitSettings: () => get<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('/admin/giving-split-settings'),
+    updateGivingSplitSettings: (patch: { enabled?: boolean; maxPercent?: number }) =>
+      request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean }>) =>
@@ -1599,6 +1616,11 @@ export const api = {
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
   revokeGuestLink: (postId: string) => request<{ revoked: true }>('DELETE', `/posts/${postId}/guest-link`),
+  myGivingSplit: () => get<{ split: MyGivingSplit }>('/me/giving-split'),
+  setGivingSplit: (percent: number) => request<{ split: MyGivingSplit }>('PUT', '/me/giving-split', { percent }),
+  memberGivingSplit: (userId: string, cents?: number) =>
+    get<{ split: GivingSplit | null }>(`/people/${userId}/giving-split${cents ? `?cents=${cents}` : ''}`),
+  postGivingSplit: (postId: string) => get<{ split: GivingSplit | null }>(`/posts/${postId}/giving-split`),
   shareState: (postId: string) => get<{ share: ShareState | null }>(`/posts/${postId}/share`),
   setShareLevel: (postId: string, level: ShareLevel) => request<{ share: ShareState }>('PUT', `/posts/${postId}/share`, { level }),
   prayerChain: () => get<{ people: ChainPerson[] }>('/me/prayer-chain'),

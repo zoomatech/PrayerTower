@@ -309,6 +309,7 @@ function Admin() {
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
         <GrowthSettingsSection />
+        <GivingSplitSection />
         <PracticeSettingsSection />
         <ConversationSettingsSection />
         <SkinSettingsSection />
@@ -1548,6 +1549,43 @@ function SkinSettingsSection() {
 }
 
 /** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
+/** Giving split: members may ask that a share of gifts toward them go to their own page. */
+function GivingSplitSection() {
+  const t = useT();
+  const [s, setS] = useState<{ giving_split_enabled: boolean; max_percent: number } | null>(null);
+  const [max, setMax] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: { giving_split_enabled: boolean; max_percent: number }) => {
+    setS(x);
+    setMax(String(x.max_percent));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.givingSplitSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateGivingSplitSettings({ maxPercent: toInt(max) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('givingSplit.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('givingSplit.adminTitle')}</Text>
+      <Text style={type.small}>{t('givingSplit.adminIntro')}</Text>
+      <Toggle label={t('givingSplit.adminToggle')} value={s.giving_split_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('givingSplit.adminMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
+      <Button label={t('givingSplit.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 function GrowthSettingsSection() {
   const t = useT();
   const [s, setS] = useState<GrowthSettings | null>(null);
