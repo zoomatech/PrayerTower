@@ -131,6 +131,9 @@ export interface Features {
   followupNudge: boolean;
   gratitudeCard: boolean;
   gentleRhythm: boolean;
+  /** A welcoming volunteer for a newcomer's first days, and the "Answered & remembered" look-back. */
+  encourager: boolean;
+  remembered: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -152,6 +155,8 @@ export interface SkinSettings {
   comment_tree_max_depth: number;
   proposals_enabled: boolean;
   video_max_seconds: number;
+  seasonal_enabled: boolean;
+  seasonal_auto: boolean;
 }
 
 export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
@@ -176,6 +181,23 @@ export interface PracticeSettings {
   followup_days: number;
   gratitude_enabled: boolean;
   gentle_rhythm_enabled: boolean;
+  encourager_enabled: boolean;
+  encourager_days: number;
+  newcomer_days: number;
+  remembered_enabled: boolean;
+}
+export interface EncouragerMatch {
+  id: string;
+  role: 'newcomer' | 'encourager';
+  other: { id: string; displayName: string };
+  endsAt: string;
+}
+export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
+export interface RememberedItem {
+  id: string;
+  body: string;
+  testimony: string | null;
+  answeredAt: string;
 }
 export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
 export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[] };
@@ -373,6 +395,20 @@ export interface AdminRadioSettings {
   listen_page_enabled: boolean;
   radio_receipts_enabled: boolean;
   on_air_page_enabled: boolean;
+}
+
+/** A station health alert in Admin → Radio (server radio/health.ts). */
+export interface StationAlert {
+  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'queue_empty';
+  level: 'problem' | 'info';
+  detail: string;
+  callSign: string | null;
+  since: string | null;
+}
+export interface StationAlerts {
+  enabled: boolean;
+  overdueMinutes: number;
+  alerts: StationAlert[];
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -1224,6 +1260,8 @@ export const api = {
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
+    radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
+    updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
@@ -1280,10 +1318,10 @@ export const api = {
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
-    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number }>) =>
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
       request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
@@ -1461,6 +1499,12 @@ export const api = {
   gratitude: (tz: string) => get<Gratitude>(`/me/gratitude?tz=${encodeURIComponent(tz)}`),
   setGratitudeDay: (weekday: number | null, timeZone: string) => put<Gratitude>('/me/gratitude/day', { weekday, timeZone }),
   saveGratitude: (items: string[], timeZone: string) => put<Gratitude>('/me/gratitude', { items, timeZone }),
+  encourager: () => get<EncouragerState>('/me/encourager'),
+  setVolunteer: (on: boolean, agree?: boolean) => put<EncouragerState>('/me/encourager/volunteer', { on, ...(agree ? { agree } : {}) }),
+  askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
+  endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
+  remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
+  hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),

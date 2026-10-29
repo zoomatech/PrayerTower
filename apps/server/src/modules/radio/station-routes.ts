@@ -7,6 +7,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { AppError } from '../../errors.js';
 import * as ops from '../ops/index.js';
+import * as health from './health.js';
 import * as radio from './index.js';
 
 export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string | null) {
@@ -40,6 +41,14 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
   app.post('/station/bursts', async (req) => {
     await requireStation(req);
     await radio.recordBurst(db, radio.BurstReport.parse(req.body));
+    return { ok: true };
+  });
+
+  // The station's own checks (audio device, rig/PTT), about once a minute, for Admin → Radio alerts.
+  app.post('/station/status', async (req) => {
+    await requireStation(req);
+    await ops.beat(db, 'station');
+    await health.recordStatus(db, health.StationStatus.parse(req.body));
     return { ok: true };
   });
 

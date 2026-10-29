@@ -7,8 +7,9 @@
 //   * the theme maker: a member builds a skin (layout, colors, leaf shape, stem,
 //     backdrop) and can use it at once; others see it only after an admin
 //     approves it into the community (feed_themes.owner_id);
-//   * the longest video a member can attach (7 seconds by default).
-import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
+//   * the longest video a member can attach (7 seconds by default);
+//   * seasonal skins, offered only in their season (feed_themes.season, seasonsOn()).
+import { CHURCH_SEASONS, COMMENT_TEXT, contrastRatio, seasonsOn, WEATHER_SEASONS } from '@prayer-tower/shared';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
@@ -22,11 +23,14 @@ export interface SkinSettings {
   comment_tree_max_depth: number;
   proposals_enabled: boolean;
   video_max_seconds: number;
+  seasonal_enabled: boolean;
+  seasonal_auto: boolean;
 }
 
 export async function settings(q: Queryable): Promise<SkinSettings> {
   const { rows } = await q.query<SkinSettings>(
-    `select skins_enabled, comment_tree_enabled, comment_tree_leaves, comment_tree_max_depth, proposals_enabled, video_max_seconds
+    `select skins_enabled, comment_tree_enabled, comment_tree_leaves, comment_tree_max_depth, proposals_enabled, video_max_seconds,
+            seasonal_enabled, seasonal_auto
        from public.skin_settings`,
   );
   return rows[0]!;
@@ -39,6 +43,8 @@ export const SettingsPatch = z.object({
   commentTreeMaxDepth: z.number().int().min(0).max(6).optional(),
   proposalsEnabled: z.boolean().optional(),
   videoMaxSeconds: z.number().int().min(1).max(600).optional(),
+  seasonalEnabled: z.boolean().optional(),
+  seasonalAuto: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -46,7 +52,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
     `update public.skin_settings set
        skins_enabled = coalesce($1, skins_enabled), comment_tree_enabled = coalesce($2, comment_tree_enabled),
        comment_tree_leaves = coalesce($3, comment_tree_leaves), comment_tree_max_depth = coalesce($4, comment_tree_max_depth),
-       proposals_enabled = coalesce($5, proposals_enabled), video_max_seconds = coalesce($6, video_max_seconds)`,
+       proposals_enabled = coalesce($5, proposals_enabled), video_max_seconds = coalesce($6, video_max_seconds),
+       seasonal_enabled = coalesce($7, seasonal_enabled), seasonal_auto = coalesce($8, seasonal_auto)`,
     [
       p.skinsEnabled ?? null,
       p.commentTreeEnabled ?? null,
@@ -54,6 +61,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.commentTreeMaxDepth ?? null,
       p.proposalsEnabled ?? null,
       p.videoMaxSeconds ?? null,
+      p.seasonalEnabled ?? null,
+      p.seasonalAuto ?? null,
     ],
   );
   return settings(q);
@@ -71,6 +80,18 @@ export async function features(q: Queryable) {
     videoMaxSeconds: s.video_max_seconds,
   };
 }
+
+/**
+ * SQL that keeps a feed_themes row `t` out of sight while it shouldn't show: retired,
+ * gated with skins off, or seasonal out of season (or seasonal skins off). `seasons`
+ * is the placeholder for today's seasons, e.g. '$2'.
+ */
+export const themeVisible = (seasons: string) =>
+  `(t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+    and (t.season is null or ((select seasonal_enabled from public.skin_settings) and t.season = any(${seasons}::text[]))))`;
+
+/** Today's seasons for themeVisible(). */
+export const seasonsNow = (now = new Date()) => seasonsOn(now);
 
 // Limits used by posts/ ------------------------------------------------------------------
 
@@ -131,6 +152,54 @@ export const ThemeTokens = z
   })
   .partial()
   .strict();
+
+/**
+ * A skin file (docs/CLAUDE_DESIGN_SKINS.md, docs/skin-template.json): one theme row made in
+ * Claude Design or by hand. `npm run skin:add -- file.json` checks it and writes a migration.
+ */
+export const SkinFile = z
+  .object({
+    slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Slugs are lowercase words joined by hyphens').max(40),
+    name: z.string().trim().min(2).max(40),
+    layout: z.enum(['vine', 'wall', 'tower', 'circuit']),
+    /** Offered only during this season, while Admin → Feed skins → Seasonal skins is on. */
+    season: z.enum([...CHURCH_SEASONS, ...WEATHER_SEASONS]).optional(),
+    /** Which communities offer it: Open Circle, every faith community, or all. */
+    for: z.enum(['all', 'faith', 'open']).default('all'),
+    description: z.string().max(300).optional(),
+    animations: z.record(z.string(), z.union([z.string(), z.boolean(), z.number()])).default({ enter: 'fade' }),
+    tokens: ThemeTokens.extend({
+        leafEvery: z.number().int().min(0).max(20),
+        idleBirdSeconds: z.number().int().min(0).max(600),
+        tipText: z.string().max(160),
+        birdText: z.string().max(160),
+        climber: z.string().max(8),
+      })
+      .partial()
+      .strict(),
+  })
+  .strict();
+export type SkinFile = z.infer<typeof SkinFile>;
+
+/** SQL that adds a skin file's theme row and offers it in its communities (gated, beta). */
+export function skinMigration(raw: unknown): string {
+  const f = SkinFile.parse(raw);
+  if (typeof f.tokens.leafSoft === 'string' && contrastRatio(f.tokens.leafSoft, COMMENT_TEXT) < 4.5) throw new Error(`${f.slug}: leafSoft is too dark for comment text (needs 4.5:1)`);
+  const lit = (v: unknown) => `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+  const str = (v: string) => `'${v.replace(/'/g, "''")}'`;
+  const where = f.for === 'open' ? `c.slug = 'open-circle'` : f.for === 'faith' ? `c.slug <> 'open-circle'` : 'true';
+  return [
+    `-- Feed skin "${f.name}" (${f.layout}${f.season ? `, ${f.season}` : ''}), from a skin file. docs/CLAUDE_DESIGN_SKINS.md.`,
+    ...(f.description ? [`-- ${f.description.replace(/\n/g, ' ')}`] : []),
+    `insert into public.feed_themes (slug, name, layout, status, gated, season, animations, tokens) values`,
+    `  (${str(f.slug)}, ${str(f.name)}, ${str(f.layout)}, 'beta', true, ${f.season ? str(f.season) : 'null'}, ${lit(f.animations)}, ${lit(f.tokens)})`,
+    `on conflict (slug) do nothing;`,
+    `insert into public.community_feed_themes (community_id, theme_id, is_default)`,
+    `select c.id, t.id, false from public.communities c, public.feed_themes t where t.slug = ${str(f.slug)} and ${where}`,
+    `on conflict do nothing;`,
+    '',
+  ].join('\n');
+}
 
 export const NewProposal = z.object({
   name: z.string().trim().min(2).max(40),

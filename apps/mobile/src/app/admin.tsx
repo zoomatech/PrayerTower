@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -348,6 +348,7 @@ function Admin() {
               ))}
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
+            {radio.radio_transmitter === 'station' ? <StationAlertsSection /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
               <>
@@ -528,6 +529,49 @@ function DeletionRequestsSection() {
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+/** Station health alerts: no sound card, PTT failed, a failed or overdue burst, a silent station, an empty queue. Off by default. */
+function StationAlertsSection() {
+  const t = useT();
+  const [data, setData] = useState<StationAlerts | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioAlerts().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const save = (patch: Parameters<typeof api.admin.updateRadioAlerts>[0]) => api.admin.updateRadioAlerts(patch).then(setData).catch(() => undefined);
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.stationAlertsOff')} selected={!data.enabled} onPress={() => save({ enabled: false })} />
+        <Chip label={t('admin.stationAlertsOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.stationAlertsHint')}</Text>
+      {data.enabled ? (
+        <>
+          <Text style={type.small}>{t('admin.stationOverdue')}</Text>
+          <View style={styles.row}>
+            {[15, 30, 60, 120].map((n) => (
+              <Chip key={n} label={t('admin.stationMinutes', { count: n })} selected={data.overdueMinutes === n} onPress={() => save({ overdueMinutes: n })} />
+            ))}
+          </View>
+          {data.alerts.length ? (
+            data.alerts.map((a, i) => (
+              <Text key={`${a.kind}-${i}`} style={[type.small, a.level === 'problem' ? { color: colors.danger } : null]}>
+                {t(`admin.stationAlert.${a.kind}`)}
+                {a.callSign ? ` (${a.callSign})` : ''}
+                {a.detail && a.kind !== 'queue_empty' ? ` ${a.detail}` : ''}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.stationAlertsNone')}</Text>
+          )}
+        </>
+      ) : null}
     </View>
   );
 }
@@ -1294,6 +1338,8 @@ function SkinSettingsSection() {
       <Text style={type.heading}>{t('skins.title')}</Text>
       <Text style={type.small}>{t('skins.intro')}</Text>
       <Toggle label={t('skins.skins')} hint={t('skins.skinsHint')} value={s.skins_enabled} onChange={(v) => save({ skinsEnabled: v })} />
+      <Toggle label={t('skins.seasonal')} hint={t('skins.seasonalHint')} value={s.seasonal_enabled} onChange={(v) => save({ seasonalEnabled: v })} />
+      {s.seasonal_enabled ? <Toggle label={t('skins.seasonalAuto')} hint={t('skins.seasonalAutoHint')} value={s.seasonal_auto} onChange={(v) => save({ seasonalAuto: v })} /> : null}
       <Toggle label={t('skins.tree')} hint={t('skins.treeHint')} value={s.comment_tree_enabled} onChange={(v) => save({ commentTreeEnabled: v })} />
       <Field label={t('skins.leaves')} keyboardType="number-pad" value={draft.leaves} onChangeText={(leaves) => setDraft((d) => ({ ...d, leaves }))} />
       <Field label={t('skins.levels')} keyboardType="number-pad" value={draft.depth} onChangeText={(depth) => setDraft((d) => ({ ...d, depth }))} />
@@ -1306,7 +1352,7 @@ function SkinSettingsSection() {
       {pending.map((i) => (
         <View key={i.id} style={styles.section}>
           <Text style={type.body}>
-            {i.name} · {i.layout === 'wall' ? t('skinIdea.wall') : t('skinIdea.vine')} · {i.from?.name}
+            {i.name} · {t(`skinIdea.layout.${i.layout}`)} · {i.from?.name}
           </Text>
           <Text style={type.small}>{i.description}</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
@@ -1369,10 +1415,14 @@ function PracticeSettingsSection() {
   const t = useT();
   const [s, setS] = useState<PracticeSettings | null>(null);
   const [days, setDays] = useState('');
+  const [encDays, setEncDays] = useState('');
+  const [newDays, setNewDays] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const show = (x: PracticeSettings) => {
     setS(x);
     setDays(String(x.followup_days));
+    setEncDays(String(x.encourager_days));
+    setNewDays(String(x.newcomer_days));
   };
   useFocusEffect(
     useCallback(() => {
@@ -1381,7 +1431,7 @@ function PracticeSettingsSection() {
   );
   const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
     api.admin
-      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, ...patch })
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, ...patch })
       .then((r) => {
         show(r.settings);
         resetFeatures();
@@ -1397,6 +1447,10 @@ function PracticeSettingsSection() {
       <Field label={t('practices.adminFollowupDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
       <Toggle label={t('practices.adminGratitude')} hint={t('practices.adminGratitudeHint')} value={s.gratitude_enabled} onChange={(v) => save({ gratitudeEnabled: v })} />
       <Toggle label={t('practices.adminRhythm')} hint={t('practices.adminRhythmHint')} value={s.gentle_rhythm_enabled} onChange={(v) => save({ gentleRhythmEnabled: v })} />
+      <Toggle label={t('practices.adminEncourager')} hint={t('practices.adminEncouragerHint')} value={s.encourager_enabled} onChange={(v) => save({ encouragerEnabled: v })} />
+      <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
+      <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
+      <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

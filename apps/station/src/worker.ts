@@ -31,6 +31,8 @@ export interface StationApi {
   report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string; preset?: string; sentHash?: string }): Promise<void>;
   /** Log a burst for Admin → Radio (burst mode). Best effort: a failure here never stops the station. */
   reportBurst?(burst: BurstLog): Promise<void>;
+  /** The station's own checks for Admin → Radio health alerts (status.ts). Best effort, like reportBurst. */
+  reportStatus?(status: { callSign: string; checks: { name: string; ok: boolean; detail: string }[] }): Promise<void>;
 }
 
 export interface StationConfig {
@@ -134,6 +136,11 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
     async reportBurst(burst) {
       const res = await post('/station/bursts', burst);
       if (!res.ok) throw new Error(`burst log failed (${res.status})`);
+    },
+    async reportStatus(status) {
+      const res = await post('/station/status', status);
+      // 404: an older server without health alerts.
+      if (!res.ok && res.status !== 404) throw new Error(`status report failed (${res.status})`);
     },
   };
 }
