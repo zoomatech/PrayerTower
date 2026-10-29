@@ -42,10 +42,19 @@ public struct FeedPage: Codable, Sendable, Equatable {
 public struct Profile: Codable, Sendable, Equatable {
     public let id: String
     public let displayName: String
+    /// Compose starts with "Post anonymously" on when this is set.
+    public let anonymousByDefault: Bool?
+
+    public init(id: String, displayName: String, anonymousByDefault: Bool? = nil) {
+        self.id = id
+        self.displayName = displayName
+        self.anonymousByDefault = anonymousByDefault
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
         case displayName = "display_name"
+        case anonymousByDefault = "anonymous_by_default"
     }
 }
 
@@ -54,6 +63,15 @@ public struct Community: Codable, Sendable, Equatable {
     public let name: String
     /// "faith" = Prayer Tower's wording; "neutral" = Open Circle's, with no religious words.
     public let wording: String
+    /// The kinds of post this community has turned on (discussion, news and blog are off by default).
+    public let enabledPostTypes: [String]?
+
+    public init(slug: String, name: String, wording: String, enabledPostTypes: [String]? = nil) {
+        self.slug = slug
+        self.name = name
+        self.wording = wording
+        self.enabledPostTypes = enabledPostTypes
+    }
 }
 
 public struct Me: Codable, Sendable, Equatable {
@@ -70,21 +88,28 @@ public struct PrayingNow: Codable, Sendable, Equatable {
 /// Admin switches the app reads (`/features`). Anything missing counts as off.
 public struct Features: Sendable, Equatable {
     public let values: [String: Bool]
-    public init(values: [String: Bool]) { self.values = values }
+    /// Number settings that come with the switches (videoMaxSeconds, givingSplitMax…).
+    public let numbers: [String: Double]
+    public init(values: [String: Bool], numbers: [String: Double] = [:]) {
+        self.values = values
+        self.numbers = numbers
+    }
     public subscript(name: String) -> Bool { values[name] ?? false }
+    public func number(_ name: String) -> Double? { numbers[name] }
 }
 
 extension Features: Decodable {
     private struct Wrapper: Decodable { let features: [String: FlexibleValue] }
     private enum FlexibleValue: Decodable {
-        case bool(Bool), other
+        case bool(Bool), number(Double), other
         init(from decoder: Decoder) throws {
             let c = try decoder.singleValueContainer()
-            self = (try? c.decode(Bool.self)).map(FlexibleValue.bool) ?? .other
+            if let b = try? c.decode(Bool.self) { self = .bool(b) } else if let n = try? c.decode(Double.self) { self = .number(n) } else { self = .other }
         }
     }
     public init(from decoder: Decoder) throws {
         let w = try Wrapper(from: decoder)
         values = w.features.compactMapValues { if case let .bool(b) = $0 { b } else { nil } }
+        numbers = w.features.compactMapValues { if case let .number(n) = $0 { n } else { nil } }
     }
 }

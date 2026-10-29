@@ -40,6 +40,12 @@ if [ -z "$XCODEGEN" ]; then
   XCODEGEN="$TOOL/.build/release/xcodegen"
 fi
 
+# The native app's words come from the Expo app's (apps/mobile/src/lib/native-strings.ts).
+if command -v npm >/dev/null && [ -d "$ROOT/node_modules" ]; then
+  (cd "$ROOT" && npm run native-strings -w @prayer-tower/mobile > "$LOGS/native-strings.txt" 2>&1) &&
+    record "Words" PASS "from the Expo app" || record "Words" FAIL "$LOGS/native-strings.txt"
+fi
+
 cd "$APP"
 if swift test > "$LOGS/swift-test.txt" 2>&1; then
   record "Shared tests" PASS "$(grep -oE 'Test run with [0-9]+ tests' "$LOGS/swift-test.txt" | tail -1)"

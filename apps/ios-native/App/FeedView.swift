@@ -8,6 +8,7 @@ struct FeedView: View {
     @State private var nextPage: Int?
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
+    @State private var composing = false
     @State private var notice: String?
     @State private var error: String?
 
@@ -25,6 +26,12 @@ struct FeedView: View {
                 if let error { ContentUnavailableView("Couldn’t load the feed", systemImage: "wifi.exclamationmark", description: Text(error)) }
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
+                }
+            }
+            .sheet(isPresented: $composing) { ComposeView { _ in Task { await load() } } }
             .refreshable { await load() }
             .task { await load() }
             .sheet(item: $encouraging) { card in EncourageSheet(card: card) { note in Task { await encourage(card, note) } } }
