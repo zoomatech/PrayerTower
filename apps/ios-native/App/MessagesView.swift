@@ -11,6 +11,8 @@ struct MessagesView: View {
 
     private var w: Words { model.words }
     private var groupsOn: Bool { model.me?.community?.shows("groups") ?? true }
+    private var eventsOn: Bool { model.me?.community?.shows("events") ?? true }
+    private var careOn: Bool { model.me?.community?.shows("care") ?? true }
 
     var body: some View {
         NavigationStack {
@@ -18,6 +20,8 @@ struct MessagesView: View {
                 Section {
                     Text(w("messages.privacy")).font(.footnote).foregroundStyle(.secondary)
                     if groupsOn { NavigationLink(w("messages.groups")) { GroupsView() } }
+                    if eventsOn { NavigationLink(w("messages.events")) { EventsView() } }
+                    if careOn { NavigationLink(w("messages.care")) { CareView() } }
                 }
                 if let error {
                     Section {
@@ -212,6 +216,7 @@ struct ConversationScreen: View {
 
     @ViewBuilder private func tools(_ c: ConversationView.Info) -> some View {
         if c.canInvite { Button(w("conversation.invite")) { inviting = true } }
+        if c.isGroup { NavigationLink(w("events.groupTitle")) { EventsView(groupId: id) } }
         if let other = c.other, let otherId = other.id {
             Button(w("person.block", ["name": other.name]), role: .destructive) { Task { await act(leave: true) { _ = try await model.store.api.block(otherId) } } }
         }
