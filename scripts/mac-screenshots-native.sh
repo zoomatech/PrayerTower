@@ -17,7 +17,8 @@ case "$EDITION" in
   *) echo "Unknown edition: $EDITION (prayertower or opencircle)"; exit 2 ;;
 esac
 SCREENS=(feed post promises messages notices me)
-# The largest iPhone and iPad sizes App Store Connect asks for; it scales them down for smaller ones.
+# The largest iPhone and iPad sizes App Store Connect asks for (the newest Pro Max is 6.9"); it
+# scales them down for smaller ones.
 DEVICES=("iPhone .* Pro Max" "iPad Pro 13-inch.*")
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -44,14 +45,20 @@ BUILT="$ROOT/build-logs/derived-native/Build/Products/Debug-iphonesimulator/$SCH
 
 SAVED=0
 for PATTERN in "${DEVICES[@]}"; do
-  TYPE=$(xcrun simctl list devicetypes -j | python3 -c "import json,re,sys; t=[x for x in json.load(sys.stdin)['devicetypes'] if re.fullmatch(r'''$PATTERN''', x['name'])]; print(t[-1]['identifier'] + '|' + t[-1]['name'] if t else '')")
-  if [ -z "$TYPE" ]; then
-    echo "No device type matches '$PATTERN'; skipped. Device types here:"
+  # Newest model first; the newest one the installed runtime supports is used.
+  TYPES=$(xcrun simctl list devicetypes -j | python3 -c "import json,re,sys; t=[x for x in json.load(sys.stdin)['devicetypes'] if re.fullmatch(r'''$PATTERN''', x['name'])]; t.sort(key=lambda x: [int(n) for n in re.findall(r'\\d+', x['name'])], reverse=True); print('\\n'.join(x['identifier'] + '|' + x['name'] for x in t))")
+  UDID=""
+  while IFS= read -r TYPE; do
+    [ -n "$TYPE" ] || continue
+    NAME="${TYPE#*|}"
+    UDID=$(xcrun simctl create "Store shots $NAME" "${TYPE%%|*}" "$RUNTIME" 2> /dev/null) && break
+    UDID=""
+  done <<< "$TYPES"
+  if [ -z "$UDID" ]; then
+    echo "No device for '$PATTERN' runs on $RUNTIME; skipped. Device types here:"
     xcrun simctl list devicetypes | grep -E "iPhone|iPad" | tail -8
     continue
   fi
-  NAME="${TYPE#*|}"
-  UDID=$(xcrun simctl create "Store shots $NAME" "${TYPE%%|*}" "$RUNTIME")
   # Boots in the background; Simulator.app is never opened.
   xcrun simctl boot "$UDID" && xcrun simctl bootstatus "$UDID" -b > /dev/null
   xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100
