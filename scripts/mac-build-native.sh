@@ -71,6 +71,25 @@ else
   grep -E "error:" "$LOGS/app-build.txt" | sort -u | head -20 > "$LOGS/errors.txt"
 fi
 
+# The accessibility audit UI tests (apps/ios-native/UITests) need an iPhone simulator; without
+# one they are only compiled.
+if [ -n "$SIM" ]; then
+  if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerNative -destination "$DEST" \
+       -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO \
+       -only-testing:PrayerTowerNativeUITests test > "$LOGS/ui-tests.txt" 2>&1; then
+    record "Accessibility" PASS "audit on sign-in and every skin"
+  else
+    record "Accessibility" FAIL "$LOGS/ui-tests.txt"
+    grep -E "error:|failed" "$LOGS/ui-tests.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
+  fi
+elif xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerNative -destination "$DEST" \
+       -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO build-for-testing > "$LOGS/ui-tests.txt" 2>&1; then
+  record "Accessibility" SKIP "tests compiled; no iPhone simulator to run them"
+else
+  record "Accessibility" FAIL "$LOGS/ui-tests.txt"
+  grep -E "error:" "$LOGS/ui-tests.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
+fi
+
 echo
 printf '%s\n' "${RESULTS[@]}"
 [ -s "$LOGS/errors.txt" ] && { echo; echo "First errors:"; cat "$LOGS/errors.txt"; }

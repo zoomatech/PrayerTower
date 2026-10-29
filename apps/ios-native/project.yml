@@ -16,8 +16,9 @@ targets:
     type: application
     platform: iOS
     sources: [App]
-    # A shared scheme, so scripts/mac-build-native.sh can build with xcodebuild -scheme.
-    scheme: {}
+    # A shared scheme, so scripts/mac-build-native.sh can build and test with xcodebuild -scheme.
+    scheme:
+      testTargets: [PrayerTowerNativeUITests]
     dependencies:
       - package: PrayerTowerKit
         products:
@@ -83,3 +84,16 @@ targets:
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
+
+  # Xcode's accessibility audit on the sign-in screen and every feed skin (UITests/).
+  PrayerTowerNativeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: PrayerTowerNative
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"

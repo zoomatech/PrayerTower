@@ -73,6 +73,18 @@ struct RootView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains(AuditSamplesView.launchArgument) {
+            AuditSamplesView()
+        } else {
+            signedInOrOut
+        }
+        #else
+        signedInOrOut
+        #endif
+    }
+
+    @ViewBuilder private var signedInOrOut: some View {
         if model.starting {
             ProgressView()
         } else {
