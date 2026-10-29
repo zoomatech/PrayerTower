@@ -24,7 +24,7 @@ async function signInFresh(page: Page) {
   await page.goto('/sign-in');
   await page.locator('input').nth(0).fill('ruth@demo.prayertower.local');
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).last().click();
+  await page.getByRole('button', { name: /^sign in$/i }).last().click();
   await expect(page.getByText('Support').first()).toBeVisible();
 }
 
