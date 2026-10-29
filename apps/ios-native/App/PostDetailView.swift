@@ -8,6 +8,8 @@ struct PostDetailView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let postId: String
+    /// Words to start the comment box with (a removed comment, posted again with changes).
+    var draft: String?
     @State private var card: Card?
     @State private var comments: [ThreadedComment] = []
     @State private var prayers: Prayers?
@@ -226,6 +228,7 @@ struct PostDetailView: View {
         do {
             let c = try await api.post(postId)
             card = c
+            if let draft, text.isEmpty { text = draft }
             comments = CommentThread.ordered(try await api.comments(postId: postId))
             if !Compose.discussionTypes.contains(c.postType) { prayers = try? await api.prayers(postId: postId) }
             if model.features["replyChoice"] { replyChoice = try? await api.replyChoice(postId: postId) }

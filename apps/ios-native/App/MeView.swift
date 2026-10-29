@@ -23,6 +23,7 @@ struct MeView: View {
                     Section { header(profile) }
                     Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
                 }
+                Section { NavigationLink(w("tabs.notices")) { NoticesView() } }
                 PrayerLifeSection()
                 GratitudeSection()
                 KindWordsSection()
