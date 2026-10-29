@@ -10,7 +10,7 @@ import { api, type ConversationPrefs, type TalkCount } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { announce } from '@/lib/motion';
-import { CLOSING_KEYS, isDownbeat, suggestionKey } from '@/lib/talk';
+import { CLOSING_KEYS, isDownbeat, pairKey, suggestionKey } from '@/lib/talk';
 import { colors, radius, space, type } from '@/lib/theme';
 
 let cached: Promise<ConversationPrefs> | null = null;
@@ -55,7 +55,22 @@ export function resetConversationPrefs() {
   cached = null;
 }
 
-export function ReplyHelpers({ lastFromOther, empty, text, onPick }: { lastFromOther: string | null; empty: boolean; text: string; onPick: (text: string) => void }) {
+export function ReplyHelpers({
+  lastFromOther,
+  empty,
+  text,
+  onPick,
+  postType,
+  lament,
+}: {
+  lastFromOther: string | null;
+  empty: boolean;
+  text: string;
+  onPick: (text: string) => void;
+  /** Answering a post itself (not a comment): the kind of post, for the reply that pairs with it. */
+  postType?: string | null;
+  lament?: boolean;
+}) {
   const f = useFeatures();
   const t = useT();
   const [prefs] = useConversationPrefs();
@@ -64,7 +79,8 @@ export function ReplyHelpers({ lastFromOther, empty, text, onPick }: { lastFromO
 
   const chips: { label: string; hint?: string }[] = [];
   if (f.replySuggestions && prefs.replySuggestions) {
-    const key = suggestionKey(lastFromOther, empty);
+    // One suggestion per move: the reply that pairs with the post's kind wins over the guess from its words.
+    const key = (f.typePrompts && pairKey(postType, lament)) || suggestionKey(lastFromOther, empty);
     if (key) chips.push({ label: t(key) });
   }
   if (f.greetingPacks && prefs.greetingPack && empty) {

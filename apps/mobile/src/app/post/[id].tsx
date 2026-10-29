@@ -545,6 +545,8 @@ export default function PostScreen() {
                 empty={false}
                 text={text}
                 onPick={setText}
+                postType={replyTo || card.isMine ? null : card.postType}
+                lament={!replyTo && !card.isMine && features.lament && !!card.lament}
               />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>

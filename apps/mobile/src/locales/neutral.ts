@@ -210,6 +210,12 @@ export const keys: Tree = named({
   talk: {
     adminMeaningRowHint: 'Every card keeps its one row of action icons, in every feed skin. Thinking of you, well wishes, encourage and promise carry their emoji’s meanings: hovering shows them, pressing and holding opens up to five to choose from. Needs Emoji meanings on.',
     suggestTrouble: "I'm here for you.",
+    pairs: {
+      prayer_request: 'Thinking of you right now. You are not alone in this.',
+      praise: 'That’s wonderful! Thank you for telling us.',
+      open_prayer: 'Joining you in this.',
+    },
+    adminTypePromptsHint: 'Members who turned on reply suggestions get one reply that pairs with the kind of post they’re answering: a request gets “thinking of you”, good news gets gladness, a lament gets presence with no advice. A tap only fills the box.',
     careAsk: 'Want to talk about it?',
     closing1: "I'll be thinking of you. Talk soon.",
     closing2: 'Thank you for sharing this with me. Take care.',

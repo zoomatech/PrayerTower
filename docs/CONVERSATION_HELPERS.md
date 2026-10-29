@@ -69,3 +69,27 @@ five meanings at most: when it's full, the admin picks one to retire. A retired 
 keeps its row, so leaves already on posts still show. The member sees each suggestion as
 waiting, added or not added. Routes: `GET/POST /me/meaning-proposals`,
 `GET /admin/meaning-proposals`, `POST /admin/meaning-proposals/:id`.
+
+## Reply prompts by kind of post (off)
+
+Admin → Conversation helpers → **Reply prompts by kind of post** (migration
+20261029018400). A post opens a pair, and the reply is its second half (Schegloff 1968),
+so when a member who turned on reply suggestions answers a post itself (not a comment),
+the one suggestion is the reply that pairs with the post's kind:
+
+| Kind | Faith | Open Circle |
+| --- | --- | --- |
+| Prayer request | Praying for you right now. You are not alone in this. | Thinking of you right now. You are not alone in this. |
+| Praise | Praise God! Thank you for telling us. | That’s wonderful! Thank you for telling us. |
+| Open prayer | Amen. Joining you in this prayer. | Joining you in this. |
+| Testimony | Thank you for sharing how it turned out. This encourages me. | same |
+| Confessional | Thank you for trusting us with this. You are not alone. | same |
+| Discussion | Thanks for raising this. What I keep thinking about is… | same |
+| News | Thanks for passing this on. | same |
+| Blog | Thank you for writing this. What stayed with me was… | same |
+| Lament | I’m here with you. (presence, no advice) | same |
+
+Still one suggestion per move, as Smart Reply does: the pair replaces the guess from
+the post's words. A tap only fills the box, and own-words still applies.
+
+Code: `pairKey` in `lib/talk.ts`, `postType`/`lament` props on `ReplyHelpers`.
