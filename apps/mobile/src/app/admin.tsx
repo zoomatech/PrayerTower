@@ -337,6 +337,13 @@ function Admin() {
               <Chip label={t('admin.radioNeed')} selected={radio.radio_order === 'need'} onPress={() => saveRadio({ order: 'need' })} />
             </View>
             {radio.radio_order === 'need' ? <Text style={type.small}>{t('admin.radioNeedHint')}</Text> : null}
+            <Text style={type.small}>{t('admin.radioBurst')}</Text>
+            <View style={styles.row}>
+              {[1, 10, 50, 100, 500].map((n) => (
+                <Chip key={n} label={n === 1 ? t('admin.radioBurstOne') : String(n)} selected={radio.radio_batch_max === n} onPress={() => saveRadio({ batchMax: n })} />
+              ))}
+            </View>
+            {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>

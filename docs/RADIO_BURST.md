@@ -73,7 +73,7 @@ In `/etc/prayer-tower-station.env` (see `apps/station/install/station.env.exampl
 | --- | --- | --- |
 | `BURST_MODE` | `off` | `off` (PSK31, one prayer at a time), `audio`, `fldigi` or `simulate` |
 | `BURST_PRESET` | `fm-standard` | One of the presets above (`cli.js presets` lists them) |
-| `BURST_MAX_PRAYERS` | `50` | Most prayers claimed per burst. The server also caps it at Admin → Radio → burst size (`radio_batch_max`, default 1). |
+| `BURST_MAX_PRAYERS` | `50` | Most prayers claimed per burst. The server also caps it at Admin → Radio → "Prayers per burst" (`radio_batch_max`, default 1). |
 | `BURST_MAX_FRAME_SECONDS` | `20` | Longest frame. A bigger batch becomes several frames in the same key-up. |
 | `BURST_PLAY_CMD` | `aplay -q {wav}` | Plays the burst to the radio's sound card. `{wav}` is the file. Example: `aplay -q -D plughw:1,0 {wav}` |
 | `BURST_PTT_ON_CMD` / `BURST_PTT_OFF_CMD` | empty (VOX) | Keys the radio, e.g. `rigctl -m 2 T 1` and `rigctl -m 2 T 0` with hamlib's rigctld |
@@ -87,7 +87,7 @@ The modes:
 - **fldigi**: each frame is one line of text, `PTB1 CALL <base64>`, sent in a fast fldigi mode. This uses an existing fldigi setup with no new audio wiring. It is slower than `audio`, because the frame goes through fldigi's character coding.
 - **simulate**: nothing is keyed. Each burst is written to `BURST_DIR`, decoded back, and the log shows exactly what a receiver would hear. Use this to try burst mode against the live queue before going on the air.
 
-To turn it on: set Admin → Radio → burst size above 1, set `BURST_MODE` (start with `simulate`), and run `sudo systemctl restart prayer-tower-station`.
+To turn it on: set Admin → Radio → "Prayers per burst" above 1, set `BURST_MODE` (start with `simulate`), and run `sudo systemctl restart prayer-tower-station`.
 
 ## Receiving (anyone can decode)
 
