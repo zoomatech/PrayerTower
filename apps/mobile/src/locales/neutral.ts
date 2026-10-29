@@ -177,6 +177,8 @@ export const keys: Tree = named({
     followupIntro: "People were thinking of you. If you'd like, let them know how it's going. There's no wrong answer, and you can say nothing at all.",
     followupPlaceholder: 'A few words for the people who supported you (optional)',
     gratitudeShare: 'Share as good news',
+    rememberedTitle: 'Good news, remembered',
+    rememberedIntro: 'Your requests that turned out well, and the grateful words you shared. Only you see this.',
     rhythmMonth: 'Days you showed up this month',
     rhythmSummary: 'You have supported people on %{days} days, %{month} of them this month, %{people} people in all.',
     rhythmNote: 'Every day you show up adds to this. Nothing is ever taken away.',

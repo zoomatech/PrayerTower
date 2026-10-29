@@ -1421,6 +1421,8 @@ function SkinSettingsSection() {
       <Text style={type.heading}>{t('skins.title')}</Text>
       <Text style={type.small}>{t('skins.intro')}</Text>
       <Toggle label={t('skins.skins')} hint={t('skins.skinsHint')} value={s.skins_enabled} onChange={(v) => save({ skinsEnabled: v })} />
+      <Toggle label={t('skins.seasonal')} hint={t('skins.seasonalHint')} value={s.seasonal_enabled} onChange={(v) => save({ seasonalEnabled: v })} />
+      {s.seasonal_enabled ? <Toggle label={t('skins.seasonalAuto')} hint={t('skins.seasonalAutoHint')} value={s.seasonal_auto} onChange={(v) => save({ seasonalAuto: v })} /> : null}
       <Toggle label={t('skins.tree')} hint={t('skins.treeHint')} value={s.comment_tree_enabled} onChange={(v) => save({ commentTreeEnabled: v })} />
       <Field label={t('skins.leaves')} keyboardType="number-pad" value={draft.leaves} onChangeText={(leaves) => setDraft((d) => ({ ...d, leaves }))} />
       <Field label={t('skins.levels')} keyboardType="number-pad" value={draft.depth} onChangeText={(depth) => setDraft((d) => ({ ...d, depth }))} />
@@ -1433,7 +1435,7 @@ function SkinSettingsSection() {
       {pending.map((i) => (
         <View key={i.id} style={styles.section}>
           <Text style={type.body}>
-            {i.name} · {i.layout === 'wall' ? t('skinIdea.wall') : t('skinIdea.vine')} · {i.from?.name}
+            {i.name} · {t(`skinIdea.layout.${i.layout}`)} · {i.from?.name}
           </Text>
           <Text style={type.small}>{i.description}</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
@@ -1496,10 +1498,14 @@ function PracticeSettingsSection() {
   const t = useT();
   const [s, setS] = useState<PracticeSettings | null>(null);
   const [days, setDays] = useState('');
+  const [encDays, setEncDays] = useState('');
+  const [newDays, setNewDays] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const show = (x: PracticeSettings) => {
     setS(x);
     setDays(String(x.followup_days));
+    setEncDays(String(x.encourager_days));
+    setNewDays(String(x.newcomer_days));
   };
   useFocusEffect(
     useCallback(() => {
@@ -1508,7 +1514,7 @@ function PracticeSettingsSection() {
   );
   const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
     api.admin
-      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, ...patch })
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, ...patch })
       .then((r) => {
         show(r.settings);
         resetFeatures();
@@ -1524,6 +1530,10 @@ function PracticeSettingsSection() {
       <Field label={t('practices.adminFollowupDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
       <Toggle label={t('practices.adminGratitude')} hint={t('practices.adminGratitudeHint')} value={s.gratitude_enabled} onChange={(v) => save({ gratitudeEnabled: v })} />
       <Toggle label={t('practices.adminRhythm')} hint={t('practices.adminRhythmHint')} value={s.gentle_rhythm_enabled} onChange={(v) => save({ gentleRhythmEnabled: v })} />
+      <Toggle label={t('practices.adminEncourager')} hint={t('practices.adminEncouragerHint')} value={s.encourager_enabled} onChange={(v) => save({ encouragerEnabled: v })} />
+      <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
+      <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
+      <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
