@@ -70,23 +70,23 @@ The emoji meanings under a post (docs/EMOJI_MEANINGS.md, its own switch) take th
 
 ## The drawn vine (Steve, 2026-10-29)
 
-Steve: "FAR more spaced out and actual artistic curved vines connecting, and the comments are HOUSED inside a leaf." "Top to bottom, present to past." "Comments spread outward and downward toward the next last post."
+Steve: "FAR more spaced out and actual artistic curved vines connecting, and the comments are HOUSED inside a leaf." "Top to bottom, present to past." "Comments spread outward and downward toward the next last post." "THE LINES CONNECTING ARE PRIMARILY VERTICAL", like the fairy-tale beanstalk. The inner box "much smaller than the containing leaf", greener, with "an actual leaf shape seen through it"; the box may cross the leaf's edge so the leaf stays natural.
 
-Every vine skin now draws the vine as a transparent picture (`react-native-svg`, `apps/mobile/src/components/vine-flow.tsx`) behind the posts:
+Every vine skin draws the plant as a transparent picture (`react-native-svg`, `apps/mobile/src/components/vine-flow.tsx`):
 
-- Each request sits **inside** a large leaf: square, with two pointed corners (the base by the vine and the tip opposite) and a midrib between them.
-- The vine runs in the margin beside each leaf and swoops across the open space between leaves in a smooth S-curve (56–80 pt of space above each request). A short stalk joins it to the leaf's base. Tendrils curl off it, and small leaves sit on each swoop.
-- The feed reads top to bottom, newest first. Under each request, its newest comments (up to 3, newest first) hang on smaller leaves, alternating sides, spreading down toward the next older request. "N more comments" fades into ghost leaves and opens the request. The server sends these only while comments as leaves is on (`Card.leafComments`), and leaves out anyone the viewer blocked.
-- Tag colors on a leaf (Pinned, Answered, Your branch, Your tendril) keep 4.5:1 contrast with the leaf color; a skin whose leaf color is too close gets dark or light text instead.
+- One tall stalk runs top to bottom. On a phone it runs down the left edge with the leaves to its right. On a lane at least 760 pt wide (iPad, Mac) it runs down the middle with leaves on both sides. Each post hangs off it on a short curved stem.
+- Each post sits on a whole drawn leaf (pointed base and tip, midrib, veins), in a smaller box tinted toward the leaf color. The tint stops before dark text would drop under 4.5:1.
+- The feed reads newest first. Under each post, its newest comments (up to 3) hang on smaller leaves that step a little further from the stalk. "N more comments" opens the post. The server sends these only while comments as leaves is on (`Card.leafComments`), and leaves out anyone the viewer blocked.
+- Tag colors (Pinned, Answered, Your branch, Your tendril) keep 4.5:1 against what is under them.
+- Token `vineStyle`:
+  - `beanstalk` (Beanstalk): two thick strands that twist round each other, with curling tendrils.
+  - `ink` (Golden Wood): a pen-and-ink drawing, with dark outlines (`ink` color) on the trunk, leaves and boxes, and flat colors.
+  - `neon` (Neon Cinderella): no plant at all. It draws straight glowing rods with right-angle joins and cut-corner frames. Each tube has a faint wide bloom, a brighter halo and a thin white core. The castle, coach and slipper drawings stay.
+- Neon Circuit's wire and screens use the same tube look: a white core with the color blooming round it.
 
-## iPad and Mac (wide screens)
+## One row of action icons (Steve, 2026-10-29)
 
-- Window widths: 768 pt and up counts as wide (an upright iPad), and 1280 pt and up as very wide (iPad landscape, a Mac window).
-- **Feed:** on a wide window the feed sits beside the week's highlights. On a very wide window the plain column shows two cards side by side. The skins get one roomier lane (880 pt), so the vine swoops across more space and the leaves stay easy to read. The tower keeps its own 680 pt width.
-- **Post page:** while comments as leaves is on, the post page widens to 880 pt on a very wide window.
-- **Theme maker:** the form is on the left, and a large live preview (380 pt tall) stays in view on the right.
-- **Skin gallery:** 1, 2 or 3 columns, with larger previews on wide windows.
-- Screenshots: `build/screenshots/skins/wide/` (iPad landscape 1366×1024 and Mac 1512×900).
+Every design shows the six actions (Praying Now, Commit to Pray, Encourage, Well Wishes, Share, Gift Tokens) as one row of icons (`components/post-card.tsx`). Each icon's name shows in a tip on mouse hover (web, iPad pointer, Mac) or a long press, and is its accessibility label for VoiceOver. A committed request shows its Commit icon highlighted, and the tip says "Committed". Touch targets are 44 pt.
 
 ## Comment trees
 
@@ -138,6 +138,8 @@ At 10 pilot members, one clip each a week, seen by the other 9: about 43 clips (
 `videoMaxDuration` limits recording length; Expo's page doesn't say it trims clips picked from the library, so the composer checks each clip's `duration` and the server checks the `durationMs` the app sends. A clip from an old app build without `durationMs` still goes through.
 
 ## Notes for the legal department
+
+- Beanstalk and Golden Wood are our own drawings in a general fairy-tale and pen-and-ink style. They copy no Disney or Tolkien artwork, and app text uses no Tolkien names.
 
 The skins use our own names (Golden Wood, Moonlit Gate). Middle-earth Enterprises holds many Tolkien trademarks ([Justia listing](https://trademarks.justia.com/owners/middle-earth-enterprises-llc-5365969)), so Tolkien's place names stay out of the app and store text until legal checks them. The skins are only inspired by golden woods and moonlit stone gates.
 

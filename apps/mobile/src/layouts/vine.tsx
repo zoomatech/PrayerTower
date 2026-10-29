@@ -17,7 +17,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui';
-import { LeafFrame, VINE_GAP, VineRow, type VineSide } from '@/components/vine-flow';
+import { CardSurface } from '@/components/post-card';
+import { leafCardSurface, LeafFrame, VINE_GAP, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
@@ -55,10 +56,15 @@ const DEFAULTS = {
   stemGlow: false,
   /** 'fairytale' puts neon outline drawings between the requests (Neon Cinderella). */
   scenery: '',
+  /** How the plant is drawn: '' (one stalk), 'beanstalk' (twisting strands), 'ink' (pen-and-ink), 'neon' (glowing rods, no plant). */
+  vineStyle: '' as VineStyle,
+  /** Outline color for the 'ink' style. */
+  ink: '',
 };
 type VineTokens = typeof DEFAULTS;
 export const LEAF_SHAPES = ['round', 'pointed', 'flower', 'star', 'tablet'] as const;
 export type LeafShape = (typeof LEAF_SHAPES)[number];
+const VINE_STYLES: VineStyle[] = ['', 'beanstalk', 'ink', 'neon'];
 
 /** Theme tokens override the defaults key by key; wrong types are ignored. */
 export function vineTokens(theme: FeedTheme | null): VineTokens {
@@ -67,6 +73,7 @@ export function vineTokens(theme: FeedTheme | null): VineTokens {
   for (const [k, v] of Object.entries(DEFAULTS)) if (typeof t[k] === typeof v) out[k] = t[k];
   out.stemWidth = Math.min(Math.max(Number(out.stemWidth) || DEFAULTS.stemWidth, 2), 14);
   if (!LEAF_SHAPES.includes(out.leafShape as LeafShape)) out.leafShape = 'round';
+  if (!VINE_STYLES.includes(out.vineStyle as VineStyle)) out.vineStyle = '';
   return out as VineTokens;
 }
 
@@ -106,11 +113,13 @@ function Fruit({ card, pinned, tokens, side, from, gap, children }: { card: Card
   const reduced = useReducedMotion();
   const grow = useRef(new Animated.Value(reduced ? 1 : 0)).current;
   // The tags sit on the leaf: keep each tag color only where it reads at 4.5:1 there (WCAG AA).
-  const on = (color: string) => (/^#[0-9A-Fa-f]{6}$/.test(color) && /^#[0-9A-Fa-f]{6}$/.test(tokens.leaf) && contrastRatio(color, tokens.leaf) >= 4.5 ? color : textOn(tokens.leaf));
+  const under = tokens.vineStyle === 'neon' ? tokens.backdrop || '#0B0820' : tokens.leaf;
+  const on = (color: string) => (/^#[0-9A-Fa-f]{6}$/.test(color) && /^#[0-9A-Fa-f]{6}$/.test(under) && contrastRatio(color, under) >= 4.5 ? color : textOn(under));
   useEffect(() => {
     if (reduced) return grow.setValue(1);
     Animated.spring(grow, { toValue: 1, friction: 7, tension: 50, useNativeDriver: false }).start();
   }, [grow, reduced]);
+  const surface = useMemo(() => leafCardSurface(tokens), [tokens]);
   const mark = tokens.leafShape === 'flower' || tokens.leafShape === 'star' ? <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={26} /> : undefined;
 
   return (
@@ -122,6 +131,7 @@ function Fruit({ card, pinned, tokens, side, from, gap, children }: { card: Card
           { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
         <LeafFrame side={side} look={tokens} bare mark={mark}>
+          <CardSurface.Provider value={surface}>
           <View style={styles.tags}>
             <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }]} />
             {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: on(colors.primary) }]} /> : null}
@@ -138,6 +148,7 @@ function Fruit({ card, pinned, tokens, side, from, gap, children }: { card: Card
             ) : null}
           </View>
           {children}
+          </CardSurface.Provider>
         </LeafFrame>
       </Animated.View>
     </VineRow>

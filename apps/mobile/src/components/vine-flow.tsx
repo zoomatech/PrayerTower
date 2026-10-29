@@ -1,17 +1,29 @@
-// The drawn vine (Steve, 2026-10-29): wide-spaced, curving vines that run top to
-// bottom, present to past, with each post or comment housed inside a leaf.
-// A row is one leaf hanging to one side; the vine runs in the gutter on the
-// other side, swoops across the open space above the leaf to reach it, and a
-// short leaf stalk joins it to the leaf's base. Rows draw their own piece of
-// vine, starting where the row above ended, so together they make one plant.
-// The vine is a transparent drawing (react-native-svg) behind the leaves.
+// The drawn vine (Steve, 2026-10-29). The lines run mostly up and down, like a
+// fairy-tale beanstalk: one tall stalk runs top to bottom (present to past) and
+// each post or comment hangs off it on a short stem, inside a real leaf. The
+// leaf is drawn whole (pointed base and tip, midrib, veins), and the post sits
+// in a smaller, greener box on it; the box may cross the leaf's edge so the leaf
+// keeps a natural shape. Each row draws its own piece of the stalk, so together
+// they make one plant. A transparent drawing (react-native-svg) behind the leaves.
+//
+// Styles (token `vineStyle`):
+//  - ''          a single gently swaying stalk.
+//  - 'beanstalk' two thick strands twisting round each other, with curling tendrils.
+//  - 'ink'       a pen-and-ink drawing: dark outlines on trunk and leaves, flat colors.
+//  - 'neon'      not a plant at all: straight glowing rods with hard right-angle joins
+//                and cut-corner frames, the way neon tubes glow (Neon Cinderella).
+//
+// On a phone the stalk runs down the left edge and the leaves hang to its right;
+// on a wide lane (iPad, Mac) it runs down the middle with leaves on both sides.
+import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { colors, space } from '@/lib/theme';
+import { colors, radius, space } from '@/lib/theme';
 
 export type VineSide = 'left' | 'right';
+export type VineStyle = '' | 'beanstalk' | 'ink' | 'neon';
 
 export interface VineLook {
   stem: string;
@@ -22,52 +34,97 @@ export interface VineLook {
   stemDouble: boolean;
   stemGlow: boolean;
   backdrop: string;
+  vineStyle: VineStyle;
+  ink: string;
 }
 
-/** Share of the row a leaf takes at each depth: comments, replies, replies to those. */
-export const LEAF_WIDTH = [0.78, 0.7, 0.62] as const;
-/** The vine's line, as a share of the row width, when the leaf hangs on each side. */
-const vineX = (leafSide: VineSide | 'center', w: number) => (leafSide === 'left' ? w * 0.89 : leafSide === 'right' ? w * 0.11 : w / 2);
+/** The open space above each leaf. */
+export const VINE_GAP = 44;
+/** A lane at least this wide puts the stalk in the middle, with leaves on both sides. */
+const CENTER_LANE = 760;
+/** Where the stalk runs on a phone, from the left edge. */
+const EDGE_X = 20;
+/** Space above and below the box inside a leaf, where the leaf's base and tip show. */
+const LEAF_PAD = [54, 34, 28] as const;
 
-/** The open space above each leaf, where the vine crosses over. */
-export const VINE_GAP = 56;
+const HEX = /^#[0-9A-Fa-f]{6}$/;
+
+function mix(a: string, b: string, t: number) {
+  if (!HEX.test(a) || !HEX.test(b)) return a;
+  const ch = (h: string, i: number) => parseInt(h.slice(i, i + 2), 16);
+  return `#${[1, 3, 5].map((i) => Math.round(ch(a, i) * (1 - t) + ch(b, i) * t).toString(16).padStart(2, '0')).join('')}`;
+}
 
 /**
- * The vine path for one row: from where the row above left off (`fromX`),
- * across the gap to this row's gutter, then down beside the leaf with a gentle
- * sway. Exported for tests.
+ * The box inside a leaf: the soft color, tinted toward the leaf so it reads as part
+ * of it, but never so far that dark text drops under 4.5:1 (WCAG AA).
  */
-export function vinePath(fromX: number, toX: number, gap: number, height: number, sway: number) {
-  const mid = gap + (height - gap) / 2;
-  const d = (height - gap) / 4;
-  // Every join is vertical, so the pieces from row to row meet without a kink.
-  return [
-    `M ${fromX} 0`,
-    `C ${fromX} ${gap * 0.65}, ${toX} ${gap * 0.35}, ${toX} ${gap}`,
-    `C ${toX} ${gap + d}, ${toX + sway} ${mid - d}, ${toX + sway} ${mid}`,
-    `C ${toX + sway} ${mid + d}, ${toX} ${height - d}, ${toX} ${height}`,
-  ].join(' ');
+export function leafBox(look: VineLook) {
+  if (look.vineStyle === 'neon') return '#F4EEFF';
+  for (const t of [0.45, 0.35, 0.25, 0.15]) {
+    const c = mix(look.leafSoft, look.leaf, t);
+    if (HEX.test(c) && contrastRatio(c, COMMENT_TEXT) >= 4.5) return c;
+  }
+  return look.leafSoft;
 }
 
-/** A tendril: a little spiral curling away from the vine. */
-function curl(x: number, y: number, dir: 1 | -1) {
-  const d = dir;
-  return `M ${x} ${y} c ${10 * d} -2, ${20 * d} -12, ${16 * d} -20 c ${-3 * d} -6, ${-11 * d} -4, ${-10 * d} 2 c ${1 * d} 4, ${6 * d} 4, ${6 * d} 0`;
+/** How a row lays out at a given width. Exported for tests. */
+export function vineGeometry(w: number, side: VineSide, depth: number) {
+  const centered = w >= CENTER_LANE;
+  const stalkX = centered ? w / 2 : EDGE_X;
+  if (!centered) {
+    // Comments step a little further out from the stalk, spreading down toward the next post.
+    const left = 38 + depth * 18;
+    return { centered, stalkX, leafLeft: left, leafWidth: w - left };
+  }
+  const leafWidth = w / 2 - 34 - depth * 26;
+  return { centered, stalkX, leafLeft: side === 'left' ? w / 2 - 22 - leafWidth : w / 2 + 22, leafWidth };
 }
 
-/** A small leaf on the vine itself, pointing outward. */
+/** The stalk through one row: a gentle S of sway, ending where it started so rows join smoothly. */
+export function stalkPath(x: number, h: number, sway: number) {
+  return `M ${x} 0 C ${x} ${h * 0.25}, ${x + sway} ${h * 0.25}, ${x + sway} ${h * 0.5} C ${x + sway} ${h * 0.75}, ${x} ${h * 0.75}, ${x} ${h}`;
+}
+
+/** One strand of a twisting beanstalk: a whole number of turns per row, so strands meet at row joins. */
+function strand(x: number, h: number, amp: number, phase: number) {
+  const turns = Math.max(1, Math.round(h / 170));
+  const pts: string[] = [];
+  for (let y = 0; y <= h; y += 6) pts.push(`${(x + amp * Math.sin((y / h) * turns * 2 * Math.PI + phase)).toFixed(1)} ${y}`);
+  pts.push(`${(x + amp * Math.sin(turns * 2 * Math.PI + phase)).toFixed(1)} ${h}`);
+  return `M ${pts.join(' L ')}`;
+}
+
+/** A tendril: a spiral curling away from the stalk. */
+function curl(x: number, y: number, dir: 1 | -1, size = 1) {
+  const d = dir * size;
+  return `M ${x} ${y} c ${12 * d} -4, ${26 * d} -16, ${20 * d} -28 c ${-4 * d} -8, ${-15 * d} -6, ${-14 * d} 3 c ${1 * d} 6, ${8 * d} 6, ${8 * d} 0`;
+}
+
+/** A small leaf on the stalk itself. */
 function sprig(x: number, y: number, dir: 1 | -1) {
   const d = dir;
-  return `M ${x} ${y} q ${10 * d} -14, ${26 * d} -10 q ${-8 * d} 12, ${-26 * d} 10 z`;
+  return `M ${x} ${y} q ${12 * d} -18, ${32 * d} -12 q ${-10 * d} 16, ${-32 * d} 12 z`;
+}
+
+/** A neon tube: a wide faint bloom, a brighter halo and a thin white-hot core. */
+function Rod({ d, color, width = 2.5 }: { d: string; color: string; width?: number }) {
+  return (
+    <>
+      <Path d={d} stroke={color} strokeOpacity={0.14} strokeWidth={width + 14} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={d} stroke={color} strokeOpacity={0.35} strokeWidth={width + 6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={d} stroke={color} strokeWidth={width} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={d} stroke="#FFFFFF" strokeOpacity={0.85} strokeWidth={Math.max(0.8, width / 3)} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  );
 }
 
 /**
- * One row of the vine. `from` is the side the row above's leaf hung on (its
- * vine line), or null at the top. `side` is this leaf's side; 'center' keeps
- * the vine where it was (a verse or a scene between leaves).
+ * One row of the plant: a piece of the stalk, and (for a post or comment) the
+ * stem out to its leaf. `side` says which side of a centered stalk the leaf hangs
+ * on; 'center' is a verse, a scene or a "more" link that sits over the stalk.
  */
 export function VineRow({
-  from,
   side,
   look,
   gap = VINE_GAP,
@@ -76,7 +133,8 @@ export function VineRow({
   testID,
   children,
 }: {
-  from: VineSide | 'center' | null;
+  /** Kept for callers; the stalk no longer needs to know where the row above ended. */
+  from?: VineSide | 'center' | null;
   side: VineSide | 'center';
   look: VineLook;
   gap?: number;
@@ -90,43 +148,91 @@ export function VineRow({
     const { width, height } = e.nativeEvent.layout;
     if (Math.abs(width - size.w) > 1 || Math.abs(height - size.h) > 1) setSize({ w: width, h: height });
   };
-  // A verse keeps the vine on the line it was already on.
-  const lineSide = side === 'center' ? (from ?? 'center') : side;
   const { w, h } = size;
-  const toX = vineX(lineSide, w);
-  const fromX = from === null ? toX : vineX(from, w);
-  const sw = Math.max(1.5, look.stemWidth - depth);
-  const out: 1 | -1 = lineSide === 'left' ? 1 : -1; // away from the leaf, toward the screen edge
-  const leafEdge = side === 'left' ? w * LEAF_WIDTH[depth]! : w * (1 - LEAF_WIDTH[depth]!);
-  const swayDir = seed % 2 === 0 ? 1 : -1;
-  const path = w ? vinePath(fromX, toX, gap, h, 7 * swayDir) : '';
-  // The leaf stalk: from the vine, a short curve up into the leaf's pointed base.
-  const stalk = side === 'center' || !w ? '' : `M ${toX} ${gap + 34} Q ${(toX + leafEdge) / 2} ${gap + 30}, ${leafEdge - out * 2} ${gap + 6}`;
-  const glowStroke = look.stemGlow ? <Path d={path} stroke={look.stem} strokeOpacity={0.25} strokeWidth={sw + 10} fill="none" strokeLinecap="round" /> : null;
+  const leafSide: VineSide = side === 'center' ? 'right' : side;
+  const g = vineGeometry(w || 1, leafSide, depth);
+  const sx = g.stalkX;
+  const out: 1 | -1 = g.centered ? (leafSide === 'left' ? 1 : -1) : 1; // tendrils curl away from the leaf
+  const neon = look.vineStyle === 'neon';
+  const sw = look.stemWidth;
+  const sway = neon ? 0 : (seed % 2 === 0 ? 1 : -1) * Math.min(8, sw + 3);
+  // The stem from the stalk out to the leaf's base, at the top middle of the leaf.
+  const baseX = g.leafLeft + g.leafWidth / 2;
+  const baseY = gap + 6;
+  const fromY = gap + 26;
+  const stem =
+    side === 'center' || !w
+      ? ''
+      : neon
+        ? `M ${sx} ${fromY} L ${sx} ${gap - 4} L ${baseX} ${gap - 4} L ${baseX} ${baseY}`
+        : `M ${sx} ${fromY} C ${sx + (baseX - sx) * 0.15} ${gap - 14}, ${baseX - (baseX - sx) * 0.3} ${gap - 18}, ${baseX} ${baseY}`;
+  const stemW = Math.max(2, sw * (depth > 0 ? 0.35 : 0.5));
+  const placed: ViewStyle | null = side === 'center' ? (g.centered ? null : { marginLeft: g.leafLeft }) : { marginLeft: g.leafLeft, width: g.leafWidth };
+
+  let stalk: ReactNode = null;
+  if (w && h) {
+    if (neon) {
+      stalk = (
+        <>
+          <Rod d={`M ${sx} 0 L ${sx} ${h}`} color={look.stem} width={Math.max(2, sw - 1)} />
+          {stem ? <Rod d={stem} color={look.stem} width={2} /> : null}
+          {stem ? <Circle cx={sx} cy={fromY} r={4} fill="#FFFFFF" stroke={look.stem} strokeWidth={2} /> : null}
+        </>
+      );
+    } else if (look.vineStyle === 'beanstalk') {
+      const amp = Math.max(3, sw * 0.45);
+      const dark = mix(look.stem, '#000000', 0.25);
+      stalk = (
+        <>
+          <Path d={strand(sx, h, amp, Math.PI)} stroke={dark} strokeWidth={sw * 0.75} fill="none" strokeLinecap="round" />
+          <Path d={strand(sx, h, amp, 0)} stroke={look.stem} strokeWidth={sw * 0.75} fill="none" strokeLinecap="round" />
+          {stem ? <Path d={stem} stroke={look.stem} strokeWidth={stemW} fill="none" strokeLinecap="round" /> : null}
+          {h > 140 ? <Path d={curl(sx, h * 0.7, (-out) as 1 | -1, 1.2)} stroke={look.tendril} strokeWidth={2} fill="none" strokeLinecap="round" /> : null}
+          {h > 220 ? <Path d={curl(sx, h * 0.38, out, 0.9)} stroke={look.tendril} strokeWidth={1.8} fill="none" strokeLinecap="round" /> : null}
+        </>
+      );
+    } else {
+      const path = stalkPath(sx, h, sway);
+      const ink = look.vineStyle === 'ink' ? look.ink || '#3A2E1F' : '';
+      const lineW = look.stemDouble ? sw * 3 : sw;
+      stalk = (
+        <>
+          {look.stemGlow ? <Path d={path} stroke={look.stem} strokeOpacity={0.25} strokeWidth={sw + 10} fill="none" strokeLinecap="round" /> : null}
+          {ink ? <Path d={path} stroke={ink} strokeWidth={lineW + 3} fill="none" strokeLinecap="round" /> : null}
+          <Path d={path} stroke={look.stem} strokeWidth={lineW} fill="none" strokeLinecap="round" />
+          {look.stemDouble ? <Path d={path} stroke={look.backdrop || colors.background} strokeWidth={lineW - 3} fill="none" strokeLinecap="round" /> : null}
+          {stem ? (
+            <>
+              {ink ? <Path d={stem} stroke={ink} strokeWidth={stemW + 2} fill="none" strokeLinecap="round" /> : null}
+              <Path d={stem} stroke={look.stem} strokeWidth={stemW} fill="none" strokeLinecap="round" />
+            </>
+          ) : null}
+          {h > 160 ? <Path d={curl(sx, h * 0.66, (-out) as 1 | -1)} stroke={ink || look.tendril} strokeWidth={1.6} fill="none" strokeLinecap="round" /> : null}
+          {h > 120 ? <Path d={sprig(sx, h * 0.84, (-out) as 1 | -1)} fill={look.leaf} stroke={ink || look.stem} strokeWidth={ink ? 1.4 : 0.8} /> : null}
+        </>
+      );
+    }
+  }
+
   return (
     <View style={[styles.row, { paddingTop: gap }]} onLayout={onLayout} testID={testID}>
-      {w ? (
+      {stalk ? (
         <Svg style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {glowStroke}
-          <Path d={path} stroke={look.stem} strokeWidth={look.stemDouble ? sw * 3 : sw} fill="none" strokeLinecap="round" />
-          {look.stemDouble ? <Path d={path} stroke={look.backdrop || colors.background} strokeWidth={sw * 3 - 3} fill="none" strokeLinecap="round" /> : null}
-          {stalk ? <Path d={stalk} stroke={look.stem} strokeWidth={Math.max(1.5, sw - 1)} fill="none" strokeLinecap="round" /> : null}
-          {h - gap > 120 ? <Path d={curl(toX, gap + (h - gap) * 0.62, out)} stroke={look.tendril} strokeWidth={1.6} fill="none" strokeLinecap="round" /> : null}
-          {from !== null && from !== lineSide ? <Path d={sprig(w / 2, gap / 2, swayDir)} fill={look.leaf} stroke={look.stem} strokeWidth={0.8} /> : null}
+          {stalk}
         </Svg>
       ) : null}
-      {children}
+      <View style={placed}>{children}</View>
     </View>
   );
 }
 
 /**
- * A leaf that houses a post or a comment: square, with two pointed corners
- * (the base, by the vine, and the tip), a midrib between them, and the content
- * sitting inside on a soft panel.
+ * A whole leaf with a post or comment on it. The leaf is drawn: a pointed base at
+ * the top (where the stem joins), a pointed tip at the bottom, a midrib and veins.
+ * The content sits in a smaller box on the leaf; on a neon skin the leaf is a
+ * glowing frame with cut corners instead.
  */
 export function LeafFrame({
-  side,
   look,
   depth = 0,
   highlighted = false,
@@ -134,51 +240,79 @@ export function LeafFrame({
   mark,
   children,
 }: {
-  side: VineSide;
+  side?: VineSide;
   look: VineLook;
   depth?: number;
   highlighted?: boolean;
-  /** The content brings its own box (a feed card), so no soft panel. */
+  /** The content brings its own box (a feed card, restyled through CardSurface). */
   bare?: boolean;
   mark?: ReactNode;
   children: ReactNode;
 }) {
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const left = side === 'left';
-  const round = depth === 0 ? 44 : 32;
-  // The base is the top corner nearest the vine; the tip is the opposite corner.
-  const corners = left
-    ? { borderTopRightRadius: 3, borderBottomLeftRadius: 3, borderTopLeftRadius: round, borderBottomRightRadius: round }
-    : { borderTopLeftRadius: 3, borderBottomRightRadius: 3, borderTopRightRadius: round, borderBottomLeftRadius: round };
-  const inset = round - 10;
-  const innerCorners = left
-    ? { borderTopRightRadius: 2, borderBottomLeftRadius: 2, borderTopLeftRadius: inset, borderBottomRightRadius: inset }
-    : { borderTopLeftRadius: 2, borderBottomRightRadius: 2, borderTopRightRadius: inset, borderBottomLeftRadius: inset };
   const { w, h } = size;
-  const rib = left ? `M ${w} 0 Q ${w * 0.45} ${h * 0.2}, 0 ${h}` : `M 0 0 Q ${w * 0.55} ${h * 0.2}, ${w} ${h}`;
+  const neon = look.vineStyle === 'neon';
+  const ink = look.vineStyle === 'ink' ? look.ink || '#3A2E1F' : '';
+  const pad = LEAF_PAD[Math.min(depth, 2) as 0 | 1 | 2];
+  // A leaf: widest a little above the middle, narrowing to a point at both ends.
+  const leaf = `M ${w / 2} 0 C ${w * 1.04} ${h * 0.14}, ${w * 1.06} ${h * 0.66}, ${w / 2} ${h} C ${w * -0.06} ${h * 0.66}, ${w * -0.04} ${h * 0.14}, ${w / 2} 0 Z`;
+  const veins = [0.2, 0.36, 0.52, 0.68]
+    .map((t) => {
+      const y = h * t;
+      // Veins stay inside the leaf's outline: shortest near the base and the tip.
+      const reach = w * 0.34 * (1 - Math.abs(t - 0.45) * 1.5);
+      return `M ${w / 2} ${y} Q ${w / 2 + reach * 0.5} ${y - 6}, ${w / 2 + reach} ${y - h * 0.08} M ${w / 2} ${y} Q ${w / 2 - reach * 0.5} ${y - 6}, ${w / 2 - reach} ${y - h * 0.08}`;
+    })
+    .join(' ');
+  const c = 16; // neon frame's cut corners
+  const frame = `M ${c} 2 L ${w - c} 2 L ${w - 2} ${c} L ${w - 2} ${h - c} L ${w - c} ${h - 2} L ${c} ${h - 2} L 2 ${h - c} L 2 ${c} Z`;
   return (
     <View
-      style={[styles.leaf, corners, { width: `${LEAF_WIDTH[depth]! * 100}%`, backgroundColor: look.leaf }, left ? styles.left : styles.right]}
+      style={[styles.leaf, { paddingVertical: neon ? 14 : pad, paddingHorizontal: neon ? 14 : Math.max(10, w * 0.08) }]}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         if (Math.abs(width - w) > 1 || Math.abs(height - h) > 1) setSize({ w: width, h: height });
       }}>
       {w ? (
         <Svg style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Path d={rib} stroke={look.stem} strokeOpacity={0.55} strokeWidth={2} fill="none" />
+          {neon ? (
+            <>
+              <Path d={frame} fill="#0B0820" fillOpacity={0.6} />
+              <Rod d={frame} color={look.leaf} width={2.5} />
+            </>
+          ) : (
+            <>
+              <Path d={leaf} fill={look.leaf} stroke={ink || mix(look.leaf, '#000000', 0.3)} strokeWidth={ink ? 2 : 1.2} />
+              <Path d={`M ${w / 2} 2 L ${w / 2} ${h - 4}`} stroke={ink || mix(look.leaf, look.stem, 0.6)} strokeOpacity={ink ? 0.9 : 0.7} strokeWidth={2} />
+              <Path d={veins} stroke={ink || mix(look.leaf, look.stem, 0.5)} strokeOpacity={ink ? 0.8 : 0.55} strokeWidth={1.3} fill="none" />
+            </>
+          )}
         </Svg>
       ) : null}
-      {mark ? <View style={[styles.mark, left ? { right: -10 } : { left: -10 }]}>{mark}</View> : null}
-      {bare ? children : <View style={[styles.inner, innerCorners, { backgroundColor: highlighted ? colors.primarySoft : look.leafSoft }]}>{children}</View>}
+      {mark ? <View style={styles.mark}>{mark}</View> : null}
+      {bare ? (
+        children
+      ) : (
+        <View style={[styles.inner, { backgroundColor: highlighted ? colors.primarySoft : leafBox(look) }, ink ? { borderWidth: 1, borderColor: ink } : null]}>{children}</View>
+      )}
     </View>
   );
 }
 
+/** The feed card's box when it sits on a leaf (passed through CardSurface). */
+export function leafCardSurface(look: VineLook): ViewStyle {
+  const ink = look.vineStyle === 'ink' ? look.ink || '#3A2E1F' : '';
+  return {
+    backgroundColor: leafBox(look),
+    borderColor: ink || (look.vineStyle === 'neon' ? look.leaf : 'transparent'),
+    borderRadius: look.vineStyle === 'neon' ? 4 : radius.md,
+    padding: space.md,
+  };
+}
+
 const styles = StyleSheet.create({
   row: { position: 'relative' },
-  leaf: { padding: 12, position: 'relative' },
-  left: { alignSelf: 'flex-start' },
-  right: { alignSelf: 'flex-end' },
-  inner: { padding: space.sm, overflow: 'hidden' },
-  mark: { position: 'absolute', top: -8, zIndex: 1 },
+  leaf: { position: 'relative' },
+  inner: { padding: space.sm, borderRadius: radius.md },
+  mark: { position: 'absolute', top: -10, alignSelf: 'center', zIndex: 1 },
 });
