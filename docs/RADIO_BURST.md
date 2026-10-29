@@ -176,6 +176,10 @@ Off until Admin → Radio → "On-the-air receipts on" (`token_settings.radio_re
 - **On the air.** When the station reports a prayer sent, the member who sent it gets a notice: "It went out at 2:05 PM UTC from N0CALL on fm-qam16." The time is in the member's quiet-hours time zone if they set one, otherwise UTC. It works with the PSK31 loop and the log transmitter too, without a preset.
 - **Heard.** In burst mode the station also reports `sentHash` for each prayer: the first 32 hex digits of SHA-256 of the exact (ASCII-folded) text it sent. A listener's `/listen` page or the app's Listen screen, with the listener's agreement, sends `POST /listen/heard` with the call sign, preset, SNR and those fingerprints, never the words. Each fingerprint matches prayers that call sign sent in the last 24 hours. The first report of each tells its sender and the person who asked; later reports only count (`radio_prayers.heard_count`, best `heard_snr_db`). The route is public, limited to 20 requests a minute per IP address, and a 404 while receipts are off.
 
+## Prayers on the air (public page)
+
+Off until Admin → Radio → "On-the-air page on" (`token_settings.on_air_page_enabled`). `/on-the-air` (and `/open-circle/on-the-air`, worded "Messages") shows how many prayers the station sent in the last 24 hours, 7 days and in all, how many listeners reported hearing, and the latest 20 bursts (time, count, air time, preset). Counts only: it never shows a prayer's words, who sent or asked for it, or anything about a listener. Simulated bursts and the log transmitter are left out.
+
 ## Auto preset
 
 `BURST_PRESET=auto` lets a receiver steer the speed. A receiver that hears

@@ -6,6 +6,7 @@ import * as site from './index.js';
 import * as openCircle from './open-circle.js';
 import { promisePage } from './promise.js';
 import * as listen from '../listen/index.js';
+import * as onAir from '../listen/on-air.js';
 import * as receipts from '../radio/receipts.js';
 import * as whyGifts from './why-gifts.js';
 import { waitlistPage } from '../waitlist/page.js';
@@ -65,6 +66,19 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db
     if (!db || !(await listen.enabled(db))) return reply.code(404).type(html).send(notFound());
     return reply.type(html).send(listen.listenPage(await receipts.enabled(db)));
   });
+
+  // Prayers on the air: counts only, while Admin → Radio has the page on.
+  const onAirOn = async () => (db ? onAir.enabled(db) : false);
+  app.get('/on-the-air', async (req, reply) => {
+    if (!db || !(await onAirOn())) return reply.code(404).type(html).send(notFound());
+    return reply.type(html).send(onAir.page(await onAir.stats(db), ocHere(req) && oc ? openCircle.brand(oc, '') : undefined));
+  });
+  if (oc) {
+    app.get(`${openCircle.PREFIX}/on-the-air`, async (_req, reply) => {
+      if (!db || !(await onAirOn())) return reply.code(404).type(html).send(notFound());
+      return reply.type(html).send(onAir.page(await onAir.stats(db), openCircle.brand(oc, openCircle.PREFIX)));
+    });
+  }
 
   // The ad-free promise, only while Admin → Notebook ideas has it on.
   const promiseOn = async () => (db ? (await db.query<{ on: boolean }>('select promise_page_enabled as on from public.notebook_settings')).rows[0]?.on === true : false);
