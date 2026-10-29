@@ -24,6 +24,11 @@ async function resetCode(to: string): Promise<string> {
   throw new Error(`no reset email for ${to}`);
 }
 
+// Puts Ruth's demo password back even when a step fails, so a retry (and later specs) can sign in.
+test.afterEach(async () => {
+  await db.query(`update auth.users set encrypted_password = extensions.crypt($2, extensions.gen_salt('bf')) where email = $1`, [EMAIL, DEMO_PASSWORD]);
+});
+
 test('a member resets a forgotten password with the emailed code, then changes it back', async ({ page }) => {
   await fetch(`${MAIL}/api/v1/search?query=${encodeURIComponent(`to:${EMAIL}`)}`, { method: 'DELETE' });
   const { rows } = await db.query<{ id: string }>('select id from auth.users where email = $1', [EMAIL]);
@@ -45,6 +50,7 @@ test('a member resets a forgotten password with the emailed code, then changes i
   // Signed out and back in with the new password, then put the demo password back.
   await page.getByText('Me', { exact: true }).click();
   await page.getByText('Sign out').click();
+  await expect(page.getByText('Forgot your password?')).toBeVisible({ timeout: 20_000 });
   await page.locator('input').nth(0).fill(EMAIL);
   await page.locator('input[type=password]').fill(TEMP);
   await page.getByRole('button', { name: /sign in/i }).last().click();
