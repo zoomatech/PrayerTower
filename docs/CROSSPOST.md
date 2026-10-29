@@ -58,7 +58,7 @@ Uses the official Threads API with the `threads_basic` permission only.
 
 ## 3. Connect Facebook
 
-Uses Facebook Login with the `user_posts` permission and `GET /me/posts` ([User posts](https://developers.facebook.com/docs/graph-api/reference/user/posts/)). Facebook has no webhook for a person's own posts, so the worker checks every 5 minutes. Posts that other people made on the member's timeline are skipped. Facebook's long-lived user token lasts about 60 days and can't be refreshed by a server. When it ends, the app shows **Reconnect** ([long-lived tokens](https://developers.facebook.com/documentation/facebook-login/guides/access-tokens/get-long-lived)).
+Uses Facebook Login with the `user_posts` permission and `GET /me/posts` ([User posts](https://developers.facebook.com/docs/graph-api/reference/user/posts/)). Facebook has no webhook for a person's own posts, so the worker checks every 5 minutes. Posts that other people made on the member's timeline are skipped. Facebook's long-lived user token lasts about 60 days and can't be refreshed by a server. A week before it ends, the member gets a notice ("Reconnect Facebook this week"). When it ends, or when Meta stops accepting any connection, the member gets a "Reconnect" notice that opens this screen, and the app shows **Reconnect** ([long-lived tokens](https://developers.facebook.com/documentation/facebook-login/guides/access-tokens/get-long-lived)).
 
 **Setup:**
 1. Create an app with the **Authenticate and request data from users with Facebook Login** use case and add `user_posts`.

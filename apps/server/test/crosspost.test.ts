@@ -243,6 +243,27 @@ describe('Cross-posting while on', () => {
     ]);
   });
 
+  it('tells the member a week before a Facebook connection ends, and again when it has stopped', async () => {
+    const member = await createUser('Reconnect Rita');
+    const fbUser = `fb-rita-${Date.now()}`;
+    await db.query(
+      "insert into public.crosspost_accounts (user_id, provider, external_user_id, access_token, token_expires_at) values ($1, 'facebook', $2, $3, now() + interval '3 days')",
+      [member, fbUser, meta.sealToken(opts.tokenKey!, 'fb-token')],
+    );
+    const { rows } = await db.query<{ id: string }>('select id from public.crosspost_accounts where external_user_id = $1', [fbUser]);
+    const notices = async () =>
+      (await db.query<{ title: string; data: { screen: string } }>("select title, data from public.notifications where user_id = $1 and kind = 'crosspost_reconnect' order by created_at", [member])).rows;
+    const quiet = fakeMeta({ '/me/posts': { data: [] } });
+    await meta.checkAccount(db, rows[0]!.id, opts, store, quiet);
+    await db.query('update public.crosspost_accounts set last_checked_at = null where id = $1', [rows[0]!.id]);
+    await meta.checkAccount(db, rows[0]!.id, opts, store, quiet);
+    // Once per connection, however often it is checked.
+    expect(await notices()).toEqual([{ title: 'Reconnect Facebook this week', data: { screen: 'crosspost', provider: 'facebook' } }]);
+    const revoked = fakeMeta({ '/me/posts': { error: { message: 'Session expired', code: 190, type: 'OAuthException' } } });
+    await meta.checkAccount(db, rows[0]!.id, opts, store, revoked);
+    expect((await notices()).map((n) => n.title)).toEqual(['Reconnect Facebook this week', 'Reconnect Facebook']);
+  });
+
   it('verifies the Threads webhook and queues new posts from connected members', async () => {
     const query = (token: string) => `/crosspost/threads/webhook?hub.mode=subscribe&hub.verify_token=${token}&hub.challenge=4242`;
     expect((await withKeys.inject({ method: 'GET', url: query('verify-token-0123456789') })).body).toBe('4242');
