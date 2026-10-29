@@ -9,6 +9,7 @@ import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
 import { GuestShare } from '@/components/guest-share';
+import { ShareChoice } from '@/components/outside-share';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
@@ -199,18 +200,21 @@ export default function PostScreen() {
             {t('post.reply')}
           </Text>
         ) : null}
-        <Text
-          style={styles.reply}
-          onPress={() =>
-            // Shareable comments: the words plus a link that opens this request at the comment.
-            Share.share({
-              message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
-            }).catch(() => undefined)
-          }
-          accessibilityRole="button"
-        >
-          {t('post.share')}
-        </Text>
+        {/* With sharing by consent on, only the person who wrote a comment can share it. */}
+        {!features.shareConsent || c.isMine ? (
+          <Text
+            style={styles.reply}
+            onPress={() =>
+              // Shareable comments: the words plus a link that opens this request at the comment.
+              Share.share({
+                message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
+              }).catch(() => undefined)
+            }
+            accessibilityRole="button"
+          >
+            {t('post.share')}
+          </Text>
+        ) : null}
         {card && !c.isMine && c.author.id !== profile?.id ? (
           <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
             {t('post.report')}
@@ -361,6 +365,7 @@ export default function PostScreen() {
         ) : null}
 
         {card && prayable ? <GuestShare card={card} /> : null}
+        {card ? <ShareChoice card={card} /> : null}
 
         {card && prayable && spokenOn ? <SpokenPrayers postId={id} /> : null}
         {card && prayable ? <CircleGoal postId={id} /> : null}
