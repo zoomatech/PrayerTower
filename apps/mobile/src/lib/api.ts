@@ -1465,6 +1465,11 @@ export type SpokenPrayerStatus =
   | { enabled: true; mine: false; invited: boolean; offerTokens: number; maxSeconds: number; sent: boolean; prayed: boolean };
 
 /** A waiting or decided report found by a moderation search. */
+export interface KindnessStarter {
+  items: { key: string; on: boolean }[];
+  allOn: boolean;
+  anyOn: boolean;
+}
 export interface GoldfishSettings {
   goldfish_enabled: boolean;
   goldfish_days: number;
@@ -2017,6 +2022,8 @@ export const api = {
     moderationTools: () => get<{ settings: { tools_enabled: boolean; bulk_max: number } }>('/admin/moderation-tools'),
     updateModerationTools: (patch: { enabled?: boolean; bulkMax?: number }) =>
       request<{ settings: { tools_enabled: boolean; bulk_max: number } }>('PATCH', '/admin/moderation-tools', patch),
+    kindnessStarter: () => get<KindnessStarter>('/admin/kindness-starter'),
+    setKindnessStarter: (on: boolean) => post<KindnessStarter>('/admin/kindness-starter', { on }),
     goldfish: () => get<{ settings: GoldfishSettings }>('/admin/goldfish'),
     updateGoldfish: (patch: { enabled?: boolean; days?: number; repeat?: number }) => request<{ settings: GoldfishSettings }>('PATCH', '/admin/goldfish', patch),
     practiceMode: () => get<{ settings: PracticeModeSettings; connected: PracticeConnected }>('/admin/practice-mode'),
