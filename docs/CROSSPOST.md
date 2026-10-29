@@ -27,7 +27,7 @@ It finds the composer by roles and labels (`role="textbox"`, a button labelled P
 **Member setup:**
 1. In the app: Me → Copy my Facebook posts → **Make my extension key**. The key is shown once.
 2. Install the extension (Chrome Web Store link once it is published; until then, see "Loading it by hand" below).
-3. The extension's settings open on install. Paste the server address shown in the app and the key, then click **Save**. Chrome asks once to let the extension reach the server.
+3. The extension's settings open on install. Paste the server address shown in the app and the key, then click **Save**. Chrome asks once to let the extension reach the server. The extension then checks the key with the server (`GET /crosspost/extension/check`) and says whether it was accepted and whether cross-posting is on and not paused.
 
 **Loading it by hand (testing):** open `chrome://extensions`, turn on Developer mode, click **Load unpacked**, and choose the `apps/extension` folder.
 
@@ -90,7 +90,7 @@ The worker job `crosspost_poll` runs every 5 minutes. It queues `crosspost_check
 ## API
 
 - Member: `GET /crosspost`, `PATCH /crosspost/settings`, `POST`/`DELETE /crosspost/extension-key`, `POST /crosspost/{threads|facebook}/connect`, `DELETE /crosspost/{threads|facebook}`.
-- Extension: `POST /crosspost/extension/posts` with header `x-crosspost-key` and the body `{ source, text, pageUrl?, media: [{ data: base64 }] }` (up to 10 photos and videos: photos up to 10 MB, videos up to 50 MB; type checked from the file's first bytes).
+- Extension: `GET /crosspost/extension/check` (header `x-crosspost-key`), and `POST /crosspost/extension/posts` with header `x-crosspost-key` and the body `{ source, text, pageUrl?, media: [{ data: base64 }] }` (up to 10 photos and videos: photos up to 10 MB, videos up to 50 MB; type checked from the file's first bytes).
 - Meta: `GET /crosspost/{provider}/callback`, `GET`/`POST /crosspost/threads/webhook`.
 
 Data: migration `20261029007000_crosspost.sql`. Code: `apps/server/src/modules/crosspost/`, `apps/mobile/src/app/crosspost.tsx`, `apps/extension/`.

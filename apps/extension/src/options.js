@@ -43,7 +43,23 @@ $('save').addEventListener('click', async () => {
   }
   await chrome.storage.local.set({ server: origin, key, enabled: $('enabled').checked });
   chrome.action?.setBadgeText?.({ text: '' });
-  status.textContent = 'Saved. Your next Facebook or Threads post will be copied.';
+  status.textContent = await check(origin, key);
 });
+
+/** Asks the server whether it knows this key, so a typo shows now and not after the next post. */
+async function check(origin, key) {
+  let res;
+  try {
+    res = await fetch(`${origin}/crosspost/extension/check`, { headers: { 'x-crosspost-key': key } });
+  } catch {
+    return 'Saved, but the server could not be reached. Check the address.';
+  }
+  if (res.status === 401) return 'Saved, but the server did not accept this key. Make a new one in the app and paste it here.';
+  if (!res.ok) return `Saved, but the server answered ${res.status}. Check the address.`;
+  const body = await res.json().catch(() => ({}));
+  if (!body.on) return 'Saved. Cross-posting is turned off on this server for now, so posts will not be copied yet.';
+  if (body.paused) return 'Saved. Copying is paused in the app; turn it back on there.';
+  return 'Saved and checked. Your next Facebook or Threads post will be copied.';
+}
 
 load();

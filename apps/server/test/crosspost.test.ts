@@ -75,6 +75,10 @@ describe('Cross-posting while on', () => {
 
     const send = (payload: object, k = key) => extensionApp.inject({ method: 'POST', url: '/crosspost/extension/posts', headers: { 'x-crosspost-key': k }, payload });
     expect((await send({ source: 'facebook', text: 'x' }, 'ptx_wrong')).statusCode).toBe(401);
+    // The extension's settings page checks the key when it is saved.
+    const check = (k: string) => extensionApp.inject({ method: 'GET', url: '/crosspost/extension/check', headers: { 'x-crosspost-key': k } });
+    expect((await check('ptx_wrong')).statusCode).toBe(401);
+    expect((await check(key)).json()).toEqual({ ok: true, on: true, paused: false });
     const first = await send({ source: 'facebook', text: 'Beautiful morning at the lake with the kids!', pageUrl: 'https://www.facebook.com/', media: [{ data: JPEG.toString('base64') }, { data: Buffer.from('not an image').toString('base64') }] });
     expect(first.statusCode).toBe(201);
     const postId = first.json().postId;
