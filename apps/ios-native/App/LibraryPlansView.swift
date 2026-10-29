@@ -117,7 +117,7 @@ struct ParallelThemeView: View {
 /// Reading plans from the library, as the Expo app's reading-plans.tsx: own pace, alone or with a circle.
 struct ReadingPlansView: View {
     @Environment(AppModel.self) private var model
-    @State private var plans: ReadingPlans?
+    @State private var plans: LibraryPlanList?
     @State private var error: String?
     private var w: Words { model.words }
 
@@ -140,7 +140,7 @@ struct ReadingPlansView: View {
         .refreshable { await load() }
     }
 
-    @ViewBuilder private func plan(_ p: ReadingPlan, circles: [PlanProgress.Circle]) -> some View {
+    @ViewBuilder private func plan(_ p: LibraryPlan, circles: [PlanProgress.Circle]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(p.title).font(.headline)
             Text(p.intro)
@@ -169,7 +169,7 @@ struct ReadingPlansView: View {
         }
     }
 
-    private func act(_ call: @escaping () async throws -> ReadingPlans) {
+    private func act(_ call: @escaping () async throws -> LibraryPlanList) {
         Task {
             do {
                 plans = try await call()
@@ -195,7 +195,7 @@ struct PlanDayView: View {
     @Environment(AppModel.self) private var model
     let plan: String
     @State var day: Int
-    @State private var data: ReadingPlanDay?
+    @State private var data: LibraryPlanDay?
     @State private var error: String?
     @State private var sharing: SharedPassage?
     private var w: Words { model.words }

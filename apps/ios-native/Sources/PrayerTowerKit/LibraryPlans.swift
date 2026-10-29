@@ -60,7 +60,7 @@ public struct PlanProgress: Codable, Sendable, Equatable {
     public let circle: Circle?
 }
 
-public struct ReadingPlan: Codable, Sendable, Equatable, Identifiable {
+public struct LibraryPlan: Codable, Sendable, Equatable, Identifiable {
     public struct CircleReading: Codable, Sendable, Equatable, Identifiable {
         public let id: String
         public let name: String
@@ -75,20 +75,20 @@ public struct ReadingPlan: Codable, Sendable, Equatable, Identifiable {
     public let circles: [CircleReading]
 }
 
-public struct ReadingPlans: Decodable, Sendable, Equatable {
+public struct LibraryPlanList: Decodable, Sendable, Equatable {
     public let enabled: Bool
     public let circles: [PlanProgress.Circle]
-    public let plans: [ReadingPlan]
+    public let plans: [LibraryPlan]
     enum CodingKeys: String, CodingKey { case enabled, circles, plans }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         enabled = try c.decode(Bool.self, forKey: .enabled)
         circles = try c.decodeIfPresent([PlanProgress.Circle].self, forKey: .circles) ?? []
-        plans = try c.decodeIfPresent([ReadingPlan].self, forKey: .plans) ?? []
+        plans = try c.decodeIfPresent([LibraryPlan].self, forKey: .plans) ?? []
     }
 }
 
-public struct ReadingPlanDay: Codable, Sendable, Equatable {
+public struct LibraryPlanDay: Codable, Sendable, Equatable {
     public struct Plan: Codable, Sendable, Equatable {
         public let id: String
         public let title: String
@@ -116,13 +116,13 @@ private struct FollowPlan: Encodable {
 extension APIClient {
     public func parallels() async throws -> ParallelThemes { try await get("/library/parallels") }
     public func parallel(_ id: String) async throws -> ParallelTheme { try await get("/library/parallels/\(id)") }
-    public func readingPlans() async throws -> ReadingPlans { try await get("/library/plans") }
-    public func followPlan(_ id: String, circleId: String? = nil, reminders: Bool? = nil) async throws -> ReadingPlans {
+    public func readingPlans() async throws -> LibraryPlanList { try await get("/library/plans") }
+    public func followPlan(_ id: String, circleId: String? = nil, reminders: Bool? = nil) async throws -> LibraryPlanList {
         try await send(body(request("PUT", "/library/plans/\(id)/follow"), FollowPlan(circleId: circleId, reminders: reminders)))
     }
-    public func unfollowPlan(_ id: String) async throws -> ReadingPlans { try await send(request("DELETE", "/library/plans/\(id)/follow")) }
-    public func planDay(_ id: String, day: Int) async throws -> ReadingPlanDay { try await get("/library/plans/\(id)/days/\(day)") }
-    public func readPlanDay(_ id: String, day: Int) async throws -> ReadingPlanDay {
+    public func unfollowPlan(_ id: String) async throws -> LibraryPlanList { try await send(request("DELETE", "/library/plans/\(id)/follow")) }
+    public func planDay(_ id: String, day: Int) async throws -> LibraryPlanDay { try await get("/library/plans/\(id)/days/\(day)") }
+    public func readPlanDay(_ id: String, day: Int) async throws -> LibraryPlanDay {
         try await send(body(request("POST", "/library/plans/\(id)/days/\(day)/read"), [String: String]()))
     }
 }
