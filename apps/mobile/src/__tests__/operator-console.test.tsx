@@ -16,6 +16,7 @@ const mocked = api as unknown as Record<'radioConsole' | 'updateRadioConsole', j
 const soon = new Date(Date.now() + 4 * 60_000 + 30_000).toISOString();
 const view: RadioConsole = {
   paused: false,
+  problems: [],
   windowOverrideUntil: null,
   onAirNow: false,
   schedule: { enabled: true, timeZone: 'America/Chicago', windows: [{ days: [1], start: '19:00', end: '20:00' }], quietStart: null, quietEnd: null, inWindow: false },
@@ -48,6 +49,19 @@ it('shows why the station is quiet, the ID timer, the queue and the log', async 
   expect(screen.getByText(/Rises above 10° at .* Transmissions wait until it is up./)).toBeTruthy();
   expect(screen.getByText('3 frames re-sent in the last hour, 4.2 s of its 120 s air time')).toBeTruthy();
   expect(screen.getByText('Not re-sent: already sent 2')).toBeTruthy();
+});
+
+it('shows the station problems first', async () => {
+  mocked.radioConsole.mockResolvedValue({ ...view, problems: [{ kind: 'ptt_failed', level: 'problem', detail: 'rigctld not answering', callSign: 'K0GIN', since: null }] });
+  await renderApp(<OperatorConsole />);
+  expect(await screen.findByText('Problems right now')).toBeTruthy();
+  expect(screen.getByText('The radio did not key (PTT). (K0GIN) rigctld not answering')).toBeTruthy();
+});
+
+it('shows no problems card when all is well', async () => {
+  await renderApp(<OperatorConsole />);
+  expect(await screen.findByText('The station is not transmitting now')).toBeTruthy();
+  expect(screen.queryByText('Problems right now')).toBeNull();
 });
 
 it('holds, resumes and sends outside the windows for a while', async () => {

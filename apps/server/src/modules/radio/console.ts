@@ -8,6 +8,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import * as beacon from './beacon.js';
 import * as ceaseless from './ceaseless.js';
+import * as health from './health.js';
 import * as nodes from './nodes.js';
 import * as oplog from './oplog.js';
 import { queueOrder } from './queue-order.js';
@@ -95,6 +96,9 @@ export async function view(q: Queryable, now = new Date()) {
   const b = await beacon.settings(q);
   return {
     paused: s.paused,
+    // The station's problems right now (the same checks as health alerts and operator alerts),
+    // whether or not those switches are on, so the operator sees them here first.
+    problems: (await health.alerts(q, now, { force: true })).alerts.filter((a) => a.level === 'problem'),
     windowOverrideUntil: s.windowOverrideUntil && s.windowOverrideUntil > now ? s.windowOverrideUntil.toISOString() : null,
     onAirNow: await mayTransmit(q, now),
     schedule: { enabled: sched.enabled, timeZone: sched.timeZone, inWindow: schedule.onAir(sched, now), windows: sched.windows, quietStart: sched.quietStart, quietEnd: sched.quietEnd },
