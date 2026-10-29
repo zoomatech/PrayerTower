@@ -149,6 +149,23 @@ function diffSymbols(start: number[], values: number[], bits: number): number[][
 
 export const SYNC_CARRIERS = SYNC_LAST - SYNC_FIRST + 1;
 const headerSymbols = Math.ceil(((HEADER_BYTES + HEADER_PARITY) * 8) / SYNC_CARRIERS);
+/**
+ * HF presets (header: 'coded') send the same header bytes through the rate-1/2
+ * convolutional code and the interleaver, so a notch from multipath or the top
+ * of an SSB filter costs scattered soft bits instead of whole bytes. A receiver
+ * that can't read a plain header tries this one on the same symbols.
+ */
+const HEADER_CODE = 'r12';
+const codedHeaderSymbols = Math.ceil(codedBits(HEADER_BYTES + HEADER_PARITY, HEADER_CODE) / SYNC_CARRIERS);
+const headerSymbolsFor = (preset: BurstPreset) => (preset.header === 'coded' ? codedHeaderSymbols : headerSymbols);
+
+function codedHeader(header: Uint8Array): Uint8Array {
+  const coded = convEncode(header, HEADER_CODE);
+  const perm = interleaver(coded.length);
+  const out = new Uint8Array(coded.length);
+  for (let i = 0; i < coded.length; i++) out[perm[i]!] = coded[i]!;
+  return out;
+}
 
 /** Number of symbols (sync + header + reference + payload) for a message of this size. */
 /** Bits on air for a payload: 8 per byte, or the inner code's coded bits. */
@@ -162,7 +179,7 @@ function payloadSymbols(preset: BurstPreset, payloadBytes: number): number {
 }
 
 export function frameSymbols(preset: BurstPreset, messageLength: number): number {
-  return 2 + headerSymbols + payloadSymbols(preset, payloadLength(messageLength, preset.parity));
+  return 2 + headerSymbolsFor(preset) + payloadSymbols(preset, payloadLength(messageLength, preset.parity));
 }
 export const frameSeconds = (preset: BurstPreset, messageLength: number) => (frameSymbols(preset, messageLength) * symbolSamples(preset)) / preset.sampleRate;
 
@@ -175,7 +192,8 @@ export function modulate(batch: Uint8Array, preset: BurstPreset, callSign: strin
   const sync = knownPhases(SYNC_SEED, SYNC_CARRIERS);
   const ref = knownPhases(REF_SEED, carriers(preset));
   const parts: Float64Array[] = [symbol(SYNC_FIRST, sync)];
-  for (const ph of diffSymbols(sync, groups(header, 1, SYNC_CARRIERS), 1)) parts.push(symbol(SYNC_FIRST, ph));
+  const headerBits = preset.header === 'coded' ? bitGroups(codedHeader(header), 1, SYNC_CARRIERS) : groups(header, 1, SYNC_CARRIERS);
+  for (const ph of diffSymbols(sync, headerBits, 1)) parts.push(symbol(SYNC_FIRST, ph));
   parts.push(symbol(preset.firstBin, ref));
   if (preset.modulation === 'qam') {
     const c = carriers(preset);
@@ -516,51 +534,97 @@ function shiftFrequency(x: Float32Array, hz: number): Float32Array {
 }
 
 let syncTemplate: Float64Array | null = null;
+let syncQuadrature: Float64Array | null = null;
 function template(): Float64Array {
   return (syncTemplate ??= symbol(SYNC_FIRST, knownPhases(SYNC_SEED, SYNC_CARRIERS)).subarray(GUARD));
 }
 
+/** The sync symbol turned 90 degrees on every carrier (its Hilbert transform). */
+function quadratureTemplate(): Float64Array {
+  return (syncQuadrature ??= symbol(SYNC_FIRST, knownPhases(SYNC_SEED, SYNC_CARRIERS).map((ph) => ph - Math.PI / 2)).subarray(GUARD));
+}
+
 /**
  * Normalized correlation of the audio with the sync symbol at every lag
- * (overlap-save FFT), as values from 0 to 1.
+ * (overlap-save FFT), as values from 0 to 1. It correlates with the symbol and
+ * its 90-degree turn and takes the magnitude, so a channel that rotates the
+ * phase (an SSB receiver, HF multipath) finds the frame as well as FM audio.
  */
 function syncCorrelation(x: Float32Array): Float32Array {
   const t = template();
+  const q = quadratureTemplate();
   const L = 8192;
   const tr = new Float64Array(L);
   const ti = new Float64Array(L);
+  const qr = new Float64Array(L);
+  const qi = new Float64Array(L);
   tr.set(t);
+  qr.set(q);
   fft(tr, ti);
+  fft(qr, qi);
   let tEnergy = 0;
   for (const v of t) tEnergy += v * v;
   const prefix = new Float64Array(x.length + 1);
   for (let i = 0; i < x.length; i++) prefix[i + 1] = prefix[i]! + x[i]! * x[i]!;
   const out = new Float32Array(Math.max(0, x.length - N + 1));
+  const xr = new Float64Array(L);
+  const xi = new Float64Array(L);
   const re = new Float64Array(L);
   const im = new Float64Array(L);
   for (let s = 0; s < out.length; s += L - N + 1) {
-    re.fill(0);
-    im.fill(0);
-    for (let i = 0; i < L && s + i < x.length; i++) re[i] = x[s + i]!;
-    fft(re, im);
+    xr.fill(0);
+    xi.fill(0);
+    for (let i = 0; i < L && s + i < x.length; i++) xr[i] = x[s + i]!;
+    fft(xr, xi);
+    // Real correlations with t and with q, packed as one complex inverse FFT:
+    // IFFT(X conj(T) + j X conj(Q)) = corr_t + j corr_q, as both are real.
     for (let k = 0; k < L; k++) {
-      // X * conj(T)
-      const a = re[k]! * tr[k]! + im[k]! * ti[k]!;
-      const b = im[k]! * tr[k]! - re[k]! * ti[k]!;
-      re[k] = a;
-      im[k] = b;
+      const ar = xr[k]! * tr[k]! + xi[k]! * ti[k]!;
+      const ai = xi[k]! * tr[k]! - xr[k]! * ti[k]!;
+      const br = xr[k]! * qr[k]! + xi[k]! * qi[k]!;
+      const bi = xi[k]! * qr[k]! - xr[k]! * qi[k]!;
+      re[k] = ar - bi;
+      im[k] = ai + br;
     }
     fft(re, im, true);
     for (let lag = 0; lag <= L - N && s + lag < out.length; lag++) {
       const e = prefix[s + lag + N]! - prefix[s + lag]!;
-      out[s + lag] = e > 1e-12 ? Math.abs(re[lag]! / L) / Math.sqrt(e * tEnergy) : 0;
+      out[s + lag] = e > 1e-12 ? Math.hypot(re[lag]!, im[lag]!) / L / Math.sqrt(e * tEnergy) : 0;
     }
   }
   return out;
 }
 
-/** Find and decode every frame in a recording (48 kHz mono). Frames that fail their checks are skipped. */
-export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
+/** Undo the interleaver's scatter of n soft bits, scaled so their mean size is 1. */
+function deinterleave(soft: number[], n: number): Float32Array {
+  const perm = interleaver(n);
+  let scale = 0;
+  for (let i = 0; i < n; i++) scale += Math.abs(soft[i] ?? 0);
+  scale = scale ? n / scale : 1;
+  const llr = new Float32Array(n);
+  for (let i = 0; i < n; i++) llr[i] = (soft[perm[i]!] ?? 0) * scale;
+  return llr;
+}
+
+/**
+ * Find and decode every frame in a recording (48 kHz mono). Frames that fail
+ * their checks are skipped. A receiver tuned up to about 5 Hz off is fine; on
+ * HF (SSB), set searchHz to also try the audio moved in 10 Hz steps up to that
+ * far either way (a 50 Hz search costs 11 passes).
+ */
+export function demodulate(x: Float32Array, threshold = 0.4, searchHz = 0): DecodedFrame[] {
+  const frames = demodulateOnce(x, threshold);
+  for (let hz = 10; hz <= searchHz; hz += 10) {
+    for (const shift of [hz, -hz]) {
+      for (const f of demodulateOnce(shiftFrequency(x, shift), threshold)) {
+        if (!frames.some((g) => Math.abs(g.start - f.start) < N)) frames.push(f);
+      }
+    }
+  }
+  return frames.sort((a, b) => a.start - b.start);
+}
+
+function demodulateOnce(x: Float32Array, threshold: number): DecodedFrame[] {
   const corr = syncCorrelation(x);
   const frames: DecodedFrame[] = [];
   const hdrSyms = headerSymbols;
@@ -571,10 +635,18 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     let best = i;
     for (let j = i; j < Math.min(corr.length, i + S); j++) if (corr[j]! > corr[best]!) best = j;
     const at = Math.max(0, best - BACKOFF);
-    const track: Track = { fresh: true, off: 0, rate: 0, bias: 0, signal: 0, noise: 0 };
+    let track: Track = { fresh: true, off: 0, rate: 0, bias: 0, signal: 0, noise: 0 };
     const hv = demodDiff(x, at, SYNC_FIRST, SYNC_CARRIERS, hdrSyms, 1, track);
-    const header = decodeHeader(ungroup(hv, 1, HEADER_BYTES + HEADER_PARITY));
-    const preset = header && PRESETS.find((p) => p.id === header.presetId);
+    let header = decodeHeader(ungroup(hv, 1, HEADER_BYTES + HEADER_PARITY));
+    let preset = header && PRESETS.find((p) => p.id === header!.presetId && p.header !== 'coded');
+    if (!header || !preset) {
+      // An HF frame: the same symbols carry a convolutional-coded header.
+      track = { fresh: true, off: 0, rate: 0, bias: 0, signal: 0, noise: 0 };
+      const soft: number[] = [];
+      demodDiff(x, at, SYNC_FIRST, SYNC_CARRIERS, codedHeaderSymbols, 1, track, undefined, soft);
+      header = decodeHeader(convDecode(deinterleave(soft, codedBits(HEADER_BYTES + HEADER_PARITY, HEADER_CODE)), HEADER_BYTES + HEADER_PARITY, HEADER_CODE));
+      preset = header && PRESETS.find((p) => p.id === header!.presetId && p.header === 'coded');
+    }
     if (!header || !preset) {
       i = best; // not a frame here; keep looking after this peak
       continue;
@@ -582,7 +654,7 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     const c = carriers(preset);
     const plen = payloadLength(header.messageLength, preset.parity);
     const syms = payloadSymbols(preset, plen);
-    const refAt = at + (1 + hdrSyms) * S;
+    const refAt = at + (1 + headerSymbolsFor(preset)) * S;
     // The recording stops mid-frame (allowing for a sender whose clock runs up to 0.1% fast).
     if (refAt + (syms * S + N) * 0.999 > x.length + BACKOFF) break;
     // A tuning offset (SSB) also leaks energy between carriers; past a fraction
@@ -606,14 +678,7 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     let result;
     if (preset.inner) {
       // Undo the scatter, then let the Viterbi decoder weigh every soft bit.
-      const n = codedBits(plen, preset.inner);
-      const perm = interleaver(n);
-      let scale = 0;
-      for (let i = 0; i < n; i++) scale += Math.abs(soft![i] ?? 0);
-      scale = scale ? n / scale : 1;
-      const llr = new Float32Array(n);
-      for (let i = 0; i < n; i++) llr[i] = (soft![perm[i]!] ?? 0) * scale;
-      result = decodePayload(convDecode(llr, plen, preset.inner), header.messageLength, preset.parity);
+      result = decodePayload(convDecode(deinterleave(soft!, codedBits(plen, preset.inner)), plen, preset.inner), header.messageLength, preset.parity);
     } else {
       result = decodePayload(ungroup(pv, preset.bitsPerSymbol, plen), header.messageLength, preset.parity, byteMargins(margins, preset.bitsPerSymbol, plen));
     }

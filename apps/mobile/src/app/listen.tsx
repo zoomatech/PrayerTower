@@ -26,6 +26,7 @@ export default function ListenScreen() {
   const [heard, setHeard] = useState<Heard[]>([]);
   const [meter, setMeter] = useState(0);
   const [tell, setTell] = useState(true);
+  const [hf, setHf] = useState(false);
   const listener = useRef<BurstListener | null>(null);
   const tellRef = useRef(tell);
   useEffect(() => {
@@ -58,13 +59,13 @@ export default function ListenScreen() {
       const l = listener.current;
       if (!l) return;
       setMeter(l.meter);
-      const fresh = l.decode().map((f, i) => ({ ...f, key: `${Date.now()}-${i}`, at: new Date(), told: false }));
+      const fresh = l.decode(hf ? 50 : 0).map((f, i) => ({ ...f, key: `${Date.now()}-${i}`, at: new Date(), told: false }));
       if (!fresh.length) return;
       setHeard((all) => [...fresh.reverse(), ...all]);
       fresh.forEach((f) => void report(f));
-    }, DECODE_EVERY_MS);
+    }, hf ? DECODE_EVERY_MS * 2 : DECODE_EVERY_MS);
     return () => clearInterval(timer);
-  }, [listening, report]);
+  }, [listening, report, hf]);
 
   const start = async () => {
     const perm = await requestRecordingPermissionsAsync();
@@ -108,6 +109,7 @@ export default function ListenScreen() {
             >
               <View style={[styles.meterFill, { width: `${Math.round(meter * 100)}%` }]} />
             </View>
+            <Toggle label={t('listen.hf')} hint={t('listen.hfHint')} value={hf} onChange={setHf} />
             {config.receipts ? <Toggle label={t('listen.tell')} hint={t('listen.tellHint')} value={tell} onChange={setTell} /> : null}
             {heard.map((f) => (
               <View key={f.key} style={styles.card}>

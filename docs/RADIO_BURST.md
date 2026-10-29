@@ -28,6 +28,9 @@ about 21 bytes a prayer (4.4x). One prayer on its own takes about 24 bytes.
 | `dataport-fast` | The radio's 9600 data port, or an SDR | 13 kbit/s | 0.65 s | 1.2 s | about 18-20 dB |
 | `dataport-turbo` | 9600 data port or SDR, strong signal | 17 kbit/s | 0.5 s | 1.0 s | about 24 dB |
 | `dataport-qam64` | 9600 data port or SDR | 21 kbit/s (16 of data) | 0.55 s | 1.0 s | about 20 dB |
+| `hf-robust` | HF (shortwave) SSB, weak or fading paths | 1.9 kbit/s (0.9 of data) | 6.1 s | 10.8 s | about 2 dB steady, 8 dB fading |
+| `hf-standard` | HF SSB, fair paths | 3.8 kbit/s (1.8 of data) | 3.3 s | 5.6 s | about 4 dB steady, 12 dB fading |
+| `hf-fast` | HF SSB, good paths | 3.8 kbit/s (2.4 of data) | 2.6 s | 4.3 s | about 6 dB steady, 15 dB fading |
 
 The 100-prayer column uses the benchmark's generated requests
 (`src/burst/sample.ts`) and includes the 0.1 s lead-in. Each frame also has a
@@ -180,6 +183,34 @@ Off until Admin → Radio → "On-the-air receipts on" (`token_settings.radio_re
 
 Off until Admin → Radio → "On-the-air page on" (`token_settings.on_air_page_enabled`). `/on-the-air` (and `/open-circle/on-the-air`, worded "Messages") shows how many prayers the station sent in the last 24 hours, 7 days and in all, how many listeners reported hearing, and the latest 20 bursts (time, count, air time, preset). Counts only: it never shows a prayer's words, who sent or asked for it, or anything about a listener. Simulated bursts and the log transmitter are left out.
 
+## HF presets (shortwave SSB)
+
+The FM presets assume a steady audio path. HF is different: the signal arrives by two or more paths through the ionosphere, so some carriers fade out (a notch every 1/delay Hz, moving as the paths drift), an SSB filter cuts the audio to about 300-2700 Hz, and two stations are rarely tuned to the same hertz. The `hf-` presets are built for that:
+
+- **Carriers inside the SSB filter:** 46 carriers, 469-2578 Hz (bins 10-55).
+- **DPSK with soft-decision FEC:** differential phase needs no channel estimate, so a fade costs nothing once it passes. The rate-1/2 (or 2/3) code and the golden-ratio interleaver spread each byte across the whole frame, so a notch costs scattered soft bits.
+- **A coded header** (`header: 'coded'`): the same 32 header bytes go through the rate-1/2 code and the interleaver over 11 symbols, instead of 6 plain DBPSK symbols. On the simulated fading channels the plain header was what failed: a notch takes out the same bytes in every header symbol, more than Reed-Solomon can fix.
+- **Tuning search:** a receiver tuned within about 5 Hz needs nothing. Further off, decode with `BURST_SEARCH_HZ=50 cli.js decode rx.wav` or tick "Shortwave (SSB) radio" on `/listen`. Either tries the audio shifted in 10 Hz steps up to 50 Hz either way (11 passes, so slower).
+
+**Simulation.** `src/burst/hf-channel.ts` is the Watterson model with the CCIR Rec. 520 test channels: two equal-power paths, each with Rayleigh fading and a Gaussian Doppler spectrum. "Moderate" is 1 ms delay and 0.5 Hz spread; "poor" is 2 ms and 1 Hz. A 300-2700 Hz SSB filter and white noise are added. Results with 10 sample prayers per burst, 20 runs per point:
+
+| Preset | Moderate, 12 dB | Poor, 12 dB | Moderate, 15 dB | Poor, 15 dB | Poor, 20 dB |
+| --- | --- | --- | --- | --- | --- |
+| `hf-robust` | 20/20 | 20/20 | 20/20 | 20/20 | 20/20 |
+| `hf-standard` | 20/20 | 20/20 | 20/20 | 20/20 | 20/20 |
+| `hf-fast` | 16/20 | 14/20 | 20/20 | 18/20 | 20/20 |
+| `fm-robust-fec` (for comparison) | 11/20 | 9/20 | | | |
+
+On a harsher channel (2 ms, 2 Hz Doppler), `hf-robust` still decoded 20/20 at 12 dB and `hf-standard` 19/20.
+
+`BURST_SIM_HF=moderate` (or `quiet`, `poor`) runs simulate mode through this channel at `BURST_SIM_SNR_DB` (15 dB by default), with the receiver 20 Hz off and searching. The auto preset leaves HF presets out unless you list them: `BURST_AUTO_PRESETS=hf-robust,hf-standard,hf-fast`. A receiver's SNR report is its own measured SNR, so pick the margin with fading in mind (`BURST_AUTO_MARGIN_DB=6`).
+
+Two receiver changes help every preset:
+- The sync search now correlates with the sync symbol and its 90-degree turn and takes the magnitude, so a receiver that rotates the phase (any SSB receiver) finds frames as well as FM audio does.
+- Receivers try the coded header whenever the plain one fails.
+
+Both are receiver-only. Old receivers keep decoding FM frames, but they cannot read `hf-` frames.
+
 ## Auto preset
 
 `BURST_PRESET=auto` lets a receiver steer the speed. A receiver that hears
@@ -285,7 +316,9 @@ prefix: 1,152 samples, 24 ms. Carrier k sits at k x 46.875 Hz.
 
 ```
 sync symbol       bins 16-63, known phases S
-header symbols    bins 16-63, DBPSK, 6 symbols (256 bits; the last is zero padded)
+header symbols    bins 16-63, DBPSK, 6 symbols (256 bits; the last is zero padded);
+                  HF presets 12-14: the 32 header bytes rate-1/2 coded and interleaved
+                  (524 bits, below), 11 symbols
 reference symbol  the preset's bins, known phases R
 payload symbols   the preset's bins, differential PSK (or coherent QAM, presets 9-11)
 ```
@@ -303,6 +336,9 @@ payload symbols   the preset's bins, differential PSK (or coherent QAM, presets 
 | fm-qam16 | 9 | 16-63 | 4 (16-QAM) | 16, inner code rate 3/4 |
 | fm-qam64 | 10 | 12-66 | 6 (64-QAM) | 16, inner code rate 3/4 |
 | dataport-qam64 | 11 | 8-111 | 6 (64-QAM) | 16, inner code rate 3/4 |
+| hf-robust | 12 | 10-55 | 1 | 16, inner code rate 1/2, coded header |
+| hf-standard | 13 | 10-55 | 2 | 16, inner code rate 1/2, coded header |
+| hf-fast | 14 | 10-55 | 2 | 16, inner code rate 2/3, coded header |
 
 - **Known phases.** xorshift32 (x ^= x << 13; x ^= x >> 17; x ^= x << 5),
   seeded with 0x50545331 for S and 0x50545232 for R. For each carrier, from
@@ -314,7 +350,7 @@ payload symbols   the preset's bins, differential PSK (or coherent QAM, presets 
   Gray code (s XOR s>>1) is g. The carrier's phase is the previous symbol's
   phase plus s x 360° / 2^bits. The header is referenced to the sync symbol
   and the payload to the reference symbol.
-- **Inner code (presets 7-11).** Before modulation, the payload bytes
+- **Inner code (presets 7-14).** Before modulation, the payload bytes
   (most significant bit first) go through a constraint-length-7
   convolutional encoder with generators 171 and 133 (octal), starting in
   state 0 and flushed with six 0 bits. For each input bit the encoder emits
@@ -325,6 +361,13 @@ payload symbols   the preset's bins, differential PSK (or coherent QAM, presets 
   above round(0.618034 x n) that shares no factor with n. The scattered bits
   are laid on carriers as in "Bits to carriers" and the last symbol is zero
   padded.
+- **Coded header (presets 12-14).** The 32 header bytes (16 bytes and 16
+  Reed-Solomon parity, as for every preset) go through the same rate-1/2
+  encoder and the same scatter (n = 524), are laid on bins 16-63 one bit per
+  carrier, and are sent as DBPSK referenced to the sync symbol: 11 symbols,
+  the last zero padded. The receiver tries a plain header first and this one
+  when the plain one fails its check; the preset id must agree with which
+  one decoded.
 - **Coherent QAM payload (presets 9-11).** Not differential. Carrier index
   k counts from 0 at the preset's first bin; carrier k is a pilot when
   k mod 6 = 0 or k is the last carrier, otherwise a data carrier. In payload
@@ -358,6 +401,10 @@ receiver choices, not part of the format.
 
 ## Sources
 
+- CCIR Rec. 520 HF test channels (two equal-power Rayleigh paths; poor = 2 ms, 1 Hz) and the Watterson tapped-delay-line model: [KC7WW, "A Low-Cost HF Channel Simulator for Testing and Evaluating HF Digital Systems", TAPR DCC 1999](https://web.tapr.org/meetings/DCC_1999/DCC1999-HFchannelSimulator-KC7WW.pdf)
+- Watterson model with Gaussian Doppler spectra: [MathWorks, "HF Ionospheric Channel Models"](https://www.mathworks.com/help/comm/ug/hf-ionospheric-channel-models.html)
+- Harsher test channels (good 0.5 ms / 0.1 Hz, poor 2 ms / 2 Hz): [NTIA ITS, "HF Simulator"](https://its.ntia.gov/publications/download/HF%20Simulator.pdf)
+- SSB data passband 300-2700 Hz and the compressor off in DATA mode: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - VARA FM waveform (carrier spacing, symbol timing, carrier counts): [digirig, "Software modems in ham radio, Part 1"](https://digirig.net/software-modems-in-ham-radio-part-1-two-kinds-of-burst/)
 - 9600 data port: [Wikipedia, "9600 port"](https://en.wikipedia.org/wiki/9600_port)
 - Preset DEFLATE dictionaries: [Cloudflare blog](https://blog.cloudflare.com/improving-compression-with-preset-deflate-dictionary/)

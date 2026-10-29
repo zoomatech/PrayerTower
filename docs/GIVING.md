@@ -28,6 +28,8 @@ Everything here is **off by default**. An admin turns it on in **Admin → Givin
 | PayPal Donate button | 2.89% + 49¢; 1.99% + 49¢ for confirmed charities ([paypal.com business fees](https://www.paypal.com/us/business/paypal-business-fees)) | Make a Donate button in PayPal and paste its link in Admin → Giving → **PayPal Donate link**. It shows as a second button, **Give with PayPal**, beside Stripe or Zeffy, or alone. Record each gift with **Record the gift**, choosing PayPal. |
 | Cash or check | none | Admin → Giving → **Record the gift**. |
 
+**Record the gift** takes how it came in (cash or check, Zeffy, PayPal), where it goes (everyone, a pool, or one member), and optionally the member who gave it, who then gets the thank-you tokens.
+
 For comparison, GoFundMe charges 2.9% + $0.30 per donation ([gofundme.com/pricing](https://www.gofundme.com/pricing)).
 
 ## Stripe setup (placeholders until the keys exist)
