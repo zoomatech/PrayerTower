@@ -11,6 +11,7 @@ struct FeedView: View {
     @State private var composing = false
     @State private var opened: String?
     @State private var committing: Card?
+    @State private var gifting: Card?
     @State private var notice: String?
     @State private var error: String?
 
@@ -37,6 +38,12 @@ struct FeedView: View {
             .sheet(item: $committing) { card in
                 CommitSheet(card: card) { message in
                     done[card.id, default: []].insert(.commit)
+                    notice = message
+                }
+            }
+            .sheet(item: $gifting) { card in
+                GiftSheet(card: card) { message in
+                    done[card.id, default: []].insert(.giftTokens)
                     notice = message
                 }
             }
@@ -75,9 +82,8 @@ struct FeedView: View {
         case .wellWishes: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "well_wishes") } }
         case .encouragement: encouraging = card
         case .share: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "share") } }
-        // Not ported yet: this opens in the pilot app for now (docs/SWIFT_PORT.md, phase 4).
         case .commit: committing = card
-        case .giftTokens: notice = "\(action.name(model.wording)) is coming to this app soon. For now, use it in the Prayer Tower app."
+        case .giftTokens: gifting = card
         }
     }
 

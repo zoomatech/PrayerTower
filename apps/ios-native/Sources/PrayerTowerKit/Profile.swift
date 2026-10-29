@@ -85,6 +85,9 @@ public enum JSONValue: Encodable, Sendable, Equatable {
     case bool(Bool)
     case string(String)
     case int(Int)
+    case array([JSONValue])
+    case object([String: JSONValue])
+    case null
 
     public func encode(to encoder: Encoder) throws {
         var c = encoder.singleValueContainer()
@@ -92,7 +95,58 @@ public enum JSONValue: Encodable, Sendable, Equatable {
         case .bool(let b): try c.encode(b)
         case .string(let s): try c.encode(s)
         case .int(let i): try c.encode(i)
+        case .array(let a): try c.encode(a)
+        case .object(let o): try c.encode(o)
+        case .null: try c.encodeNil()
         }
+    }
+}
+
+/// Which phone alerts are on, and quiet hours (`notification_prefs` on the profile).
+public struct NotificationPrefs: Codable, Sendable, Equatable {
+    public struct Quiet: Codable, Sendable, Equatable {
+        public var start: String
+        public var end: String
+        public var timeZone: String
+        public init(start: String, end: String, timeZone: String) {
+            self.start = start
+            self.end = end
+            self.timeZone = timeZone
+        }
+    }
+    /// Categories whose pushes are off; they still appear under Notices.
+    public var off: [String]
+    public var quietHours: Quiet?
+
+    public init(off: [String] = [], quietHours: Quiet? = nil) {
+        self.off = off
+        self.quietHours = quietHours
+    }
+
+    /// NOTIFICATION_CATEGORIES in packages/shared, in its order.
+    public static let categories = ["prayers", "promises", "encouragement", "messages", "community", "tokens"]
+    public static let starts = ["20:00", "21:00", "22:00", "23:00"]
+    public static let ends = ["06:00", "07:00", "08:00", "09:00"]
+
+    public func isOn(_ category: String) -> Bool { !off.contains(category) }
+
+    public func setting(_ category: String, on: Bool) -> NotificationPrefs {
+        var p = self
+        p.off = on ? off.filter { $0 != category } : off + [category]
+        return p
+    }
+
+    /// Quiet hours on or off, or a new start or end; the window follows the phone's time zone.
+    public func quiet(on: Bool, start: String? = nil, end: String? = nil, timeZone: String = TimeZone.current.identifier) -> NotificationPrefs {
+        var p = self
+        p.quietHours = on ? Quiet(start: start ?? quietHours?.start ?? "22:00", end: end ?? quietHours?.end ?? "07:00", timeZone: timeZone) : nil
+        return p
+    }
+
+    /// The `PATCH /me` body.
+    public var patch: [String: JSONValue] {
+        let quiet: JSONValue = quietHours.map { .object(["start": .string($0.start), "end": .string($0.end), "timeZone": .string($0.timeZone)]) } ?? .null
+        return ["notificationPrefs": .object(["off": .array(off.map(JSONValue.string)), "quietHours": quiet])]
     }
 }
 
