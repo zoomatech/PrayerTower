@@ -364,6 +364,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     deleteAccount: 'Eliminar mi cuenta',
   },
   compose: {
+    videoTooLong: en.compose.videoTooLong,
     post: 'Publicar',
     greeting: '¡Bienvenido, %{name}! Hablemos con el Señor.',
     placeholder: 'Escribe tu oración aquí',
@@ -898,6 +899,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     burstDecoded: "Receiver check: %{decoded} of %{prayers} decoded.",
     burstFailed: "Failed: %{error}",
     radioBurstHint: "A station with BURST_MODE set claims up to this many prayers and sends them compressed in one short burst. A PSK31 station still sends one at a time. See docs/RADIO_BURST.md.",
+    listenPageOff: "Listening page off",
+    listenPageOn: "Listening page on",
+    listenPageHint: "When on, anyone can open /listen on the website with a phone or laptop near a radio and read the prayers in each burst as it plays. The decoding happens on their device. See docs/RADIO_BURST.md.",
     radioNeedHint: "Donations fill a shared fund and prayers go out free: the most urgent first, then the one with the fewest people praying, then the oldest.",
     giving: 'Giving',
     givingProvider: 'How people give',
@@ -1229,6 +1233,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     revokeCode: 'Anular %{code}',
     revoked: 'Código anulado.',
     shareMessage: 'Te invitamos a Prayer Tower. Tu código de invitación es %{code}. Abre %{url} en la aplicación, o escribe el código al crear tu cuenta.',
+    shareMessageTo: 'You are invited to %{name}. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
     email: 'Correo',
     import: 'Importar desde una hoja de cálculo (CSV)',
     emailCode: 'Enviar %{code} por correo',
@@ -1411,6 +1416,13 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     revoke: "Revocar verificación",
   },
   // English until Spanish is turned on (Steve, 2026-10-28: no Spanish work for now).
+  // Feed skins: English until Spanish is turned on.
+  skins: en.skins,
+  skinIdea: en.skinIdea,
+  tree: en.tree,
+  wall: en.wall,
+  tower: en.tower,
+  circuit: en.circuit,
   growth: en.growth,
   card: {
     answered: '✨ Oración contestada',

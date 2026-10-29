@@ -81,6 +81,42 @@ export interface Features {
   prayerMinute: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
+  /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
+  feedSkins: boolean;
+  commentTree: boolean;
+  /** Leaves shown on a branch before the rest fade into a blur. */
+  commentTreeLeaves: number;
+  /** Deepest reply level while the tree is on (0 = top-level comments only). */
+  commentTreeMaxDepth: number;
+  themeProposals: boolean;
+  /** Longest video a member can attach, in seconds. */
+  videoMaxSeconds: number;
+}
+
+export interface SkinSettings {
+  skins_enabled: boolean;
+  comment_tree_enabled: boolean;
+  comment_tree_leaves: number;
+  comment_tree_max_depth: number;
+  proposals_enabled: boolean;
+  video_max_seconds: number;
+}
+
+export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
+
+export interface ThemeProposal {
+  id: string;
+  name: string;
+  description: string;
+  layout: MakerLayout;
+  colors: { stem?: string; leaf?: string; backdrop?: string };
+  /** The look the member built in the theme maker. */
+  tokens: Record<string, unknown>;
+  status: 'pending' | 'approved' | 'declined';
+  reviewNote: string | null;
+  themeSlug: string | null;
+  createdAt: string;
+  from?: { id: string; name: string };
 }
 
 export interface GrowthSettings {
@@ -264,6 +300,8 @@ export interface AdminRadioSettings {
   radio_order: 'oldest' | 'need';
   /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
   radio_batch_max: number;
+  /** The public /listen page that decodes bursts from a phone's microphone. */
+  listen_page_enabled: boolean;
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -633,7 +671,7 @@ export interface NewPost {
   isSensitive?: boolean;
   /** "Prayer and positive thoughts welcome" from people of any faith or none. */
   allSupportWelcome?: boolean;
-  media?: { kind: 'image' | 'video'; storagePath: string }[];
+  media?: { kind: 'image' | 'video'; storagePath: string; durationMs?: number }[];
 }
 
 /** Annual Prayer Warrior Award (off by default). */
@@ -942,6 +980,9 @@ export const api = {
     }),
   myBranch: () => get<{ posts: Card[] }>('/me/branch'),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
+  myThemeProposals: () => get<{ proposals: ThemeProposal[] }>('/me/theme-proposals'),
+  proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>
+    post<{ proposal: ThemeProposal }>('/me/theme-proposals', input),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>
     post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
@@ -1080,7 +1121,7 @@ export const api = {
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
@@ -1135,6 +1176,12 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number }>) =>
+      request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
+    themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
+    approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
+    declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
     updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number }>) =>

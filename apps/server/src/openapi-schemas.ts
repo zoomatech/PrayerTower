@@ -27,6 +27,7 @@ import * as prayerActions from './modules/prayer-actions/index.js';
 import * as prompts from './modules/prompts/index.js';
 import * as reach from './modules/reach/index.js';
 import * as schedules from './modules/schedules/index.js';
+import * as skins from './modules/skins/index.js';
 import * as tiers from './modules/tiers/index.js';
 import * as witness from './modules/witness/index.js';
 
@@ -35,6 +36,10 @@ export const REQUEST_SCHEMAS: Record<string, { body?: z.ZodType; query?: z.ZodTy
   'PATCH /admin/tiers/:tier': { body: tiers.SettingUpdate },
   'PATCH /admin/reach-settings': { body: reach.SettingsPatch },
   'PATCH /admin/future-settings': { body: future.SettingsPatch },
+  'PATCH /admin/skin-settings': { body: skins.SettingsPatch },
+  'POST /me/theme-proposals': { body: skins.NewProposal },
+  'POST /admin/theme-proposals/:id/approve': { body: skins.Review },
+  'POST /admin/theme-proposals/:id/decline': { body: skins.Review },
   'GET /admin/feedback': { query: feedback.Filter },
   'GET /admin/feedback/export': { query: feedback.ExportFilter },
   'PATCH /admin/feedback/:id': { body: feedback.Triage },

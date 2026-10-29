@@ -83,6 +83,8 @@ describe('endpoint auth', () => {
       // The ad-free promise (404 while switched off).
       'GET /promise',
       'GET /open-circle/promise',
+      // The radio listening page (404 while switched off; decoding happens in the browser).
+      'GET /listen',
       // Why we run on gifts, not ads: the web page and the same words for the app (404 while switched off).
       'GET /why-donations',
       'GET /open-circle/why-donations',

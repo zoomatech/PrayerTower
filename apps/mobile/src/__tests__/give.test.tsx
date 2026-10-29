@@ -16,6 +16,9 @@ jest.mock('@/lib/api', () => {
 jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn(async () => ({ type: 'opened' })) }));
 jest.mock('@/lib/community-features', () => ({ useFeature: () => true }));
 
+// The first render in this file loads the whole Give screen; on a busy CI runner that took over 5 s (2026-10-29).
+jest.setTimeout(20000);
+
 const mocked = api as unknown as Record<keyof typeof api, jest.Mock>;
 const info = { enabled: true, provider: 'stripe', url: null, minCents: 100, maxCents: 100000, everyoneMonthly: 1, allocationRequests: true };
 

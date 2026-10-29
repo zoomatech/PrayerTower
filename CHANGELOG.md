@@ -4,6 +4,12 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Giving: Zeffy auto-recording, PayPal button, refunds, "Give to" a member ([#90](https://github.com/zoomatech/PrayerTower/pull/90))
+- Harmful prayer requests: held or reviewed by a person, never on the radio (off by default) ([#94](https://github.com/zoomatech/PrayerTower/pull/94))
+- Burst mode: amplify up to 1,000× and soft-decision FEC presets ([#95](https://github.com/zoomatech/PrayerTower/pull/95))
+- Burst log: the station reports each burst; Admin → Radio shows the latest ([#91](https://github.com/zoomatech/PrayerTower/pull/91))
+- Why we run on gifts, not ads: Me screen and /why-donations, behind an off switch ([#87](https://github.com/zoomatech/PrayerTower/pull/87))
+- Admin → Radio: prayers per burst ([#89](https://github.com/zoomatech/PrayerTower/pull/89))
 - Account security (reset, change, two-step sign-in), radio by need, giving (off by default) ([#85](https://github.com/zoomatech/PrayerTower/pull/85))
 - Radio burst mode: many prayers compressed into one short burst, off by default ([#88](https://github.com/zoomatech/PrayerTower/pull/88))
 - Check-in affirmation behind an off switch; last hard-coded text into en.ts ([#86](https://github.com/zoomatech/PrayerTower/pull/86))

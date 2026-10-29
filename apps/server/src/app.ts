@@ -48,6 +48,7 @@ import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
 import { growthPublicRoutes, growthRoutes } from './modules/growth/routes.js';
+import { skinRoutes } from './modules/skins/routes.js';
 import { securityRoutes } from './modules/security/routes.js';
 import { registerMetrics } from './metrics.js';
 import { announcementRoutes } from './modules/announcements/routes.js';
@@ -271,6 +272,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
     growthRoutes(authed, db);
+    skinRoutes(authed, db);
     securityRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
     aiRoutes(authed, db, converse);

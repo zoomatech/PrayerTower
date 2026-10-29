@@ -5,6 +5,7 @@ import { languages } from '../../language.js';
 import * as site from './index.js';
 import * as openCircle from './open-circle.js';
 import { promisePage } from './promise.js';
+import * as listen from '../listen/index.js';
 import * as whyGifts from './why-gifts.js';
 import { waitlistPage } from '../waitlist/page.js';
 import * as waitlist from '../waitlist/index.js';
@@ -57,6 +58,12 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db
     for (const page of ['/', '/support', '/privacy', '/terms']) app.get(site.pathFor('es', page), async (_req, reply) => reply.redirect(page, 302));
     app.get('/es/', async (_req, reply) => reply.redirect('/', 302));
   }
+
+  // The browser listening page for radio bursts, only while Admin → Radio has it on.
+  app.get('/listen', async (_req, reply) => {
+    if (!db || !(await listen.enabled(db))) return reply.code(404).type(html).send(notFound());
+    return reply.type(html).send(listen.listenPage());
+  });
 
   // The ad-free promise, only while Admin → Notebook ideas has it on.
   const promiseOn = async () => (db ? (await db.query<{ on: boolean }>('select promise_page_enabled as on from public.notebook_settings')).rows[0]?.on === true : false);

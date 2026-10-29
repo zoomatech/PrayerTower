@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type TokenPool, type StationBurst } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -309,6 +309,7 @@ function Admin() {
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
         <GrowthSettingsSection />
+        <SkinSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
         <MaterialMatchSection />
@@ -347,6 +348,15 @@ function Admin() {
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
+            {radio.radio_batch_max > 1 ? (
+              <>
+                <View style={styles.row}>
+                  <Chip label={t('admin.listenPageOff')} selected={!radio.listen_page_enabled} onPress={() => saveRadio({ listenPage: false })} />
+                  <Chip label={t('admin.listenPageOn')} selected={radio.listen_page_enabled} onPress={() => saveRadio({ listenPage: true })} />
+                </View>
+                <Text style={type.small}>{t('admin.listenPageHint')}</Text>
+              </>
+            ) : null}
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
@@ -1189,6 +1199,86 @@ function NewCommunity({ onCreated, onNote }: { onCreated: (c: Community) => void
       <Field label={t('admin.field.communityContact')} autoCapitalize="none" value={d.operatorContact} onChangeText={(operatorContact) => setD((x) => ({ ...x, operatorContact }))} />
       <Toggle label={t('admin.communityNeutral')} hint={t('admin.communityNeutralHint')} value={d.neutral} onChange={(neutral) => setD((x) => ({ ...x, neutral }))} />
       <Button label={t('admin.btn.createCommunity')} disabled={!d.name.trim() || !d.slug.trim()} onPress={() => create()} />
+    </View>
+  );
+}
+
+/** Feed skins (docs/FEED_SKINS.md): skins and the Wall, comment trees, member skin ideas and the video cap. */
+function SkinSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<SkinSettings | null>(null);
+  const [draft, setDraft] = useState({ leaves: '', depth: '', video: '' });
+  const [ideas, setIdeas] = useState<ThemeProposal[]>([]);
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: SkinSettings) => {
+    setS(x);
+    setDraft({ leaves: String(x.comment_tree_leaves), depth: String(x.comment_tree_max_depth + 1), video: String(x.video_max_seconds) });
+  };
+  const loadIdeas = () =>
+    api.admin
+      .themeProposals()
+      .then((r) => setIdeas(r.proposals))
+      .catch(() => undefined);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.skinSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+      loadIdeas();
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateSkinSettings>[0] = {}) => {
+    const levels = toInt(draft.depth);
+    return api.admin
+      .updateSkinSettings({
+        commentTreeLeaves: toInt(draft.leaves) ?? undefined,
+        // Shown as levels (3), stored as the deepest reply depth (2).
+        commentTreeMaxDepth: levels == null ? undefined : levels - 1,
+        videoMaxSeconds: toInt(draft.video) ?? undefined,
+        ...patch,
+      })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('skins.saved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  };
+  const review = (fn: () => Promise<unknown>) =>
+    fn()
+      .then(loadIdeas)
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  const pending = ideas.filter((i) => i.status === 'pending');
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('skins.title')}</Text>
+      <Text style={type.small}>{t('skins.intro')}</Text>
+      <Toggle label={t('skins.skins')} hint={t('skins.skinsHint')} value={s.skins_enabled} onChange={(v) => save({ skinsEnabled: v })} />
+      <Toggle label={t('skins.tree')} hint={t('skins.treeHint')} value={s.comment_tree_enabled} onChange={(v) => save({ commentTreeEnabled: v })} />
+      <Field label={t('skins.leaves')} keyboardType="number-pad" value={draft.leaves} onChangeText={(leaves) => setDraft((d) => ({ ...d, leaves }))} />
+      <Field label={t('skins.levels')} keyboardType="number-pad" value={draft.depth} onChangeText={(depth) => setDraft((d) => ({ ...d, depth }))} />
+      <Toggle label={t('skins.ideas')} hint={t('skins.ideasHint')} value={s.proposals_enabled} onChange={(v) => save({ proposalsEnabled: v })} />
+      <Field label={t('skins.video')} keyboardType="number-pad" value={draft.video} onChangeText={(video) => setDraft((d) => ({ ...d, video }))} />
+      <Text style={type.small}>{t('skins.videoHint')}</Text>
+      <Button label={t('skins.save')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+      <Text style={type.heading}>{t('skins.queue', { count: pending.length })}</Text>
+      {pending.map((i) => (
+        <View key={i.id} style={styles.section}>
+          <Text style={type.body}>
+            {i.name} · {i.layout === 'wall' ? t('skinIdea.wall') : t('skinIdea.vine')} · {i.from?.name}
+          </Text>
+          <Text style={type.small}>{i.description}</Text>
+          <View style={{ flexDirection: 'row', gap: space.sm }}>
+            {[...new Set([...Object.values(i.colors ?? {}), ...Object.values(i.tokens ?? {})].filter((v): v is string => typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v)))].slice(0, 6).map((c, n) => (
+              <View key={n} style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: c }} accessibilityLabel={c} />
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap: space.sm }}>
+            <Button small label={t('skins.approve')} onPress={() => review(() => api.admin.approveThemeProposal(i.id))} />
+            <Button small variant="secondary" label={t('skins.decline')} onPress={() => review(() => api.admin.declineThemeProposal(i.id))} />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }

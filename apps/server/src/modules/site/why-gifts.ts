@@ -11,7 +11,7 @@ export interface WhyGifts {
   title: string;
   intro: string;
   points: { heading: string; body: string }[];
-  /** The website's Give link: the Zeffy page while giving is on through Zeffy. The app uses Me → Give instead. */
+  /** The website's Give link: the Zeffy page, else the PayPal Donate page, while giving is on. The app uses Me → Give instead. */
   giveUrl: string | null;
   /** The public fund report, while it is published (Prayer Tower only: it is the "Common Prayer Fund"). */
   fundPath: string | null;
@@ -22,10 +22,11 @@ export async function enabled(q: Queryable) {
   return rows[0]?.on === true;
 }
 
-/** The Zeffy page while giving is on through Zeffy (Admin → Giving); Stripe giving happens in the app. */
+/** The Zeffy page, else the PayPal Donate page, while giving is on (Admin → Giving); Stripe giving happens in the app. */
 async function giveUrl(q: Queryable): Promise<string | null> {
   const s = await donations.settings(q);
-  return s.enabled && s.provider === 'zeffy' && s.donate_url ? s.donate_url : null;
+  if (!s.enabled) return null;
+  return (s.provider === 'zeffy' && s.donate_url) || s.paypal_url || null;
 }
 
 /** The words for one edition: `faith` for Prayer Tower, otherwise neutral under `name`. */

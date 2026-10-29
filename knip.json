@@ -19,6 +19,12 @@
       "entry": [
         "src/scripts/*.ts"
       ]
+    },
+    "apps/station": {
+      "entry": [
+        "scripts/*.ts",
+        "src/burst/web.ts"
+      ]
     }
   },
   "ignoreExportsUsedInFile": true,
