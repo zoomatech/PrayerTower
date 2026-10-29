@@ -5,12 +5,15 @@ import SwiftUI
 @main
 struct PrayerTowerApp: App {
     @State private var model = AppModel(store: AppModel.makeStore())
+    @Environment(\.scenePhase) private var phase
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(model)
                 .task { await model.start() }
+                // Back in the foreground: send anything done while offline.
+                .onChange(of: phase) { _, now in if now == .active { Task { await model.store.api.sendQueued() } } }
                 .onOpenURL { url in
                     if let code = Invite.code(from: url) { model.invite = code } else { model.openPost = PrayNow.postId(from: url) }
                 }
