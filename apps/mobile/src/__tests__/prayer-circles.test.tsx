@@ -57,7 +57,7 @@ describe('Prayer circles', () => {
     await renderApp(<Circles />);
     await settle();
     expect(screen.getByText('Tuesday friends')).toBeTruthy();
-    expect(screen.getByText(/2 people · You started this circle/)).toBeTruthy();
+    expect(screen.getByText(/2 in this circle · You started this circle/)).toBeTruthy();
     await act(async () => fireEvent.changeText(screen.getByLabelText('Circle name'), 'Night shift'));
     await act(async () => fireEvent.press(screen.getByText('Start it')));
     expect(api.createCircle).toHaveBeenCalledWith('Night shift', undefined);

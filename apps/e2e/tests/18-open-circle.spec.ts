@@ -14,7 +14,7 @@ const SCREENS = [
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account', '/squire-board', '/prayer-list',
   '/why-gifts', '/give', '/account-security', '/two-step', '/ai-chat', '/announcements', '/churches', '/church', '/listen', '/listen-on-air', '/onboarding',
   '/prayer-chain', '/prayer-minute', '/remembered', '/scheduled', '/skin-idea', '/skin-gallery', '/waitlist', '/reading-plan', '/invites',
-  '/meaning-words', '/kindness-research', '/crosspost',
+  '/meaning-words', '/kindness-research', '/crosspost', '/circles',
 ];
 const shots = process.env.OPEN_CIRCLE_SHOTS;
 

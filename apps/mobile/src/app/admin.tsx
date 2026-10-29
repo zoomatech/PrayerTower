@@ -2160,6 +2160,7 @@ function ConversationSettingsSection() {
       <Toggle label={t('commentKindness.adminHearts')} hint={t('commentKindness.adminHeartsHint')} value={s.author_hearts_enabled} onChange={(v) => save({ authorHeartsEnabled: v })} />
       <Toggle label={t('commentKindness.adminThanks')} hint={t('commentKindness.adminThanksHint')} value={s.comment_thanks_enabled} onChange={(v) => save({ commentThanksEnabled: v })} />
       <Toggle label={t('quietCounts.adminTitle')} hint={t('quietCounts.adminHint')} value={s.quiet_counts_enabled} onChange={(v) => save({ quietCountsEnabled: v })} />
+      <Toggle label={t('replyChoice.adminTitle')} hint={t('replyChoice.adminHint')} value={s.reply_choice_enabled} onChange={(v) => save({ replyChoiceEnabled: v })} />
       <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
@@ -2227,6 +2228,8 @@ function PracticeSettingsSection() {
       <Toggle label={t('thankNote.adminTitle')} hint={t('thankNote.adminHint')} value={s.thank_note_enabled} onChange={(v) => save({ thankNoteEnabled: v })} />
       <Toggle label={t('calm.adminTitle')} hint={t('calm.adminHint')} value={s.calm_threads_enabled} onChange={(v) => save({ calmThreadsEnabled: v })} />
       <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={s.prayer_circles_enabled} onChange={(v) => save({ prayerCirclesEnabled: v })} />
+      <Toggle label={t('circleWelcome.adminTitle')} hint={t('circleWelcome.adminHint')} value={s.circle_welcome_enabled} onChange={(v) => save({ circleWelcomeEnabled: v })} />
+      <Toggle label={t('pathBack.adminTitle')} hint={t('pathBack.adminHint')} value={s.path_back_enabled} onChange={(v) => save({ pathBackEnabled: v })} />
       <Toggle label={t('weather.adminTitle')} hint={t('weather.adminHint')} value={s.kindness_weather_enabled} onChange={(v) => save({ kindnessWeatherEnabled: v })} />
       {s.kindness_weather_enabled ? <KindnessWeather /> : null}
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />

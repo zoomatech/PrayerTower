@@ -430,6 +430,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
       where c.owner_id = $1 and exists (select 1 from public.prayer_circle_members m where m.circle_id = c.id and m.user_id <> $1)`,
     'delete from public.prayer_circle_invites where created_by = $1',
     'delete from public.prayer_circles where owner_id = $1',
+    'delete from public.circle_welcome_seen where user_id = $1',
     'delete from public.circle_prayed where user_id = $1',
     'delete from public.circle_replies where user_id = $1',
     'delete from public.circle_posts where user_id = $1',
