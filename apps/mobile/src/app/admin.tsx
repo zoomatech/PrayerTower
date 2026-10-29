@@ -337,6 +337,13 @@ function Admin() {
               <Chip label={t('admin.radioNeed')} selected={radio.radio_order === 'need'} onPress={() => saveRadio({ order: 'need' })} />
             </View>
             {radio.radio_order === 'need' ? <Text style={type.small}>{t('admin.radioNeedHint')}</Text> : null}
+            <Text style={type.small}>{t('admin.radioBurst')}</Text>
+            <View style={styles.row}>
+              {[1, 10, 50, 100, 500].map((n) => (
+                <Chip key={n} label={n === 1 ? t('admin.radioBurstOne') : String(n)} selected={radio.radio_batch_max === n} onPress={() => saveRadio({ batchMax: n })} />
+              ))}
+            </View>
+            {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
@@ -1223,6 +1230,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.tierUpkeep')} hint={t('admin.toggle.tierUpkeepHint')} value={s.tier_upkeep_enabled} onChange={(v) => save({ tierUpkeepEnabled: v })} />
       <Field label={t('admin.field.tierUpkeepDays')} keyboardType="number-pad" value={upkeepDays} onChangeText={setUpkeepDays} />
       <Toggle label={t('admin.toggle.checkinAffirmation')} hint={t('admin.toggle.checkinAffirmationHint')} value={s.checkin_affirmation_enabled} onChange={(v) => save({ checkinAffirmationEnabled: v })} />
+      <Toggle label={t('admin.toggle.whyGifts')} hint={t('admin.toggle.whyGiftsHint')} value={s.why_gifts_enabled} onChange={(v) => save({ whyGiftsEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
