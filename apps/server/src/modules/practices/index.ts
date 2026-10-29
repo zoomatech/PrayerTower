@@ -29,10 +29,15 @@ export interface PracticeSettings {
   encourager_days: number;
   newcomer_days: number;
   remembered_enabled: boolean;
+  welcome_card_enabled: boolean;
+  welcome_text: string | null;
+  ask_kindly_enabled: boolean;
+  mend_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
-  const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled
+  const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
+            welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -46,6 +51,11 @@ export const SettingsPatch = z.object({
   encouragerDays: z.number().int().min(7).max(90).optional(),
   newcomerDays: z.number().int().min(1).max(365).optional(),
   rememberedEnabled: z.boolean().optional(),
+  welcomeCardEnabled: z.boolean().optional(),
+  /** An empty string goes back to the app's default wording. */
+  welcomeText: z.string().trim().max(600).optional(),
+  askKindlyEnabled: z.boolean().optional(),
+  mendEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -54,7 +64,10 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        followup_enabled = coalesce($1, followup_enabled), followup_days = coalesce($2, followup_days),
        gratitude_enabled = coalesce($3, gratitude_enabled), gentle_rhythm_enabled = coalesce($4, gentle_rhythm_enabled),
        encourager_enabled = coalesce($5, encourager_enabled), encourager_days = coalesce($6, encourager_days),
-       newcomer_days = coalesce($7, newcomer_days), remembered_enabled = coalesce($8, remembered_enabled)`,
+       newcomer_days = coalesce($7, newcomer_days), remembered_enabled = coalesce($8, remembered_enabled),
+       welcome_card_enabled = coalesce($9, welcome_card_enabled),
+       welcome_text = case when $10::text is null then welcome_text else nullif($10, '') end,
+       ask_kindly_enabled = coalesce($11, ask_kindly_enabled), mend_enabled = coalesce($12, mend_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -64,6 +77,10 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.encouragerDays ?? null,
       p.newcomerDays ?? null,
       p.rememberedEnabled ?? null,
+      p.welcomeCardEnabled ?? null,
+      p.welcomeText ?? null,
+      p.askKindlyEnabled ?? null,
+      p.mendEnabled ?? null,
     ],
   );
   return settings(q);
@@ -77,6 +94,9 @@ export async function features(q: Queryable) {
     gentleRhythm: s.gentle_rhythm_enabled,
     encourager: s.encourager_enabled,
     remembered: s.remembered_enabled,
+    welcomeCard: s.welcome_card_enabled,
+    askKindly: s.ask_kindly_enabled,
+    mend: s.mend_enabled,
   };
 }
 
