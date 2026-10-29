@@ -5,10 +5,11 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
-import { AppError } from '../../errors.js';
+import { AppError, notFound } from '../../errors.js';
 import * as ops from '../ops/index.js';
 import * as health from './health.js';
 import * as radio from './index.js';
+import * as nodes from './nodes.js';
 
 export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string | null) {
   const requireStation = async (req: FastifyRequest) => {
@@ -49,6 +50,23 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
     await requireStation(req);
     await ops.beat(db, 'station');
     await health.recordStatus(db, health.StationStatus.parse(req.body));
+    return { ok: true };
+  });
+
+  // BURST_PRESET=auto: the weakest fresh listener report of this call sign (nodes.ts); 204 when none.
+  app.get<{ Querystring: { callSign?: string } }>('/station/channel', async (req, reply) => {
+    await requireStation(req);
+    const { callSign } = z.object({ callSign: z.string().trim().min(3).max(20) }).parse(req.query);
+    const report = (await nodes.enabled(db)) ? await nodes.channelFor(db, callSign) : null;
+    if (!report) return reply.code(204).send();
+    return report;
+  });
+
+  // A listener node heard the station: what it measured (never the prayers' words).
+  app.post('/node/channel-report', async (req) => {
+    const node = await nodes.authenticate(db, req.headers['x-node-key'] as string | undefined, 'listener');
+    if (!(await nodes.enabled(db))) throw notFound('Listener reports');
+    await nodes.recordReport(db, node.id, nodes.ChannelReportInput.parse(req.body));
     return { ok: true };
   });
 

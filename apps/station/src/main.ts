@@ -7,7 +7,8 @@
 //   BURST_MAX_FRAME_SECONDS (20), BURST_PLAY_CMD ("aplay -q {wav}"), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
 //   BURST_PTT_DELAY_MS (300), BURST_DIR (bursts/ under the state directory), BURST_FLDIGI_MODEM (8PSK1000F)
 // BURST_PRESET=auto picks a preset before each burst from a receiver's channel report:
-//   BURST_AUTO_REPORT (file or URL; BURST_DIR/channel.json), BURST_AUTO_PRESETS (the FM presets
+//   BURST_AUTO_REPORT (file or URL; BURST_DIR/channel.json; "server" reads listener nodes' reports
+//   from Prayer Tower, GET /station/channel), BURST_AUTO_PRESETS (the FM presets
 //   without QAM), BURST_AUTO_MARGIN_DB (3), BURST_AUTO_MAX_AGE_MIN (30). Simulate mode can add
 //   noise with BURST_SIM_SNR_DB and writes its receiver's report to BURST_AUTO_REPORT;
 //   BURST_SIM_HF=quiet|moderate|poor sends it through a simulated HF SSB path instead.
@@ -79,7 +80,10 @@ const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
 let burst: { tx: BurstTransmitter; cfg: Parameters<typeof runBurstOnce>[2] } | null = null;
 if (burstMode !== 'off') {
   const dir = env('BURST_DIR', path.join(stateDir ?? '.', 'bursts'));
-  const reportSource = env('BURST_AUTO_REPORT', path.join(dir, 'channel.json'));
+  const autoReport = env('BURST_AUTO_REPORT', path.join(dir, 'channel.json'));
+  // "server": the weakest fresh report from the listener nodes (docs/STATION_OPERATOR_GUIDE.md, "Listener nodes").
+  const fromServer = autoReport === 'server';
+  const reportSource = fromServer ? `${env('PRAYER_TOWER_API_URL').replace(/\/$/, '')}/station/channel?callSign=${encodeURIComponent(callSign)}` : autoReport;
   const simSnr = process.env.BURST_SIM_SNR_DB;
   if (simSnr !== undefined && !Number.isFinite(Number(simSnr))) throw new Error('BURST_SIM_SNR_DB must be a number');
   const simHf = process.env.BURST_SIM_HF;
@@ -115,6 +119,7 @@ if (burstMode !== 'off') {
               candidates: parseCandidates(env('BURST_AUTO_PRESETS', DEFAULT_AUTO_PRESETS.join(','))),
               marginDb: int('BURST_AUTO_MARGIN_DB', '3', 0, 20),
               maxAgeMs: int('BURST_AUTO_MAX_AGE_MIN', '30', 1, 1440) * 60_000,
+              headers: fromServer ? { 'x-station-key': env('STATION_API_KEY') } : undefined,
             },
             console.log,
           )

@@ -23,7 +23,8 @@
     "apps/station": {
       "entry": [
         "scripts/*.ts",
-        "src/burst/web.ts"
+        "src/burst/web.ts",
+        "src/listener-main.ts"
       ]
     }
   },
