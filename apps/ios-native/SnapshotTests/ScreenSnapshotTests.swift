@@ -36,13 +36,41 @@ final class ScreenSnapshotTests: XCTestCase {
         wait(for: [ready], timeout: 10)
         for (name, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
             let host = UIHostingController(rootView: view.environment(model))
-            let traits = UITraitCollection { t in
-                t.userInterfaceStyle = style
-                t.preferredContentSizeCategory = .accessibilityExtraExtraExtraLarge
+            assertSnapshot(of: host, as: .loaded(style: style), named: "\(name)-largest-text", timeout: 15,
+                           file: file, testName: testName, line: line)
+        }
+    }
+}
+
+extension Snapshotting where Value == UIViewController, Format == UIImage {
+    /// The screen shown in a real window on an iPhone 13-sized screen at the largest accessibility
+    /// text size, given a few seconds there so its own `.task` loads finish before the picture.
+    /// (The library's `.wait` waits before the screen is in a window, so loads never start.)
+    @MainActor static func loaded(style: UIUserInterfaceStyle, seconds: Double = 3) -> Snapshotting {
+        Snapshotting(pathExtension: "png", diffing: .image(perceptualPrecision: 0.98)) { controller in
+            Async { done in
+                nonisolated(unsafe) let finish = done
+                Task { @MainActor in
+                    let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+                    let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+                    window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+                    window.overrideUserInterfaceStyle = style
+                    controller.traitOverrides.preferredContentSizeCategory = .accessibilityExtraExtraExtraLarge
+                    window.rootViewController = controller
+                    window.isHidden = false
+                    try? await Task.sleep(for: .seconds(seconds))
+                    controller.view.setNeedsLayout()
+                    controller.view.layoutIfNeeded()
+                    let format = UIGraphicsImageRendererFormat()
+                    format.scale = 3
+                    let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { ctx in
+                        window.layer.render(in: ctx.cgContext)
+                    }
+                    window.isHidden = true
+                    window.rootViewController = nil
+                    finish(image)
+                }
             }
-            // Wait for each screen's own loads to finish before the picture is taken.
-            assertSnapshot(of: host, as: .wait(for: 2, on: .image(on: .iPhone13, perceptualPrecision: 0.98, traits: traits)),
-                           named: "\(name)-largest-text", file: file, testName: testName, line: line)
         }
     }
 }
