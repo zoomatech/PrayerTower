@@ -16,6 +16,7 @@ Steve's rule (2026-10-28): the pilot stays the Expo app in `apps/mobile`. Every 
 | `PrayerTowerKit` | API models, requests, errors (`APIError` reads `{error, message}`, `needsCode`, `signedOut`) | Yes |
 | `PrayerTowerSession` | Supabase sign-in, two-step code, sign-out; `SignInState` | Yes |
 | `App/` | SwiftUI: sign in, two-step code, the feed with one row of action icons, the kind cloud, prayer circles (with welcome and updates), and fresh-start days on Me | No (needs a Mac) |
+| `Console/` | The Mac operator console app (macOS 15): operator console, station health, keying controls with their safety rules, Station menu and menu bar item; see [STATION_OPERATOR_GUIDE.md](STATION_OPERATOR_GUIDE.md#on-a-mac-prayer-tower-console) | No (needs a Mac) |
 | `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md) spec; bundle id `com.zoomatech.prayertower.native` | — |
 
 Tests: five API tests with a stubbed network, and two live tests (sign-in, feed, Praying Now, wrong password) that run when `PT_*` variables point at a running stack. CI runs `swift test` in the official `swift:6.4.1-noble` image ([swift.org Linux install](https://www.swift.org/install/linux/)).
@@ -91,7 +92,7 @@ Each phase ships to TestFlight under the separate bundle id. The Expo app stays 
 
 Mac builds run through Remote Control, as with `scripts/mac-build.sh`. The native app needs Xcode and `brew install xcodegen`; it does not need CocoaPods (packages come from Swift Package Manager). Steps are in [apps/ios-native/README.md](../apps/ios-native/README.md).
 
-`scripts/mac-build-native.sh` does it in one go: it runs `swift test`, gets XcodeGen (from Homebrew, or built from its tagged source when Homebrew belongs to another macOS account), generates the project, builds the app for the iOS Simulator without signing, and prints a pass/fail table with logs in `build-logs/native-<time>/`.
+`scripts/mac-build-native.sh` does it in one go: it runs `swift test`, gets XcodeGen (from Homebrew, or built from its tagged source when Homebrew belongs to another macOS account), generates the project, builds the app for the iOS Simulator and the Mac operator console without signing, and prints a pass/fail table with logs in `build-logs/native-<time>/`.
 
 ## Not done yet
 

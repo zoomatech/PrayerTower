@@ -50,6 +50,9 @@ struct MeView: View {
                     }
                 }
                 ConversationPrefsSection()
+                ToolsSection()
+                ExtrasSection()
+                MoreToolsSection()
                 StaffSection()
                 if let error { Section { Text(error).foregroundStyle(.red) } }
                 Section {
@@ -80,6 +83,7 @@ struct MeView: View {
                     Button(w("profile.signOut"), role: .destructive) {
                         Task {
                             await model.store.signOut()
+                            await OfflineStore.shared.clear()
                             await WidgetBridge.update(nil, model: model)
                             model.state = .signedOut
                         }
@@ -228,6 +232,7 @@ struct DeleteAccountView: View {
         do {
             _ = try await model.store.api.deleteAccount()
             await model.store.signOut()
+            await OfflineStore.shared.clear()
             await WidgetBridge.update(nil, model: model)
             model.state = .signedOut
         } catch {

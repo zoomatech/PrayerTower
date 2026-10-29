@@ -1,0 +1,764 @@
+[
+ {
+  "id": "notebookSettings",
+  "title": "admin.notebook",
+  "intro": null,
+  "get": "/admin/notebook-settings",
+  "patch": "/admin/notebook-settings",
+  "toggles": [
+   {
+    "label": "admin.toggle.worldwide",
+    "hint": "admin.toggle.worldwideHint",
+    "field": "worldwide_count_enabled",
+    "patch": "worldwideCountEnabled"
+   },
+   {
+    "label": "admin.toggle.thanksCard",
+    "hint": "admin.toggle.thanksCardHint",
+    "field": "thanks_card_enabled",
+    "patch": "thanksCardEnabled"
+   },
+   {
+    "label": "admin.toggle.sermonInputs",
+    "hint": "admin.toggle.sermonInputsHint",
+    "field": "sermon_inputs_enabled",
+    "patch": "sermonInputsEnabled"
+   },
+   {
+    "label": "admin.toggle.supportLabel",
+    "hint": "admin.toggle.supportLabelHint",
+    "field": "support_label_enabled",
+    "patch": "supportLabelEnabled"
+   },
+   {
+    "label": "admin.toggle.witnessStories",
+    "hint": "admin.toggle.witnessStoriesHint",
+    "field": "witness_stories_enabled",
+    "patch": "witnessStoriesEnabled"
+   },
+   {
+    "label": "admin.toggle.pressureRule",
+    "hint": "admin.toggle.pressureRuleHint",
+    "field": "pressure_rule_enabled",
+    "patch": "pressureRuleEnabled"
+   },
+   {
+    "label": "admin.toggle.misleadingRule",
+    "hint": "admin.toggle.misleadingRuleHint",
+    "field": "misleading_rule_enabled",
+    "patch": "misleadingRuleEnabled"
+   },
+   {
+    "label": "admin.toggle.automationRule",
+    "hint": "admin.toggle.automationRuleHint",
+    "field": "automation_rule_enabled",
+    "patch": "automationRuleEnabled"
+   },
+   {
+    "label": "admin.toggle.urgencyGlow",
+    "hint": "admin.toggle.urgencyGlowHint",
+    "field": "urgency_glow_enabled",
+    "patch": "urgencyGlowEnabled"
+   },
+   {
+    "label": "admin.toggle.reactionTray",
+    "hint": "admin.toggle.reactionTrayHint",
+    "field": "reaction_tray_enabled",
+    "patch": "reactionTrayEnabled"
+   },
+   {
+    "label": "admin.toggle.memberTown",
+    "hint": "admin.toggle.memberTownHint",
+    "field": "member_town_enabled",
+    "patch": "memberTownEnabled"
+   },
+   {
+    "label": "admin.toggle.prizeChoice",
+    "hint": "admin.toggle.prizeChoiceHint",
+    "field": "prize_choice_enabled",
+    "patch": "prizeChoiceEnabled"
+   },
+   {
+    "label": "admin.toggle.waitlist",
+    "hint": "admin.toggle.waitlistHint",
+    "field": "waitlist_enabled",
+    "patch": "waitlistEnabled"
+   },
+   {
+    "label": "admin.toggle.crossCommunity",
+    "hint": "admin.toggle.crossCommunityHint",
+    "field": "cross_community_enabled",
+    "patch": "crossCommunityEnabled"
+   },
+   {
+    "label": "admin.toggle.postLines",
+    "hint": "admin.toggle.postLinesHint",
+    "field": "post_lines_enabled",
+    "patch": "postLinesEnabled"
+   },
+   {
+    "label": "admin.toggle.tierUpkeep",
+    "hint": "admin.toggle.tierUpkeepHint",
+    "field": "tier_upkeep_enabled",
+    "patch": "tierUpkeepEnabled"
+   },
+   {
+    "label": "admin.toggle.checkinAffirmation",
+    "hint": "admin.toggle.checkinAffirmationHint",
+    "field": "checkin_affirmation_enabled",
+    "patch": "checkinAffirmationEnabled"
+   },
+   {
+    "label": "admin.toggle.whyGifts",
+    "hint": "admin.toggle.whyGiftsHint",
+    "field": "why_gifts_enabled",
+    "patch": "whyGiftsEnabled"
+   },
+   {
+    "label": "admin.toggle.poolMatching",
+    "hint": "admin.toggle.poolMatchingHint",
+    "field": "pool_matching_enabled",
+    "patch": "poolMatchingEnabled"
+   },
+   {
+    "label": "admin.toggle.kindCloud",
+    "hint": "admin.toggle.kindCloudHint",
+    "field": "kind_cloud_enabled",
+    "patch": "kindCloudEnabled"
+   },
+   {
+    "label": "admin.toggle.meaningReactions",
+    "hint": "admin.toggle.meaningReactionsHint",
+    "field": "meaning_reactions_enabled",
+    "patch": "meaningReactionsEnabled"
+   },
+   {
+    "label": "admin.toggle.lamps",
+    "hint": "admin.toggle.lampsHint",
+    "field": "lamps_enabled",
+    "patch": "lampsEnabled"
+   },
+   {
+    "label": "admin.toggle.poolLedger",
+    "hint": "admin.toggle.poolLedgerHint",
+    "field": "pool_ledger_enabled",
+    "patch": "poolLedgerEnabled"
+   },
+   {
+    "label": "admin.toggle.circleGoals",
+    "hint": "admin.toggle.circleGoalsHint",
+    "field": "circle_goals_enabled",
+    "patch": "circleGoalsEnabled"
+   },
+   {
+    "label": "admin.toggle.givingAsk",
+    "hint": "admin.toggle.givingAskHint",
+    "field": "giving_ask_enabled",
+    "patch": "givingAskEnabled"
+   },
+   {
+    "label": "admin.toggle.supportLinks",
+    "hint": "admin.toggle.supportLinksHint",
+    "field": "support_links_enabled",
+    "patch": "supportLinksEnabled"
+   },
+   {
+    "label": "admin.toggle.squireBoard",
+    "hint": "admin.toggle.squireBoardHint",
+    "field": "squire_board_enabled",
+    "patch": "squireBoardEnabled"
+   },
+   {
+    "label": "admin.toggle.groupGifts",
+    "hint": "admin.toggle.groupGiftsHint",
+    "field": "group_gifts_enabled",
+    "patch": "groupGiftsEnabled"
+   },
+   {
+    "label": "admin.toggle.prayerList",
+    "hint": "admin.toggle.prayerListHint",
+    "field": "prayer_list_enabled",
+    "patch": "prayerListEnabled"
+   },
+   {
+    "label": "admin.toggle.readingPlan",
+    "hint": "admin.toggle.readingPlanHint",
+    "field": "reading_plan_enabled",
+    "patch": "readingPlanEnabled"
+   },
+   {
+    "label": "admin.toggle.promisePage",
+    "hint": "admin.toggle.promisePageHint",
+    "field": "promise_page_enabled",
+    "patch": "promisePageEnabled"
+   },
+   {
+    "label": "admin.toggle.podcasts",
+    "hint": "admin.toggle.podcastsHint",
+    "field": "podcasts_enabled",
+    "patch": "podcastsEnabled"
+   },
+   {
+    "label": "admin.toggle.crosspost",
+    "hint": "admin.toggle.crosspostHint",
+    "field": "crosspost_enabled",
+    "patch": "crosspostEnabled"
+   }
+  ],
+  "numbers": [
+   {
+    "label": "admin.field.thanksDays",
+    "field": "thanks_card_days",
+    "patch": "thanksCardDays"
+   },
+   {
+    "label": "admin.field.tierUpkeepDays",
+    "field": "tier_upkeep_days",
+    "patch": "tierUpkeepDays"
+   }
+  ]
+ },
+ {
+  "id": "growthSettings",
+  "title": "growth.adminTitle",
+  "intro": "growth.adminIntro",
+  "get": "/admin/growth-settings",
+  "patch": "/admin/growth-settings",
+  "toggles": [
+   {
+    "label": "growth.adminGuest",
+    "hint": "growth.adminGuestHint",
+    "field": "guest_prayer_enabled",
+    "patch": "guestPrayerEnabled"
+   },
+   {
+    "label": "growth.adminChain",
+    "hint": "growth.adminChainHint",
+    "field": "prayer_chain_enabled",
+    "patch": "prayerChainEnabled"
+   },
+   {
+    "label": "growth.adminWidget",
+    "hint": "growth.adminWidgetHint",
+    "field": "prayed_for_widget_enabled",
+    "patch": "prayedForWidgetEnabled"
+   },
+   {
+    "label": "growth.adminMinute",
+    "hint": "growth.adminMinuteHint",
+    "field": "prayer_minute_enabled",
+    "patch": "prayerMinuteEnabled"
+   },
+   {
+    "label": "growth.adminShare",
+    "hint": "growth.adminShareHint",
+    "field": "share_consent_enabled",
+    "patch": "shareConsentEnabled"
+   },
+   {
+    "label": "growth.adminSms",
+    "hint": "growth.adminSmsHint",
+    "field": "prayer_chain_sms_enabled",
+    "patch": "prayerChainSmsEnabled"
+   },
+   {
+    "label": "growth.adminLive",
+    "hint": "growth.adminLiveHint",
+    "field": "prayed_for_live_enabled",
+    "patch": "prayedForLiveEnabled"
+   }
+  ],
+  "numbers": [
+   {
+    "label": "growth.adminChainMax",
+    "field": "prayer_chain_max",
+    "patch": "prayerChainMax"
+   }
+  ]
+ },
+ {
+  "id": "messagingSettings",
+  "title": "admin.messages",
+  "intro": null,
+  "get": "/admin/messaging-settings",
+  "patch": "/admin/messaging-settings",
+  "toggles": [
+   {
+    "label": "admin.toggle.prayerMessages",
+    "hint": null,
+    "field": "prayer_messages_enabled",
+    "patch": "prayerMessagesEnabled"
+   },
+   {
+    "label": "admin.toggle.anyPrayer",
+    "hint": "admin.toggle.anyPrayerHint",
+    "field": "prayer_messages_any_prayer",
+    "patch": "prayerMessagesAnyPrayer"
+   },
+   {
+    "label": "admin.toggle.direct",
+    "hint": null,
+    "field": "direct_messages_enabled",
+    "patch": "directMessagesEnabled"
+   },
+   {
+    "label": "admin.toggle.mutual",
+    "hint": "admin.toggle.mutualHint",
+    "field": "direct_requires_mutual_follow",
+    "patch": "directRequiresMutualFollow"
+   },
+   {
+    "label": "admin.toggle.groups",
+    "hint": null,
+    "field": "groups_enabled",
+    "patch": "groupsEnabled"
+   },
+   {
+    "label": "admin.toggle.newStart",
+    "hint": null,
+    "field": "new_members_can_start",
+    "patch": "newMembersCanStart"
+   }
+  ],
+  "numbers": []
+ },
+ {
+  "id": "careSettings",
+  "title": "admin.careEvents",
+  "intro": null,
+  "get": "/admin/care-settings",
+  "patch": "/admin/care-settings",
+  "toggles": [
+   {
+    "label": "admin.toggle.care",
+    "hint": null,
+    "field": "care_enabled",
+    "patch": "careEnabled"
+   },
+   {
+    "label": "admin.toggle.confession",
+    "hint": "admin.toggle.confessionHint",
+    "field": "confession_enabled",
+    "patch": "confessionEnabled"
+   }
+  ],
+  "numbers": []
+ },
+ {
+  "id": "eventSettings",
+  "title": "admin.careEvents",
+  "intro": null,
+  "get": "/admin/event-settings",
+  "patch": "/admin/event-settings",
+  "toggles": [
+   {
+    "label": "admin.toggle.events",
+    "hint": null,
+    "field": "events_enabled",
+    "patch": "eventsEnabled"
+   },
+   {
+    "label": "admin.toggle.host",
+    "hint": null,
+    "field": "new_members_can_host",
+    "patch": "newMembersCanHost"
+   }
+  ],
+  "numbers": [
+   {
+    "label": "admin.field.reminder",
+    "field": "reminder_minutes",
+    "patch": "reminderMinutes"
+   }
+  ]
+ },
+ {
+  "id": "conversationSettings",
+  "title": "talk.adminTitle",
+  "intro": "talk.adminIntro",
+  "get": "/admin/conversation-settings",
+  "patch": "/admin/conversation-settings",
+  "toggles": [
+   {
+    "label": "talk.adminSuggestions",
+    "hint": "talk.adminSuggestionsHint",
+    "field": "reply_suggestions_enabled",
+    "patch": "replySuggestionsEnabled"
+   },
+   {
+    "label": "talk.adminMeaning",
+    "hint": "talk.adminMeaningHint",
+    "field": "meaning_prefs_enabled",
+    "patch": "meaningPrefsEnabled"
+   },
+   {
+    "label": "talk.adminCare",
+    "hint": "talk.adminCareHint",
+    "field": "trouble_nudge_enabled",
+    "patch": "troubleNudgeEnabled"
+   },
+   {
+    "label": "talk.adminPacks",
+    "hint": "talk.adminPacksHint",
+    "field": "greeting_packs_enabled",
+    "patch": "greetingPacksEnabled"
+   },
+   {
+    "label": "talk.adminOwnWords",
+    "hint": "talk.adminOwnWordsHint",
+    "field": "own_words_enabled",
+    "patch": "ownWordsEnabled"
+   },
+   {
+    "label": "talk.adminClosings",
+    "hint": "talk.adminClosingsHint",
+    "field": "kind_closings_enabled",
+    "patch": "kindClosingsEnabled"
+   },
+   {
+    "label": "talk.adminMeaningRow",
+    "hint": "talk.adminMeaningRowHint",
+    "field": "meaning_row_enabled",
+    "patch": "meaningRowEnabled"
+   },
+   {
+    "label": "talk.adminCounts",
+    "hint": "talk.adminCountsHint",
+    "field": "talk_counts_enabled",
+    "patch": "talkCountsEnabled"
+   },
+   {
+    "label": "meaningProposals.adminTitle",
+    "hint": "meaningProposals.adminHint",
+    "field": "meaning_proposals_enabled",
+    "patch": "meaningProposalsEnabled"
+   },
+   {
+    "label": "talk.adminTypePrompts",
+    "hint": "talk.adminTypePromptsHint",
+    "field": "type_prompts_enabled",
+    "patch": "typePromptsEnabled"
+   },
+   {
+    "label": "commentKindness.adminHearts",
+    "hint": "commentKindness.adminHeartsHint",
+    "field": "author_hearts_enabled",
+    "patch": "authorHeartsEnabled"
+   },
+   {
+    "label": "commentKindness.adminThanks",
+    "hint": "commentKindness.adminThanksHint",
+    "field": "comment_thanks_enabled",
+    "patch": "commentThanksEnabled"
+   },
+   {
+    "label": "quietCounts.adminTitle",
+    "hint": "quietCounts.adminHint",
+    "field": "quiet_counts_enabled",
+    "patch": "quietCountsEnabled"
+   },
+   {
+    "label": "replyChoice.adminTitle",
+    "hint": "replyChoice.adminHint",
+    "field": "reply_choice_enabled",
+    "patch": "replyChoiceEnabled"
+   },
+   {
+    "label": "partComments.adminTitle",
+    "hint": "partComments.adminHint",
+    "field": "part_comments_enabled",
+    "patch": "partCommentsEnabled"
+   },
+   {
+    "label": "research.adminTitle",
+    "hint": "research.adminHint",
+    "field": "research_page_enabled",
+    "patch": "researchPageEnabled"
+   }
+  ],
+  "numbers": []
+ },
+ {
+  "id": "practiceSettings",
+  "title": "practices.adminTitle",
+  "intro": "practices.adminIntro",
+  "get": "/admin/practice-settings",
+  "patch": "/admin/practice-settings",
+  "toggles": [
+   {
+    "label": "practices.adminFollowup",
+    "hint": "practices.adminFollowupHint",
+    "field": "followup_enabled",
+    "patch": "followupEnabled"
+   },
+   {
+    "label": "practices.adminGratitude",
+    "hint": "practices.adminGratitudeHint",
+    "field": "gratitude_enabled",
+    "patch": "gratitudeEnabled"
+   },
+   {
+    "label": "practices.adminRhythm",
+    "hint": "practices.adminRhythmHint",
+    "field": "gentle_rhythm_enabled",
+    "patch": "gentleRhythmEnabled"
+   },
+   {
+    "label": "practices.adminEncourager",
+    "hint": "practices.adminEncouragerHint",
+    "field": "encourager_enabled",
+    "patch": "encouragerEnabled"
+   },
+   {
+    "label": "encCheck.adminTitle",
+    "hint": "encCheck.adminHint",
+    "field": "encourager_checkin_enabled",
+    "patch": "encouragerCheckinEnabled"
+   },
+   {
+    "label": "practices.adminLiftUp",
+    "hint": "practices.adminLiftUpHint",
+    "field": "lift_up_enabled",
+    "patch": "liftUpEnabled"
+   },
+   {
+    "label": "practices.adminGratitudeCount",
+    "hint": "practices.adminGratitudeCountHint",
+    "field": "gratitude_count_enabled",
+    "patch": "gratitudeCountEnabled"
+   },
+   {
+    "label": "practices.adminBelieve",
+    "hint": "practices.adminBelieveHint",
+    "field": "believe_enabled",
+    "patch": "believeEnabled"
+   },
+   {
+    "label": "practices.adminPartners",
+    "hint": "practices.adminPartnersHint",
+    "field": "partners_enabled",
+    "patch": "partnersEnabled"
+   },
+   {
+    "label": "highlightsKind.adminTitle",
+    "hint": "highlightsKind.adminHint",
+    "field": "highlights_enabled",
+    "patch": "highlightsEnabled"
+   },
+   {
+    "label": "lament.adminTitle",
+    "hint": "lament.adminHint",
+    "field": "lament_enabled",
+    "patch": "lamentEnabled"
+   },
+   {
+    "label": "answeredStory.adminTitle",
+    "hint": "answeredStory.adminHint",
+    "field": "answered_stories_enabled",
+    "patch": "answeredStoriesEnabled"
+   },
+   {
+    "label": "kindIntro.adminTitle",
+    "hint": "kindIntro.adminHint",
+    "field": "kindness_intro_enabled",
+    "patch": "kindnessIntroEnabled"
+   },
+   {
+    "label": "checkBack.adminTitle",
+    "hint": "checkBack.adminHint",
+    "field": "check_back_enabled",
+    "patch": "checkBackEnabled"
+   },
+   {
+    "label": "kindMilestones.adminTitle",
+    "hint": "kindMilestones.adminHint",
+    "field": "kind_milestones_enabled",
+    "patch": "kindMilestonesEnabled"
+   },
+   {
+    "label": "thankNote.adminTitle",
+    "hint": "thankNote.adminHint",
+    "field": "thank_note_enabled",
+    "patch": "thankNoteEnabled"
+   },
+   {
+    "label": "calm.adminTitle",
+    "hint": "calm.adminHint",
+    "field": "calm_threads_enabled",
+    "patch": "calmThreadsEnabled"
+   },
+   {
+    "label": "circles.adminTitle",
+    "hint": "circles.adminHint",
+    "field": "prayer_circles_enabled",
+    "patch": "prayerCirclesEnabled"
+   },
+   {
+    "label": "circleWelcome.adminTitle",
+    "hint": "circleWelcome.adminHint",
+    "field": "circle_welcome_enabled",
+    "patch": "circleWelcomeEnabled"
+   },
+   {
+    "label": "circleUpdates.adminTitle",
+    "hint": "circleUpdates.adminHint",
+    "field": "circle_updates_enabled",
+    "patch": "circleUpdatesEnabled"
+   },
+   {
+    "label": "pathBack.adminTitle",
+    "hint": "pathBack.adminHint",
+    "field": "path_back_enabled",
+    "patch": "pathBackEnabled"
+   },
+   {
+    "label": "kindWords.adminTitle",
+    "hint": "kindWords.adminHint",
+    "field": "empathy_practice_enabled",
+    "patch": "empathyPracticeEnabled"
+   },
+   {
+    "label": "weather.adminTitle",
+    "hint": "weather.adminHint",
+    "field": "kindness_weather_enabled",
+    "patch": "kindnessWeatherEnabled"
+   },
+   {
+    "label": "health.adminTitle",
+    "hint": "health.adminHint",
+    "field": "community_health_enabled",
+    "patch": "communityHealthEnabled"
+   },
+   {
+    "label": "freshDays.adminTitle",
+    "hint": "freshDays.adminHint",
+    "field": "fresh_days_enabled",
+    "patch": "freshDaysEnabled"
+   },
+   {
+    "label": "intention.adminTitle",
+    "hint": "intention.adminHint",
+    "field": "weekly_intention_enabled",
+    "patch": "weeklyIntentionEnabled"
+   },
+   {
+    "label": "coolDown.adminTitle",
+    "hint": "coolDown.adminHint",
+    "field": "cool_down_enabled",
+    "patch": "coolDownEnabled"
+   },
+   {
+    "label": "practices.adminRemembered",
+    "hint": "practices.adminRememberedHint",
+    "field": "remembered_enabled",
+    "patch": "rememberedEnabled"
+   },
+   {
+    "label": "repair.adminWelcome",
+    "hint": "repair.adminWelcomeHint",
+    "field": "welcome_card_enabled",
+    "patch": "welcomeCardEnabled"
+   },
+   {
+    "label": "repair.adminAskKindly",
+    "hint": "repair.adminAskKindlyHint",
+    "field": "ask_kindly_enabled",
+    "patch": "askKindlyEnabled"
+   },
+   {
+    "label": "repair.adminMend",
+    "hint": "repair.adminMendHint",
+    "field": "mend_enabled",
+    "patch": "mendEnabled"
+   }
+  ],
+  "numbers": [
+   {
+    "label": "practices.adminFollowupDays",
+    "field": "followup_days",
+    "patch": "followupDays"
+   },
+   {
+    "label": "practices.adminEncouragerDays",
+    "field": "encourager_days",
+    "patch": "encouragerDays"
+   },
+   {
+    "label": "practices.adminNewcomerDays",
+    "field": "newcomer_days",
+    "patch": "newcomerDays"
+   },
+   {
+    "label": "practices.adminPartnerDays",
+    "field": "partner_days",
+    "patch": "partnerDays"
+   }
+  ]
+ },
+ {
+  "id": "pilotTools",
+  "title": "pilotTools.title",
+  "intro": "pilotTools.intro",
+  "get": "/admin/pilot-tools",
+  "patch": "/admin/pilot-tools",
+  "toggles": [
+   {
+    "label": "pilotTools.summary",
+    "hint": "pilotTools.summaryHint",
+    "field": "feedback_summary_enabled",
+    "patch": "feedbackSummary"
+   },
+   {
+    "label": "pilotTools.summaryEmail",
+    "hint": null,
+    "field": "feedback_summary_email",
+    "patch": "feedbackSummaryEmail"
+   },
+   {
+    "label": "pilotTools.errors",
+    "hint": "pilotTools.errorsHint",
+    "field": "error_capture_enabled",
+    "patch": "errorCapture"
+   }
+  ],
+  "numbers": []
+ },
+ {
+  "id": "spokenPrayerSettings",
+  "title": "admin.spoken",
+  "intro": null,
+  "get": "/admin/spoken-prayers",
+  "patch": "/admin/spoken-prayers",
+  "toggles": [
+   {
+    "label": "admin.toggle.spoken",
+    "hint": "admin.toggle.spokenHint",
+    "field": "enabled",
+    "patch": "enabled"
+   }
+  ],
+  "numbers": []
+ },
+ {
+  "id": "awardSettings",
+  "title": "admin.award",
+  "intro": null,
+  "get": "/admin/award-settings",
+  "patch": "/admin/award-settings",
+  "toggles": [
+   {
+    "label": "admin.toggle.award",
+    "hint": "admin.toggle.awardHint",
+    "field": "enabled",
+    "patch": "enabled"
+   },
+   {
+    "label": "admin.toggle.awardHall",
+    "hint": null,
+    "field": "public_hall",
+    "patch": "publicHall"
+   }
+  ],
+  "numbers": []
+ }
+]

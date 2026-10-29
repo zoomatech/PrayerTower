@@ -43,7 +43,10 @@ struct RouteView: View {
         case .ops: OpsView()
         case .notificationSettings: NotificationSettingsView()
         case .accountSecurity: AccountSecurityView()
-        case .prayerMinute, .prayerList, .give, .me, .circles, .feed, .unsupported:
+        case .prayerMinute: PrayerMinuteView()
+        case .prayerList: PrayerListView()
+        case .give: GiveView()
+        case .me, .circles, .feed, .unsupported:
             ContentUnavailableView(model.words("notices.empty"), systemImage: "bell")
         }
     }

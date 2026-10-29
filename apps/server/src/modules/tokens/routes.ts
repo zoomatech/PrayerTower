@@ -43,7 +43,7 @@ export function tokenRoutes(app: FastifyInstance, db: Db) {
   app.post<{ Params: { id: string } }>('/posts/:id/boost', async (req) => {
     const userId = requireUser(req);
     const body = Amount.parse(req.body);
-    const post = await posts.getViewable(db, userId, req.params.id);
+    const post = await posts.getActionable(db, userId, req.params.id);
     if (!post) throw notFound('Post');
     if (await moderation.awaitingCrisisReview(db, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
     const t = await withTx(db, (tx) => tokens.spendOnReach(tx, userId, post.id, body.amount, body.idempotencyKey));

@@ -130,14 +130,24 @@ public struct APIClient: Sendable {
         if !query.isEmpty { parts.queryItems = query.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) } }
         var r = URLRequest(url: parts.url!)
         r.httpMethod = method
+        // On a slow connection, give up after 15 seconds and treat it as offline, as the Expo app does.
+        r.timeoutInterval = 15
         r.setValue("application/json", forHTTPHeaderField: "Accept")
         if let t = try await token() { r.setValue("Bearer \(t)", forHTTPHeaderField: "Authorization") }
         return r
     }
 
     func send<T: Decodable>(_ r: URLRequest) async throws -> T {
-        let (data, response) = try await session.data(for: r)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: r)
+        } catch {
+            throw OfflineError.from(error)
+        }
+        return try decode(data, status: (response as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+
+    func decode<T: Decodable>(_ data: Data, status: Int) throws -> T {
         guard (200..<300).contains(status) else {
             let body = try? JSONDecoder().decode(ErrorBody.self, from: data)
             throw APIError(status: status, code: body?.error ?? "http_\(status)", message: body?.message ?? "Something went wrong (\(status))")

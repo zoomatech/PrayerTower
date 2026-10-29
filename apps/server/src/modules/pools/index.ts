@@ -225,7 +225,7 @@ export async function list(q: Queryable, viewerId: string, opts: { postId?: stri
 export async function draw(q: Queryable, userId: string, poolId: string, postId: string) {
   await requireFeature(q, userId, 'pools');
   const pool = await get(q, poolId, true);
-  const post = await posts.getViewable(q, userId, postId);
+  const post = await posts.getActionable(q, userId, postId);
   // A pool only reaches requests in its own community.
   if (!post || post.community_id !== pool.community_id) throw notFound('Post');
   if (await moderation.awaitingCrisisReview(q, post.id)) {
