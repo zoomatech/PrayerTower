@@ -108,6 +108,8 @@ function RootStack() {
           <Stack.Screen name="scheduled" />
           <Stack.Screen name="prayer-chain" />
           <Stack.Screen name="remembered" />
+          <Stack.Screen name="circles/index" />
+          <Stack.Screen name="circles/[id]" />
           <Stack.Screen name="mend/[id]" />
           <Stack.Screen name="meaning-words" />
           <Stack.Screen name="highlights" />

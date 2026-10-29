@@ -67,6 +67,7 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     practices_followup: practices.followupDueTask(db),
     practices_gratitude: practices.gratitudeDueTask(db),
     check_back_due: checkBack.dueTask(db),
+    encourager_checkin_due: practices.checkInDueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     notifications_push_receipts: pushReceiptsTask(db, config, overrides.fetch),
@@ -167,4 +168,6 @@ export const crontab = [
   // Hourly: the gratitude card invitation at 6 pm on each member's chosen day (only while switched on).
   '0 * * * * practices_gratitude ?max=3&jobKey=practices_gratitude',
   '30 * * * * check_back_due ?max=3&jobKey=check_back_due',
+  // Daily 16:00: the two-week encourager check-in (only while switched on).
+  '0 16 * * * encourager_checkin_due ?max=10&fill=1d&jobKey=encourager_checkin_due',
 ].join('\n');

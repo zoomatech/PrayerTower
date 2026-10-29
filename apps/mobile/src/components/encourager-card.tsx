@@ -9,6 +9,7 @@ import { Button, ErrorText, Toggle } from '@/components/ui';
 import { api, type EncouragerState } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
+import { announce } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
@@ -53,6 +54,29 @@ export function EncouragerCard() {
             {m.role === 'newcomer' ? t('practices.encYours', { name: m.other.displayName }) : t('practices.encYouEncourage', { name: m.other.displayName })}
           </Text>
           <Text style={type.small}>{t(m.role === 'newcomer' ? 'practices.encYoursHint' : 'practices.encYouEncourageHint', { date: day(m.endsAt) })}</Text>
+          {m.checkInDue ? (
+            <View style={styles.checkIn} role="group" aria-label={t('encCheck.title')} testID={`encourager-checkin-${m.id}`}>
+              <Text style={type.body}>{t('encCheck.title')}</Text>
+              <Text style={type.small}>{t('encCheck.hint')}</Text>
+              <View style={styles.row}>
+                {(['good', 'okay', 'change'] as const).map((a) => (
+                  <Button
+                    key={a}
+                    small
+                    variant="secondary"
+                    label={t(`encCheck.${a}`)}
+                    onPress={() =>
+                      run(async () => {
+                        const next = await api.encouragerCheckIn(m.id, a);
+                        announce(t(a === 'change' ? 'encCheck.changed' : 'encCheck.thanks'));
+                        return next;
+                      })
+                    }
+                  />
+                ))}
+              </View>
+            </View>
+          ) : null}
           <Button small variant="ghost" label={t('practices.encEnd')} testID={`encourager-end-${m.id}`} onPress={() => run(() => api.endEncouragerMatch(m.id))} />
         </View>
       ))}
@@ -83,4 +107,6 @@ export function EncouragerCard() {
 const styles = StyleSheet.create({
   card: { gap: space.sm, padding: space.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   match: { gap: space.xs },
+  checkIn: { gap: space.xs, padding: space.sm, borderRadius: radius.md, backgroundColor: colors.primarySoft },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });
