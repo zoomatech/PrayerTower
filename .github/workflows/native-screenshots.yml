@@ -14,14 +14,21 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - run: bash scripts/mac-screenshots-native.sh prayertower
-      - run: bash scripts/mac-screenshots-native.sh opencircle
+      - run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh prayertower 2>&1 | tee build-logs/screenshots-run/prayertower.txt
+      - run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh opencircle 2>&1 | tee build-logs/screenshots-run/opencircle.txt
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: native-screenshots
           path: store-screenshots/native
           if-no-files-found: warn
+      - name: Show errors
+        if: ${{ failure() }}
+        run: |
+          for f in build-logs/screenshots-*/*.txt build-logs/native-*/*.txt; do
+            [ -f "$f" ] || continue
+            { grep -hE "error:|FAIL|failed|Unable|No .* (installed|matches)" "$f" || tail -5 "$f"; } | sort -u | head -15 | while IFS= read -r l; do echo "::error title=$f::$l"; done
+          done
       - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:
