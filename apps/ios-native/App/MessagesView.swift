@@ -11,6 +11,8 @@ struct MessagesView: View {
 
     private var w: Words { model.words }
     private var groupsOn: Bool { model.me?.community?.shows("groups") ?? true }
+    private var eventsOn: Bool { model.me?.community?.shows("events") ?? true }
+    private var careOn: Bool { model.me?.community?.shows("care") ?? true }
 
     var body: some View {
         NavigationStack {
@@ -18,6 +20,8 @@ struct MessagesView: View {
                 Section {
                     Text(w("messages.privacy")).font(.footnote).foregroundStyle(.secondary)
                     if groupsOn { NavigationLink(w("messages.groups")) { GroupsView() } }
+                    if eventsOn { NavigationLink(w("messages.events")) { EventsView() } }
+                    if careOn { NavigationLink(w("messages.care")) { CareView() } }
                 }
                 if let error {
                     Section {
@@ -205,12 +209,14 @@ struct ConversationScreen: View {
             .lineLimit(1...8)
             .onChange(of: text) { _, new in if new.count > Messages.maxChars { text = String(new.prefix(Messages.maxChars)) } }
         KindCloudView(text: text)
+        ReplyHelpersView(lastFromOther: view?.messages.last(where: { !$0.mine })?.body, empty: view?.messages.isEmpty ?? true, text: $text)
         Button(w("actions.send")) { Task { await send() } }
             .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
     @ViewBuilder private func tools(_ c: ConversationView.Info) -> some View {
         if c.canInvite { Button(w("conversation.invite")) { inviting = true } }
+        if c.isGroup { NavigationLink(w("events.groupTitle")) { EventsView(groupId: id) } }
         if let other = c.other, let otherId = other.id {
             Button(w("person.block", ["name": other.name]), role: .destructive) { Task { await act(leave: true) { _ = try await model.store.api.block(otherId) } } }
         }
@@ -252,8 +258,14 @@ struct ConversationScreen: View {
         busy = true
         defer { busy = false }
         do {
+            let before = view?.messages ?? []
             let r = try await model.store.api.sendMessage(id, body: text)
             if r.message.crisis { support = true }
+            // Counting patterns: move labels only, and only when the switch is on and the member shares.
+            if model.features["talkCounts"], model.talkPrefs?.shareCounts == true, before.count >= 2,
+               let chain = Talk.chain(before[before.count - 2].body, before[before.count - 1].body, text) {
+                _ = try? await model.store.api.talkCount(chain: chain)
+            }
             if r.coolDown == true { coolDown = true }
             text = ""
             error = nil

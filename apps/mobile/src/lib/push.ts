@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { api } from './api';
+import { notificationTarget } from './notification-target';
 
 const supported = Platform.OS === 'ios' || Platform.OS === 'android';
 
@@ -47,21 +48,8 @@ async function register(): Promise<void> {
 
 function openFrom(response: Notifications.NotificationResponse | null) {
   if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
-  const data = response.notification.request.content.data;
-  if (typeof data?.mendId === 'string') router.push(`/mend/${data.mendId}`);
-  else if (typeof data?.conversationId === 'string') router.push(`/conversation/${data.conversationId}`);
-  else if (typeof data?.storyId === 'string') router.push('/help-stories');
-  else if (typeof data?.eventId === 'string') router.push(`/event/${data.eventId}`);
-  else if (typeof data?.postId === 'string') router.push(`/post/${data.postId}${data.believe ? '?believe=1' : ''}`);
-  else if (data?.screen === 'highlights') router.push('/highlights');
-  else if (data?.screen === 'prayer-minute') router.push('/prayer-minute');
-  else if (data?.screen === 'give') router.push('/give');
-  else if (data?.screen === 'radio-requests') router.push('/radio-requests');
-  else if (data?.screen === 'feedback-triage') router.push('/feedback-triage');
-  else if (data?.screen === 'gratitude' || data?.screen === 'encourager' || data?.screen === 'partner') router.push('/profile');
-  else if (data?.screen === 'prayer-list') router.push('/prayer-list');
-  else if (data?.screen === 'crosspost') router.push('/crosspost');
-  else if (typeof data?.personId === 'string') router.push(`/people/${data.personId}`);
+  const target = notificationTarget(response.notification.request.content.data);
+  if (target) router.push(target);
 }
 
 /** Call once the member is signed in and onboarded. */

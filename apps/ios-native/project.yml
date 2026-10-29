@@ -23,11 +23,18 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+      # The Pray now widget and the Praying for you Live Activity, embedded in the app.
+      - target: PrayerTowerWidgets
     info:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: Prayer Tower
         UILaunchScreen: {}
+        # Widget and Live Activity taps open prayertower:///post/<id>.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.zoomatech.prayertower.native
+            CFBundleURLSchemes: [prayertower]
+        NSSupportsLiveActivities: true
         # Filled from Config.xcconfig (copy Config.example.xcconfig); never committed with real values.
         PTSupabaseURL: $(PT_SUPABASE_URL)
         PTSupabaseKey: $(PT_SUPABASE_KEY)
@@ -37,6 +44,8 @@ targets:
       properties:
         # Passkeys: the domain that serves /.well-known/apple-app-site-association (webcredentials).
         com.apple.developer.associated-domains: ["webcredentials:$(PT_PASSKEY_DOMAIN)"]
+        # Shared with the widget extension (PrayNow.appGroup in PrayerTowerKit).
+        com.apple.security.application-groups: [group.com.zoomatech.prayertower.native]
     settings:
       base:
         # A separate bundle id from the Expo pilot (com.zoomatech.prayertower) until the native app replaces it.
@@ -47,3 +56,30 @@ targets:
     configFiles:
       Debug: Config.xcconfig
       Release: Config.xcconfig
+
+  PrayerTowerWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets]
+    dependencies:
+      - package: PrayerTowerKit
+        products:
+          - PrayerTowerKit
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Prayer Tower
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/PrayerTowerWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.zoomatech.prayertower.native]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.widgets
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
