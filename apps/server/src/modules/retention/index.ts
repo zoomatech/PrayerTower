@@ -40,6 +40,7 @@ export interface PurgeResult {
   deletionRequests: number;
   pushTokens: number;
   scheduledGifts: number;
+  requestKeys: number;
   confessions: number;
   /** Storage paths of photos whose rows were removed; the caller deletes the files. */
   mediaPaths: string[];
@@ -54,7 +55,7 @@ const due = (target: string, alias: string, created = `${alias}.created_at`) => 
                    where m.target_type = '${target}' and m.target_id = ${alias}.id and a.status = 'pending')`;
 
 export async function purge(q: Queryable, p: RetentionPeriods): Promise<PurgeResult> {
-  const r: PurgeResult = { posts: 0, comments: 0, reactions: 0, messages: 0, events: 0, notifications: 0, deletionRequests: 0, pushTokens: 0, scheduledGifts: 0, confessions: 0, mediaPaths: [] };
+  const r: PurgeResult = { posts: 0, comments: 0, reactions: 0, messages: 0, events: 0, notifications: 0, deletionRequests: 0, pushTokens: 0, scheduledGifts: 0, requestKeys: 0, confessions: 0, mediaPaths: [] };
   const n = async (sql: string, days: number) => (days > 0 ? ((await q.query(sql, [days])).rowCount ?? 0) : 0);
 
   if (p.removedDays > 0) {
@@ -87,6 +88,8 @@ export async function purge(q: Queryable, p: RetentionPeriods): Promise<PurgeRes
     `delete from public.scheduled_spends where status in ('done', 'cancelled', 'failed') and next_run_at < now() - make_interval(days => $1)`,
     p.queueDays,
   );
+  // Offline replays happen within days (the app drops queued actions after three).
+  r.requestKeys = (await q.query(`delete from public.request_keys where created_at < now() - interval '7 days'`)).rowCount ?? 0;
   r.confessions = await eraseConfessions(q);
   return r;
 }

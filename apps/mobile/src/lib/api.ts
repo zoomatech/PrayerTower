@@ -662,7 +662,7 @@ export class ApiError extends Error {
 /** How long to wait on a slow connection before treating the request as offline. */
 const TIMEOUT_MS = 15_000;
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   const abort = new AbortController();
@@ -674,6 +674,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       headers: {
         ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
         ...(token ? { authorization: `Bearer ${token}` } : {}),
+        ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: abort.signal,
@@ -703,7 +704,7 @@ let sendingQueued = false;
 export async function sendQueued() {
   sendingQueued = true;
   try {
-    await flushQueue((a) => request(a.method, a.path, a.body));
+    await flushQueue((a) => request(a.method, a.path, a.body, a.key));
   } finally {
     sendingQueued = false;
   }
@@ -725,11 +726,14 @@ async function cachedGet<T extends object>(key: string, path: string): Promise<T
 
 /** A POST that waits in the offline queue when the server can't be reached. */
 async function postOrQueue<T>(path: string, body: unknown, label: string): Promise<T | { queued: true }> {
+  // A timed-out request may still have reached the server: the replay sends the same key,
+  // and the server answers it with the first result instead of posting twice.
+  const key = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
   try {
-    return await post<T>(path, body);
+    return await request<T>('POST', path, body, key);
   } catch (e) {
     if (!isOffline(e)) throw e;
-    await enqueue({ method: 'POST', path, body, label });
+    await enqueue({ method: 'POST', path, body, label, key });
     return { queued: true };
   }
 }

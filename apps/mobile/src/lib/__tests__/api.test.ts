@@ -92,6 +92,20 @@ describe('no signal', () => {
     expect(JSON.parse((await AsyncStorage.getItem('offline:queue:v1')) ?? '[]')).toEqual([]);
   });
 
+  it('replays a queued post with the same key as its first try, so the server never posts it twice', async () => {
+    fetchMock.mockImplementationOnce(noSignal);
+    await expect(client.api.createPostOrQueue({ postType: 'prayer_request', body: 'Pray for my dad' })).resolves.toEqual({ queued: true });
+    fetchMock.mockReturnValue(ok({}));
+    await client.api.features();
+    await settle();
+    await settle();
+    const posts = fetchMock.mock.calls.filter(([url, init]) => init.method === 'POST' && url.endsWith('/posts'));
+    expect(posts).toHaveLength(2);
+    const [first, replay] = posts.map(([, init]) => init.headers['idempotency-key']);
+    expect(first).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
+    expect(replay).toBe(first);
+  });
+
   it('does not queue a refusal: the member sees the reason now', async () => {
     fetchMock.mockReturnValueOnce(ok({ message: 'This request was removed' }, 404));
     await expect(client.api.prayingNow('p1')).rejects.toThrow('This request was removed');

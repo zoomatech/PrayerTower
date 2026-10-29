@@ -31,8 +31,22 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let createdAt: String
     /// The actions this viewer may take, in the server's order (`ACTION_ORDER`). Older servers may leave it out.
     public let actions: [String]?
+    /// open | actively_prayed | amplified | answered
+    public let state: String?
+    public let answeredAt: String?
+    /// The poster's own words on how it was answered.
+    public let testimony: String?
+    public let background: String?
+    public let media: [CardMedia]?
     /// Newest few comments, newest first, while comments as leaves is on (the drawn vine and tower).
     public let leafComments: [LeafComment]?
+}
+
+/// A photo or video on a post; `url` is a short-lived signed read URL.
+public struct CardMedia: Codable, Sendable, Equatable {
+    public let kind: String
+    public let storagePath: String
+    public let url: String?
 }
 
 /// A comment shown on a leaf or sub-tablet under its request.
@@ -54,10 +68,45 @@ public struct FeedPage: Codable, Sendable, Equatable {
 public struct Profile: Codable, Sendable, Equatable {
     public let id: String
     public let displayName: String
+    /// Compose starts with "Post anonymously" on when this is set.
+    public let anonymousByDefault: Bool?
+    public let whyHere: [String]?
+    public let traumaContentOptOut: Bool?
+    public let updatesInFirstComment: Bool?
+    public let promptsEnabled: Bool?
+    /// gentle | firm; nil = the app default.
+    public let promptTone: String?
+    public let digestEnabled: Bool?
+    /// Missing means on.
+    public let showPrayerStats: Bool?
+
+    public init(
+        id: String, displayName: String, anonymousByDefault: Bool? = nil, whyHere: [String]? = nil, traumaContentOptOut: Bool? = nil,
+        updatesInFirstComment: Bool? = nil, promptsEnabled: Bool? = nil, promptTone: String? = nil, digestEnabled: Bool? = nil, showPrayerStats: Bool? = nil
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.anonymousByDefault = anonymousByDefault
+        self.whyHere = whyHere
+        self.traumaContentOptOut = traumaContentOptOut
+        self.updatesInFirstComment = updatesInFirstComment
+        self.promptsEnabled = promptsEnabled
+        self.promptTone = promptTone
+        self.digestEnabled = digestEnabled
+        self.showPrayerStats = showPrayerStats
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
         case displayName = "display_name"
+        case anonymousByDefault = "anonymous_by_default"
+        case whyHere = "why_here"
+        case traumaContentOptOut = "trauma_content_opt_out"
+        case updatesInFirstComment = "updates_in_first_comment"
+        case promptsEnabled = "prompts_enabled"
+        case promptTone = "prompt_tone"
+        case digestEnabled = "digest_enabled"
+        case showPrayerStats = "show_prayer_stats"
     }
 }
 
@@ -66,12 +115,33 @@ public struct Community: Codable, Sendable, Equatable {
     public let name: String
     /// "faith" = Prayer Tower's wording; "neutral" = Open Circle's, with no religious words.
     public let wording: String
+    /// The kinds of post this community has turned on (discussion, news and blog are off by default).
+    public let enabledPostTypes: [String]?
+    /// Features this community's admin hid (COMMUNITY_FEATURES: groups, events, care, …).
+    public let hiddenFeatures: [String]?
+
+    public init(slug: String, name: String, wording: String, enabledPostTypes: [String]? = nil, hiddenFeatures: [String]? = nil) {
+        self.slug = slug
+        self.name = name
+        self.wording = wording
+        self.enabledPostTypes = enabledPostTypes
+        self.hiddenFeatures = hiddenFeatures
+    }
+
+    /// As the Expo app's `useFeature`: on unless the community hid it.
+    public func shows(_ feature: String) -> Bool { !(hiddenFeatures ?? []).contains(feature) }
 }
 
 public struct Me: Codable, Sendable, Equatable {
     public let profile: Profile
     public let roles: [String]
     public let community: Community?
+
+    public init(profile: Profile, roles: [String], community: Community?) {
+        self.profile = profile
+        self.roles = roles
+        self.community = community
+    }
 }
 
 public struct PrayingNow: Codable, Sendable, Equatable {
@@ -82,21 +152,28 @@ public struct PrayingNow: Codable, Sendable, Equatable {
 /// Admin switches the app reads (`/features`). Anything missing counts as off.
 public struct Features: Sendable, Equatable {
     public let values: [String: Bool]
-    public init(values: [String: Bool]) { self.values = values }
+    /// Number settings that come with the switches (videoMaxSeconds, givingSplitMax…).
+    public let numbers: [String: Double]
+    public init(values: [String: Bool], numbers: [String: Double] = [:]) {
+        self.values = values
+        self.numbers = numbers
+    }
     public subscript(name: String) -> Bool { values[name] ?? false }
+    public func number(_ name: String) -> Double? { numbers[name] }
 }
 
 extension Features: Decodable {
     private struct Wrapper: Decodable { let features: [String: FlexibleValue] }
     private enum FlexibleValue: Decodable {
-        case bool(Bool), other
+        case bool(Bool), number(Double), other
         init(from decoder: Decoder) throws {
             let c = try decoder.singleValueContainer()
-            self = (try? c.decode(Bool.self)).map(FlexibleValue.bool) ?? .other
+            if let b = try? c.decode(Bool.self) { self = .bool(b) } else if let n = try? c.decode(Double.self) { self = .number(n) } else { self = .other }
         }
     }
     public init(from decoder: Decoder) throws {
         let w = try Wrapper(from: decoder)
         values = w.features.compactMapValues { if case let .bool(b) = $0 { b } else { nil } }
+        numbers = w.features.compactMapValues { if case let .number(n) = $0 { n } else { nil } }
     }
 }

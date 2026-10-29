@@ -165,5 +165,12 @@ describe('weekly review and pilot metrics', () => {
     expect(found.map((p: { id: string }) => p.id)).toContain(member);
     expect(found.find((p: { id: string }) => p.id === member).roles).toEqual(['moderator']);
     expect((await as(member).get('/admin/people?q=a')).statusCode).toBe(403);
+    // "%" and "_" are letters in a search, not wildcards.
+    const exact = await createUser('Zed_Search');
+    const other = await createUser('ZedXSearch');
+    const ids = (await as(admin).get('/admin/people?q=zed_search')).json().people.map((p: { id: string }) => p.id);
+    expect(ids).toContain(exact);
+    expect(ids).not.toContain(other);
+    expect((await as(admin).get('/admin/people?q=%25')).json().people.map((p: { id: string }) => p.id)).not.toContain(exact);
   });
 });

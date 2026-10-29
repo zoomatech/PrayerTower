@@ -23,7 +23,13 @@ final class AppModel {
     var starting = true
     /// Admin switches (`/features`); anything missing counts as off.
     var features = Features(values: [:])
-    var wording: Wording = .faith
+    var wording: Wording = .faith {
+        didSet { words = Words(wording) }
+    }
+    /// The Expo app's words for this member's wording (Open Circle gets the neutral set).
+    var words = Words(.faith)
+    /// The signed-in member, their community and roles (`/me`).
+    var me: Me?
     /// Emoji meanings for the action row, loaded only while both meaning switches are on.
     var tree: [MeaningEmoji] = []
     /// Bumped when the member picks another feed style, so the feed reloads in it.
@@ -51,7 +57,8 @@ final class AppModel {
         async let f = try? store.api.features()
         async let me = try? store.api.me()
         features = await f ?? Features(values: [:])
-        wording = Wording(await me?.community)
+        self.me = await me
+        wording = Wording(self.me?.community)
         tree = features["meaningReactions"] && features["meaningIconRow"] ? ((try? await store.api.reactionMeanings()) ?? []) : []
     }
 }

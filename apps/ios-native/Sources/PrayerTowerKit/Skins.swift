@@ -1,8 +1,9 @@
 import Foundation
 
-/// A JSON value inside a skin's `tokens`, so unknown or wrongly typed tokens are simply ignored.
+/// A JSON value: inside a skin's `tokens` (unknown or wrongly typed tokens are simply ignored),
+/// and in PATCH bodies that mix types. `int` is only ever sent, never read back.
 public enum JSONValue: Codable, Sendable, Equatable {
-    case string(String), number(Double), bool(Bool), null, other
+    case string(String), number(Double), int(Int), bool(Bool), null, other
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
@@ -18,6 +19,7 @@ public enum JSONValue: Codable, Sendable, Equatable {
         switch self {
         case let .string(s): try c.encode(s)
         case let .number(n): try c.encode(n)
+        case let .int(i): try c.encode(i)
         case let .bool(b): try c.encode(b)
         case .null, .other: try c.encodeNil()
         }
