@@ -59,12 +59,13 @@ struct LiveFollowView: View {
             let api = model.store.api
             let postId = card.id
             let appId = Bundle.main.bundleIdentifier ?? "com.zoomatech.prayertower.native"
+            let id = a.id
             // The server learns each push token as soon as iOS gives it, and answers with the words to show now.
             Task {
                 for await data in a.pushTokenUpdates {
                     let token = data.map { String(format: "%02x", $0) }.joined()
                     if let props = try? await api.startLiveActivity(postId: postId, pushToken: token, appId: appId) {
-                        await a.update(.init(state: PrayedForState(props), staleDate: nil))
+                        await Self.update(id, props)
                     }
                 }
             }
@@ -73,10 +74,20 @@ struct LiveFollowView: View {
         }
     }
 
+    // Activity's update and end run off the main actor, so each finds its activity there by id
+    // rather than taking one from the main actor (Swift 6 data-race checks).
+    nonisolated private static func update(_ id: String, _ props: PrayedForProps) async {
+        await Activity<PrayedForAttributes>.activities.first { $0.id == id }?.update(.init(state: PrayedForState(props), staleDate: nil))
+    }
+
+    nonisolated private static func end(_ id: String) async {
+        await Activity<PrayedForAttributes>.activities.first { $0.id == id }?.end(nil, dismissalPolicy: .immediate)
+    }
+
     private func stop() async {
         guard let a = activity else { running = false; return }
         let token = a.pushToken.map { $0.map { String(format: "%02x", $0) }.joined() }
-        await a.end(nil, dismissalPolicy: .immediate)
+        await Self.end(a.id)
         running = false
         if let token { _ = try? await model.store.api.endLiveActivity(pushToken: token) }
     }
