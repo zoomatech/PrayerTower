@@ -20,6 +20,11 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  checkBack: {
+    hint: 'Want a gentle reminder to share how it’s going? When you post an update, everyone who supported you gets a quiet heads-up, never a buzz.',
+    due: 'We’ll check back with you on %{date}. Post an update any time, and everyone who supported you gets a quiet heads-up.',
+    adminHint: 'The person who asked can pick a gentle reminder (3 days, a week or 2 weeks) to share how it’s going. When they post an update, everyone who supported them gets one quiet in-app heads-up a day, with no push and none of the update’s words.',
+  },
   kindIntro: {
     meaningsBody: 'Press and hold Thinking of You, Well Wishes, Encourage or Promise to Check In to pick the words behind it, like “Holding you close.” A tap still does the action.',
   },
