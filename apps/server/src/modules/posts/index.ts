@@ -278,13 +278,15 @@ export async function setLament(q: Queryable, userId: string, postId: string, p:
   return { lament: rows[0].is_lament, lamentRadio: rows[0].lament_radio };
 }
 
-/** Everyone who prayed for or committed to a request, except its poster. */
+/** Everyone who prayed for or committed to a request, except its poster and anyone on either side of a block with them. */
 export async function prayedBy(q: Queryable, postId: string, posterId: string): Promise<string[]> {
   const { rows } = await q.query<{ user_id: string }>(
     `select distinct user_id from (
        select user_id from public.prayer_events where post_id = $1
        union select user_id from public.commitments where post_id = $1
-     ) s where user_id <> $2`,
+     ) s where user_id <> $2
+         and not exists (select 1 from public.user_blocks b
+                          where (b.user_id = $2 and b.blocked_id = s.user_id) or (b.user_id = s.user_id and b.blocked_id = $2))`,
     [postId, posterId],
   );
   return rows.map((r) => r.user_id);
