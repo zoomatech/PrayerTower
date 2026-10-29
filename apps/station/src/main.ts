@@ -2,12 +2,19 @@
 //   PRAYER_TOWER_API_URL, STATION_API_KEY, CALL_SIGN (required)
 //   FLDIGI_URL (default http://127.0.0.1:7362/RPC2), MODEM (BPSK31), POLL_SECONDS (10),
 //   TX_TIMEOUT_SECONDS (180), MAX_PIECE_CHARS (500), BLOCKLIST_FILE (one word per line, added to the default list)
+// Burst mode (docs/RADIO_BURST.md), off unless BURST_MODE is set:
+//   BURST_MODE (off | audio | fldigi | simulate), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
+//   BURST_MAX_FRAME_SECONDS (20), BURST_PLAY_CMD ("aplay -q {wav}"), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
+//   BURST_PTT_DELAY_MS (300), BURST_DIR (bursts/ under the state directory), BURST_FLDIGI_MODEM (8PSK1000F)
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fldigiClient } from './fldigi.js';
 import { DEFAULT_BLOCKLIST } from './text.js';
 import { EXIT_TRANSMIT_FAILED } from './health.js';
 import { httpApi, runOnce, TransmitError } from './worker.js';
+import { presetByName } from './burst/presets.js';
+import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTransmitter } from './burst/transmit.js';
+import { runBurstOnce } from './burst/worker.js';
 
 const env = (name: string, fallback?: string) => {
   const v = process.env[name] || fallback;
@@ -37,11 +44,43 @@ const cfg = {
   blocklist: [...DEFAULT_BLOCKLIST, ...extra],
 };
 const pollMs = int('POLL_SECONDS', '10', 1, 3600) * 1000;
+const burstMode = env('BURST_MODE', 'off');
+if (!['off', 'audio', 'fldigi', 'simulate'].includes(burstMode)) throw new Error('BURST_MODE must be off, audio, fldigi or simulate');
+const usesFldigi = burstMode === 'off' || burstMode === 'fldigi';
 const api = httpApi(env('PRAYER_TOWER_API_URL'), env('STATION_API_KEY'));
 const fldigi = fldigiClient(env('FLDIGI_URL', 'http://127.0.0.1:7362/RPC2'));
+const stateDir = process.env.STATE_DIRECTORY?.split(':')[0];
 
 // Under systemd, STATE_DIRECTORY is /var/lib/prayer-tower-station; the health check reads the heartbeat there.
-const heartbeat = process.env.STATE_DIRECTORY ? path.join(process.env.STATE_DIRECTORY.split(':')[0]!, 'heartbeat') : null;
+const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
+
+let burst: { tx: BurstTransmitter; cfg: Parameters<typeof runBurstOnce>[2] } | null = null;
+if (burstMode !== 'off') {
+  const dir = env('BURST_DIR', path.join(stateDir ?? '.', 'bursts'));
+  const tx =
+    burstMode === 'simulate'
+      ? simulateTransmitter(dir, console.log)
+      : burstMode === 'fldigi'
+        ? fldigiTransmitter(fldigi, cfg.txTimeoutMs)
+        : audioTransmitter({
+            playCommand: env('BURST_PLAY_CMD', 'aplay -q {wav}'),
+            pttOnCommand: process.env.BURST_PTT_ON_CMD ?? '',
+            pttOffCommand: process.env.BURST_PTT_OFF_CMD ?? '',
+            pttDelayMs: int('BURST_PTT_DELAY_MS', '300', 0, 5000),
+            dir,
+            txTimeoutMs: cfg.txTimeoutMs,
+          });
+  burst = {
+    tx,
+    cfg: {
+      callSign,
+      preset: presetByName(env('BURST_PRESET', 'fm-standard')),
+      maxPrayers: int('BURST_MAX_PRAYERS', '50', 1, 500),
+      maxFrameSeconds: int('BURST_MAX_FRAME_SECONDS', '20', 1, 120),
+      blocklist: cfg.blocklist,
+    },
+  };
+}
 const beat = () => {
   if (heartbeat) {
     try {
@@ -56,13 +95,16 @@ let stopping = false;
 process.on('SIGINT', () => (stopping = true));
 process.on('SIGTERM', () => (stopping = true));
 
-await fldigi.setModem(cfg.modem);
-console.log(`[station] ${callSign} ready, ${cfg.modem}, polling every ${pollMs / 1000}s`);
+if (burstMode === 'fldigi') await fldigi.setModem(env('BURST_FLDIGI_MODEM', '8PSK1000F'));
+else if (usesFldigi) await fldigi.setModem(cfg.modem);
+console.log(
+  `[station] ${callSign} ready, ${burst ? `burst ${burstMode} ${burst.cfg.preset.name}, up to ${burst.cfg.maxPrayers} prayers a burst` : cfg.modem}, polling every ${pollMs / 1000}s`,
+);
 while (!stopping) {
   beat();
   try {
-    const outcome = await runOnce(api, fldigi, cfg);
-    if (outcome === 'idle') await new Promise((r) => setTimeout(r, pollMs));
+    const idle = burst ? (await runBurstOnce(api, burst.tx, burst.cfg)).kind === 'idle' : (await runOnce(api, fldigi, cfg)) === 'idle';
+    if (idle) await new Promise((r) => setTimeout(r, pollMs));
   } catch (err) {
     if (err instanceof TransmitError) {
       // Transmit is already disabled (rx_only); stop so a person can check the station.
@@ -76,4 +118,5 @@ while (!stopping) {
     await new Promise((r) => setTimeout(r, pollMs));
   }
 }
-await fldigi.rxOnly().catch(() => undefined);
+if (burst) await burst.tx.stop().catch(() => undefined);
+if (usesFldigi) await fldigi.rxOnly().catch(() => undefined);

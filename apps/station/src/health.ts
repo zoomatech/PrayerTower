@@ -15,7 +15,8 @@ export interface Check {
 
 export interface HealthOptions {
   apiUrl: string;
-  fldigi: Fldigi;
+  /** null when the station does not use fldigi (BURST_MODE=audio or simulate). */
+  fldigi: Fldigi | null;
   /** File the worker rewrites every loop; null skips the check. */
   heartbeatFile: string | null;
   /** Oldest acceptable heartbeat. The worker waits up to POLL_SECONDS (or a long transmit) between beats. */
@@ -44,6 +45,7 @@ export async function checkHealth(o: HealthOptions): Promise<Check[]> {
     checks.push({ name: 'prayer tower api', ok: false, detail: (err as Error).message });
   }
 
+  if (!o.fldigi) return checks;
   try {
     const status = (await o.fldigi.status()).toLowerCase();
     // Any other answer means fldigi is up but not in a normal receive or transmit state.
@@ -75,7 +77,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const tx = Number(process.env.TX_TIMEOUT_SECONDS || 180);
   const checks = await checkHealth({
     apiUrl,
-    fldigi: fldigiClient(process.env.FLDIGI_URL || 'http://127.0.0.1:7362/RPC2'),
+    fldigi: ['audio', 'simulate'].includes(process.env.BURST_MODE ?? '') ? null : fldigiClient(process.env.FLDIGI_URL || 'http://127.0.0.1:7362/RPC2'),
     heartbeatFile: process.env.HEARTBEAT_FILE ?? '/var/lib/prayer-tower-station/heartbeat',
     // A long prayer may hold the loop for several transmit timeouts.
     maxAgeSeconds: Math.max(120, poll * 3, tx * 4),
