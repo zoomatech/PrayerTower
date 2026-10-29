@@ -14,8 +14,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh prayertower 2>&1 | tee build-logs/screenshots-run/prayertower.txt
-      - run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh opencircle 2>&1 | tee build-logs/screenshots-run/opencircle.txt
+      - shell: bash
+        run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh prayertower 2>&1 | tee build-logs/screenshots-run/prayertower.txt
+      - shell: bash
+        run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh opencircle 2>&1 | tee build-logs/screenshots-run/opencircle.txt
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
