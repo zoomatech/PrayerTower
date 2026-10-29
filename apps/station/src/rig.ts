@@ -12,10 +12,19 @@ export interface Rig {
   /** Hamlib mode token (USB, PKTUSB, FM, PKTFM...) and passband in Hz (0 is the radio's default). */
   setMode(mode: string, passbandHz: number): Promise<void>;
   setPtt(on: boolean): Promise<void>;
-  ptt(): Promise<boolean>;
+  /** null when the radio can't report PTT (Hamlib's dummy rig, radios keyed by VOX or a serial line). */
+  ptt(): Promise<boolean | null>;
 }
 
-export class RigError extends Error {}
+export class RigError extends Error {
+  /** The Hamlib error code when the daemon answered with one. */
+  constructor(message: string, readonly code?: number) {
+    super(message);
+  }
+}
+
+/** Hamlib's "feature not available" (RIG_ENAVAIL). */
+const ENAVAIL = -11;
 
 /** Hamlib mode tokens rigctld accepts (rigctld(1), set_mode). */
 export const RIG_MODES = ['USB', 'LSB', 'CW', 'CWR', 'RTTY', 'RTTYR', 'AM', 'FM', 'WFM', 'AMS', 'PKTLSB', 'PKTUSB', 'PKTFM', 'ECSSUSB', 'ECSSLSB', 'FA', 'SAM', 'SAL', 'SAH', 'DSB'] as const;
@@ -38,7 +47,7 @@ export function rigctldCommand(host: string, port: number, command: string, time
       if (!m) return;
       socket.end();
       const code = Number(m[1]);
-      if (code !== 0) return reject(new RigError(`${daemon} refused "${command}" (Hamlib error ${code})`));
+      if (code !== 0) return reject(new RigError(`${daemon} refused "${command}" (Hamlib error ${code})`, code));
       const values: Record<string, string> = {};
       for (const line of buf.slice(0, m.index).split('\n')) {
         const kv = /^([^:]+):\s*(.*)$/.exec(line.trim());
@@ -65,7 +74,12 @@ export function rigctldClient(host = '127.0.0.1', port = 4532, timeoutMs = 5_000
       await cmd(`T ${on ? 1 : 0}`);
     },
     async ptt() {
-      return (await cmd('t'))['PTT'] === '1';
+      try {
+        return (await cmd('t'))['PTT'] === '1';
+      } catch (err) {
+        if (err instanceof RigError && err.code === ENAVAIL) return null;
+        throw err;
+      }
     },
   };
 }
@@ -83,8 +97,12 @@ export async function tuneRig(rig: Rig, s: RigSetup, log: (m: string) => void = 
   log(`[rig] tuned${s.frequencyHz ? ` to ${(s.frequencyHz / 1e6).toFixed(6)} MHz` : ''}${s.mode ? ` ${s.mode}` : ''}`);
 }
 
-/** Key the transmitter and read PTT back, so a radio that ignored the command is caught before any audio plays. */
+/**
+ * Key the transmitter and read PTT back, so a radio that ignored the command is caught before any
+ * audio plays. A radio that can't report PTT is taken at its word.
+ */
 export async function keyRig(rig: Rig, on: boolean) {
   await rig.setPtt(on);
-  if ((await rig.ptt()) !== on) throw new RigError(`PTT did not ${on ? 'key' : 'unkey'}: the radio reports ${on ? 'receive' : 'transmit'}`);
+  const keyed = await rig.ptt();
+  if (keyed !== null && keyed !== on) throw new RigError(`PTT did not ${on ? 'key' : 'unkey'}: the radio reports ${on ? 'receive' : 'transmit'}`);
 }

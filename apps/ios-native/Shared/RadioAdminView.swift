@@ -202,6 +202,12 @@ struct RadioAdminView: View {
     /// Listener nodes and extra stations, with each listener's latest report and its SNR.
     private func nodesSection(_ n: RadioNodes, burst: Bool) -> some View {
         Section {
+            // The listener map: nodes, their signal and receivers (CoverageMap; off until switched on there).
+            NavigationLink(w("coverage.title")) { ListenerMapView(api: api, words: w) }
+            // Listener requests, thank-you cards and the weekly station report (ListenerAdminView; each off until switched on).
+            NavigationLink(w("listeners.on")) { ListenerRequestsView(api: api, words: w) }
+            NavigationLink(w("qsl.on")) { ThankYouCardsView(api: api, words: w) }
+            NavigationLink(w("stationReport.title")) { StationReportView(api: api, words: w) }
             Toggle(isOn: Binding(get: { n.multiStation }, set: { v in saveNodes(multiStation: v) })) {
                 Text(w("admin.multiStationOn"))
                 Text(w("admin.multiStationHint"))

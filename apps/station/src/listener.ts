@@ -15,6 +15,7 @@ import { channelReport, decodeAudio, fingerprint, type HeardFrame } from './burs
 import { demodulate as demodulatePackets } from './packet/afsk.js';
 import { parseStatus, type PacketStatus } from './packet/message.js';
 import type { RelayStatus } from './relay.js';
+import type { Receiver } from './sdr.js';
 
 export const RATE = 48_000;
 const KEEP_SECONDS = 24;
@@ -93,7 +94,7 @@ export function s16le(buf: Buffer, carry: { rest: Buffer }): Float32Array {
 export interface ListenerApi {
   channelReport(r: { callSign: string; preset: string; snrDb: number }): Promise<void>;
   heard(r: { callSign: string; preset: string; snrDb: number; hashes: string[]; peakDbfs?: number }): Promise<void>;
-  heartbeat(location?: NodeLocation, relay?: RelayStatus): Promise<void>;
+  heartbeat(location?: NodeLocation, relay?: RelayStatus, receiver?: Receiver): Promise<void>;
   /** The packet fallback's short IDs (POST /node/heard-ids). */
   heardIds?(r: { callSign: string; ids: string[] }): Promise<void>;
 }
@@ -213,7 +214,7 @@ export class Outbox {
 }
 
 /** Prayer Tower's listener endpoints: POST /node/channel-report, /node/heard and /node/heartbeat, with the node key (x-node-key) or, signed, without it. */
-export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch, opts: { sign?: boolean } = {}): ListenerApi {
+export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch, opts: { sign?: boolean; log?: (m: string) => void } = {}): ListenerApi {
   const base = baseUrl.replace(/\/$/, '');
   // Each signature's timestamp must be newer than the last (the server refuses replays).
   let lastTs = 0;
@@ -237,14 +238,17 @@ export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typ
       const res = await post('/node/heard', r);
       // 404: receipts, acknowledgements and listener reports are all switched off.
       if (!res.ok && res.status !== 404) throw new ReportError(`receipt failed (${res.status})`, res.status);
+      // A thank-you card for confirmed reception, while the station gives them (server radio/qsl.ts).
+      const body = res.ok ? ((await res.json().catch(() => null)) as { card?: { path: string; new: boolean } } | null) : null;
+      if (body?.card?.new) (opts.log ?? console.log)(`[listener] the station sent a thank-you card: ${base}${body.card.path}`);
     },
     async heardIds(r) {
       const res = await post('/node/heard-ids', r);
       // 404: the packet fallback is switched off.
       if (!res.ok && res.status !== 404) throw new ReportError(`packet receipt failed (${res.status})`, res.status);
     },
-    async heartbeat(location, relay) {
-      const res = await post('/node/heartbeat', { ...(location ? { location } : {}), ...(relay ? { relay } : {}) });
+    async heartbeat(location, relay, receiver) {
+      const res = await post('/node/heartbeat', { ...(location ? { location } : {}), ...(relay ? { relay } : {}), ...(receiver ? { receiver } : {}) });
       if (!res.ok) throw new ReportError(`heartbeat failed (${res.status})`, res.status);
     },
   };

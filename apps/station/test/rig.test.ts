@@ -17,6 +17,7 @@ afterAll(() => mock.close());
 beforeEach(() => {
   mock.commands.length = 0;
   mock.stuckPtt = false;
+  mock.noPttReport = false;
   mock.state.ptt = 0;
 });
 
@@ -43,6 +44,17 @@ describe('rig control through rigctld', () => {
     mock.stuckPtt = true;
     await expect(keyRig(rig, true)).rejects.toThrow(/PTT did not key/);
     await expect(rigctldClient('127.0.0.1', 1).ptt()).rejects.toBeInstanceOf(RigError);
+  });
+
+  it('trusts a radio that cannot report PTT, and the health check passes it', async () => {
+    mock.noPttReport = true;
+    const rig = rigctldClient('127.0.0.1', mock.port);
+    expect(await rig.ptt()).toBeNull();
+    await keyRig(rig, true);
+    expect(mock.state.ptt).toBe(1);
+    await keyRig(rig, false);
+    const rigCheck = (await checkHealth({ apiUrl: 'http://x', fldigi: null, heartbeatFile: null, maxAgeSeconds: 60, fetchImpl: (async () => new Response('{}')) as typeof fetch, rig })).find((c) => c.name === 'rig');
+    expect(rigCheck).toMatchObject({ ok: true, detail: expect.stringMatching(/PTT not reported/) });
   });
 
   it('keys burst audio through rigctld, and stops before playing when PTT fails', async () => {

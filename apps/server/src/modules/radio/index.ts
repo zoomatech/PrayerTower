@@ -341,14 +341,16 @@ export const BurstReport = z.object({
   error: z.string().max(500).optional(),
 });
 
-/** Log one burst from the station (burst mode). Keeps the latest 500. */
+/** Log one burst from the station (burst mode). Keeps the latest 500, and every burst of the last 8 weeks for the weekly station report. */
 export async function recordBurst(q: Queryable, b: z.infer<typeof BurstReport>) {
   await q.query(
     `insert into public.station_bursts (call_sign, mode, preset, prayers, frames, bytes, seconds, decoded, ok, error)
      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
     [b.callSign, b.mode, b.preset, b.prayers, b.frames, b.bytes, b.seconds, b.decoded ?? null, b.ok, b.ok ? null : (b.error ?? 'station error')],
   );
-  await q.query(`delete from public.station_bursts where id <= (select id from public.station_bursts order by id desc offset 500 limit 1)`);
+  await q.query(
+    `delete from public.station_bursts where created_at < now() - interval '8 weeks' and id <= (select id from public.station_bursts order by id desc offset 500 limit 1)`,
+  );
 }
 
 export interface StationBurst {
