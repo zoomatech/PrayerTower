@@ -40,6 +40,10 @@ const Env = z.object({
   APNS_KEY_ID: z.string().regex(/^[A-Z0-9]{10}$/).optional(),
   APNS_PRIVATE_KEY: z.string().optional(),
   APNS_PRODUCTION: z.stringbool().default(true),
+  /** Text messages for the prayer chain (docs/GROWTH.md): Twilio account SID, auth token, and a sending number or Messaging Service SID. Unset = no texts. */
+  TWILIO_ACCOUNT_SID: z.string().regex(/^AC[0-9a-fA-F]{32}$/).optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM: z.string().regex(/^(\+[1-9][0-9]{6,14}|MG[0-9a-fA-F]{32})$/).optional(),
   /** Bundle IDs (iOS) and package names (Android) that open shared links: the store app and the staging build. */
   APP_LINK_APP_IDS: z.string().default('com.zoomatech.prayertower,com.zoomatech.prayertower.staging'),
   /** Comma-separated SHA-256 signing-certificate fingerprints for Android App Links; unset = no assetlinks.json. */

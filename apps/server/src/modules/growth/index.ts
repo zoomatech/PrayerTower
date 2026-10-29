@@ -20,6 +20,7 @@ import { getProfile } from '../accounts/index.js';
 import type { Mailer } from '../digest/mailer.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
+import type { SmsSend } from './sms.js';
 
 export interface GrowthSettings {
   guest_prayer_enabled: boolean;
@@ -30,11 +31,12 @@ export interface GrowthSettings {
   guest_email_days: number;
   share_consent_enabled: boolean;
   prayed_for_live_enabled: boolean;
+  prayer_chain_sms_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<GrowthSettings> {
   const { rows } = await q.query<GrowthSettings>(
-    `select guest_prayer_enabled, prayer_chain_enabled, prayer_chain_max, prayed_for_widget_enabled, prayer_minute_enabled, guest_email_days, share_consent_enabled, prayed_for_live_enabled
+    `select guest_prayer_enabled, prayer_chain_enabled, prayer_chain_max, prayed_for_widget_enabled, prayer_minute_enabled, guest_email_days, share_consent_enabled, prayed_for_live_enabled, prayer_chain_sms_enabled
        from public.growth_settings`,
   );
   return rows[0]!;
@@ -49,6 +51,7 @@ export const SettingsPatch = z.object({
   guestEmailDays: z.number().int().min(1).max(365).optional(),
   shareConsentEnabled: z.boolean().optional(),
   prayedForLiveEnabled: z.boolean().optional(),
+  prayerChainSmsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -57,7 +60,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        guest_prayer_enabled = coalesce($1, guest_prayer_enabled), prayer_chain_enabled = coalesce($2, prayer_chain_enabled),
        prayer_chain_max = coalesce($3, prayer_chain_max), prayed_for_widget_enabled = coalesce($4, prayed_for_widget_enabled),
        prayer_minute_enabled = coalesce($5, prayer_minute_enabled), guest_email_days = coalesce($6, guest_email_days),
-       share_consent_enabled = coalesce($7, share_consent_enabled), prayed_for_live_enabled = coalesce($8, prayed_for_live_enabled)`,
+       share_consent_enabled = coalesce($7, share_consent_enabled), prayed_for_live_enabled = coalesce($8, prayed_for_live_enabled),
+       prayer_chain_sms_enabled = coalesce($9, prayer_chain_sms_enabled)`,
     [
       p.guestPrayerEnabled ?? null,
       p.prayerChainEnabled ?? null,
@@ -67,6 +71,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.guestEmailDays ?? null,
       p.shareConsentEnabled ?? null,
       p.prayedForLiveEnabled ?? null,
+      p.prayerChainSmsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -82,6 +87,8 @@ export async function features(q: Queryable) {
     prayerMinute: s.prayer_minute_enabled,
     shareConsent: s.share_consent_enabled,
     prayedForLive: s.prayed_for_live_enabled,
+    /** Mobile numbers on the prayer chain, by text message. */
+    prayerChainSms: s.prayer_chain_sms_enabled && s.prayer_chain_enabled && s.guest_prayer_enabled,
   };
 }
 
@@ -265,6 +272,8 @@ export interface MailContext {
   siteUrl: string | null;
   /** Open Circle's name (OPEN_CIRCLE_NAME) in its members' guests' email. */
   openCircleName: string;
+  /** Text messages for prayer-chain numbers (modules/growth/sms.ts); null = none sent. */
+  sms?: SmsSend | null;
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -317,11 +326,23 @@ async function requireChain(q: Queryable) {
   return settings(q);
 }
 
-export const ChainMember = z.object({ email: z.string().trim().toLowerCase().max(254).regex(EMAIL, 'Enter a valid email address') });
+/** An email address, or (with texts on) a mobile number in international form: +1 505 555 0100. */
+export const ChainMember = z.union([
+  z.object({ email: z.string().trim().toLowerCase().max(254).regex(EMAIL, 'Enter a valid email address') }),
+  z.object({
+    phone: z
+      .string()
+      .trim()
+      .max(24)
+      .transform((p) => p.replace(/[\s().-]/g, ''))
+      .pipe(z.string().regex(/^\+[1-9][0-9]{6,14}$/, 'Enter the number with its country code, like +1 505 555 0100')),
+  }),
+]);
 
-/** Add an address. It gets one email asking to join; nothing else goes to it until it says yes. */
-export async function addChainMember(q: Queryable, userId: string, email: string) {
+/** Add an address or number. It gets one message asking to join; nothing else goes to it until it says yes. */
+export async function addChainMember(q: Queryable, userId: string, to: z.infer<typeof ChainMember>) {
   const s = await requireChain(q);
+  if ('phone' in to && !s.prayer_chain_sms_enabled) throw forbidden('Text messages for the prayer chain are turned off for now');
   const { rows: count } = await q.query<{ all: number; today: number }>(
     `select count(*) filter (where status <> 'left')::int as all, count(*) filter (where created_at > now() - interval '1 day')::int as today
        from public.prayer_chain_members where owner_id = $1`,
@@ -330,22 +351,22 @@ export async function addChainMember(q: Queryable, userId: string, email: string
   if (count[0]!.all >= s.prayer_chain_max) throw badRequest(`Your prayer chain can have up to ${s.prayer_chain_max} people`);
   if (count[0]!.today >= 20) throw badRequest('You can add up to 20 people a day');
   const { rows } = await q.query<{ id: string }>(
-    `insert into public.prayer_chain_members (owner_id, email, token) values ($1, $2, $3)
-     on conflict (owner_id, email) do nothing returning id`,
-    [userId, email, newToken()],
+    `insert into public.prayer_chain_members (owner_id, email, phone, token) values ($1, $2, $3, $4)
+     on conflict do nothing returning id`,
+    [userId, 'email' in to ? to.email : null, 'phone' in to ? to.phone : null, newToken()],
   );
   // Someone who left, or was already asked, is never asked again.
-  if (!rows[0]) throw conflict('This address is already on your list');
+  if (!rows[0]) throw conflict('This address or number is already on your list');
   await enqueue(q, 'growth_chain_confirm', { memberId: rows[0].id });
   return { id: rows[0].id };
 }
 
 export async function listChain(q: Queryable, userId: string) {
-  const { rows } = await q.query<{ id: string; email: string; status: string; created_at: Date }>(
-    'select id, email, status::text, created_at from public.prayer_chain_members where owner_id = $1 order by created_at',
+  const { rows } = await q.query<{ id: string; email: string | null; phone: string | null; status: string; created_at: Date }>(
+    'select id, email, phone, status::text, created_at from public.prayer_chain_members where owner_id = $1 order by created_at',
     [userId],
   );
-  return rows.map((r) => ({ id: r.id, email: r.email, status: r.status as 'pending' | 'confirmed' | 'left', createdAt: r.created_at }));
+  return rows.map((r) => ({ id: r.id, email: r.email, phone: r.phone, status: r.status as 'pending' | 'confirmed' | 'left', createdAt: r.created_at }));
 }
 
 export async function removeChainMember(q: Queryable, userId: string, id: string) {
@@ -356,15 +377,15 @@ export async function removeChainMember(q: Queryable, userId: string, id: string
 /** The public join/leave page for one address. */
 export async function chainEntry(q: Queryable, token: string) {
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(token)) return null;
-  const { rows } = await q.query<{ id: string; status: string; display_name: string | null; owner_id: string }>(
-    `select m.id, m.status::text, pr.display_name, m.owner_id from public.prayer_chain_members m join public.profiles pr on pr.id = m.owner_id
+  const { rows } = await q.query<{ id: string; status: string; display_name: string | null; owner_id: string; by_text: boolean }>(
+    `select m.id, m.status::text, pr.display_name, m.owner_id, m.phone is not null as by_text from public.prayer_chain_members m join public.profiles pr on pr.id = m.owner_id
       where m.token = $1`,
     [token],
   );
   const r = rows[0];
   if (!r) return null;
   const { rows: c } = await q.query<{ id: string }>('select public.member_community_id($1) as id', [r.owner_id]);
-  return { id: r.id, status: r.status as 'pending' | 'confirmed' | 'left', ownerName: firstName(r.display_name) ?? 'A friend', secular: await secularCommunity(q, c[0]!.id) };
+  return { id: r.id, status: r.status as 'pending' | 'confirmed' | 'left', ownerName: firstName(r.display_name) ?? 'A friend', secular: await secularCommunity(q, c[0]!.id), byText: r.by_text };
 }
 
 export async function chainDecision(q: Queryable, token: string, join: boolean) {
@@ -393,18 +414,32 @@ export async function sendToChain(q: Queryable, userId: string, postId: string) 
   return { recipients: people[0]!.n, path: link.path };
 }
 
+/** A number that replied STOP leaves the chain for good. */
+async function smsTo(q: Queryable, ctx: MailContext, memberId: string, phone: string, body: string) {
+  const r = await ctx.sms!(phone, body).catch(() => ({ ok: false, optedOut: false }));
+  if (r.optedOut) await q.query("update public.prayer_chain_members set status = 'left' where id = $1", [memberId]);
+}
+
 export function chainConfirmTask(q: Queryable, ctx: MailContext): Task {
   return async (payload) => {
-    if (!ctx.mailer || !ctx.siteUrl) return;
+    if (!ctx.siteUrl) return;
     const { memberId } = payload as { memberId: string };
-    const { rows } = await q.query<{ email: string; token: string; status: string }>(
-      'select email, token, status::text from public.prayer_chain_members where id = $1',
+    const { rows } = await q.query<{ email: string | null; phone: string | null; token: string; status: string }>(
+      'select email, phone, token, status::text from public.prayer_chain_members where id = $1',
       [memberId],
     );
     const m = rows[0];
     if (!m || m.status !== 'pending') return;
     const entry = (await chainEntry(q, m.token))!;
     const url = `${ctx.siteUrl}/chain/${m.token}`;
+    if (m.phone) {
+      if (!ctx.sms || !(await settings(q)).prayer_chain_sms_enabled) return;
+      const ask = entry.secular
+        ? `${entry.ownerName} would like to text you their requests for support. Yes or no: ${url} (Nothing more is sent unless you say yes. Reply STOP to opt out.)`
+        : `${entry.ownerName} would like to add you to their prayer chain by text. Yes or no: ${url} (Nothing more is sent unless you say yes. Reply STOP to opt out.)`;
+      return smsTo(q, ctx, memberId, m.phone, ask);
+    }
+    if (!ctx.mailer || !m.email) return;
     const lines = entry.secular
       ? [
           `${entry.ownerName} would like to send you their requests for support by email, so you can let them know you're thinking of them.`,
@@ -427,7 +462,7 @@ export function chainConfirmTask(q: Queryable, ctx: MailContext): Task {
 
 export function chainSendTask(q: Queryable, ctx: MailContext): Task {
   return async (payload) => {
-    if (!ctx.mailer || !ctx.siteUrl) return;
+    if (!ctx.siteUrl) return;
     const { postId } = payload as { postId: string };
     const post = await posts.getVisible(q, postId);
     if (!post || post.state === 'answered') return;
@@ -436,12 +471,24 @@ export function chainSendTask(q: Queryable, ctx: MailContext): Task {
     const secular = await secularCommunity(q, post.community_id);
     const name = firstName((await getProfile(q, post.user_id))?.display_name) ?? 'A friend';
     const prayUrl = `${ctx.siteUrl}${guestPath(link[0].token, secular)}`;
-    const { rows } = await q.query<{ email: string; token: string }>(
-      `select email, token from public.prayer_chain_members where owner_id = $1 and status = 'confirmed'`,
+    const { rows } = await q.query<{ id: string; email: string | null; phone: string | null; token: string }>(
+      `select id, email, phone, token from public.prayer_chain_members where owner_id = $1 and status = 'confirmed'`,
       [post.user_id],
     );
+    const texts = !!ctx.sms && (await settings(q)).prayer_chain_sms_enabled;
     for (const m of rows) {
       const leave = `${ctx.siteUrl}/chain/${m.token}`;
+      if (m.phone) {
+        if (!texts) continue;
+        // A text carries a short preview; the link shows the whole request.
+        const preview = post.body.length > 160 ? `${post.body.slice(0, 157)}…` : post.body;
+        const body = secular
+          ? `${name} shared a request with you: "${preview}" Let them know you're thinking of them: ${prayUrl} Stop: ${leave}`
+          : `${name} asks for your prayers: "${preview}" Tap once you've prayed: ${prayUrl} Stop: ${leave}`;
+        await smsTo(q, ctx, m.id, m.phone, body);
+        continue;
+      }
+      if (!ctx.mailer || !m.email) continue;
       const lines = [
         secular ? `${name} shared a request with you:` : `${name} asks for your prayers:`,
         `“${post.body.slice(0, 1500)}”`,

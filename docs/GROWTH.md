@@ -7,7 +7,7 @@ Steve asked on 2026-10-28 for "a way to boost usage that the other Social Media 
 | # | Feature | What members and guests see | Switch |
 |---|---|---|---|
 | 1 | Pray from a link, no account needed | On their own open request, the asker taps **Let friends without the app pray**. The share sheet sends a web link. Anyone who opens it reads the request and taps **I prayed**, with no account. A guest may leave a first name, and can tick a box to hear once by email if the prayer is answered. The asker gets "Ana prayed for you" (one notice per request per day) and sees "3 people prayed from your link". | `guest_prayer_enabled` |
-| 2 | Email prayer chain | Under Me → **My prayer chain**, the member adds the people already on their email prayer chain. Each address gets one email asking to join. On an open request, **Send to my prayer chain** emails the request, with the link from feature 1, to everyone who said yes. Each request goes out once, and every email has a stop link. | `prayer_chain_enabled` (also needs feature 1 on) |
+| 2 | Email prayer chain | Under Me → **My prayer chain**, the member adds the people already on their email prayer chain. Each address gets one email asking to join. On an open request, **Send to my prayer chain** emails the request, with the link from feature 1, to everyone who said yes. Each request goes out once, and every email has a stop link. | `prayer_chain_enabled` (also needs feature 1 on); mobile numbers by text need `prayer_chain_sms_enabled` and the Twilio settings |
 | 3 | "Prayed for you today" on the widget | The existing Pray now widget adds one line: "💛 Ana and 2 others prayed for you today". | `prayed_for_widget_enabled` |
 | 4 | Prayer minute | Under Me → **My prayer minute**, the member picks one minute a day. At that minute they get a gentle notice saying how many others chose the same moment. The screen shows a real count of people who have it open and three requests that were prayed for least today. | `prayer_minute_enabled` |
 | 5 | Sharing only with consent | Under their own post, the author picks **Who can share this outside the app?**: **Only me** (the default), **Members can send a link** (the link needs the app; the words never leave), or **Anyone can share a card** (a web page at `/card/<code>` with the words, and the first name unless the post is anonymous). Everyone else's **Share outside** button sends only what the author chose, or says the post stays inside the app. Comments can be shared only by the person who wrote them. | `share_consent_enabled` |
@@ -36,6 +36,7 @@ In Open Circle, links are `/circle/<code>` instead of `/pray/<code>`. The pages 
 | `PUBLIC_SITE_URL` | This API host's public address, for example `https://api.<your-domain>`. Prayer-chain and answered emails link to it. Unset = those emails are not sent. |
 | `SMTP_URL`, `MAIL_FROM` | The same mail settings as the weekly digest. Unset = no email. |
 | `APNS_KEY_ID`, `APNS_PRIVATE_KEY` | An Apple push key (.p8) for Live Activity updates, with `APPLE_TEAM_ID`. Unset = the Lock Screen activity starts but doesn't update. `APNS_PRODUCTION=false` for development builds. |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` | Text messages for prayer-chain numbers, through Twilio's Messages API. `TWILIO_FROM` is a Twilio number (+1…) or a Messaging Service SID (MG…). Unset = no texts. A number that replies STOP leaves the chain (Twilio error 21610). |
 | `GUEST_IP_SALT` | Optional. Keeps the guest spam-check hash stable across restarts. |
 
 The app builds the share link from `EXPO_PUBLIC_LINK_URL`, the same as other shared links ([APP_LINKS.md](APP_LINKS.md)).
@@ -64,7 +65,7 @@ Background jobs: `live_activity_refresh` (every minute), `growth_guest_answered`
 ## Known limits
 
 - The home-screen widget refreshes its prayed-for line when the app loads the feed. For live updates between app opens, use feature 6 (the Lock Screen Live Activity).
-- Sending a prayer chain by text message (SMS) isn't built. It needs a paid SMS provider, so it goes last under the money rule.
+- Texts cost money per message (Twilio's pricing), which is why the text switch is separate from the email chain. A text carries the first 160 characters of the request; the link shows the rest.
 - An anonymous request sent to the member's own prayer chain carries their first name in the email, because the member chose to send it to people who know them.
 
 ## Before switching on

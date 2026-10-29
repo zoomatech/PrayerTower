@@ -22,6 +22,7 @@ import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
 import * as growth from './modules/growth/index.js';
+import { createSms, type SmsSend } from './modules/growth/sms.js';
 import { createApns, type ApnsSend } from './modules/live-activity/apns.js';
 import { refreshTask as liveActivityRefreshTask } from './modules/live-activity/index.js';
 import * as practices from './modules/practices/index.js';
@@ -35,11 +36,18 @@ function apnsFrom(config: Config): ApnsSend | null {
   return createApns({ keyId: config.APNS_KEY_ID, teamId: config.APPLE_TEAM_ID, privateKey: config.APNS_PRIVATE_KEY, production: config.APNS_PRODUCTION });
 }
 
-export function buildTaskList(db: Queryable, config: Config, overrides: { apns?: ApnsSend | null; classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
+/** Twilio for prayer-chain texts, or null until its keys are set. */
+function smsFrom(config: Config): SmsSend | null {
+  if (!config.TWILIO_ACCOUNT_SID || !config.TWILIO_AUTH_TOKEN || !config.TWILIO_FROM) return null;
+  return createSms({ accountSid: config.TWILIO_ACCOUNT_SID, authToken: config.TWILIO_AUTH_TOKEN, from: config.TWILIO_FROM });
+}
+
+export function buildTaskList(db: Queryable, config: Config, overrides: { apns?: ApnsSend | null; sms?: SmsSend | null; classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
   const mail: growth.MailContext = {
     mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
     siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
     openCircleName: config.OPEN_CIRCLE_NAME,
+    sms: overrides.sms !== undefined ? overrides.sms : smsFrom(config),
   };
   return {
     growth_guest_answered: growth.guestAnsweredTask(db, mail),
