@@ -90,6 +90,8 @@ In that build:
 
 The branded app shares the server and database with Prayer Tower. Its App Store listing, screenshots and EAS project are separate. Those are the items in STEVE_TODO.
 
+The web build (`npm run export:web` with `EXPO_PUBLIC_EDITION=open-circle`) installs as Open Circle. `apps/mobile/web-edition.js` rewrites the exported `manifest.json`, the home-screen title and theme color in `index.html`, and `icon-192/512.png`. The icons are `assets/images/open-circle-icon-192.png` and `-512.png`, drawn by `npm run brand -- --edition open-circle`.
+
 ## Its public website
 
 The same server serves Open Circle's own pages, in plain English with no religious words:

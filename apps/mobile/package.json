@@ -63,7 +63,7 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "export:web": "expo export --platform web && node workbox-config.js",
+    "export:web": "expo export --platform web && node web-edition.js && node workbox-config.js",
     "test": "jest"
   },
   "private": true,
