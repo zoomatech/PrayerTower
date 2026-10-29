@@ -60,3 +60,16 @@ describe('Meanings in the icon row', () => {
     await as(admin).patch('/admin/conversation-settings', { meaningRowEnabled: false });
   });
 });
+
+describe('Kindness research page', () => {
+  it('is hidden until switched on, then shows members the folded totals', async () => {
+    const u = await createUser('Research Reader');
+    await db.query('update public.conversation_settings set research_page_enabled = false');
+    expect((await as(u).get('/kindness-research')).statusCode).toBe(404);
+    await db.query('update public.conversation_settings set research_page_enabled = true');
+    const r = (await as(u).get('/kindness-research')).json().counts;
+    expect(r).toMatchObject({ weeks: 12, minShown: 5 });
+    for (const row of r.chains) expect(row.n).toBeGreaterThanOrEqual(5);
+    await db.query('update public.conversation_settings set research_page_enabled = false');
+  });
+});

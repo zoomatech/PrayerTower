@@ -187,6 +187,7 @@ export default function Profile() {
         <GratitudeCard />
         <LiftUpCard />
         <HighlightsLink />
+        {features.kindnessResearch ? <Button small variant="secondary" label={t('research.title')} onPress={() => router.push('/kindness-research')} /> : null}
         <EncouragerCard />
         <PartnerCard />
         <ConversationPrefsCard />

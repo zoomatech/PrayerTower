@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
+import { notFound } from '../../errors.js';
 import * as meanings from '../meaning-reactions/index.js';
 import * as counts from './counts.js';
 import * as helpers from './index.js';
@@ -11,6 +12,12 @@ export function conversationHelperRoutes(app: FastifyInstance, db: Db) {
 
   // Counting patterns: move labels only, from members who chose to share.
   app.post('/talk-counts', async (req) => counts.record(db, requireUser(req), counts.Count.parse(req.body)));
+  // The members' kindness research page: the same anonymous totals the admin sees.
+  app.get('/kindness-research', async (req) => {
+    requireUser(req);
+    if (!(await helpers.settings(db)).research_page_enabled) throw notFound('Page');
+    return { counts: await counts.summary(db) };
+  });
 
   // My meaning words: the whole tree (to choose from) and the member's choices.
   app.get('/me/meaning-words', async (req) => {

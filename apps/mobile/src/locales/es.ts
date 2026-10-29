@@ -1707,6 +1707,18 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
       extend_reach: 'Para extender el alcance de la oración',
     },
   },
+  research: {
+    title: 'How we talk here',
+    intro: 'Anonymous totals from members who chose to share: only the kind of message (a greeting, thanks, a hard day) and the emoji meanings, never words or names. Anything seen fewer than five times is folded into “other”.',
+    chains: 'Greeting → reply → follow-up, last %{weeks} weeks',
+    emoji: 'Emoji used as a reply, last %{weeks} weeks',
+    emojiRow: '%{what} in reply to %{move}',
+    other: 'Other patterns (fewer than %{min} each): %{n}',
+    barLabel: '%{label}: %{n}',
+    empty: 'Nothing to show yet.',
+    adminTitle: 'Kindness research page',
+    adminHint: 'Lets members see the Counting patterns totals as simple charts on Me → How we talk here. Rows under five stay folded.',
+  },
   coolDown: {
     title: 'A breather?',
     lines: {

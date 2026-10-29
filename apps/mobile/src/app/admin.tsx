@@ -1560,6 +1560,7 @@ function ConversationSettingsSection() {
       <Toggle label={t('talk.adminMeaningRow')} hint={t('talk.adminMeaningRowHint')} value={s.meaning_row_enabled} onChange={(v) => save({ meaningRowEnabled: v })} />
       <Toggle label={t('talk.adminCounts')} hint={t('talk.adminCountsHint')} value={s.talk_counts_enabled} onChange={(v) => save({ talkCountsEnabled: v })} />
       {s.talk_counts_enabled ? <TalkCountsView /> : null}
+      <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

@@ -45,3 +45,12 @@ neon, wall, and the rest) gets them without its own code: all skins draw cards w
 skin clips it. Hovering with an iPad pointer or a Mac shows the words above the icon.
 Each icon is 44 points, has a spoken label, and reading the chosen meaning is announced.
 The meaning list is fetched once per session, not once per card.
+
+## Kindness research page (off)
+
+Admin → Conversation helpers → **Kindness research page**. Members then find
+**Me → How we talk here**: the same anonymous Counting patterns totals the admin sees,
+drawn as two simple bar charts (greeting → reply → follow-up chains, and emoji used as a
+reply, with the meaning words). One colour, ranked, each bar labelled with its number,
+at most eight bars a chart. Anything seen fewer than five times stays folded into
+"other", exactly as in the admin view. Route: `GET /kindness-research` (404 while off).
