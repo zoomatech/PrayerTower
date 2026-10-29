@@ -29,6 +29,8 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let crisis: Bool
     public let counts: CardCounts
     public let createdAt: String
+    /// The actions this viewer may take, in the server's order (`ACTION_ORDER`). Older servers may leave it out.
+    public let actions: [String]?
 }
 
 public struct FeedPage: Codable, Sendable, Equatable {
@@ -68,6 +70,7 @@ public struct PrayingNow: Codable, Sendable, Equatable {
 /// Admin switches the app reads (`/features`). Anything missing counts as off.
 public struct Features: Sendable, Equatable {
     public let values: [String: Bool]
+    public init(values: [String: Bool]) { self.values = values }
     public subscript(name: String) -> Bool { values[name] ?? false }
 }
 

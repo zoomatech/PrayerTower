@@ -4,7 +4,7 @@ The future Prayer Tower iPhone app in Swift and SwiftUI. The pilot stays the Exp
 
 - `Sources/PrayerTowerKit` is the API: models, requests and errors. It uses Foundation only.
 - `Sources/PrayerTowerSession` handles signing in with Supabase Auth ([supabase-swift](https://github.com/supabase/supabase-swift)), including the two-step code.
-- `App/` holds the SwiftUI screens: sign in, the two-step code, and the feed with Praying Now.
+- `App/` holds the SwiftUI screens: sign in, the two-step code, the feed with one row of action icons (long press for names and meanings), the kind cloud, prayer circles, and fresh-start days on Me. Each follows its admin switch.
 - `project.yml` is the Xcode project spec, for [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ## Tests (any machine with Docker)
