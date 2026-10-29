@@ -5,6 +5,8 @@ import SwiftUI
 struct FeedView: View {
     @Environment(AppModel.self) private var model
     @State private var posts: [Card] = []
+    /// The member's feed skin; nil is the plain column.
+    @State private var theme: FeedTheme?
     @State private var nextPage: Int?
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
@@ -13,12 +15,15 @@ struct FeedView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(posts) { card in
-                    CardRow(card: card, active: done[card.id] ?? [], onAction: { act($0, on: card) }, onMeaning: { item, meaning in
-                        Task { await choose(meaning, of: item, on: card) }
-                    })
-                    .task { if card.id == posts.last?.id { await more() } }
+            Group {
+                if let theme, theme.kind.drawn != .column {
+                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, row: row, onEnd: more)
+                } else {
+                    List {
+                        ForEach(posts) { card in
+                            row(card).task { if card.id == posts.last?.id { await more() } }
+                        }
+                    }
                 }
             }
             .overlay {
@@ -26,16 +31,23 @@ struct FeedView: View {
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
             .refreshable { await load() }
-            .task { await load() }
+            .task(id: model.feedStyle) { await load() }
             .sheet(item: $encouraging) { card in EncourageSheet(card: card) { note in Task { await encourage(card, note) } } }
             .alert(notice ?? "", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) { Button("OK") {} }
         }
+    }
+
+    private func row(_ card: Card) -> some View {
+        CardRow(card: card, active: done[card.id] ?? [], onAction: { act($0, on: card) }, onMeaning: { item, meaning in
+            Task { await choose(meaning, of: item, on: card) }
+        })
     }
 
     private func load() async {
         do {
             let page = try await model.store.api.feed()
             posts = page.posts
+            theme = page.theme
             nextPage = page.nextPage
             error = nil
         } catch let e as APIError where e.needsCode {

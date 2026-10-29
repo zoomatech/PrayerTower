@@ -64,6 +64,14 @@ public struct APIClient: Sendable {
         try await (send(request("DELETE", "/posts/\(postId)/meanings/\(emoji)")) as Leaves).leaves
     }
 
+    // MARK: - Feed skins
+
+    public func feedThemes() async throws -> FeedThemeChoices { try await get("/me/feed-themes") }
+    /// nil goes back to the community's usual feed.
+    public func chooseFeedTheme(_ slug: String?) async throws -> FeedThemeChoices {
+        try await send(body(request("PUT", "/me/feed-theme"), ["slug": slug]))
+    }
+
     // MARK: - Kind cloud
 
     /// The kind cloud's check on a draft. A failed check shows nothing, as in the Expo app.

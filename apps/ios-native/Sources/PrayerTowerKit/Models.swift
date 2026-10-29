@@ -31,9 +31,21 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let createdAt: String
     /// The actions this viewer may take, in the server's order (`ACTION_ORDER`). Older servers may leave it out.
     public let actions: [String]?
+    /// Newest few comments, newest first, while comments as leaves is on (the drawn vine and tower).
+    public let leafComments: [LeafComment]?
+}
+
+/// A comment shown on a leaf or sub-tablet under its request.
+public struct LeafComment: Codable, Sendable, Equatable, Identifiable {
+    public let id: String
+    public let body: String
+    public let author: Identity
+    public let createdAt: String
 }
 
 public struct FeedPage: Codable, Sendable, Equatable {
+    /// The member's feed skin; nil means the plain column.
+    public let theme: FeedTheme?
     public let posts: [Card]
     public let pinnedId: String?
     public let nextPage: Int?

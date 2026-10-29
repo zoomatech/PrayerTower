@@ -36,6 +36,18 @@ Each one reads the same admin switch as the Expo app and shows nothing while it 
 
 Commit to Pray and Gift Tokens keep their icons in the row, and for now say they are coming soon (phases 2 and 4). Open Circle wording comes from the same words as `neutral.ts`, and a test checks the kind cloud has no religious words there.
 
+## Feed skins (phase 6, started)
+
+The native feed reads the member's skin from `GET /feed` (`theme`) and draws it in SwiftUI (`App/Skins/`). Me → Feed style lists the skins the community offers (`GET /me/feed-themes`, `PUT /me/feed-theme`), so the server's skins switch still decides what shows.
+
+- **Shared code** (`Skins.swift`, tested on Linux): `VineLook`, `TowerLook`, `CircuitLook` and `WallLook` read the same tokens with the same defaults and limits as the Expo layouts (stem width 2 to 14, tilt 0 to 20, known leaf shapes and drawing styles only). The leaf box and the tablet face use the same 4.5:1 rule as `leafBox()` and `tabletFace()`. The tests check the native colors against the Expo app's own output.
+- **Vine** (Beanstalk, Golden Wood, Moonlit Gate, Neon Cinderella, Blossom Garden and the seasonal skins): one stalk down the left edge drawn with `Canvas`, each post housed in a drawn leaf with veins, its newest comments on smaller leaves (`Card.leafComments`). The `vineStyle` token picks twisting strands, pen and ink, neon rods with a running spark, lines of silver light under a drawn gate, or a climbing rose with petal frames.
+- **Wall**: one post per screen with a hard snap (`scrollTargetBehavior(.paging)`).
+- **Prayer Tower / Climbing Tower**: stone walls, battlements, tablets and hanging sub-tablets, and a climber on a rope who rises as the member reads down.
+- **Neon Circuit**: tilted glowing screens and a live wire with bursts of light.
+- Swipe and Flip fall back to the plain column for now. Neon Cinderella's castle, coach and slipper are SF Symbols for now, not the Expo app's own drawings.
+- Every drawing is hidden from VoiceOver, and the spark, bursts and climber stop with Reduce Motion.
+
 ## Port order
 
 Each phase ships to TestFlight under the separate bundle id. The Expo app stays the one members use until the last phase.

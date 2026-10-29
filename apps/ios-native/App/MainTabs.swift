@@ -25,6 +25,7 @@ struct MeView: View {
     var body: some View {
         NavigationStack {
             List {
+                FeedStyleSection()
                 if model.features["freshDays"] {
                     if let line = freshDay?.line { Section { Text(line) } }
                     Section { FreshDaysSection() } header: { Text("Days that matter") }
@@ -43,5 +44,45 @@ struct MeView: View {
                 freshDay = model.features["freshDays"] ? (try? await model.store.api.freshDayToday()) ?? nil : nil
             }
         }
+    }
+}
+
+/// Me → Feed style: the skins this community offers (the server lists only what the skins
+/// switch allows). Hidden while there is nothing to choose between.
+struct FeedStyleSection: View {
+    @Environment(AppModel.self) private var model
+    @State private var choices: FeedThemeChoices?
+    @State private var error: String?
+
+    var body: some View {
+        Group {
+            if let c = choices, c.themes.count > 1 {
+                let current = c.current ?? c.themes.first(where: { $0.is_default })?.slug
+                Section("Feed style") {
+                    ForEach(c.themes) { t in
+                        Button {
+                            Task { await choose(t.slug) }
+                        } label: {
+                            HStack {
+                                Text(t.name)
+                                Spacer()
+                                if current == t.slug { Image(systemName: "checkmark") }
+                            }
+                        }
+                        .accessibilityAddTraits(current == t.slug ? .isSelected : [])
+                    }
+                    if let error { Text(error).foregroundStyle(.red) }
+                }
+            }
+        }
+        .task { choices = try? await model.store.api.feedThemes() }
+    }
+
+    private func choose(_ slug: String) async {
+        do {
+            choices = try await model.store.api.chooseFeedTheme(slug)
+            model.feedStyle = slug
+            error = nil
+        } catch { self.error = error.localizedDescription }
     }
 }
