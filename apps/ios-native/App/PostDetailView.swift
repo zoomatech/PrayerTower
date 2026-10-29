@@ -8,6 +8,8 @@ struct PostDetailView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let postId: String
+    /// A removed comment's words, to change and share again.
+    var draft: String?
     @State private var card: Card?
     @State private var comments: [ThreadedComment] = []
     @State private var prayers: Prayers?
@@ -54,7 +56,10 @@ struct PostDetailView: View {
         .navigationTitle(card.map { w("enums.postType.\($0.postType)") } ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
-        .task { await load() }
+        .task {
+            if let draft, text.isEmpty { text = draft }
+            await load()
+        }
         .confirmationDialog(w("post.report"), isPresented: Binding(get: { reporting != nil }, set: { if !$0 { reporting = nil } }), titleVisibility: .visible) {
             ForEach(0..<5, id: \.self) { i in
                 Button(w("actions.reasons.\(i)")) { Task { await report(ReportReason.all[i]) } }

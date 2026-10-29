@@ -12,6 +12,8 @@ struct ComposeView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     var onPosted: (Card) -> Void = { _ in }
+    /// Words to start from, such as a removed post the member is changing and sharing again.
+    var start: NewPost?
 
     @State private var draft = NewPost()
     @State private var picked: [PhotosPickerItem] = []
@@ -114,6 +116,7 @@ struct ComposeView: View {
                 }
             }
             .onAppear {
+                if let start { draft = start }
                 draft.isAnonymous = model.me?.profile.anonymousByDefault ?? false
                 focused = true
             }
