@@ -295,7 +295,7 @@ function VineTree(props: CommentTreeProps) {
             <VineRow key={key} from={from} side={row.side} look={tokens} gap={gap} depth={row.depth} seed={i}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('tree.more', { count: row.count })}
+                // No separate label: the button is named by its visible words, and the blurred leaves behind them are hidden.
                 onPress={() => {
                   // The older leaves come forward out of the blur.
                   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);

@@ -188,8 +188,14 @@ function ScriptureLeaf({ leaf, tokens, from }: { leaf: Leaf; tokens: VineTokens;
  * The idle bird: when the screen sits still, a bud labeled "Ad" swells on the
  * vine, a bird flies in, snips it and leaves a speech bubble. Once per visit.
  */
-function IdleBird({ tokens, idleKey }: { tokens: VineTokens; idleKey: number }) {
+function IdleBird({ tokens, register }: { tokens: VineTokens; register: (nudge: () => void) => void }) {
   const { wording, t } = useLocale();
+  // The wait restarts each time the member scrolls. Kept here, not in the feed, so a scroll
+  // re-renders only the bird and never the whole list of leaves.
+  const [idleKey, setIdleKey] = useState(0);
+  useEffect(() => {
+    register(() => setIdleKey((k) => k + 1));
+  }, [register]);
   const reduced = useReducedMotion();
   const [played, setPlayed] = useState(false);
   const [showing, setShowing] = useState(false);
@@ -239,7 +245,10 @@ function IdleBird({ tokens, idleKey }: { tokens: VineTokens; idleKey: number }) 
 export function VineLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const tokens = useMemo(() => vineTokens(theme), [theme]);
   const [leaves, setLeaves] = useState<Leaf[]>([]);
-  const [idleKey, setIdleKey] = useState(0);
+  const nudgeBird = useRef<() => void>(() => undefined);
+  const registerBird = useCallback((nudge: () => void) => {
+    nudgeBird.current = nudge;
+  }, []);
   const lastScroll = useRef(0);
 
   // Open Circle members (neutral wording) see no scripture.
@@ -306,7 +315,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
     const now = Date.now();
     if (now - lastScroll.current > 1000) {
       lastScroll.current = now;
-      setIdleKey((k) => k + 1);
+      nudgeBird.current();
     }
   }, []);
 
@@ -385,7 +394,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         onScroll={onScroll}
         scrollEventThrottle={250}
       />
-      {theme?.animations?.idleBird === false ? null : <IdleBird tokens={tokens} idleKey={idleKey} />}
+      {theme?.animations?.idleBird === false ? null : <IdleBird tokens={tokens} register={registerBird} />}
     </View>
   );
 }
