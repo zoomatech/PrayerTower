@@ -53,6 +53,9 @@ struct MeView: View {
                     NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
                     NavigationLink(w("profile.scheduled")) { ScheduledGiftsView() }
                 }
+                if model.me?.roles.contains("admin") == true {
+                    Section { NavigationLink(w("starter.title")) { AdminKindnessView() } }
+                }
                 Section {
                     NavigationLink("Sign-in security") { SignInSecurityView() }
                     Button(w(exporting ? "profile.exporting" : "profile.export")) { Task { await export() } }.disabled(exporting)
