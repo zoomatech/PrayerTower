@@ -7,6 +7,7 @@
 // lowercase phrase replacing a proper noun).
 const RULES: [RegExp, string, true?][] = [
   [/\bPrayer Tower\b/g, 'Open Circle', true],
+  [/\bCommon Prayer Fund\b/g, 'Common Fund', true],
   [/\bprayer partners\b/gi, 'listening partners'],
   [/\bprayer partner\b/gi, 'listening partner'],
   [/\bspoken prayers\b/gi, 'spoken messages'],

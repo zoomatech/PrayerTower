@@ -59,6 +59,9 @@ describe('endpoint auth', () => {
       // The Common Prayer Fund's public report (404 while switched off; names no one).
       'GET /common-prayer-fund/report',
       'GET /fund',
+      // Sponsor thanks (404 while switched off; names only sponsors staff added).
+      'GET /sponsors/list',
+      'GET /sponsors',
       // Giving: whether it's on, the public summary (names no one), and Stripe's signed webhook.
       'GET /donations/info',
       'GET /donations/summary',
