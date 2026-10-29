@@ -20,6 +20,7 @@ import { AiLinks } from '@/components/ai-links';
 import { AwardCard } from '@/components/award-card';
 import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
+import { EncouragerCard } from '@/components/encourager-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
@@ -179,11 +180,13 @@ export default function Profile() {
           </View>
         ) : null}
         <GratitudeCard />
+        <EncouragerCard />
         <AwardCard />
         <PrayedForYou />
         <View style={styles.chips}>
           {poolsOn ? <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} /> : null}
           <Button small variant="secondary" label={t('vine.branchLink')} onPress={() => router.push('/branch')} />
+          {features.remembered ? <Button small variant="secondary" label={t('practices.lookBack')} onPress={() => router.push('/remembered')} /> : null}
           <AiLinks />
           <LiveHostLink />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />

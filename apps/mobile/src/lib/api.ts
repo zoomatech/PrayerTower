@@ -123,6 +123,9 @@ export interface Features {
   followupNudge: boolean;
   gratitudeCard: boolean;
   gentleRhythm: boolean;
+  /** A welcoming volunteer for a newcomer's first days, and the "Answered & remembered" look-back. */
+  encourager: boolean;
+  remembered: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -170,6 +173,23 @@ export interface PracticeSettings {
   followup_days: number;
   gratitude_enabled: boolean;
   gentle_rhythm_enabled: boolean;
+  encourager_enabled: boolean;
+  encourager_days: number;
+  newcomer_days: number;
+  remembered_enabled: boolean;
+}
+export interface EncouragerMatch {
+  id: string;
+  role: 'newcomer' | 'encourager';
+  other: { id: string; displayName: string };
+  endsAt: string;
+}
+export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
+export interface RememberedItem {
+  id: string;
+  body: string;
+  testimony: string | null;
+  answeredAt: string;
 }
 export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
 export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[] };
@@ -1236,7 +1256,7 @@ export const api = {
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
@@ -1389,6 +1409,12 @@ export const api = {
   gratitude: (tz: string) => get<Gratitude>(`/me/gratitude?tz=${encodeURIComponent(tz)}`),
   setGratitudeDay: (weekday: number | null, timeZone: string) => put<Gratitude>('/me/gratitude/day', { weekday, timeZone }),
   saveGratitude: (items: string[], timeZone: string) => put<Gratitude>('/me/gratitude', { items, timeZone }),
+  encourager: () => get<EncouragerState>('/me/encourager'),
+  setVolunteer: (on: boolean, agree?: boolean) => put<EncouragerState>('/me/encourager/volunteer', { on, ...(agree ? { agree } : {}) }),
+  askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
+  endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
+  remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
+  hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),

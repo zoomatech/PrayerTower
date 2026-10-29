@@ -1415,10 +1415,14 @@ function PracticeSettingsSection() {
   const t = useT();
   const [s, setS] = useState<PracticeSettings | null>(null);
   const [days, setDays] = useState('');
+  const [encDays, setEncDays] = useState('');
+  const [newDays, setNewDays] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const show = (x: PracticeSettings) => {
     setS(x);
     setDays(String(x.followup_days));
+    setEncDays(String(x.encourager_days));
+    setNewDays(String(x.newcomer_days));
   };
   useFocusEffect(
     useCallback(() => {
@@ -1427,7 +1431,7 @@ function PracticeSettingsSection() {
   );
   const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
     api.admin
-      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, ...patch })
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, ...patch })
       .then((r) => {
         show(r.settings);
         resetFeatures();
@@ -1443,6 +1447,10 @@ function PracticeSettingsSection() {
       <Field label={t('practices.adminFollowupDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
       <Toggle label={t('practices.adminGratitude')} hint={t('practices.adminGratitudeHint')} value={s.gratitude_enabled} onChange={(v) => save({ gratitudeEnabled: v })} />
       <Toggle label={t('practices.adminRhythm')} hint={t('practices.adminRhythmHint')} value={s.gentle_rhythm_enabled} onChange={(v) => save({ gentleRhythmEnabled: v })} />
+      <Toggle label={t('practices.adminEncourager')} hint={t('practices.adminEncouragerHint')} value={s.encourager_enabled} onChange={(v) => save({ encouragerEnabled: v })} />
+      <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
+      <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
+      <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
