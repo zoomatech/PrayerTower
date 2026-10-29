@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
 import * as radio from '../src/modules/radio/index.js';
@@ -37,7 +38,7 @@ describe('listening page', () => {
 
 describe('radio station', () => {
   it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
-    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1, listen_page_enabled: false });
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1, listen_page_enabled: false, radio_receipts_enabled: false });
     expect((await station('/station/claim')).statusCode).toBe(409); // log mode
     const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
     expect(s.json().settings.radio_transmitter).toBe('station');
@@ -213,5 +214,60 @@ describe('radio station', () => {
     const { bursts } = (await as(admin).get('/admin/radio-bursts')).json();
     expect(bursts[0]).toMatchObject({ mode: 'audio', ok: false, error: 'sound card busy', decoded: null, prayers: 20 });
     expect(bursts[1]).toMatchObject({ mode: 'simulate', ok: true, error: null, decoded: 20, seconds: 0.56, preset: 'fm-fast', bytes: 117 });
+  });
+
+  it('sends "on the air" receipts with the time and preset, and "heard" receipts when a listener decodes it', async () => {
+    await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+    await as(admin).patch('/admin/radio-settings', { transmitter: 'station', order: 'oldest', batchMax: 10 });
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    const poster = await createUser('Receipt Poster');
+    const earlier = await createUser('Earlier Poster');
+    const sender = await createUser('Receipt Sender');
+    const text = `Pray for the night shift nurses, ward ${Date.now() % 100000}.`;
+    const hash = createHash('sha256').update(text).digest('hex').slice(0, 32);
+    const kinds = async (who: string) =>
+      (await as(who).get('/me/notifications')).json().notifications.filter((n: { kind: string }) => n.kind.startsWith('radio_on_air') || n.kind === 'radio_heard');
+    const sendOne = async (key: string, from = poster) => {
+      const p = await newRequest(from, text);
+      await as(sender).post(`/posts/${p.id}/radio`, { idempotencyKey: key });
+      const [c] = (await station('/station/claim-batch', { max: 10 })).json().radioPrayers;
+      expect((await station(`/station/radio-prayers/${c.id}/result`, { ok: true, callSign: 'N0CALL', pieces: 1, preset: 'fm-qam16', sentHash: hash })).statusCode).toBe(200);
+      return c.id as string;
+    };
+    const heard = (body: object) => app.inject({ method: 'POST', url: '/listen/heard', payload: { callSign: 'N0CALL', preset: 'fm-qam16', snrDb: 18.2, hashes: [hash], ...body } });
+
+    // Off by default: no receipt, and listeners' reports are a 404.
+    const quietId = await sendOne('receipt-off', earlier);
+    expect(await kinds(sender)).toEqual([]);
+    expect((await heard({})).statusCode).toBe(404);
+
+    expect((await as(admin).patch('/admin/radio-settings', { receipts: true })).json().settings.radio_receipts_enabled).toBe(true);
+    const id = await sendOne('receipt-on');
+    const [onAir] = await kinds(sender);
+    expect(onAir).toMatchObject({ kind: 'radio_on_air', title: 'Your radio prayer is on the air', data: { radioPrayerId: id, preset: 'fm-qam16' } });
+    expect(onAir.body).toMatch(/^It went out at \d{1,2}:\d{2} [AP]M UTC from N0CALL on fm-qam16\.$/);
+    expect(await kinds(poster)).toEqual([]);
+
+    // A wrong call sign or a malformed fingerprint matches nothing.
+    expect((await heard({ callSign: 'K1XYZ' })).json().matched).toBe(0);
+    expect((await heard({ hashes: ['not-a-hash'] })).statusCode).toBe(400);
+    // Both prayers carry the same words; each is heard once, and only the first report notifies.
+    expect((await heard({})).json().matched).toBe(2);
+    expect((await heard({ snrDb: 25 })).json().matched).toBe(2);
+    const senderHeard = (await kinds(sender)).filter((n: { kind: string }) => n.kind === 'radio_heard');
+    expect(senderHeard).toHaveLength(2);
+    expect(senderHeard[0]).toMatchObject({ title: 'A listener heard your radio prayer' });
+    expect(senderHeard[0].body).toMatch(/^Someone near a radio decoded it at /);
+    for (const who of [poster, earlier]) {
+      expect((await kinds(who)).map((n: { title: string }) => n.title)).toEqual(['A listener heard your request on the air']);
+    }
+    const { rows } = await db.query('select heard_count, heard_snr_db from public.radio_prayers where id = any($1::uuid[]) order by id', [[quietId, id]]);
+    expect(rows).toEqual([{ heard_count: 2, heard_snr_db: 25 }, { heard_count: 2, heard_snr_db: 25 }]);
+    // The listening page offers to send fingerprints only while receipts are on.
+    await as(admin).patch('/admin/radio-settings', { listenPage: true });
+    expect((await app.inject({ method: 'GET', url: '/listen' })).body).toContain('id="receipts-on"');
+    await as(admin).patch('/admin/radio-settings', { receipts: false, batchMax: 1 });
+    expect((await app.inject({ method: 'GET', url: '/listen' })).body).not.toContain('id="receipts-on"');
+    await as(admin).patch('/admin/radio-settings', { listenPage: false });
   });
 });

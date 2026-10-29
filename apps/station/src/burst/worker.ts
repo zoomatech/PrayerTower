@@ -2,6 +2,7 @@
 // one, compress them together, send them in one key-up, report each one.
 // A transmit error unkeys, reports every prayer in the batch as failed and
 // stops the worker, the same as the one-prayer PSK31 loop.
+import { createHash } from 'node:crypto';
 import { foldAscii, passesFilter } from '../text.js';
 import { reportWithRetry, REPORT_RETRY_MS, TransmitError, type BurstLog, type ClaimedPrayer, type StationApi } from '../worker.js';
 import { planFrames } from './burst.js';
@@ -67,10 +68,18 @@ export async function runBurstOnce(
     await logBurst({ frames: batches.length, bytes: batches.reduce((n, b) => n + b.length, 0), seconds: 0, decoded: null, ok: false, error: message });
     throw new TransmitError(message);
   }
-  for (const p of ok) await reportWithRetry(api, p.id, { ok: true, callSign: cfg.callSign, pieces: sent.frames }, retryMs);
+  for (const p of ok) {
+    const result = { ok: true, callSign: cfg.callSign, pieces: sent.frames, preset: preset.name, sentHash: sentHash(foldAscii(p.text)) };
+    await reportWithRetry(api, p.id, result, retryMs);
+  }
   await logBurst({ ...sent, seconds: Math.round(sent.seconds * 100) / 100, ok: true });
   log(`[burst] ${ok.length} prayer(s) sent in ${sent.frames} frame(s), ${sent.seconds.toFixed(2)} s, ${preset.name}`);
   return { kind: 'sent', sent: ok.length, rejected, frames: sent.frames, seconds: sent.seconds };
+}
+
+/** What a listener sends back to say it heard a prayer (docs/RADIO_BURST.md, "Receipts"): never the words. */
+export function sentHash(text: string): string {
+  return createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 32);
 }
 
 async function claimOneByOne(api: StationApi, max: number): Promise<ClaimedPrayer[]> {

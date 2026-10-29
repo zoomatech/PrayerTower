@@ -11,6 +11,7 @@ import * as materialMatch from '../material-match/index.js';
 import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
+import * as receipts from './receipts.js';
 import * as tokens from '../tokens/index.js';
 import { requireFeature } from '../communities/index.js';
 
@@ -156,6 +157,7 @@ export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitte
     }
     await markAmplified(q, r);
     await tellPoster(q, r);
+    await receipts.onAir(q, r.id);
   };
 }
 
@@ -198,11 +200,13 @@ export interface StationSettings {
   radio_batch_max: number;
   /** The public /listen page that decodes bursts from a microphone. */
   listen_page_enabled: boolean;
+  /** "On the air" receipts: tell senders when their prayer went out and when a listener heard it (receipts.ts). */
+  radio_receipts_enabled: boolean;
 }
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled from public.token_settings',
   );
   return rows[0]!;
 }
@@ -216,8 +220,9 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
             radio_amplify_repeats = coalesce($4, radio_amplify_repeats),
             radio_order = coalesce($5, radio_order),
             radio_batch_max = coalesce($6, radio_batch_max),
-            listen_page_enabled = coalesce($7, listen_page_enabled)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled`,
+            listen_page_enabled = coalesce($7, listen_page_enabled),
+            radio_receipts_enabled = coalesce($8, radio_receipts_enabled)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled`,
     [
       patch.radio_transmitter ?? null,
       patch.radio_station_requires_free ?? null,
@@ -226,6 +231,7 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
       patch.radio_order ?? null,
       patch.radio_batch_max ?? null,
       patch.listen_page_enabled ?? null,
+      patch.radio_receipts_enabled ?? null,
     ],
   );
   return rows[0]!;
@@ -293,6 +299,9 @@ export const StationResult = z.object({
   callSign: z.string().trim().min(3).max(20),
   pieces: z.number().int().min(1).max(5000).optional(),
   error: z.string().max(500).optional(),
+  /** Burst mode: the preset it went out on, and the fingerprint of the exact text sent (receipts.ts). */
+  preset: z.string().trim().min(1).max(40).optional(),
+  sentHash: z.string().regex(/^[0-9a-f]{32}$/).optional(),
 });
 
 export const BurstReport = z.object({
@@ -336,7 +345,7 @@ export interface StationBurst {
 export async function recentBursts(q: Queryable, limit = 10): Promise<StationBurst[]> {
   const { rows } = await q.query<StationBurst>(
     `select id::text, created_at, call_sign, mode, preset, prayers, frames, bytes, seconds::float8 as seconds, decoded, ok, error
-       from public.station_bursts order by id desc limit $1`,
+       from public.station_bursts b order by b.id desc limit $1`,
     [limit],
   );
   return rows;
@@ -346,11 +355,12 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
   const { rows } = await q.query<{ id: string; post_id: string; poster_id: string; sender_id: string }>(
     `update public.radio_prayers r
         set status = $2::public.radio_prayer_status, transmitter = 'station', call_sign = $3, pieces = $4, error = $5,
-            transmitted_at = case when $2::public.radio_prayer_status = 'transmitted' then now() end
+            transmitted_at = case when $2::public.radio_prayer_status = 'transmitted' then now() end,
+            preset = $6, sent_hash = $7
        from public.posts p
       where r.id = $1 and r.status = 'sending' and p.id = r.post_id
       returning r.id, r.post_id, p.user_id as poster_id, r.user_id as sender_id`,
-    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error')],
+    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error'), result.preset ?? null, result.sentHash ?? null],
   );
   const r = rows[0];
   if (!r) throw badRequest('That radio prayer is not being sent');
@@ -358,6 +368,7 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
   if (result.ok) {
     await markAmplified(q, r);
     await tellPoster(q, r);
+    await receipts.onAir(q, r.id);
   }
 }
 
