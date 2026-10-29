@@ -15,6 +15,7 @@ import { AiPrayers } from '@/components/ai-prayers';
 import { KindCloud } from '@/components/kind-cloud';
 import { FollowupCard } from '@/components/followup-card';
 import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
+import { LiftedMeUp } from '@/components/kindness-highlights';
 import { ReplyHelpers } from '@/components/reply-helpers';
 import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
 import { CircleGoal } from '@/components/circle-goal';
@@ -233,6 +234,7 @@ export default function PostScreen() {
           </Text>
         ) : null}
       </View>
+      {card?.isMine && !c.isMine && c.author.id !== profile?.id ? <LiftedMeUp commentId={c.id} /> : null}
       {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
   );

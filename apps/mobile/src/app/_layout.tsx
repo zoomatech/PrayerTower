@@ -96,6 +96,7 @@ function RootStack() {
           <Stack.Screen name="remembered" />
           <Stack.Screen name="mend/[id]" />
           <Stack.Screen name="meaning-words" />
+          <Stack.Screen name="highlights" />
           <Stack.Screen name="prayer-minute" />
           <Stack.Screen name="skin-idea" />
           <Stack.Screen name="token-store" />

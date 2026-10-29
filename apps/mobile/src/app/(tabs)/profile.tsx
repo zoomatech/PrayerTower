@@ -23,6 +23,7 @@ import { CommunityPicker } from '@/components/community-picker';
 import { ConversationPrefsCard } from '@/components/conversation-prefs-card';
 import { EncouragerCard } from '@/components/encourager-card';
 import { LiftUpCard } from '@/components/lift-up-card';
+import { HighlightsLink } from '@/components/kindness-highlights';
 import { PartnerCard } from '@/components/partner-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
@@ -185,6 +186,7 @@ export default function Profile() {
         ) : null}
         <GratitudeCard />
         <LiftUpCard />
+        <HighlightsLink />
         <EncouragerCard />
         <PartnerCard />
         <ConversationPrefsCard />

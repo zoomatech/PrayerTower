@@ -13,6 +13,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
+import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -1612,6 +1613,8 @@ function PracticeSettingsSection() {
       <Toggle label={t('practices.adminBelieve')} hint={t('practices.adminBelieveHint')} value={s.believe_enabled} onChange={(v) => save({ believeEnabled: v })} />
       <Toggle label={t('practices.adminPartners')} hint={t('practices.adminPartnersHint')} value={s.partners_enabled} onChange={(v) => save({ partnersEnabled: v })} />
       <Field label={t('practices.adminPartnerDays')} keyboardType="number-pad" value={partnerDays} onChangeText={setPartnerDays} />
+      <Toggle label={t('highlightsKind.adminTitle')} hint={t('highlightsKind.adminHint')} value={s.highlights_enabled} onChange={(v) => save({ highlightsEnabled: v })} />
+      {s.highlights_enabled ? <HighlightsAdmin /> : null}
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
       <Field label={t('repair.adminWelcomeText')} value={welcome} onChangeText={setWelcome} multiline maxLength={600} />

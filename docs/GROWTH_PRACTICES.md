@@ -53,3 +53,16 @@ Each nudge has its own switch in **Admin → Growth practices**, and all are off
 - **Leaving:** either partner taps **Leave** at any time. No reason is asked, the other partner isn't notified, and they only see that it ended. A pairing also ends on its own after `partner_days`.
 - **Account data:** data export includes the member's own check-ins. Account deletion removes them and ends any open pairing.
 - **Code and tests:** code in `apps/server/src/modules/partners/` and `components/partner-card.tsx`. Tests in `apps/server/test/partners.test.ts` and `apps/mobile/src/__tests__/partners.test.tsx`.
+
+## Kindness highlights (migration 20261029017700)
+
+- **Switch:** `highlights_enabled` in Admin → Growth practices, off by default. This is a weekly set of real examples of members lifting each other up. Members see only the words: never who wrote them, and never whom they lifted up.
+- **A person decides at every step:**
+  1. On their own request, the member who was lifted up taps **This lifted me up** under someone else's comment.
+  2. The comment's author gets a notice and answers **Yes, share them** or **No, thank you** on the Kindness highlights screen. Each comment is asked about once, so a no is final.
+  3. Only consented comments reach Admin → Growth practices → Kindness highlights. There the admin picks a few for the week and can trim the words to remove any names.
+  4. **Send this week's highlights** sends each member of that community one notice per week.
+  5. The author can **Withdraw** at any time, and the highlight disappears at once.
+- **Where members see them:** Me → Kindness highlights (`app/highlights.tsx`) shows this week and last week. Each community sees only its own highlights.
+- **Account data:** data export includes the member's own nominated comments. Account deletion removes any nominations they wrote or made.
+- **Code and tests:** code in `apps/server/src/modules/kindness-highlights/` and `components/kindness-highlights.tsx`. Tests in `apps/server/test/kindness-highlights.test.ts`, `apps/mobile/src/__tests__/kindness-highlights.test.tsx` and `highlights-screen.test.tsx`.

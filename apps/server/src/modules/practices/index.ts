@@ -41,12 +41,13 @@ export interface PracticeSettings {
   believe_enabled: boolean;
   partners_enabled: boolean;
   partner_days: number;
+  highlights_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
             welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled,
-            partners_enabled, partner_days
+            partners_enabled, partner_days, highlights_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -70,6 +71,7 @@ export const SettingsPatch = z.object({
   believeEnabled: z.boolean().optional(),
   partnersEnabled: z.boolean().optional(),
   partnerDays: z.number().int().min(7).max(90).optional(),
+  highlightsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -84,7 +86,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        ask_kindly_enabled = coalesce($11, ask_kindly_enabled), mend_enabled = coalesce($12, mend_enabled),
        lift_up_enabled = coalesce($13, lift_up_enabled), gratitude_count_enabled = coalesce($14, gratitude_count_enabled),
        believe_enabled = coalesce($15, believe_enabled),
-       partners_enabled = coalesce($16, partners_enabled), partner_days = coalesce($17, partner_days)`,
+       partners_enabled = coalesce($16, partners_enabled), partner_days = coalesce($17, partner_days),
+       highlights_enabled = coalesce($18, highlights_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -103,6 +106,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.believeEnabled ?? null,
       p.partnersEnabled ?? null,
       p.partnerDays ?? null,
+      p.highlightsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -123,6 +127,7 @@ export async function features(q: Queryable) {
     gratitudeCount: s.gratitude_count_enabled,
     believe: s.believe_enabled,
     partners: s.partners_enabled,
+    kindnessHighlights: s.highlights_enabled,
   };
 }
 

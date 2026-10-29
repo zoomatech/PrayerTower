@@ -24,6 +24,7 @@ import * as notebook from '../notebook/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
 import * as talkCounts from '../conversation-helpers/counts.js';
+import * as kindnessHighlights from '../kindness-highlights/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
@@ -338,6 +339,19 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/conversation-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await conversationHelpers.updateSettings(db, conversationHelpers.SettingsPatch.parse(req.body)) };
+  });
+  app.get('/admin/kindness-highlights', async (req) => {
+    await requireAdmin(req);
+    return { items: await kindnessHighlights.queue(db) };
+  });
+  app.post<{ Params: { id: string } }>('/admin/kindness-highlights/:id', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.uuid() }).parse(req.params);
+    return { items: await kindnessHighlights.pick(db, id, kindnessHighlights.Pick.parse(req.body)) };
+  });
+  app.post('/admin/kindness-highlights/send', async (req) => {
+    await requireAdmin(req);
+    return kindnessHighlights.send(db);
   });
   app.get('/admin/talk-counts', async (req) => {
     await requireAdmin(req);

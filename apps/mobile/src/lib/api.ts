@@ -143,6 +143,7 @@ export interface Features {
   gratitudeCount: boolean;
   believe: boolean;
   partners: boolean;
+  kindnessHighlights: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -211,6 +212,7 @@ export interface PracticeSettings {
   believe_enabled: boolean;
   partners_enabled: boolean;
   partner_days: number;
+  highlights_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -286,6 +288,15 @@ export type PartnerState =
       canCheckIn: boolean;
       checkins: { id: string; mine: boolean; mood: 'good' | 'okay' | 'hard'; note: string | null; at: string }[];
     };
+export type KindnessHighlights = { enabled: false; weeks: [] } | { enabled: true; weeks: { week: string; items: { id: string; text: string }[] }[] };
+export type HighlightAsks = { enabled: boolean; asks: { id: string; status: 'asked' | 'consented' | 'picked'; body: string; shownText: string | null }[] };
+export interface HighlightQueueItem {
+  id: string;
+  status: 'consented' | 'picked';
+  body: string;
+  shownText: string | null;
+  community: string | null;
+}
 export type LiftUp = { enabled: false } | { enabled: true; weekStart: string; body: string };
 
 export interface GrowthSettings {
@@ -1429,10 +1440,13 @@ export const api = {
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    highlightQueue: () => get<{ items: HighlightQueueItem[] }>('/admin/kindness-highlights'),
+    pickHighlight: (id: string, pick: boolean, shownText?: string) => post<{ items: HighlightQueueItem[] }>(`/admin/kindness-highlights/${id}`, { pick, ...(shownText ? { shownText } : {}) }),
+    sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
@@ -1615,6 +1629,11 @@ export const api = {
   saveGratitude: (items: string[], timeZone: string) => put<Gratitude>('/me/gratitude', { items, timeZone }),
   liftUp: (tz: string) => get<LiftUp>(`/me/lift-up?tz=${encodeURIComponent(tz)}`),
   saveLiftUp: (body: string, timeZone: string) => put<LiftUp>('/me/lift-up', { body, timeZone }),
+  kindnessHighlights: () => get<KindnessHighlights>('/kindness-highlights'),
+  liftedMeUp: (commentId: string) => post<{ asked: boolean }>(`/comments/${commentId}/lifted-me-up`),
+  highlightAsks: () => get<HighlightAsks>('/me/highlight-asks'),
+  answerHighlightAsk: (id: string, yes: boolean) => post<HighlightAsks>(`/me/highlight-asks/${id}`, { yes }),
+  withdrawHighlight: (id: string) => post<HighlightAsks>(`/me/highlight-asks/${id}/withdraw`),
   partner: () => get<PartnerState>('/me/partner'),
   joinPartners: () => post<PartnerState>('/me/partner/join', { agree: true }),
   leavePartners: () => post<PartnerState>('/me/partner/leave'),
