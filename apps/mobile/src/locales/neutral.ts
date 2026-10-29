@@ -92,6 +92,9 @@ export const keys: Tree = named({
   crosspost: {
     extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
   },
+  kindNorms: {
+    promiseDefault: 'I’ll speak gently, show up sincerely, and protect others’ stories.',
+  },
   kindMilestones: {
     peopleFirst: 'You lifted someone up for the first time.',
     peopleMany: 'You’ve lifted up %{level} people.',

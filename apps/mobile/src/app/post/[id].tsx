@@ -16,6 +16,7 @@ import { KeepOnAir } from '@/components/keep-on-air';
 import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
+import { HelpedButton, OfferSorry, ReplyNotes } from '@/components/kind-norms';
 import { isLit } from '@/components/vine-flow';
 import { CrisisSupport } from '@/components/crisis';
 import { HarmSupport, takeSupport } from '@/components/harm-support';
@@ -38,6 +39,7 @@ import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle 
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useFeature } from '@/lib/community-features';
+import { errorText } from '@/lib/error-report';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
@@ -82,6 +84,7 @@ export default function PostScreen() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [coolNudge, setCoolNudge] = useState(0);
+  const [replyNudge, setReplyNudge] = useState(0);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
   const radioOn = useFeature('radio');
@@ -162,12 +165,14 @@ export default function PostScreen() {
       if (r.comment.crisis) setSupport(true);
       if (r.comment.harm?.resources?.length) setHarmSupport(r.comment.harm);
       if (r.coolDown) setCoolNudge((n) => n + 1);
+      setReplyNudge((n) => n + 1);
       setText('');
       setReplyTo(null);
       setPart(null);
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      // A resting thread's "reply again in N minutes" is shown as the server wrote it.
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
@@ -260,6 +265,7 @@ export default function PostScreen() {
             {t('post.reply')}
           </Text>
         ) : null}
+        <HelpedButton comment={c} />
         {/* With sharing by consent on, only the person who wrote a comment can share it. */}
         {!features.shareConsent || c.isMine ? (
           <Text
@@ -300,6 +306,7 @@ export default function PostScreen() {
         ) : null}
       </View>
       <CommentKindness k={kindness} commentId={c.id} isAsker={!!card?.isMine} isMine={!!c.isMine || c.author.id === profile?.id} />
+      {c.isMine ? <OfferSorry commentId={c.id} /> : null}
       {card?.isMine && !c.isMine && c.author.id !== profile?.id ? <LiftedMeUp commentId={c.id} /> : null}
       {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
@@ -610,6 +617,7 @@ export default function PostScreen() {
                 <WelcomeCard />
                 {features.lament && card?.lament && !card.isMine ? <Text style={type.small}>{t('lament.replyHint')}</Text> : null}
                 <CoolDownCard nudge={coolNudge} />
+                <ReplyNotes postId={id} nudge={replyNudge} />
                 <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
                 <KindCloud text={text} context={features.lament && card?.lament && !card.isMine ? 'lamentReply' : undefined} />
                 <ReplyHelpers
