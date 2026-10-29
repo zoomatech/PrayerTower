@@ -1,8 +1,11 @@
 // Wall (beta, behind Admin → Feed skins): a solid wall of full-screen posts, one
-// per swipe, like a short-video app. No fold or tilt, just a hard snap, on a
-// dark backdrop from the theme's tokens. Same cards and action row as every layout.
+// per swipe, like a short-video app. No fold or tilt, just a snap to the top of
+// each post, on a dark backdrop from the theme's tokens. A post taller than the
+// screen keeps its own height, so nothing is cut off. The feed's header (the
+// composer box) is its own first page on a light panel. Same cards and action
+// row as every layout.
 import type { Card, FeedTheme } from '@prayer-tower/shared';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { Tr, useLocale } from '@/lib/i18n';
@@ -10,18 +13,43 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
 
-type Page = { kind: 'card'; card: Card } | { kind: 'end' };
+type Page = { kind: 'header' } | { kind: 'card'; card: Card } | { kind: 'end' };
 
 export function wallBackdrop(theme: FeedTheme | null): string {
   const b = (theme?.tokens as Record<string, unknown> | undefined)?.backdrop;
   return typeof b === 'string' && /^#[0-9A-Fa-f]{6}$/.test(b) ? b : '#101418';
 }
 
+/** Dark text on a light backdrop (a member's skin idea may pick one), light text on a dark one. */
+export function wallText(backdrop: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(backdrop.slice(i, i + 2), 16) / 255);
+  const lum = 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  return lum > 0.5 ? '#1F2328' : '#E8ECF0';
+}
+
 export function WallLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const { t } = useLocale();
   const [height, setHeight] = useState(0);
+  // Each page's measured height, so the list snaps to the top of every post.
+  const [heights, setHeights] = useState<Record<number, number>>({});
   const backdrop = wallBackdrop(theme);
-  const pages: Page[] = [...cards.map((card) => ({ kind: 'card' as const, card })), ...(atEnd && cards.length > 0 ? [{ kind: 'end' as const }] : [])];
+  const light = [styles.light, { color: wallText(backdrop) }];
+  const pages: Page[] = [
+    ...(header ? [{ kind: 'header' as const }] : []),
+    ...cards.map((card) => ({ kind: 'card' as const, card })),
+    ...(atEnd && cards.length > 0 ? [{ kind: 'end' as const }] : []),
+  ];
+  const first = header ? 1 : 0;
+  const offsets = useMemo(() => {
+    const out: number[] = [];
+    let y = 0;
+    for (let i = 0; i < pages.length; i++) {
+      out.push(y);
+      y += heights[i] ?? height;
+    }
+    return out;
+  }, [pages.length, heights, height]);
+  const measure = useCallback((index: number, h: number) => setHeights((prev) => (prev[index] === h ? prev : { ...prev, [index]: h })), []);
 
   return (
     <View style={[styles.root, { backgroundColor: backdrop }]} onLayout={(e) => setHeight(e.nativeEvent.layout.height)} testID="wall-layout">
@@ -30,42 +58,36 @@ export function WallLayout({ cards, theme, pinnedId, renderCard, header, refresh
           data={pages}
           keyExtractor={(p, i) => (p.kind === 'card' ? p.card.id : `${p.kind}-${i}`)}
           renderItem={({ item, index }) => (
-            <View style={[styles.page, { height }]}>
-              {item.kind === 'card' ? (
+            <View style={[styles.page, { minHeight: height }]} onLayout={(e) => measure(index, e.nativeEvent.layout.height)}>
+              {item.kind === 'header' ? (
                 <View style={styles.inner}>
-                  {index === 0 ? header : null}
-                  {item.card.id === pinnedId ? <Tr k="feed.pinned" style={styles.light} /> : null}
+                  <View style={styles.headerPanel}>{header}</View>
+                  <Text style={light}>{t('wall.swipe')}</Text>
+                </View>
+              ) : item.kind === 'card' ? (
+                <View style={styles.inner}>
+                  {item.card.id === pinnedId ? <Tr k="feed.pinned" style={light} /> : null}
                   <View style={styles.card}>{renderCard(item.card)}</View>
-                  <Text
-                    style={styles.light}
-                    accessibilityLabel={t('wall.position', {
-                      n: index + 1,
-                      total: cards.length,
-                    })}
-                  >
-                    {index + 1} / {cards.length}
-                    {index === 0 ? ` · ${t('wall.swipe')}` : ''}
+                  <Text style={light} accessibilityLabel={t('wall.position', { n: index - first + 1, total: cards.length })}>
+                    {index - first + 1} / {cards.length}
+                    {index === first && !header ? ` · ${t('wall.swipe')}` : ''}
                   </Text>
                 </View>
               ) : (
                 <View style={[styles.inner, { alignItems: 'center' }]}>
-                  <Tr k="layout.lastPage" style={[type.heading, { color: '#FFFFFF' }]} />
-                  <Tr k="layout.allSeen" style={styles.light} />
+                  <Tr k="layout.lastPage" style={[type.heading, { color: wallText(backdrop) }]} />
+                  <Tr k="layout.allSeen" style={light} />
                 </View>
               )}
             </View>
           )}
-          pagingEnabled
+          snapToOffsets={offsets}
+          snapToEnd={false}
           decelerationRate="fast"
-          initialNumToRender={2}
+          initialNumToRender={3}
           maxToRenderPerBatch={2}
-          windowSize={3}
+          windowSize={5}
           showsVerticalScrollIndicator={false}
-          getItemLayout={(_, index) => ({
-            length: height,
-            offset: height * index,
-            index,
-          })}
           refreshing={refreshing}
           onRefresh={onRefresh}
           onEndReached={onEndReached}
@@ -79,17 +101,10 @@ export function WallLayout({ cards, theme, pinnedId, renderCard, header, refresh
 const styles = StyleSheet.create({
   root: { flex: 1 },
   page: { justifyContent: 'center' },
-  inner: { paddingHorizontal: space.sm, paddingBottom: 72, gap: space.sm },
-  card: {
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-  },
-  // Light text on the dark wall (white on #101418 is well over 4.5:1).
-  light: {
-    ...type.small,
-    color: '#E8ECF0',
-    textAlign: 'center',
-    fontVariant: ['tabular-nums'],
-  },
+  inner: { paddingHorizontal: space.sm, paddingVertical: space.md, paddingBottom: 72, gap: space.sm },
+  // The composer box and feed notices keep their usual light background on the wall.
+  headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm },
+  card: { borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surface },
+  // Its color comes from wallText(): #E8ECF0 on #101418 is well over 4.5:1.
+  light: { ...type.small, textAlign: 'center', fontVariant: ['tabular-nums'] },
 });

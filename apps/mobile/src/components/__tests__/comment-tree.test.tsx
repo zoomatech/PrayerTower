@@ -2,7 +2,8 @@
 // a few leaves and the rest wait in a faded blur until tapped; no reply link at
 // the deepest level, so a chain can't keep going.
 import type { Comment } from '@prayer-tower/shared';
-import { fireEvent, screen, Text } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
+import { Text } from 'react-native';
 
 import { renderApp } from '@/__tests__/helpers';
 import { CommentTree, branchesOf } from '@/components/comment-tree';
