@@ -291,6 +291,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     schedule: 'Programar en Eventos',
   },
   vine: {
+    ...en.vine,
     yourBranch: 'Tu rama',
     yourTendril: '➰ Tu zarcillo: prometiste orar',
     tendrils: { one: '1 persona prometió orar por esto', other: '%{count} personas prometieron orar por esto' },

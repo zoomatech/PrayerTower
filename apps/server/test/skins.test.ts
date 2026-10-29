@@ -117,6 +117,22 @@ describe('Comment tree depth', () => {
   });
 });
 
+describe('Comments on the drawn vine', () => {
+  it('feed cards bring their newest few comments only while comments as leaves is on', async () => {
+    const [poster, a] = [await createUser('Leaf Poster'), await createUser('Leaf A')];
+    const post = await newRequest(poster, 'Surgery on Thursday morning.');
+    await inTx(async (c) => {
+      const ids: string[] = [];
+      for (const body of ['One', 'Two', 'Three', 'Four']) ids.push((await posts.addComment(c, a, post.id, { body, isUpdate: false })).id);
+      expect((await posts.cards(c, [post.id], a))[0]).not.toHaveProperty('leafComments');
+      await skins.updateSettings(c, { skinsEnabled: true, commentTreeEnabled: true });
+      const [card] = await posts.cards(c, [post.id], a);
+      expect(card!.leafComments).toHaveLength(3);
+      expect(card!.leafComments!.every((x) => ids.includes(x.id))).toBe(true);
+    });
+  });
+});
+
 describe('Video cap', () => {
   it('refuses a clip longer than the cap (7 seconds by default)', async () => {
     const member = await createUser('Video Member');

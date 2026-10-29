@@ -68,9 +68,20 @@ Church dates follow the Western calendar ([United Methodist glossary](https://ad
 
 The emoji meanings under a post (docs/EMOJI_MEANINGS.md, its own switch) take the member's feed skin: leaf colors on vine skins, a flower before the word on Blossom Garden, a star on Neon Cinderella, stone tablets outlined in mortar on the Prayer Tower, and a neon outline on Neon Circuit. Plain layouts (column, swipe, flip, wall) keep the plain chip. Your own word keeps the skin's colors with a heavier outline. Code: `wordLeafTokens()` in `apps/mobile/src/components/meaning-reactions.tsx`. Screenshots: `build/screenshots/skins/word-leaves/` in project files.
 
+## The drawn vine (Steve, 2026-10-29)
+
+Steve: "FAR more spaced out and actual artistic curved vines connecting, and the comments are HOUSED inside a leaf." "Top to bottom, present to past." "Comments spread outward and downward toward the next last post."
+
+Every vine skin now draws the vine as a transparent picture (`react-native-svg`, `apps/mobile/src/components/vine-flow.tsx`) behind the posts:
+
+- Each request sits **inside** a large leaf: square, with two pointed corners (the base by the vine and the tip opposite) and a midrib between them.
+- The vine runs in the margin beside each leaf and swoops across the open space between leaves in a smooth S-curve (56–80 pt of space above each request). A short stalk joins it to the leaf's base. Tendrils curl off it, and small leaves sit on each swoop.
+- The feed reads top to bottom, newest first. Under each request, its newest comments (up to 3, newest first) hang on smaller leaves, alternating sides, spreading down toward the next older request. "N more comments" fades into ghost leaves and opens the request. The server sends these only while comments as leaves is on (`Card.leafComments`), and leaves out anyone the viewer blocked.
+- Tag colors on a leaf (Pinned, Answered, Your branch, Your tendril) keep 4.5:1 contrast with the leaf color; a skin whose leaf color is too close gets dark or light text instead.
+
 ## Comment trees
 
-`apps/mobile/src/components/comment-tree.tsx`. Each comment is a leaf with a twig to its branch, colored from the member's vine skin (or the plain vine's colors). New leaves grow in with a short spring, and tapping the blur shuffles the hidden leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it. The comment pieces follow the skin: stone tablets and smaller sub-tablets on the tower, stars on Neon Cinderella, flowers on Blossom Garden.
+`apps/mobile/src/components/comment-tree.tsx`. On a vine skin the comments on a request read top to bottom, present to past: the newest comment is the top leaf, each comment sits inside a pointed leaf on the same drawn vine, alternating sides, and replies hang below their comment on the same side on smaller leaves (to the third level). The older comments past the first few fade into the blur until tapped. New leaves grow in with a short spring, and tapping the blur brings the older leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it. Stars mark the leaves on Neon Cinderella and flowers on Blossom Garden. On the tower, comments stay stone tablets and smaller sub-tablets.
 
 ## Theme maker (members make their own skins)
 

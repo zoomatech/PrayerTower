@@ -306,6 +306,8 @@ const en = {
     branchIntro: 'Every request you have shared, on one branch of the vine. Tendrils show the people who promised to pray.',
     branchEmpty: 'Your branch is bare for now. Share a request and it will grow here.',
     branchLink: 'See your branch',
+    moreComments: { one: '1 more comment on this request', other: '%{count} more comments on this request' },
+    openComment: 'Comment from %{name}. Opens the request.',
   },
   profile: {
     community: 'Community',
