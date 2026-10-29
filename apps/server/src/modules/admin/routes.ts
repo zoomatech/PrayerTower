@@ -65,6 +65,7 @@ import * as tokens from '../tokens/index.js';
 import * as audit from '../audit/index.js';
 import * as moderationTools from '../moderation/tools.js';
 import * as goldfish from '../goldfish/index.js';
+import * as kindnessStarter from '../kindness-starter/index.js';
 import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
@@ -966,6 +967,18 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/moderation-tools', async (req) => {
     await requireAdmin(req);
     return { settings: await moderationTools.updateSettings(db, moderationTools.SettingsPatch.parse(req.body)) };
+  });
+
+  // Kindness starter set: one tap turns a short list of no-cost kindness tools on or off together.
+  app.get('/admin/kindness-starter', async (req) => {
+    await requireAdmin(req);
+    return kindnessStarter.status(db);
+  });
+
+  app.post('/admin/kindness-starter', async (req) => {
+    await requireAdmin(req);
+    const { on } = kindnessStarter.Apply.parse(req.body);
+    return withTx(db, (tx) => kindnessStarter.apply(tx, on));
   });
 
   // Goldfish memory: recent removals in the queue fade after a set time (docs/GENTLE_REPAIR.md).
