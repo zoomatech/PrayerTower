@@ -17,6 +17,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AiLinks } from '@/components/ai-links';
+import { TellFounder } from '@/components/tell-founder';
 import { AwardCard } from '@/components/award-card';
 import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
@@ -311,6 +312,7 @@ export default function Profile() {
         {roles.includes('admin') ? <Button variant="secondary" label={t('profile.admin')} onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
         <Button variant="ghost" label={t('profile.tour')} onPress={() => router.push('/tour')} />
+        <TellFounder />
         <Button variant="ghost" label={t('profile.feedback')} onPress={() => router.push('/feedback')} />
         <Button
           variant="ghost"

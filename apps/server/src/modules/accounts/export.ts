@@ -116,6 +116,8 @@ export const NOT_EXPORTED = [
   'activity_flags',
   'announcements',
   'common_fund_entries',
+  // The error log names only the last member an error happened to (docs/PILOT_TOOLS.md).
+  'error_reports',
   'evidence_holds',
   'harm_events',
   'invite_codes',

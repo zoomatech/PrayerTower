@@ -55,6 +55,7 @@ const app = buildApp({
   metricsToken: config.METRICS_TOKEN ?? null,
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,
+  testFlight: { prayerTower: config.TESTFLIGHT_URL ?? null, openCircle: config.OPEN_CIRCLE_TESTFLIGHT_URL ?? null },
   appleVerifier: appleVerifier(config),
   apiDocs: { restricted: process.env.NODE_ENV === 'production', password: config.API_DOCS_PASSWORD ?? null, version: serverVersion() },
   deletionPage: { supabaseUrl: config.SUPABASE_URL, publishableKey: config.SUPABASE_PUBLISHABLE_KEY ?? null, supportEmail: config.SUPPORT_EMAIL ?? null },

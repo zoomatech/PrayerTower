@@ -7,6 +7,7 @@ import { Button, Field } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function GroupGift({ target, id }: { target: 'group' | 'event'; id: string }) {
   const { t } = useLocale();
@@ -31,7 +32,7 @@ export function GroupGift({ target, id }: { target: 'group' | 'event'; id: strin
         setAmount('');
         setNote(t('groupGift.done', { each: r.each, count: r.recipients }));
       },
-      (e) => setNote((e as Error).message),
+      (e) => setNote(errorText(e)),
     );
 
   return (

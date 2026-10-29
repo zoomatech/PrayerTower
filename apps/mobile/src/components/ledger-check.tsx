@@ -9,6 +9,7 @@ import { useLocale } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
 import { Button, ErrorText } from './ui';
+import { errorText } from '@/lib/error-report';
 
 export function LedgerCheckPanel() {
   const { t, language } = useLocale();
@@ -18,7 +19,7 @@ export function LedgerCheckPanel() {
 
   useFocusEffect(
     useCallback(() => {
-      api.admin.ledgerChecks().then((r) => setLast(r.checks[0] ?? null), (e: Error) => setError(e.message));
+      api.admin.ledgerChecks().then((r) => setLast(r.checks[0] ?? null), (e: unknown) => setError(errorText(e)));
     }, []),
   );
 
@@ -28,7 +29,7 @@ export function LedgerCheckPanel() {
     try {
       setLast((await api.admin.runLedgerCheck()).check);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

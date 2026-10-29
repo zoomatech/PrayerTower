@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { LocaleProvider, useLocale } from '@/lib/i18n';
 import { useMenuCommands } from '@/lib/menu-commands';
 import { updatePrayWidget } from '@/lib/pray-widget';
 import { withMonitoring } from '@/lib/monitoring';
+import { GENERIC_ERROR, reportError, setErrorScreen } from '@/lib/error-report';
 import { usePush } from '@/lib/push';
 import { Button } from '@/components/ui';
 import { colors, space, type } from '@/lib/theme';
@@ -19,6 +20,7 @@ function RootStack() {
   const { session, profile, loading, profileError, refreshProfile, signOut, recovering, needsCode } = useAuth();
   const { language, t } = useLocale();
   usePush(!!session && !!profile?.onboarded_at);
+  useErrorLog();
   useMenuCommands(!!session && !!profile?.onboarded_at);
   // The server sends notifications in the member's language.
   useEffect(() => {
@@ -97,6 +99,7 @@ function RootStack() {
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="survey/[id]" />
           <Stack.Screen name="feedback-triage" />
+          <Stack.Screen name="error-log" />
           <Stack.Screen name="import" />
           <Stack.Screen name="appeal/[id]" />
           <Stack.Screen name="people/[id]" />
@@ -158,6 +161,51 @@ function RootLayout() {
 }
 
 export default withMonitoring(RootLayout);
+
+/**
+ * A screen that crashes while drawing lands here (Expo Router hands it the nearest
+ * ErrorBoundary): the member reads one plain sentence and can try again, and the
+ * error goes to Admin → Error log. It sits outside the app's providers, so its words are fixed.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => reportError(error), [error]);
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.lg, padding: space.xl, backgroundColor: colors.background }}>
+      <Text accessibilityRole="header" style={[type.body, { textAlign: 'center' }]}>
+        {GENERIC_ERROR}
+      </Text>
+      <Button label="Try again" onPress={() => void retry()} />
+    </View>
+  );
+}
+
+type GlobalHandler = (error: unknown, isFatal?: boolean) => void;
+declare const ErrorUtils: { getGlobalHandler(): GlobalHandler; setGlobalHandler(h: GlobalHandler): void } | undefined;
+
+/** Keeps the error log's screen name current, and sends errors no screen caught (native and web). */
+function useErrorLog() {
+  const segments = useSegments();
+  useEffect(() => setErrorScreen(segments.filter((s) => !s.startsWith('(')).join('/') || 'index'), [segments]);
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const onError = (e: ErrorEvent) => reportError(e.error ?? e.message);
+      const onRejection = (e: PromiseRejectionEvent) => reportError(e.reason);
+      window.addEventListener('error', onError);
+      window.addEventListener('unhandledrejection', onRejection);
+      return () => {
+        window.removeEventListener('error', onError);
+        window.removeEventListener('unhandledrejection', onRejection);
+      };
+    }
+    if (typeof ErrorUtils === 'undefined') return;
+    const previous = ErrorUtils.getGlobalHandler();
+    ErrorUtils.setGlobalHandler((error, isFatal) => {
+      reportError(error);
+      previous(error, isFatal);
+    });
+    return () => ErrorUtils.setGlobalHandler(previous);
+  }, []);
+}
 
 /** The first screen while the app signs in. On a slow connection it says what it's doing after a few seconds. */
 function Starting() {

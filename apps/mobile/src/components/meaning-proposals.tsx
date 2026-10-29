@@ -10,6 +10,7 @@ import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { announce } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function MeaningProposals() {
   const { meaningReactions, meaningProposals } = useFeatures();
@@ -38,7 +39,7 @@ export function MeaningProposals() {
       setLabel('');
       announce(t('meaningProposals.sent'));
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
@@ -72,7 +73,7 @@ export function MeaningProposalsAdmin() {
   const [items, setItems] = useState<MeaningProposalQueueItem[] | null>(null);
   const [words, setWords] = useState<Record<string, { label: string; neutral: string; replaces: string | null }>>({});
   const [note, setNote] = useState<string | null>(null);
-  const load = () => api.admin.meaningProposals().then((r) => setItems(r.proposals), (e) => setNote((e as Error).message));
+  const load = () => api.admin.meaningProposals().then((r) => setItems(r.proposals), (e) => setNote(errorText(e)));
   useEffect(() => {
     load();
   }, []);
@@ -86,7 +87,7 @@ export function MeaningProposalsAdmin() {
       .then(() => {
         setNote(null);
         load();
-      }, (e) => setNote((e as Error).message));
+      }, (e) => setNote(errorText(e)));
   };
 
   return (

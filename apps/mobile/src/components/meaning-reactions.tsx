@@ -19,6 +19,7 @@ import { useLocale } from '@/lib/i18n';
 import { announce } from '@/lib/motion';
 import { moveOf } from '@/lib/talk';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 /** The part of a feed skin a leaf reads (the Vine skin's tokens fit this shape). */
 export type LeafTokens = { leaf?: string; leafSoft?: string; leafShape?: 'round' | 'pointed' | 'flower' | 'star' | 'tablet'; branch?: string; tendril?: string };
@@ -85,7 +86,7 @@ export function MeaningReactions({ postId, postBody, tokens }: { postId: string;
         setTree(tr.emoji);
         setLeaves(l.leaves);
       })
-      .catch((e: Error) => live && setError(e.message));
+      .catch((e: unknown) => live && setError(errorText(e)));
     return () => {
       live = false;
     };
@@ -100,7 +101,7 @@ export function MeaningReactions({ postId, postBody, tokens }: { postId: string;
       setOpen(null);
       return true;
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
       return false;
     }
   };

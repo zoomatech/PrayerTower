@@ -7,6 +7,7 @@ import { Button, Field } from '@/components/ui';
 import { api, type Lamps as Status } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function Lamps({ personId, name }: { personId: string; name: string }) {
   const { t } = useLocale();
@@ -28,7 +29,7 @@ export function Lamps({ personId, name }: { personId: string; name: string }) {
         setMessage(t('lamps.given', { name }));
         load();
       },
-      (e) => setMessage((e as Error).message),
+      (e) => setMessage(errorText(e)),
     );
   return (
     <View style={styles.section} role="group" aria-label={t('lamps.heading', { count: status.count })}>

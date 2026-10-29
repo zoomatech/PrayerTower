@@ -13,7 +13,8 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PilotToolsSettings } from '@/lib/api';
+import { errorText } from '@/lib/error-report';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures } from '@/lib/features';
@@ -200,6 +201,7 @@ function Admin() {
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
         <DeletionRequestsSection />
         <FeedbackSection />
+        <PilotToolsSection />
         <PrayerWarriorsSection />
 
         <View style={styles.section}>
@@ -2095,6 +2097,48 @@ function PrayerWarriorsSection() {
       ) : (
         <Text style={type.small}>{t('admin.noWarriors')}</Text>
       )}
+    </View>
+  );
+}
+
+/** Pilot tools (docs/PILOT_TOOLS.md): "Tell Steve", the weekly feedback summary and the error log, each off until switched on here. */
+function PilotToolsSection() {
+  const t = useT();
+  const [s, setS] = useState<PilotToolsSettings | null>(null);
+  const [name, setName] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: PilotToolsSettings) => {
+    setS(x);
+    setName(x.founder_name);
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.pilotTools().then((r) => show(r.settings)).catch((e) => setNote(errorText(e)));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updatePilotTools>[0]) =>
+    api.admin
+      .updatePilotTools(patch)
+      .then((r) => {
+        show(r.settings);
+        setNote(t('pilotTools.saved'));
+      })
+      .catch((e) => setNote(errorText(e)));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('pilotTools.title')}</Text>
+      <Text style={type.small}>{t('pilotTools.intro')}</Text>
+      <Toggle label={t('pilotTools.tell', { name: s.founder_name })} hint={t('pilotTools.tellHint')} value={s.tell_founder_enabled} onChange={(v) => save({ tellFounder: v })} />
+      <Field label={t('pilotTools.name')} value={name} onChangeText={setName} maxLength={40} />
+      <Button small variant="secondary" label={t('pilotTools.saveName')} disabled={!name.trim() || name.trim() === s.founder_name} onPress={() => save({ founderName: name.trim() })} />
+      <Toggle label={t('pilotTools.summary')} hint={t('pilotTools.summaryHint')} value={s.feedback_summary_enabled} onChange={(v) => save({ feedbackSummary: v })} />
+      {s.feedback_summary_enabled ? (
+        <Toggle label={t('pilotTools.summaryEmail')} value={s.feedback_summary_email} onChange={(v) => save({ feedbackSummaryEmail: v })} />
+      ) : null}
+      <Toggle label={t('pilotTools.errors')} hint={t('pilotTools.errorsHint')} value={s.error_capture_enabled} onChange={(v) => save({ errorCapture: v })} />
+      <Button variant="secondary" label={t('pilotTools.openLog')} onPress={() => router.push('/error-log')} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
 }

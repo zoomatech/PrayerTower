@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { useT } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function CommunityPicker() {
   const t = useT();
@@ -38,7 +39,7 @@ export function CommunityPicker() {
         setNote(t('profile.communitySaved', { name: r.community.name }));
         await refreshProfile();
       })
-      .catch((e) => setNote((e as Error).message));
+      .catch((e) => setNote(errorText(e)));
   return (
     <View style={styles.wrap} role="group" aria-label={t('profile.community')}>
       <Text style={type.heading}>{t('profile.community')}</Text>

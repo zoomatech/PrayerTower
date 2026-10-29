@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
 import { db, signIn } from './helpers';
 
 const SCREENS = [
-  '/admin', '/announcements', '/audit-log', '/churches', '/feedback-triage', '/import', '/invites', '/legal', '/macro-needs',
+  '/admin', '/announcements', '/audit-log', '/churches', '/error-log', '/feedback-triage', '/import', '/invites', '/legal', '/macro-needs',
   '/moderation', '/ops', '/podcasts-admin', '/radio-requests', '/surveys', '/waitlist', '/witness',
 ];
 

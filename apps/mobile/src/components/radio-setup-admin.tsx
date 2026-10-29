@@ -10,6 +10,7 @@ import { Button, Chip, Field } from '@/components/ui';
 import { api, type CoveragePoint, type RadioCoverage, type RadioDigest, type RadioSetup, type RadioSetupChoice, type RadioSetupTest } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const STATUS_POLL_MS = 3000;
 
@@ -23,7 +24,7 @@ export function RadioSetupSection() {
     setData(d);
     setDraft({ port: d.choice.port ?? '', speed: d.choice.speed ? String(d.choice.speed) : '', model: d.choice.model ? String(d.choice.model) : '', freq: d.choice.frequencyHz ? String(d.choice.frequencyHz / 1e6) : '' });
   };
-  const load = useCallback(() => api.admin.radioSetup().then(show).catch((e) => setNote((e as Error).message)), []);
+  const load = useCallback(() => api.admin.radioSetup().then(show).catch((e) => setNote(errorText(e))), []);
   useFocusEffect(
     useCallback(() => {
       void load();
@@ -41,7 +42,7 @@ export function RadioSetupSection() {
     api.admin
       .updateRadioSetup(patch)
       .then((d) => (show(d), setNote(null)))
-      .catch((e) => setNote((e as Error).message));
+      .catch((e) => setNote(errorText(e)));
   const saveDetails = () => {
     const mhz = Number.parseFloat(draft.freq);
     save({
@@ -57,7 +58,7 @@ export function RadioSetupSection() {
     api.admin
       .requestSetupTest(kind)
       .then(() => (setNote(null), load()))
-      .catch((e) => setNote((e as Error).message));
+      .catch((e) => setNote(errorText(e)));
   const latest = (kind: RadioSetupTest['kind']) => data.tests.find((x) => x.kind === kind);
   const c = data.choice;
   const cat = !!c.rig && !['vox', 'ptt-only'].includes(c.rig);
@@ -123,7 +124,7 @@ export function RadioSetupSection() {
           <TestLine test={latest('burst')} />
 
           <Text style={styles.step}>{t('radioSetup.step4')}</Text>
-          <DecodeLine test={latest('burst')} onConfirm={(id) => api.admin.confirmSetupTest(id).then(load).catch((e) => setNote((e as Error).message))} />
+          <DecodeLine test={latest('burst')} onConfirm={(id) => api.admin.confirmSetupTest(id).then(load).catch((e) => setNote(errorText(e)))} />
         </>
       ) : null}
       {note ? <Text style={[type.small, { color: colors.danger }]}>{note}</Text> : null}
@@ -271,11 +272,11 @@ export function CoverageSection() {
   };
   useFocusEffect(
     useCallback(() => {
-      api.admin.radioCoverage().then(show).catch((e) => setNote((e as Error).message));
+      api.admin.radioCoverage().then(show).catch((e) => setNote(errorText(e)));
     }, []),
   );
   if (!data) return note ? <Text style={type.small}>{note}</Text> : null;
-  const done = (p: Promise<RadioCoverage>) => p.then((d) => (show(d), setNote(null), setPlacing(null))).catch((e) => setNote((e as Error).message));
+  const done = (p: Promise<RadioCoverage>) => p.then((d) => (show(d), setNote(null), setPlacing(null))).catch((e) => setNote(errorText(e)));
   /** "lat, lon" or "lat, lon, Place". */
   const parse = (text: string) => {
     const [la, lo, ...rest] = text.split(',');

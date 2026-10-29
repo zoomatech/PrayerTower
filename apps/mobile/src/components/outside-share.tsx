@@ -12,6 +12,7 @@ import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 function useShareState(postId: string, on: boolean) {
   const [state, setState] = useState<ShareState | null>(null);
@@ -60,7 +61,7 @@ export function ShareChoice({ card }: { card: Card }) {
         setError(null);
         setNote(t('growth.shareSaved'));
       },
-      (e) => setError((e as Error).message),
+      (e) => setError(errorText(e)),
     );
   const levels: [ShareLevel, string][] = [
     ['private', t('growth.sharePrivate')],

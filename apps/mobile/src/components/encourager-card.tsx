@@ -10,6 +10,7 @@ import { api, type EncouragerState } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
 
@@ -24,7 +25,8 @@ export function EncouragerCard() {
 
   useEffect(() => {
     if (!encourager) return;
-    api.encourager().then(setS).catch((e) => setError((e as Error).message));
+    // A card that can't load stays hidden; only the error log hears about it.
+    api.encourager().then(setS).catch((e) => void errorText(e));
   }, [encourager]);
 
   if (!encourager || !s?.enabled) return null;
@@ -38,7 +40,7 @@ export function EncouragerCard() {
       setS(next);
       if (next.enabled && next.matched === false) setNote(t('practices.encNone'));
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

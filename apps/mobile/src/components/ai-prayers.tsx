@@ -8,6 +8,7 @@ import { Toggle } from '@/components/ui';
 import { api, type AiPrayers as Status } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function AiPrayers({ postId }: { postId: string }) {
   const { t } = useLocale();
@@ -20,7 +21,7 @@ export function AiPrayers({ postId }: { postId: string }) {
 
   if (!status?.enabled || (!status.isMine && status.count === 0)) return null;
   const set = (on: boolean) =>
-    api.setAutoPray(postId, on).then(setStatus, (e) => setNote((e as Error).message));
+    api.setAutoPray(postId, on).then(setStatus, (e) => setNote(errorText(e)));
   return (
     <View style={styles.section} role="group" aria-label={t('aiPrayers.heading')}>
       <Text style={type.heading}>{t('aiPrayers.heading', { count: status.count })}</Text>

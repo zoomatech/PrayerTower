@@ -8,6 +8,7 @@ import { Button, Field, Toggle } from '@/components/ui';
 import { api, type HarmFlood, type HarmSettings } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const HIDEABLE = ['threat', 'hate', 'harm_wish', 'curse', 'revenge'] as const;
 
@@ -22,7 +23,7 @@ export function HarmSettingsSection() {
   };
   useFocusEffect(
     useCallback(() => {
-      api.harmSettings().then((r) => show(r.settings), (e) => setNote((e as Error).message));
+      api.harmSettings().then((r) => show(r.settings), (e) => setNote(errorText(e)));
     }, []),
   );
   const save = (patch: Partial<HarmSettings> = {}) =>
@@ -34,7 +35,7 @@ export function HarmSettingsSection() {
         ...patch,
       })
       .then((r) => (show(r.settings), setNote(t('harm.saved'))))
-      .catch((e) => setNote((e as Error).message));
+      .catch((e) => setNote(errorText(e)));
   if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
   return (
     <View style={styles.section}>
@@ -69,7 +70,7 @@ export function HarmFloods({ onError }: { onError: (message: string) => void }) 
   }, []);
   useFocusEffect(load);
   const decide = (f: HarmFlood, action: 'release' | 'remove') =>
-    api.decideHarmFlood(f.user_id, action).then(load, (e) => onError((e as Error).message));
+    api.decideHarmFlood(f.user_id, action).then(load, (e) => onError(errorText(e)));
   if (!floods.length) return null;
   return (
     <View style={{ gap: space.sm }}>

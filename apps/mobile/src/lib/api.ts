@@ -459,6 +459,30 @@ export interface NotebookSettings {
   podcasts_enabled: boolean;
 }
 
+export interface PilotToolsSettings {
+  tell_founder_enabled: boolean;
+  founder_name: string;
+  feedback_summary_enabled: boolean;
+  feedback_summary_email: boolean;
+  error_capture_enabled: boolean;
+}
+
+/** One distinct error in Admin → Error log, with how often it happened. */
+export interface ErrorReport {
+  id: string;
+  source: 'app' | 'server';
+  place: string;
+  message: string;
+  detail: string | null;
+  platform: string | null;
+  appVersion: string | null;
+  count: number;
+  lastUser: { id: string; name: string } | null;
+  firstSeen: string;
+  lastSeen: string;
+  resolvedAt: string | null;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -1367,6 +1391,10 @@ export const api = {
   declineAward: (id: string) => post<{ declined: true }>(`/me/awards/${id}/decline`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
+  /** The "Tell Steve" shortcut (Admin → Pilot tools). */
+  pilotTell: () => get<{ enabled: boolean; name: string }>('/pilot/tell'),
+  /** A crash or unexpected error for the error log; kept only while Admin → Pilot tools has it on. */
+  reportError: (r: { message: string; detail?: string; screen: string; platform?: string; appVersion?: string }) => post<{ ok: true }>('/pilot/errors', r),
   sendFeedback: (input: { kind: 'bug' | 'idea' | 'other'; body: string; platform?: string; appVersion?: string }) =>
     post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
@@ -1658,6 +1686,11 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    pilotTools: () => get<{ settings: PilotToolsSettings }>('/admin/pilot-tools'),
+    updatePilotTools: (patch: Partial<{ tellFounder: boolean; founderName: string; feedbackSummary: boolean; feedbackSummaryEmail: boolean; errorCapture: boolean }>) =>
+      request<{ settings: PilotToolsSettings }>('PATCH', '/admin/pilot-tools', patch),
+    errors: (status: 'open' | 'resolved' | 'all' = 'open') => get<{ errors: ErrorReport[] }>(`/admin/errors?status=${status}`),
+    resolveError: (id: string) => post<{ ok: true }>(`/admin/errors/${id}/resolve`),
     givingSplitSettings: () => get<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('/admin/giving-split-settings'),
     updateGivingSplitSettings: (patch: { enabled?: boolean; maxPercent?: number }) =>
       request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),

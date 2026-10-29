@@ -11,6 +11,7 @@ import { api, type KindAskReason, type Mend } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 /** Above the comment box until the member's first comment, or until they tap "Got it". */
 export function WelcomeCard() {
@@ -57,7 +58,7 @@ export function HurtNote({ commentId, onReport }: { commentId: string; onReport:
   const run = (fn: () => Promise<unknown>, note: string) =>
     fn().then(
       () => setDone(note),
-      (e) => setError((e as Error).message),
+      (e) => setError(errorText(e)),
     );
   return (
     <View style={styles.card} testID="hurt-note">
@@ -96,13 +97,13 @@ export function MendQueue() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => {
-    api.mendQueue().then((r) => setMends(r.mends), (e) => setError((e as Error).message));
+    api.mendQueue().then((r) => setMends(r.mends), (e) => setError(errorText(e)));
   }, []);
   useEffect(() => {
     if (mend) load();
   }, [mend, load]);
   if (!mend) return null;
-  const review = (m: Mend, approve: boolean) => api.reviewMend(m.id, approve, notes[m.id]?.trim() || undefined).then(load, (e) => setError((e as Error).message));
+  const review = (m: Mend, approve: boolean) => api.reviewMend(m.id, approve, notes[m.id]?.trim() || undefined).then(load, (e) => setError(errorText(e)));
   return (
     <View style={styles.queue} testID="mend-queue">
       <Text style={type.heading}>{t('repair.queueTitle')}</Text>
