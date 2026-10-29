@@ -176,10 +176,12 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         stationRequiresFree: z.boolean().optional(),
         maxChars: z.number().int().min(50).max(2800).optional(),
         amplifyRepeats: z.number().int().min(2).max(50).optional(),
+        order: z.enum(['oldest', 'need']).optional(),
       })
       .parse(req.body);
     return {
       settings: await radio.updateStationSettings(db, {
+        radio_order: input.order,
         radio_transmitter: input.transmitter,
         radio_station_requires_free: input.stationRequiresFree,
         radio_amplify_repeats: input.amplifyRepeats,

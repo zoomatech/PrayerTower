@@ -24,7 +24,7 @@ afterAll(async () => {
 
 describe('radio station', () => {
   it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
-    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3 });
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest' });
     expect((await station('/station/claim')).statusCode).toBe(409); // log mode
     const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
     expect(s.json().settings.radio_transmitter).toBe('station');
@@ -131,5 +131,34 @@ describe('radio station', () => {
       [crisis.id, sender],
     );
     expect((await as(poster).get('/prayer-cast')).json().cast.some((c: { post_id: string }) => c.post_id === crisis.id)).toBe(false);
+  });
+
+  it('by need: the most urgent request goes first, then the one with the fewest praying, then the oldest', async () => {
+    await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+    await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    const poster = await createUser('Need Poster');
+    const sender = await createUser('Need Sender');
+    const friend = await createUser('Need Friend');
+    const plain = await newRequest(poster, 'Pray for my garden.');
+    const prayedFor = await newRequest(poster, 'Pray for my job search.');
+    const lonely = await newRequest(poster, 'Pray for my move.');
+    const urgent = await newRequest(poster, 'Pray for my surgery tomorrow.');
+    await db.query('update public.posts set urgency = 3 where id = $1', [urgent.id]);
+    await as(friend).post(`/posts/${prayedFor.id}/praying-now`, {});
+    for (const [i, p] of [plain, prayedFor, lonely, urgent].entries()) {
+      expect((await as(sender).post(`/posts/${p.id}/radio`, { idempotencyKey: `need-${i}` })).statusCode).toBe(201);
+    }
+    const order = async () => {
+      const sent: string[] = [];
+      for (let i = 0; i < 4; i++) {
+        const c = (await station('/station/claim')).json().radioPrayer;
+        sent.push(c.text);
+        await station(`/station/radio-prayers/${c.id}/result`, { ok: true, callSign: 'N0CALL' });
+      }
+      return sent;
+    };
+    expect((await as(admin).patch('/admin/radio-settings', { order: 'need' })).json().settings.radio_order).toBe('need');
+    expect(await order()).toEqual(['Pray for my surgery tomorrow.', 'Pray for my garden.', 'Pray for my move.', 'Pray for my job search.']);
   });
 });

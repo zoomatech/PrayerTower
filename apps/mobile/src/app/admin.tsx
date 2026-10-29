@@ -329,6 +329,12 @@ function Admin() {
               value={radio.radio_station_requires_free}
               onChange={(v) => saveRadio({ stationRequiresFree: v })}
             />
+            <Text style={type.small}>{t('admin.radioOrder')}</Text>
+            <View style={styles.row}>
+              <Chip label={t('admin.radioOldest')} selected={radio.radio_order !== 'need'} onPress={() => saveRadio({ order: 'oldest' })} />
+              <Chip label={t('admin.radioNeed')} selected={radio.radio_order === 'need'} onPress={() => saveRadio({ order: 'need' })} />
+            </View>
+            {radio.radio_order === 'need' ? <Text style={type.small}>{t('admin.radioNeedHint')}</Text> : null}
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>

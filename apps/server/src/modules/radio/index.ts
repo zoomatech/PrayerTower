@@ -186,11 +186,13 @@ export interface StationSettings {
   radio_max_chars: number;
   /** How many times Amplify sends a prayer (placeholder; "1,000x" is not possible on PSK31). */
   radio_amplify_repeats: number;
+  /** Which queued prayer goes next: first in, or by need (most urgent, fewest praying, then oldest). */
+  radio_order: 'oldest' | 'need';
 }
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order from public.token_settings',
   );
   return rows[0]!;
 }
@@ -201,9 +203,10 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
         set radio_transmitter = coalesce($1, radio_transmitter),
             radio_station_requires_free = coalesce($2, radio_station_requires_free),
             radio_max_chars = coalesce($3, radio_max_chars),
-            radio_amplify_repeats = coalesce($4, radio_amplify_repeats)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats`,
-    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null],
+            radio_amplify_repeats = coalesce($4, radio_amplify_repeats),
+            radio_order = coalesce($5, radio_order)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order`,
+    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null, patch.radio_order ?? null],
   );
   return rows[0]!;
 }
@@ -211,8 +214,11 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
 /** A claim the station hasn't reported on within this long is handed out again. */
 const CLAIM_TIMEOUT_MINUTES = 15;
 
+/** The queue order for claimNext: by need puts the most urgent, least-prayed-for request first. */
+const NEED_ORDER = `p.urgency desc, (select count(*) from public.prayer_events e where e.post_id = p.id) asc, r.id`;
+
 /**
- * Hand the station the oldest queued prayer it may send, or null. Never sends
+ * Hand the station the next queued prayer it may send (oldest first, or by need), or null. Never sends
  * a name: only the request text. Skips (and fails) requests that were removed,
  * are marked sensitive, or have moderation still pending.
  */
@@ -235,7 +241,7 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
         where r.status = 'queued'
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
-        order by r.id limit 1 for update of r skip locked`,
+        order by ${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
     );
     const r = rows[0];
     if (!r) return null;
