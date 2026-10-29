@@ -22,9 +22,9 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
       const want = Buffer.from(stationKey);
       if (given.length === want.length && timingSafeEqual(given, want)) return null;
     }
-    if (given.length && (await nodes.multiStation(db))) {
-      return (await nodes.authenticate(db, given.toString(), 'station').catch(() => null))?.id ?? fail();
-    }
+    // An extra station's own key; authenticate refuses an empty or unknown key.
+    const node = (await nodes.multiStation(db)) ? await nodes.authenticate(db, given.toString(), 'station').catch(() => null) : null;
+    if (node) return node.id;
     if (!stationKey) throw new AppError(503, 'station_disabled', 'No radio station is configured (STATION_API_KEY)');
     return fail();
   };
