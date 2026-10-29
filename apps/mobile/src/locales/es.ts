@@ -924,6 +924,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     stripeKeysMissing: 'Stripe needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET on the server before the Give button shows.',
     recordGift: 'Record a gift that came another way (cash, check, Zeffy or PayPal). Choose where it goes.',
     giftVia: { manual: 'Cash or check', zeffy: 'Zeffy', paypal: 'PayPal' },
+    giftFor: 'For one member (optional)',
+    giftFrom: 'Given by a member (optional; they get the thank-you tokens)',
     zeffyConnected: 'Zeffy is connected. Its gifts are recorded on their own and matched to members by email.',
     zeffyNoWebhook: 'Zeffy is connected, but without ZEFFY_WEBHOOK_TOKEN gifts come in only when you tap "Get gifts from Zeffy now".',
     zeffyNotConnected: 'Set ZEFFY_API_KEY on the server and Zeffy gifts are recorded on their own. Until then, record them below.',
