@@ -59,7 +59,7 @@ struct AwardHallView: View {
     var body: some View {
         List {
             Section { Text(w("award.hallIntro")) }
-            if let hall, hall.years.isEmpty { Text(w("award.none")).foregroundStyle(.secondary) }
+            if hall?.years.isEmpty ?? true { Text(w("award.none")).foregroundStyle(.secondary) }
             ForEach(hall?.years ?? []) { y in
                 Section(String(y.year)) {
                     ForEach(y.winners, id: \.rank) { p in
@@ -69,7 +69,7 @@ struct AwardHallView: View {
             }
         }
         .navigationTitle(w("award.hall"))
-        .task { hall = (try? await model.store.api.awardHall()) ?? AwardHall(enabled: false, years: []) }
+        .task { hall = try? await model.store.api.awardHall() }
     }
 
     private func winner(_ p: AwardHall.Winner) -> String {
