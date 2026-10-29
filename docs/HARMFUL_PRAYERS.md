@@ -136,3 +136,7 @@ When someone posts or comments about abuse, their request opens with the hotline
 - Coded self-harm ("unalive myself", "sewer slide", "kms") gets the usual crisis support and crisis check-in.
 - The weekly report marks rules that matched only through a disguise with `:masked`.
 - `apps/server/test/harm-adversarial.test.ts` lists every disguise caught, and ordinary prayers that must stay untouched ("Our worship night was 🔥", "7 years sober", "I dye my hair for chemo week", "u guys are the best").
+
+## Safety dashboard (off by default)
+
+**Admin → Moderator care → Safety dashboard in Admin** (`safety_dashboard_enabled`, `GET /admin/safety-dashboard?days=7`): held posts now by source with the oldest wait and how many are past the on-call limit; how fast held posts were decided (median, slowest tenth, how many within the limit); on-call reminders and escalations; restores by moderator and appeal outcomes; and the stretches of each weekday with nobody on call. Counts and staff names only, never member text.

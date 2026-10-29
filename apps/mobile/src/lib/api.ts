@@ -1157,7 +1157,7 @@ export type HarmSettings = {
   read_disguises: boolean;
 };
 export type ModeratorCare = {
-  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
+  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; safety_dashboard_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
   colleagues: { id: string; display_name: string }[];
 };
 export type ModerationDashboard = {
@@ -1167,6 +1167,16 @@ export type ModerationDashboard = {
   falseAlarms: { category: string; decided: number; dismissed: number; rate: number | null }[];
   floods: { floods: number; accounts: number; items: number };
   handoffs: number;
+};
+export type SafetyDashboard = {
+  days: number;
+  maxWaitMinutes: number;
+  held: { source: string; held: number; oldest_minutes: number | null; over_limit: number }[];
+  response: { decided: number; median_minutes: number | null; p90_minutes: number | null; within_limit: number };
+  alerts: { reminded: number; escalated: number };
+  restores: { moderator: string | null; restores: number }[];
+  appeals: { overturned: number; upheld: number };
+  rota: { enabled: boolean; timezone: string; shifts: number; gaps: { weekday: number; start_minute: number; end_minute: number }[] };
 };
 export type HarmReport = {
   id: string;
@@ -1889,6 +1899,7 @@ export const api = {
   updateOncall: (patch: Partial<OncallSettings>) => request<{ settings: OncallSettings }>('PATCH', '/admin/oncall', patch),
   addOncallShift: (shift: { userId: string; weekday: number; startMinute: number; endMinute: number }) => post<{ id: string }>('/admin/oncall/shifts', shift),
   removeOncallShift: (id: string) => request<{ ok: boolean }>('DELETE', `/admin/oncall/shifts/${id}`),
+  safetyDashboard: (days = 7) => get<{ dashboard: SafetyDashboard }>(`/admin/safety-dashboard?days=${days}`),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
   harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),

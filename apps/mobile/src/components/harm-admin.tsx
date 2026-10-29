@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Field, Toggle } from '@/components/ui';
-import { api, type HarmFlood, type HarmReport, type HarmSettings, type ModerationDashboard, type ModeratorCare } from '@/lib/api';
+import { api, type HarmFlood, type HarmReport, type HarmSettings, type ModerationDashboard, type ModeratorCare, type SafetyDashboard } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -91,12 +91,59 @@ export function ModeratorCareSection() {
       <Toggle label={t('modCare.blur')} value={s.blur_hard} onChange={(v) => save({ blur_hard: v })} />
       <Toggle label={t('modCare.dashboard')} value={s.dashboard_enabled} onChange={(v) => save({ dashboard_enabled: v })} />
       <Toggle label={t('modCare.weekly')} hint={t('modCare.weeklyHint')} value={s.weekly_report_enabled} onChange={(v) => save({ weekly_report_enabled: v })} />
+      <Toggle label={t('safetyDash.toggle')} value={s.safety_dashboard_enabled} onChange={(v) => save({ safety_dashboard_enabled: v })} />
       <Toggle label={t('modCare.restoreToggle')} hint={t('modCare.restoreHint')} value={s.restore_enabled} onChange={(v) => save({ restore_enabled: v })} />
       <Field label={t('modCare.breakAfterMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
       <Field label={t('modCare.breakAfterItems')} keyboardType="number-pad" value={draft.items} onChangeText={(items) => setDraft((d) => ({ ...d, items }))} />
       <Field label={t('modCare.breakMinutes')} keyboardType="number-pad" value={draft.length} onChangeText={(length) => setDraft((d) => ({ ...d, length }))} />
       <Button label={t('modCare.save')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+/** Admin → Safety dashboard: held posts now, how fast they get a person, alerts, restores, and gaps in the on-call rota. */
+export function SafetyDashboardSection() {
+  const t = useT();
+  const [d, setD] = useState<SafetyDashboard | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      // Switched off: the server says 403 and the section stays hidden.
+      api.safetyDashboard().then((r) => setD(r.dashboard), () => setD(null));
+    }, []),
+  );
+  if (!d) return null;
+  const heldTotal = d.held.reduce((n, h) => n + h.held, 0);
+  const over = d.held.reduce((n, h) => n + h.over_limit, 0);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('safetyDash.title', { days: d.days })}</Text>
+      <Text style={type.body}>{t('safetyDash.held', { held: heldTotal, over, limit: d.maxWaitMinutes })}</Text>
+      {d.held.map((h) => (
+        <Text key={h.source} style={type.small}>
+          {t('safetyDash.heldRow', { source: t(`moderation.source.${h.source}`), held: h.held, oldest: h.oldest_minutes ?? 0 })}
+        </Text>
+      ))}
+      <Text style={type.body}>
+        {t('safetyDash.response', { decided: d.response.decided, median: d.response.median_minutes ?? 0, p90: d.response.p90_minutes ?? 0, within: d.response.within_limit })}
+      </Text>
+      <Text style={type.small}>{t('safetyDash.alerts', { reminded: d.alerts.reminded, escalated: d.alerts.escalated })}</Text>
+      <Text style={type.body}>{t('safetyDash.restores', { overturned: d.appeals.overturned, upheld: d.appeals.upheld })}</Text>
+      {d.restores.map((r) => (
+        <Text key={r.moderator ?? '-'} style={type.small}>
+          {t('safetyDash.restoreRow', { name: r.moderator ?? '–', count: r.restores })}
+        </Text>
+      ))}
+      <Text style={type.body}>{d.rota.enabled ? t('safetyDash.gaps', { count: d.rota.gaps.length, tz: d.rota.timezone }) : t('safetyDash.rotaOff')}</Text>
+      {d.rota.enabled
+        ? d.rota.gaps.slice(0, 14).map((g) => (
+            <Text key={`${g.weekday}-${g.start_minute}`} style={type.small}>
+              {t('safetyDash.gapRow', { day: t(`oncall.days.${g.weekday}`), start: hhmm(g.start_minute), end: hhmm(g.end_minute) })}
+            </Text>
+          ))
+        : null}
     </View>
   );
 }
