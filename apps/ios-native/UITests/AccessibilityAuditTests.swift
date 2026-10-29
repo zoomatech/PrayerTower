@@ -18,7 +18,7 @@ final class AccessibilityAuditTests: XCTestCase {
             let app = XCUIApplication()
             app.launchArguments = ["-UIPreferredContentSizeCategoryName", size]
             app.launch()
-            try app.performAccessibilityAudit()
+            try audit(app, "sign-in at \(size)")
             app.terminate()
         }
     }
@@ -33,11 +33,21 @@ final class AccessibilityAuditTests: XCTestCase {
                     let link = app.buttons[name]
                     for _ in 0..<5 where !link.isHittable { app.collectionViews.firstMatch.swipeUp() }
                     link.tap()
-                    XCTAssertNoThrow(try app.performAccessibilityAudit(), "\(name) at \(size)")
+                    try audit(app, "\(name) at \(size)")
                     app.navigationBars.buttons.element(boundBy: 0).tap()
                 }
             }
             app.terminate()
+        }
+    }
+
+    /// Runs the audit and fails once per issue, naming the element, so CI's annotations say what to fix.
+    @MainActor func audit(_ app: XCUIApplication, _ place: String) throws {
+        try app.performAccessibilityAudit { issue in
+            let element = issue.element
+            let what = element.map { "\($0.elementType.rawValue) '\($0.label)' id '\($0.identifier)' at \($0.frame)" } ?? "no element"
+            XCTFail("\(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
+            return true
         }
     }
 }
