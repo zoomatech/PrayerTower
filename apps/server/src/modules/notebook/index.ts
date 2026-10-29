@@ -41,6 +41,7 @@ export interface NotebookSettings {
   tier_upkeep_days: number;
   checkin_affirmation_enabled: boolean;
   why_gifts_enabled: boolean;
+  pool_matching_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
@@ -48,7 +49,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -76,6 +77,7 @@ export const SettingsPatch = z.object({
   tierUpkeepDays: z.number().int().min(1).max(365).optional(),
   checkinAffirmationEnabled: z.boolean().optional(),
   whyGiftsEnabled: z.boolean().optional(),
+  poolMatchingEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -93,7 +95,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        post_lines_enabled = coalesce($18, post_lines_enabled),
        tier_upkeep_enabled = coalesce($19, tier_upkeep_enabled), tier_upkeep_days = coalesce($20, tier_upkeep_days),
        checkin_affirmation_enabled = coalesce($21, checkin_affirmation_enabled),
-       why_gifts_enabled = coalesce($22, why_gifts_enabled)`,
+       why_gifts_enabled = coalesce($22, why_gifts_enabled),
+       pool_matching_enabled = coalesce($23, pool_matching_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -117,6 +120,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.tierUpkeepDays ?? null,
       p.checkinAffirmationEnabled ?? null,
       p.whyGiftsEnabled ?? null,
+      p.poolMatchingEnabled ?? null,
     ],
   );
   return settings(q);
@@ -144,6 +148,7 @@ export async function features(q: Queryable) {
     postLines: s.post_lines_enabled,
     checkinAffirmation: s.checkin_affirmation_enabled,
     whyGifts: s.why_gifts_enabled,
+    poolMatching: s.pool_matching_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,
