@@ -11,6 +11,9 @@
 //   without QAM), BURST_AUTO_MARGIN_DB (3), BURST_AUTO_MAX_AGE_MIN (30). Simulate mode can add
 //   noise with BURST_SIM_SNR_DB and writes its receiver's report to BURST_AUTO_REPORT;
 //   BURST_SIM_HF=quiet|moderate|poor sends it through a simulated HF SSB path instead.
+// Rig control (docs/STATION_OPERATOR_GUIDE.md, "Rig control"), off unless RIG_CONTROL=rigctld:
+//   RIG_HOST (127.0.0.1), RIG_PORT (4532), RIG_FREQ_HZ and RIG_MODE (left as the radio is when unset),
+//   RIG_PASSBAND_HZ (0, the radio's default). Burst audio mode then keys PTT through rigctld.
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { HF_CHANNELS } from './burst/hf-channel.js';
@@ -22,6 +25,7 @@ import { autoChooser, DEFAULT_AUTO_PRESETS, parseCandidates } from './burst/auto
 import { presetByName } from './burst/presets.js';
 import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTransmitter } from './burst/transmit.js';
 import { runBurstOnce } from './burst/worker.js';
+import { RIG_MODES, rigctldClient, tuneRig, type Rig } from './rig.js';
 
 const env = (name: string, fallback?: string) => {
   const v = process.env[name] || fallback;
@@ -57,6 +61,16 @@ const usesFldigi = burstMode === 'off' || burstMode === 'fldigi';
 const api = httpApi(env('PRAYER_TOWER_API_URL'), env('STATION_API_KEY'));
 const fldigi = fldigiClient(env('FLDIGI_URL', 'http://127.0.0.1:7362/RPC2'));
 const stateDir = process.env.STATE_DIRECTORY?.split(':')[0];
+const rigControl = env('RIG_CONTROL', 'off');
+if (!['off', 'rigctld'].includes(rigControl)) throw new Error('RIG_CONTROL must be off or rigctld');
+let rig: Rig | undefined;
+if (rigControl === 'rigctld') {
+  rig = rigctldClient(env('RIG_HOST', '127.0.0.1'), int('RIG_PORT', '4532', 1, 65535));
+  const mode = process.env.RIG_MODE?.toUpperCase();
+  if (mode && !(RIG_MODES as readonly string[]).includes(mode)) throw new Error(`RIG_MODE must be one of ${RIG_MODES.join(', ')}`);
+  const freq = process.env.RIG_FREQ_HZ ? int('RIG_FREQ_HZ', '0', 100_000, 10_000_000_000) : undefined;
+  await tuneRig(rig, { frequencyHz: freq, mode, passbandHz: int('RIG_PASSBAND_HZ', '0', 0, 100_000) });
+}
 
 // Under systemd, STATE_DIRECTORY is /var/lib/prayer-tower-station; the health check reads the heartbeat there.
 const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
@@ -83,6 +97,7 @@ if (burstMode !== 'off') {
             playCommand: env('BURST_PLAY_CMD', 'aplay -q {wav}'),
             pttOnCommand: process.env.BURST_PTT_ON_CMD ?? '',
             pttOffCommand: process.env.BURST_PTT_OFF_CMD ?? '',
+            rig,
             pttDelayMs: int('BURST_PTT_DELAY_MS', '300', 0, 5000),
             dir,
             txTimeoutMs: cfg.txTimeoutMs,

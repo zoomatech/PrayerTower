@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Fldigi } from '../fldigi.js';
+import { keyRig, type Rig } from '../rig.js';
 import { hfChannel, HF_CHANNELS } from './hf-channel.js';
 import { buildBurst, listen, type Burst } from './burst.js';
 import { reportFrom, writeReport } from './auto.js';
@@ -66,6 +67,8 @@ export interface AudioOptions {
   /** Keys and unkeys the transmitter, e.g. "rigctl -m 2 T 1" / "rigctl -m 2 T 0". Empty for VOX. */
   pttOnCommand: string;
   pttOffCommand: string;
+  /** RIG_CONTROL=rigctld: key through rigctld and read PTT back, instead of the commands. */
+  rig?: Rig;
   /** Wait after keying before audio starts, for the radio to reach full power. */
   pttDelayMs: number;
   /** Where burst WAVs are written (kept as the station's log of what was sent). */
@@ -75,14 +78,20 @@ export interface AudioOptions {
 
 export function audioTransmitter(o: AudioOptions): BurstTransmitter {
   const unkey = async () => {
-    if (o.pttOffCommand) await run(o.pttOffCommand, null, 10_000);
+    if (o.rig) await keyRig(o.rig, false);
+    else if (o.pttOffCommand) await run(o.pttOffCommand, null, 10_000);
   };
   return {
     mode: 'audio',
     async send(batches, preset, callSign) {
       const burst = buildBurst(batches, preset, callSign);
       const wav = writeWav(o.dir, burst);
-      if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000);
+      if (o.rig) await keyRig(o.rig, true).catch(async (err) => {
+        // A half-keyed radio must not stay on the air.
+        await o.rig!.setPtt(false).catch(() => undefined);
+        throw err;
+      });
+      else if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000);
       try {
         if (o.pttDelayMs) await new Promise((r) => setTimeout(r, o.pttDelayMs));
         await run(o.playCommand, wav, Math.min(o.txTimeoutMs, burst.seconds * 1000 + 30_000));
