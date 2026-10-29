@@ -63,13 +63,19 @@ struct AwardHallView: View {
             ForEach(hall?.years ?? []) { y in
                 Section(String(y.year)) {
                     ForEach(y.winners, id: \.rank) { p in
-                        Text("\(p.rank). \(p.name ?? w("award.anonymous")) · \(w("award.line", ["people": String(p.peoplePrayedFor)], count: p.prayers))")
+                        Text(winner(p))
                     }
                 }
             }
         }
         .navigationTitle(w("award.hall"))
         .task { hall = (try? await model.store.api.awardHall()) ?? AwardHall(enabled: false, years: []) }
+    }
+
+    private func winner(_ p: AwardHall.Winner) -> String {
+        let name: String = p.name ?? w("award.anonymous")
+        let line: String = w("award.line", ["people": String(p.peoplePrayedFor)], count: p.prayers)
+        return "\(p.rank). \(name) · \(line)"
     }
 }
 
