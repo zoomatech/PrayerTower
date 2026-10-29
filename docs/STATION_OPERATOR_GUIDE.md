@@ -6,6 +6,41 @@ and the first tests, from no radio at all up to a real burst on the air. The
 station software is already installed ([RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md));
 the format and every setting are in [RADIO_BURST.md](RADIO_BURST.md).
 
+## One-command install
+
+On a Pi that is already running Raspberry Pi OS:
+
+```
+curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/get-station.sh | sudo bash -s -- --hamlib
+```
+
+This fetches the code to `/opt/prayer-tower-src` and runs `install.sh`. That
+installs Node.js 22, the station service, the health check and, with
+`--hamlib`, rigctld set to the dummy radio. Add `--fldigi` for fldigi. Run the
+same command again to update; your settings files are kept. If the repository
+is private, add `--repo https://<token>@github.com/zoomatech/PrayerTower.git`.
+The token is not kept on disk.
+
+**A Pi that sets itself up on first boot.** This needs Raspberry Pi OS Trixie,
+from November 2025 or later.
+
+1. Write it to the SD card with Raspberry Pi Imager. The card's boot partition
+   then holds a `user-data` file, which cloud-init reads on first boot.
+2. Replace that file with
+   [`apps/station/install/pi/user-data`](../apps/station/install/pi/user-data).
+   First change the password (`change-me-now` is a placeholder) and the time
+   zone.
+3. Put the card in the Pi and power it on. It creates the `station` user,
+   then runs the one-command install, logging to
+   `/var/log/prayer-tower-install.log`.
+4. Sign in over SSH (`ssh station@prayer-station.local`). Fill in
+   `/etc/prayer-tower-station.env` and `/etc/prayer-tower-rigctld.env`, then
+   start the station:
+
+   ```
+   sudo systemctl start prayer-tower-station
+   ```
+
 ## What you need
 
 - An FM transceiver. A mobile with a 6-pin mini-DIN **data port** is best,
@@ -207,6 +242,8 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - `rigctl`/`rigctld` options and `T` (set_ptt): [hamlib rigctl manual](https://hamlib.sourceforge.net/snapshots/man1/rigctl.1.html)
 - rigctld port 4532, the Extended Response Protocol (`+` prefix, `RPRT 0`), `F`/`M`/`T` and the mode names: [rigctld(1)](https://man.archlinux.org/man/rigctld.1.en)
 - Model 1 is the Hamlib dummy radio, model 2 is NET rigctl: [hamlib-utilities(7)](https://www.mankier.com/7/hamlib-utilities)
+- cloud-init on Raspberry Pi OS Trixie (`user-data` on the boot partition, from the 24 November 2025 image): [Raspberry Pi, "Cloud-init on Raspberry Pi OS"](https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/)
+- cloud-init `users` (`plain_text_passwd`, `lock_passwd`) and `packages`: [cloud-init docs](https://docs.cloud-init.io/en/latest/reference/yaml_examples/user_groups.html), [modules](https://docs.cloud-init.io/en/latest/reference/modules.html)
 - `libhamlib-utils` package in Debian trixie: [Debian manpages](https://dyn.manpages.debian.org/trixie/libhamlib-utils/rigctl.1.en.html)
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)
