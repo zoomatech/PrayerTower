@@ -11,7 +11,7 @@ jest.mock('@/lib/features', () => ({ useFeatures: () => ({ twoStep: mockTwoStep 
 const mockSignOut = jest.fn();
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ signOut: mockSignOut }) }));
 
-const mfa = supabase.auth.mfa as unknown as Record<string, jest.Mock>;
+const mfa = supabase.auth.mfa as unknown as Record<'listFactors' | 'enroll' | 'verify' | 'unenroll', jest.Mock>;
 const verified = { id: 'f1', factor_type: 'totp', status: 'verified' };
 const none = { data: { all: [], totp: [], phone: [] }, error: null };
 const enrolled = { data: { all: [verified], totp: [verified], phone: [] }, error: null };
