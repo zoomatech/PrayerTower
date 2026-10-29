@@ -192,6 +192,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   // The radio station authenticates with its own key, not a member login.
   app.register(async (station) => {
     markScope(station, catalog, 'station');
+    // Generous: a station polls every few seconds, but keys are checked against the database.
+    if (rateLimitPerMinute > 0) await station.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 300, timeWindow: '1 minute' });
     stationRoutes(station, db, stationKey);
   });
 

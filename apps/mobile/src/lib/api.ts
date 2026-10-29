@@ -447,6 +447,10 @@ export interface RadioNode {
 }
 export interface RadioNodes {
   enabled: boolean;
+  /** Several stations share the queue, each with its own key. */
+  multiStation: boolean;
+  /** Prayers each station holds now and sent in the last 24 hours; node null is the main station. */
+  stations: { node: string | null; sending: number; sent: number }[];
   nodes: RadioNode[];
   reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
 }
@@ -1302,7 +1306,7 @@ export const api = {
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
     radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
-    setRadioNodesEnabled: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-nodes', { enabled }),
+    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
     removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),

@@ -155,6 +155,44 @@ plays: the station unkeys and stops, the same as any other transmit failure.
    The health check adds a `rig` line. It fails if rigctld is not answering,
    or if the radio is transmitting between bursts (a stuck PTT).
 
+## Station on a Mac
+
+The station also runs on a Mac (Steve's, for example), as background jobs for the
+signed-in user. No sudo is needed. In Terminal:
+
+```
+curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/mac/install-mac.sh | bash -s -- --hamlib
+```
+
+Or, from a clone of the repository, run `bash apps/station/install/mac/install-mac.sh --hamlib`.
+
+- **What it needs:** Node.js 22. If the Mac doesn't have it, the installer uses Homebrew's
+  `node@22`. `--hamlib` adds Hamlib (rigctld) from Homebrew, and `--listener` adds
+  sox (for recording). With no Homebrew and no Node.js 22, it says what to install.
+- **Settings:** the same files as on a Pi, in `~/Library/Application Support/PrayerTower/config/`
+  (`station.env`, `rigctld.env`, `listener.env`). Fill in `station.env`, then
+  run the installer again to start the station. Rig control works the same way
+  (`RIG_CONTROL=rigctld`). The radio's CAT port is a `/dev/cu.usbserial-…` name;
+  list them with `ls /dev/cu.*`.
+- **Sound:** bursts play with `afplay`, which is built into macOS, through the default
+  output. Choose the USB interface in System Settings > Sound > Output, and
+  turn alert sounds down so they don't go out over the air.
+- **Jobs:** one launchd agent for each job (`com.zoomatech.prayertower.station`,
+  `.rigctld`, `.listener`). They start at login and restart after a crash. After a
+  failed transmission the station stays stopped until someone checks the radio, then:
+  `launchctl kickstart gui/$(id -u)/com.zoomatech.prayertower.station`.
+- **Logs and checks:**
+  - Logs: `tail -f ~/Library/Logs/PrayerTower/station.log`.
+  - Health check: `bash ~/Library/Application\ Support/PrayerTower/station/run.sh health`.
+- **Listener on a Mac:** `--listener` records with sox's `rec` from the default
+  input. macOS asks for microphone permission the first time. If it blocks the
+  background job, run `bash ~/Library/Application\ Support/PrayerTower/station/run.sh listener` in
+  Terminal and allow Terminal to use the microphone.
+- **Keep it awake:** in System Settings > Battery (or Energy), stop the Mac
+  from sleeping while the station is on duty.
+- **Update or remove:** run the same installer again to update. `--uninstall` removes
+  the jobs and keeps your settings.
+
 ## Listener nodes (receive only, real data for the auto preset)
 
 A listener node is a Raspberry Pi with a receiver (a scanner, an old handheld or
@@ -196,6 +234,33 @@ Admin → Radio lists each node, when it last reported and what it last heard.
 Turning a node off stops its key working and its reports counting. A node on the
 same machine as the station can also write `LISTEN_REPORT_FILE`, which the
 station reads as a plain `BURST_AUTO_REPORT` file.
+
+## Several stations (one shared queue)
+
+Off by default. Several stations, for example one on FM and one on HF, or the
+Pi and Steve's Mac, can share one queue without sending any prayer twice:
+
+- When a station claims prayers, the server locks those rows and skips any that
+  another station has locked (`for update skip locked`). Two stations asking at the same moment
+  get different prayers.
+- Each claim records which station holds it, and only that station can report it sent or failed.
+- A claim with no report for 15 minutes goes back to the queue. If the
+  late station reports after another one has claimed it, that report is
+  refused.
+
+To add a station:
+
+1. In Admin → Radio, choose **Several stations**, type a name, and tap **Add station**.
+   Copy the key. It is shown only once.
+2. On the new station, put that key in `STATION_API_KEY` (in
+   `/etc/prayer-tower-station.env`, or `station.env` on a Mac). Give the station
+   its own control operator's `CALL_SIGN`. Everything else is set up as for the
+   first station.
+3. Admin → Radio shows each station's last check-in, what it is sending now and
+   what it sent in the last 24 hours. Turning a station off stops its key at once.
+   The main station's key (the server's `STATION_API_KEY`) always works.
+
+Health alerts and the burst log already list each station by its call sign.
 
 ## Health alerts in Admin → Radio
 
@@ -287,6 +352,10 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - cloud-init on Raspberry Pi OS Trixie (`user-data` on the boot partition, from the 24 November 2025 image): [Raspberry Pi, "Cloud-init on Raspberry Pi OS"](https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/)
 - cloud-init `users` (`plain_text_passwd`, `lock_passwd`) and `packages`: [cloud-init docs](https://docs.cloud-init.io/en/latest/reference/yaml_examples/user_groups.html), [modules](https://docs.cloud-init.io/en/latest/reference/modules.html)
 - `arecord` raw capture options (`-t raw -f S16_LE -r 48000 -c 1`, `-D`): [arecord(1)](https://man.archlinux.org/man/arecord.1.en)
+- PostgreSQL row locks, `FOR UPDATE SKIP LOCKED` for queue consumers: [PostgreSQL docs, SELECT, The Locking Clause](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
+- launchd agent keys (`RunAtLoad`, `KeepAlive` with `SuccessfulExit`, `ThrottleInterval`, `StandardOutPath`): [launchd.plist(5)](https://leancrew.com/all-this/man/man5/launchd.plist.html)
+- Homebrew formulae: [hamlib](https://formulae.brew.sh/formula/hamlib), [node@22](https://formulae.brew.sh/formula/node@22), [sox](https://formulae.brew.sh/formula/sox) (provides `rec`)
+- sox raw output to stdout (`-` as the file name, `-t raw -b 16 -e signed-integer`): [sox(1)](https://man.archlinux.org/man/sox.1.en)
 - `libhamlib-utils` package in Debian trixie: [Debian manpages](https://dyn.manpages.debian.org/trixie/libhamlib-utils/rigctl.1.en.html)
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)
