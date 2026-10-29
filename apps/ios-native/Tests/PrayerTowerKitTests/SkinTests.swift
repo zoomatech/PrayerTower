@@ -93,3 +93,16 @@ extension APIClientTests {
         #expect(StubProtocol.seen.first?.httpMethod == "PUT")
     }
 }
+
+extension APIClientTests {
+    @Test func readsAnsweredMarksAndStoryLinks() async throws {
+        StubProtocol.answer = (200, """
+        {"theme":null,"posts":[{"id":"p2","author":{"id":null,"displayName":"Sam","handle":null,"anonymous":false},"isMine":false,"postType":"testimony",
+          "urgency":0,"preview":"x","body":"x","crisis":false,"counts":{"prayingNow":0,"prayers":0,"commitments":0,"comments":0},
+          "createdAt":"2026-10-29T08:00:00Z","state":"answered","answers":{"id":"p1","preview":"Job interview Friday"},"storyId":null}],"pinnedId":null,"nextPage":null}
+        """)
+        let card = try await client().feed().posts[0]
+        #expect(card.isAnswered && card.answers?.id == "p1" && card.storyId == nil)
+        #expect(Words(.neutral)("answeredStory.answers", ["preview": "Job"]).contains("Job"))
+    }
+}

@@ -25,6 +25,7 @@ struct PostDetailView: View {
     @State private var encouraging: Card?
     @State private var gifting: Card?
     @State private var deleteArmed = false
+    @State private var replyChoice: ReplyChoiceState?
     @State private var busy = false
     @State private var notice: String?
     @State private var error: String?
@@ -39,12 +40,18 @@ struct PostDetailView: View {
                 if card.crisis || support { Section { CrisisBox() } }
                 if let harm { Section { HarmBox(note: harm) } }
                 if card.isMine && prayable { Section { ownerTools(card) } }
+                if card.isMine, model.features["followupNudge"] { FollowupSection(postId: card.id) { Task { await load() } } }
                 if let radio = Binding($card) { RadioSection(card: radio) }
                 if card.isMine { Section { LiveFollowView(card: card) } }
                 if prayable, let prayers { Section { prayedList(prayers) } }
                 if prayable { Section { PowerPrayerSection(card: card) } }
                 Section(w("post.comments")) { commentList }
-                Section { composer(card) }
+                if let rc = replyChoice, rc.enabled, rc.isMine { Section { replyChoicePicker(rc) } }
+                if ReplyChoiceState.showsComposer(replyChoice) {
+                    Section { composer(card) }
+                } else if let rc = replyChoice {
+                    Section { Text(w(rc.noteKey)).font(.footnote) }
+                }
                 Section { reportButton(w("actions.reportPost")) { reporting = ("post", card.id) } }
             }
         }
@@ -202,6 +209,21 @@ struct PostDetailView: View {
             .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
+    /// Who can reply: the author's choice, kept above the comment box.
+    @ViewBuilder private func replyChoicePicker(_ rc: ReplyChoiceState) -> some View {
+        Picker(w("replyChoice.title"), selection: Binding(get: { rc.audience }, set: { a in
+            Task {
+                if let next = try? await model.store.api.setReplyChoice(postId: postId, a) {
+                    replyChoice = next
+                    AccessibilityNotification.Announcement(w("replyChoice.\(a.rawValue)")).post()
+                }
+            }
+        })) {
+            ForEach(ReplyAudience.allCases, id: \.self) { a in Text(w("replyChoice.\(a.rawValue)")).tag(a) }
+        }
+        if rc.audience != .everyone { Text(w("replyChoice.updatesStill")).font(.footnote) }
+    }
+
     private func reportButton(_ title: String, _ open: @escaping () -> Void) -> some View {
         Button(title, role: .destructive, action: open).font(.footnote)
     }
@@ -215,6 +237,7 @@ struct PostDetailView: View {
             card = c
             comments = CommentThread.ordered(try await api.comments(postId: postId))
             if !Compose.discussionTypes.contains(c.postType) { prayers = try? await api.prayers(postId: postId) }
+            if model.features["replyChoice"] { replyChoice = try? await api.replyChoice(postId: postId) }
             error = nil
         } catch let e as APIError where e.needsCode {
             model.state = .needsCode

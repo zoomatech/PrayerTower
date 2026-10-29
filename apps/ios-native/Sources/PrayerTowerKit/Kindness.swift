@@ -58,3 +58,22 @@ public enum KindCloud {
         return KindCloudNote(prayer: prayer(wording), harm: check.harm, ask: ask, strong: strong)
     }
 }
+
+/// Kind words practice (`empathyPractice`, kind-words-card.tsx): a private weekly card on Me with a
+/// short made-up moment and three replies; tapping one shows gently how it might land. No scores,
+/// no streaks, and nothing tapped leaves the phone.
+public enum KindWords {
+    public static let moments = 6
+
+    /// The same moment all week, a new one each Monday (UTC), as `momentFor` in the Expo app.
+    public static func moment(for now: Date) -> Int {
+        let monday = Int(floor((now.timeIntervalSince1970 / 86_400 + 3) / 7))
+        return ((monday % moments) + moments) % moments
+    }
+
+    /// The word keys for this week's moment: the situation, and each reply with its note.
+    public static func keys(for now: Date) -> (situation: String, replies: [(reply: String, note: String)]) {
+        let s = "kindWords.s\(moment(for: now))"
+        return ("\(s).situation", (0..<3).map { ("\(s).r\($0)", "\(s).n\($0)") })
+    }
+}
