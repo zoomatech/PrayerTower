@@ -144,7 +144,8 @@ export function docsRoutes(app: FastifyInstance, o: DocsOptions) {
       return same(decoded.slice(decoded.indexOf(':') + 1), o.password);
     }
     if (header.startsWith('Bearer ')) {
-      const userId = await o.verifyToken(header.slice(7)).catch(() => null);
+      const v = await o.verifyToken(header.slice(7)).catch(() => null);
+      const userId = typeof v === 'string' ? v : (v?.sub ?? null);
       return !!userId && (await hasRole(o.db, userId, 'admin', 'moderator'));
     }
     return false;

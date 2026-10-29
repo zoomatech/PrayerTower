@@ -59,6 +59,10 @@ describe('endpoint auth', () => {
       // The Common Prayer Fund's public report (404 while switched off; names no one).
       'GET /common-prayer-fund/report',
       'GET /fund',
+      // Giving: whether it's on, the public summary (names no one), and Stripe's signed webhook.
+      'GET /donations/info',
+      'GET /donations/summary',
+      'POST /donations/stripe-webhook',
       // App Store Server Notifications: Apple's signature on the payload is the check.
       'POST /store/apple/notifications',
       // The same public pages in Spanish.

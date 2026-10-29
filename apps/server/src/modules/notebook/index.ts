@@ -15,6 +15,7 @@ import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
 import * as growth from '../growth/index.js';
+import * as security from '../security/index.js';
 import * as safety from '../safety/index.js';
 
 export interface NotebookSettings {
@@ -145,6 +146,8 @@ export async function features(q: Queryable) {
     materialMatch: match[0]?.enabled === true,
     /** Growth ideas (modules/growth, Admin → Growth). */
     ...(await growth.features(q)),
+    /** Two-step sign-in (modules/security, Admin → Sign-in security). */
+    ...(await security.features(q)),
   };
 }
 

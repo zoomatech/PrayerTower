@@ -25,7 +25,9 @@ export const app = buildApp({
   db,
   verifyToken: async (token) => {
     if (!token.startsWith('test:')) throw new Error('bad token');
-    return token.slice(5);
+    // "test:<userId>:aal2" is a session that entered the two-step code.
+    const [sub, aal] = token.slice(5).split(':');
+    return aal ? { sub: sub!, aal } : sub!;
   },
   classify: (text) => classifier(text),
   converse: (system, turns) => converser(system, turns),

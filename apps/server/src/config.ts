@@ -74,6 +74,9 @@ const Env = z.object({
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).default(300),
   // The proxy header holding the visitor's address, for per-address limits (Fly: fly-client-ip).
   CLIENT_IP_HEADER: z.string().optional(),
+  // Giving through Stripe (Admin → Giving). Unset: the Give button stays hidden for Stripe.
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_').optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
   /** Error reporting (see src/instrument.ts); unset = off. Read straight from the environment there. */
   SENTRY_DSN: z.string().optional(),
   /** Bearer token for GET /metrics; unset = no metrics endpoint. */

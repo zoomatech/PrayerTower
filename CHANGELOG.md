@@ -4,6 +4,8 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Count public per-address limits per visitor behind Fly; recheck scheduled gifts at run time ([#82](https://github.com/zoomatech/PrayerTower/pull/82))
+- Macro needs: Open Circle wording for the count line; tests for macro needs and highlights ([#81](https://github.com/zoomatech/PrayerTower/pull/81))
 - App tests: announcements, live rooms, community choice and circle requests ([#80](https://github.com/zoomatech/PrayerTower/pull/80))
 - App tests: ledger check panel and guest prayer link ([#79](https://github.com/zoomatech/PrayerTower/pull/79))
 - Bug hunt: token pools and scheduled gifts stay inside the community ([#72](https://github.com/zoomatech/PrayerTower/pull/72))

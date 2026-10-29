@@ -45,6 +45,7 @@ import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
 import { growthPublicRoutes, growthRoutes } from './modules/growth/routes.js';
+import { securityRoutes } from './modules/security/routes.js';
 import { registerMetrics } from './metrics.js';
 import { announcementRoutes } from './modules/announcements/routes.js';
 import { feedbackRoutes } from './modules/feedback/routes.js';
@@ -54,6 +55,8 @@ import { siteRoutes } from './modules/site/routes.js';
 import { acrossRoutes } from './modules/across/routes.js';
 import { waitlistAdminRoutes, waitlistJoinRoutes } from './modules/waitlist/routes.js';
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
+import { donationPublicRoutes, donationRoutes } from './modules/donations/routes.js';
+import type { StripeKeys } from './modules/donations/index.js';
 import type { AppleVerifier } from './modules/store/index.js';
 import { storeNotificationRoutes } from './modules/store/routes.js';
 import { amplifierRoutes } from './modules/amplifier/routes.js';
@@ -80,6 +83,8 @@ export interface AppDeps {
   rateLimitPerMinute?: number;
   /** The header the host's proxy puts the visitor's address in (Fly: fly-client-ip). Unset: the connection's address. */
   clientIpHeader?: string | null;
+  /** Stripe keys for giving (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET); null until Steve sets them. */
+  stripe?: StripeKeys | null;
   /** The public account-deletion page (Google Play); null = page off. */
   deletionPage?: DeletionPageOptions | null;
   /** Bearer token for GET /metrics (Prometheus); null = no metrics endpoint. */
@@ -105,7 +110,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -221,6 +226,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 60, timeWindow: '1 minute' });
     commonFundPublicRoutes(open, db);
     podcastPublicRoutes(open, db);
+    donationPublicRoutes(open, db, stripe);
     storeNotificationRoutes(open, db, appleVerifier);
   });
 
@@ -259,6 +265,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
     growthRoutes(authed, db);
+    securityRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
     aiRoutes(authed, db, converse);
     liveRoutes(authed, db);
@@ -269,6 +276,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
+    donationRoutes(authed, db, stripe, webAppUrl);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);
     notificationRoutes(authed, db);

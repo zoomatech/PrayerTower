@@ -105,24 +105,6 @@ if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   curl -fsS "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
     | grep -q "\"hook_before_user_created_uri\":\"$hook_uri\"" || die "the hook did not save; check Dashboard → Authentication → Hooks"
   echo "Invite-code hook is on."
-  # The sign-up and password emails (supabase/templates, the same files local
-  # development uses). Members get English; the Spanish branch stays off.
-  # https://supabase.com/docs/guides/auth/auth-email-templates
-  log "Uploading the sign-up and password emails"
-  node -e '
-    const fs = require("fs");
-    const toml = fs.readFileSync("supabase/config.toml", "utf8");
-    const subject = (k) => toml.match(new RegExp("\\[auth\\.email\\.template\\." + k + "\\]\\s*subject = \"([^\"]+)\""))[1];
-    const body = {};
-    for (const k of ["confirmation", "recovery"]) {
-      body["mailer_subjects_" + k] = subject(k);
-      body["mailer_templates_" + k + "_content"] = fs.readFileSync("supabase/templates/" + k + ".html", "utf8");
-    }
-    process.stdout.write(JSON.stringify(body));
-  ' | curl -fsS -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
-    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @- >/dev/null \
-    || die "could not upload the email templates; paste supabase/templates/*.html into Dashboard → Authentication → Email Templates"
-  echo "Sign-up and password emails are set."
   # Hosted Auth settings from PILOT_LAUNCH_CHECKLIST.md §2, and the SMTP sender
   # from SMTP_URL (smtp://user:pass@host:port). Field names:
   # https://supabase.com/docs/reference/api/v1-update-auth-service-config
@@ -133,7 +115,7 @@ if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
     if (e.WEB_APP_URL) {
       const site = e.WEB_APP_URL.replace(/\/+$/, "");
       body.site_url = site;
-      body.uri_allow_list = [site + "/**", "prayertower://**"].join(",");
+      body.uri_allow_list = [site + "/**", "prayertower://**", "opencircle://**"].join(",");
     }
     if (e.SMTP_URL) {
       const u = new URL(e.SMTP_URL);
@@ -151,6 +133,26 @@ if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @- >/dev/null \
     || die "could not save the Auth settings; set them by hand (docs/PILOT_LAUNCH_CHECKLIST.md §2)"
   echo "Passwords need 8+ characters, emails must be confirmed${WEB_APP_URL:+, the site is $WEB_APP_URL}${SMTP_URL:+, and Auth emails go through your SMTP server}."
+  # The sign-up and password emails (after the SMTP sender: Free projects need it
+  # for custom templates): supabase/templates, the same files local development
+  # uses. Members get English; the Spanish branch stays off.
+  # https://supabase.com/docs/guides/auth/auth-email-templates
+  log "Uploading the sign-up and password emails"
+  node -e '
+    const fs = require("fs");
+    const toml = fs.readFileSync("supabase/config.toml", "utf8");
+    const subject = (k) => toml.match(new RegExp("\\[auth\\.email\\.template\\." + k + "\\]\\s*subject = \"([^\"]+)\""))[1];
+    const body = {};
+    for (const k of ["confirmation", "recovery"]) {
+      body["mailer_subjects_" + k] = subject(k);
+      body["mailer_templates_" + k + "_content"] = fs.readFileSync("supabase/templates/" + k + ".html", "utf8");
+    }
+    process.stdout.write(JSON.stringify(body));
+  ' | curl -fsS -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+    -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @- >/dev/null \
+    && echo "Sign-up and password emails are set." \
+    || { [ -n "${SMTP_URL:-}" ] && die "could not upload the email templates; paste supabase/templates/*.html into Dashboard → Authentication → Email Templates"
+         echo "WARNING: Supabase keeps its plain sign-up and password emails until SMTP_URL is set (Free projects refuse custom templates without your own email sender). Add SMTP_URL and run this again."; }
 else
   printf '\nACTION NEEDED: in the Supabase Dashboard, Authentication → Hooks → Before User Created,\n'
   printf 'choose Postgres function public.hook_before_user_created (or set SUPABASE_ACCESS_TOKEN and re-run).\n'
