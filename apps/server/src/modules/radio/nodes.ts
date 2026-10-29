@@ -3,7 +3,7 @@
 // station reads GET /station/channel before each burst (BURST_PRESET=auto) and
 // gets the weakest fresh report, so the preset suits the hardest listener to reach.
 // Off until an admin turns on listener_reports_enabled. docs/STATION_OPERATOR_GUIDE.md, "Listener nodes".
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { AppError, notFound } from '../../errors.js';
@@ -138,4 +138,75 @@ export async function latestReports(q: Queryable) {
       order by c.node_id, c.heard_at desc`,
   );
   return rows;
+}
+
+/**
+ * Signed requests (docs/STATION_OPERATOR_GUIDE.md, "Signed listener reports").
+ * Instead of x-node-key, a node sends:
+ *   x-node-kid  the first 16 hex digits of sha256(key), naming the node
+ *   x-node-ts   milliseconds since 1970, newer than its last signed request
+ *   x-node-sig  HMAC-SHA256, keyed with sha256(key) in hex, of
+ *               "<ts>\n<METHOD>\n<route path, e.g. /node/heard>\n<JSON body>"
+ * The server keeps only sha256(key), which is all it needs to check the HMAC.
+ */
+export const SIGNATURE_WINDOW_MS = 5 * 60_000;
+
+export const keyId = (key: string) => hash(key).slice(0, 16);
+
+export async function signaturesRequired(q: Queryable): Promise<boolean> {
+  const { rows } = await q.query<{ on: boolean }>('select node_signatures_required as on from public.token_settings');
+  return rows[0]?.on === true;
+}
+
+export async function setSignaturesRequired(q: Queryable, on: boolean) {
+  await q.query('update public.token_settings set node_signatures_required = $1', [on]);
+}
+
+type NodeRequest = { headers: Record<string, string | string[] | undefined>; method: string; url: string; routeOptions?: { url?: string }; body?: unknown };
+
+const header = (req: NodeRequest, name: string) => {
+  const v = req.headers[name];
+  return typeof v === 'string' ? v : undefined;
+};
+
+/**
+ * The node behind a request: by its signature (x-node-kid, x-node-ts, x-node-sig),
+ * or by its key (x-node-key) unless signatures are required. Marks it seen; 401 otherwise.
+ */
+export async function authenticateRequest(q: Queryable, req: NodeRequest, role: RadioNode['role'], now = Date.now()): Promise<RadioNode> {
+  const signed = await signedNode(q, req, role, now);
+  if (signed) return signed;
+  if (await signaturesRequired(q)) throw new AppError(401, 'signature_required', 'Signed node requests are required');
+  return authenticate(q, header(req, 'x-node-key'), role);
+}
+
+/** The node that signed this request; null for an unsigned one, 401 for a bad or replayed signature. */
+async function signedNode(q: Queryable, req: NodeRequest, role: RadioNode['role'], now: number): Promise<RadioNode | null> {
+  const kid = header(req, 'x-node-kid') ?? '';
+  const ts = Number(header(req, 'x-node-ts'));
+  const sig = header(req, 'x-node-sig') ?? '';
+  if (!kid && !sig) return null;
+  const bad = () => new AppError(401, 'unauthenticated', 'Bad node signature');
+  if (!/^[0-9a-f]{16}$/.test(kid) || !Number.isSafeInteger(ts) || Math.abs(now - ts) > SIGNATURE_WINDOW_MS || !/^[0-9a-f]{64}$/.test(sig)) throw bad();
+  const { rows } = await q.query<{ id: string; key_hash: string }>(
+    `select id, key_hash from public.radio_nodes where left(key_hash, 16) = $1 and role = $2 and enabled`,
+    [kid, role],
+  );
+  // The route's own path (/node/heard), so a proxy that adds a prefix in front doesn't break signatures.
+  const path = req.routeOptions?.url ?? req.url.split('?')[0]!;
+  const body = req.body === undefined ? '' : JSON.stringify(req.body);
+  const node = rows.find((r) => {
+    const want = Buffer.from(createHmac('sha256', r.key_hash).update(`${ts}\n${req.method.toUpperCase()}\n${path}\n${body}`).digest('hex'));
+    const got = Buffer.from(sig);
+    return got.length === want.length && timingSafeEqual(got, want);
+  });
+  if (!node) throw bad();
+  // Newer than the last one, or it is a replay.
+  const { rows: seen } = await q.query<RadioNode>(
+    `update public.radio_nodes set last_seen_at = now(), last_signed_ms = $2 where id = $1 and (last_signed_ms is null or last_signed_ms < $2)
+     returning id, name, role, enabled, created_at, last_seen_at`,
+    [node.id, ts],
+  );
+  if (!seen[0]) throw new AppError(401, 'replayed', 'This signed request was already used');
+  return seen[0];
 }

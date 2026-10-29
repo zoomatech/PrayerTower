@@ -28,7 +28,7 @@ export interface BurstLog {
 export interface StationApi {
   claim(): Promise<ClaimedPrayer | null>;
   /** Up to `max` prayers at once (burst mode); empty when none are waiting. */
-  claimBatch?(max: number): Promise<ClaimedPrayer[]>;
+  claimBatch?(max: number, mode?: 'packet'): Promise<ClaimedPrayer[]>;
   report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string; preset?: string; sentHash?: string; frequencyHz?: number }): Promise<void>;
   /** Log a burst for Admin → Radio (burst mode). Best effort: a failure here never stops the station. */
   reportBurst?(burst: BurstLog): Promise<void>;
@@ -118,8 +118,8 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
       if (!res.ok) throw new Error(`claim failed (${res.status}): ${json.message ?? ''}`);
       return json.radioPrayer ?? null;
     },
-    async claimBatch(max) {
-      const res = await post('/station/claim-batch', { max });
+    async claimBatch(max, mode) {
+      const res = await post('/station/claim-batch', mode ? { max, mode } : { max });
       if (res.status === 204) return [];
       // An older server without burst claims: take one prayer at a time instead.
       if (res.status === 404) {

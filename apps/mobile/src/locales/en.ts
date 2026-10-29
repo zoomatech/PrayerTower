@@ -682,8 +682,8 @@ const en = {
   },
   deleteAccount: {
     intro: "This happens right away and can't be undone. We delete:",
-    list: "• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and prayer history\n• your tokens",
-    keep: "We keep only what we must: the token ledger and moderators' past decisions, under \"Deleted member\" with no name or email. A request that already holds tokens others gave is emptied and taken down rather than erased.",
+    list: "• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and prayer history\n• your tokens\n• everything else tied to your account",
+    keep: "We keep only what we must: the token ledger and moderators' past decisions, under \"Deleted member\" with no name or email. A request that already holds tokens others gave is emptied and taken down rather than erased. A group chat you started stays open for the others, without your messages.",
     confirm: "Type DELETE to confirm",
   },
   feedback: {
@@ -1055,6 +1055,8 @@ const en = {
     listenersOff: "Listener nodes off",
     listenersOn: "Listener nodes on",
     listenersHint: "Listener nodes are receive-only Raspberry Pis with a radio. They decode the station's bursts and report the signal strength they measured, so a station on BURST_PRESET=auto (with BURST_AUTO_REPORT=server) picks the fastest preset every listener can still decode. They never send prayers' words.",
+    signedReports: 'Require signed listener reports',
+    signedReportsHint: 'Each listener node must sign its reports with its key (LISTEN_SIGN=on) instead of sending the key. Turn on only after every node is updated: an unsigned node is then refused.',
     listenerLine: "%{name}: last report %{seen}",
     listenerNever: "never",
     listenerOn: "On",
@@ -1873,6 +1875,11 @@ const en = {
     save: 'Save map settings',
     badLocation: 'Write it as latitude, longitude, for example 39.8, -89.6',
   },
+  packet: {
+    off: 'Packet fallback off',
+    on: 'Packet fallback on',
+    hint: 'For a station whose radio cannot carry the bursts: with BURST_MODE=packet it sends each prayer\'s short ID and the count as standard 1200-baud APRS packets, never the words. Listener nodes that decode them mark the prayers heard.',
+  },
   radioDigest: {
     off: 'Weekly digest off',
     on: 'Weekly digest on',
@@ -2371,6 +2378,16 @@ const en = {
     countsEmojiRow: '%{emoji} “%{meaning}” in reply to %{move}: %{n}',
     move: { greeting: 'greeting', howAreYou: 'how are you', thanks: 'thanks', trouble: 'a trouble', goodNews: 'good news', farewell: 'goodbye', other: 'other' },
     adminSave: 'Saved.',
+  },
+  offline: {
+    notice: "You're offline.",
+    saved: 'Showing prayers saved %{when}.',
+    waitingOne: '1 action is waiting to send.',
+    waitingMany: '%{count} actions are waiting to send.',
+    sending: 'Sending what you did while offline…',
+    notSent: 'Not sent: %{what}',
+    ok: 'OK',
+    retry: 'Try again',
   },
 };
 
