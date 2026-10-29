@@ -52,3 +52,19 @@ import Testing
         #expect(Podcasts.validSlug("morning-prayer") && !Podcasts.validSlug("Mo"))
     }
 }
+
+@Suite struct AdminHubTests {
+    @Test func metricsKeepGroupsAndReadableNames() throws {
+        let m = try JSONDecoder().decode(AdminMetrics.self, from: Data(#"{"posts":{"total":3,"rate":0.5},"note":"x","people":{"active_pray_ers":2}}"#.utf8))
+        #expect(m.groups.map(\.name) == ["people", "posts"])
+        #expect(AdminHub.show(m.groups[1].values.first { $0.key == "rate" }!.value) == "0.5")
+        #expect(AdminHub.show(m.groups[1].values.first { $0.key == "total" }!.value) == "3")
+        #expect(AdminHub.label("active_pray_ers", Words(.faith)) != "active_pray_ers")
+        #expect(AdminHub.label("new_thing_here", Words(.faith)).hasPrefix("New thing here") || AdminHub.label("new_thing_here", Words(.faith)) != "")
+    }
+
+    @Test func numbersSkipBlanks() {
+        let n = [String: JSONValue].numbers(["a": "5", "b": "", "c": "x"])
+        #expect(n == ["a": .int(5)])
+    }
+}

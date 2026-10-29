@@ -29,6 +29,7 @@ struct StaffSection: View {
             Section(w("profile.admin")) {
                 NavigationLink(w("profile.moderation")) { ModerationView() }
                 if Staff.isAdmin(roles) {
+                    NavigationLink(w("admin.metrics")) { AdminHubView() }
                     NavigationLink(w("admin.announcements")) { AnnouncementsAdminView() }
                     NavigationLink(w("admin.invites")) { InvitesView() }
                     NavigationLink(w("waitlist.title")) { WaitlistView() }
