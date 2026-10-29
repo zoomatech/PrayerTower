@@ -58,7 +58,7 @@ Each phase ships to TestFlight under the separate bundle id. The Expo app stays 
 
 Mac builds run through Remote Control, as with `scripts/mac-build.sh`. The native app needs Xcode and `brew install xcodegen`; it does not need CocoaPods (packages come from Swift Package Manager). Steps are in [apps/ios-native/README.md](../apps/ios-native/README.md).
 
-`scripts/mac-build-native.sh` does it in one go: it runs `swift test`, installs XcodeGen with Homebrew if it's missing, generates the project, builds the app for the iOS Simulator without signing, and prints a pass/fail table with logs in `build-logs/native-<time>/`.
+`scripts/mac-build-native.sh` does it in one go: it runs `swift test`, gets XcodeGen (from Homebrew, or built from its tagged source when Homebrew belongs to another macOS account), generates the project, builds the app for the iOS Simulator without signing, and prints a pass/fail table with logs in `build-logs/native-<time>/`.
 
 ## Not done yet
 

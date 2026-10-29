@@ -3,7 +3,9 @@
 #   1. swift test for the shared package (PrayerTowerKit, PrayerTowerSession),
 #   2. xcodegen generate, then build the app for the iOS Simulator (no signing needed),
 # and print a pass/fail table. Logs go to build-logs/native-<time>/.
-# Needs Xcode and XcodeGen (installed with Homebrew if missing). No CocoaPods.
+# Needs Xcode. XcodeGen comes from Homebrew when it can install there; otherwise (for example
+# when Homebrew belongs to another macOS account) it is built from its tagged source with
+# Swift Package Manager into ~/Library/Caches/prayertower, as XcodeGen's README documents. No CocoaPods, no sudo.
 # Without Config.xcconfig it builds with the example config, which is fine for a compile check.
 set -uo pipefail
 
@@ -21,9 +23,21 @@ if ! xcodebuild -version > "$LOGS/xcode-version.txt" 2>&1; then
   echo "  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
   exit 2
 fi
-if ! command -v xcodegen >/dev/null; then
-  command -v brew >/dev/null || { echo "Homebrew is needed to install XcodeGen: https://brew.sh"; exit 2; }
-  brew install xcodegen > "$LOGS/brew.txt" 2>&1 || { echo "brew install xcodegen failed; see $LOGS/brew.txt"; exit 2; }
+XCODEGEN_VERSION=2.46.0
+XCODEGEN=$(command -v xcodegen || true)
+if [ -z "$XCODEGEN" ] && command -v brew >/dev/null && [ -w "$(brew --prefix)/bin" ]; then
+  brew install xcodegen > "$LOGS/brew.txt" 2>&1 && XCODEGEN=$(command -v xcodegen || true)
+fi
+if [ -z "$XCODEGEN" ]; then
+  TOOL="$HOME/Library/Caches/prayertower/XcodeGen-$XCODEGEN_VERSION"
+  if [ ! -x "$TOOL/.build/release/xcodegen" ]; then
+    echo "Building XcodeGen $XCODEGEN_VERSION from source (one time, a few minutes)..."
+    rm -rf "$TOOL"
+    git clone --quiet --depth 1 --branch "$XCODEGEN_VERSION" https://github.com/yonaskolb/XcodeGen.git "$TOOL" > "$LOGS/xcodegen-build.txt" 2>&1 &&
+      swift build --package-path "$TOOL" -c release --product xcodegen >> "$LOGS/xcodegen-build.txt" 2>&1 ||
+      { echo "Could not build XcodeGen; see $LOGS/xcodegen-build.txt"; exit 2; }
+  fi
+  XCODEGEN="$TOOL/.build/release/xcodegen"
 fi
 
 cd "$APP"
@@ -34,7 +48,7 @@ else
 fi
 
 [ -f Config.xcconfig ] || cp Config.example.xcconfig Config.xcconfig
-if xcodegen generate > "$LOGS/xcodegen.txt" 2>&1; then
+if "$XCODEGEN" generate > "$LOGS/xcodegen.txt" 2>&1; then
   record "Xcode project" PASS "PrayerTowerNative.xcodeproj"
 else
   record "Xcode project" FAIL "$LOGS/xcodegen.txt"
