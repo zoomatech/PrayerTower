@@ -23,6 +23,7 @@ import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
+import * as talkCounts from '../conversation-helpers/counts.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
@@ -330,6 +331,10 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/conversation-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await conversationHelpers.updateSettings(db, conversationHelpers.SettingsPatch.parse(req.body)) };
+  });
+  app.get('/admin/talk-counts', async (req) => {
+    await requireAdmin(req);
+    return { counts: await talkCounts.summary(db) };
   });
 
   // Growth practices (docs/GROWTH_PRACTICES.md): each off until switched on here.

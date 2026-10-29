@@ -43,7 +43,7 @@ import type {
 import { env } from './env';
 import { enqueue, flushQueue, isOffline, markOnline, OfflineError, readCached, saveCached } from './offline';
 import { supabase } from './supabase';
-import type { Pack } from './talk';
+import type { Move, Pack } from './talk';
 
 
 /** Switches for the notebook ideas built in Batch 7. */
@@ -138,6 +138,7 @@ export interface Features {
   greetingPacks: boolean;
   ownWords: boolean;
   kindClosings: boolean;
+  talkCounts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -201,12 +202,24 @@ export interface ConversationSettings {
   greeting_packs_enabled: boolean;
   own_words_enabled: boolean;
   kind_closings_enabled: boolean;
+  talk_counts_enabled: boolean;
 }
 export interface ConversationPrefs {
   replySuggestions: boolean;
   troubleNudge: boolean;
   kindClosings: boolean;
   greetingPack: Pack | null;
+  shareCounts: boolean;
+}
+/** Move labels only: never words, never who. */
+export type TalkCount = { kind: 'chain'; moves: [Move, Move | 'other', Move | 'other'] } | { kind: 'emoji'; emoji: string; meaning: string; toMove: Move | 'other' };
+export interface TalkCountSummary {
+  weeks: number;
+  minShown: number;
+  chains: { moves: string[]; n: number }[];
+  otherChains: number;
+  emoji: { emoji: string; meaning: string; toMove: string; n: number }[];
+  otherEmoji: number;
 }
 export interface MeaningPref {
   emoji: string;
@@ -1328,7 +1341,8 @@ export const api = {
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
-    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean }>) =>
+    talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean }>) =>
@@ -1491,6 +1505,7 @@ export const api = {
   remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
   hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
   conversationPrefs: () => get<{ prefs: ConversationPrefs }>('/me/conversation-prefs'),
+  talkCount: (c: TalkCount) => request<{ counted: boolean }>('POST', '/talk-counts', c),
   updateConversationPrefs: (patch: Partial<ConversationPrefs>) => request<{ prefs: ConversationPrefs }>('PATCH', '/me/conversation-prefs', patch),
   meaningWords: () => get<{ emoji: MeaningEmoji[]; prefs: MeaningPref[] }>('/me/meaning-words'),
   setMeaningWords: (pref: MeaningPref) => put<{ prefs: MeaningPref[] }>('/me/meaning-words', pref),

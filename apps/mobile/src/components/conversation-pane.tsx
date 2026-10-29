@@ -8,10 +8,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance 
 
 import { CrisisSupport } from '@/components/crisis';
 import { KindCloud } from '@/components/kind-cloud';
-import { ReplyHelpers } from '@/components/reply-helpers';
+import { ReplyHelpers, useTalkCount } from '@/components/reply-helpers';
 import { Button, Chip, ErrorText, Field, RulesWarning } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
+import { chainOf } from '@/lib/talk';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -23,6 +24,7 @@ const POLL_MS = 5000;
  */
 export function ConversationPane({ id, onClose }: { id: string; onClose?: () => void }) {
   const { kindCloud } = useFeatures();
+  const count = useTalkCount();
   const { t } = useLocale();
   const [view, setView] = useState<ConversationView | null>(null);
   const [text, setText] = useState('');
@@ -70,6 +72,9 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       setWarned(false);
       const r = await api.sendMessage(id, body);
       if (r.message.crisis) setSupport(true);
+      const before = view?.messages ?? [];
+      const chain = chainOf(before.at(-2)?.body, before.at(-1)?.body, body);
+      count(chain && { kind: 'chain', moves: chain });
       setText('');
       await load();
       scroll.current?.scrollToEnd({ animated: true });

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@/components/ui';
-import { api, type ConversationPrefs } from '@/lib/api';
+import { api, type ConversationPrefs, type TalkCount } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { CLOSING_KEYS, isDownbeat, suggestionKey } from '@/lib/talk';
@@ -17,7 +17,7 @@ let cached: Promise<ConversationPrefs> | null = null;
 /** The member's choices, fetched once per session while any helper is switched on; off if they can't load. */
 export function useConversationPrefs(): [ConversationPrefs | null, (p: ConversationPrefs) => void] {
   const f = useFeatures();
-  const anyOn = f.replySuggestions || f.troubleNudge || f.kindClosings || f.greetingPacks || f.ownWords || f.meaningPrefs;
+  const anyOn = f.replySuggestions || f.troubleNudge || f.kindClosings || f.greetingPacks || f.ownWords || f.meaningPrefs || f.talkCounts;
   const [prefs, setPrefs] = useState<ConversationPrefs | null>(null);
   useEffect(() => {
     if (!anyOn) return;
@@ -26,7 +26,7 @@ export function useConversationPrefs(): [ConversationPrefs | null, (p: Conversat
       (r) => r.prefs,
       () => {
         cached = null;
-        return { replySuggestions: false, troubleNudge: false, kindClosings: false, greetingPack: null };
+        return { replySuggestions: false, troubleNudge: false, kindClosings: false, greetingPack: null, shareCounts: false };
       },
     );
     cached.then((p) => live && setPrefs(p));
@@ -39,6 +39,15 @@ export function useConversationPrefs(): [ConversationPrefs | null, (p: Conversat
     setPrefs(p);
   };
   return [prefs, update];
+}
+
+/** Counting patterns: adds a move-label count when the switch is on and the member shares; never blocks or fails anything. */
+export function useTalkCount() {
+  const { talkCounts } = useFeatures();
+  const [prefs] = useConversationPrefs();
+  return (c: TalkCount | null) => {
+    if (c && talkCounts && prefs?.shareCounts) api.talkCount(c).catch(() => undefined);
+  };
 }
 
 /** Forget the cached choices (tests, sign-out). */

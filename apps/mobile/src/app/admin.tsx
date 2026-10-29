@@ -4,7 +4,7 @@
 // roles. The server checks the admin role on every call.
 import { COMMUNITY_FEATURES, POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { HarmSettingsSection } from '@/components/harm-admin';
@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -1470,6 +1470,38 @@ function GrowthSettingsSection() {
   );
 }
 
+/** Counting patterns: weekly totals of move labels; rows under the minimum are folded together. */
+function TalkCountsView() {
+  const t = useT();
+  const [c, setC] = useState<TalkCountSummary | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.admin.talkCounts().then((r) => setC(r.counts), (e) => setNote((e as Error).message));
+  }, []);
+  if (!c) return note ? <Text style={type.small}>{note}</Text> : null;
+  const move = (m: string) => t(`talk.move.${m}`);
+  return (
+    <View testID="talk-counts" style={{ gap: space.xs }}>
+      <Text style={type.body}>{t('talk.countsTitle', { weeks: c.weeks })}</Text>
+      {!c.chains.length && !c.emoji.length && !c.otherChains && !c.otherEmoji ? <Text style={type.small}>{t('talk.countsEmpty')}</Text> : null}
+      {c.chains.length || c.otherChains ? <Text style={type.small}>{t('talk.countsChains')}</Text> : null}
+      {c.chains.map((r) => (
+        <Text key={r.moves.join('-')} style={type.small}>
+          {r.moves.map(move).join(' → ')}: {r.n}
+        </Text>
+      ))}
+      {c.otherChains ? <Text style={type.small}>{t('talk.countsFolded', { min: c.minShown, n: c.otherChains })}</Text> : null}
+      {c.emoji.length || c.otherEmoji ? <Text style={type.small}>{t('talk.countsEmoji')}</Text> : null}
+      {c.emoji.map((r) => (
+        <Text key={`${r.emoji}-${r.meaning}-${r.toMove}`} style={type.small}>
+          {t('talk.countsEmojiRow', { emoji: r.emoji, meaning: r.meaning, move: move(r.toMove), n: r.n })}
+        </Text>
+      ))}
+      {c.otherEmoji ? <Text style={type.small}>{t('talk.countsFolded', { min: c.minShown, n: c.otherEmoji })}</Text> : null}
+    </View>
+  );
+}
+
 /** Conversation helpers (docs/CONVERSATION_HELPERS.md): each off until switched on; members still choose on Me. */
 function ConversationSettingsSection() {
   const t = useT();
@@ -1500,6 +1532,8 @@ function ConversationSettingsSection() {
       <Toggle label={t('talk.adminPacks')} hint={t('talk.adminPacksHint')} value={s.greeting_packs_enabled} onChange={(v) => save({ greetingPacksEnabled: v })} />
       <Toggle label={t('talk.adminOwnWords')} hint={t('talk.adminOwnWordsHint')} value={s.own_words_enabled} onChange={(v) => save({ ownWordsEnabled: v })} />
       <Toggle label={t('talk.adminClosings')} hint={t('talk.adminClosingsHint')} value={s.kind_closings_enabled} onChange={(v) => save({ kindClosingsEnabled: v })} />
+      <Toggle label={t('talk.adminCounts')} hint={t('talk.adminCountsHint')} value={s.talk_counts_enabled} onChange={(v) => save({ talkCountsEnabled: v })} />
+      {s.talk_counts_enabled ? <TalkCountsView /> : null}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

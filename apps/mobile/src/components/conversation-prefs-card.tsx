@@ -15,7 +15,7 @@ export function ConversationPrefsCard() {
   const f = useFeatures();
   const t = useT();
   const [prefs, setPrefs] = useConversationPrefs();
-  const any = f.replySuggestions || f.troubleNudge || f.kindClosings || f.greetingPacks || (f.meaningPrefs && f.meaningReactions);
+  const any = f.replySuggestions || f.troubleNudge || f.kindClosings || f.greetingPacks || f.talkCounts || (f.meaningPrefs && f.meaningReactions);
   if (!any || !prefs) return null;
   const save = (patch: Partial<ConversationPrefs>) =>
     api
@@ -29,6 +29,7 @@ export function ConversationPrefsCard() {
       {f.replySuggestions ? <Toggle label={t('talk.prefSuggestions')} hint={t('talk.prefSuggestionsHint')} value={prefs.replySuggestions} onChange={(v) => save({ replySuggestions: v })} /> : null}
       {f.troubleNudge ? <Toggle label={t('talk.prefCare')} hint={t('talk.prefCareHint')} value={prefs.troubleNudge} onChange={(v) => save({ troubleNudge: v })} /> : null}
       {f.kindClosings ? <Toggle label={t('talk.prefClosings')} hint={t('talk.prefClosingsHint')} value={prefs.kindClosings} onChange={(v) => save({ kindClosings: v })} /> : null}
+      {f.talkCounts ? <Toggle label={t('talk.prefShareCounts')} hint={t('talk.prefShareCountsHint')} value={prefs.shareCounts} onChange={(v) => save({ shareCounts: v })} /> : null}
       {f.greetingPacks ? (
         <>
           <Text style={type.small}>{t('talk.prefPack')}</Text>

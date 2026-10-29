@@ -26,3 +26,11 @@ text is sent anywhere for it.
 - App: `components/reply-helpers.tsx`, `components/conversation-prefs-card.tsx`, `app/meaning-words.tsx`, and the admin section in `app/admin.tsx`.
 - The data export and account deletion include `conversation_prefs` and `meaning_prefs`.
 - Tests: `apps/server/test/conversation-helpers.test.ts` and `apps/mobile/src/__tests__/conversation-helpers.test.tsx`.
+
+## Counting patterns (`talk_counts_enabled`)
+The greeting research found **no published counts** of greeting → reply → follow-up chains, and no study of emoji used as a *reply* (only of emoji appearing together in one message). Prayer Tower can fill that gap with its own anonymous, opt-in data.
+- **Off** until an admin turns it on. Even then, only members who turn on **Me → Conversation helpers → Help us learn how kind talk flows** are counted.
+- The phone works out the kind of each move (see `lib/talk.ts`) and sends **labels only**: for example `greeting → greeting → how are you`, or `🙏 "praying" in reply to a trouble`. It never sends words, names, or which conversation or post.
+- The server keeps **weekly totals** (`talk_chain_counts`, `emoji_reply_counts`). They have no member column. A separate daily cap (`talk_count_quota`, 200 a day, kept for two days) stops anyone from skewing the totals.
+- **Admin → Conversation helpers** shows the last 12 weeks. Any pattern with fewer than 5 counts is folded into "Other patterns", so a small pilot can't single anyone out.
+- Note for the legal team: these are aggregate, de-identified counts collected with opt-in. The privacy policy may want a line about them.

@@ -49,3 +49,10 @@ export function isDownbeat(text: string | null | undefined) {
 }
 
 export const CLOSING_KEYS = ['talk.closing1', 'talk.closing2'] as const;
+
+/** A greeting → reply → follow-up chain for Counting patterns, as move labels only; null unless it opens with a known move. */
+export function chainOf(first: string | null | undefined, reply: string | null | undefined, followup: string): [Move, Move | 'other', Move | 'other'] | null {
+  const opening = moveOf(first);
+  if (!opening || !reply) return null;
+  return [opening, moveOf(reply) ?? 'other', moveOf(followup) ?? 'other'];
+}

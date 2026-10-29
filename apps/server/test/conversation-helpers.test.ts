@@ -33,13 +33,13 @@ describe('Conversation helpers', () => {
 
   it('members opt in for themselves and pick a greeting pack', async () => {
     const u = await createUser('Talk Prefs');
-    expect((await as(u).get('/me/conversation-prefs')).json().prefs).toEqual({ replySuggestions: false, troubleNudge: false, kindClosings: false, greetingPack: null });
+    expect((await as(u).get('/me/conversation-prefs')).json().prefs).toEqual({ replySuggestions: false, troubleNudge: false, kindClosings: false, greetingPack: null, shareCounts: false });
     let p = (await as(u).patch('/me/conversation-prefs', { replySuggestions: true, greetingPack: 'korean' })).json().prefs;
-    expect(p).toEqual({ replySuggestions: true, troubleNudge: false, kindClosings: false, greetingPack: 'korean' });
+    expect(p).toEqual({ replySuggestions: true, troubleNudge: false, kindClosings: false, greetingPack: 'korean', shareCounts: false });
     p = (await as(u).patch('/me/conversation-prefs', { troubleNudge: true })).json().prefs;
     expect(p.greetingPack).toBe('korean');
     p = (await as(u).patch('/me/conversation-prefs', { greetingPack: null })).json().prefs;
-    expect(p).toEqual({ replySuggestions: true, troubleNudge: true, kindClosings: false, greetingPack: null });
+    expect(p).toEqual({ replySuggestions: true, troubleNudge: true, kindClosings: false, greetingPack: null, shareCounts: false });
     expect((await as(u).patch('/me/conversation-prefs', { greetingPack: 'klingon' })).statusCode).toBe(400);
   });
 

@@ -4,16 +4,18 @@ import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useState } from 'react';
 
 import { renderApp } from '@/__tests__/helpers';
-import { ReplyHelpers, resetConversationPrefs } from '@/components/reply-helpers';
+import { Pressable, Text } from 'react-native';
+
+import { ReplyHelpers, resetConversationPrefs, useTalkCount } from '@/components/reply-helpers';
 import { api, type ConversationPrefs } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
-import { isDownbeat, moveOf, suggestionKey } from '@/lib/talk';
+import { chainOf, isDownbeat, moveOf, suggestionKey } from '@/lib/talk';
 
-jest.mock('@/lib/api', () => ({ api: { features: jest.fn(), conversationPrefs: jest.fn() } }));
+jest.mock('@/lib/api', () => ({ api: { features: jest.fn(), conversationPrefs: jest.fn(), talkCount: jest.fn() } }));
 
 const on = (f: Record<string, boolean>) => jest.mocked(api.features).mockResolvedValue({ features: f } as unknown as Awaited<ReturnType<typeof api.features>>);
 const prefs = (p: Partial<ConversationPrefs>) =>
-  jest.mocked(api.conversationPrefs).mockResolvedValue({ prefs: { replySuggestions: false, troubleNudge: false, kindClosings: false, greetingPack: null, ...p } });
+  jest.mocked(api.conversationPrefs).mockResolvedValue({ prefs: { replySuggestions: false, troubleNudge: false, kindClosings: false, greetingPack: null, shareCounts: false, ...p } });
 
 // A composer whose box the chips fill, as the real ones do.
 function Composer({ last, empty }: { last: string | null; empty: boolean }) {
@@ -83,5 +85,43 @@ describe('ReplyHelpers', () => {
     expect(await screen.findByText('Want me to pray about anything?')).toBeTruthy();
     expect(screen.getByText("I'll keep you in my prayers. Talk soon.")).toBeTruthy();
     expect(screen.queryByText(/Aloha/)).toBeNull();
+  });
+});
+
+describe('Counting patterns', () => {
+  function Sender() {
+    const count = useTalkCount();
+    return (
+      <Pressable onPress={() => count({ kind: 'chain', moves: chainOf('Hi there', 'Hello!', 'How are you?')! })}>
+        <Text>send</Text>
+      </Pressable>
+    );
+  }
+
+  it('turns three messages into move labels only', () => {
+    expect(chainOf('Hi there', 'Hello!', 'How are you?')).toEqual(['greeting', 'greeting', 'howAreYou']);
+    expect(chainOf('Hi', 'The meeting moved.', 'ok')).toEqual(['greeting', 'other', 'other']);
+    expect(chainOf('The meeting moved.', 'Hi', 'ok')).toBeNull();
+    expect(chainOf('Hi', undefined, 'ok')).toBeNull();
+  });
+
+  it('sends a count only when the switch is on and the member shares', async () => {
+    jest.mocked(api.talkCount).mockResolvedValue({ counted: true });
+    on({ talkCounts: true });
+    prefs({ shareCounts: false });
+    await renderApp(<Sender />);
+    await act(async () => undefined);
+    await act(async () => fireEvent.press(screen.getByText('send')));
+    expect(api.talkCount).not.toHaveBeenCalled();
+  });
+
+  it('sends the labels once the member chooses to share', async () => {
+    jest.mocked(api.talkCount).mockResolvedValue({ counted: true });
+    on({ talkCounts: true });
+    prefs({ shareCounts: true });
+    await renderApp(<Sender />);
+    await act(async () => undefined);
+    await act(async () => fireEvent.press(screen.getByText('send')));
+    expect(api.talkCount).toHaveBeenCalledWith({ kind: 'chain', moves: ['greeting', 'greeting', 'howAreYou'] });
   });
 });

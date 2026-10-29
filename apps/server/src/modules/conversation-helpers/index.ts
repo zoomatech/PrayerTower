@@ -17,11 +17,13 @@ export interface ConversationSettings {
   greeting_packs_enabled: boolean;
   own_words_enabled: boolean;
   kind_closings_enabled: boolean;
+  talk_counts_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<ConversationSettings> {
   const { rows } = await q.query<ConversationSettings>(
-    `select reply_suggestions_enabled, meaning_prefs_enabled, trouble_nudge_enabled, greeting_packs_enabled, own_words_enabled, kind_closings_enabled
+    `select reply_suggestions_enabled, meaning_prefs_enabled, trouble_nudge_enabled, greeting_packs_enabled, own_words_enabled, kind_closings_enabled,
+            talk_counts_enabled
        from public.conversation_settings`,
   );
   return rows[0]!;
@@ -34,6 +36,7 @@ export const SettingsPatch = z.object({
   greetingPacksEnabled: z.boolean().optional(),
   ownWordsEnabled: z.boolean().optional(),
   kindClosingsEnabled: z.boolean().optional(),
+  talkCountsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -41,7 +44,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
     `update public.conversation_settings set
        reply_suggestions_enabled = coalesce($1, reply_suggestions_enabled), meaning_prefs_enabled = coalesce($2, meaning_prefs_enabled),
        trouble_nudge_enabled = coalesce($3, trouble_nudge_enabled), greeting_packs_enabled = coalesce($4, greeting_packs_enabled),
-       own_words_enabled = coalesce($5, own_words_enabled), kind_closings_enabled = coalesce($6, kind_closings_enabled)`,
+       own_words_enabled = coalesce($5, own_words_enabled), kind_closings_enabled = coalesce($6, kind_closings_enabled),
+       talk_counts_enabled = coalesce($7, talk_counts_enabled)`,
     [
       p.replySuggestionsEnabled ?? null,
       p.meaningPrefsEnabled ?? null,
@@ -49,6 +53,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.greetingPacksEnabled ?? null,
       p.ownWordsEnabled ?? null,
       p.kindClosingsEnabled ?? null,
+      p.talkCountsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -63,6 +68,7 @@ export async function features(q: Queryable) {
     greetingPacks: s.greeting_packs_enabled,
     ownWords: s.own_words_enabled,
     kindClosings: s.kind_closings_enabled,
+    talkCounts: s.talk_counts_enabled,
   };
 }
 
@@ -71,12 +77,14 @@ export async function features(q: Queryable) {
 export const PACKS = ['chinese', 'korean', 'arabic', 'yoruba', 'hebrew', 'hawaiian'] as const;
 
 export async function prefs(q: Queryable, userId: string) {
-  const { rows } = await q.query<{ reply_suggestions: boolean; trouble_nudge: boolean; kind_closings: boolean; greeting_pack: string | null }>(
-    'select reply_suggestions, trouble_nudge, kind_closings, greeting_pack from public.conversation_prefs where user_id = $1',
+  const { rows } = await q.query<{ reply_suggestions: boolean; trouble_nudge: boolean; kind_closings: boolean; greeting_pack: string | null; share_counts: boolean }>(
+    'select reply_suggestions, trouble_nudge, kind_closings, greeting_pack, share_counts from public.conversation_prefs where user_id = $1',
     [userId],
   );
   const p = rows[0];
-  return { replySuggestions: p?.reply_suggestions ?? false, troubleNudge: p?.trouble_nudge ?? false, kindClosings: p?.kind_closings ?? false, greetingPack: p?.greeting_pack ?? null };
+  return { replySuggestions: p?.reply_suggestions ?? false, troubleNudge: p?.trouble_nudge ?? false, kindClosings: p?.kind_closings ?? false, greetingPack: p?.greeting_pack ?? null,
+    shareCounts: p?.share_counts ?? false,
+  };
 }
 
 export const PrefsPatch = z.object({
@@ -84,19 +92,21 @@ export const PrefsPatch = z.object({
   troubleNudge: z.boolean().optional(),
   kindClosings: z.boolean().optional(),
   greetingPack: z.enum(PACKS).nullable().optional(),
+  shareCounts: z.boolean().optional(),
 });
 
 export async function updatePrefs(q: Queryable, userId: string, p: z.infer<typeof PrefsPatch>) {
   await q.query(
-    `insert into public.conversation_prefs (user_id, reply_suggestions, trouble_nudge, kind_closings, greeting_pack)
-     values ($1, coalesce($2, false), coalesce($3, false), coalesce($4, false), $5)
+    `insert into public.conversation_prefs (user_id, reply_suggestions, trouble_nudge, kind_closings, greeting_pack, share_counts)
+     values ($1, coalesce($2, false), coalesce($3, false), coalesce($4, false), $5, coalesce($7, false))
      on conflict (user_id) do update set
        reply_suggestions = coalesce($2, conversation_prefs.reply_suggestions),
        trouble_nudge = coalesce($3, conversation_prefs.trouble_nudge),
        kind_closings = coalesce($4, conversation_prefs.kind_closings),
        greeting_pack = case when $6 then $5 else conversation_prefs.greeting_pack end,
+       share_counts = coalesce($7, conversation_prefs.share_counts),
        updated_at = now()`,
-    [userId, p.replySuggestions ?? null, p.troubleNudge ?? null, p.kindClosings ?? null, p.greetingPack ?? null, p.greetingPack !== undefined],
+    [userId, p.replySuggestions ?? null, p.troubleNudge ?? null, p.kindClosings ?? null, p.greetingPack ?? null, p.greetingPack !== undefined, p.shareCounts ?? null],
   );
   return prefs(q, userId);
 }
