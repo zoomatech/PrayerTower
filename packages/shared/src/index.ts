@@ -354,6 +354,14 @@ export interface ModerationItem {
   status: string;
   content: string | null;
   created_at: string;
+  /** Text a moderator may want blurred (moderator care). */
+  hard?: boolean;
+  handoff_from_name?: string | null;
+  handoff_note?: string | null;
+  /** The member's explanation of their own held post. */
+  author_note?: string | null;
+  /** Hidden until a moderator decides (a held post). */
+  auto_hidden?: boolean;
 }
 
 export interface Appeal {

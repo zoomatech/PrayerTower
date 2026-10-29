@@ -15,6 +15,7 @@ import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { isLit } from '@/components/vine-flow';
 import { CrisisSupport } from '@/components/crisis';
+import { HarmSupport, takeSupport } from '@/components/harm-support';
 import { GuestShare } from '@/components/guest-share';
 import { LiveFollow } from '@/components/live-follow';
 import { ShareChoice } from '@/components/outside-share';
@@ -83,6 +84,8 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
+  // Hotlines for someone who has just described abuse (from posting it, or a comment).
+  const [harmSupport, setHarmSupport] = useState(() => takeSupport(id));
   // The answered / testimony panel: closed, or open with the draft text.
   const [testimony, setTestimony] = useState<string | null>(null);
   // The "how it turned out" story panel: closed, or open with the draft text.
@@ -135,6 +138,7 @@ export default function PostScreen() {
       setWarnedFor(null);
       const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
       if (r.comment.crisis) setSupport(true);
+      if (r.comment.harm?.resources?.length) setHarmSupport(r.comment.harm);
       if (r.coolDown) setCoolNudge((n) => n + 1);
       setText('');
       setReplyTo(null);
@@ -315,6 +319,7 @@ export default function PostScreen() {
         {card && prayable ? <ThankNoteCard postId={card.id} asker={card.author.displayName} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
+        {harmSupport ? <HarmSupport note={harmSupport} /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
 
