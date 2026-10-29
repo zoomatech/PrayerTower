@@ -23,6 +23,8 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+      # The Pray now widget and the Praying for you Live Activity, embedded in the app.
+      - target: PrayerTowerWidgets
     info:
       path: App/Info.plist
       properties:
