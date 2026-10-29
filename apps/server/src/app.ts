@@ -14,6 +14,7 @@ import { commitmentRoutes } from './modules/commitments/routes.js';
 import { feedRoutes } from './modules/feed/routes.js';
 import type { Classifier } from './modules/moderation/index.js';
 import { harmRoutes } from './modules/harm/routes.js';
+import { safetyCenterRoutes } from './modules/safety-center/routes.js';
 import { moderationRoutes } from './modules/moderation/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { postRoutes } from './modules/posts/routes.js';
@@ -365,6 +366,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     harmRoutes(authed, db);
+    safetyCenterRoutes(authed, db);
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);

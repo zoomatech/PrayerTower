@@ -1,6 +1,7 @@
 // Burst batches: many prayers compressed into as few frames as fit the
 // longest allowed key-up, and the frames joined into one audio clip.
-import { decodeBatch, encodeBatch, fitBatch } from './codec.js';
+import { ALL_V2, decodeBatch, encodeBatch, fitBatch } from './codec.js';
+import { unwrapRelay } from './relay-frame.js';
 import { demodulate, frameSeconds, modulate, SAMPLE_RATE } from './ofdm.js';
 import type { BurstPreset } from './presets.js';
 
@@ -12,7 +13,7 @@ const GAP_SECONDS = 0.05;
  * prayers as fit, measured in one compression pass per frame. A single prayer
  * too long on its own still gets its own frame.
  */
-export function planFrames(prayers: readonly string[], preset: BurstPreset, maxFrameSeconds: number): Uint8Array[] {
+export function planFrames(prayers: readonly string[], preset: BurstPreset, maxFrameSeconds: number, opts: { codecV2?: boolean } = {}): Uint8Array[] {
   // The largest batch (in bytes) whose frame, with its CRC-32, fits the limit.
   let lo = 0;
   let hi = 1 << 24;
@@ -24,8 +25,8 @@ export function planFrames(prayers: readonly string[], preset: BurstPreset, maxF
   const out: Uint8Array[] = [];
   for (let i = 0; i < prayers.length; ) {
     // Always send at least one prayer, even one too long for a frame on its own.
-    const n = Math.max(1, fitBatch(prayers.slice(i), lo));
-    out.push(encodeBatch(prayers.slice(i, i + n)));
+    const n = Math.max(1, fitBatch(prayers.slice(i), lo, opts.codecV2));
+    out.push(opts.codecV2 ? encodeBatch(prayers.slice(i, i + n), ALL_V2) : encodeBatch(prayers.slice(i, i + n)));
     i += n;
   }
   return out;
@@ -61,10 +62,26 @@ export interface HeardPrayers {
   corrected: boolean;
   /** Estimated signal-to-noise ratio in 2.5 kHz (dB). */
   snrDb: number;
+  /** The frame arrived intact but its batch could not be unpacked (a codec this receiver doesn't know). */
+  unreadable?: string;
+  /** A relay re-sent it: callSign is the station it came from, via the relay that sent it, after this many hops. */
+  via?: string;
+  hops?: number;
 }
 
 /** Everything decodable in a 48 kHz recording, frame by frame. */
 /** searchHz: on HF (SSB), also try tuning errors up to this far either way (demodulate). */
 export function listen(audio: Float32Array, searchHz = 0): HeardPrayers[] {
-  return demodulate(audio, 0.4, searchHz).map((f) => ({ callSign: f.callSign, preset: f.preset, prayers: decodeBatch(f.batch), corrected: f.corrected, snrDb: f.snrDb }));
+  return demodulate(audio, 0.4, searchHz).map((f) => {
+    const heard: HeardPrayers = { callSign: f.callSign, preset: f.preset, prayers: [], corrected: f.corrected, snrDb: f.snrDb };
+    const relayed = unwrapRelay(f.batch);
+    if (relayed) Object.assign(heard, { callSign: relayed.origin, via: f.callSign, hops: relayed.hops });
+    // One frame this receiver can't unpack must not cost it the other frames in the recording.
+    try {
+      heard.prayers = decodeBatch(f.batch);
+    } catch (err) {
+      heard.unreadable = String((err as Error).message ?? err);
+    }
+    return heard;
+  });
 }

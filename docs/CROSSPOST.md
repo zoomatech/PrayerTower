@@ -27,7 +27,7 @@ It finds the composer by roles and labels (`role="textbox"`, a button labelled P
 **Member setup:**
 1. In the app: Me → Copy my Facebook posts → **Make my extension key**. The key is shown once.
 2. Install the extension (Chrome Web Store link once it is published; until then, see "Loading it by hand" below).
-3. The extension's settings open on install. Paste the server address shown in the app and the key, then click **Save**. Chrome asks once to let the extension reach the server.
+3. The extension's settings open on install. Paste the server address shown in the app and the key, then click **Save**. Chrome asks once to let the extension reach the server. The extension then checks the key with the server (`GET /crosspost/extension/check`) and says whether it was accepted and whether cross-posting is on and not paused.
 
 **Loading it by hand (testing):** open `chrome://extensions`, turn on Developer mode, click **Load unpacked**, and choose the `apps/extension` folder.
 
@@ -58,7 +58,7 @@ Uses the official Threads API with the `threads_basic` permission only.
 
 ## 3. Connect Facebook
 
-Uses Facebook Login with the `user_posts` permission and `GET /me/posts` ([User posts](https://developers.facebook.com/docs/graph-api/reference/user/posts/)). Facebook has no webhook for a person's own posts, so the worker checks every 5 minutes. Posts that other people made on the member's timeline are skipped. Facebook's long-lived user token lasts about 60 days and can't be refreshed by a server. When it ends, the app shows **Reconnect** ([long-lived tokens](https://developers.facebook.com/documentation/facebook-login/guides/access-tokens/get-long-lived)).
+Uses Facebook Login with the `user_posts` permission and `GET /me/posts` ([User posts](https://developers.facebook.com/docs/graph-api/reference/user/posts/)). Facebook has no webhook for a person's own posts, so the worker checks every 5 minutes. Posts that other people made on the member's timeline are skipped. Facebook's long-lived user token lasts about 60 days and can't be refreshed by a server. A week before it ends, the member gets a notice ("Reconnect Facebook this week"). When it ends, or when Meta stops accepting any connection, the member gets a "Reconnect" notice that opens this screen, and the app shows **Reconnect** ([long-lived tokens](https://developers.facebook.com/documentation/facebook-login/guides/access-tokens/get-long-lived)).
 
 **Setup:**
 1. Create an app with the **Authenticate and request data from users with Facebook Login** use case and add `user_posts`.
@@ -90,7 +90,7 @@ The worker job `crosspost_poll` runs every 5 minutes. It queues `crosspost_check
 ## API
 
 - Member: `GET /crosspost`, `PATCH /crosspost/settings`, `POST`/`DELETE /crosspost/extension-key`, `POST /crosspost/{threads|facebook}/connect`, `DELETE /crosspost/{threads|facebook}`.
-- Extension: `POST /crosspost/extension/posts` with header `x-crosspost-key` and the body `{ source, text, pageUrl?, media: [{ data: base64 }] }` (up to 10 photos and videos: photos up to 10 MB, videos up to 50 MB; type checked from the file's first bytes).
+- Extension: `GET /crosspost/extension/check` (header `x-crosspost-key`), and `POST /crosspost/extension/posts` with header `x-crosspost-key` and the body `{ source, text, pageUrl?, media: [{ data: base64 }] }` (up to 10 photos and videos: photos up to 10 MB, videos up to 50 MB; type checked from the file's first bytes).
 - Meta: `GET /crosspost/{provider}/callback`, `GET`/`POST /crosspost/threads/webhook`.
 
 Data: migration `20261029007000_crosspost.sql`. Code: `apps/server/src/modules/crosspost/`, `apps/mobile/src/app/crosspost.tsx`, `apps/extension/`.

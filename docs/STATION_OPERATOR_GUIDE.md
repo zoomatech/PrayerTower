@@ -21,11 +21,14 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Health page (heartbeats, last heard) | Admin → Radio → Health page | [Health page](#health-page-in-admin--radio) |
 | Listener acknowledgements | Admin → Radio → Listener acknowledgements | [Listener acknowledgements](#listener-acknowledgements) |
 | Urgent requests first | Admin → Radio → Urgent requests first | [Queue order](#queue-order) |
+| Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
 | Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
 | Weekly radio digest | Admin → Radio → Weekly digest | [Weekly radio digest](#weekly-radio-digest) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
+| Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
+| Store-and-forward relay | `RELAY=on` on a listener node with a transmitter | [RADIO_BURST.md](RADIO_BURST.md#store-and-forward-relay) |
 
 Screenshots of these screens (sample data, 2026-10-29) are in [images/radio/](images/radio/).
 
@@ -387,6 +390,20 @@ a key-up. It does this on the first key-up, and then whenever
 ID is a `de K1ABC` line at the end of the key-up. The PSK31 mode already ends
 every piece with `de K1ABC`. In simulate mode, the log shows when an ID would
 have gone out.
+
+## Operator console
+
+One screen for the control operator: Me → **Operator console**. It is off until an admin picks **Operator console on** in Admin → Radio (shown when the transmitter is the station). Admins can use it, and so can anyone given the **Radio operator** role (Admin → People, or `npm run grant-role -- <email> radio_operator`). Members without the role get a plain "this page is for the team" message.
+
+| Part | What it shows |
+| --- | --- |
+| Status | Whether the station may transmit now, and why not: held, outside the transmission windows, or sending under an override until a given time. |
+| Manual override | **Hold all transmissions**: the station is handed nothing new until **Resume** (a burst already on the air finishes). **Send for 15 / 30 / 60 min**: sends outside the windows and quiet hours, then the windows apply again on their own; **End override** stops it early. |
+| Station ID timer | For each station: when it last identified, how often it must (`STATION_ID_MINUTES`), and when the next ID is due. The station reports this as its `station_id` check. |
+| Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10 with their wait, urgency and repeats. |
+| Log | The last 20 transmissions in 24 hours (the same rows as the [operator log](#operator-log)): time, call sign, preset, sent or failed, heard by a listener, and the text. |
+
+The screen refreshes every 15 seconds. Holds and overrides are recorded in Admin → Audit log. Turning the console off lifts any hold or override, so nothing stays held by a screen no one can open.
 
 ## Operator log
 

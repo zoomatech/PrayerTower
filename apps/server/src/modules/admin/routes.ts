@@ -40,6 +40,7 @@ import * as radioHealth from '../radio/health.js';
 import * as radioNodes from '../radio/nodes.js';
 import * as radioAcks from '../radio/acks.js';
 import * as radioSchedule from '../radio/schedule.js';
+import * as operatorConsole from '../radio/console.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -63,7 +64,7 @@ import * as ledgerCheck from '../tokens/ledger-check.js';
 import * as jobs from '../jobs/index.js';
 import * as ops from '../ops/index.js';
 
-const ROLES = ['admin', 'moderator', 'pastor', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
+const ROLES = ['admin', 'moderator', 'pastor', 'pastor_counselor', 'prayer_partner', 'witness', 'radio_operator'] as const;
 
 export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   const requireAdmin = async (req: FastifyRequest) => {
@@ -264,6 +265,35 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   });
 
   // Transmission windows and quiet hours (radio/schedule.ts).
+  // Operator console (radio/console.ts): admins turn it on; admins and radio operators use it.
+  const requireOperator = async (req: FastifyRequest) => {
+    const userId = requireUser(req);
+    if (!(await accounts.hasRole(db, userId, 'admin', 'radio_operator'))) throw forbidden('Radio operators only');
+    return userId;
+  };
+  app.get('/admin/radio-console', async (req) => {
+    await requireAdmin(req);
+    return { enabled: (await operatorConsole.settings(db)).enabled };
+  });
+  app.patch('/admin/radio-console', async (req) => {
+    await requireAdmin(req);
+    await operatorConsole.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: (await operatorConsole.settings(db)).enabled };
+  });
+  app.get('/radio/console', async (req) => {
+    await requireOperator(req);
+    const view = await operatorConsole.view(db);
+    if (!view) throw notFound('Operator console');
+    return view;
+  });
+  app.patch('/radio/console', async (req) => {
+    await requireOperator(req);
+    const input = operatorConsole.Override.parse(req.body);
+    if (!(await operatorConsole.settings(db)).enabled) throw notFound('Operator console');
+    await operatorConsole.override(db, input);
+    return (await operatorConsole.view(db))!;
+  });
+
   app.get('/admin/radio-schedule', async (req) => {
     await requireAdmin(req);
     const schedule = await radioSchedule.get(db);

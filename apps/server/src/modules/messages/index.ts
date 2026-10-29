@@ -386,7 +386,7 @@ export async function send(q: Queryable, userId: string, conversationId: string,
     message.created_at,
   ]);
   await moderation.queueScan(q, 'message', message.id);
-  const crisis = safety.mentionsCrisis(input.body);
+  const crisis = safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body));
   if (crisis) await moderation.flagCrisis(q, 'message', message.id);
   const harmGuidance = await harm.apply(q, userId, 'message', message.id, harmDecision);
 

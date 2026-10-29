@@ -16,12 +16,14 @@ export interface CareSettings {
   weekly_report_enabled: boolean;
   /** "Restore" on held items: logged as a restore, and the author is told it is back up. */
   restore_enabled: boolean;
+  /** Admin → Safety dashboard. */
+  safety_dashboard_enabled: boolean;
   blur_hard: boolean;
   break_after_minutes: number;
   break_after_hard_items: number;
   break_minutes: number;
 }
-const COLUMNS = ['enabled', 'dashboard_enabled', 'weekly_report_enabled', 'restore_enabled', 'blur_hard', 'break_after_minutes', 'break_after_hard_items', 'break_minutes'] as const satisfies readonly (keyof CareSettings)[];
+const COLUMNS = ['enabled', 'dashboard_enabled', 'weekly_report_enabled', 'restore_enabled', 'safety_dashboard_enabled', 'blur_hard', 'break_after_minutes', 'break_after_hard_items', 'break_minutes'] as const satisfies readonly (keyof CareSettings)[];
 
 export async function settings(q: Queryable): Promise<CareSettings> {
   const { rows } = await q.query<CareSettings>(`select ${COLUMNS.join(', ')} from public.moderator_care_settings`);
@@ -34,6 +36,7 @@ export const SettingsPatch = z
     dashboard_enabled: z.boolean(),
     weekly_report_enabled: z.boolean(),
     restore_enabled: z.boolean(),
+    safety_dashboard_enabled: z.boolean(),
     blur_hard: z.boolean(),
     break_after_minutes: z.number().int().min(0).max(600),
     break_after_hard_items: z.number().int().min(0).max(1000),
