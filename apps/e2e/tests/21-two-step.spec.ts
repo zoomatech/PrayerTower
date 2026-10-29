@@ -51,7 +51,7 @@ test('a member turns on two-step sign-in, signs in with a code, and turns it off
   await page.getByText('Sign out').click();
   await page.locator('input').nth(0).fill(EMAIL);
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).last().click();
+  await page.getByTestId('sign-in-submit').click();
   await expect(page.getByText('Enter your code')).toBeVisible();
   await page.getByTestId('two-step-code').fill(await freshCode(secret, firstStep));
   await page.getByTestId('two-step-submit').click();
