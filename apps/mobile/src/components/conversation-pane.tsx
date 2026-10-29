@@ -206,7 +206,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
 
       {c && !c.isRequest && !c.awaitingReply ? (
         <View style={styles.compose}>
-          <CoolDownCard nudge={coolNudge} />
+          <CoolDownCard nudge={coolNudge} onBreather={onClose} />
           <Field
             testID="message-input"
             placeholder={c.kind === 'group' ? t('conversation.writeGroup') : t('conversation.write')}

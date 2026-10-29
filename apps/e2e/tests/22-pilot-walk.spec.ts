@@ -13,7 +13,7 @@ const SCREENS = [
   '/prayer-minute', '/prayer-chain', '/skin-idea', '/squire-board', '/prayer-list', '/reading-plan', '/church', '/two-step',
   '/account-security', '/ai-chat', '/listen', '/announcements', '/churches', '/onboarding', '/remembered', '/waitlist', '/invites',
   '/tour', '/delete-account',
-  '/meaning-words',
+  '/meaning-words', '/kindness-research',
 ];
 
 test('a member walks every screen with every switch on, without a crash, server error or accessibility violation', async ({ page }) => {
@@ -31,6 +31,7 @@ test('a member walks every screen with every switch on, without a crash, server 
   const problems: string[] = [];
   const created: [string, string][] = [];
   let themeBefore: { user: string; theme: string | null } | null = null;
+  let lamentPost: string | null = null;
   let here = '';
   page.on('pageerror', (e) => problems.push(`${here}: page error ${e.message.slice(0, 200)}`));
   page.on('response', (r) => {
@@ -53,6 +54,15 @@ test('a member walks every screen with every switch on, without a crash, server 
        values ($1, $2, $3, 'delivered', 'I spoke too fast.', 'That was on me.', 'I will ask first.') returning id`,
       [comment[0]!.id, ethel[0]!.id, person[0]!.id],
     );
+    // Kindness tools with something to show: the walk's request as a lament, a cool-down
+    // card waiting for Ethel, and a meaning suggestion of hers.
+    await db.query('update public.posts set is_lament = true where id = $1', [post[0]!.id]);
+    const [a, b] = [ethel[0]!.id, person[0]!.id].sort();
+    const { rows: cool } = await db.query<{ id: string }>('insert into public.cool_downs (a_id, b_id, line) values ($1, $2, 1) returning id', [a, b]);
+    created.push(['cool_downs', cool[0]!.id]);
+    const { rows: idea } = await db.query<{ id: string }>("insert into public.meaning_proposals (user_id, emoji_key, label) values ($1, 'love', 'Pilot walk meaning') returning id", [ethel[0]!.id]);
+    created.push(['meaning_proposals', idea[0]!.id]);
+    lamentPost = post[0]!.id;
     const extra = [post[0] && `/post/${post[0]!.id}`, person[0] && `/people/${person[0]!.id}`, event[0] && `/event/${event[0].id}`, `/mend/${mend[0]!.id}`].filter(Boolean) as string[];
     // Every feed skin offered in Ethel's community (switches on show the gated ones): the feed and a request under each.
     const { rows: skins } = await db.query<{ id: string; slug: string }>(
@@ -77,6 +87,7 @@ test('a member walks every screen with every switch on, without a crash, server 
     expect(problems, problems.join('\n')).toEqual([]);
   } finally {
     for (const [table, id] of created) await db.query(`delete from public.${table} where id = $1`, [id]);
+    if (lamentPost) await db.query('update public.posts set is_lament = false where id = $1', [lamentPost]);
     if (themeBefore) await db.query('update public.community_memberships set feed_theme_id = $2 where user_id = $1 and is_primary', [themeBefore.user, themeBefore.theme]);
     for (const s of before) await db.query(`update public.${s.t} set ${s.c} = $1`, [s.v]);
   }

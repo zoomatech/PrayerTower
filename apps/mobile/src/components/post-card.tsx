@@ -169,8 +169,9 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
               </Pressable>
             );
           })}
-          {/* Emoji meanings join the same row in every skin (off unless switched on). */}
-          <MeaningIcons postId={card.id} postBody={card.body} />
+          {/* Emoji meanings join the same row in every skin (off unless switched on). On the
+              request's own page the full meaning tree with its leaves sits below instead. */}
+          {startExpanded ? null : <MeaningIcons postId={card.id} postBody={card.body} />}
         </View>
 
         {card.topComment ? (

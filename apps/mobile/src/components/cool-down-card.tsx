@@ -12,8 +12,11 @@ import { useT } from '@/lib/i18n';
 import { announce } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
-/** `nudge` changes when a send says a cool-down is waiting, so the card checks again. */
-export function CoolDownCard({ nudge = 0 }: { nudge?: number }) {
+/**
+ * `nudge` changes when a send says a cool-down is waiting, so the card checks again.
+ * `onBreather` steps away (a split view closes its pane); by default the screen goes back.
+ */
+export function CoolDownCard({ nudge = 0, onBreather }: { nudge?: number; onBreather?: () => void }) {
   const { coolDown } = useFeatures();
   const t = useT();
   const [offer, setOffer] = useState<{ id: string; line: number } | null>(null);
@@ -45,7 +48,8 @@ export function CoolDownCard({ nudge = 0 }: { nudge?: number }) {
     if (choice === 'breather') {
       setThanks(true);
       announce(t('coolDown.thanks'));
-      if (router.canGoBack()) router.back();
+      if (onBreather) onBreather();
+      else if (router.canGoBack()) router.back();
     }
   };
 
