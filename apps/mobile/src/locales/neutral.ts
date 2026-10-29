@@ -134,6 +134,9 @@ export const keys: Tree = named({
     firmHint: 'For example: "Remember, you promised to be there for Billy."',
   },
   profile: {
+    // Hidden for Open Circle (the church page is faith-only); plain words in case a screen shows them.
+    churchApply: 'Lead a local group? Add it',
+    myChurch: 'My group',
     prayers: 'Times supported',
     priestly: 'Lighthouse',
     nextTier: '%{count} more to become a %{tier}.',

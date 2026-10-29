@@ -68,3 +68,37 @@ describe('download my data covers every table', () => {
     expect(JSON.stringify(data)).not.toContain('tok-eve-');
   });
 });
+
+describe('download my data for Open Circle', () => {
+  const RELIGIOUS = /pray|church|priest|pastor|sermon|scripture|bible|bless|faith|god/i;
+  const keys = (v: unknown, out: string[] = []): string[] => {
+    if (Array.isArray(v)) v.forEach((x) => keys(x, out));
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) out.push(k), keys(x, out);
+    return out;
+  };
+
+  it('names every section and field in plain words, keeps what the member wrote, and loses nothing', async () => {
+    const { grantRole } = await import('../src/modules/accounts/index.js');
+    const admin = await createUser('Export OC Admin');
+    await grantRole(db, admin, 'admin', null);
+    await as(admin).patch('/admin/communities/open-circle', { status: 'active' });
+    const faith = await createUser('Export Faith');
+    const oc = await createUser('Export OC');
+    await as(oc).post('/me/community', { slug: 'open-circle' });
+    for (const who of [faith, oc]) {
+      const post = await newRequest(who, 'Please pray for my sister.');
+      await db.query(`insert into public.prayer_events (post_id, user_id, kind) values ($1, $2, 'praying_now')`, [post.id, who]);
+    }
+    const before = (await as(faith).get('/me/export')).json();
+    const after = (await as(oc).get('/me/export')).json();
+    try {
+      expect(keys(before).filter((k) => RELIGIOUS.test(k)).length).toBeGreaterThan(0);
+      expect(keys(after).filter((k) => RELIGIOUS.test(k))).toEqual([]);
+      expect(keys(after)).toHaveLength(keys(before).length);
+      expect(after.support).toHaveLength(1);
+      expect(after.posts[0].body).toBe('Please pray for my sister.');
+    } finally {
+      await db.query(`update public.communities set status = 'hidden', hidden_features = '{}' where slug = 'open-circle'`);
+    }
+  });
+});
