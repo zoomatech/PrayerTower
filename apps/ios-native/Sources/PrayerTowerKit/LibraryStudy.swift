@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 // Word study, highlights and notes, and offline texts, as the Expo app's word-study.tsx and my-notes.tsx
 // (docs/LIBRARY_SEARCH.md). All three are off unless an admin turns them on. Word study is offered only where the
