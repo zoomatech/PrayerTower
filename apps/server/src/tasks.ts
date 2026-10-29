@@ -13,6 +13,7 @@ import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
 import { transmitTask, type Transmitter } from './modules/radio/index.js';
 import { operatorAlertsTask } from './modules/radio/operator-alerts.js';
 import { beaconTask } from './modules/radio/beacon.js';
+import { ceaselessTask } from './modules/radio/ceaseless.js';
 import { awardDueTask } from './modules/milestones/index.js';
 import { runDueTask } from './modules/schedules/index.js';
 import { weeklyDigestTask } from './modules/digest/index.js';
@@ -82,6 +83,7 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     radio_transmit: transmitTask(db, overrides.transmit),
     radio_operator_alerts: operatorAlertsTask(db),
     radio_beacon: beaconTask(db),
+    radio_ceaseless: ceaselessTask(db),
     schedules_run_due: runDueTask(),
     milestones_award_due: awardDueTask(),
     events_send_reminders: remindTask(db),
@@ -144,6 +146,8 @@ export const crontab = [
   '*/2 * * * * radio_operator_alerts ?max=3&fill=10m&jobKey=radio_operator_alerts',
   // Every 5 minutes: queue the reception beacon when one is due (only while switched on).
   '*/5 * * * * radio_beacon ?max=3&fill=10m&jobKey=radio_beacon',
+  // Every 5 minutes: "prayer without ceasing" re-sends a kept request when the air has been quiet (only while switched on).
+  '*/5 * * * * radio_ceaseless ?max=3&fill=10m&jobKey=radio_ceaseless',
   // Every 5 minutes: held posts waiting too long remind whoever is on call, then an admin (only while the rota is on).
   '*/5 * * * * oncall_check ?max=3&fill=15m&jobKey=oncall_check',
   // Daily 04:15: re-derive every token balance from the ledger; alerts admins on any mismatch.

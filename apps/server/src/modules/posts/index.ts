@@ -73,6 +73,8 @@ export interface PostRow {
   all_support_welcome: boolean;
   is_lament: boolean;
   lament_radio: boolean;
+  /** "Prayer without ceasing" (radio/ceaseless.ts): the author keeps it on the air. */
+  keep_on_air: boolean;
   answers_post_id: string | null;
   crisis: boolean;
   /** Set by the harmful-prayer check (modules/harm) until a moderator clears it. */
@@ -759,6 +761,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         allSupportWelcome: r.all_support_welcome,
         lament: r.is_lament,
         lamentRadio: r.lament_radio,
+        ...(r.user_id === viewerId ? { keepOnAir: r.keep_on_air } : {}),
         answers: r.answers,
         storyId: r.story_id,
         countsQuiet: r.counts_quiet,
