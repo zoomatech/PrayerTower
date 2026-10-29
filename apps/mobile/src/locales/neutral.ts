@@ -20,6 +20,10 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  library: {
+    placeholder: 'a friend in need',
+    adminToggle: 'Search the ancient writings',
+  },
   circles: {
     title: 'Circles',
     intro: 'A small, invite-only group (up to 12 people) that supports each other. What you share stays inside the circle.',

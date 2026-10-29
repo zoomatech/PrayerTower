@@ -48,7 +48,15 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public var keepOnAir: Bool? = nil
     /// Newest few comments, newest first, while comments as leaves is on (the drawn vine and tower).
     public let leafComments: [LeafComment]?
+    /// An answered-prayer story: the request it tells the ending of.
+    public let answers: StoryLink?
+    /// A request's answered-prayer story, once posted.
+    public let storyId: String?
+
+    public var isAnswered: Bool { state == "answered" }
 }
+
+public struct StoryLink: Codable, Sendable, Equatable { public let id: String; public let preview: String }
 
 /// A photo or video on a post; `url` is a short-lived signed read URL.
 public struct CardMedia: Codable, Sendable, Equatable {

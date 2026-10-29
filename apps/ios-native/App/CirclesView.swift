@@ -91,10 +91,16 @@ struct CircleDetailView: View {
                 Section("Members") {
                     ForEach(v.members) { Text($0.displayName ?? "A member") }
                     if v.circle.isOwner, !v.circle.full {
-                        if let code = invite?.code ?? v.invite?.code {
-                            Text("Invite code: \(code)").textSelection(.enabled)
-                        } else {
-                            Button("Make an invite code") { Task { invite = try? await model.store.api.circleInvite(id) } }
+                        // The starter invites by a code that expires; a new code replaces the old one.
+                        let current = invite.map { (code: $0.code, expiresAt: $0.expiresAt) } ?? v.invite.map { (code: $0.code, expiresAt: $0.expiresAt) }
+                        if let current {
+                            let w = model.words, line = w("circles.inviteCode", ["code": current.code])
+                            Text(line).font(.headline).textSelection(.enabled)
+                            Text(w("circles.inviteHint", ["date": monthDay(current.expiresAt)])).font(.footnote)
+                            ShareLink(item: line) { Label(w("invites.share"), systemImage: "square.and.arrow.up") }
+                        }
+                        Button(model.words(current == nil ? "circles.invite" : "circles.newInvite")) {
+                            Task { invite = try? await model.store.api.circleInvite(id) }
                         }
                     }
                 }

@@ -57,6 +57,7 @@ import { squireRoutes } from './modules/squire/routes.js';
 import { groupGiftRoutes } from './modules/group-gifts/routes.js';
 import { prayerListRoutes } from './modules/prayer-list/routes.js';
 import { readingPlanRoutes } from './modules/reading-plan/routes.js';
+import { libraryRoutes } from './modules/library/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
 import { liveRoutes, practiceRoomRoutes } from './modules/live/routes.js';
@@ -367,6 +368,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     groupGiftRoutes(authed, db);
     prayerListRoutes(authed, db);
     readingPlanRoutes(authed, db);
+    libraryRoutes(authed, db);
     liveRoutes(authed, db, jaas);
     practiceModeRoutes(authed, db, { converse, jaas: !!jaas, appStore: !!appleVerifier, practicePurchases });
     communityRoutes(authed, db);

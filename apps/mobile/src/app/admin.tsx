@@ -333,6 +333,7 @@ function Admin() {
         <CommunitiesSection />
         <SpokenPrayerSection />
         <MaterialMatchSection />
+        <LibrarySection />
         <AwardSection />
         <AiSection />
         <LiveSection />
@@ -1780,6 +1781,31 @@ function MaterialMatchSection() {
           <Button small label={t('admin.materialMatch.fulfill')} disabled={!kind.trim()} onPress={fulfill} />
         </>
       ) : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Scripture and ancient writings search, ported from Winstons Syndicate (off by default). */
+function LibrarySection() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.library().then((r) => setOn(r.enabled), (e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (enabled: boolean) =>
+    api.admin
+      .updateLibrary({ enabled })
+      .then((r) => (setOn(r.enabled), resetFeatures(), setNote(t('library.saved'))))
+      .catch((e) => setNote((e as Error).message));
+  if (on === null) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('library.adminTitle')}</Text>
+      <Toggle label={t('library.adminToggle')} hint={t('library.adminHint')} value={on} onChange={save} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
