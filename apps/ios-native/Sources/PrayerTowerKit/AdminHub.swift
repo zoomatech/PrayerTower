@@ -195,3 +195,45 @@ extension Dictionary where Key == String, Value == JSONValue {
         fields.compactMapValues { Staff.whole($0).map(JSONValue.int) }
     }
 }
+
+// MARK: - Settings switchboards
+
+/// One admin settings section as the Expo admin screen has it: its switches and number fields,
+/// generated into Resources/admin-boards.json from apps/mobile/src/app/admin.tsx.
+public struct AdminBoard: Codable, Sendable, Equatable, Identifiable {
+    public struct Switch: Codable, Sendable, Equatable {
+        public let label: String
+        public let hint: String?
+        /// The setting's name as the server sends it (snake_case).
+        public let field: String
+        /// The name the server takes to change it (camelCase).
+        public let patch: String
+    }
+    public struct Number: Codable, Sendable, Equatable {
+        public let label: String
+        public let field: String
+        public let patch: String
+    }
+    public let id: String
+    public let title: String
+    public let intro: String?
+    public let get: String
+    public let patch: String
+    public let toggles: [Switch]
+    public let numbers: [Number]
+
+    public static let all: [AdminBoard] = {
+        guard let url = Bundle.module.url(forResource: "admin-boards", withExtension: "json", subdirectory: "Resources"),
+              let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode([AdminBoard].self, from: data)) ?? []
+    }()
+}
+
+private struct BoardWrap: Decodable { let settings: [String: JSONValue] }
+
+extension APIClient {
+    public func boardSettings(_ board: AdminBoard) async throws -> [String: JSONValue] { try await (get(board.get) as BoardWrap).settings }
+    public func updateBoard(_ board: AdminBoard, _ patch: [String: JSONValue]) async throws -> [String: JSONValue] {
+        try await (send(body(request("PATCH", board.patch), patch)) as BoardWrap).settings
+    }
+}

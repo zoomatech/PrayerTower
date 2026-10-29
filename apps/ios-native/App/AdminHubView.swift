@@ -292,3 +292,79 @@ struct AdminHubView: View {
         }
     }
 }
+
+/// Admin → Settings: each switchboard from the Expo admin screen.
+struct AdminBoardsView: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        List(AdminBoard.all) { b in
+            NavigationLink(model.words(b.title)) { AdminBoardView(board: b) }
+        }
+        .navigationTitle(model.words("profile.settings"))
+    }
+}
+
+struct AdminBoardView: View {
+    @Environment(AppModel.self) private var model
+    let board: AdminBoard
+    @State private var settings: [String: JSONValue]?
+    @State private var numbers: [String: String] = [:]
+    @State private var note: String?
+    @State private var error: String?
+    private var w: Words { model.words }
+
+    var body: some View {
+        Form {
+            if let intro = board.intro { Section { Text(w(intro)) } }
+            if let note { Text(note).foregroundStyle(.tint) }
+            if let error { Text(error).foregroundStyle(.red) }
+            if let settings {
+                Section {
+                    ForEach(board.toggles, id: \.patch) { t in
+                        Toggle(isOn: Binding(get: { settings[t.field] == .bool(true) }, set: { save([t.patch: .bool($0)]) })) {
+                            if let hint = t.hint { LabelHint(w(t.label), w(hint)) } else { Text(w(t.label)) }
+                        }
+                    }
+                }
+                if !board.numbers.isEmpty {
+                    Section {
+                        ForEach(board.numbers, id: \.patch) { n in
+                            LabeledContent(w(n.label)) {
+                                TextField(w(n.label), text: Binding(get: { numbers[n.patch] ?? "" }, set: { numbers[n.patch] = $0 }))
+                                    .keyboardType(.numberPad).multilineTextAlignment(.trailing).frame(maxWidth: 100)
+                            }
+                        }
+                        Button(w("goldfish.adminSave")) { save([String: JSONValue].numbers(numbers)) }
+                    }
+                }
+            }
+        }
+        .navigationTitle(w(board.title))
+        .task {
+            do {
+                show(try await model.store.api.boardSettings(board))
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    private func show(_ s: [String: JSONValue]) {
+        settings = s
+        numbers = Dictionary(uniqueKeysWithValues: board.numbers.map { ($0.patch, AdminHub.show(s[$0.field] ?? .null).replacingOccurrences(of: "—", with: "")) })
+    }
+
+    private func save(_ patch: [String: JSONValue]) {
+        Task {
+            do {
+                show(try await model.store.api.updateBoard(board, patch))
+                await model.loadSettings()
+                note = w("givingSplit.adminSaved")
+                error = nil
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+}

@@ -68,3 +68,15 @@ import Testing
         #expect(n == ["a": .int(5)])
     }
 }
+
+@Suite struct AdminBoardTests {
+    @Test func boardsLoadWithEveryLabelWorded() {
+        let boards = AdminBoard.all
+        #expect(boards.contains { $0.id == "notebookSettings" })
+        let w = Words(.faith)
+        for b in boards {
+            #expect(w(b.title) != b.title, "\(b.title)")
+            for t in b.toggles { #expect(w(t.label) != t.label, "\(t.label)") }
+        }
+    }
+}
