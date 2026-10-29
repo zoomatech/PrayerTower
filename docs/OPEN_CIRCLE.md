@@ -15,7 +15,8 @@ The tone is warm, everyday kindness ("secular goodness"). "Ted Lasso version" is
 | Post types | Request, Good News, Kind Thoughts and Story. Confessional posts are refused. |
 | Wording | No religious words anywhere a member looks. "Praying Now" becomes **Thinking of You**, "Commit to Pray" becomes **Promise to Check In**, the Prayers tab becomes **Support**, and Priestly tokens become **Lighthouse tokens**. The tiers become Kindness Scout, Kind Helper and Kindness Champion. Pastors are mentors, and prayer partners are listening partners. |
 | Notices and reminders | Neutral push and in-app notices, and neutral firm or gentle check-in reminders. |
-| Hidden | Scripture leaves on the Vine feed, the church application on Me, and the AI conversation with God (refused for Open Circle members). |
+| Hidden | Scripture leaves on the Vine feed, the church application on Me, the Bible reading plan, "pray across lines", confession, AI prayers, and the AI conversation with God. A hidden screen opened from a link shows only "This isn't available.", and the server refuses it too. |
+| Safety words | The gentle word before a harsh post (docs/HARMFUL_PRAYERS.md) has its own neutral redirects, with no God, Psalms or Bible verses. |
 | Icons | 🤝 instead of 🙏 on the My Promises tab, the commit button, the tour and the "people have supported you" line. |
 | Same as everyone | Tokens (earned only, never bought), moderation, crisis lines, blocking, no ads. |
 
@@ -27,7 +28,8 @@ The app's wording covers what members see in the app. The server also catches te
 
 - **Notices and push:** every notice to an Open Circle member passes through `neutralText()` (`communities/neutral-text.ts`) after its template, so a notice without a neutral template still reads "support" instead of "prayer".
 - **Errors:** an error message with a religious word is neutralized for Open Circle members.
-- **Emails:** the weekly digest and invite emails have their own neutral text.
+- **Emails:** the weekly digest, invite, prayer-chain and sign-in emails have their own neutral text and sender name.
+- **Public pages:** on Open Circle's domain (and under `/open-circle`) the landing, support, privacy, terms, account deletion, waitlist, promise, why-donations, on-the-air and radio listening pages use its own look and words.
 - **Weekly review** on My Promises has its own neutral lines.
 
 ### No leaks between communities
@@ -58,7 +60,7 @@ In **Admin → Invites**, pick the community a new member joins before creating 
 
 ## Checking it
 
-`apps/e2e/tests/18-open-circle.spec.ts` signs in as an Open Circle member, posts, and visits 26 member screens. It fails if any screen shows a religious word. The 2026-10-28 walk's screenshots are in `/mnt/project-files/screenshots/open-circle-walk/`.
+`apps/e2e/tests/18-open-circle.spec.ts` signs in as an Open Circle member, posts, and visits every member screen, with every switch off and then on. It fails if any screen or screen-reader label shows a religious word, crashes, gets a server error or fails an axe check. `00-screen-coverage.spec.ts` fails when a new screen is in no walk. The 2026-10-28 walk's screenshots are in `/mnt/project-files/screenshots/open-circle-walk/`.
 
 ## Turning it on
 
