@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import * as notifications from '../notifications/index.js';
+import * as trail from './trail.js';
 
 export async function enabled(q: Queryable): Promise<boolean> {
   const { rows } = await q.query<{ on: boolean }>('select radio_receipts_enabled as on from public.token_settings');
@@ -63,7 +64,7 @@ const HEARD_WINDOW_HOURS = 24;
  * asker. Returns how many prayers matched (nothing else: a listener learns
  * nothing about who sent what).
  */
-export async function heard(q: Queryable, report: z.infer<typeof HeardReport>): Promise<number> {
+export async function heard(q: Queryable, report: z.infer<typeof HeardReport>, node: { id: string; name: string } | null = null): Promise<number> {
   const hashes = [...new Set(report.hashes)];
   const { rows } = await q.query<{ id: string; post_id: string; user_id: string; poster_id: string; first: boolean; heard_at: Date }>(
     `with hit as (
@@ -80,6 +81,8 @@ export async function heard(q: Queryable, report: z.infer<typeof HeardReport>): 
       returning r.id, r.post_id, r.user_id, p.user_id as poster_id, hit.first, r.heard_at`,
     [hashes, report.callSign, HEARD_WINDOW_HOURS, report.snrDb],
   );
+  // "Where it was heard" (trail.ts): the node by name, a phone only counted.
+  await trail.record(q, rows.map((r) => r.id), report.snrDb, node);
   // A listener node's report also acknowledges the prayer (acks.ts); senders are told only while receipts are on.
   if (!(await enabled(q))) return rows.length;
   for (const r of rows.filter((x) => x.first)) {

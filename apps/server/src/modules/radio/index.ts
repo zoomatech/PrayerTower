@@ -12,6 +12,7 @@ import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as acks from './acks.js';
+import * as fairAir from './fair-air.js';
 import * as operatorConsole from './console.js';
 import * as receipts from './receipts.js';
 import * as tokens from '../tokens/index.js';
@@ -68,6 +69,8 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
     throw conflict('Radio prayers are paused: the station only sends while they are free. An admin can turn on “Radio prayers are free” on the Admin screen.');
   }
   const repeats = amplify ? station.radio_amplify_repeats : 1;
+  // Fair air (fair-air.ts): no member floods the air.
+  await fairAir.checkCap(q, userId, repeats);
   let cost = s.radio_funding === 'free' ? 0 : paidAmplify ? s.amplify_paid_cost! : s.radio_prayer_cost;
   // Everybody gets at least one: the month's free radio prayers, then any granted ones (modules/donations).
   const gift = cost > 0 && !amplify ? await donations.radioFunding(q, userId) : null;
@@ -289,7 +292,7 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
         where r.status = 'queued' and p.harm_category is null
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
-        order by ${s.radio_urgent_first ? URGENT_FIRST : ''}${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
+        order by (r.kind = 'auto'), ${s.radio_urgent_first ? URGENT_FIRST : ''}${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
     );
     const r = rows[0];
     if (!r) return null;

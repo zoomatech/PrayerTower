@@ -383,6 +383,9 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <SkyTargetSection /> : null}
             <CeaselessSection />
             <ScheduledRadioToggle />
+            <HeardTrailToggle />
+            <SignalQueueToggle />
+            <FairAirSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -781,6 +784,60 @@ function RadioScheduleSection() {
         </>
       ) : null}
     </View>
+  );
+}
+
+/** Fair air (radio/fair-air.ts): every request on the air once, and a daily cap per member. Both off by default. */
+function FairAirSection() {
+  const t = useT();
+  const [s, setS] = useState<{ everyRequest: boolean; dailyCap: number | null } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioFairAir().then(setS).catch(() => undefined);
+    }, []),
+  );
+  if (!s) return null;
+  const save = (patch: { everyRequest?: boolean; dailyCap?: number | null }) => api.admin.setRadioFairAir(patch).then(setS).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.everyRequest')} hint={t('admin.everyRequestHint')} value={s.everyRequest} onChange={(v) => save({ everyRequest: v })} />
+      <Text style={type.small}>{t('admin.dailyCap')}</Text>
+      <View style={styles.row}>
+        {[null, 3, 10, 30].map((c) => (
+          <Chip key={String(c)} label={c === null ? t('admin.dailyCapNone') : String(c)} selected={s.dailyCap === c} onPress={() => save({ dailyCap: c })} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** My signal queue and signal codes (radio/signal-queue.ts), off by default. */
+function SignalQueueToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.signalQueueSetting().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.signalQueue')} hint={t('admin.signalQueueHint')} value={on} onChange={(v) => api.admin.setSignalQueue(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
+  );
+}
+
+/** "Where it was heard" (radio/trail.ts), off by default. */
+function HeardTrailToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.heardTrail().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.heardTrail')} hint={t('admin.heardTrailHint')} value={on} onChange={(v) => api.admin.setHeardTrail(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
   );
 }
 

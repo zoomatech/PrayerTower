@@ -47,6 +47,9 @@ import * as operatorAlerts from '../radio/operator-alerts.js';
 import * as beacon from '../radio/beacon.js';
 import * as sky from '../radio/sky.js';
 import * as ceaseless from '../radio/ceaseless.js';
+import * as trail from '../radio/trail.js';
+import * as signalQueue from '../radio/signal-queue.js';
+import * as fairAir from '../radio/fair-air.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -305,6 +308,32 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/radio-beacon', async (req) => {
     await requireAdmin(req);
     return beacon.update(db, beacon.BeaconSettings.parse(req.body));
+  });
+  app.get('/admin/radio-fair-air', async (req) => {
+    await requireAdmin(req);
+    return fairAir.settings(db);
+  });
+  app.patch('/admin/radio-fair-air', async (req) => {
+    await requireAdmin(req);
+    return fairAir.update(db, fairAir.FairAirSettings.parse(req.body));
+  });
+  app.get('/admin/signal-queue', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await signalQueue.enabled(db) };
+  });
+  app.patch('/admin/signal-queue', async (req) => {
+    await requireAdmin(req);
+    await signalQueue.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await signalQueue.enabled(db) };
+  });
+  app.get('/admin/heard-trail', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await trail.enabled(db) };
+  });
+  app.patch('/admin/heard-trail', async (req) => {
+    await requireAdmin(req);
+    await trail.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await trail.enabled(db) };
   });
   app.get('/admin/scheduled-radio', async (req) => {
     await requireAdmin(req);
