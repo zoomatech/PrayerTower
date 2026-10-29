@@ -26,6 +26,7 @@ import { spokenPrayerRoutes } from './modules/spoken-prayers/routes.js';
 import { communityRoutes } from './modules/communities/routes.js';
 import { surveyRoutes } from './modules/surveys/routes.js';
 import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
+import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
@@ -278,6 +279,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
     quickReactionRoutes(authed, db);
+    meaningReactionRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);
