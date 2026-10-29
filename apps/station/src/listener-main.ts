@@ -28,16 +28,17 @@ const num = (name: string, fallback: number, min: number, max: number) => {
 };
 
 const api = httpListenerApi(checkApiUrl(need('PRAYER_TOWER_API_URL')), need('NODE_KEY'), fetch, { sign: process.env.LISTEN_SIGN === 'on' });
+const stateDir = process.env.STATE_DIRECTORY?.split(':')[0];
 const cfg = {
   searchHz: num('LISTEN_SEARCH_HZ', 0, 0, 200),
   receipts: (process.env.LISTEN_RECEIPTS ?? 'on') !== 'off',
   reportFile: process.env.LISTEN_REPORT_FILE || undefined,
   // Reports that fail during an internet or server outage are sent when it comes back.
-  outbox: new Outbox(),
+  // Kept in the state directory, so they also survive a restart or a power cut.
+  outbox: new Outbox({ file: stateDir ? path.join(stateDir, 'outbox.json') : undefined }),
 };
 const location = parseLocation(process.env.NODE_LOCATION);
 const everyMs = num('LISTEN_DECODE_SECONDS', 6, 1, 20) * 1000;
-const stateDir = process.env.STATE_DIRECTORY?.split(':')[0];
 const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
 
 // Store-and-forward relay: off unless RELAY=on (relay.ts).

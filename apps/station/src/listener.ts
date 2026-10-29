@@ -9,6 +9,7 @@
 // once a minute tells the server the listener is running.
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, createHmac } from 'node:crypto';
+import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { channelReport, decodeAudio, fingerprint, type HeardFrame } from './burst/web.js';
 import { demodulate as demodulatePackets } from './packet/afsk.js';
@@ -124,44 +125,81 @@ export class ReportError extends Error {
 /** Worth trying again later: the network or the server failed, or asked us to slow down. Never a refusal (bad key, bad report). */
 export const retryable = (err: unknown) => !(err instanceof ReportError) || err.status >= 500 || err.status === 429;
 
+/** A report to Prayer Tower, as data, so a kept one survives a restart. */
+export type Report =
+  | { kind: 'channelReport'; body: Parameters<ListenerApi['channelReport']>[0] }
+  | { kind: 'heard'; body: Parameters<ListenerApi['heard']>[0] }
+  | { kind: 'heardIds'; body: Parameters<NonNullable<ListenerApi['heardIds']>>[0] };
+
+function deliver(api: ListenerApi, r: Report): Promise<void> {
+  if (r.kind === 'channelReport') return api.channelReport(r.body);
+  if (r.kind === 'heard') return api.heard(r.body);
+  return api.heardIds ? api.heardIds(r.body) : Promise.resolve();
+}
+
 /**
  * Reports that could not be delivered (the internet or the server was down), kept
  * and sent again before the next ones, oldest first. Without it, a prayer this node
  * heard during an outage would look unheard, and the station would send it again
  * (radio/acks.ts) and its sender would never be told. Kept for at most 23 hours
- * (the server takes "heard" reports for 24) and at most 500 reports.
+ * (the server takes "heard" reports for 24) and at most 500 reports. With a file
+ * (the node's state directory) they also survive a restart or a power cut.
  */
 export class Outbox {
-  private items: { send: () => Promise<void>; at: number }[] = [];
-  constructor(
-    private readonly max = 500,
-    private readonly maxAgeMs = 23 * 3_600_000,
-  ) {}
+  private items: (Report & { at: number })[] = [];
+  private readonly max: number;
+  private readonly maxAgeMs: number;
+  private readonly file?: string;
+
+  constructor(opts: { max?: number; maxAgeMs?: number; file?: string } = {}) {
+    this.max = opts.max ?? 500;
+    this.maxAgeMs = opts.maxAgeMs ?? 23 * 3_600_000;
+    this.file = opts.file;
+    if (!this.file) return;
+    try {
+      const kept: unknown = JSON.parse(readFileSync(this.file, 'utf8'));
+      if (Array.isArray(kept)) this.items = kept.filter((i) => i && typeof i.at === 'number' && ['channelReport', 'heard', 'heardIds'].includes(i.kind) && i.body).slice(-this.max);
+    } catch {
+      // None kept yet, or unreadable: start empty.
+    }
+  }
 
   get size() {
     return this.items.length;
   }
 
-  /** Send now; keep it for later if it fails for a reason that may pass. */
-  async send(send: () => Promise<void>, log: (m: string) => void, now = Date.now()) {
+  private save() {
+    if (!this.file) return;
     try {
-      await send();
+      writeFileSync(`${this.file}.tmp`, JSON.stringify(this.items));
+      renameSync(`${this.file}.tmp`, this.file);
+    } catch {
+      // Not fatal: they are still kept in memory.
+    }
+  }
+
+  /** Send now; keep it for later if it fails for a reason that may pass. */
+  async send(api: ListenerApi, report: Report, log: (m: string) => void, now = Date.now()) {
+    try {
+      await deliver(api, report);
     } catch (err) {
       log(`[listener] ${(err as Error).message}`);
       if (!retryable(err)) return;
-      this.items.push({ send, at: now });
+      this.items.push({ ...report, at: now });
       if (this.items.length > this.max) this.items.splice(0, this.items.length - this.max);
+      this.save();
     }
   }
 
   /** Try the kept reports again, oldest first; stops at the first that still fails. */
-  async flush(log: (m: string) => void, now = Date.now()) {
+  async flush(api: ListenerApi, log: (m: string) => void, now = Date.now()) {
+    const before = this.items.length;
     this.items = this.items.filter((i) => now - i.at < this.maxAgeMs);
     let sent = 0;
     while (this.items.length) {
-      const item = this.items[0]!;
+      const { at: _at, ...report } = this.items[0]!;
       try {
-        await item.send();
+        await deliver(api, report as Report);
       } catch (err) {
         if (retryable(err)) break;
         log(`[listener] ${(err as Error).message}`);
@@ -169,6 +207,7 @@ export class Outbox {
       this.items.shift();
       sent++;
     }
+    if (this.items.length !== before) this.save();
     if (sent) log(`[listener] sent ${sent} kept report(s)${this.items.length ? `, ${this.items.length} still waiting` : ''}`);
   }
 }
@@ -241,12 +280,12 @@ export interface ListenerConfig {
 
 /** Decode what arrived and report each new frame. Returns the frames, for the log. Reporting errors are logged, never thrown. */
 export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: ListenerConfig, log: (m: string) => void = console.log): Promise<ListenedFrame[]> {
-  const report = (send: () => Promise<void>) => (cfg.outbox ? cfg.outbox.send(send, log) : send().catch((err: Error) => log(`[listener] ${err.message}`)));
-  await cfg.outbox?.flush(log);
+  const report = (r: Report) => (cfg.outbox ? cfg.outbox.send(api, r, log) : deliver(api, r).catch((err: Error) => log(`[listener] ${err.message}`)));
+  await cfg.outbox?.flush(api, log);
   const frames = dec.decode(cfg.searchHz);
   for (const p of dec.packets) {
     log(`[listener] heard ${p.callSign} by packet: ${p.count} prayer(s), page ${p.page}/${p.pages}`);
-    if (cfg.receipts && p.ids.length && api.heardIds) await report(() => api.heardIds!({ callSign: p.callSign, ids: p.ids }));
+    if (cfg.receipts && p.ids.length && api.heardIds) await report({ kind: 'heardIds', body: { callSign: p.callSign, ids: p.ids } });
   }
   if (!frames.length) return frames;
   // One channel report per station heard: its weakest frame.
@@ -256,13 +295,13 @@ export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: Lis
   for (const [callSign, fs] of byStation) {
     const r = channelReport(fs)!;
     log(`[listener] heard ${callSign}: ${fs.length} frame(s), ${r.snrDb} dB, ${r.preset}`);
-    await report(() => api.channelReport({ callSign, preset: r.preset, snrDb: r.snrDb }));
+    await report({ kind: 'channelReport', body: { callSign, preset: r.preset, snrDb: r.snrDb } });
     if (cfg.reportFile) await writeFile(cfg.reportFile, `${JSON.stringify(r, null, 2)}\n`).catch((err: Error) => log(`[listener] ${err.message}`));
   }
   if (cfg.receipts) {
     for (const f of frames) {
       const hashes = [...new Set(f.prayers ?? [])].slice(0, 500).map(fingerprint);
-      if (hashes.length) await report(() => api.heard({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes, peakDbfs: f.peakDbfs }));
+      if (hashes.length) await report({ kind: 'heard', body: { callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes, peakDbfs: f.peakDbfs } });
     }
   }
   return frames;

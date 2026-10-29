@@ -98,19 +98,45 @@ describe('listener node', () => {
   });
 
   it('never keeps a report the server refused, and drops kept ones after 23 hours or past 500', async () => {
-    const outbox = new Outbox(3);
+    const outbox = new Outbox({ max: 3 });
     const log = () => undefined;
-    await outbox.send(async () => {
-      throw new ReportError('receipt failed (400)', 400);
-    }, log);
+    const failingWith = (status: number): ListenerApi => ({
+      channelReport: async () => {},
+      heard: async () => {
+        throw new ReportError(`receipt failed (${status})`, status);
+      },
+      heartbeat: async () => {},
+    });
+    const heard = (n: number) => ({ kind: 'heard' as const, body: { callSign: 'N0CALL', preset: 'fm-standard', snrDb: 20, hashes: [`h${n}`] } });
+    await outbox.send(failingWith(400), heard(0), log);
     expect(outbox.size).toBe(0);
-    const failing = async () => {
-      throw new ReportError('receipt failed (502)', 502);
-    };
-    for (let i = 0; i < 5; i++) await outbox.send(failing, log, 0);
+    for (let i = 0; i < 5; i++) await outbox.send(failingWith(502), heard(i), log, 0);
     expect(outbox.size).toBe(3);
-    await outbox.flush(log, 23 * 3_600_000);
+    await outbox.flush(failingWith(502), log, 23 * 3_600_000);
     expect(outbox.size).toBe(0);
+  });
+
+  it('keeps reports in a file, so they survive a restart or a power cut', async () => {
+    const file = path.join(mkdtempSync(path.join(tmpdir(), 'outbox-')), 'outbox.json');
+    const down: ListenerApi = {
+      channelReport: async () => {},
+      heard: async () => {
+        throw new TypeError('fetch failed');
+      },
+      heartbeat: async () => {},
+    };
+    const body = { callSign: 'N0CALL', preset: 'fm-standard', snrDb: 20, hashes: ['abc'] };
+    await new Outbox({ file }).send(down, { kind: 'heard', body }, () => undefined);
+    // The node restarts with the server back up.
+    const { api, calls } = recorder();
+    const after = new Outbox({ file });
+    expect(after.size).toBe(1);
+    await after.flush(api, () => undefined);
+    expect(calls).toEqual([{ kind: 'heard', body }]);
+    expect(new Outbox({ file }).size).toBe(0);
+    // A damaged file starts empty rather than stopping the node.
+    writeFileSync(file, '{not json');
+    expect(new Outbox({ file }).size).toBe(0);
   });
 
   it('runs the recorder without a shell, decodes what it records, and restarts a recorder that fails', async () => {
