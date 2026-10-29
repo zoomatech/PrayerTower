@@ -150,6 +150,13 @@ export interface Features {
   crosspost: boolean;
   /** Sharing outside the app only with the author's consent (docs/GROWTH.md). */
   shareConsent: boolean;
+  /** Giving split (docs/GIVING_SPLIT.md): a share of gifts to the member's own support page. */
+  givingSplit: boolean;
+  givingSplitMax: number;
+  /** "Praying for you now" on the Lock Screen (iOS Live Activity, docs/GROWTH.md). */
+  prayedForLive: boolean;
+  /** Mobile numbers on the prayer chain, by text message (docs/GROWTH.md). */
+  prayerChainSms: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -354,6 +361,19 @@ export interface GrowthSettings {
   prayer_minute_enabled: boolean;
   guest_email_days: number;
   share_consent_enabled: boolean;
+  prayed_for_live_enabled: boolean;
+  prayer_chain_sms_enabled: boolean;
+}
+export interface GivingSplit {
+  url: string;
+  percent: number;
+  shareCents: number | null;
+}
+export interface MyGivingSplit {
+  enabled: boolean;
+  maxPercent: number;
+  percent: number;
+  supportUrl: string | null;
 }
 /** Who may share a post outside the app, chosen by its author. */
 export type ShareLevel = 'private' | 'link' | 'card';
@@ -375,7 +395,9 @@ export interface GuestLink {
 }
 export interface ChainPerson {
   id: string;
-  email: string;
+  /** One of the two: an email address, or a mobile number (+15055550100) while texts are on. */
+  email: string | null;
+  phone?: string | null;
   status: 'pending' | 'confirmed' | 'left';
   createdAt: string;
 }
@@ -611,6 +633,80 @@ export interface RadioNodes {
   stations: { node: string | null; sending: number; sent: number }[];
   nodes: RadioNode[];
   reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
+}
+
+/** Admin → Radio → Setup wizard (server radio/setup.ts). */
+export interface RadioSetupChoice {
+  rig?: string;
+  model?: number;
+  port?: string;
+  speed?: number;
+  band?: 'fm' | 'hf';
+  frequencyHz?: number;
+}
+export interface RadioSetupTest {
+  id: string;
+  kind: 'tone' | 'burst';
+  status: 'requested' | 'sending' | 'sent' | 'heard' | 'failed';
+  seconds: number;
+  code: string;
+  call_sign: string | null;
+  preset: string | null;
+  peak_dbfs: number | null;
+  heard_by: string | null;
+  heard_snr_db: number | null;
+  heard_peak_dbfs: number | null;
+  error: string | null;
+  created_at: string;
+  sent_at: string | null;
+  heard_at: string | null;
+  /** The receiver's level: quiet (under -30 dBFS), good, or hot (clipping). */
+  advice?: 'quiet' | 'good' | 'hot' | null;
+}
+export interface RadioSetup {
+  enabled: boolean;
+  choice: RadioSetupChoice;
+  rigs: { id: string; label: string; model: number | null }[];
+  env: { rigctld: string[]; station: string[] };
+  checks: { call_sign: string; checks: { name: string; ok: boolean; detail: string }[]; reported_at: string }[];
+  tests: RadioSetupTest[];
+}
+
+/** Admin → Radio → Coverage map (server radio/coverage.ts). Locations are rounded to about a city. */
+export interface CoveragePoint {
+  id: string;
+  name: string;
+  place: string | null;
+  lat: number;
+  lon: number;
+  snrDb: number | null;
+  reports: number;
+  lastHeardAt: string | null;
+  lastSeenAt: string | null;
+  quality: 'strong' | 'fair' | 'weak' | 'none';
+}
+export interface RadioCoverage {
+  enabled: boolean;
+  tileUrl: string;
+  station: { lat: number; lon: number } | null;
+  points: CoveragePoint[];
+  unplaced: { id: string; name: string }[];
+}
+
+/** Admin → Radio → Weekly radio digest (server radio/digest.ts). */
+export interface RadioDigestWeek {
+  week_start: string;
+  aired: number;
+  heard: number;
+  answered: number;
+  thanksgiving: number;
+  praying_too: number;
+  failed: number;
+}
+export interface RadioDigest {
+  enabled: boolean;
+  email: boolean;
+  weeks: RadioDigestWeek[];
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -1501,6 +1597,15 @@ export const api = {
     setListenerMode: (enabled: boolean) => request<{ enabled: boolean; active: boolean }>('PATCH', '/admin/listener-mode', { enabled }),
     updateRadioHealth: (patch: { enabled?: boolean; acks?: Partial<{ enabled: boolean; timeoutMinutes: number; maxRetries: number }> }) => request<StationHealth>('PATCH', '/admin/radio-health', patch),
     radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
+    radioSetup: () => get<RadioSetup>('/admin/radio-setup'),
+    updateRadioSetup: (patch: { enabled?: boolean; choice?: RadioSetupChoice }) => request<RadioSetup>('PATCH', '/admin/radio-setup', patch),
+    requestSetupTest: (kind: RadioSetupTest['kind'], seconds?: number) => request<{ test: RadioSetupTest }>('POST', '/admin/radio-setup/tests', { kind, ...(seconds ? { seconds } : {}) }),
+    confirmSetupTest: (id: string) => request<{ test: RadioSetupTest }>('POST', `/admin/radio-setup/tests/${id}/confirm`),
+    radioCoverage: () => get<RadioCoverage>('/admin/radio-coverage'),
+    updateRadioCoverage: (patch: { enabled?: boolean; tileUrl?: string; station?: { lat: number; lon: number } | null }) => request<RadioCoverage>('PATCH', '/admin/radio-coverage', patch),
+    placeRadioNode: (id: string, location: { lat: number; lon: number; place?: string } | null) => request<RadioCoverage>('PUT', `/admin/radio-nodes/${id}/location`, { location }),
+    radioDigest: () => get<RadioDigest>('/admin/radio-digest'),
+    updateRadioDigest: (patch: { enabled?: boolean; email?: boolean }) => request<RadioDigest>('PATCH', '/admin/radio-digest', patch),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
@@ -1561,6 +1666,9 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    givingSplitSettings: () => get<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('/admin/giving-split-settings'),
+    updateGivingSplitSettings: (patch: { enabled?: boolean; maxPercent?: number }) =>
+      request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
     meaningProposals: () => get<{ proposals: MeaningProposalQueueItem[] }>('/admin/meaning-proposals'),
@@ -1580,7 +1688,7 @@ export const api = {
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
-    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean }>) =>
+    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean; prayedForLiveEnabled: boolean; prayerChainSmsEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
     updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; crosspostEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
@@ -1732,10 +1840,18 @@ export const api = {
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
   revokeGuestLink: (postId: string) => request<{ revoked: true }>('DELETE', `/posts/${postId}/guest-link`),
+  myGivingSplit: () => get<{ split: MyGivingSplit }>('/me/giving-split'),
+  setGivingSplit: (percent: number) => request<{ split: MyGivingSplit }>('PUT', '/me/giving-split', { percent }),
+  memberGivingSplit: (userId: string, cents?: number) =>
+    get<{ split: GivingSplit | null }>(`/people/${userId}/giving-split${cents ? `?cents=${cents}` : ''}`),
+  postGivingSplit: (postId: string) => get<{ split: GivingSplit | null }>(`/posts/${postId}/giving-split`),
+  startLiveActivity: (body: { postId: string; pushToken: string; appId: string }) =>
+    post<{ id: string; props: { heading: string; line: string; count: number } }>('/me/live-activities', body),
+  endLiveActivity: (pushToken: string) => post<{ ended: true }>('/me/live-activities/end', { pushToken }),
   shareState: (postId: string) => get<{ share: ShareState | null }>(`/posts/${postId}/share`),
   setShareLevel: (postId: string, level: ShareLevel) => request<{ share: ShareState }>('PUT', `/posts/${postId}/share`, { level }),
   prayerChain: () => get<{ people: ChainPerson[] }>('/me/prayer-chain'),
-  addToPrayerChain: (email: string) => post<{ id: string }>('/me/prayer-chain', { email }),
+  addToPrayerChain: (to: { email: string } | { phone: string }) => post<{ id: string }>('/me/prayer-chain', to),
   removeFromPrayerChain: (id: string) => request<{ removed: true }>('DELETE', `/me/prayer-chain/${id}`),
   sendToPrayerChain: (postId: string) => post<{ recipients: number; path: string }>(`/posts/${postId}/prayer-chain`),
   prayedFor: () => get<{ prayedFor: PrayedFor }>('/me/prayed-for'),

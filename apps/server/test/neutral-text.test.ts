@@ -11,6 +11,7 @@ describe('neutral text for Open Circle members', () => {
     ['Your Priestly token is back in your balance.', 'Your Lighthouse token is back in your balance.'],
     ['Someone stopped to bring your request before the Lord.', 'Someone stopped to bring your request in their thoughts.'],
     ['Ann committed to pray for you', 'Ann promised to check in for you'],
+    ['Your church is verified. Churches near you can see it.', 'Your community is verified. Communities near you can see it.'],
   ])('%s', (from, to) => {
     expect(neutralText(from)).toBe(to);
     expect(RELIGIOUS_WORDS.test(neutralText(from))).toBe(false);

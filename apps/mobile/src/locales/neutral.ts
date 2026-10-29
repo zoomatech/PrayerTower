@@ -51,6 +51,13 @@ export const keys: Tree = named({
     shareMessage: 'You are invited to Open Circle. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
   },
   growth: {
+    adminSms: 'Support circle by text message',
+    adminSmsHint: "Members can add mobile numbers to their support circle. Each number gets one text asking to join, and requests only after saying yes. Needs the email support circle on, and the server's text message provider (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM), which charges per text.",
+    adminLive: 'Thinking of you now, on the Lock Screen',
+    adminLiveHint: "iPhone only. A member can put their own open request on their Lock Screen for up to 8 hours; it updates as people send support, with first names and a count. Updates need the server's Apple push key (APNS_KEY_ID, APNS_PRIVATE_KEY).",
+    liveHint: 'For the next 8 hours, your Lock Screen shows how many people sent support, with first names. Never the words of your request.',
+    liveHeading: 'Thinking of you',
+    liveWaiting: 'Waiting for the first kind word',
     adminGuest: 'Support from a link, no account needed',
     adminGuestHint: 'Members can make a web link for their own request. Anyone with it can tap "Thinking of you" without an account, and can leave an email to hear once if it turns out well. Guests never earn tokens.',
     adminChain: 'Email support circle',
@@ -195,6 +202,7 @@ export const keys: Tree = named({
     shareComment: '“%{body}” (%{name}, on an Open Circle request) %{url}',
   },
   talk: {
+    adminMeaningRowHint: 'Every card keeps its one row of action icons, in every feed skin. Thinking of you, well wishes, encourage and promise carry their emoji’s meanings: hovering shows them, pressing and holding opens up to five to choose from. Needs Emoji meanings on.',
     suggestTrouble: "I'm here for you.",
     careAsk: 'Want to talk about it?',
     closing1: "I'll be thinking of you. Talk soon.",

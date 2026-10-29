@@ -14,6 +14,16 @@ import { channelReport, decodeAudio, fingerprint, type HeardFrame } from './burs
 export const RATE = 48_000;
 const KEEP_SECONDS = 24;
 
+/** A decoded frame and how loud it arrived: the setup wizard's level check (near 0 dBFS clips, under -30 is quiet). */
+export type ListenedFrame = HeardFrame & { peakDbfs: number };
+
+/** The loudest sample, in dBFS to 0.1 dB (-200 for silence). */
+export function peakDbfs(samples: Float32Array): number {
+  let peak = 0;
+  for (const v of samples) peak = Math.max(peak, Math.abs(v));
+  return peak ? Math.round(200 * Math.log10(peak)) / 10 : -200;
+}
+
 /** The last KEEP_SECONDS of audio, decoded on demand; each frame is returned once. */
 export class RollingDecoder {
   private chunks: Float32Array[] = [];
@@ -27,7 +37,7 @@ export class RollingDecoder {
     this.total += samples.length;
   }
 
-  decode(searchHz = 0): HeardFrame[] {
+  decode(searchHz = 0): ListenedFrame[] {
     if (!this.total) return [];
     const buf = new Float32Array(this.total);
     let at = 0;
@@ -36,12 +46,12 @@ export class RollingDecoder {
       at += c.length;
     }
     const from = Math.max(0, this.decodedUpTo - this.dropped);
-    const fresh: HeardFrame[] = [];
+    const fresh: ListenedFrame[] = [];
     for (const f of decodeAudio(buf.subarray(from), RATE, searchHz)) {
       const end = this.dropped + from + f.end;
       if (end <= this.decodedUpTo) continue;
       this.decodedUpTo = end;
-      fresh.push(f);
+      fresh.push({ ...f, peakDbfs: peakDbfs(buf.subarray(from + f.start, from + f.end)) });
     }
     while (this.chunks.length > 1 && this.total - this.chunks[0]!.length > KEEP_SECONDS * RATE) {
       const first = this.chunks.shift()!;
@@ -64,8 +74,8 @@ export function s16le(buf: Buffer, carry: { rest: Buffer }): Float32Array {
 
 export interface ListenerApi {
   channelReport(r: { callSign: string; preset: string; snrDb: number }): Promise<void>;
-  heard(r: { callSign: string; preset: string; snrDb: number; hashes: string[] }): Promise<void>;
-  heartbeat(): Promise<void>;
+  heard(r: { callSign: string; preset: string; snrDb: number; hashes: string[]; peakDbfs?: number }): Promise<void>;
+  heartbeat(location?: NodeLocation): Promise<void>;
 }
 
 /** Prayer Tower's listener endpoints: POST /node/channel-report, /node/heard and /node/heartbeat, each with the node key (x-node-key). */
@@ -89,11 +99,29 @@ export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typ
       // 404: receipts, acknowledgements and listener reports are all switched off.
       if (!res.ok && res.status !== 404) throw new Error(`receipt failed (${res.status})`);
     },
-    async heartbeat() {
-      const res = await post('/node/heartbeat', {});
+    async heartbeat(location) {
+      const res = await post('/node/heartbeat', location ? { location } : {});
       if (!res.ok) throw new Error(`heartbeat failed (${res.status})`);
     },
   };
+}
+
+/** NODE_LOCATION (opt-in): where the node is, for the coverage map. The server rounds it to about a city. */
+export interface NodeLocation {
+  lat: number;
+  lon: number;
+  place?: string;
+}
+
+/** "lat,lon" or "lat,lon,Place name" (e.g. "39.8,-89.6,Springfield IL"); empty or unset shares nothing. */
+export function parseLocation(value: string | undefined): NodeLocation | undefined {
+  if (!value?.trim()) return undefined;
+  const [lat, lon, ...rest] = value.split(',');
+  const la = Number(lat?.trim()), lo = Number(lon?.trim());
+  if (!lat?.trim() || !lon?.trim() || !Number.isFinite(la) || !Number.isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) throw new Error('NODE_LOCATION must be "lat,lon" or "lat,lon,Place"');
+  const place = rest.join(',').trim().slice(0, 80);
+  // Rounded here too, so nothing finer than about a city ever leaves the node.
+  return { lat: Math.round(la * 10) / 10, lon: Math.round(lo * 10) / 10, ...(place ? { place } : {}) };
 }
 
 export interface ListenerConfig {
@@ -105,11 +133,11 @@ export interface ListenerConfig {
 }
 
 /** Decode what arrived and report each new frame. Returns the frames, for the log. Reporting errors are logged, never thrown. */
-export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: ListenerConfig, log: (m: string) => void = console.log): Promise<HeardFrame[]> {
+export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: ListenerConfig, log: (m: string) => void = console.log): Promise<ListenedFrame[]> {
   const frames = dec.decode(cfg.searchHz);
   if (!frames.length) return frames;
   // One channel report per station heard: its weakest frame.
-  const byStation = new Map<string, HeardFrame[]>();
+  const byStation = new Map<string, ListenedFrame[]>();
   for (const f of frames) byStation.set(f.callSign, [...(byStation.get(f.callSign) ?? []), f]);
   for (const [callSign, fs] of byStation) {
     const r = channelReport(fs)!;
@@ -120,7 +148,7 @@ export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: Lis
   if (cfg.receipts) {
     for (const f of frames) {
       const hashes = [...new Set(f.prayers ?? [])].slice(0, 500).map(fingerprint);
-      if (hashes.length) await api.heard({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes }).catch((err: Error) => log(`[listener] ${err.message}`));
+      if (hashes.length) await api.heard({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes, peakDbfs: f.peakDbfs }).catch((err: Error) => log(`[listener] ${err.message}`));
     }
   }
   return frames;

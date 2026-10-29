@@ -4,6 +4,10 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Deploy to one free Oracle server instead of Fly.io (DEPLOY_TARGET=server) ([#126](https://github.com/zoomatech/PrayerTower/pull/126))
+- Station health page, listener acknowledgements, and simulation of every preset (off by default) ([#124](https://github.com/zoomatech/PrayerTower/pull/124))
+- Open Circle: hide the God role-play page, neutral wording on the radio listen screen ([#123](https://github.com/zoomatech/PrayerTower/pull/123))
+- Ted Lasso nudges (off by default) and an accessibility pass on the kindness tools ([#122](https://github.com/zoomatech/PrayerTower/pull/122))
 - Fix duplicate migration number that breaks db reset on main ([#121](https://github.com/zoomatech/PrayerTower/pull/121))
 - Conversation helpers: six greeting ideas plus anonymous counting, each off by default ([#120](https://github.com/zoomatech/PrayerTower/pull/120))
 - Go-live prep: email checks, App Store listing push, settings check, Open Circle sender ([#113](https://github.com/zoomatech/PrayerTower/pull/113))

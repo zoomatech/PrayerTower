@@ -21,6 +21,7 @@ import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
+import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
 import * as talkCounts from '../conversation-helpers/counts.js';
@@ -42,6 +43,9 @@ import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
 import * as prayingToo from '../radio/praying-too.js';
+import * as radioSetup from '../radio/setup.js';
+import * as coverage from '../radio/coverage.js';
+import * as radioDigest from '../radio/digest.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -316,6 +320,67 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return { thanksgiving: await radioThanks.enabled(db), prayingToo: await prayingToo.enabled(db) };
   });
 
+  // Station setup wizard (radio/setup.ts): the rig choice and its settings lines, the station's checks, test tones and bursts.
+  app.get('/admin/radio-setup', async (req) => {
+    await requireAdmin(req);
+    return radioSetup.overview(db);
+  });
+
+  app.patch('/admin/radio-setup', async (req) => {
+    await requireAdmin(req);
+    const input = z.object({ enabled: z.boolean().optional(), choice: radioSetup.SetupChoice.optional() }).parse(req.body);
+    if (input.enabled !== undefined) await radioSetup.setEnabled(db, input.enabled);
+    if (input.choice) await radioSetup.setChoice(db, input.choice);
+    return radioSetup.overview(db);
+  });
+
+  app.post('/admin/radio-setup/tests', async (req, reply) => {
+    const userId = await requireAdmin(req);
+    if (!(await radioSetup.enabled(db))) throw notFound('Setup wizard');
+    const { kind, seconds } = z.object({ kind: z.enum(['tone', 'burst']), seconds: z.number().int().min(3).max(30).default(10) }).parse(req.body);
+    return reply.code(201).send({ test: await radioSetup.request(db, kind, userId, seconds) });
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/radio-setup/tests/:id/confirm', async (req) => {
+    await requireAdmin(req);
+    if (!(await radioSetup.enabled(db))) throw notFound('Setup wizard');
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    return { test: await radioSetup.confirm(db, id) };
+  });
+
+  // Coverage map (radio/coverage.ts): placed listener nodes with the signal each hears.
+  app.get('/admin/radio-coverage', async (req) => {
+    await requireAdmin(req);
+    return coverage.map(db);
+  });
+
+  app.patch('/admin/radio-coverage', async (req) => {
+    await requireAdmin(req);
+    await coverage.updateSettings(db, coverage.SettingsPatch.parse(req.body));
+    return coverage.map(db);
+  });
+
+  app.put<{ Params: { id: string } }>('/admin/radio-nodes/:id/location', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    const { location } = z.object({ location: coverage.Location.nullable() }).parse(req.body);
+    await coverage.place(db, id, location);
+    return coverage.map(db);
+  });
+
+  // Weekly radio prayer digest (radio/digest.ts).
+  app.get('/admin/radio-digest', async (req) => {
+    await requireAdmin(req);
+    const s = await radioDigest.settings(db);
+    return { ...s, weeks: s.enabled ? await radioDigest.weeks(db) : [] };
+  });
+
+  app.patch('/admin/radio-digest', async (req) => {
+    await requireAdmin(req);
+    const s = await radioDigest.updateSettings(db, z.object({ enabled: z.boolean().optional(), email: z.boolean().optional() }).parse(req.body));
+    return { ...s, weeks: s.enabled ? await radioDigest.weeks(db) : [] };
+  });
+
   app.get('/admin/radio-bursts', async (req) => {
     await requireAdmin(req);
     return { bursts: await radio.recentBursts(db) };
@@ -424,6 +489,14 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.get('/admin/conversation-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await conversationHelpers.settings(db) };
+  });
+  app.get('/admin/giving-split-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await givingSplit.settings(db) };
+  });
+  app.patch('/admin/giving-split-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await givingSplit.updateSettings(db, givingSplit.SettingsPatch.parse(req.body)) };
   });
   app.patch('/admin/conversation-settings', async (req) => {
     await requireAdmin(req);

@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { AppError } from '../../errors.js';
+import * as communities from '../communities/index.js';
 import * as notifications from '../notifications/index.js';
 
 export const CATEGORIES = ['threat', 'hate', 'harm_wish', 'curse', 'revenge', 'abuse_disclosure', 'foul'] as const;
@@ -216,8 +217,40 @@ export interface Guidance {
   resources: Resource[];
 }
 
-/** A gentle word for the member: a redirect, never a lecture. */
-export function guidance(d: Decision): Guidance {
+// Open Circle (and any community with neutral wording): the same gentle words, without the religious ones.
+const NEUTRAL: Record<Category, { title: string; message: string }> = {
+  threat: {
+    title: 'That sounds like a lot of anger',
+    message: 'Anger is honest. If you are thinking of hurting someone, please talk to someone you trust first. You could ask for support with the anger, and for safety and fairness.',
+  },
+  hate: {
+    title: 'Speak up for people, not against them',
+    message: 'Every group here is made of people someone loves. Try saying what happened, and what would help.',
+  },
+  harm_wish: {
+    title: 'Ask for fairness, not for harm',
+    message: 'It is fine to be honest about someone who hurt you. Try asking for fairness, safety, and healing for what they did to you.',
+  },
+  curse: {
+    title: 'Wish for good, never for harm',
+    message: 'You can pour out your hurt here. Try asking for things to be made right, and for your own safety and healing.',
+  },
+  revenge: {
+    title: 'Ask for fairness, not revenge',
+    message: 'Revenge rarely heals what happened. Try asking for fairness and for your own healing.',
+  },
+  abuse_disclosure: {
+    title: 'You are not alone',
+    message: 'Thank you for trusting us with this. What happened to you is not your fault. If you are in danger, call 911. These lines are free, confidential and open all day and night.',
+  },
+  foul: {
+    title: 'Tell us what is going on',
+    message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to support you.',
+  },
+};
+
+/** A gentle word for the member: a redirect, never a lecture. `secular` gives Open Circle's wording. */
+export function guidance(d: Decision, secular = false): Guidance {
   const abuse = d.categories.includes('abuse_disclosure');
   const resources = abuse ? ABUSE_RESOURCES : [];
   const held = d.action === 'hold' ? ' A moderator will read it before others see it.' : '';
@@ -251,16 +284,16 @@ export function guidance(d: Decision): Guidance {
       message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to pray for you.',
     },
   };
-  const t = text[abuse && d.category !== 'threat' && d.category !== 'hate' ? 'abuse_disclosure' : d.category];
+  const t = (secular ? NEUTRAL : text)[abuse && d.category !== 'threat' && d.category !== 'hate' ? 'abuse_disclosure' : d.category];
   return { category: d.category, action: d.action, title: t.title, message: t.message + (d.action === 'filter' ? '' : held), resources };
 }
 
 /** For the precheck: the gentle word before posting, or null when the check is off or nothing applies. */
-export async function precheck(q: Queryable, text: string): Promise<Guidance | null> {
+export async function precheck(q: Queryable, text: string, userId?: string): Promise<Guidance | null> {
   const s = await settings(q);
   if (!s.enabled || !text.trim()) return null;
   const d = decide(check(text, s.extra_hate_words), s);
-  return d ? guidance(d) : null;
+  return d ? guidance(d, userId ? await communities.isSecular(q, userId) : false) : null;
 }
 
 // Before and after saving -------------------------------------------------------------
@@ -269,13 +302,13 @@ export async function precheck(q: Queryable, text: string): Promise<Guidance | n
  * Before saving: refuses only obvious junk (text that is nothing but swearing), and
  * returns the decision to apply once the item is saved. Null when the check is off.
  */
-export async function screen(q: Queryable, _userId: string, _target: Target, text: string): Promise<Decision | null> {
+export async function screen(q: Queryable, userId: string, _target: Target, text: string): Promise<Decision | null> {
   const s = await settings(q);
   if (!s.enabled || !text.trim()) return null;
   const d = decide(check(text, s.extra_hate_words), s);
   if (!d) return null;
   // Nothing is saved, so the member can simply say more and post again.
-  if (d.action === 'filter') throw new AppError(422, 'filtered', guidance(d).message);
+  if (d.action === 'filter') throw new AppError(422, 'filtered', guidance(d, await communities.isSecular(q, userId)).message);
   return d;
 }
 
@@ -326,13 +359,14 @@ export async function apply(q: Queryable, userId: string, target: Target, id: st
       [target, id, userId, rows[0]!.community_id, flooding ? FLOOD_REASON : HARM_REASON[d.category], { harm: d.categories }, d.action === 'hold' || (flooding && d.action !== 'support')],
     );
   }
-  const g = guidance(d);
+  const secular = await communities.isSecular(q, userId);
+  const g = guidance(d, secular);
   // Someone disclosing abuse hears from us privately, with the hotlines, once a day at most.
   if (d.categories.includes('abuse_disclosure') && s.abuse_action === 'support') {
     await notifications.notify(q, userId, {
       kind: 'support_resources',
       title: 'You are not alone',
-      body: `${guidance({ ...d, category: 'abuse_disclosure', action: 'support' }).message} Domestic violence: 1-800-799-7233 (or text START to 88788). Sexual assault: 800-656-4673. Child abuse: 1-800-422-4453.`,
+      body: `${guidance({ ...d, category: 'abuse_disclosure', action: 'support' }, secular).message} Domestic violence: 1-800-799-7233 (or text START to 88788). Sexual assault: 800-656-4673. Child abuse: 1-800-422-4453.`,
       data: { resources: ABUSE_RESOURCES },
       dedupeKey: `support_resources:${userId}:${new Date().toISOString().slice(0, 10)}`,
     });

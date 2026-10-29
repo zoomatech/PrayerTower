@@ -110,6 +110,21 @@ describe('harmful prayers', () => {
     expect((await as(await createUser('Writer2')).post('/moderation/precheck', { text: 'Pray for rain.' })).json().harm).toBeUndefined();
   });
 
+  it('gives Open Circle members the gentle word without religious wording', async () => {
+    await as(admin).patch('/admin/communities/open-circle', { status: 'active' });
+    const member = await createUser('Neighbor');
+    expect((await as(member).post('/me/community', { slug: 'open-circle' })).statusCode).toBeLessThan(300);
+    const religious = /\b(pray\w*|god|lord|psalms?|romans|scripture|vengeance)\b/i;
+    for (const text of ['Help me get revenge on my brother.', 'I hope my boss dies.', 'Curse my neighbor.']) {
+      const harmWord = (await as(member).post('/moderation/precheck', { text })).json().harm;
+      expect(harmWord, text).toBeDefined();
+      expect(`${harmWord.title} ${harmWord.message}`).not.toMatch(religious);
+    }
+    const res = await post(member, 'I hope my boss dies.');
+    expect(`${res.json().harm.title} ${res.json().harm.message}`).not.toMatch(religious);
+    await db.query(`update public.communities set status = 'hidden' where slug = 'open-circle'`);
+  });
+
   it('bundles a flood from one account into one queue item, decided at once', async () => {
     await as(admin).patch('/admin/harm-settings', { flood_per_day: 2 });
     const troll = await createUser('Troll');

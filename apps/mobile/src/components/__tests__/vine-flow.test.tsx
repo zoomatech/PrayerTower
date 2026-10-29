@@ -2,7 +2,8 @@
 import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
 
 import { tabletFace } from '@/components/stone-tablet';
-import { doorway, isLit, leafBox, vineGeometry } from '@/components/vine-flow';
+import { vineRows } from '@/components/comment-tree';
+import { blossomPetals, doorway, isLit, leafBox, vineGeometry } from '@/components/vine-flow';
 import { vineTokens } from '@/layouts/vine';
 import { colors } from '@/lib/theme';
 
@@ -42,5 +43,24 @@ describe('Moonlit Gate and the Prayer Tower drawings', () => {
     for (const stone of ['#B9AE9C', '#6E6455', '#D8CFC0', '#8F8574']) {
       for (const text of [COMMENT_TEXT, colors.textMuted, colors.primary]) expect(contrastRatio(tabletFace(stone), text)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+});
+
+describe('Blossom Garden and the frosted overflow', () => {
+  it('draws Blossom Garden as a climbing rose with readable petal frames', () => {
+    const look = vineTokens({ tokens: { vineStyle: 'floral', leaf: '#F48FB1', leafSoft: '#FFF0F5' } } as never);
+    expect(look.vineStyle).toBe('floral');
+    expect(isLit(look.vineStyle)).toBe(false);
+    for (const text of [COMMENT_TEXT, colors.textMuted, colors.primary]) expect(contrastRatio(leafBox(look), text)).toBeGreaterThanOrEqual(4.5);
+    // Five closed petals.
+    expect(blossomPetals(50, 50, 10).match(/Z/g)).toHaveLength(5);
+  });
+
+  it('puts the next older comments behind the "more" row, newest first', () => {
+    const c = (id: string, mins: number) => ({ id, parentId: null, body: id, createdAt: new Date(Date.UTC(2026, 9, 29, 0, mins)).toISOString(), author: { displayName: id } }) as never;
+    const tree = new Map([[null, [c('a', 1), c('b', 2), c('c', 3), c('d', 4), c('e', 5)]]]);
+    const rows = vineRows(tree as never, new Set(), 2);
+    const more = rows.find((r) => r.kind === 'more');
+    expect(more && more.kind === 'more' && more.peek.map((p) => p.id)).toEqual(['c', 'b']);
   });
 });

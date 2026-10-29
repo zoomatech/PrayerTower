@@ -27,11 +27,11 @@ A skin is a row in `feed_themes`. Its look is in `tokens` (JSON), so a new vine 
 | Moonlit Gate | vine | Fine lines of silver light on a night sky: a drawn gate at the top of the feed (pillars, arch, ring of stars, a large star, two trees, a crescent moon), a thread of light down from its doorway, and each post in an arched doorway of light |
 | Wall | wall | One post per screen on a dark backdrop, hard snap per swipe, like a short-video app. Videos fill the page and play by themselves, muted and looping at the 7-second cap, only on the page on screen |
 | Prayer Tower / Climbing Tower | tower | Drawn walls of dressed stone, a climber on a rope, battlements at the top; one request per floor, carved on a stone tablet, with its newest comments on smaller sub-tablets hung below it |
-| Neon Cinderella | vine | Dark night backdrop, glowing pink stem, star-shaped leaves, and neon outline drawings (castle, pumpkin coach, glass slipper) after every third request |
+| Neon Cinderella | vine | Dark night backdrop, glowing pink neon rods with sparks of current running down them, cut-corner tube frames, and neon tube drawings (a castle with spires and pennants, a pumpkin coach with spoked wheels, a clock at midnight, a glass slipper) after every third request |
 | Neon Circuit | circuit | Each post glows inside its own screen, tilted left or right; one live wire runs down the edge with a tap into each screen, and gentle bursts of light travel down it |
-| Blossom Garden | vine | Soft pink backdrop, green stem, five-petal flowers instead of leaves; comments bloom as flowers |
+| Blossom Garden | vine | A climbing rose: a slender green stem twined with a pink tendril, small thorns, blossoms and buds along it; each post in a frame with a scalloped petal edge, a drawn rose at its top and blossoms at its foot; comments in smaller petal frames with a blossom |
 
-Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `backdrop`, `stemWidth` (2–14), `stemDouble`, `leafShape` (`round`, `pointed`, `flower`, `star`, `tablet`), `stemGlow`, `scenery` (`fairytale` or empty), `vineStyle` (`beanstalk`, `ink`, `neon`, `gate` or empty), `ink`, `leafEvery`, `idleBirdSeconds`, `birdText`, `tipText`. Wall tokens: `backdrop`. Tower tokens: `stone`, `mortar`, `backdrop`, `climber`. Circuit tokens: `backdrop`, `wire`, `burst`, `screen`, `tilt` (0–20 degrees).
+Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `backdrop`, `stemWidth` (2–14), `stemDouble`, `leafShape` (`round`, `pointed`, `flower`, `star`, `tablet`), `stemGlow`, `scenery` (`fairytale` or empty), `vineStyle` (`beanstalk`, `ink`, `neon`, `gate`, `floral` or empty), `ink`, `leafEvery`, `idleBirdSeconds`, `birdText`, `tipText`. Wall tokens: `backdrop`. Tower tokens: `stone`, `mortar`, `backdrop`, `climber`. Circuit tokens: `backdrop`, `wire`, `burst`, `screen`, `tilt` (0–20 degrees).
 
 Open Circle gets the same skins. They carry no religious words, and the vine's Open Circle wording still replaces `birdText` and `tipText`.
 
@@ -82,8 +82,18 @@ Every vine skin draws the plant as a transparent picture (`react-native-svg`, `a
   - `beanstalk` (Beanstalk): two thick strands that twist round each other, with curling tendrils.
   - `ink` (Golden Wood): a pen-and-ink drawing, with dark outlines (`ink` color) on the trunk, leaves and boxes, and flat colors.
   - `neon` (Neon Cinderella): no plant at all. It draws straight glowing rods with right-angle joins and cut-corner frames. Each tube has a faint wide bloom, a brighter halo and a thin white core. The castle, coach and slipper drawings stay.
+  - `floral` (Blossom Garden): a climbing rose. See the table above.
   - `gate` (Moonlit Gate): fine lines of silver light on the night sky. The feed opens with a drawn gate, and its line of light runs down from the doorway. Each post and comment sits in an arched doorway drawn in light, with a star at the top of the arch. On a post's page the comments keep the night sky behind them.
 - Neon Circuit's wire and screens use the same tube look: a white core with the color blooming round it.
+
+## Motion (2026-10-29)
+
+All of it stops with the system's Reduce Motion setting.
+
+- **A new post grows in.** Posts already in the feed when it opens settle in gently. A post that arrives later (after a refresh) grows in: the stalk is drawn down into its row, then the post unfurls from its stem.
+- **Leaves shuffle.** When a comment or post arrives, the leaves below spring down to make room (`LayoutAnimation`, iPhone and iPad).
+- **Frosted overflow.** Past the first few leaves (3 in the feed, the "Leaves shown" setting on a post), the next older comments wait in their real leaves behind frosted glass (`expo-blur`). A clear "N more" label sits on top; tapping it brings them forward. The blurred text is hidden from screen readers, and the label says how many there are.
+- **Neon current.** On Neon Cinderella a spark with a fading tail runs down each glowing rod, again and again. Neon Circuit's wire bursts are unchanged.
 
 ## Drawn tower (2026-10-29)
 
@@ -108,6 +118,8 @@ Every design shows the six actions (Praying Now, Commit to Pray, Encourage, Well
 `apps/mobile/src/components/comment-tree.tsx`. On a vine skin the comments on a request read top to bottom, present to past: the newest comment is the top leaf, each comment sits inside a pointed leaf on the same drawn vine, alternating sides, and replies hang below their comment on the same side on smaller leaves (to the third level). The older comments past the first few fade into the blur until tapped. New leaves grow in with a short spring, and tapping the blur brings the older leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it. Stars mark the leaves on Neon Cinderella and flowers on Blossom Garden. On the tower, comments stay stone tablets and smaller sub-tablets.
 
 ## Theme maker (members make their own skins)
+
+The maker's live preview redraws as each choice changes, including the **Drawing style** (swaying stem, twisting beanstalk, pen and ink, climbing rose, lines of light, neon tubes). Sending a skin asks an admin to approve it (in Admin → Feed skins). Once approved it appears in the Skin gallery for everyone, with likes and "Use this skin"; the maker can use it at once.
 
 Me → Make your own feed skin (`apps/mobile/src/app/skin-idea.tsx`). A member names the skin, picks a layout (growing vine, full-screen wall, climbing tower or neon circuit), sets its colors, and for vines picks the comment shape (round, pointed, flower, star, stone tablet), stem width, double outline, glow and fairy-tale scenery. A live preview updates as they go.
 

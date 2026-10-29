@@ -367,6 +367,77 @@ For another date range, an admin can call
 `GET /admin/operator-log?format=csv&from=2026-10-01&to=2026-11-01`. The station
 also keeps every burst as a WAV file in `BURST_DIR`.
 
+## Setup wizard
+
+Off by default. Admin → Radio → **Setup wizard on** walks a new operator
+through the first setup, in four steps. The station must already be running
+in burst mode (`BURST_MODE=audio`, or `simulate` for a dry run); it checks
+for a waiting test before each claim, so a test starts within one poll
+(`POLL_SECONDS`, 10 s).
+
+1. **Pick the radio.** Choose it from the list (or "Another radio" and its
+   Hamlib number from `rigctl -l`), FM or HF, the serial port and the
+   frequency. The wizard writes the lines for
+   `/etc/prayer-tower-rigctld.env` and `/etc/prayer-tower-station.env`; share
+   them to the station computer, then restart both services. The station's
+   own checks (sound card, radio) show under the lines once it checks in.
+   The model numbers come from Hamlib's `riglist.h` (backend × 1000 + number:
+   the IC-7300 is 3073, the FT-991/991A is 1035).
+2. **Set audio levels.** "Play a 10-second test tone" keys the radio and
+   plays a steady 1 kHz tone at the bursts' average level (the same RMS as a
+   burst). On HF, raise the sound card output until the radio reaches the
+   power you want with the ALC meter at zero. On FM, listen on a second radio.
+   `BURST_MODE=fldigi` can't play a tone: use fldigi's TUNE button.
+3. **Send a test burst.** One short frame, "Station test" and a code, no
+   prayers. It goes out on the station's preset (or the auto preset).
+4. **Confirm it decoded.** A listener node that decodes it reports its
+   fingerprint, the same way it reports prayers; the wizard then shows which
+   listener heard it, the signal (SNR) and how loud the audio arrived at the
+   listener, with advice: under -30 dBFS peak is quiet (turn the receiver up),
+   above -1 dBFS is clipping (turn it down). Decoded it on something that
+   doesn't report, such as fldigi or a recording? Tap "I decoded it on
+   another device".
+
+Only one test waits at a time. A test the station doesn't pick up within 5
+minutes fails ("is it running, in burst mode?"), and so does a burst no
+listener reports within 30 minutes. A failed key-up is reported in the
+wizard and unkeys the radio, but doesn't stop the station. Test bursts are
+never counted as prayers and never send receipts. Tests are started by
+the operator, so they go out even outside transmission windows and quiet
+hours.
+
+## Coverage map
+
+Off by default. Admin → Radio → **Coverage map on** shows the listener nodes
+on a map, each colored by the signal it hears from the station: the median
+SNR of its reports in the last 24 hours (strong 20 dB and up, fair 10 to 20,
+weak under 10, grey when it heard nothing).
+
+A node opts in by setting `NODE_LOCATION` in `/etc/prayer-tower-listener.env`
+to `lat,lon` or `lat,lon,Place name` (for example
+`39.78,-89.65,Springfield IL`). The node rounds it to 0.1 degree (about
+11 km, roughly a city) before sending it with its heartbeat, and the server
+rounds it again. Leave it empty and the node shares nothing. An admin can
+also place, move or remove any node by hand, and set the station's own
+location, which shows as a star.
+
+The map draws a plain grid unless an admin sets a tile server. With
+`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, the map shows
+"© OpenStreetMap contributors" under it and identifies itself to the tile
+server; it loads only the few tiles one screen needs.
+
+## Weekly radio digest
+
+Off by default. Admin → Radio → **Weekly digest on** shows the last eight
+weeks (Monday to Sunday, UTC): radio prayers aired, how many of those a
+listener heard, and how many requests that went out by radio were marked
+answered that week, plus thanksgiving bursts, "I'm praying too" taps and
+failures. Counts only: no names and no request text.
+
+With **Email it to admins on Mondays** on (and SMTP set up), the
+`radio_digest_weekly` job emails last week's digest to every admin at 07:00
+UTC each Monday, once per week.
+
 ## 4. Which preset
 
 Start slow and speed up once the path is proven. `node /opt/prayer-tower-station/dist/src/burst/cli.js presets`
@@ -447,4 +518,6 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - sox raw output to stdout (`-` as the file name, `-t raw -b 16 -e signed-integer`): [sox(1)](https://man.archlinux.org/man/sox.1.en)
 - `libhamlib-utils` package in Debian trixie: [Debian manpages](https://dyn.manpages.debian.org/trixie/libhamlib-utils/rigctl.1.en.html)
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
+- Hamlib model numbers (`RIG_MAKE_MODEL`, `MAX_MODELS_PER_BACKEND` 1000, the radios in the setup wizard): [Hamlib, include/hamlib/riglist.h](https://github.com/Hamlib/Hamlib/blob/master/include/hamlib/riglist.h)
+- OpenStreetMap tiles need attribution, a real User-Agent and conforming caching: [OSMF Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/), summarised in [flutter_map, "Using OpenStreetMap (direct)"](https://docs.fleaflet.dev/tile-servers/using-openstreetmap-direct)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)

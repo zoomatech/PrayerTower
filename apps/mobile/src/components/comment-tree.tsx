@@ -13,6 +13,7 @@
 // sub-tablets (leafShape 'tablet'). Reduced motion turns the growing off.
 import type { Comment } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { BlurView } from 'expo-blur';
 import { Animated, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StoneTablet } from '@/components/stone-tablet';
@@ -202,7 +203,7 @@ function Branch({ parentId, depth, props, tree }: { parentId: string | null; dep
 
 type Row =
   | { kind: 'leaf'; comment: Comment; depth: number; side: VineSide }
-  | { kind: 'more'; parentId: string | null; count: number; depth: number; side: VineSide };
+  | { kind: 'more'; parentId: string | null; count: number; depth: number; side: VineSide; peek: Comment[] };
 
 /** The tree as one top-to-bottom run of leaves: each comment, then its replies under it. */
 export function vineRows(tree: Map<string | null, Comment[]>, open: Set<string | null>, leavesShown: number): Row[] {
@@ -218,7 +219,7 @@ export function vineRows(tree: Map<string | null, Comment[]>, open: Set<string |
     });
     if (leaves.length > shown.length) {
       const side: VineSide = parentSide ?? (shown.length % 2 === 0 ? 'left' : 'right');
-      rows.push({ kind: 'more', parentId, count: leaves.length - shown.length, depth: Math.min(depth, 2), side });
+      rows.push({ kind: 'more', parentId, count: leaves.length - shown.length, depth: Math.min(depth, 2), side, peek: leaves.slice(shown.length, shown.length + 2) });
     }
   };
   walk(null, 0, null);
@@ -235,12 +236,52 @@ function Grow({ children }: { children: ReactNode }) {
   return <Animated.View style={{ opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }}>{children}</Animated.View>;
 }
 
+/**
+ * The leaves past the first few, seen through frosted glass: the next older
+ * comments in their real leaves, stacked a little askew and blurred, with the
+ * "N more" label clear on top. Tapping brings them forward (VineTree).
+ */
+export function BlurredLeaves({ look, depth, side, peek, children }: { look: ReturnType<typeof vineTokens>; depth: number; side: VineSide; peek: Comment[]; children: ReactNode }) {
+  const dark = isLit(look.vineStyle) || isDarkBackdrop(look.backdrop);
+  return (
+    <View style={styles.blurStack}>
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.blurLeaves} pointerEvents="none">
+        {(peek.length ? peek : [null]).map((c, k) => (
+          <View key={c?.id ?? k} style={[k > 0 && styles.blurBehind, { transform: [{ rotate: `${(side === 'left' ? -1 : 1) * (k ? 3 : -2)}deg` }] }]}>
+            <LeafFrame side={side} look={look} depth={Math.min(depth + 1, 2)}>
+              <Text style={styles.blurName} numberOfLines={1}>
+                {c?.author.displayName ?? ' '}
+              </Text>
+              <Text style={styles.blurBody} numberOfLines={2}>
+                {c?.body ?? ' '}
+              </Text>
+            </LeafFrame>
+          </View>
+        ))}
+      </View>
+      <BlurView intensity={28} tint={dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      <View style={styles.blurLabel}>{children}</View>
+    </View>
+  );
+}
+
+function isDarkBackdrop(backdrop: string) {
+  return /^#[0-9A-Fa-f]{6}$/.test(backdrop) && textOn(backdrop) !== '#2B2530';
+}
+
 function VineTree(props: CommentTreeProps) {
   const { t } = useLocale();
   const { tokens } = props;
   const tree = useMemo(() => branchesOf(props.comments), [props.comments]);
   const [open, setOpen] = useState(() => ancestorsOf(props.comments, props.highlightId));
   const rows = useMemo(() => vineRows(tree, open, props.leavesShown), [tree, open, props.leavesShown]);
+  // When a comment arrives, the leaves below shuffle down to make room for it.
+  const reduced = useReducedMotion();
+  const count = useRef(props.comments.length);
+  useEffect(() => {
+    if (props.comments.length !== count.current && !reduced) LayoutAnimation.configureNext(LayoutAnimation.create(420, LayoutAnimation.Types.spring, LayoutAnimation.Properties.scaleXY));
+    count.current = props.comments.length;
+  }, [props.comments.length, reduced]);
   const mark = (depth: number) =>
     tokens.leafShape === 'flower' || tokens.leafShape === 'star' ? <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={depth > 0 ? 16 : 22} /> : undefined;
   return (
@@ -260,12 +301,10 @@ function VineTree(props: CommentTreeProps) {
                   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                   setOpen((prev) => new Set(prev).add(row.parentId));
                 }}
-                style={[styles.vineBlur, row.side === 'left' ? styles.blurLeft : styles.blurRight]}
                 testID={key}>
-                {[0.35, 0.22, 0.12].map((o, k) => (
-                  <View key={k} style={[styles.vineGhost, { opacity: o, backgroundColor: tokens.leaf, left: k * 14, top: k * 8, transform: [{ rotate: `${(k - 1) * 8}deg` }] }]} />
-                ))}
-                <Text style={[styles.blurText, isLit(tokens.vineStyle) ? { color: textOn(tokens.backdrop || '#0B1324') } : null]}>{t('tree.more', { count: row.count })}</Text>
+                <BlurredLeaves look={tokens} depth={row.depth} side={row.side} peek={row.peek}>
+                  <Text style={styles.blurText}>{t('tree.more', { count: row.count })}</Text>
+                </BlurredLeaves>
               </Pressable>
             </VineRow>
           );
@@ -338,9 +377,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 18,
   },
   ghostTablet: { width: 26, height: 30, borderRadius: 3, borderTopLeftRadius: 13, borderTopRightRadius: 13 },
-  blurText: { ...type.small, color: colors.text, fontWeight: '700' },
-  vineBlur: { height: 56, justifyContent: 'center', paddingLeft: 64, width: '70%' },
-  blurLeft: { alignSelf: 'flex-start' },
-  blurRight: { alignSelf: 'flex-end' },
-  vineGhost: { position: 'absolute', width: 44, height: 30, borderTopLeftRadius: 22, borderBottomRightRadius: 22, borderTopRightRadius: 3, borderBottomLeftRadius: 3 },
+  // A clear label on the frosted leaves, on its own light pill so it reads on any skin.
+  blurText: { ...type.small, color: colors.text, fontWeight: '700', backgroundColor: colors.surface, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs, overflow: 'hidden' },
+  blurStack: { borderRadius: radius.lg, overflow: 'hidden', minHeight: 64 },
+  blurLeaves: { opacity: 0.85 },
+  blurBehind: { marginTop: -40 },
+  blurName: { fontSize: 13, fontWeight: '700', color: '#2B2530' },
+  blurBody: { fontSize: 14, color: '#2B2530' },
+  blurLabel: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' },
 });
