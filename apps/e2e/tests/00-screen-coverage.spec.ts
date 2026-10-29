@@ -9,7 +9,7 @@ import { expect, test } from '@playwright/test';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP = join(HERE, '../../mobile/src/app');
 // Screens that need an ID; the walks open them through real records where they can.
-const NEEDS_ID = ['appeal/[id]', 'conversation/[id]', 'event/[id]', 'mend/[id]', 'people/[id]', 'post/[id]', 'survey/[id]'];
+const NEEDS_ID = ['appeal/[id]', 'conversation/[id]', 'event/[id]', 'mend/[id]', 'people/[id]', 'post/[id]', 'survey/[id]', 'circles/[id]'];
 
 function screens(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
