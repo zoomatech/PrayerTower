@@ -79,7 +79,7 @@ function prayPage(opts: site.SiteOptions, token: string, v: growth.GuestView, do
   } else if (done) {
     action = `<h2>${s ? 'Thank you for thinking of them.' : 'Thank you for praying.'}</h2>
 <p>${who === 'Someone' ? 'They' : who} will see that ${s ? 'someone sent support' : 'someone prayed'} from this link.</p>
-<p>${s ? 'Open Circle' : 'Prayer Tower'} is a small, ad-free, invite-only community. If you'd like to join, ask ${who === 'Someone' ? 'the person who shared this link' : who} for an invite.</p>`;
+<p>${s ? esc(opts.openCircle?.name ?? 'Open Circle') : 'Prayer Tower'} is a small, ad-free, invite-only community. If you'd like to join, ask ${who === 'Someone' ? 'the person who shared this link' : who} for an invite.</p>`;
   } else {
     action = `${error ? `<p class="notice">${esc(error)}</p>` : ''}
 <form method="post" action="${esc(base)}">

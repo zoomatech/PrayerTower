@@ -119,6 +119,8 @@ Build the Open Circle app with `EXPO_PUBLIC_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_
 
 When Steve picks the real name, change it in four places: `EXPO_PUBLIC_OPEN_CIRCLE_NAME` (the build), `OPEN_CIRCLE_NAME` (the server), Admin → Communities (the community's name), and the App Store listing.
 
+Email to Open Circle members and their guests (digest, invites, guest and keep-in-touch emails) is sent under `OPEN_CIRCLE_NAME`, with `MAIL_FROM`'s address, so the sender never reads Prayer Tower. Set `OPEN_CIRCLE_MAIL_FROM` to use Open Circle's own address once it has a domain.
+
 ## Where the code is
 
 | Part | Location |

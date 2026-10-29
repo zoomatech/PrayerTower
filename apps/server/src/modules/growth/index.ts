@@ -252,6 +252,8 @@ export interface MailContext {
   mailer: Mailer | null;
   /** The public site address (PUBLIC_SITE_URL); unset = these emails are not sent. */
   siteUrl: string | null;
+  /** Open Circle's name (OPEN_CIRCLE_NAME) in its members' guests' email. */
+  openCircleName: string;
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -270,7 +272,7 @@ export function guestAnsweredTask(q: Queryable, ctx: MailContext): Task {
     if (!post || post.state !== 'answered') return;
     const secular = await secularCommunity(q, post.community_id);
     const name = post.is_anonymous ? null : firstName((await getProfile(q, post.user_id))?.display_name);
-    const brand = secular ? 'Open Circle' : 'Prayer Tower';
+    const brand = secular ? ctx.openCircleName : 'Prayer Tower';
     const { rows } = await q.query<{ id: string; email: string; first_name: string | null }>(
       'select id, email, first_name from public.guest_prayers where post_id = $1 and email is not null and answered_sent_at is null',
       [postId],
@@ -289,6 +291,7 @@ export function guestAnsweredTask(q: Queryable, ctx: MailContext): Task {
         to: g.email,
         subject: secular ? 'Good news from someone you supported' : 'Good news: a prayer you prayed was answered',
         ...message(lines),
+        secular,
       });
       await q.query('update public.guest_prayers set answered_sent_at = now(), email = null where id = $1', [g.id]);
     }
@@ -406,6 +409,7 @@ export function chainConfirmTask(q: Queryable, ctx: MailContext): Task {
       to: m.email,
       subject: entry.secular ? `${entry.ownerName} asked to keep you posted` : `${entry.ownerName} asked you to join their prayer chain`,
       ...message(lines),
+      secular: entry.secular,
     });
   };
 }
@@ -439,6 +443,7 @@ export function chainSendTask(q: Queryable, ctx: MailContext): Task {
         to: m.email,
         subject: secular ? `${name} shared a request with you` : `${name} asks for your prayers`,
         ...message(lines),
+        secular,
       });
     }
   };

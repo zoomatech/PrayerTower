@@ -91,6 +91,8 @@ const Env = z.object({
   SMTP_URL: z.string().optional(),
   /** Sender for outgoing email, e.g. "Prayer Tower <hello@example.org>". */
   MAIL_FROM: z.string().optional(),
+  /** Sender for Open Circle members' email; unset = MAIL_FROM's address under OPEN_CIRCLE_NAME. */
+  OPEN_CIRCLE_MAIL_FROM: z.string().optional(),
   /** Comma-separated emails that get the pilot report every Monday (needs SMTP_URL). Unset = none. */
   SPONSOR_REPORT_TO: z.string().default(''),
   // Language of the sponsor email for addresses that aren't members (members get their app language).
