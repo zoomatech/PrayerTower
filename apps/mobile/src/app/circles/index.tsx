@@ -58,7 +58,6 @@ export default function Circles() {
             key={c.id}
             testID={`circle-${c.id}`}
             role="link"
-            accessibilityLabel={`${c.name}, ${t('circles.members', { count: c.members })}`}
             style={styles.card}
             onPress={() => router.push(`/circles/${c.id}`)}>
             <Text style={type.heading}>{c.name}</Text>

@@ -2403,7 +2403,7 @@ const en = {
     intro: 'A small, invite-only group (up to 12 people) that prays for each other. What you share stays inside the circle.',
     open: 'Prayer circles',
     none: 'You’re not in a circle yet. Start one, or join with a code someone gave you.',
-    members: '%{count} people',
+    members: '%{count} in this circle',
     start: 'Start a circle',
     name: 'Circle name',
     about: 'What is this circle for? (optional)',
