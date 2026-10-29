@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
+import { HarmSettingsSection } from '@/components/harm-admin';
 import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
@@ -316,6 +317,7 @@ function Admin() {
         <LiveSection />
         <GivingSection />
         <SecuritySection />
+        <HarmSettingsSection />
         <ReminderToneSection />
 
         {radio ? (

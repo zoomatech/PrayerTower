@@ -760,7 +760,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     remove: "Eliminar",
     removeSuspend: "Eliminar y suspender 7 días",
     target: {"post": "Petición", "comment": "Comentario", "reaction": "Mensaje de ánimo", "message": "Mensaje privado", "event": "Evento"},
-    source: {"ai": "Marcado automáticamente", "report": "Denunciado por un miembro", "crisis": "Podría necesitar apoyo"},
+    source: {"ai": "Marcado automáticamente", "report": "Denunciado por un miembro", "crisis": "Podría necesitar apoyo", "harm": "Harmful-prayer check"},
   },
   witness: {
     markTitle: 'Witness team (staff only)',
@@ -1441,6 +1441,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     history: 'Your purchases',
     refunded: 'Refunded',
   },
+  harm: en.harm,
   enums: {
     moderationRule: {
       harm: 'Ora por el bien, nunca por el mal',
