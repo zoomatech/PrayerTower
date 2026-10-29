@@ -16,7 +16,7 @@ targets:
   PrayerTowerNative:
     type: application
     platform: iOS
-    sources: [App]
+    sources: [App, Shared]
     # A shared scheme, so scripts/mac-build-native.sh can build with xcodebuild -scheme.
     scheme: {}
     dependencies:
@@ -96,7 +96,7 @@ targets:
     platform: macOS
     # macOS 15 for defaultLaunchBehavior, so the console window opens at launch.
     deploymentTarget: "15.0"
-    sources: [Console]
+    sources: [Console, Shared]
     scheme: {}
     dependencies:
       - package: PrayerTowerKit
