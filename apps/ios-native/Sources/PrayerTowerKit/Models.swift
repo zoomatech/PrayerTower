@@ -58,17 +58,43 @@ public struct Profile: Codable, Sendable, Equatable {
     public let displayName: String
     /// Compose starts with "Post anonymously" on when this is set.
     public let anonymousByDefault: Bool?
+    public let whyHere: [String]?
+    public let traumaContentOptOut: Bool?
+    public let updatesInFirstComment: Bool?
+    public let promptsEnabled: Bool?
+    /// gentle | firm; nil = the app default.
+    public let promptTone: String?
+    public let digestEnabled: Bool?
+    /// Missing means on.
+    public let showPrayerStats: Bool?
 
-    public init(id: String, displayName: String, anonymousByDefault: Bool? = nil) {
+    public init(
+        id: String, displayName: String, anonymousByDefault: Bool? = nil, whyHere: [String]? = nil, traumaContentOptOut: Bool? = nil,
+        updatesInFirstComment: Bool? = nil, promptsEnabled: Bool? = nil, promptTone: String? = nil, digestEnabled: Bool? = nil, showPrayerStats: Bool? = nil
+    ) {
         self.id = id
         self.displayName = displayName
         self.anonymousByDefault = anonymousByDefault
+        self.whyHere = whyHere
+        self.traumaContentOptOut = traumaContentOptOut
+        self.updatesInFirstComment = updatesInFirstComment
+        self.promptsEnabled = promptsEnabled
+        self.promptTone = promptTone
+        self.digestEnabled = digestEnabled
+        self.showPrayerStats = showPrayerStats
     }
 
     enum CodingKeys: String, CodingKey {
         case id
         case displayName = "display_name"
         case anonymousByDefault = "anonymous_by_default"
+        case whyHere = "why_here"
+        case traumaContentOptOut = "trauma_content_opt_out"
+        case updatesInFirstComment = "updates_in_first_comment"
+        case promptsEnabled = "prompts_enabled"
+        case promptTone = "prompt_tone"
+        case digestEnabled = "digest_enabled"
+        case showPrayerStats = "show_prayer_stats"
     }
 }
 
@@ -98,6 +124,12 @@ public struct Me: Codable, Sendable, Equatable {
     public let profile: Profile
     public let roles: [String]
     public let community: Community?
+
+    public init(profile: Profile, roles: [String], community: Community?) {
+        self.profile = profile
+        self.roles = roles
+        self.community = community
+    }
 }
 
 public struct PrayingNow: Codable, Sendable, Equatable {
