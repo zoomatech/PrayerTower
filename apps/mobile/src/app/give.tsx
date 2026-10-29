@@ -1,5 +1,5 @@
 // Give: gifts instead of ads. Shown only while an admin has turned giving on and
-// set up Stripe or a Zeffy link. A gift goes to everyone (the shared fund) or a
+// set up Stripe, a Zeffy link or a PayPal link. A gift goes to everyone (the shared fund) or a
 // token pool. Also shows this month's free radio prayers and asks for more.
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -19,14 +19,15 @@ const dollars = (cents: number) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0
 export default function GiveScreen() {
   const { t } = useLocale();
   const radioOn = useFeature('radio');
-  const params = useLocalSearchParams<{ thanks?: string }>();
+  const params = useLocalSearchParams<{ thanks?: string; to?: string; name?: string }>();
   const [info, setInfo] = useState<GivingInfo | null>(null);
   const [pools, setPools] = useState<TokenPool[]>([]);
   const [gifts, setGifts] = useState<MyGift[]>([]);
   const [allowance, setAllowance] = useState<RadioAllowance | null>(null);
   const [amount, setAmount] = useState(1000);
   const [custom, setCustom] = useState('');
-  const [target, setTarget] = useState<GiftTarget>({ kind: 'everyone' });
+  // From a member's page (Give to …), the gift starts out going to them.
+  const [target, setTarget] = useState<GiftTarget>(params.to ? { kind: 'member', userId: params.to } : { kind: 'everyone' });
   const [showDonor, setShowDonor] = useState(false);
   const [ask, setAsk] = useState('1');
   const [note, setNote] = useState('');
@@ -102,6 +103,9 @@ export default function GiveScreen() {
                 <Text style={type.heading}>{t('give.to')}</Text>
                 <View style={styles.chips}>
                   <Chip label={t('give.everyone')} selected={target.kind === 'everyone'} onPress={() => setTarget({ kind: 'everyone' })} />
+                  {params.to ? (
+                    <Chip label={params.name ?? t('give.member')} selected={target.kind === 'member'} onPress={() => setTarget({ kind: 'member', userId: params.to! })} />
+                  ) : null}
                   {pools.map((p) => (
                     <Chip key={p.id} label={p.name} selected={target.kind === 'pool' && target.poolId === p.id} onPress={() => setTarget({ kind: 'pool', poolId: p.id })} />
                   ))}
@@ -110,13 +114,24 @@ export default function GiveScreen() {
                 <Text style={type.small}>{t('give.fees')}</Text>
               </>
             ) : null}
-            <Button
-              testID="give-submit"
-              label={info.provider === 'stripe' ? t('give.giveAmount', { amount: amountOk ? dollars(cents) : '' }) : t('give.open')}
-              onPress={give}
-              busy={busy}
-              disabled={info.provider === 'stripe' && !amountOk}
-            />
+            {info.provider !== 'none' ? (
+              <Button
+                testID="give-submit"
+                label={info.provider === 'stripe' ? t('give.giveAmount', { amount: amountOk ? dollars(cents) : '' }) : t('give.open')}
+                onPress={give}
+                busy={busy}
+                disabled={info.provider === 'stripe' && !amountOk}
+              />
+            ) : null}
+            {/* PayPal's own Donate page, a second way to give; staff record those gifts. */}
+            {info.paypalUrl ? (
+              <Button
+                testID="give-paypal"
+                variant={info.provider === 'none' ? 'primary' : 'secondary'}
+                label={t('give.paypal')}
+                onPress={() => WebBrowser.openBrowserAsync(info.paypalUrl!).catch((e) => setError((e as Error).message))}
+              />
+            ) : null}
           </View>
         ) : null}
 
