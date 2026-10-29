@@ -2082,7 +2082,7 @@ function KindnessWeather() {
           <Text style={type.small}>
             {SKY[w.weather]} {t('weather.week', { date: w.weekStart })}: {t(`weather.${w.weather}`)}
           </Text>
-          {w.comments !== null ? <Text style={type.small}>{t('weather.numbers', { comments: w.comments, warm: w.warm ?? 0, heated: w.heated ?? 0, lifts: w.prayers ?? 0 })}</Text> : null}
+          {w.comments !== null ? <Text style={type.small}>{t('weather.numbers', { comments: w.comments, warm: w.warm ?? 0, heated: w.heated ?? 0, lifts: w.prayers ?? 0, people: w.people ?? 0 })}</Text> : null}
         </View>
       ))}
     </View>
@@ -2230,6 +2230,7 @@ function PracticeSettingsSection() {
       <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={s.prayer_circles_enabled} onChange={(v) => save({ prayerCirclesEnabled: v })} />
       <Toggle label={t('circleWelcome.adminTitle')} hint={t('circleWelcome.adminHint')} value={s.circle_welcome_enabled} onChange={(v) => save({ circleWelcomeEnabled: v })} />
       <Toggle label={t('pathBack.adminTitle')} hint={t('pathBack.adminHint')} value={s.path_back_enabled} onChange={(v) => save({ pathBackEnabled: v })} />
+      <Toggle label={t('kindWords.adminTitle')} hint={t('kindWords.adminHint')} value={s.empathy_practice_enabled} onChange={(v) => save({ empathyPracticeEnabled: v })} />
       <Toggle label={t('weather.adminTitle')} hint={t('weather.adminHint')} value={s.kindness_weather_enabled} onChange={(v) => save({ kindnessWeatherEnabled: v })} />
       {s.kindness_weather_enabled ? <KindnessWeather /> : null}
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />

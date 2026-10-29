@@ -31,8 +31,19 @@ describe('Kindness weather', () => {
     expect(r.enabled).toBe(true);
     expect(r.weeks).toHaveLength(4);
     for (const w of r.weeks) {
-      expect(Object.keys(w).sort()).toEqual(['comments', 'heated', 'prayers', 'warm', 'weather', 'weekStart']);
-      if (w.weather === 'quiet') expect(w.comments).toBeNull();
+      expect(Object.keys(w).sort()).toEqual(['comments', 'heated', 'people', 'prayers', 'warm', 'weather', 'weekStart']);
+      if (w.weather === 'quiet') expect(w.people).toBeNull();
+      else expect(w.people).toBeLessThanOrEqual(w.comments);
     }
+  });
+
+  it('switches the kind words practice card on and off', async () => {
+    const member = await createUser('Kind Words Member');
+    const set = (v: boolean) => db.query('update public.practice_settings set empathy_practice_enabled = $1', [v]);
+    await set(false);
+    expect((await as(member).get('/features')).json().features.empathyPractice).toBe(false);
+    await set(true);
+    expect((await as(member).get('/features')).json().features.empathyPractice).toBe(true);
+    await set(false);
   });
 });
