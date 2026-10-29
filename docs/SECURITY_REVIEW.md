@@ -48,6 +48,20 @@ How it was checked:
 | 6 | The weekly digest email quoted answered requests the member had prayed for, including requests marked sensitive, and requests from someone who has since blocked them (or whom they blocked). | Medium (privacy) | The digest leaves out other people's sensitive requests and anything across a block. Test: `digest.test.ts`. |
 | 7 | In station mode, members could spend a Priestly token on a prayer the station would never send. Found in the go-live rehearsal and fixed in #48. | Low (lost tokens) | Refused up front, with a plain message. |
 
+## Phase 3 review (2026-10-29)
+
+A regression and security pass over the Phase 3 features (push delivery, gentle reminders, moderation tools, two-step backup codes and passkeys, practice mode, JaaS live rooms).
+
+- **Staff routes, wider check.** The plain-member test now covers every `/admin`, `/witness`, `/moderation`, `/staff`, `/station-admin` and `/oncall` route. The only exceptions are the two member routes `/moderation/precheck` and `/moderation/items/:id/appeal`.
+  - It found two staff routes that checked the body before the role: `POST /staff/reading-plans` and `POST /staff/radio-allocation-requests/:id/decide`. Both had a role check inside, so nothing leaked, but a member could see a 400 instead of 403. Both now check the role first.
+- **No 500s on bad ids.** A new test (`test/no-500s.test.ts`) sends a malformed id to every route with an id, as an admin with every staff role. No route answers 500.
+- **SQL.** Every query built with string interpolation uses a fixed column list or a fixed table map, never member input.
+- **HTML pages.** Server-made pages escape member text (`site.esc`). The new practice room page shows only a room name that has already been checked (letters, digits, `-` and `_`).
+- **Backup codes.** Codes are hashed with scrypt and compared with `timingSafeEqual`. There are 5 wrong tries an hour, and a used code is spent.
+- **Practice purchases.** These are refused in production and whenever the App Store connection is set. They credit only the member who sends them, and each credits once.
+- **JaaS tokens.** Each member gets their own token, good for 3 hours. Only the host is moderator, and recording and streaming are off.
+- **Dependencies.** `npm audit --omit=dev --audit-level=high` for the server is clean.
+
 ## Settings to confirm on the hosted project before the pilot
 
 These live in the Supabase dashboard (Authentication), not in code. They are also in the [pilot launch checklist](PILOT_LAUNCH_CHECKLIST.md).

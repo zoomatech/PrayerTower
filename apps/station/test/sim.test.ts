@@ -5,6 +5,10 @@ import { PRESETS, presetByName } from '../src/burst/presets.js';
 import { simMarkdown, simulate, type SimRow } from '../src/burst/sim.js';
 import { SAMPLE_PRAYERS } from './fixtures/sample-prayers.js';
 
+// Each case runs whole bursts through the modem several times: 2–5 s locally, and
+// past vitest's 5 s default on a busy CI runner (seen 2026-10-29 on fm-robust-fec).
+const SLOW = 30_000;
+
 describe('every preset at several noise levels', () => {
   for (const p of PRESETS) {
     it(`${p.name}: all 30 prayers at ${p.minSnrDb + 2} and ${p.minSnrDb + 12} dB, and no wrong prayer far below ${p.minSnrDb} dB`, () => {
@@ -15,14 +19,14 @@ describe('every preset at several noise levels', () => {
       // Far below it, what gets through (usually nothing) is still only real prayers, in order.
       const low = simulate(p, SAMPLE_PRAYERS, 'steady', p.minSnrDb - 10, 4);
       expect(low.heard).toBeLessThan(SAMPLE_PRAYERS.length);
-    });
+    }, SLOW);
   }
 
   it('HF presets get every prayer through CCIR 520 moderate fading at their rated fading level', () => {
     for (const [name, snr] of [['hf-robust', 9], ['hf-standard', 13], ['hf-fast', 16]] as const) {
       for (const seed of [1, 2]) expect(simulate(presetByName(name), SAMPLE_PRAYERS, 'moderate', snr, seed).heard, `${name} seed ${seed}`).toBe(SAMPLE_PRAYERS.length);
     }
-  });
+  }, SLOW);
 
   it('faster presets carry more prayers a second of air time, and need more signal for it', () => {
     const rate = (name: string) => SAMPLE_PRAYERS.length / simulate(presetByName(name), SAMPLE_PRAYERS, 'steady', 40).seconds;
@@ -31,7 +35,7 @@ describe('every preset at several noise levels', () => {
     expect(rate('fm-fast')).toBeLessThan(rate('dataport-turbo'));
     expect(rate('hf-robust')).toBeLessThan(rate('hf-fast'));
     expect(presetByName('fm-robust').minSnrDb).toBeLessThan(presetByName('fm-fast').minSnrDb);
-  });
+  }, SLOW);
 
   it('prints the table for the doc', () => {
     const rows: SimRow[] = [{ preset: 'fm-fast', rate: 22.5, seconds: 1.33, steadyDb: 15 }, { preset: 'hf-robust', rate: 4.9, seconds: 6.1, steadyDb: 2, fadingDb: null }];
