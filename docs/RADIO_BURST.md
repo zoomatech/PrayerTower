@@ -477,6 +477,13 @@ node apps/station/dist/src/burst/cli.js encode test.wav fm-standard < prayers.tx
 
 Any recording rate works; the decoder resamples to 48 kHz.
 
+The decoder is tested (`apps/station/test/robustness.test.ts`, `fuzz.test.ts`) against what real receivers do to a recording:
+
+- **Level:** a burst recorded about 50 dB too quietly still decodes in full. An overdriven, hard-clipped one decodes what it can and never misreads.
+- **Hum and DC:** 60 Hz mains hum and a DC offset from a cheap sound card don't matter.
+- **Dropouts:** a few milliseconds of broken samples (NaN or Infinity, from a driver glitch) are treated as silence, so the error correction covers them and every prayer still decodes.
+- **Two stations at once:** when two stations key up over each other, a prayer is never credited to the wrong call sign. Two bursts sent back to back with a tenth of a second between them are both heard.
+
 ## Format specification (version 1)
 
 Everything needed to write an independent decoder.

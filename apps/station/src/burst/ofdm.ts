@@ -14,6 +14,7 @@ import { decodeHeader, decodePayload, encodeHeader, encodePayload, HEADER_BYTES,
 import { codedBits, convDecode, convEncode, interleaver } from './conv.js';
 import { carriers, payloadCarriers, PRESETS, symbolSamples, type BurstPreset } from './presets.js';
 import { isPilot, pilotPhase, qamPoint, qamSlice, qamSoft } from './qam.js';
+import { finiteSamples } from './samples.js';
 
 const SAMPLE_RATE = 48_000;
 const N = 1024;
@@ -612,7 +613,8 @@ function deinterleave(soft: number[], n: number): Float32Array {
  * HF (SSB), set searchHz to also try the audio moved in 10 Hz steps up to that
  * far either way (a 50 Hz search costs 11 passes).
  */
-export function demodulate(x: Float32Array, threshold = 0.4, searchHz = 0): DecodedFrame[] {
+export function demodulate(audio: Float32Array, threshold = 0.4, searchHz = 0): DecodedFrame[] {
+  const x = finiteSamples(audio);
   const frames = demodulateOnce(x, threshold);
   for (let hz = 10; hz <= searchHz; hz += 10) {
     for (const shift of [hz, -hz]) {
