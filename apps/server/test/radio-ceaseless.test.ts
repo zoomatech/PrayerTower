@@ -79,6 +79,11 @@ describe('prayer without ceasing', () => {
     await as(member).put(`/posts/${second.id}/keep-on-air`, { on: true });
     const next = (await ceaseless.queueDue(db, later(31)))!;
     expect((await row(next))!.post_id).toBe(second.id);
+    // A member's own prayer queued after it still goes out first.
+    const own = await newRequest(other, 'Please pray for the bus drivers this winter.');
+    expect((await as(other).post(`/posts/${own.id}/radio`, { idempotencyKey: `ceaseless-own-${own.id}` })).statusCode).toBe(201);
+    const order = ((await claim()).json().radioPrayers as { id: string; text: string }[]).map((b) => b.text);
+    expect(order[0]).toBe('Please pray for the bus drivers this winter.');
   });
 
   it('shows the rotation on the operator console, drops answered requests, and switching off clears what waits', async () => {
