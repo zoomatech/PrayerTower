@@ -41,6 +41,7 @@ struct PostDetailView: View {
                 if card.isMine && prayable { Section { ownerTools(card) } }
                 if card.isMine { Section { LiveFollowView(card: card) } }
                 if prayable, let prayers { Section { prayedList(prayers) } }
+                if prayable { Section { PowerPrayerSection(card: card) } }
                 Section(w("post.comments")) { commentList }
                 Section { composer(card) }
                 Section { reportButton(w("actions.reportPost")) { reporting = ("post", card.id) } }

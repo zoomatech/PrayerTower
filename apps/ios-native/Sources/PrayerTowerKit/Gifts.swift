@@ -2,12 +2,27 @@ import Foundation
 
 /// A donated pool a member can draw from for a request (`GET /token-pools?postId=`).
 public struct TokenPool: Codable, Sendable, Equatable, Identifiable {
+    /// A matching pledge, while matching is switched on.
+    public struct Match: Codable, Sendable, Equatable {
+        /// ratio | quadratic
+        public let mode: String
+        public let ratio: Int
+        public let cap: Int
+        public let matched: Int
+    }
     public let id: String
     public let name: String
     public let drawAmount: Int
     public let balance: Int
     /// Only when listed for a request: why the member can't draw, or nil.
     public let blockedReason: String?
+    public var purpose: String? = nil
+    public var realm: String? = nil
+    /// Nil unless the donor chose to be named.
+    public var donor: String? = nil
+    public var isMine: Bool? = nil
+    public var open: Bool? = nil
+    public var match: Match? = nil
 }
 
 /// A token gift set to go to a request later (`GET /me/scheduled-spends`).

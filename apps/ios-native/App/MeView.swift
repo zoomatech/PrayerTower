@@ -45,6 +45,7 @@ struct MeView: View {
                     }
                 }
                 ConversationPrefsSection()
+                ToolsSection()
                 StaffSection()
                 if let error { Section { Text(error).foregroundStyle(.red) } }
                 Section {
