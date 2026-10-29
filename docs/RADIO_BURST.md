@@ -266,7 +266,10 @@ fingerprint):
 The modem is `apps/station/src/packet/afsk.ts`; the message format is
 `packet/message.ts`. A test round-trips packets at 48 and 44.1 kHz and through
 noise at 3 dB SNR, and checks the FCS against CRC-16/X.25's check value
-(0x906E).
+(0x906E). `test/packet-robustness.test.ts` also decodes packets recorded at
+about -50 dBFS, hard-clipped, under 60 Hz hum and a DC offset, and with about
+5 dB of twist either way (a missing or doubled FM emphasis stage). A dropout
+of broken samples loses only the packet it hits.
 
 ## Compression v2 (codec 4)
 
