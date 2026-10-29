@@ -20,6 +20,8 @@ import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 import { weeklyTask as radioDigestTask } from './modules/radio/digest.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
+import { weeklyReportTask as harmWeeklyReportTask } from './modules/moderator-care/index.js';
+import { oncallCheckTask } from './modules/moderator-care/oncall.js';
 import { publishDueTask as seedPrayersTask } from './modules/seed-prayers/index.js';
 import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
@@ -87,6 +89,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { apns?:
     ),
     radio_digest_weekly: radioDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     token_ledger_check: ledgerCheckTask(db),
+    harm_weekly_report: harmWeeklyReportTask(db),
+    oncall_check: oncallCheckTask(db),
     jobs_failure_check: failureCheckTask(db),
     ops_heartbeat: heartbeatTask(db),
     ops_check: opsCheckTask(db),
@@ -124,6 +128,10 @@ export const crontab = [
   '0 7 * * 1 radio_digest_weekly ?max=10&fill=1d&jobKey=radio_digest_weekly',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
   '30 3 * * * retention_purge ?max=10&fill=1d&jobKey=retention_purge',
+  // Monday 07:00: last week's harmful-prayer report to admins (only while the switch is on).
+  '0 7 * * 1 harm_weekly_report ?max=10&fill=1d&jobKey=harm_weekly_report',
+  // Every 5 minutes: held posts waiting too long remind whoever is on call, then an admin (only while the rota is on).
+  '*/5 * * * * oncall_check ?max=3&fill=15m&jobKey=oncall_check',
   // Daily 04:15: re-derive every token balance from the ledger; alerts admins on any mismatch.
   '15 4 * * * token_ledger_check ?max=10&fill=1d&jobKey=token_ledger_check',
   // Every 10 minutes: alert admins about jobs that ran out of tries or keep failing.

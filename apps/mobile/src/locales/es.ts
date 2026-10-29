@@ -620,6 +620,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   notices: {
     empty: "Cuando alguien ore por ti, lo verás aquí.",
     appeal: "Apelar esta decisión",
+    explain: en.notices.explain,
   },
   messages: {
     kinds: {"prayer": "Nota de oración", "direct": "Mensaje", "group": "Grupo", "care": "Compañero de oración"},
@@ -699,6 +700,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     reason: "Tu motivo",
     send: "Enviar apelación",
     rules: "Leer las normas de la comunidad",
+    heldTitle: en.appeal.heldTitle,
+    heldIntro: en.appeal.heldIntro,
+    heldSent: en.appeal.heldSent,
   },
   highlights: {
     mostPrayed: "Las más oradas esta semana",
@@ -1737,6 +1741,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     refunded: 'Refunded',
   },
   harm: en.harm,
+  modCare: en.modCare,
+  oncall: en.oncall,
   enums: {
     moderationRule: {
       harm: 'Ora por el bien, nunca por el mal',
@@ -1812,6 +1818,23 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     adminReplaces: 'This emoji has five meanings. Choose one to retire:',
     approve: 'Add it',
     decline: 'Decline',
+  },
+  kindMilestones: {
+    title: 'Quiet milestones',
+    hint: 'Just for you. Nobody else sees these, nobody is ranked, and they only ever grow.',
+    new: 'New',
+    peopleFirst: 'You prayed for someone for the first time.',
+    peopleMany: 'You’ve prayed for %{level} people.',
+    requestsFirst: 'You prayed for your first request.',
+    requestsMany: 'You’ve prayed for %{level} requests.',
+    encouragementsFirst: 'You sent your first encouragement.',
+    encouragementsMany: 'You’ve sent %{level} encouragements.',
+    checkinsFirst: 'You kept your first prayer promise.',
+    checkinsMany: 'You’ve kept %{level} prayer promises.',
+    wordsFirst: 'You left your first kind words for someone.',
+    wordsMany: 'You’ve left kind words for others %{level} times.',
+    adminTitle: 'Quiet milestones',
+    adminHint: 'Members see private markers on Me (first prayer for someone, then 10, 25, 50 and up for people prayed for, encouragements, promises kept and kind words). Only the member sees them: no leaderboard, no comparison, nothing to lose, and answered prayers are never counted.',
   },
   checkBack: {
     title: 'Check back with me',

@@ -83,3 +83,47 @@ The queue shows the reason: "Possible threat: a person should read this", "Praye
 - `apps/server/src/modules/harm/` (the check, the actions, floods, routes)
 - Migrations `20261029013000_harm_enum.sql`, `20261029013100_harmful_prayers.sql`
 - Tests: `apps/server/test/harm-check.test.ts` (the patterns) and `apps/server/test/harm.test.ts` (end to end)
+
+## Moderator care (off by default)
+
+**Admin → Moderator care** (`PATCH /admin/moderator-care-settings`). Research on moderator wellbeing recommends optional "content soothing" such as blurring, break prompts triggered by exposure time or severity, and an easy way to get a second opinion so nobody decides a hard case alone ([Wellbeing-Centered UX: Supporting Content Moderators, 2025](https://arxiv.org/pdf/2509.07187); [Zevo Health: moderator wellbeing](https://www.zevohealth.com/blog/7-tips-for-managing-content-moderator-wellbeing/), which also recommends 2–5 minute micro-breaks).
+
+- **Blur until tapped** (`blur_hard`, on): threats, hate, harm, crisis and auto-hidden items show "Hard to read … Tap to read it".
+- **A break offer** after `break_after_minutes` (20) in the queue or `break_after_hard_items` (10) hard items read. The moderator chooses "Take a break" (`break_minutes`, 5; the queue steps aside with a countdown and can be ended early) or "Keep going". It is an offer, never a lock: crisis alerts still reach the other moderators.
+- **Hand off** any item to a named moderator or to "anyone else", with a note. It leaves your queue and goes to the top of theirs (after crisis items); they get a notice without the content.
+
+## Explaining a held post
+
+When a post is held, its author gets a notice ("Your request is waiting for a moderator") with **Explain it**. Their explanation (once, up to 1,000 characters) is shown with the item, and items with an explanation sort ahead of other held items. Admins can turn this off (`explain_held`). The moderator's keep or remove decision then works as usual, and a removal can still be appealed. Floods don't get the notice.
+
+## Moderation dashboard and weekly report (off by default)
+
+Both switches are in **Admin → Moderator care**.
+
+- **Dashboard** (`dashboard_enabled`, `GET /admin/moderation-dashboard?days=7`): what is waiting now and the oldest wait, by source; how fast items were decided (median and slowest tenth); the harmful-prayer false-alarm rate per category (flags a moderator kept, out of those decided); floods (how many, from how many accounts, items held) and handoffs.
+- **Weekly report** (`weekly_report_enabled`, Monday 07:00 UTC, job `harm_weekly_report`): for each word rule (`harm_events.rules`, such as `curse:0` or `hate:admin_words`), how often it flagged last week and how moderators decided. A rule with at least 3 decisions that moderators kept half the time or more is marked **worth loosening**. Admins get a notice; reports are kept in `harm_weekly_reports`. It holds counts only, never member text. Floods are left out, because they say more about one account than about the words.
+
+## Open Circle (secular edition)
+
+The check, the holds, the review queue and the flood bundling work the same on Open Circle. The redirects members read use secular wording: "Ask for justice and safety", not "leave the rest to God", and no Scripture. Notices and error messages also pass through the usual neutral-wording filter. `apps/server/test/harm-open-circle.test.ts` checks that nothing an Open Circle member reads from it has a religious word.
+
+## On-call rota (off by default)
+
+**Admin → On-call rota** (`PATCH /admin/oncall`, shifts at `POST /admin/oncall/shifts`). Moderation guidance treats threats as high priority and asks for a person to look quickly ([IFTAS: Violent threat](https://about.iftas.org/library/violent-threat/)), so a held post should never sit unseen.
+
+- **Shifts:** weekly, per moderator, in the rota's time zone (default America/New_York). The moderation screen shows who is on call now.
+- **The limit** (`max_wait_minutes`, 60): a held, harmful-prayer or crisis item still waiting at `remind_at_percent` (50%) of the limit reminds whoever is on call (every moderator if nobody is). Past the limit, it goes to the person named in **When the wait passes, tell**, or to every admin. Each item is reminded and escalated once. The notices give counts and minutes, never the post's words. The check runs every 5 minutes (job `oncall_check`).
+- **Notes for the next shift** sit at the top of the moderation screen (`POST /moderation/oncall/notes`).
+- Code: `apps/server/src/modules/moderator-care/oncall.ts`, migration `20261029080200_oncall_rota.sql`, test `apps/server/test/oncall.test.ts`.
+
+## Hotlines after posting
+
+When someone posts or comments about abuse, their request opens with the hotlines above it ("You are not alone" and the numbers), as well as the private notice. Nothing is hidden or blocked. Self-harm keeps the existing crisis box with 988 (STAFF_HANDBOOK.md).
+
+## One-tap restore (off by default)
+
+**Admin → Moderator care → One-tap restore for held posts** (`restore_enabled`). Held items show **Restore** instead of Keep. One tap puts the post back up, logs a `restore` in `moderation_actions` (with the moderator) besides the decision in the staff audit log (Admin → Audit log), and tells the author "Your request is back up". Removed posts still come back only through an appeal.
+
+## Regression
+
+`apps/server/test/moderation-regression.test.ts` turns every moderation switch on at once (harmful prayers, moderator care, dashboard, weekly report, restore, on-call rota, the kind cloud) and runs the whole path in both editions: false alarms, a held threat through handoff, explanation, reminders, escalation and restore; abuse and crisis posts; junk and floods; the dashboard and rota. It found two bugs, both fixed: the threat redirect used religious words on Open Circle, and handing an item to a moderator failed on teams of more than 100.

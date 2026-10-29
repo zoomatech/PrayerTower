@@ -7,6 +7,7 @@ import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as activity from '../activity/index.js';
 import * as harm from '../harm/index.js';
+import * as care from '../moderator-care/index.js';
 import * as kindness from '../kindness/index.js';
 import * as moderation from './index.js';
 import * as tools from './tools.js';
@@ -25,9 +26,9 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   });
 
   app.get('/moderation/queue', async (req) => {
-    await requireModerator(req);
+    const moderatorId = await requireModerator(req);
     const { targetId } = z.object({ targetId: z.uuid().optional() }).parse(req.query);
-    return { items: await moderation.pending(db, 100, targetId) };
+    return { items: await moderation.pending(db, 100, targetId, (await care.settings(db)).enabled ? moderatorId : undefined) };
   });
 
   // Moderation tools (Admin → Moderation tools, off): search waiting reports and past decisions.

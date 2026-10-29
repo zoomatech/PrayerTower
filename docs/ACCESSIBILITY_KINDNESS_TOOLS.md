@@ -12,3 +12,27 @@ This was a review pass on 2026-10-29 covering screen readers, reduced motion and
 The helper is `announce()` in `apps/mobile/src/lib/motion.ts`. Tests are in `kind-cloud.test.tsx` and `conversation-helpers.test.tsx` (announcement, button role and hint) and in `believe-nudges.test.tsx` (the card is read as one message).
 
 Still to check by hand on a device (VoiceOver and the largest Dynamic Type size): the comment composer with the kind cloud and suggestions both showing, and the meaning tree on the vine and tower skins.
+
+## Pass of 2026-10-29: screen readers, large text, Open Circle wording
+
+Covers everything shipped from this thread: kind cloud, cool-down, lament, emoji
+meanings on the action icons, member-made meanings, kindness research page, answered
+stories, the kindness intro, reply prompts by kind of post, check back and quiet
+milestones.
+
+- **Screen readers.** `__tests__/kindness-a11y.test.tsx` renders the tools in both
+  editions with their switches on. It checks that every button and link has a spoken
+  name, and that cards have headings. Fixes from this pass:
+  - The check-back title is now a heading.
+  - The mend queue's comment line is now a link.
+  - A new quiet milestone reads "New: …" in a single announcement.
+- **Large text.** None of these tools turns off font scaling. Rows wrap rather than
+  clip. Every target is at least 44 pt tall, including the story links and the reply
+  chips.
+- **Reflow and text spacing.** The e2e test `23-kindness-reflow` walks the feed, Me, a
+  request, your own request, the research page, meaning words and highlights at 320 CSS
+  px. It does this once as normal and once with WCAG 1.4.12 text spacing, with every
+  switch on. It checks for sideways scrolling and runs axe WCAG 2.2 AA.
+- **Open Circle wording.** `open-circle-wording.test.ts` now also covers
+  `answeredStory`, `kindIntro`, `checkBack` and `kindMilestones`, as well as the new
+  `talk.pairs`.

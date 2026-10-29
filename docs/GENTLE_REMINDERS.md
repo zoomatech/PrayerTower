@@ -1,7 +1,7 @@
 # Gentle reminders
 
 Two switches in **Admin → Gentle reminders**, both off until an admin turns them on
-(migration `20261029073000_gentle_reminders.sql`).
+(migration `20261029081100_gentle_reminders.sql`).
 
 ## Daily reminder
 

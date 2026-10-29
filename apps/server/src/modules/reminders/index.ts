@@ -1,4 +1,4 @@
-// Gentle reminders (migration 20261029073000_gentle_reminders.sql), two switches
+// Gentle reminders (migration 20261029081100_gentle_reminders.sql), two switches
 // in Admin → Gentle reminders, both off:
 // - A daily reminder at the member's own time and days. Skipped on a day they
 //   already prayed; never says what was missed; after `quiet_after` reminders in

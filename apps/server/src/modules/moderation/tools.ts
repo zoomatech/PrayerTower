@@ -1,4 +1,4 @@
-// Moderation dashboard tools (migration 20261029074000_moderation_tools.sql), one
+// Moderation dashboard tools (migration 20261029081200_moderation_tools.sql), one
 // switch in Admin → Moderation tools, off: search waiting reports and past
 // decisions, decide several reports at once, and filter the staff audit log.
 // Someone who may be in danger is never part of a bulk decision, and a bulk
