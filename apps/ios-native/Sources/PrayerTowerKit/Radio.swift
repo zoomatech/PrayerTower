@@ -80,6 +80,13 @@ public struct NewScheduledSpend: Encodable, Sendable, Equatable {
     public let runAt: String
     public let repeatWeeks: Int
     public let action: String
+
+    public init(amount: Int, runAt: String, repeatWeeks: Int, action: String) {
+        self.amount = amount
+        self.runAt = runAt
+        self.repeatWeeks = repeatWeeks
+        self.action = action
+    }
 }
 
 /// Which radio parts a post shows, from the switches, the post and the member's Priestly tokens.
