@@ -28,7 +28,7 @@ kind habits with nothing to lose. Each is **off** until an admin turns it on in
 - Migration: `supabase/migrations/20261029017000_growth_practices.sql`.
 - Tests: `apps/server/test/practices.test.ts`, `apps/mobile/src/__tests__/growth-practices.test.tsx`.
 
-## Next in line (not built)
+## Encourager and "Answered & remembered" (migration 20261029017100)
 
-- Opt-in **Encourager** for newcomers' first 30 days (Wikipedia Teahouse, AA sponsorship), with no "your partner is waiting" messages.
-- **Answered & remembered** look-back of grateful updates only, never raw requests, with no push by default.
+- **Encourager** (Me): a member volunteers after agreeing to the guidelines (up to 2 newcomers at a time). A member younger than `newcomer_days` (30) can ask for one. They're matched with the volunteer in the same community who has the most room, never across a block. A match lasts `encourager_days` (30) and ends on its own. Either side can end it with one tap: no reason asked, and the other person isn't told. There are no streaks and no "your encourager is waiting." Evidence: Wikipedia Teahouse retention, Stack Overflow mentoring, the helper benefit in AA sponsorship.
+- **Answered & remembered** (Me → Look back, `app/remembered.tsx`): only the member's own answered requests that carry a grateful word (a testimony, or a grateful follow-up). Requests flagged sensitive or harmful, or whose words speak of a death or loss, never show. Any item can be hidden for good (`remembered_hidden`). It's never pushed. Evidence and warnings: Facebook "On This Day" harms, and Day One's per-journal opt-outs.

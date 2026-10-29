@@ -2,35 +2,27 @@
 // request someone prayed for, its author may tell the pray-ers how it's going.
 // "Prefer not to say" is always there and closes it quietly. Shown only to the
 // author, only while Admin → Growth practices has follow-ups on.
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorText, Field } from "@/components/ui";
-import { api, type FollowupAnswer } from "@/lib/api";
-import { useFeatures } from "@/lib/features";
-import { useT } from "@/lib/i18n";
-import { colors, radius, space, type } from "@/lib/theme";
+import { Button, ErrorText, Field } from '@/components/ui';
+import { api, type FollowupAnswer } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
+import { useT } from '@/lib/i18n';
+import { colors, radius, space, type } from '@/lib/theme';
 
 const CHOICES: { answer: FollowupAnswer; key: string }[] = [
-  { answer: "grateful", key: "practices.followupGrateful" },
-  { answer: "still", key: "practices.followupStill" },
-  { answer: "changed", key: "practices.followupChanged" },
+  { answer: 'grateful', key: 'practices.followupGrateful' },
+  { answer: 'still', key: 'practices.followupStill' },
+  { answer: 'changed', key: 'practices.followupChanged' },
 ];
 
-export function FollowupCard({
-  postId,
-  isMine,
-  onAnswered,
-}: {
-  postId: string;
-  isMine: boolean;
-  onAnswered?: (answer: FollowupAnswer) => void;
-}) {
+export function FollowupCard({ postId, isMine, onAnswered }: { postId: string; isMine: boolean; onAnswered?: (answer: FollowupAnswer) => void }) {
   const { followupNudge } = useFeatures();
   const t = useT();
   const [pending, setPending] = useState(false);
   const [choice, setChoice] = useState<FollowupAnswer | null>(null);
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState('');
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,11 +48,7 @@ export function FollowupCard({
     setError(null);
     try {
       await api.answerFollowup(postId, answer, body.trim() || undefined);
-      setDone(
-        answer === "private"
-          ? t("practices.followupQuiet")
-          : t("practices.followupThanks"),
-      );
+      setDone(answer === 'private' ? t('practices.followupQuiet') : t('practices.followupThanks'));
       onAnswered?.(answer);
     } catch (e) {
       setError((e as Error).message);
@@ -71,53 +59,29 @@ export function FollowupCard({
 
   return (
     <View style={styles.card} testID="followup-card">
-      <Text style={type.heading}>{t("practices.followupTitle")}</Text>
-      <Text style={type.small}>{t("practices.followupIntro")}</Text>
+      <Text style={type.heading}>{t('practices.followupTitle')}</Text>
+      <Text style={type.small}>{t('practices.followupIntro')}</Text>
       {choice ? (
         <>
           <Field
             label={t(CHOICES.find((c) => c.answer === choice)!.key)}
-            placeholder={t("practices.followupPlaceholder")}
+            placeholder={t('practices.followupPlaceholder')}
             multiline
             maxLength={2000}
             value={body}
             onChangeText={setBody}
           />
           <View style={styles.row}>
-            <Button
-              small
-              label={t("practices.followupSend")}
-              busy={busy}
-              onPress={() => send(choice)}
-            />
-            <Button
-              small
-              variant="ghost"
-              label={t("practices.followupBack")}
-              onPress={() => setChoice(null)}
-            />
+            <Button small label={t('practices.followupSend')} busy={busy} onPress={() => send(choice)} />
+            <Button small variant="ghost" label={t('practices.followupBack')} onPress={() => setChoice(null)} />
           </View>
         </>
       ) : (
         <View style={styles.row}>
           {CHOICES.map((c) => (
-            <Button
-              key={c.answer}
-              small
-              variant="secondary"
-              label={t(c.key)}
-              testID={`followup-${c.answer}`}
-              onPress={() => setChoice(c.answer)}
-            />
+            <Button key={c.answer} small variant="secondary" label={t(c.key)} testID={`followup-${c.answer}`} onPress={() => setChoice(c.answer)} />
           ))}
-          <Button
-            small
-            variant="ghost"
-            label={t("practices.followupPrivate")}
-            busy={busy}
-            testID="followup-private"
-            onPress={() => send("private")}
-          />
+          <Button small variant="ghost" label={t('practices.followupPrivate')} busy={busy} testID="followup-private" onPress={() => send('private')} />
         </View>
       )}
       <ErrorText error={error} />
@@ -134,6 +98,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primarySoft,
   },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   done: { color: colors.primary },
 });
