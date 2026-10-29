@@ -47,8 +47,9 @@ describe('sponsors', () => {
 
       const r = await sponsors.publicList(c);
       if (!r.enabled) throw new Error('expected the page');
-      expect(r.sponsors.map((x) => x.name)).toEqual(['Grace Fellowship', 'A friend of the app']);
-      expect(r.sponsors[1]!.for).toBe(comm[0]!.name);
+      // Both were added in this transaction, so they share a `since` and their order is the ids'.
+      expect(r.sponsors.map((x) => x.name).sort()).toEqual(['A friend of the app', 'Grace Fellowship']);
+      expect(r.sponsors.find((x) => x.name === 'A friend of the app')!.for).toBe(comm[0]!.name);
       const html = sponsors.pageHtml(r.sponsors, (x) => x);
       expect(html).toContain('<h2>Common Prayer Fund</h2>');
       expect(html).toContain('A gift for groceries and rent.');
