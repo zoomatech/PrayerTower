@@ -27,6 +27,8 @@ Project Gutenberg header and licence.
 | `gilgamesh-deluge-budge-1920.txt` | The Babylonian Story of the Deluge as Told by Assyrian Tablets from Nineveh (Gilgamesh Tablet XI, the flood told by Uta-Napishtim, in full; summaries of the other tablets) | E. A. Wallis Budge | 1920 | https://www.gutenberg.org/cache/epub/7096/pg7096.txt |
 | `gilgamesh-thompson-1928.txt` | The Epic of Gilgamish (all twelve tablets in English hexameters, including the flood in Tablet XI; OCR of a Google scan) | R. Campbell Thompson | 1928 | https://archive.org/download/thompson-1928-gilgamesh/Thompson_1928_Gilgamesh_djvu.txt |
 | `kjv-strongs/` (66 `.usfm` books, `copr.htm`) | King James (Authorized) Version, 1769 standardized text, protocanon only, with Strong's numbers (USFM `\w word\|strong="H7225"\w*`) | eBible.org (ID ENGKJV / eng-kjv2006). Licence: "Public Domain" (outside the UK; the Crown's letters patent apply only in the UK) | 1769 | https://ebible.org/Scriptures/eng-kjv2006_usfm.zip (details: https://ebible.org/find/details.php?id=eng-kjv2006) |
+| `strongs/StrongHebrewG.xml` | A Concise Dictionary of the Words in the Hebrew Bible, with their Renderings in the King James Version (rights in the file: "Public Domain"; XML by David Troidl and David Instone-Brewer, Open Scriptures) | James Strong | 1894 | https://raw.githubusercontent.com/openscriptures/strongs/master/hebrew/StrongHebrewG.xml |
+| `strongs/strongsgreek.xml` | Dictionary of Greek Words, from Strong's Exhaustive Concordance (file: "Public Domain -- Copy Freely"; XML by Ulrik Petersen, 2006) | James Strong | 1890 | https://raw.githubusercontent.com/openscriptures/strongs/master/greek/StrongsGreekDictionaryXML_1.4/strongsgreek.xml |
 
 ## Not found before 1931
 
