@@ -5,8 +5,16 @@
 import type { Fldigi } from './fldigi.js';
 import { foldAscii, passesFilter, splitPieces } from './text.js';
 
+export interface ClaimedPrayer {
+  id: string;
+  text: string;
+  repeats?: number;
+}
+
 export interface StationApi {
-  claim(): Promise<{ id: string; text: string; repeats?: number } | null>;
+  claim(): Promise<ClaimedPrayer | null>;
+  /** Up to `max` prayers at once (burst mode); empty when none are waiting. */
+  claimBatch?(max: number): Promise<ClaimedPrayer[]>;
   report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string }): Promise<void>;
 }
 
@@ -25,7 +33,7 @@ export type Outcome = 'idle' | 'sent' | 'rejected';
  * arrives leaves the prayer "sending", and after 15 minutes Prayer Tower hands
  * it out again, so a prayer that already went out would be transmitted twice.
  */
-async function reportWithRetry(api: StationApi, id: string, result: Parameters<StationApi['report']>[1], waitMs: number[]) {
+export async function reportWithRetry(api: StationApi, id: string, result: Parameters<StationApi['report']>[1], waitMs: number[]) {
   for (let i = 0; ; i++) {
     try {
       return await api.report(id, result);
@@ -35,7 +43,7 @@ async function reportWithRetry(api: StationApi, id: string, result: Parameters<S
     }
   }
 }
-const REPORT_RETRY_MS = [2_000, 4_000, 8_000, 16_000];
+export const REPORT_RETRY_MS = [2_000, 4_000, 8_000, 16_000];
 
 /** The radio side failed: transmit was disabled and the station should stop until a person checks it. */
 export class TransmitError extends Error {}
@@ -86,6 +94,23 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
       const json = (await res.json().catch(() => ({}))) as { radioPrayer?: { id: string; text: string; repeats?: number }; message?: string };
       if (!res.ok) throw new Error(`claim failed (${res.status}): ${json.message ?? ''}`);
       return json.radioPrayer ?? null;
+    },
+    async claimBatch(max) {
+      const res = await post('/station/claim-batch', { max });
+      if (res.status === 204) return [];
+      // An older server without burst claims: take one prayer at a time instead.
+      if (res.status === 404) {
+        const out: ClaimedPrayer[] = [];
+        while (out.length < max) {
+          const p = await this.claim();
+          if (!p) break;
+          out.push(p);
+        }
+        return out;
+      }
+      const json = (await res.json().catch(() => ({}))) as { radioPrayers?: ClaimedPrayer[]; message?: string };
+      if (!res.ok) throw new Error(`claim-batch failed (${res.status}): ${json.message ?? ''}`);
+      return json.radioPrayers ?? [];
     },
     async report(id, result) {
       const res = await post(`/station/radio-prayers/${id}/result`, result);

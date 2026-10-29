@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Radio station worker: sends queued Prayer Tower radio prayers as PSK31 through fldigi",
+  "description": "Radio station worker: sends queued Prayer Tower radio prayers as PSK31 through fldigi, or many at once as compressed bursts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/src/main.js",
     "dev": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "burst": "tsx src/burst/cli.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
