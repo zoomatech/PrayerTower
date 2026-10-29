@@ -13,11 +13,30 @@ export interface PrayerStats {
   longestStreak: number;
   /** The last seven days, oldest first, in the member's time zone. */
   week: { date: string; prayed: boolean }[];
+  /** Gentle rhythm (modules/practices): days prayed this calendar month. */
+  monthDays: number;
+  /** The last prayer before today was a week or more ago. */
+  welcomeBack: boolean;
+  /** Monday or the 1st of the month, in the member's time zone. */
+  freshStart: 'week' | 'month' | null;
 }
 
 const DAY = 86_400_000;
 const dayNumber = (iso: string) => Math.round(Date.parse(`${iso}T00:00:00Z`) / DAY);
 const isoOf = (n: number) => new Date(n * DAY).toISOString().slice(0, 10);
+
+/** Gentle rhythm: this month's prayer days, a welcome back after 7+ days away, and fresh-start days. */
+export function rhythm(dates: string[], today: string) {
+  const t = dayNumber(today);
+  const before = dates.filter((d) => d < today);
+  const last = before.length ? dayNumber(before[before.length - 1]!) : null;
+  const weekday = new Date(t * DAY).getUTCDay();
+  return {
+    monthDays: dates.filter((d) => d.slice(0, 7) === today.slice(0, 7) && d <= today).length,
+    welcomeBack: last !== null && t - last >= 7,
+    freshStart: today.endsWith('-01') ? ('month' as const) : weekday === 1 ? ('week' as const) : null,
+  };
+}
 
 /** Streaks from distinct prayer dates (YYYY-MM-DD, ascending) and today's date. */
 export function streaks(dates: string[], today: string) {
@@ -38,7 +57,7 @@ export function streaks(dates: string[], today: string) {
 export async function prayerStats(q: Queryable, userId: string, timeZone: string): Promise<PrayerStats> {
   const { rows: p } = await q.query<{ show_prayer_stats: boolean }>('select show_prayer_stats from public.profiles where id = $1', [userId]);
   const enabled = p[0]?.show_prayer_stats ?? true;
-  const empty = { daysPrayed: 0, peoplePrayedFor: 0, requestsPrayedFor: 0, currentStreak: 0, longestStreak: 0, week: [] };
+  const empty = { daysPrayed: 0, peoplePrayedFor: 0, requestsPrayedFor: 0, currentStreak: 0, longestStreak: 0, week: [], monthDays: 0, welcomeBack: false, freshStart: null };
   if (!enabled) return { enabled, ...empty };
 
   const { rows: days } = await q.query<{ day: string }>(
@@ -64,6 +83,7 @@ export async function prayerStats(q: Queryable, userId: string, timeZone: string
     peoplePrayedFor: counts[0]!.people,
     requestsPrayedFor: counts[0]!.requests,
     ...streaks(dates, today),
+    ...rhythm(dates, today),
     week: Array.from({ length: 7 }, (_, i) => isoOf(t - 6 + i)).map((date) => ({ date, prayed: set.has(date) })),
   };
 }

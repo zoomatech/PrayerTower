@@ -127,6 +127,10 @@ export interface Features {
   prayerChain: boolean;
   prayedForWidget: boolean;
   prayerMinute: boolean;
+  /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
+  followupNudge: boolean;
+  gratitudeCard: boolean;
+  gentleRhythm: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -166,6 +170,15 @@ export interface ThemeProposal {
   createdAt: string;
   from?: { id: string; name: string };
 }
+
+export interface PracticeSettings {
+  followup_enabled: boolean;
+  followup_days: number;
+  gratitude_enabled: boolean;
+  gentle_rhythm_enabled: boolean;
+}
+export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
+export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[] };
 
 export interface GrowthSettings {
   guest_prayer_enabled: boolean;
@@ -1266,6 +1279,9 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean }>) =>
+      request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number }>) =>
       request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
@@ -1439,6 +1455,12 @@ export const api = {
   myWitnessStories: () => get<{ stories: { id: string; body: string; status: 'awaiting_consent' | 'approved' | 'declined'; createdAt: string }[] }>('/me/witness-stories'),
   decideWitnessStory: (id: string, approve: boolean) => post<{ ok: true }>(`/me/witness-stories/${id}/decision`, { approve }),
   draftWitnessStory: (caseId: string, body: string) => post<{ id: string }>(`/witness/cases/${caseId}/story`, { body }),
+  followup: (postId: string) => get<{ enabled: boolean; pending: boolean }>(`/posts/${postId}/followup`),
+  answerFollowup: (postId: string, answer: FollowupAnswer, body?: string) =>
+    post<{ answer: FollowupAnswer; crisis: boolean }>(`/posts/${postId}/followup`, body ? { answer, body } : { answer }),
+  gratitude: (tz: string) => get<Gratitude>(`/me/gratitude?tz=${encodeURIComponent(tz)}`),
+  setGratitudeDay: (weekday: number | null, timeZone: string) => put<Gratitude>('/me/gratitude/day', { weekday, timeZone }),
+  saveGratitude: (items: string[], timeZone: string) => put<Gratitude>('/me/gratitude', { items, timeZone }),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),

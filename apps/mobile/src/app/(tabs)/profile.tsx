@@ -20,6 +20,7 @@ import { AiLinks } from '@/components/ai-links';
 import { AwardCard } from '@/components/award-card';
 import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
+import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
@@ -136,7 +137,14 @@ export default function Profile() {
         <Text style={type.small}>{t('profile.tokensNote')}</Text>
 
         {stats?.enabled ? (
-          <View style={styles.prayerLife} accessibilityLabel={t('stats.summary', { days: stats.daysPrayed, people: stats.peoplePrayedFor, streak: stats.currentStreak })}>
+          <View
+            style={styles.prayerLife}
+            accessibilityLabel={
+              // Gentle rhythm: days this month (which only adds) instead of days in a row.
+              features.gentleRhythm
+                ? t('practices.rhythmSummary', { days: stats.daysPrayed, month: stats.monthDays, people: stats.peoplePrayedFor })
+                : t('stats.summary', { days: stats.daysPrayed, people: stats.peoplePrayedFor, streak: stats.currentStreak })
+            }>
             <Text style={type.heading}>{t('stats.title')}</Text>
             <View style={styles.stats}>
               <View style={styles.stat}>
@@ -148,8 +156,8 @@ export default function Profile() {
                 <Text style={type.small}>{t('stats.people')}</Text>
               </View>
               <View style={styles.stat}>
-                <Text style={styles.statValue}>{stats.currentStreak}</Text>
-                <Text style={type.small}>{t('stats.streak')}</Text>
+                <Text style={styles.statValue}>{features.gentleRhythm ? stats.monthDays : stats.currentStreak}</Text>
+                <Text style={type.small}>{features.gentleRhythm ? t('practices.rhythmMonth') : t('stats.streak')}</Text>
               </View>
             </View>
             <View style={styles.week} accessible={false}>
@@ -157,11 +165,21 @@ export default function Profile() {
                 <View key={d.date} style={[styles.dot, d.prayed && styles.dotOn]} />
               ))}
             </View>
+            {features.gentleRhythm && stats.welcomeBack ? <Text style={type.body}>{t('practices.welcomeBack')}</Text> : null}
+            {features.gentleRhythm && stats.freshStart ? (
+              <Text style={type.body}>{stats.freshStart === 'month' ? t('practices.freshMonth') : t('practices.freshWeek')}</Text>
+            ) : null}
             <Text style={type.small}>
-              {stats.currentStreak > 1 ? t('stats.streakNote', { count: stats.currentStreak }) : t('stats.gentle')} {t('stats.private')}
+              {features.gentleRhythm
+                ? t('practices.rhythmNote')
+                : stats.currentStreak > 1
+                  ? t('stats.streakNote', { count: stats.currentStreak })
+                  : t('stats.gentle')}{' '}
+              {t('stats.private')}
             </Text>
           </View>
         ) : null}
+        <GratitudeCard />
         <AwardCard />
         <PrayedForYou />
         <View style={styles.chips}>

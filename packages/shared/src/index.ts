@@ -611,7 +611,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'radio_on_air', 'radio_heard', 'spoken_prayer', 'live_amplifier_read', 'guest_prayer', 'prayer_minute'],
   promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder'],
-  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award'],
+  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'gratitude'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
   tokens: ['mint', 'milestone', 'scheduled_spend', 'radio_not_sent', 'token_purchase_refunded'],
@@ -638,6 +638,12 @@ export interface PrayerStats {
   longestStreak: number;
   /** The last seven days, oldest first. */
   week: { date: string; prayed: boolean }[];
+  /** Gentle rhythm (Admin → Growth practices): days prayed this calendar month, which only adds. */
+  monthDays: number;
+  /** Back after a week or more away: the app says welcome back, never what was missed. */
+  welcomeBack: boolean;
+  /** A Monday or the 1st of the month invites a fresh start. */
+  freshStart: 'week' | 'month' | null;
 }
 
 /**

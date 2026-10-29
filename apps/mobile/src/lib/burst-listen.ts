@@ -35,8 +35,8 @@ export class BurstListener {
     return this.level;
   }
 
-  /** Decode what has arrived and return the frames not shown yet. */
-  decode(): HeardFrame[] {
+  /** Decode what has arrived and return the frames not shown yet. searchHz: allow an HF (SSB) radio tuned that far off. */
+  decode(searchHz = 0): HeardFrame[] {
     if (!this.total) return [];
     const buf = new Float32Array(this.total);
     let at = 0;
@@ -46,7 +46,7 @@ export class BurstListener {
     }
     const from = Math.max(0, this.decodedUpTo - this.dropped);
     const fresh: HeardFrame[] = [];
-    for (const f of decodeAudio(buf.subarray(from), this.rate)) {
+    for (const f of decodeAudio(buf.subarray(from), this.rate, searchHz)) {
       const end = this.dropped + from + Math.round((f.end * this.rate) / 48_000);
       if (end <= this.decodedUpTo) continue;
       this.decodedUpTo = end;

@@ -21,6 +21,7 @@ const BODY = `
   <p><button class="button" id="start" type="button">Start listening</button> <button class="button" id="stop" type="button" hidden>Stop</button></p>
   <p id="status" role="status" aria-live="polite">Not listening. Your browser will ask to use the microphone. The sound stays on this device.</p>
   <p><label for="meter">Sound level</label> <meter id="meter" min="0" max="1" low="0.05" high="0.7" optimum="0.3" value="0"></meter></p>
+  <p><label><input id="hf" type="checkbox"> Shortwave (SSB) radio: allow it to be tuned up to 50 Hz off (slower)</label></p>
   <p><label>Or decode a recording: <input id="file" type="file" accept="audio/*"></label></p>
 </div>
 <p id="tellrow" hidden><label><input id="tell" type="checkbox" checked> Let senders know their prayer was heard. Only a fingerprint of each prayer goes back, never the words.</label></p>
@@ -37,6 +38,7 @@ const BODY = `
   let ctx = null, stream = null, node = null, timer = null;
   let chunks = [], total = 0, dropped = 0, decodedUpTo = 0, busy = false;
   const KEEP_SECONDS = 24;
+  const searchHz = () => ($('hf').checked ? 50 : 0);
 
   function show(frames, rate, offset) {
     for (const f of frames) {
@@ -91,7 +93,7 @@ const BODY = `
       for (const v of tail) level += v * v;
       $('meter').value = Math.min(1, Math.sqrt(level / Math.max(1, tail.length)) * 4);
       const from = Math.max(0, decodedUpTo - dropped);
-      show(PTDecoder.decodeAudio(buf.subarray(from), rate), rate, dropped + from);
+      show(PTDecoder.decodeAudio(buf.subarray(from), rate, searchHz()), rate, dropped + from);
       while (total - chunks[0].length > KEEP_SECONDS * rate) { total -= chunks[0].length; dropped += chunks[0].length; chunks.shift(); }
     } finally { busy = false; }
   }
@@ -126,7 +128,7 @@ const BODY = `
   async function openFile(file) {
     $('status').textContent = 'Decoding ' + file.name + '...';
     const audio = await new AudioContext().decodeAudioData(await file.arrayBuffer());
-    const frames = PTDecoder.decodeAudio(audio.getChannelData(0), audio.sampleRate);
+    const frames = PTDecoder.decodeAudio(audio.getChannelData(0), audio.sampleRate, searchHz());
     decodedUpTo = 0; dropped = 0;
     show(frames, audio.sampleRate, 0);
     decodedUpTo = 0;
