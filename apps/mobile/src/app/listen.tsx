@@ -8,13 +8,14 @@
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioStream, type AudioStreamBuffer } from 'expo-audio';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorText, Loading, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { addHeard, clearHeard, loadHeard, type HeardPrayer } from '@/lib/heard-log';
-import { BurstListener, receiptHashes, toMono, type HeardFrame } from '@/lib/burst-listen';
+import { BurstListener, prayerHash, receiptHashes, toMono, type HeardFrame } from '@/lib/burst-listen';
+import { flushPraying, tapPraying, tappedHashes } from '@/lib/praying-too';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -26,7 +27,8 @@ export default function ListenScreen() {
   const { t } = useLocale();
   const { session } = useAuth();
   const [saved, setSaved] = useState<HeardPrayer[]>([]);
-  const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean } | null>(null);
+  const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean; prayingToo?: boolean } | null>(null);
+  const [praying, setPraying] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState<Heard[]>([]);
@@ -48,7 +50,20 @@ export default function ListenScreen() {
   useEffect(() => {
     (session ? api.radioListen() : api.listenConfig()).then(setConfig, (e) => setError((e as Error).message));
     void loadHeard().then(setSaved);
+    void tappedHashes().then(setPraying);
   }, [session]);
+
+  // "I'm praying too" taps saved while offline go out when the app is back.
+  useEffect(() => {
+    if (!config?.prayingToo) return;
+    void flushPraying();
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && void flushPraying());
+    return () => sub.remove();
+  }, [config?.prayingToo]);
+  const prayToo = (callSign: string, hash: string) => {
+    setPraying((all) => new Set([...all, hash]));
+    void tapPraying({ callSign, hash });
+  };
 
   const report = useCallback(
     async (f: Heard) => {
@@ -70,7 +85,7 @@ export default function ListenScreen() {
       if (!fresh.length) return;
       setHeard((all) => [...fresh.reverse(), ...all]);
       fresh.forEach((f) => void report(f));
-      const prayers = fresh.flatMap((f) => (f.prayers ?? []).map((text) => ({ text, callSign: f.callSign, at: f.at.toISOString() })));
+      const prayers = fresh.flatMap((f) => (f.prayers ?? []).map((text) => ({ text, callSign: f.callSign, at: f.at.toISOString(), hash: prayerHash(text) })));
       if (prayers.length) void addHeard(prayers).then(setSaved);
     }, hf ? DECODE_EVERY_MS * 2 : DECODE_EVERY_MS);
     return () => clearInterval(timer);
@@ -136,10 +151,18 @@ export default function ListenScreen() {
             {saved.length ? (
               <>
                 <Text style={type.small}>{t('listen.savedHint', { count: saved.length })}</Text>
+                {config.prayingToo ? <Text style={type.small}>{t('listen.prayingHint')}</Text> : null}
                 {saved.map((p, i) => (
                   <View key={`${p.at}-${i}`} style={styles.card}>
                     <Text style={type.body}>{p.text}</Text>
                     <Text style={type.small}>{t('listen.savedFrom', { callSign: p.callSign, time: new Date(p.at).toLocaleString() })}</Text>
+                    {config.prayingToo && p.hash ? (
+                      praying.has(p.hash) ? (
+                        <Text style={type.small}>{t('listen.prayingDone')}</Text>
+                      ) : (
+                        <Button small variant="ghost" label={t('listen.prayingToo')} onPress={() => prayToo(p.callSign, p.hash!)} />
+                      )
+                    ) : null}
                   </View>
                 ))}
                 <Button small variant="ghost" label={t('listen.savedClear')} onPress={() => void clearHeard().then(() => setSaved([]))} />

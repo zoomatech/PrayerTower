@@ -874,6 +874,9 @@ const en = {
     savedNone: "Prayers this phone decodes are kept here.",
     savedClear: "Clear this list",
     savedFrom: "Heard from %{callSign}, %{time}",
+    prayingToo: "I'm praying too",
+    prayingHint: "Adds one to an anonymous count. Only a fingerprint of the prayer is sent, when you're online.",
+    prayingDone: "You're praying too.",
   },
 
   macro: {
@@ -1072,6 +1075,10 @@ const en = {
     listenerModeOff: "Listener mode off",
     listenerModeOn: "Listener mode on",
     listenerModeHint: "When on, the sign-in screen offers \"Listen to radio prayers\", so anyone near a radio can decode bursts with the app, without an account. The listening page must be on too.",
+    thanksgivingBurst: "Thanksgiving on the air for answered requests",
+    thanksgivingBurstHint: "When a member marks answered a request that went out by radio, one short thanksgiving is queued for the station, free. It is sent like any other radio prayer.",
+    prayingTooSwitch: "Listeners can tap \"I'm praying too\"",
+    prayingTooSwitchHint: "A listener who decoded a prayer can tap it. Only a fingerprint goes back, when they're online, and the person who asked is told someone is praying too. The count is anonymous.",
     listenerModeInactive: "Turn on the listening page above for listener mode to show.",
     healthOff: "Health page off",
     healthOn: "Health page on",

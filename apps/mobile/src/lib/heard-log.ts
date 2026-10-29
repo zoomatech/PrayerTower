@@ -10,6 +10,8 @@ export interface HeardPrayer {
   callSign: string;
   /** ISO time it was decoded. */
   at: string;
+  /** Its fingerprint, for "I'm praying too". */
+  hash?: string;
 }
 
 export async function loadHeard(): Promise<HeardPrayer[]> {
