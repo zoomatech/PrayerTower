@@ -17,7 +17,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
 import { getProfile } from '../accounts/index.js';
-import type { Mailer } from '../digest/mailer.js';
+import { sendEach, type Mailer } from '../digest/mailer.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import type { SmsSend } from './sms.js';
@@ -297,6 +297,9 @@ export function guestAnsweredTask(q: Queryable, ctx: MailContext): Task {
       'select id, email, first_name from public.guest_prayers where post_id = $1 and email is not null and answered_sent_at is null',
       [postId],
     );
+    // One bad address doesn't stop the rest. Each guest is marked once emailed, so the
+    // retry after the throw below only sends to the ones that failed.
+    let failed: unknown = null;
     for (const g of rows) {
       const lines = [
         `${g.first_name ? `Hi ${g.first_name},` : 'Hello,'}`,
@@ -307,14 +310,20 @@ export function guestAnsweredTask(q: Queryable, ctx: MailContext): Task {
         `${brand} is a small, ad-free, invite-only community. If you'd like to join, ask ${name ? name : 'the person who shared the link'} for an invite${ctx.siteUrl ? `, or read about it at ${ctx.siteUrl}` : ''}.`,
         'You will not get any more email from us about this request.',
       ];
-      await ctx.mailer({
-        to: g.email,
-        subject: secular ? 'Good news from someone you supported' : 'Good news: a prayer you prayed was answered',
-        ...message(lines),
-        secular,
-      });
+      try {
+        await ctx.mailer({
+          to: g.email,
+          subject: secular ? 'Good news from someone you supported' : 'Good news: a prayer you prayed was answered',
+          ...message(lines),
+          secular,
+        });
+      } catch (err) {
+        failed ??= err;
+        continue;
+      }
       await q.query('update public.guest_prayers set answered_sent_at = now(), email = null where id = $1', [g.id]);
     }
+    if (failed) throw failed;
   };
 }
 
@@ -490,19 +499,21 @@ export function chainSendTask(q: Queryable, ctx: MailContext): Task {
       [post.user_id],
     );
     const texts = !!ctx.sms && (await settings(q)).prayer_chain_sms_enabled;
-    for (const m of rows) {
+    // Nobody is marked as sent, so a retry would email everyone again: one bad address
+    // is skipped (and logged) instead of failing the job, unless every send failed.
+    await sendEach(rows, async (m) => {
       const leave = `${ctx.siteUrl}/chain/${m.token}`;
       if (m.phone) {
-        if (!texts) continue;
+        if (!texts) return;
         // A text carries a short preview; the link shows the whole request.
         const preview = post.body.length > 160 ? `${post.body.slice(0, 157)}…` : post.body;
         const body = secular
           ? `${name} shared a request with you: "${preview}" Let them know you're thinking of them: ${prayUrl} Stop: ${leave}`
           : `${name} asks for your prayers: "${preview}" Tap once you've prayed: ${prayUrl} Stop: ${leave}`;
         await smsTo(q, ctx, m.id, m.phone, body);
-        continue;
+        return;
       }
-      if (!ctx.mailer || !m.email) continue;
+      if (!ctx.mailer || !m.email) return;
       const lines = [
         secular ? `${name} shared a request with you:` : `${name} asks for your prayers:`,
         `“${post.body.slice(0, 1500)}”`,
@@ -517,7 +528,7 @@ export function chainSendTask(q: Queryable, ctx: MailContext): Task {
         ...message(lines),
         secular,
       });
-    }
+    });
   };
 }
 
