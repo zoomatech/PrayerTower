@@ -235,7 +235,11 @@ struct Swatch: View {
     var body: some View {
         Button(action: action) {
             Circle().fill(color).frame(width: 36, height: 36).overlay(Circle().stroke(on ? Color.accentColor : .secondary, lineWidth: on ? 3 : 1))
+                // The circle stays 36 pt; the tap area is 44 pt (Apple's minimum).
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(label)
         .accessibilityAddTraits(on ? .isSelected : [])
     }

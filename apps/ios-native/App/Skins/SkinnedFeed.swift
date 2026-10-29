@@ -65,6 +65,7 @@ struct VineFeed<Row: View>: View {
                 Text(Skin.tip(look, wording))
                     .font(.footnote)
                     .foregroundStyle(Color(look.tipColor))
+                    .backdropPlate(look.backdrop)
                     .padding(.leading, 44)
                     .padding(.bottom, 40)
             }
@@ -72,7 +73,7 @@ struct VineFeed<Row: View>: View {
             .background(alignment: .topLeading) { Stalk(look: look).frame(width: 40).accessibilityHidden(true) }
         }
         .background(look.backdrop.map { Color($0) } ?? Color.pageBackground)
-        .environment(\.colorScheme, look.backdrop?.isDark == true ? .dark : .light)
+        .environment(\.colorScheme, look.backdrop.map { BackdropText(on: $0).light } == true ? .dark : .light)
     }
 }
 
@@ -355,6 +356,7 @@ struct WallFeed<Row: View>: View {
                                 .foregroundStyle(.secondary)
                                 .accessibilityLabel(words.wallPosition(i + 1, of: cards.count))
                         }
+                        .backdropPlate(look.backdrop)
                         .padding(24)
                     }
                         .scrollBounceBehavior(.basedOnSize)
@@ -366,7 +368,7 @@ struct WallFeed<Row: View>: View {
         }
         .scrollTargetBehavior(.paging)
         .background(Color(look.backdrop))
-        .environment(\.colorScheme, look.backdrop.isDark ? .dark : .light)
+        .environment(\.colorScheme, BackdropText(on: look.backdrop).light ? .dark : .light)
     }
 }
 
@@ -407,7 +409,7 @@ struct TowerFeed<Row: View>: View {
                     .task { if card.id == cards.last?.id { await onEnd() } }
                 }
                 if !hasMore, !cards.isEmpty {
-                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).padding(.vertical, 24)
+                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).onBackdrop(look.backdrop).padding(.vertical, 24)
                 }
             }
             .scrollTargetLayout()
@@ -531,7 +533,7 @@ struct CircuitFeed<Row: View>: View {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     row(card)
                         .padding(16)
-                        .background(Color(look.backdrop).opacity(0.92), in: .rect(cornerRadius: 10))
+                        .background(BackdropText(on: look.backdrop).plate ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color(look.backdrop).opacity(0.92)), in: .rect(cornerRadius: 10))
                         .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)).accessibilityHidden(true) }
                         .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                         .padding(.leading, 18)
@@ -545,7 +547,7 @@ struct CircuitFeed<Row: View>: View {
                 if !hasMore, !cards.isEmpty {
                     VStack(spacing: 8) {
                         Circle().stroke(Color(look.wire), lineWidth: 2).frame(width: 18, height: 18).neonTube(Color(look.wire)).accessibilityHidden(true)
-                        Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center)
+                        Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).backdropPlate(look.backdrop)
                     }
                     .padding(.trailing, 40)
                 }
@@ -562,6 +564,21 @@ struct CircuitFeed<Row: View>: View {
             }
         }
         .background(Color(look.backdrop))
-        .environment(\.colorScheme, .dark)
+        .environment(\.colorScheme, BackdropText(on: look.backdrop).light ? .dark : .light)
+    }
+}
+
+extension View {
+    /// A plate behind text on a backdrop where neither light nor dark text reads well enough
+    /// (`BackdropText`); nothing on the usual backdrops.
+    func backdropPlate(_ backdrop: RGB?) -> some View {
+        let plate = backdrop.map { BackdropText(on: $0).plate } ?? false
+        return padding(plate ? 8 : 0).background { if plate { RoundedRectangle(cornerRadius: 10).fill(.regularMaterial) } }
+    }
+
+    /// Text on a backdrop inside a view that has its own color scheme (the tower keeps the light
+    /// one for its tablets): the text's own scheme, and a plate when it needs one.
+    func onBackdrop(_ backdrop: RGB) -> some View {
+        backdropPlate(backdrop).environment(\.colorScheme, BackdropText(on: backdrop).light ? .dark : .light)
     }
 }

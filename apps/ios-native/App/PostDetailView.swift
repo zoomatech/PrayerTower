@@ -197,16 +197,16 @@ struct PostDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
                 Text(c.body)
-                HStack(spacing: 16) {
-                    Button(w("post.reply")) { replyTo = c; asUpdate = false }
+                AdaptiveStack(spacing: 16) {
+                    Button { replyTo = c; asUpdate = false } label: { Text(w("post.reply")).tapTarget() }
                     // With sharing by consent on, only the person who wrote a comment can share it.
                     if !model.features["shareConsent"] || c.isMine == true {
-                        ShareLink(w("post.share"), item: commentShare(c))
+                        ShareLink(item: commentShare(c)) { Text(w("post.share")).tapTarget() }
                     }
                     if c.isMine == true {
-                        Button(w("post.deleteShort"), role: .destructive) { Task { await deleteComment(c) } }
+                        Button(role: .destructive) { Task { await deleteComment(c) } } label: { Text(w("post.deleteShort")).tapTarget() }
                     } else {
-                        Button(w("post.report")) { reporting = ("comment", c.id) }
+                        Button { reporting = ("comment", c.id) } label: { Text(w("post.report")).tapTarget() }
                     }
                 }
                 .buttonStyle(.borderless)
@@ -377,7 +377,7 @@ struct CrisisBox: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(CrisisLine.title).font(.headline)
             Text(CrisisLine.body)
-            HStack {
+            AdaptiveStack {
                 ForEach(CrisisLine.actions, id: \.url) { a in
                     if let url = URL(string: a.url) { Link(a.label, destination: url).buttonStyle(.bordered) }
                 }

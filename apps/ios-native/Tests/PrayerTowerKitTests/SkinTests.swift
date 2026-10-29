@@ -106,3 +106,42 @@ extension APIClientTests {
         #expect(Words(.neutral)("answeredStory.answers", ["preview": "Job"]).contains("Job"))
     }
 }
+
+@Suite struct SkinContrastTests {
+    /// Every built-in backdrop (supabase/migrations seeds) and a sweep of any color a member can pick.
+    static let builtIn = ["#101418", "#05070D", "#EAF2F8", "#F6F2FB", "#0D1B36", "#F8F3EA", "#FFFDF4", "#2A0B0B", "#EEF4FA", "#F5FBF2", "#FFFAEB", "#FFF7EE"]
+    static var sweep: [RGB] {
+        stride(from: 0.0, through: 1.0, by: 0.125).flatMap { r in
+            stride(from: 0.0, through: 1.0, by: 0.125).flatMap { g in
+                stride(from: 0.0, through: 1.0, by: 0.125).map { b in RGB(r: r, g: g, b: b) }
+            }
+        }
+    }
+
+    @Test func textOnAnyBackdropKeepsAtLeast7To1OrGetsAPlate() {
+        for c in Self.builtIn.compactMap(RGB.init(hex:)) + Self.sweep {
+            let t = BackdropText(on: c)
+            #expect(t.plate || c.contrast(t.color) >= 7, "\(c.hex)")
+        }
+        // The usual backdrops need no plate, and dark ones get light text.
+        for c in Self.builtIn.compactMap(RGB.init(hex:)) { #expect(!BackdropText(on: c).plate, "\(c.hex)") }
+        #expect(BackdropText(on: RGB(hex: "#101418")!).light && !BackdropText(on: RGB(hex: "#EAF2F8")!).light)
+        // A mid gray can't reach 7:1 either way, so it gets a plate.
+        #expect(BackdropText(on: RGB(hex: "#777777")!).plate)
+    }
+
+    @Test func leafBoxesAndTabletFacesStayReadableWhateverColorsAreMade() {
+        for c in Self.sweep {
+            for wording in [Wording.faith, .neutral] {
+                var look = VineLook(nil)
+                look.leafSoft = c
+                look.leaf = c
+                #expect(Skin.readable(on: look.leafBox(wording), wording), "\(c.hex)")
+                let tower = TowerLook(FeedTheme(slug: "t", name: "T", layout: "tower", tokens: ["stone": .string(c.hex)]))
+                #expect(Skin.readable(on: tower.face(wording), wording), "\(c.hex)")
+            }
+            let tip = VineLook(FeedTheme(slug: "v", name: "V", layout: "vine", tokens: ["backdrop": .string(c.hex)]))
+            #expect(BackdropText(on: c).plate || c.contrast(tip.tipColor) >= 7)
+        }
+    }
+}
