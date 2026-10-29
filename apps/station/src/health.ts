@@ -3,6 +3,7 @@
 // RIG_CONTROL=rigctld) is rigctld answering with the radio unkeyed? Exits 0 when
 // all pass, 1 otherwise. The installer runs it from a systemd timer.
 import { readFileSync, statSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { fldigiClient, type Fldigi } from './fldigi.js';
 import { rigctldClient, type Rig } from './rig.js';
 
@@ -71,7 +72,8 @@ export async function checkHealth(o: HealthOptions): Promise<Check[]> {
 }
 
 // CLI ---------------------------------------------------------------------------
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL: the Mac install lives under "Application Support", and a space is %20 in the module URL.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   // Read the same settings file systemd gives the worker when run by hand.
   const file = process.env.STATION_ENV_FILE ?? '/etc/prayer-tower-station.env';
   try {
