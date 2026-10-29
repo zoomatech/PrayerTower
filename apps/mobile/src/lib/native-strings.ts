@@ -3,7 +3,7 @@
 // (neutral-tree.ts). Flattened to "section.key" → text and written as JSON into
 // PrayerTowerKit's resources by scripts/native-strings.ts. A test here fails when
 // the committed JSON is out of date, so the two apps never drift apart.
-import { POST_TYPE_LABELS, PRAYER_KIND_LABELS, PRAYER_REALM_LABELS } from '@prayer-tower/shared';
+import { ACTION_LABELS, FREQUENCY_LABELS, POST_TYPE_LABELS, PRAYER_KIND_LABELS, PRAYER_REALM_LABELS } from '@prayer-tower/shared';
 
 import en from '@/locales/en';
 import { keys as neutralKeys, literals } from '@/locales/neutral';
@@ -25,7 +25,9 @@ const sorted = (o: Record<string, string>) => Object.fromEntries(Object.keys(o).
 /** `faith`: Prayer Tower's words. `neutral`: Open Circle's, plus `literal:<text>` for text the server sends. */
 export function nativeStrings() {
   // The labels the Expo app passes as label() defaults, so both wordings have every one.
-  const labels = { enums: { postType: POST_TYPE_LABELS, prayerKind: PRAYER_KIND_LABELS, prayerRealm: PRAYER_REALM_LABELS } };
+  const labels = {
+    enums: { postType: POST_TYPE_LABELS, prayerKind: PRAYER_KIND_LABELS, prayerRealm: PRAYER_REALM_LABELS, frequency: FREQUENCY_LABELS, action: ACTION_LABELS },
+  };
   const english = merge(labels, en as Tree);
   const neutral = flatten(neutralEnglish(english, neutralKeys));
   for (const [from, to] of Object.entries(literals as Record<string, string>)) neutral[`literal:${from}`] = neutralString(to);

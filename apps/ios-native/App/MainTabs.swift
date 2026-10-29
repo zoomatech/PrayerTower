@@ -9,6 +9,7 @@ struct MainTabs: View {
         TabView {
             // .tabItem rather than Tab(…), which needs iOS 18; the app supports iOS 17.
             FeedView().tabItem { Label("Feed", systemImage: "list.bullet") }
+            CommitmentsView().tabItem { Label(model.words("tabs.promises"), systemImage: "checkmark.circle") }
             if model.features["prayerCircles"] {
                 CirclesView().tabItem { Label("Circles", systemImage: "person.3") }
             }

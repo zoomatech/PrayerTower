@@ -19,6 +19,7 @@ struct PostDetailView: View {
     @State private var harm: HarmNote?
     @State private var coolDown = false
     @State private var reporting: (type: String, id: String)?
+    @State private var committing: Card?
     @State private var deleteArmed = false
     @State private var busy = false
     @State private var notice: String?
@@ -64,6 +65,7 @@ struct PostDetailView: View {
         } message: {
             Text(w("coolDown.lines.l\(Int.random(in: 0...3))"))
         }
+        .sheet(item: $committing) { card in CommitSheet(card: card) { notice = $0 } }
         .alert(notice ?? "", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) { Button("OK") {} }
     }
 
@@ -273,7 +275,10 @@ struct PostDetailView: View {
             case .prayingNow: _ = try await api.prayingNow(postId: card.id)
             case .wellWishes: _ = try await api.react(postId: card.id, kind: "well_wishes")
             case .share: _ = try await api.react(postId: card.id, kind: "share")
-            case .encouragement, .commit, .giftTokens:
+            case .commit:
+                committing = card
+                return
+            case .encouragement, .giftTokens:
                 notice = "\(action.name(model.wording)) is coming to this app soon. For now, use it in the Prayer Tower app."
                 return
             }
