@@ -117,6 +117,22 @@ Code: `modules/comment-kindness`, `components/comment-kindness.tsx`. The tables
 `comment_hearts`, `comment_thanks` and `quiet_count_prefs` are included in account
 deletion and export.
 
+## Who can reply (off)
+
+Admin → Conversation helpers → **Who can reply** (migration 20261029019500).
+
+- The person who asked chooses, on their own request, who may comment:
+  - **Everyone**, which is the default.
+  - **People who prayed**: those who prayed, promised to pray or reacted.
+  - **No comments, just prayers.**
+- The author can change it at any time and can always post updates.
+- Anyone who can't comment sees a gentle note instead of the comment box: "Your prayer still
+  means a lot."
+- It is the author's own choice, like the reply controls on X and Threads, and never a
+  penalty. While the switch is off, everyone can comment as before.
+
+Code: `modules/reply-choice`, `components/reply-choice.tsx`.
+
 ## Everything shipped on 2026-10-29 (all off by default)
 
 | Feature | Where to switch it on | Doc |
@@ -129,6 +145,8 @@ deletion and export.
 | Cool-down, lament posts, answered-prayer stories, kindness intro | Growth practices | GROWTH_PRACTICES.md |
 | Check back, quiet milestones, thank the pray-ers, calm threads | Growth practices | GROWTH_PRACTICES.md |
 | Prayer circles, encourager check-in, kindness weather report | Growth practices | GROWTH_PRACTICES.md |
+| Circle welcome, a path back after a removal | Growth practices | GROWTH_PRACTICES.md |
+| Who can reply | Conversation helpers | this file |
 
 Every one of them has Open Circle wording, and `open-circle-wording.test.ts` checks it.
 For accessibility, see `ACCESSIBILITY_KINDNESS_TOOLS.md`. The e2e walk `24-kindness-skins` opens the feed

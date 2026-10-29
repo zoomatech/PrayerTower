@@ -54,13 +54,15 @@ export interface PracticeSettings {
   encourager_checkin_enabled: boolean;
   encourager_checkin_days: number;
   kindness_weather_enabled: boolean;
+  circle_welcome_enabled: boolean;
+  path_back_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
             welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled,
             partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled, answered_stories_enabled, kindness_intro_enabled, check_back_enabled, kind_milestones_enabled, thank_note_enabled, calm_threads_enabled,
-            prayer_circles_enabled, encourager_checkin_enabled, encourager_checkin_days, kindness_weather_enabled
+            prayer_circles_enabled, encourager_checkin_enabled, encourager_checkin_days, kindness_weather_enabled, circle_welcome_enabled, path_back_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -97,6 +99,8 @@ export const SettingsPatch = z.object({
   encouragerCheckinEnabled: z.boolean().optional(),
   encouragerCheckinDays: z.number().int().min(3).max(60).optional(),
   kindnessWeatherEnabled: z.boolean().optional(),
+  circleWelcomeEnabled: z.boolean().optional(),
+  pathBackEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -118,7 +122,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        kind_milestones_enabled = coalesce($24, kind_milestones_enabled), thank_note_enabled = coalesce($25, thank_note_enabled),
        calm_threads_enabled = coalesce($26, calm_threads_enabled),
        prayer_circles_enabled = coalesce($27, prayer_circles_enabled), encourager_checkin_enabled = coalesce($28, encourager_checkin_enabled),
-       encourager_checkin_days = coalesce($29, encourager_checkin_days), kindness_weather_enabled = coalesce($30, kindness_weather_enabled)`,
+       encourager_checkin_days = coalesce($29, encourager_checkin_days), kindness_weather_enabled = coalesce($30, kindness_weather_enabled),
+       circle_welcome_enabled = coalesce($31, circle_welcome_enabled), path_back_enabled = coalesce($32, path_back_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -150,6 +155,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.encouragerCheckinEnabled ?? null,
       p.encouragerCheckinDays ?? null,
       p.kindnessWeatherEnabled ?? null,
+      p.circleWelcomeEnabled ?? null,
+      p.pathBackEnabled ?? null,
     ],
   );
   return settings(q);
@@ -181,6 +188,8 @@ export async function features(q: Queryable) {
     calmThreads: s.calm_threads_enabled,
     prayerCircles: s.prayer_circles_enabled,
     encouragerCheckin: s.encourager_enabled && s.encourager_checkin_enabled,
+    circleWelcome: s.prayer_circles_enabled && s.circle_welcome_enabled,
+    pathBack: s.path_back_enabled,
   };
 }
 

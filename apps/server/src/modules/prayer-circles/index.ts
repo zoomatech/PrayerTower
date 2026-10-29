@@ -20,6 +20,7 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const NewCircle = z.object({ name: z.string().trim().min(1).max(60), about: z.string().trim().max(300).optional() });
 export const NewCirclePost = z.object({ body: z.string().trim().min(1).max(2000) });
 export const NewCircleReply = z.object({ body: z.string().trim().min(1).max(1000) });
+export const Welcome = z.object({ text: z.string().trim().max(400) });
 export const Join = z.object({ code: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{8}$/) });
 
 async function requireOn(q: Queryable) {
@@ -27,8 +28,8 @@ async function requireOn(q: Queryable) {
 }
 
 async function circleOf(q: Queryable, userId: string, circleId: string) {
-  const { rows } = await q.query<{ id: string; name: string; about: string | null; owner_id: string }>(
-    `select c.id, c.name, c.about, c.owner_id from public.prayer_circles c
+  const { rows } = await q.query<{ id: string; name: string; about: string | null; owner_id: string; welcome: string | null }>(
+    `select c.id, c.name, c.about, c.owner_id, c.welcome from public.prayer_circles c
       join public.prayer_circle_members m on m.circle_id = c.id and m.user_id = $2
      where c.id = $1`,
     [circleId, userId],
@@ -110,8 +111,10 @@ export async function get(q: Queryable, userId: string, circleId: string) {
     const { rows } = await q.query<{ code: string; expires_at: Date }>('select code, expires_at from public.prayer_circle_invites where circle_id = $1 and expires_at > now()', [circleId]);
     invite = rows[0] ? { code: rows[0].code, expiresAt: rows[0].expires_at.toISOString() } : null;
   }
+  const welcome = await welcomeFor(q, userId, c);
   return {
     circle: { id: c.id, name: c.name, about: c.about, isOwner, ownerId: c.owner_id, full: members.length >= MAX_MEMBERS },
+    ...(welcome ? { welcome } : {}),
     members: members.map((m) => ({ id: m.id, displayName: m.display_name })),
     invite,
     posts: posts.map((p) => ({
@@ -192,6 +195,7 @@ export async function post(q: Queryable, userId: string, circleId: string, body:
   await requireOn(q);
   const c = await circleOf(q, userId, circleId);
   const { rows } = await q.query<{ id: string }>('insert into public.circle_posts (circle_id, user_id, body) values ($1, $2, $3) returning id', [circleId, userId, body]);
+  await nudgeHello(q, userId, c);
   const { rows: others } = await q.query<{ user_id: string }>('select user_id from public.prayer_circle_members where circle_id = $1 and user_id <> $2', [circleId, userId]);
   const day = new Date().toISOString().slice(0, 10);
   for (const o of others) {
@@ -239,4 +243,60 @@ export async function removePost(q: Queryable, userId: string, postId: string) {
   if (p.user_id !== userId && p.owner_id !== userId) throw forbidden('Only the author or the circle’s starter can take this down');
   await q.query('delete from public.circle_posts where id = $1', [postId]);
   return { removed: true };
+}
+
+// Circle welcome (research/Conflict_Repair_and_Newcomer_Kindness.md, suggestion 1) --------
+// The starter writes a short welcome (the circle's norms). Someone who hasn't yet posted or
+// replied in the circle sees it above the composer until they dismiss it, and the starter gets
+// a quiet nudge to say hello when someone shares for the first time.
+// Switch: practice_settings.circle_welcome_enabled (with prayer circles on).
+
+async function welcomeOn(q: Queryable) {
+  const s = await settings(q);
+  return s.prayer_circles_enabled && s.circle_welcome_enabled;
+}
+
+/** The welcome as the viewer sees it: its text (null = the app's default words) and whether to show it. */
+async function welcomeFor(q: Queryable, userId: string, c: { id: string; owner_id: string; welcome: string | null }) {
+  if (!(await welcomeOn(q))) return null;
+  if (c.owner_id === userId) return { text: c.welcome, show: false };
+  const { rows } = await q.query<{ quiet: boolean }>(
+    `select not exists (select 1 from public.circle_posts p where p.circle_id = $1 and p.user_id = $2)
+        and not exists (select 1 from public.circle_replies r join public.circle_posts p on p.id = r.circle_post_id where p.circle_id = $1 and r.user_id = $2)
+        and not exists (select 1 from public.circle_welcome_seen w where w.circle_id = $1 and w.user_id = $2) as quiet`,
+    [c.id, userId],
+  );
+  return { text: c.welcome, show: rows[0]!.quiet };
+}
+
+/** The starter writes or clears the welcome. An empty text goes back to the app's default. */
+export async function setWelcome(q: Queryable, userId: string, circleId: string, text: string) {
+  if (!(await welcomeOn(q))) throw badRequest('Circle welcomes are switched off');
+  const c = await circleOf(q, userId, circleId);
+  if (c.owner_id !== userId) throw forbidden('Only the person who started the circle can write its welcome');
+  await q.query('update public.prayer_circles set welcome = $2 where id = $1', [circleId, text || null]);
+  return { welcome: text || null };
+}
+
+export async function welcomeSeen(q: Queryable, userId: string, circleId: string) {
+  await requireOn(q);
+  await circleOf(q, userId, circleId);
+  await q.query('insert into public.circle_welcome_seen (circle_id, user_id) values ($1, $2) on conflict do nothing', [circleId, userId]);
+  return { seen: true };
+}
+
+/** After someone's first post in a circle: a quiet nudge to the starter to say hello. */
+async function nudgeHello(q: Queryable, userId: string, c: { id: string; name: string; owner_id: string }) {
+  if (c.owner_id === userId || !(await welcomeOn(q))) return;
+  const { rows } = await q.query<{ n: number }>('select count(*)::int as n from public.circle_posts where circle_id = $1 and user_id = $2', [c.id, userId]);
+  if (rows[0]!.n !== 1) return;
+  const who = (await getProfile(q, userId))?.display_name || 'Someone';
+  await notifications.notify(q, c.owner_id, {
+    kind: 'circle_post',
+    title: c.name,
+    body: `${who} shared in your circle for the first time. A hello goes a long way.`,
+    data: { screen: 'circle', circleId: c.id },
+    dedupeKey: `circle_hello:${c.id}:${userId}`,
+    quiet: true,
+  });
 }

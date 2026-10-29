@@ -29,6 +29,7 @@ import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
 import { LiftedMeUp } from '@/components/kindness-highlights';
 import { ReplyHelpers } from '@/components/reply-helpers';
 import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
+import { ReplyChoiceGate } from '@/components/reply-choice';
 import { CircleGoal } from '@/components/circle-goal';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
@@ -42,7 +43,7 @@ import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
 
 export default function PostScreen() {
-  const { id, celebrate: celebrateParam, comment: sharedCommentId, believe: believeParam } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string; believe?: string }>();
+  const { id, celebrate: celebrateParam, comment: sharedCommentId, believe: believeParam, draft } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string; believe?: string; draft?: string }>();
   const { celebrate, overlay } = useCelebration();
   const { profile, roles } = useAuth();
   const { t } = useLocale();
@@ -68,7 +69,8 @@ export default function PostScreen() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
-  const [text, setText] = useState('');
+  // A comment taken down by a moderator comes back here to change and post again (path back).
+  const [text, setText] = useState(typeof draft === 'string' ? draft.slice(0, 5000) : '');
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Two taps to delete: the first asks "Tap again to delete".
@@ -567,25 +569,27 @@ export default function PostScreen() {
                   {t('post.replyingTo', { name: replyTo.author.displayName })}
                 </Text>
               ) : null}
-              <WelcomeCard />
-              {features.lament && card?.lament && !card.isMine ? <Text style={type.small}>{t('lament.replyHint')}</Text> : null}
-              <CoolDownCard nudge={coolNudge} />
-              <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
-              <KindCloud text={text} context={features.lament && card?.lament && !card.isMine ? 'lamentReply' : undefined} />
-              <ReplyHelpers
-                // Answer the comment being replied to, or else the request itself.
-                lastFromOther={(replyTo && !replyTo.isMine ? replyTo.body : null) ?? (card.isMine ? null : card.body)}
-                empty={false}
-                text={text}
-                onPick={setText}
-                postType={replyTo || card.isMine ? null : card.postType}
-                lament={!replyTo && !card.isMine && features.lament && !!card.lament}
-              />
-              {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
-              <View style={styles.row}>
-                <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
-                {card?.isMine ? <Button small variant="secondary" label={t('post.postUpdate')} onPress={() => send(true)} disabled={!text.trim()} /> : null}
-              </View>
+              <ReplyChoiceGate postId={card.id}>
+                <WelcomeCard />
+                {features.lament && card?.lament && !card.isMine ? <Text style={type.small}>{t('lament.replyHint')}</Text> : null}
+                <CoolDownCard nudge={coolNudge} />
+                <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
+                <KindCloud text={text} context={features.lament && card?.lament && !card.isMine ? 'lamentReply' : undefined} />
+                <ReplyHelpers
+                  // Answer the comment being replied to, or else the request itself.
+                  lastFromOther={(replyTo && !replyTo.isMine ? replyTo.body : null) ?? (card.isMine ? null : card.body)}
+                  empty={false}
+                  text={text}
+                  onPick={setText}
+                  postType={replyTo || card.isMine ? null : card.postType}
+                  lament={!replyTo && !card.isMine && features.lament && !!card.lament}
+                />
+                {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
+                <View style={styles.row}>
+                  <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
+                  {card?.isMine ? <Button small variant="secondary" label={t('post.postUpdate')} onPress={() => send(true)} disabled={!text.trim()} /> : null}
+                </View>
+              </ReplyChoiceGate>
             </View>
           </>
         ) : null}
