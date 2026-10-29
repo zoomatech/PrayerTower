@@ -28,7 +28,7 @@ jobs:
           for f in build-logs/screenshots-*/*.txt build-logs/native-*/*.txt; do
             [ -f "$f" ] || continue
             case "$f" in */screenshots-run/*) tail -25 "$f" | while IFS= read -r l; do echo "::notice title=$f::$l"; done; continue ;; esac
-            grep -hE "error:|FAIL|failed|Unable" "$f" | sort -u | head -15 | while IFS= read -r l; do echo "::error title=$f::$l"; done
+            grep -hE "error:|FAIL|failed|Unable" "$f" | sort -u | head -15 | while IFS= read -r l; do echo "::error title=$f::$l"; done || true
           done
       - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
