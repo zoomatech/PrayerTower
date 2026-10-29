@@ -382,6 +382,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     schedule: 'Programar en Eventos',
   },
   vine: {
+    ...en.vine,
     yourBranch: 'Tu rama',
     yourTendril: '➰ Tu zarcillo: prometiste orar',
     tendrils: { one: '1 persona prometió orar por esto', other: '%{count} personas prometieron orar por esto' },
@@ -1618,6 +1619,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   // English until Spanish is turned on (Steve, 2026-10-28: no Spanish work for now).
   // Feed skins: English until Spanish is turned on.
   skins: en.skins,
+  gallery: en.gallery,
   skinIdea: en.skinIdea,
   tree: en.tree,
   wall: en.wall,

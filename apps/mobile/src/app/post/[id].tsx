@@ -1,7 +1,7 @@
 import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type FeedTheme, type TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
@@ -29,7 +29,7 @@ import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
-import { colors, space, type } from '@/lib/theme';
+import { breakpoints, colors, space, type } from '@/lib/theme';
 import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
 
@@ -39,6 +39,8 @@ export default function PostScreen() {
   const { profile, roles } = useAuth();
   const { t } = useLocale();
   const features = useFeatures();
+  // On a very wide window the comment vine gets a roomier lane, like the feed's skins.
+  const roomy = useWindowDimensions().width >= breakpoints.twoColumnFeed && features.commentTree;
   // The Believe moment: 'mine' right after marking answered, 'theirs' when a pray-er opens the good news.
   const [believe, setBelieve] = useState<'mine' | 'theirs' | null>(believeParam ? 'theirs' : null);
   const { materialMatch, kindCloud } = features;
@@ -248,7 +250,7 @@ export default function PostScreen() {
   );
 
   return (
-    <Screen>
+    <Screen style={roomy ? styles.roomy : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
@@ -518,6 +520,7 @@ export default function PostScreen() {
 
 const styles = StyleSheet.create({
   noteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  roomy: { maxWidth: 880 },
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   section: { gap: space.sm },
   comment: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, gap: 2 },

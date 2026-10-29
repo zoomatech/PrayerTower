@@ -137,8 +137,9 @@ const styles = StyleSheet.create({
   icon: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },
   iconMine: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   emoji: { fontSize: 18 },
-  tip: { position: 'absolute', bottom: 48, left: -40, width: 160, padding: space.xs, borderRadius: radius.md, backgroundColor: colors.text, zIndex: 10 },
-  tipText: { ...type.small, color: colors.surface, textAlign: 'center' },
+  // Same look as the action icons' tips in post-card.tsx.
+  tip: { position: 'absolute', bottom: 50, zIndex: 10, minWidth: 90, maxWidth: 140, paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.text },
+  tipText: { fontSize: 12, color: colors.surface, textAlign: 'center', fontWeight: '600' },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   sheet: { gap: space.sm, padding: space.lg, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, backgroundColor: colors.surface },
   choice: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border },

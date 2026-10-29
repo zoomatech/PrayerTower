@@ -247,6 +247,8 @@ export interface Card {
   };
   reach: number;
   topComment: Comment | null;
+  /** Newest few comments, newest first, while comments as leaves is on (the drawn vine). */
+  leafComments?: Comment[];
   createdAt: string;
 }
 

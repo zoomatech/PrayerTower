@@ -385,6 +385,9 @@ interface CommentRow {
   handle: string | null;
 }
 
+/** Most comments a feed card brings for the drawn vine; the rest are on the post page. */
+const FEED_LEAVES = 3;
+
 const commentSelect = `select c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
                               p.id as user_id, p.display_name, p.handle
                          from public.comments c join public.profiles p on p.id = c.user_id`;
@@ -613,6 +616,33 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
     [postIds],
   );
   const topByPost = new Map(tops.map((t) => [t.post_id, t]));
+
+  // Drawn vine (Admin → Feed skins → comments as leaves): each card brings its newest few
+  // comments, so they can spread outward and downward from the post toward the next one.
+  const leavesByPost = new Map<string, CommentRow[]>();
+  const { rows: tree } = await q.query<{ on: boolean; n: number }>(
+    'select skins_enabled and comment_tree_enabled as on, least(comment_tree_leaves, $1)::int as n from public.skin_settings',
+    [FEED_LEAVES],
+  );
+  if (tree[0]?.on) {
+    const { rows: recent } = await q.query<CommentRow & { post_id: string }>(
+      `select * from (
+         select c.post_id, c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
+                p.id as user_id, p.display_name, p.handle,
+                row_number() over (partition by c.post_id order by c.created_at desc, c.id desc) as n
+           from public.comments c join public.profiles p on p.id = c.user_id
+          where c.post_id = any($1::uuid[]) and c.moderation_status = 'visible'
+            and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)) x
+        where x.n <= $3
+        order by x.post_id, x.created_at desc, x.id desc`,
+      [postIds, viewerId, tree[0].n],
+    );
+    for (const c of recent) {
+      const list = leavesByPost.get(c.post_id);
+      if (list) list.push(c);
+      else leavesByPost.set(c.post_id, [c]);
+    }
+  }
   // One query, not one per card: parallel per-card queries took every pool connection (load test 2026-10-28).
   const reachByPost = await tokens.reachOfMany(q, postIds);
 
@@ -695,6 +725,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         counts: r.counts,
         reach: reachByPost.get(id) ?? 0,
         topComment: top ? presentComment(top, viewerId) : null,
+        ...(leavesByPost.size ? { leafComments: (leavesByPost.get(id) ?? []).map((c) => presentComment(c, viewerId)) } : {}),
         createdAt: r.created_at,
       },
     ];

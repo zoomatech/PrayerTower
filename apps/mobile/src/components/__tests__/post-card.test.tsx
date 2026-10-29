@@ -28,7 +28,7 @@ describe('PostCard', () => {
 
   it('marks a request the member already committed to', async () => {
     await renderApp(<PostCard card={sampleCard({ myCommitment: { id: 'c1', frequency: 'daily' } })} onAction={jest.fn()} />);
-    expect(await screen.findByText(/^Committed/)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Commit to Pray', selected: true })).toBeTruthy();
   });
 
   it('shows a long request in short form until "more" is tapped', async () => {
