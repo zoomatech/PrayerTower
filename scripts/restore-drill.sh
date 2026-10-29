@@ -62,7 +62,8 @@ if [ -z "${RESTORE_URL:-}" ]; then
   mkdir -p "$drill_stack/supabase/migrations"
   # config.toml points at the email templates by relative path.
   cp -R "$root/supabase/templates" "$drill_stack/supabase/templates"
-  # The main stack uses 543xx. Try 553xx, then 563xx, ...: skip a range with a
+  # The main stack uses 543xx, or 553xx when scripts/ci-db-start.sh moved it in CI,
+  # so config.toml may hold either. Try 553xx, then 563xx, ...: skip a range with a
   # port already listening, and move on if Docker still can't bind one.
   in_use() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
   prefix=""
@@ -71,7 +72,7 @@ if [ -z "${RESTORE_URL:-}" ]; then
     for n in $(seq 20 29); do in_use "$p$n" && { busy=1; break; }; done
     [ $busy = 1 ] && continue
     sed -e 's/^project_id = .*/project_id = "prayertower-drill"/' \
-        -e "s/543\\([0-9][0-9]\\)/$p\\1/g" \
+        -e "s/= 5[45]3\\([0-9][0-9]\\)/= $p\\1/g" \
         -e "s/^inspector_port = 8083/inspector_port = 8${p:1:1}93/" \
         "$root/supabase/config.toml" > "$drill_stack/supabase/config.toml"
     if npx supabase start --workdir "$drill_stack" -x studio,imgproxy,logflare,vector,supavisor,edge-runtime,realtime,mailpit >/dev/null; then
