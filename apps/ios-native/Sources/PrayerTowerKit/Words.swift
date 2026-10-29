@@ -12,7 +12,7 @@ public struct Words: Sendable {
         table = Words.load(wording)
     }
 
-    /// The text for a key, with `%{name}` filled in. With `count`, `.one` or `.other` is chosen
+    /// The text for a key, with `%{name}` (or `{{name}}`) filled in. With `count`, `.one` or `.other` is chosen
     /// (or `.zero` when there is one, as i18n-js does) and `%{count}` is filled. An unknown key shows the key, so it's noticed.
     public func callAsFunction(_ key: String, _ vars: [String: String] = [:], count: Int? = nil) -> String {
         var text = table[key]
@@ -22,7 +22,9 @@ public struct Words: Sendable {
         var out = text ?? key
         var all = vars
         if let count { all["count"] = String(count) }
-        for (k, v) in all { out = out.replacingOccurrences(of: "%{\(k)}", with: v) }
+        for (k, v) in all {
+            out = out.replacingOccurrences(of: "%{\(k)}", with: v).replacingOccurrences(of: "{{\(k)}}", with: v)
+        }
         return out
     }
 
