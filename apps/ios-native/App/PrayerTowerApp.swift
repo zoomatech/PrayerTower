@@ -35,8 +35,7 @@ final class AppModel {
         return SessionStore(
             supabaseURL: url("PTSupabaseURL"),
             publishableKey: info["PTSupabaseKey"] as? String ?? "",
-            apiURL: url("PTApiURL"),
-            storage: KeychainLocalStorage()
+            apiURL: url("PTApiURL")
         )
     }
 
