@@ -78,5 +78,7 @@ test('every skin keeps one icon row and passes axe with the kindness tools on', 
   } finally {
     for (const s of before) await db.query(`update public.${s.t} set ${s.c} = $1`, [s.v]);
     await db.query('update public.community_memberships set feed_theme_id = $2 where user_id = $1 and is_primary', [ethel[0]!.id, chosen[0]?.feed_theme_id ?? null]);
+    // This walk spends most of the API's per-minute allowance: let it refill so the next test isn't rate limited.
+    await page.waitForTimeout(61_000);
   }
 });
