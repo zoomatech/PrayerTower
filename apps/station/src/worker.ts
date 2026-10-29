@@ -28,7 +28,7 @@ export interface StationApi {
   claim(): Promise<ClaimedPrayer | null>;
   /** Up to `max` prayers at once (burst mode); empty when none are waiting. */
   claimBatch?(max: number): Promise<ClaimedPrayer[]>;
-  report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string }): Promise<void>;
+  report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string; preset?: string; sentHash?: string }): Promise<void>;
   /** Log a burst for Admin → Radio (burst mode). Best effort: a failure here never stops the station. */
   reportBurst?(burst: BurstLog): Promise<void>;
 }

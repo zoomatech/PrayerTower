@@ -6,6 +6,7 @@ import * as site from './index.js';
 import * as openCircle from './open-circle.js';
 import { promisePage } from './promise.js';
 import * as listen from '../listen/index.js';
+import * as receipts from '../radio/receipts.js';
 import * as whyGifts from './why-gifts.js';
 import { waitlistPage } from '../waitlist/page.js';
 import * as waitlist from '../waitlist/index.js';
@@ -62,7 +63,7 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db
   // The browser listening page for radio bursts, only while Admin → Radio has it on.
   app.get('/listen', async (_req, reply) => {
     if (!db || !(await listen.enabled(db))) return reply.code(404).type(html).send(notFound());
-    return reply.type(html).send(listen.listenPage());
+    return reply.type(html).send(listen.listenPage(await receipts.enabled(db)));
   });
 
   // The ad-free promise, only while Admin → Notebook ideas has it on.

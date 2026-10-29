@@ -1,7 +1,8 @@
 // The listening page (/listen, off unless Admin → Radio turns it on): anyone
 // near a radio opens it on a phone or laptop, and it decodes burst frames
-// (docs/RADIO_BURST.md) from the microphone, right in the browser. Nothing
-// leaves the device. The decoder is the station's own code, bundled by
+// (docs/RADIO_BURST.md) from the microphone, right in the browser. The sound
+// never leaves the device; with receipts on (radio/receipts.ts) the page sends
+// back only a fingerprint of each decoded prayer, if the listener agrees. The decoder is the station's own code, bundled by
 // apps/station/scripts/build-listen.ts into decoder.generated.ts.
 import type { Queryable } from '../../db.js';
 import { layout } from '../site/index.js';
@@ -22,6 +23,7 @@ const BODY = `
   <p><label for="meter">Sound level</label> <meter id="meter" min="0" max="1" low="0.05" high="0.7" optimum="0.3" value="0"></meter></p>
   <p><label>Or decode a recording: <input id="file" type="file" accept="audio/*"></label></p>
 </div>
+<p id="tellrow" hidden><label><input id="tell" type="checkbox" checked> Let senders know their prayer was heard. Only a fingerprint of each prayer goes back, never the words.</label></p>
 <div id="heard"></div>
 <p><button class="button" id="report" type="button" hidden>Save channel report</button></p>
 <div class="notice"><p>Tips: turn the radio up until the meter sits in the middle, keep the phone still, and keep the room quiet. The slower presets (fm-robust, fm-robust-fec, fm-standard) survive a speaker and microphone best; the fastest ones need a cable. The channel report tells the station how clear the signal is here (docs/RADIO_BURST.md, "Auto preset").</p></div>
@@ -29,6 +31,8 @@ const BODY = `
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
+  const RECEIPTS = !!document.getElementById('receipts-on');
+  if (RECEIPTS) $('tellrow').hidden = false;
   const heard = [];
   let ctx = null, stream = null, node = null, timer = null;
   let chunks = [], total = 0, dropped = 0, decodedUpTo = 0, busy = false;
@@ -58,8 +62,24 @@ const BODY = `
       }
       $('heard').prepend(card);
       $('report').hidden = false;
+      if (f.prayers && f.prayers.length) tell(f).then((n) => { if (n) { const t = document.createElement('p'); t.textContent = 'Its sender' + (n === 1 ? ' was' : 's were') + ' told it was heard.'; card.append(t); } });
       if (ctx) $('status').textContent = 'Listening. ' + heard.length + ' frame(s) heard so far.';
     }
+  }
+
+  // "On the air" receipts: the first 32 hex digits of SHA-256 of each prayer's text, as the station reported it.
+  async function tell(f) {
+    if (!RECEIPTS || !$('tell').checked || !(window.crypto && crypto.subtle)) return 0;
+    try {
+      const hashes = [];
+      for (const p of new Set(f.prayers)) {
+        const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)));
+        hashes.push(Array.from(d.subarray(0, 16), (b) => b.toString(16).padStart(2, '0')).join(''));
+      }
+      const r = await fetch('/listen/heard', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes: hashes.slice(0, 500) }) });
+      return r.ok ? (await r.json()).matched : 0;
+    } catch { return 0; }
   }
 
   function tick() {
@@ -133,7 +153,13 @@ const BODY = `
 })();
 </script>`;
 
-let page: string | null = null;
-export function listenPage(): string {
-  return (page ??= layout('Listen to a prayer burst', BODY, ''));
+const pages = new Map<boolean, string>();
+/** The page; with receipts on it offers to tell senders their prayers were heard (radio/receipts.ts). */
+export function listenPage(receipts = false): string {
+  let page = pages.get(receipts);
+  if (!page) {
+    page = layout('Listen to a prayer burst', (receipts ? '<i id="receipts-on" hidden></i>' : '') + BODY, '');
+    pages.set(receipts, page);
+  }
+  return page;
 }

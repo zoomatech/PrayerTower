@@ -4,6 +4,13 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Open Circle wording on Give and invites; website Give link falls back to PayPal ([#99](https://github.com/zoomatech/PrayerTower/pull/99))
+- Feed skins, Prayer Tower climb, neon and floral skins, theme maker, comment trees, 7-second video cap ([#93](https://github.com/zoomatech/PrayerTower/pull/93))
+- Burst mode: browser listening page (/listen, off by default) and station operator guide ([#102](https://github.com/zoomatech/PrayerTower/pull/102))
+- Auto-Pray: AI prayers for requests, labeled and counted apart, behind an off switch ([#101](https://github.com/zoomatech/PrayerTower/pull/101))
+- Matching pledges on token pools, behind an off switch ([#96](https://github.com/zoomatech/PrayerTower/pull/96))
+- Burst mode: auto preset from the receiver's measured SNR (BURST_PRESET=auto) ([#100](https://github.com/zoomatech/PrayerTower/pull/100))
+- Burst mode: coherent QAM presets with pilot carriers (fm-qam16, fm-qam64, dataport-qam64) ([#97](https://github.com/zoomatech/PrayerTower/pull/97))
 - Giving: Zeffy auto-recording, PayPal button, refunds, "Give to" a member ([#90](https://github.com/zoomatech/PrayerTower/pull/90))
 - Harmful prayer requests: held or reviewed by a person, never on the radio (off by default) ([#94](https://github.com/zoomatech/PrayerTower/pull/94))
 - Burst mode: amplify up to 1,000× and soft-decision FEC presets ([#95](https://github.com/zoomatech/PrayerTower/pull/95))

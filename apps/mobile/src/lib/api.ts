@@ -351,6 +351,7 @@ export interface AdminRadioSettings {
   radio_batch_max: number;
   /** The public /listen page that decodes bursts from a phone's microphone. */
   listen_page_enabled: boolean;
+  radio_receipts_enabled: boolean;
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -1160,7 +1161,7 @@ export const api = {
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
