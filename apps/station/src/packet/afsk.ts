@@ -11,6 +11,8 @@
 // 0x8408, complemented), sent low byte first. AX.25 fields from Linux's ax25.h:
 // UI control 0x03, PID 0xF0 (no layer 3), SSID spare bits 0x60, C bit 0x80,
 // extension bit 0x01 on the last address byte.
+import { finiteSamples } from '../burst/samples.js';
+
 export const BAUD = 1200;
 export const MARK_HZ = 1200;
 export const SPACE_HZ = 2200;
@@ -133,7 +135,8 @@ export function modulate(frames: Uint8Array[], rate = 48_000, opts: { leadSecond
  * fail the FCS are dropped, so noise never yields a wrong frame. Each frame is
  * returned with the sample where it ended.
  */
-export function demodulate(audio: Float32Array, rate = 48_000): { frame: Ax25Frame; end: number }[] {
+export function demodulate(input: Float32Array, rate = 48_000): { frame: Ax25Frame; end: number }[] {
+  const audio = finiteSamples(input);
   const spb = rate / BAUD;
   const w = Math.round(spb);
   // Sliding correlations with mark and space (cos and sin), one bit long.
