@@ -6,12 +6,17 @@
 //   BURST_MODE (off | audio | fldigi | simulate), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
 //   BURST_MAX_FRAME_SECONDS (20), BURST_PLAY_CMD ("aplay -q {wav}"), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
 //   BURST_PTT_DELAY_MS (300), BURST_DIR (bursts/ under the state directory), BURST_FLDIGI_MODEM (8PSK1000F)
+// BURST_PRESET=auto picks a preset before each burst from a receiver's channel report:
+//   BURST_AUTO_REPORT (file or URL; BURST_DIR/channel.json), BURST_AUTO_PRESETS (the FM presets
+//   without QAM), BURST_AUTO_MARGIN_DB (3), BURST_AUTO_MAX_AGE_MIN (30). Simulate mode can add
+//   noise with BURST_SIM_SNR_DB and writes its receiver's report to BURST_AUTO_REPORT.
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fldigiClient } from './fldigi.js';
 import { DEFAULT_BLOCKLIST } from './text.js';
 import { EXIT_TRANSMIT_FAILED } from './health.js';
 import { httpApi, runOnce, TransmitError } from './worker.js';
+import { autoChooser, DEFAULT_AUTO_PRESETS, parseCandidates } from './burst/auto.js';
 import { presetByName } from './burst/presets.js';
 import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTransmitter } from './burst/transmit.js';
 import { runBurstOnce } from './burst/worker.js';
@@ -57,9 +62,16 @@ const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
 let burst: { tx: BurstTransmitter; cfg: Parameters<typeof runBurstOnce>[2] } | null = null;
 if (burstMode !== 'off') {
   const dir = env('BURST_DIR', path.join(stateDir ?? '.', 'bursts'));
+  const reportSource = env('BURST_AUTO_REPORT', path.join(dir, 'channel.json'));
+  const simSnr = process.env.BURST_SIM_SNR_DB;
+  if (simSnr !== undefined && !Number.isFinite(Number(simSnr))) throw new Error('BURST_SIM_SNR_DB must be a number');
+  const auto = env('BURST_PRESET', 'fm-standard') === 'auto';
   const tx =
     burstMode === 'simulate'
-      ? simulateTransmitter(dir, console.log)
+      ? simulateTransmitter(dir, console.log, {
+          snrDb: simSnr === undefined ? undefined : Number(simSnr),
+          reportFile: /^https?:/.test(reportSource) ? undefined : reportSource,
+        })
       : burstMode === 'fldigi'
         ? fldigiTransmitter(fldigi, cfg.txTimeoutMs)
         : audioTransmitter({
@@ -74,7 +86,18 @@ if (burstMode !== 'off') {
     tx,
     cfg: {
       callSign,
-      preset: presetByName(env('BURST_PRESET', 'fm-standard')),
+      preset: auto ? presetByName('fm-standard') : presetByName(env('BURST_PRESET', 'fm-standard')),
+      choosePreset: auto
+        ? autoChooser(
+            {
+              report: reportSource,
+              candidates: parseCandidates(env('BURST_AUTO_PRESETS', DEFAULT_AUTO_PRESETS.join(','))),
+              marginDb: int('BURST_AUTO_MARGIN_DB', '3', 0, 20),
+              maxAgeMs: int('BURST_AUTO_MAX_AGE_MIN', '30', 1, 1440) * 60_000,
+            },
+            console.log,
+          )
+        : undefined,
       maxPrayers: int('BURST_MAX_PRAYERS', '50', 1, 500),
       maxFrameSeconds: int('BURST_MAX_FRAME_SECONDS', '20', 1, 120),
       blocklist: cfg.blocklist,
@@ -98,7 +121,7 @@ process.on('SIGTERM', () => (stopping = true));
 if (burstMode === 'fldigi') await fldigi.setModem(env('BURST_FLDIGI_MODEM', '8PSK1000F'));
 else if (usesFldigi) await fldigi.setModem(cfg.modem);
 console.log(
-  `[station] ${callSign} ready, ${burst ? `burst ${burstMode} ${burst.cfg.preset.name}, up to ${burst.cfg.maxPrayers} prayers a burst` : cfg.modem}, polling every ${pollMs / 1000}s`,
+  `[station] ${callSign} ready, ${burst ? `burst ${burstMode} ${burst.cfg.choosePreset ? 'auto preset' : burst.cfg.preset.name}, up to ${burst.cfg.maxPrayers} prayers a burst` : cfg.modem}, polling every ${pollMs / 1000}s`,
 );
 while (!stopping) {
   beat();

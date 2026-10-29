@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type StationBurst } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type TokenPool, type StationBurst } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -705,23 +705,27 @@ function SecuritySection() {
 function GivingSection() {
   const t = useT();
   const [s, setS] = useState<AdminDonationSettings | null>(null);
-  const [keys, setKeys] = useState({ stripe: false, webhook: false });
+  const [keys, setKeys] = useState({ stripe: false, webhook: false, zeffy: false, zeffyWebhook: false });
   const [gifts, setGifts] = useState<AdminGift[]>([]);
-  const [draft, setDraft] = useState({ url: '', monthly: '', max: '', amount: '', reference: '' });
+  const [pools, setPools] = useState<TokenPool[]>([]);
+  const [draft, setDraft] = useState({ url: '', paypal: '', monthly: '', max: '', amount: '', reference: '' });
+  const [via, setVia] = useState<'manual' | 'zeffy' | 'paypal'>('manual');
+  const [poolId, setPoolId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const fail = (e: unknown) => setNote((e as Error).message);
   const show = (x: AdminDonationSettings) => {
     setS(x);
-    setDraft((d) => ({ ...d, url: x.donate_url ?? '', monthly: String(x.everyone_monthly), max: String(x.allocation_max_per_request) }));
+    setDraft((d) => ({ ...d, url: x.donate_url ?? '', paypal: x.paypal_url ?? '', monthly: String(x.everyone_monthly), max: String(x.allocation_max_per_request) }));
   };
   const loadGifts = () => api.admin.gifts().then((r) => setGifts(r.donations), fail);
   useFocusEffect(
     useCallback(() => {
       api.admin
         .donationSettings()
-        .then((r) => (show(r.settings), setKeys({ stripe: r.stripeKeySet, webhook: r.webhookSecretSet })))
+        .then((r) => (show(r.settings), setKeys({ stripe: r.stripeKeySet, webhook: r.webhookSecretSet, zeffy: r.zeffyKeySet, zeffyWebhook: r.zeffyWebhookSet })))
         .catch(fail);
       api.admin.gifts().then((r) => setGifts(r.donations), fail);
+      api.tokenPools().then((r) => setPools(r.pools), () => undefined);
     }, []),
   );
   const save = (patch: Parameters<typeof api.admin.updateDonationSettings>[0]) =>
@@ -732,6 +736,7 @@ function GivingSection() {
   const saveDraft = () =>
     save({
       donateUrl: draft.url.trim() || null,
+      paypalUrl: draft.paypal.trim() || null,
       everyoneMonthly: toInt(draft.monthly) ?? undefined,
       allocationMaxPerRequest: toInt(draft.max) ?? undefined,
     });
@@ -739,10 +744,15 @@ function GivingSection() {
     const cents = Math.round(Number(draft.amount.replace(/[$,]/g, '')) * 100);
     if (!(cents > 0)) return;
     api.admin
-      .recordGift(cents, draft.reference.trim())
+      .recordGift({ amountCents: cents, reference: draft.reference.trim(), via, target: poolId ? { kind: 'pool', poolId } : { kind: 'everyone' } })
       .then(() => (setDraft((d) => ({ ...d, amount: '', reference: '' })), setNote(t('admin.giftRecorded')), loadGifts()))
       .catch(fail);
   };
+  const syncZeffy = () =>
+    api.admin
+      .syncZeffy()
+      .then((r) => (setNote(t('admin.zeffySynced', { recorded: r.recorded, refunded: r.refunded })), loadGifts()))
+      .catch(fail);
   if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
   return (
     <View style={styles.section}>
@@ -756,8 +766,23 @@ function GivingSection() {
       </View>
       {s.provider === 'stripe' && (!keys.stripe || !keys.webhook) ? <Text style={[type.small, { color: colors.danger }]}>{t('admin.stripeKeysMissing')}</Text> : null}
       {s.provider === 'zeffy' ? (
-        <Field label={t('admin.field.donateUrl')} value={draft.url} onChangeText={(url) => setDraft((d) => ({ ...d, url }))} autoCapitalize="none" keyboardType="url" />
+        <>
+          <Field label={t('admin.field.donateUrl')} value={draft.url} onChangeText={(url) => setDraft((d) => ({ ...d, url }))} autoCapitalize="none" keyboardType="url" />
+          <Text style={type.small}>{t(keys.zeffy ? (keys.zeffyWebhook ? 'admin.zeffyConnected' : 'admin.zeffyNoWebhook') : 'admin.zeffyNotConnected')}</Text>
+          {keys.zeffy ? (
+            <>
+              <Text style={type.small}>{t('admin.zeffyAmountUnit')}</Text>
+              <View style={styles.row}>
+                {(['cents', 'dollars'] as const).map((u) => (
+                  <Chip key={u} label={t(`admin.zeffyUnit.${u}`)} selected={s.zeffy_amount_unit === u} onPress={() => save({ zeffyAmountUnit: u })} />
+                ))}
+              </View>
+              <Button small variant="secondary" label={t('admin.btn.syncZeffy')} onPress={syncZeffy} />
+            </>
+          ) : null}
+        </>
       ) : null}
+      <Field label={t('admin.field.paypalUrl')} value={draft.paypal} onChangeText={(paypal) => setDraft((d) => ({ ...d, paypal }))} autoCapitalize="none" keyboardType="url" />
       <Field label={t('admin.field.everyoneMonthly')} keyboardType="number-pad" value={draft.monthly} onChangeText={(monthly) => setDraft((d) => ({ ...d, monthly }))} />
       <Toggle
         label={t('admin.toggle.allocationRequests')}
@@ -768,14 +793,41 @@ function GivingSection() {
       <Field label={t('admin.field.allocationMax')} keyboardType="number-pad" value={draft.max} onChangeText={(max) => setDraft((d) => ({ ...d, max }))} />
       <Button label={t('admin.btn.saveGiving')} onPress={saveDraft} />
       <Text style={type.small}>{t('admin.recordGift')}</Text>
+      <View style={styles.row}>
+        {(['manual', 'zeffy', 'paypal'] as const).map((v) => (
+          <Chip key={v} label={t(`admin.giftVia.${v}`)} selected={via === v} onPress={() => setVia(v)} />
+        ))}
+      </View>
+      <View style={styles.row}>
+        <Chip label={t('give.everyone')} selected={!poolId} onPress={() => setPoolId(null)} />
+        {pools.map((p) => (
+          <Chip key={p.id} label={p.name} selected={poolId === p.id} onPress={() => setPoolId(p.id)} />
+        ))}
+      </View>
       <Field label={t('admin.field.giftAmount')} keyboardType="decimal-pad" value={draft.amount} onChangeText={(amount) => setDraft((d) => ({ ...d, amount }))} />
       <Field label={t('admin.field.giftReference')} value={draft.reference} onChangeText={(reference) => setDraft((d) => ({ ...d, reference }))} />
       <Button small variant="secondary" label={t('admin.btn.recordGift')} onPress={record} disabled={!(Number(draft.amount.replace(/[$,]/g, '')) > 0)} />
       {gifts.slice(0, 20).map((g) => (
-        <Text key={g.id} style={type.small}>
-          {new Date(g.created_at).toLocaleDateString()} · ${(g.amount_cents / 100).toFixed(2)} · {g.provider} · {g.status}
-          {g.donor_name ? ` · ${g.donor_name}` : ''}
-        </Text>
+        <View key={g.id} style={styles.row}>
+          <Text style={type.small}>
+            {new Date(g.created_at).toLocaleDateString()} · ${(g.amount_cents / 100).toFixed(2)} · {g.provider} · {g.status}
+            {g.donor_name ? ` · ${g.donor_name}` : ''}
+          </Text>
+          {/* Stripe refunds arrive by webhook; Zeffy and hand-entered gifts are marked here. */}
+          {g.status === 'paid' && g.provider !== 'stripe' ? (
+            <Button
+              small
+              variant="ghost"
+              label={t('admin.refundGift')}
+              onPress={() =>
+                api.admin
+                  .refundGift(g.id)
+                  .then(() => (setNote(t('admin.giftRefunded')), loadGifts()))
+                  .catch(fail)
+              }
+            />
+          ) : null}
+        </View>
       ))}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
@@ -1218,6 +1270,7 @@ function NotebookSettingsSection() {
       <Field label={t('admin.field.tierUpkeepDays')} keyboardType="number-pad" value={upkeepDays} onChangeText={setUpkeepDays} />
       <Toggle label={t('admin.toggle.checkinAffirmation')} hint={t('admin.toggle.checkinAffirmationHint')} value={s.checkin_affirmation_enabled} onChange={(v) => save({ checkinAffirmationEnabled: v })} />
       <Toggle label={t('admin.toggle.whyGifts')} hint={t('admin.toggle.whyGiftsHint')} value={s.why_gifts_enabled} onChange={(v) => save({ whyGiftsEnabled: v })} />
+      <Toggle label={t('admin.toggle.poolMatching')} hint={t('admin.toggle.poolMatchingHint')} value={s.pool_matching_enabled} onChange={(v) => save({ poolMatchingEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />

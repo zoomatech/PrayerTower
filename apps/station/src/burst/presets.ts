@@ -5,6 +5,7 @@
 // filters, pre-emphasis and de-emphasis only have to be steady across two
 // symbols (48 ms).
 import type { InnerCode } from './conv.js';
+import { dataCarriers } from './qam.js';
 
 export interface BurstPreset {
   /** One byte on air; receivers try every preset they know. */
@@ -20,11 +21,15 @@ export interface BurstPreset {
   firstBin: number;
   lastBin: number;
   /** Bits per carrier per symbol: 1 = DBPSK, 2 = DQPSK, 3 = D8PSK, 4 = D16PSK. */
-  bitsPerSymbol: 1 | 2 | 3 | 4;
+  bitsPerSymbol: 1 | 2 | 3 | 4 | 6;
   /** Reed-Solomon parity bytes per 255-byte block (corrects half as many bad bytes). */
   parity: number;
+  /** Lowest SNR in 2.5 kHz (dB) where it still decodes reliably on a simulated channel; the auto picker adds a margin. */
+  minSnrDb: number;
   /** Inner convolutional code with soft-decision decoding (the "-fec" presets); none when absent. */
   inner?: InnerCode;
+  /** 'qam': coherent Gray-coded QAM with pilot carriers (qam.ts) instead of differential PSK. Needs an inner code. */
+  modulation?: 'qam';
 }
 
 const base = { sampleRate: 48_000, fftSize: 1024, guard: 128 } as const;
@@ -39,6 +44,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 1,
     parity: 48,
+    minSnrDb: 6,
   },
   {
     ...base,
@@ -49,6 +55,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 2,
     parity: 32,
+    minSnrDb: 11,
   },
   {
     ...base,
@@ -59,6 +66,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 3,
     parity: 32,
+    minSnrDb: 16,
   },
   {
     ...base,
@@ -69,6 +77,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 111,
     bitsPerSymbol: 3,
     parity: 32,
+    minSnrDb: 19,
   },
   {
     ...base,
@@ -79,6 +88,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 66,
     bitsPerSymbol: 4,
     parity: 32,
+    minSnrDb: 22,
   },
   {
     ...base,
@@ -89,6 +99,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 111,
     bitsPerSymbol: 4,
     parity: 32,
+    minSnrDb: 24,
   },
   {
     ...base,
@@ -99,6 +110,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 2,
     parity: 16,
+    minSnrDb: 5,
     inner: 'r12',
   },
   {
@@ -110,7 +122,47 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 66,
     bitsPerSymbol: 4,
     parity: 16,
+    minSnrDb: 15,
     inner: 'r23',
+  },
+  {
+    ...base,
+    id: 9,
+    name: 'fm-qam16',
+    description: 'FM audio, about 20% faster than fm-standard at the same signal: coherent 16-QAM with pilots and a rate-3/4 convolutional code. 48 carriers 750-2953 Hz, ~4.9 kbit/s of data.',
+    firstBin: 16,
+    lastBin: 63,
+    bitsPerSymbol: 4,
+    parity: 16,
+    minSnrDb: 12,
+    inner: 'r34',
+    modulation: 'qam',
+  },
+  {
+    ...base,
+    id: 10,
+    name: 'fm-qam64',
+    description: 'FM audio, fm-turbo speed on a signal fm-fast needs: coherent 64-QAM with pilots and a rate-3/4 convolutional code. 55 carriers 563-3094 Hz, ~8.5 kbit/s of data.',
+    firstBin: 12,
+    lastBin: 66,
+    bitsPerSymbol: 6,
+    parity: 16,
+    minSnrDb: 18,
+    inner: 'r34',
+    modulation: 'qam',
+  },
+  {
+    ...base,
+    id: 11,
+    name: 'dataport-qam64',
+    description: 'A 9600 data port or SDR, dataport-turbo speed on about 4 dB less signal: coherent 64-QAM with pilots, rate 3/4. 104 carriers 375-5203 Hz, ~16 kbit/s of data.',
+    firstBin: 8,
+    lastBin: 111,
+    bitsPerSymbol: 6,
+    parity: 16,
+    minSnrDb: 20,
+    inner: 'r34',
+    modulation: 'qam',
   },
 ];
 
@@ -121,6 +173,8 @@ export function presetByName(name: string): BurstPreset {
 }
 
 export const carriers = (p: BurstPreset) => p.lastBin - p.firstBin + 1;
+/** Carriers that carry payload bits: all of them, less the pilots on a QAM preset. */
+export const payloadCarriers = (p: BurstPreset) => (p.modulation === 'qam' ? dataCarriers(carriers(p)) : carriers(p));
 export const symbolSamples = (p: BurstPreset) => p.fftSize + p.guard;
 /** Raw channel bits per second, before error correction. */
-export const rawBitRate = (p: BurstPreset) => (carriers(p) * p.bitsPerSymbol * p.sampleRate) / symbolSamples(p);
+export const rawBitRate = (p: BurstPreset) => (payloadCarriers(p) * p.bitsPerSymbol * p.sampleRate) / symbolSamples(p);

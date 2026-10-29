@@ -1,5 +1,6 @@
 // Give: off until an admin sets it up; Stripe checkout opens in the in-app browser.
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { renderApp } from '@/__tests__/helpers';
@@ -42,11 +43,36 @@ describe('Give', () => {
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://checkout.stripe.com/c/pay/cs_1');
   });
 
+  it('gives to the member whose page it came from', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ to: 'u-ruth', name: 'Ruth' });
+    mocked.givingInfo.mockResolvedValue(info);
+    mocked.giveCheckout.mockResolvedValue({ donationId: 'd2', url: 'https://checkout.stripe.com/c/pay/cs_2' });
+    await renderApp(<Give />);
+    await fireEvent.press(await screen.findByText('Give $10'));
+    await waitFor(() => expect(mocked.giveCheckout).toHaveBeenCalledWith(1000, { kind: 'member', userId: 'u-ruth' }, false));
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+  });
+
   it('opens the Zeffy page', async () => {
     mocked.givingInfo.mockResolvedValue({ ...info, provider: 'zeffy', url: 'https://www.zeffy.com/en-US/donation-form/x' });
     await renderApp(<Give />);
     await fireEvent.press(await screen.findByTestId('give-submit'));
     await waitFor(() => expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://www.zeffy.com/en-US/donation-form/x'));
+  });
+
+  it('offers PayPal as a second button', async () => {
+    mocked.givingInfo.mockResolvedValue({ ...info, paypalUrl: 'https://www.paypal.com/donate/?hosted_button_id=X' });
+    await renderApp(<Give />);
+    expect(await screen.findByText('Give $10')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Give with PayPal'));
+    await waitFor(() => expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://www.paypal.com/donate/?hosted_button_id=X'));
+  });
+
+  it('shows PayPal alone when it is the only way to give', async () => {
+    mocked.givingInfo.mockResolvedValue({ ...info, provider: 'none', paypalUrl: 'https://www.paypal.com/donate/?hosted_button_id=X' });
+    await renderApp(<Give />);
+    expect(await screen.findByText('Give with PayPal')).toBeTruthy();
+    expect(screen.queryByTestId('give-submit')).toBeNull();
   });
 
   it('shows the free radio prayer and asks for more', async () => {

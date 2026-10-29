@@ -1,15 +1,16 @@
 // Burst mode: the compression, error correction, modem and station loop,
 // end to end through a simulated radio channel.
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { autoChooser, DEFAULT_AUTO_PRESETS, parseCandidates, pickPreset, readReport } from '../src/burst/auto.js';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { cmCompress, cmDecompress } from '../src/burst/cm.js';
 import { convDecode, convEncode } from '../src/burst/conv.js';
 import { decodeBatch, encodeBatch } from '../src/burst/codec.js';
 import { fft } from '../src/burst/fft.js';
-import { frameSeconds, modulate } from '../src/burst/ofdm.js';
+import { demodulate, frameSeconds, modulate } from '../src/burst/ofdm.js';
 import { PRESETS, presetByName } from '../src/burst/presets.js';
 import { rsDecode, rsEncode } from '../src/burst/rs.js';
 import { samplePrayers } from '../src/burst/sample.js';
@@ -191,7 +192,7 @@ describe('burst modem through a simulated FM radio', () => {
   for (const preset of fmPresets) {
     it(`${preset.name}: 30 prayers survive filtering, clock drift and noise`, () => {
       const audio = modulate(encodeBatch(SAMPLE_PRAYERS), preset, 'KD9XYZ');
-      const rx = radioChannel(audio, { snrDb: [0, 15, 15, 22, 30][preset.bitsPerSymbol]!, lowHz: 300, highHz: 3400, seed: preset.id });
+      const rx = radioChannel(audio, { snrDb: [0, 15, 15, 22, 30, 0, 24][preset.bitsPerSymbol]!, lowHz: 300, highHz: 3400, seed: preset.id });
       const heard = listen(rx);
       expect(heard).toHaveLength(1);
       expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', preset: preset.name, prayers: SAMPLE_PRAYERS });
@@ -207,6 +208,45 @@ describe('burst modem through a simulated FM radio', () => {
     expect(listen(radioChannel(modulate(batch, plain, 'KD9XYZ'), channel))).toHaveLength(0);
     expect(listen(radioChannel(modulate(batch, fec, 'KD9XYZ'), channel))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
   });
+
+  it('fm-qam64 decodes at a noise level where fm-turbo gives up, at the same speed', () => {
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    const plain = presetByName('fm-turbo');
+    const qam = presetByName('fm-qam64');
+    expect(frameSeconds(qam, batch.length)).toBeLessThan(frameSeconds(plain, batch.length) * 1.05);
+    const channel = { snrDb: 10, lowHz: 300, highHz: 3400, seed: 1 };
+    expect(listen(radioChannel(modulate(batch, plain, 'KD9XYZ'), channel))).toHaveLength(0);
+    expect(listen(radioChannel(modulate(batch, qam, 'KD9XYZ'), channel))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
+
+  it('dataport-qam64: 30 prayers through a data-port link in under 0.6 s', () => {
+    const preset = presetByName('dataport-qam64');
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    expect(frameSeconds(preset, batch.length + 4)).toBeLessThan(0.6);
+    const rx = radioChannel(modulate(batch, preset, 'KD9XYZ'), { snrDb: 26, lowHz: 50, highHz: 7000, seed: 6 });
+    expect(listen(rx)[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
+
+  for (const name of ['fm-qam16', 'fm-qam64']) {
+    it(`${name}: a long frame survives a 300 ppm clock difference, and an SSB receiver 8 Hz off`, () => {
+      const preset = presetByName(name);
+      const rand = rng(5);
+      const batch = Uint8Array.from({ length: 9000 }, (_, i) => (i ? 97 + Math.floor(rand() * 26) : 0));
+      const audio = modulate(batch, preset, 'KD9XYZ');
+      expect(audio.length / 48_000).toBeGreaterThan(8);
+      for (const ratio of [1.0003, 0.9997]) {
+        const rx = new Float32Array(Math.floor(audio.length / ratio));
+        for (let i = 0; i < rx.length; i++) {
+          const t = i * ratio;
+          const a = Math.floor(t);
+          rx[i] = (audio[a] ?? 0) * (1 - (t - a)) + (audio[a + 1] ?? 0) * (t - a);
+        }
+        expect(demodulate(rx)[0]?.batch).toEqual(batch);
+      }
+      const short = modulate(encodeBatch(SAMPLE_PRAYERS), preset, 'KD9XYZ');
+      for (const hz of [8, -8]) expect(listen(shiftForTest(short, hz))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+    });
+  }
 
   it('dataport-turbo: 30 prayers through a strong data-port link in about 0.7 s', () => {
     const preset = presetByName('dataport-turbo');
@@ -279,6 +319,49 @@ describe('burst modem through a simulated FM radio', () => {
   });
 });
 
+describe('auto preset', () => {
+  it('measures the channel: the SNR a receiver reports is within 1.5 dB of the real one', () => {
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    const rand = rng(21);
+    const gauss = () => Math.sqrt(-2 * Math.log(rand() + 1e-12)) * Math.cos(2 * Math.PI * rand());
+    for (const [name, snr] of [['fm-robust', 9], ['fm-standard', 18], ['fm-turbo-fec', 24], ['fm-qam64', 24]] as const) {
+      const a = modulate(batch, presetByName(name), 'KD9XYZ');
+      let e = 0;
+      for (const v of a) e += v * v;
+      const sigma = (Math.sqrt(e / a.length) / 10 ** (snr / 20)) * Math.sqrt(24_000 / 2_500);
+      const x = new Float32Array(a.length + 6000);
+      for (let i = 0; i < x.length; i++) x[i] = (i >= 3000 && i - 3000 < a.length ? a[i - 3000]! : 0) + sigma * gauss();
+      const heard = listen(x);
+      expect(heard).toHaveLength(1);
+      expect(Math.abs(heard[0]!.snrDb - snr)).toBeLessThan(1.5);
+    }
+  });
+
+  it('picks the fastest preset that decodes with the margin to spare, and the most robust without a report', () => {
+    const fm = parseCandidates(DEFAULT_AUTO_PRESETS.join(','));
+    expect(DEFAULT_AUTO_PRESETS).not.toContain('fm-qam64');
+    expect(pickPreset(null, fm, 3).name).toBe('fm-robust-fec');
+    expect(pickPreset(2, fm, 3).name).toBe('fm-robust-fec');
+    expect(pickPreset(12, fm, 3).name).toBe('fm-robust-fec');
+    expect(pickPreset(14, fm, 3).name).toBe('fm-standard');
+    expect(pickPreset(20, fm, 3).name).toBe('fm-turbo-fec');
+    expect(pickPreset(30, fm, 3).name).toBe('fm-turbo');
+    expect(pickPreset(24, parseCandidates('fm-standard,fm-qam64'), 3).name).toBe('fm-qam64');
+  });
+
+  it('ignores a missing, malformed or stale report', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'auto-'));
+    const file = path.join(dir, 'channel.json');
+    expect(await readReport(file)).toBeNull();
+    writeFileSync(file, '{"snrDb": "loud"}');
+    expect(await readReport(file)).toBeNull();
+    writeFileSync(file, JSON.stringify({ snrDb: 30, at: '2026-10-29T00:00:00Z', callSign: 'KD9XYZ', preset: 'fm-standard' }));
+    const choose = (now: number) => autoChooser({ report: file, candidates: parseCandidates(DEFAULT_AUTO_PRESETS.join(',')), marginDb: 3, maxAgeMs: 30 * 60_000 }, quiet, () => now)();
+    expect((await choose(Date.parse('2026-10-29T00:10:00Z'))).name).toBe('fm-turbo');
+    expect((await choose(Date.parse('2026-10-29T01:00:00Z'))).name).toBe('fm-robust-fec');
+  });
+});
+
 describe('fldigi text frames', () => {
   it('round-trips through received text and drops a corrupted line', () => {
     const good = encodeTextFrame(encodeBatch(SAMPLE_PRAYERS.slice(0, 3)), 'kd9xyz');
@@ -336,6 +419,20 @@ describe('burst station loop', () => {
     expect(outcome).toMatchObject({ kind: 'sent', sent: 1, frames: 1 });
     expect((outcome as { seconds: number }).seconds).toBeLessThan(1);
     expect(bursts[0]).toMatchObject({ prayers: 1000, decoded: 1000 });
+  });
+
+  it('auto preset (simulate mode): starts robust, then follows what the simulated receiver measured', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'burst-'));
+    const report = path.join(dir, 'channel.json');
+    const auto = { ...cfg, choosePreset: autoChooser({ report, candidates: parseCandidates(DEFAULT_AUTO_PRESETS.join(',')), marginDb: 3, maxAgeMs: 60_000 }, quiet) };
+    const send = async (snrDb: number) => {
+      const { api, bursts } = fakeApi(SAMPLE_PRAYERS.slice(0, 10).map((text, i) => ({ id: String(i), text })));
+      await runBurstOnce(api, simulateTransmitter(dir, quiet, { snrDb, reportFile: report }), auto, quiet);
+      return bursts[0]!;
+    };
+    expect(await send(30)).toMatchObject({ preset: 'fm-robust-fec', decoded: 10 });
+    expect(await send(30)).toMatchObject({ preset: 'fm-turbo', decoded: 10 });
+    expect(JSON.parse(readFileSync(report, 'utf8')).snrDb).toBeGreaterThan(27);
   });
 
   it('is idle with nothing queued', async () => {

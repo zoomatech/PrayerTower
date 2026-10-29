@@ -5,7 +5,7 @@
 import { PRAYER_REALMS } from '@prayer-tower/shared';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { conflict, forbidden, notFound } from '../../errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
@@ -23,6 +23,9 @@ export const NewPool = z.object({
   drawAmount: z.number().int().min(1).max(1000).default(5),
   drawsPerMemberDay: z.number().int().min(1).max(100).default(1),
   showDonor: z.boolean().default(false),
+  /** Matching pledge (switch: notebook_settings.pool_matching_enabled): match others' gifts N to 1, up to the cap. */
+  matchRatio: z.number().int().min(0).max(5).default(0),
+  matchCap: z.number().int().min(0).max(1_000_000).default(0),
   amount: z.number().int().min(1).max(1_000_000),
   idempotencyKey: z.string().min(1).max(100),
 });
@@ -39,12 +42,16 @@ interface PoolRow {
   closed_at: Date | null;
   created_at: Date;
   community_id: string;
+  match_ratio: number;
+  match_cap: number;
+  matched: number;
 }
 
-const COLS = 'p.id, p.owner_id, p.name, p.purpose, p.realm, p.draw_amount, p.draws_per_member_day, p.show_donor, p.closed_at, p.created_at, p.community_id';
+const COLS = 'p.id, p.owner_id, p.name, p.purpose, p.realm, p.draw_amount, p.draws_per_member_day, p.show_donor, p.closed_at, p.created_at, p.community_id, p.match_ratio, p.match_cap, p.matched';
 
 /** What members see: the donor only if they chose to be named. */
 async function present(q: Queryable, rows: (PoolRow & { donor: string })[], viewerId: string) {
+  const matching = await matchingOn(q);
   return Promise.all(
     rows.map(async (r) => ({
       id: r.id,
@@ -57,6 +64,8 @@ async function present(q: Queryable, rows: (PoolRow & { donor: string })[], view
       isMine: r.owner_id === viewerId,
       open: r.closed_at === null,
       balance: await tokens.poolBalance(q, r.id),
+      // A matching pledge shows only while the switch is on.
+      match: matching && r.match_ratio > 0 ? { ratio: r.match_ratio, cap: r.match_cap, matched: r.matched } : null,
     })),
   );
 }
@@ -67,8 +76,16 @@ async function get(q: Queryable, poolId: string, lock = false) {
   return rows[0];
 }
 
+async function matchingOn(q: Queryable) {
+  const { rows } = await q.query<{ on: boolean }>('select pool_matching_enabled as on from public.notebook_settings');
+  return rows[0]?.on === true;
+}
+
 export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPool>) {
   await requireFeature(q, userId, 'pools');
+  const pledge = input.matchRatio > 0 && input.matchCap > 0;
+  if ((input.matchRatio > 0 || input.matchCap > 0) && !pledge) throw badRequest('A matching pledge needs both a ratio and a cap');
+  if (pledge && !(await matchingOn(q))) throw badRequest('Matching pledges are switched off');
   const blocked = await safety.newMemberBlock(q, userId, 'start a token pool');
   if (blocked) throw forbidden(blocked);
   const existing = await q.query<{ id: string }>(
@@ -78,9 +95,9 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
   );
   if (existing.rows[0]) return existing.rows[0].id;
   const { rows } = await q.query<{ id: string }>(
-    `insert into public.token_pools (owner_id, name, purpose, realm, draw_amount, draws_per_member_day, show_donor, community_id)
-     values ($1, $2, $3, $4, $5, $6, $7, public.member_community_id($1)) returning id`,
-    [userId, input.name, input.purpose, input.realm, input.drawAmount, input.drawsPerMemberDay, input.showDonor],
+    `insert into public.token_pools (owner_id, name, purpose, realm, draw_amount, draws_per_member_day, show_donor, community_id, match_ratio, match_cap)
+     values ($1, $2, $3, $4, $5, $6, $7, public.member_community_id($1), $8, $9) returning id`,
+    [userId, input.name, input.purpose, input.realm, input.drawAmount, input.drawsPerMemberDay, input.showDonor, pledge ? input.matchRatio : 0, pledge ? input.matchCap : 0],
   );
   await tokens.fundPool(q, userId, rows[0]!.id, input.amount, input.idempotencyKey);
   return rows[0]!.id;
@@ -89,9 +106,27 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
 export async function fund(q: Queryable, userId: string, poolId: string, amount: number, key: string) {
   await requireFeature(q, userId, 'pools');
   const pool = await get(q, poolId, true);
-  if (pool.owner_id !== userId) throw forbidden('Only the donor can add to this pool. You can gift tokens to a request instead.');
+  if (pool.owner_id === userId) {
+    if (pool.closed_at) throw conflict('This pool is closed');
+    await tokens.fundPool(q, userId, poolId, amount, key);
+    return { matched: 0 };
+  }
+  // Anyone else gives only to a matching pool in their own community, while matching is on.
+  const { rows: member } = await q.query('select 1 from public.community_memberships where user_id = $1 and community_id = $2', [userId, pool.community_id]);
+  if (!member[0]) throw notFound('Pool');
+  if (!(pool.match_ratio > 0 && (await matchingOn(q)))) throw forbidden('Only the donor can add to this pool. You can gift tokens to a request instead.');
   if (pool.closed_at) throw conflict('This pool is closed');
-  return tokens.fundPool(q, userId, poolId, amount, key);
+  const blocked = await safety.newMemberBlock(q, userId, 'give to token pools');
+  if (blocked) throw forbidden(blocked);
+  const gift = await tokens.giveToPool(q, userId, poolId, amount, key);
+  // A retried gift returns the same transfer; its match was already made.
+  const { rows: done } = await q.query('select 1 from public.token_transfers where idempotency_key = $1', [`pool_match:${gift.id}`]);
+  if (done[0]) return { matched: 0 };
+  const match = Math.min(amount * pool.match_ratio, pool.match_cap - pool.matched, await tokens.balanceOf(q, pool.owner_id));
+  if (match <= 0) return { matched: 0 };
+  await tokens.matchPoolGift(q, pool.owner_id, poolId, match, gift.id);
+  await q.query('update public.token_pools set matched = matched + $2 where id = $1', [poolId, match]);
+  return { matched: match };
 }
 
 /** The donor, a moderator or an admin closes a pool; what's left goes back to the donor. */

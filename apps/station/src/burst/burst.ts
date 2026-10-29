@@ -59,9 +59,11 @@ export interface HeardPrayers {
   preset: string;
   prayers: string[];
   corrected: boolean;
+  /** Estimated signal-to-noise ratio in 2.5 kHz (dB). */
+  snrDb: number;
 }
 
 /** Everything decodable in a 48 kHz recording, frame by frame. */
 export function listen(audio: Float32Array): HeardPrayers[] {
-  return demodulate(audio).map((f) => ({ callSign: f.callSign, preset: f.preset, prayers: decodeBatch(f.batch), corrected: f.corrected }));
+  return demodulate(audio).map((f) => ({ callSign: f.callSign, preset: f.preset, prayers: decodeBatch(f.batch), corrected: f.corrected, snrDb: f.snrDb }));
 }

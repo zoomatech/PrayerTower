@@ -1,6 +1,7 @@
 // Burst tools for operators and listeners (node dist/src/burst/cli.js ...):
 //
-//   decode <file.wav>           print every prayer decoded from a recording
+//   decode <file.wav> [report.json]  print every prayer decoded from a recording; with a
+//                               report file, also write the measured SNR for BURST_PRESET=auto
 //   decode-text <file.txt>      the same for fldigi text frames (BURST_MODE=fldigi)
 //   encode <out.wav> [preset]   make a burst from prayers on stdin, one per line
 //   presets                     list the modem presets and their speeds
@@ -8,6 +9,7 @@
 //
 // A live receiver can record with e.g. `arecord -f S16_LE -r 48000 -c 1 -d 30 rx.wav`.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { reportFrom, writeReport } from './auto.js';
 import { buildBurst, listen, planFrames } from './burst.js';
 import { decodeBatch } from './codec.js';
 import { PRESETS, presetByName, rawBitRate } from './presets.js';
@@ -25,13 +27,18 @@ function out(line: string) {
 
 switch (cmd) {
   case 'decode': {
-    if (!arg) throw new Error('usage: decode <file.wav>');
+    if (!arg) throw new Error('usage: decode <file.wav> [report.json]');
     const wav = fromWav(readFileSync(arg));
     const heard = listen(resample(wav.samples, wav.sampleRate, SAMPLE_RATE));
     if (!heard.length) out('No burst frames decoded.');
     for (const h of heard) {
-      out(`-- de ${h.callSign} (${h.preset}${h.corrected ? ', errors corrected' : ''}), ${h.prayers.length} prayer(s)`);
+      out(`-- de ${h.callSign} (${h.preset}, ${h.snrDb.toFixed(1)} dB SNR${h.corrected ? ', errors corrected' : ''}), ${h.prayers.length} prayer(s)`);
       for (const p of h.prayers) out(p);
+    }
+    const report = reportFrom(heard);
+    if (arg2 && report) {
+      await writeReport(arg2, report);
+      out(`Channel report (${report.snrDb} dB) -> ${arg2}`);
     }
     break;
   }
@@ -56,7 +63,7 @@ switch (cmd) {
     break;
   }
   case 'presets':
-    for (const p of PRESETS) out(`${p.name.padEnd(14)} ${(rawBitRate(p) / 1000).toFixed(1)} kbit/s raw  ${p.description}`);
+    for (const p of PRESETS) out(`${p.name.padEnd(14)} ${(rawBitRate(p) / 1000).toFixed(1)} kbit/s raw, from ${p.minSnrDb} dB  ${p.description}`);
     break;
   case 'bench': {
     const presets = arg ? [presetByName(arg)] : PRESETS;
@@ -71,6 +78,6 @@ switch (cmd) {
     break;
   }
   default:
-    out('usage: cli.js decode <file.wav> | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset]');
+    out('usage: cli.js decode <file.wav> [report.json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset]');
     process.exitCode = cmd ? 1 : 0;
 }
