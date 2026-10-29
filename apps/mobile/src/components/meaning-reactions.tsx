@@ -6,19 +6,47 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { FeedTheme } from '@prayer-tower/shared';
+
+import { LeafMark } from '@/layouts/motifs';
+import { circuitTokens } from '@/layouts/circuit';
+import { tabletTokens } from '@/layouts/tower';
+import { vineTokens } from '@/layouts/vine';
 import { api, type MeaningEmoji, type MeaningLeaf } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 /** The part of a feed skin a leaf reads (the Vine skin's tokens fit this shape). */
-export type LeafTokens = { leaf?: string; leafSoft?: string; leafShape?: 'round' | 'pointed' };
+export type LeafTokens = { leaf?: string; leafSoft?: string; leafShape?: 'round' | 'pointed' | 'flower' | 'star' | 'tablet'; branch?: string; tendril?: string };
+
+/**
+ * Word-leaf look for the member's feed skin (docs/FEED_SKINS.md): vine skins use their leaves
+ * (flowers on Blossom Garden, stars on Neon Cinderella), the tower uses stone tablets, Neon
+ * Circuit glows in its screen color. Other layouts keep the plain chip.
+ */
+export function wordLeafTokens(theme: FeedTheme | null): LeafTokens | undefined {
+  if (theme?.layout === 'vine') return vineTokens(theme);
+  if (theme?.layout === 'tower') return tabletTokens(theme);
+  if (theme?.layout === 'circuit') {
+    const c = circuitTokens(theme);
+    return { leaf: c.screen, leafSoft: '#F4F1FF', branch: c.wire, tendril: c.wire, leafShape: 'round' };
+  }
+  return undefined;
+}
 
 /** One chosen meaning with how many chose it. Plain chip unless a skin passes tokens. */
 export function Leaf({ icon, label, count, mine, tokens, onPress }: { icon: string; label: string; count: number; mine: boolean; tokens?: LeafTokens; onPress?: () => void }) {
   const { t } = useLocale();
+  const shape = tokens?.leafShape;
   const skinned = tokens?.leaf
-    ? { backgroundColor: tokens.leafSoft ?? colors.primarySoft, borderColor: tokens.leaf, ...(tokens.leafShape === 'pointed' ? styles.pointed : null) }
+    ? [
+        { backgroundColor: tokens.leafSoft ?? colors.primarySoft, borderColor: shape === 'tablet' ? (tokens.branch ?? tokens.leaf) : tokens.leaf },
+        shape === 'pointed' && styles.pointed,
+        shape === 'tablet' && styles.tablet,
+        // Your own leaf keeps the skin's colors and shows a heavier outline.
+        mine && styles.mineSkinned,
+      ]
     : null;
   return (
     <Pressable
@@ -27,6 +55,7 @@ export function Leaf({ icon, label, count, mine, tokens, onPress }: { icon: stri
       accessibilityLabel={`${icon} ${t('meanings.leaf', { label, count })}${mine ? `, ${t('meanings.mine')}` : ''}`}
       onPress={onPress}
       style={[styles.leaf, mine && styles.leafMine, skinned]}>
+      {tokens?.leaf && (shape === 'flower' || shape === 'star') ? <LeafMark shape={shape} leaf={tokens.leaf} accent={tokens.tendril ?? tokens.leaf} size={16} /> : null}
       <Text>{icon}</Text>
       <Text style={styles.leafLabel}>{label}</Text>
       {count > 1 ? <Text style={type.small}>{count}</Text> : null}
@@ -146,6 +175,9 @@ const styles = StyleSheet.create({
   leaf: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 36, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   // A leaf's outline: two rounded corners, two points.
   pointed: { borderTopLeftRadius: 2, borderBottomRightRadius: 2, borderTopRightRadius: radius.lg, borderBottomLeftRadius: radius.lg },
+  // A stone tablet: squared corners with a rounded top.
+  tablet: { borderRadius: 3, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, borderWidth: 1.5 },
+  mineSkinned: { borderWidth: 2.5 },
   leafMine: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   leafLabel: { fontSize: 15, color: colors.text },
   emoji: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border },

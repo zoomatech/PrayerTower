@@ -62,6 +62,7 @@ import type { SiteOptions } from './modules/site/index.js';
 import { siteRoutes } from './modules/site/routes.js';
 import { acrossRoutes } from './modules/across/routes.js';
 import { waitlistAdminRoutes, waitlistJoinRoutes } from './modules/waitlist/routes.js';
+import { listenPublicRoutes } from './modules/listen/routes.js';
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
 import { donationPublicRoutes, donationRoutes } from './modules/donations/routes.js';
 import type { StripeKeys } from './modules/donations/index.js';
@@ -217,6 +218,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (open) => {
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 10, timeWindow: '1 minute' });
     waitlistJoinRoutes(open, db);
+  });
+
+  // Listener receipts for radio prayers (switched off by default), limited per IP address.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 20, timeWindow: '1 minute' });
+    listenPublicRoutes(open, db);
   });
 
   // The public website, limited per IP address.

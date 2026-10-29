@@ -50,7 +50,7 @@ export default function Notifications() {
           const eventId = typeof n.data.eventId === 'string' ? n.data.eventId : null;
           const careRequestId = typeof n.data.careRequestId === 'string' ? n.data.careRequestId : null;
           const storyId = typeof n.data.storyId === 'string' ? n.data.storyId : null;
-          const target = storyId ? '/help-stories' : careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}` : n.data.screen === 'prayer-minute' ? '/prayer-minute' : n.data.screen === 'prayer-list' ? '/prayer-list' : typeof n.data.personId === 'string' ? `/people/${n.data.personId}` : null;
+          const target = storyId ? '/help-stories' : careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}` : n.data.screen === 'prayer-minute' ? '/prayer-minute' : n.data.screen === 'give' ? '/give' : n.data.screen === 'prayer-list' ? '/prayer-list' : typeof n.data.personId === 'string' ? `/people/${n.data.personId}` : null;
           return (
             <Pressable
               key={n.id}
