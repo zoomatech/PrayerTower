@@ -135,7 +135,7 @@ Code: `modules/reply-choice`, `components/reply-choice.tsx`.
 
 ## Comments at block breaks (off)
 
-Admin → Conversation helpers → **Comments at block breaks** (migration 20261029120100).
+Admin → Conversation helpers → **Comments at block breaks** (migration 20261029130100).
 From notebook Page 13: "a thread can incur comments at any 200-word block break."
 
 - On a request's own page, a post longer than 200 words is shown in parts of about 200
