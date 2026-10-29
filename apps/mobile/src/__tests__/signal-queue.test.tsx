@@ -14,6 +14,7 @@ it('shows each radio prayer with where it is, and the code of one that went out'
   jest.mocked(api.signalQueue).mockResolvedValue({
     signals: [
       { id: 'r2', postId: 'p2', excerpt: 'Pray for the bakery fire.', status: 'waiting', kind: 'prayer', amplified: false, queuedAt: '2026-10-29T18:00:00Z', sentAt: null, callSign: null, preset: null, heardCount: 0, signalCode: null },
+      { id: 'r0', postId: 'p0', excerpt: 'Pray for the river crossing.', status: 'sent', kind: 'auto', amplified: false, queuedAt: '2026-10-29T16:00:00Z', sentAt: '2026-10-29T16:01:00Z', callSign: null, preset: null, heardCount: 1, signalCode: 'A2BC-DEFG-HJKL' },
       { id: 'r1', postId: 'p1', excerpt: 'Pray for the night ferry.', status: 'sent', kind: 'prayer', amplified: true, queuedAt: '2026-10-29T17:00:00Z', sentAt: '2026-10-29T17:01:00Z', callSign: 'K0GIN', preset: 'fm-standard', heardCount: 3, signalCode: 'Q7MK-4XPL-9RT2' },
     ],
   });
@@ -22,7 +23,9 @@ it('shows each radio prayer with where it is, and the code of one that went out'
   expect(screen.getByText('Q7MK-4XPL-9RT2')).toBeTruthy();
   expect(screen.getByText(/^Sent · amplified · .* · K0GIN · fm-standard$/)).toBeTruthy();
   expect(screen.getByText(/^Waiting · /)).toBeTruthy();
-  expect(screen.getByText('Reported by 3 receivers')).toBeTruthy();
+  expect(screen.getByText('Receivers reported hearing it 3 times')).toBeTruthy();
+  expect(screen.getByText(/^Sent · sent for every request · /)).toBeTruthy();
+  expect(screen.getByText('A receiver reported hearing it')).toBeTruthy();
 });
 
 it('says when the queue is switched off', async () => {

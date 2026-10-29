@@ -33,9 +33,11 @@ export async function update(q: Queryable, patch: z.infer<typeof CeaselessSettin
   return settings(q);
 }
 
-/** Requests that may go out again: marked by their author, visible, not sensitive, not a lament kept off the air, not flagged, not answered. */
+/** Requests that may go out again: marked by their author, visible, not sensitive, not a lament kept off the air, not flagged,
+ * not answered, and in a community that still has radio. */
 const ELIGIBLE = `p.keep_on_air and p.moderation_status = 'visible' and not p.is_sensitive and not (p.is_lament and not p.lament_radio)
-  and p.harm_category is null and p.state <> 'answered'`;
+  and p.harm_category is null and p.state <> 'answered'
+  and not exists (select 1 from public.communities c where c.id = p.community_id and 'radio' = any (c.hidden_features))`;
 
 /** The author keeps their request on the air, or takes it off. */
 export async function setKeepOnAir(q: Queryable, userId: string, postId: string, on: boolean): Promise<{ keepOnAir: boolean }> {

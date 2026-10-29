@@ -37,13 +37,14 @@ export default function SignalQueueScreen() {
         {items?.length === 0 ? <Empty text={t('signalQueue.empty')} /> : null}
         {items?.map((s) => (
           <View key={s.id} style={styles.card}>
-            <Text style={type.body} onPress={() => router.push(`/post/${s.postId}`)}>
+            <Text style={type.body} accessibilityRole="link" onPress={() => router.push(`/post/${s.postId}`)}>
               “{s.excerpt}”
             </Text>
             <Text style={type.small}>
               {t(`signalQueue.status.${s.status}`)}
               {s.amplified ? ` · ${t('signalQueue.amplified')}` : ''}
               {s.kind === 'thanksgiving' ? ` · ${t('signalQueue.thanksgiving')}` : ''}
+              {s.kind === 'auto' ? ` · ${t('signalQueue.auto')}` : ''}
               {` · ${when(s.sentAt ?? s.queuedAt)}`}
               {s.callSign ? ` · ${s.callSign}` : ''}
               {s.preset ? ` · ${s.preset}` : ''}
