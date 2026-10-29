@@ -369,12 +369,13 @@ export function VineRow({
       {stalk ? (
         // The drawing is uncovered from the top down, so a new row's stalk grows into place.
         <Animated.View style={[styles.reveal, { width: w, height: reveal.interpolate({ inputRange: [0, 1], outputRange: [0, h] }) }]} pointerEvents="none">
-          <Svg width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Svg aria-hidden width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             {stalk}
           </Svg>
         </Animated.View>
       ) : null}
-      {neon && h && !reduced ? <Spark x={sx} h={h} color={look.stem} seed={seed} /> : null}
+      {/* A spark on every third piece of rod, not all of them: each one is an animation running all the time, and older phones dropped frames with one per row. */}
+      {neon && h && !reduced && seed % 3 === 0 ? <Spark x={sx} h={h} color={look.stem} seed={seed} /> : null}
       <View style={placed}>{children}</View>
     </View>
   );
@@ -438,7 +439,7 @@ export function LeafFrame({
         if (Math.abs(width - w) > 1 || Math.abs(height - h) > 1) setSize({ w: width, h: height });
       }}>
       {w ? (
-        <Svg style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Svg aria-hidden style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {floral ? (
             <>
               <Path d={scallops(w, h, depth ? 7 : 9, depth ? 18 : 24)} fill={mix(look.leafSoft, look.leaf, 0.35)} stroke={mix(look.leaf, '#000000', 0.2)} strokeWidth={1.2} />

@@ -48,7 +48,9 @@ function WallPlayer({ url, maxSeconds }: { url: string; maxSeconds: number }) {
     <>
       <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
       <Pressable onPress={toggle} style={styles.sound} accessibilityRole="button" accessibilityLabel={t(muted ? 'wall.soundOn' : 'wall.soundOff')}>
-        <Text style={styles.soundText}>{muted ? '🔇' : '🔊'}</Text>
+        <Text style={styles.soundText} maxFontSizeMultiplier={1.3}>
+          {muted ? '🔇' : '🔊'}
+        </Text>
       </Pressable>
     </>
   );

@@ -245,7 +245,7 @@ export function BlurredLeaves({ look, depth, side, peek, children }: { look: Ret
   const dark = isLit(look.vineStyle) || isDarkBackdrop(look.backdrop);
   return (
     <View style={styles.blurStack}>
-      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.blurLeaves} pointerEvents="none">
+      <View aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.blurLeaves} pointerEvents="none">
         {(peek.length ? peek : [null]).map((c, k) => (
           <View key={c?.id ?? k} style={[k > 0 && styles.blurBehind, { transform: [{ rotate: `${(side === 'left' ? -1 : 1) * (k ? 3 : -2)}deg` }] }]}>
             <LeafFrame side={side} look={look} depth={Math.min(depth + 1, 2)}>

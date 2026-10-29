@@ -4,7 +4,7 @@
 // its comments. All drawn with react-native-svg, original artwork. The text
 // sits on a pale tablet face picked so card text keeps 4.5:1 (WCAG AA).
 import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
-import { useState, type ReactNode } from 'react';
+import { memo, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -67,7 +67,7 @@ export function StoneTablet({ stone, mortar, depth = 0, seed = 1, children, test
         if (Math.abs(width - w) > 1 || Math.abs(height - h) > 1) setSize({ w: width, h: height });
       }}>
       {w ? (
-        <Svg style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Svg aria-hidden style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {/* Its shadow on the wall behind, then the stone, a lit top-left bevel and a shaded bottom-right one. */}
           <Path d={slab(w, h, 0, r)} fill={shade(mortar, '#000000', 0.35)} fillOpacity={0.35} transform="translate(3 4)" />
           <Path d={slab(w, h, 1, r)} fill={stone} stroke={shade(mortar, '#000000', 0.2)} strokeWidth={1.5} />
@@ -99,8 +99,8 @@ const COURSES = [
   [0.45, 0.55],
 ];
 
-/** A wall of dressed stone: each stone shaded a little differently, with a lit top edge. */
-export function StoneWall({ width, rows, course, stone, mortar }: { width: number; rows: number; course: number; stone: string; mortar: string }) {
+/** A wall of dressed stone: each stone shaded a little differently, with a lit top edge. Memoized: a few hundred shapes that only change with the skin, not with every scroll. */
+export const StoneWall = memo(function StoneWall({ width, rows, course, stone, mortar }: { width: number; rows: number; course: number; stone: string; mortar: string }) {
   const rects: ReactNode[] = [];
   for (let row = 0; row < rows; row++) {
     let x = 0;
@@ -116,11 +116,11 @@ export function StoneWall({ width, rows, course, stone, mortar }: { width: numbe
     }
   }
   return (
-    <Svg width={width} height={rows * course}>
+    <Svg aria-hidden width={width} height={rows * course}>
       {rects}
     </Svg>
   );
-}
+});
 
 /** Battlements along the top of the tower. */
 export function Battlements({ width, stone, mortar }: { width: number; stone: string; mortar: string }) {
@@ -134,7 +134,7 @@ export function Battlements({ width, stone, mortar }: { width: number; stone: st
   }
   d += ` L ${width} 56 Z`;
   return (
-    <Svg width={width} height={56} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg aria-hidden width={width} height={56} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Path d={d} fill={stone} stroke={mortar} strokeWidth={2} />
       <Path d={`M 0 38 L ${width} 38`} stroke={mortar} strokeWidth={1.5} />
     </Svg>
@@ -145,7 +145,7 @@ export function Battlements({ width, stone, mortar }: { width: number; stone: st
 export function Climber({ jacket = '#B5452E', height = 64 }: { jacket?: string; height?: number }) {
   const s = height / 64;
   return (
-    <Svg width={44 * s} height={height} viewBox="0 0 44 64" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg aria-hidden width={44 * s} height={height} viewBox="0 0 44 64" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {/* Rope, running up off the top of the drawing. */}
       <Path d="M 26 0 L 26 64" stroke="#8A6A3D" strokeWidth={2} />
       {/* Arms reaching up to the rope. */}

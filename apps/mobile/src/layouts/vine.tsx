@@ -310,50 +310,56 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
     }
   }, []);
 
+  // A steady renderItem, so a re-render of the feed (the idle bird's timer restarting as the member
+  // scrolls) doesn't redraw every visible leaf: FlatList skips cells whose item and renderItem are unchanged.
+  const renderItem = useCallback(
+    ({ item }: { item: Item }) =>
+        item.kind === 'fruit' ? (
+          <Fruit card={item.card} pinned={item.card.id === pinnedId} tokens={tokens} side={item.side} from={item.from} gap={item.gap} fresh={!!known.current && !known.current.has(item.card.id)}>
+            {/* Its comments hang below as their own leaves, so the card doesn't repeat one. */}
+            {renderCard(item.card.leafComments?.length ? { ...item.card, topComment: null } : item.card)}
+          </Fruit>
+        ) : item.kind === 'comment' ? (
+          <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={1} seed={hashId(item.comment.id)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint={t('vine.openComment')}
+              onPress={() => router.push(`/post/${item.postId}?comment=${item.comment.id}`)}>
+              <LeafFrame side={item.side} look={tokens} depth={1}>
+                <Text style={styles.commentName}>{item.comment.author.displayName}</Text>
+                <Text style={styles.commentBody} numberOfLines={3}>
+                  {item.comment.body}
+                </Text>
+              </LeafFrame>
+            </Pressable>
+          </VineRow>
+        ) : item.kind === 'more' ? (
+          <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={2} seed={item.count}>
+            <Pressable accessibilityRole="button" onPress={() => router.push(`/post/${item.postId}`)}>
+              {/* The older comments wait behind frosted glass. */}
+              <BlurredLeaves look={tokens} depth={1} side={item.side} peek={[]}>
+                <Text style={styles.moreText}>{t('vine.moreComments', { count: item.count })}</Text>
+              </BlurredLeaves>
+            </Pressable>
+          </VineRow>
+        ) : item.kind === 'gate' ? (
+          <GateArch line={tokens.stem} accent={tokens.tendril} testID="gate-arch" />
+        ) : item.kind === 'scene' ? (
+          <VineRow from={item.from} side="center" look={tokens} gap={VINE_GAP / 2}>
+            <NeonScene kind={item.scene} line={tokens.stem} accent={tokens.leaf} />
+          </VineRow>
+        ) : (
+          <ScriptureLeaf leaf={item.leaf} tokens={tokens} from={item.from} />
+        ),
+    [pinnedId, renderCard, t, tokens],
+  );
+
   return (
     <View style={[styles.fill, tokens.backdrop ? { backgroundColor: tokens.backdrop } : null]}>
       <FlatList
         data={items}
         keyExtractor={(it) => (it.kind === 'fruit' ? it.card.id : it.key)}
-        renderItem={({ item }) =>
-          item.kind === 'fruit' ? (
-            <Fruit card={item.card} pinned={item.card.id === pinnedId} tokens={tokens} side={item.side} from={item.from} gap={item.gap} fresh={!!known.current && !known.current.has(item.card.id)}>
-              {/* Its comments hang below as their own leaves, so the card doesn't repeat one. */}
-              {renderCard(item.card.leafComments?.length ? { ...item.card, topComment: null } : item.card)}
-            </Fruit>
-          ) : item.kind === 'comment' ? (
-            <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={1} seed={hashId(item.comment.id)}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityHint={t('vine.openComment')}
-                onPress={() => router.push(`/post/${item.postId}?comment=${item.comment.id}`)}>
-                <LeafFrame side={item.side} look={tokens} depth={1}>
-                  <Text style={styles.commentName}>{item.comment.author.displayName}</Text>
-                  <Text style={styles.commentBody} numberOfLines={3}>
-                    {item.comment.body}
-                  </Text>
-                </LeafFrame>
-              </Pressable>
-            </VineRow>
-          ) : item.kind === 'more' ? (
-            <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={2} seed={item.count}>
-              <Pressable accessibilityRole="button" onPress={() => router.push(`/post/${item.postId}`)}>
-                {/* The older comments wait behind frosted glass. */}
-                <BlurredLeaves look={tokens} depth={1} side={item.side} peek={[]}>
-                  <Text style={styles.moreText}>{t('vine.moreComments', { count: item.count })}</Text>
-                </BlurredLeaves>
-              </Pressable>
-            </VineRow>
-          ) : item.kind === 'gate' ? (
-            <GateArch line={tokens.stem} accent={tokens.tendril} testID="gate-arch" />
-          ) : item.kind === 'scene' ? (
-            <VineRow from={item.from} side="center" look={tokens} gap={VINE_GAP / 2}>
-              <NeonScene kind={item.scene} line={tokens.stem} accent={tokens.leaf} />
-            </VineRow>
-          ) : (
-            <ScriptureLeaf leaf={item.leaf} tokens={tokens} from={item.from} />
-          )
-        }
+        renderItem={renderItem}
         // On a dark skin the feed's header sits on a light panel so its text stays readable.
         ListHeaderComponent={header ? isDark(tokens.backdrop) ? <View style={styles.headerPanel}>{header}</View> : header : undefined}
         ListFooterComponent={
@@ -372,6 +378,10 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         {...feedListTuning}
+        // Drawn leaves cost more to mount than plain cards, and each comment is its own row:
+        // mount two at a time, but further ahead, so no single frame has to draw four.
+        maxToRenderPerBatch={2}
+        windowSize={9}
         onScroll={onScroll}
         scrollEventThrottle={250}
       />
