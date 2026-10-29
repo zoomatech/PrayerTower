@@ -9,6 +9,9 @@ export function createPool(connectionString: string, max = 10): Db {
   const pool = new pg.Pool({ connectionString, max });
   // An idle client can drop (e.g. a database restart); log instead of crashing.
   pool.on('error', (err) => console.error('postgres pool error', err));
+  // A checked-out client can drop too; without a listener Node exits the process
+  // (https://worker.graphile.org/errors/peh).
+  pool.on('connect', (client) => client.on('error', (err) => console.error('postgres client error', err)));
   return pool;
 }
 
