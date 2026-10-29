@@ -33,6 +33,7 @@ Each one reads the same admin switch as the Expo app and shows nothing while it 
 | Prayer circles: start, join with a code, share, pray, reply, invite | `prayerCircles` | `CircleView`, `CirclePost` |
 | Circle welcome and circle updates ("How it's going", answered) | `circleWelcome`, `circleUpdates` (both need circles) | `CirclePost.Update` |
 | Fresh-start days on Me: up to three dates, and today's fresh start | `freshDays` | `FreshDayRules`, `FreshDay` |
+| "Your prayer life" on Me, with gentle rhythm, weeks of prayer, welcome back, fresh starts and the weekly intention (1 to 6 days, or no aim) | `gentleRhythm`, `gentleStreak`, `weeklyIntention` | `PrayerStats`, `PrayerLifeSection` |
 
 Commit to Pray and Gift Tokens keep their icons in the row, and for now say they are coming soon (phases 2 and 4). Open Circle wording comes from the same words as `neutral.ts`, and a test checks the kind cloud has no religious words there.
 
