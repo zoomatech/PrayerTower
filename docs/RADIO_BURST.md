@@ -266,7 +266,10 @@ fingerprint):
 The modem is `apps/station/src/packet/afsk.ts`; the message format is
 `packet/message.ts`. A test round-trips packets at 48 and 44.1 kHz and through
 noise at 3 dB SNR, and checks the FCS against CRC-16/X.25's check value
-(0x906E).
+(0x906E). `test/packet-robustness.test.ts` also decodes packets recorded at
+about -50 dBFS, hard-clipped, under 60 Hz hum and a DC offset, and with about
+5 dB of twist either way (a missing or doubled FM emphasis stage). A dropout
+of broken samples loses only the packet it hits.
 
 ## Compression v2 (codec 4)
 
@@ -475,7 +478,7 @@ node apps/station/dist/src/burst/cli.js decode-text rx.txt
 node apps/station/dist/src/burst/cli.js encode test.wav fm-standard < prayers.txt
 ```
 
-Any recording rate works; the decoder resamples to 48 kHz.
+Any recording rate works; the decoder resamples to 48 kHz. A WAV can be 8, 16, 24 or 32-bit PCM or 32 or 64-bit float, mono or stereo, which covers handheld recorders and Audacity's exports. A compressed WAV (ADPCM and the like) is refused with a message saying to save it as PCM or float.
 
 The decoder is tested (`apps/station/test/robustness.test.ts`, `fuzz.test.ts`) against what real receivers do to a recording:
 
