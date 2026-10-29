@@ -1,5 +1,5 @@
 // Small shared building blocks.
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,7 +25,8 @@ export function Button({
   a11yLabel,
 }: {
   label: string;
-  onPress: () => void;
+  /** May return a promise: taps are ignored until it settles, so a quick double tap acts once. */
+  onPress: () => unknown;
   variant?: 'primary' | 'secondary' | 'ghost';
   disabled?: boolean;
   busy?: boolean;
@@ -36,6 +37,16 @@ export function Button({
   a11yLabel?: string;
 }) {
   const v = buttonVariants[variant];
+  // A second tap before the screen re-renders with busy (sending a comment, posting) would send twice.
+  const running = useRef(false);
+  const press = () => {
+    if (running.current) return;
+    const result = onPress();
+    if (result instanceof Promise) {
+      running.current = true;
+      void result.catch(() => undefined).finally(() => (running.current = false));
+    }
+  };
   return (
     <Pressable
       accessibilityRole="button"
@@ -44,7 +55,7 @@ export function Button({
       accessibilityState={{ disabled: !!(disabled || busy), busy: !!busy }}
       // Small buttons are drawn 34pt tall; the slop makes the tap area Apple's 44pt minimum.
       hitSlop={small ? 5 : undefined}
-      onPress={onPress}
+      onPress={press}
       disabled={disabled || busy}
       style={({ pressed }) => [
         styles.button,

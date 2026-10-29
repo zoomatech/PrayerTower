@@ -6,7 +6,7 @@
 // last full week to every admin.
 import type { Task } from 'graphile-worker';
 import type { Queryable } from '../../db.js';
-import type { Mailer } from '../digest/mailer.js';
+import { sendEach, type Mailer } from '../digest/mailer.js';
 
 export interface DigestWeek {
   week_start: string;
@@ -112,9 +112,9 @@ export async function runWeekly(q: Queryable, mailer: Mailer | null, now = new D
     `select distinct u.email from public.user_roles r join auth.users u on u.id = r.user_id where r.role = 'admin' and u.email is not null`,
   );
   const html = toHtml(last, history.slice(0, -1).reverse());
-  for (const a of admins) await mailer({ to: a.email, subject: `Radio prayers, week of ${last.week_start}`, text: toText(last), html });
+  const emailed = await sendEach(admins, (a) => mailer({ to: a.email, subject: `Radio prayers, week of ${last.week_start}`, text: toText(last), html }));
   await q.query('update public.radio_digests set emailed_at = now() where week_start = $1', [last.week_start]);
-  return { week: last.week_start, emailed: admins.length };
+  return { week: last.week_start, emailed };
 }
 
 export function weeklyTask(q: Queryable, mailer: Mailer | null): Task {

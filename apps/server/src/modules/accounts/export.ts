@@ -136,6 +136,8 @@ const SECTIONS: Record<string, Section> = {
 // test/export.test.ts fails when a new table points at profiles and is in
 // neither list.
 export const NOT_EXPORTED = [
+  // Offline replay keys and the first answer, kept a week; the posts they made are exported.
+  'request_keys',
   // A moderator's decision on a heated thread, kept on the post; it holds no member's words.
   'calm_threads',
   // A circle's current invite code; it is a key to the circle, not the member's words.
