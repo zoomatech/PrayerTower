@@ -13,6 +13,7 @@ const SECTIONS: Record<string, Section> = {
   comments: { table: 'comments', where: 'user_id = $1' },
   reactions: { table: 'reactions', where: 'user_id = $1' },
   quickReactions: { table: 'quick_reactions', where: 'user_id = $1' },
+  meaningReactions: { table: 'meaning_reactions', where: 'user_id = $1' },
   hiddenPosts: { table: 'hidden_posts', where: 'user_id = $1' },
   commitments: { table: 'commitments', where: 'user_id = $1' },
   prayers: { table: 'prayer_events', where: 'user_id = $1' },

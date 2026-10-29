@@ -67,6 +67,24 @@ export interface Precheck {
   harm?: HarmNote | null;
 }
 
+/** Emoji meanings: an emoji and its up-to-five positive meanings (first = what a tap adds). */
+export interface MeaningEmoji {
+  key: string;
+  emoji: string;
+  meanings: { key: string; label: string; neutralLabel: string }[];
+}
+
+/** A chosen meaning on a post, shown as a leaf. */
+export interface MeaningLeaf {
+  emoji: string;
+  icon: string;
+  meaning: string;
+  label: string;
+  neutralLabel: string;
+  count: number;
+  mine: boolean;
+}
+
 export interface Features {
   worldwideCount: boolean;
   thanksCard: boolean;
@@ -87,6 +105,8 @@ export interface Features {
   checkinAffirmation: boolean;
   /** The kind cloud on composers: a gentle "Are you sure?" (server modules/kindness). */
   kindCloud: boolean;
+  /** Emoji reactions that open to positive meanings, shown as leaves. */
+  meaningReactions: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -158,6 +178,7 @@ export interface NotebookSettings {
   tier_upkeep_days: number;
   checkin_affirmation_enabled: boolean;
   kind_cloud_enabled: boolean;
+  meaning_reactions_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -812,6 +833,10 @@ export const api = {
   across: () => get<{ card: Card | null }>('/across'),
   quickReact: (postId: string, kind: 'candle' | 'standing', on: boolean) =>
     request<{ candles: number; standing: number; mine: ('candle' | 'standing')[] }>(on ? 'PUT' : 'DELETE', `/posts/${postId}/quick-reactions/${kind}`),
+  reactionMeanings: () => get<{ emoji: MeaningEmoji[] }>('/reaction-meanings'),
+  meanings: (postId: string) => get<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`),
+  chooseMeaning: (postId: string, emoji: string, meaning: string) => put<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`, { emoji, meaning }),
+  removeMeaning: (postId: string, emoji: string) => request<{ leaves: MeaningLeaf[] }>('DELETE', `/posts/${postId}/meanings/${emoji}`),
   declineAward: (id: string) => post<{ declined: true }>(`/me/awards/${id}/decline`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
@@ -1057,7 +1082,7 @@ export const api = {
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; kindCloudEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
