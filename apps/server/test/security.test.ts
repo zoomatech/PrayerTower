@@ -63,6 +63,7 @@ describe('endpoint auth', () => {
       'GET /donations/info',
       'GET /donations/summary',
       'POST /donations/stripe-webhook',
+      'POST /donations/zeffy-webhook', // checks its own ?token=
       // App Store Server Notifications: Apple's signature on the payload is the check.
       'POST /store/apple/notifications',
       // The same public pages in Spanish.

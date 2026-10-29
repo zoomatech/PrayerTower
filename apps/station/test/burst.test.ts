@@ -6,6 +6,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { cmCompress, cmDecompress } from '../src/burst/cm.js';
+import { convDecode, convEncode } from '../src/burst/conv.js';
 import { decodeBatch, encodeBatch } from '../src/burst/codec.js';
 import { fft } from '../src/burst/fft.js';
 import { frameSeconds, modulate } from '../src/burst/ofdm.js';
@@ -17,7 +18,7 @@ import { simulateTransmitter, type BurstTransmitter } from '../src/burst/transmi
 import { fromWav, resample, toWav } from '../src/burst/wav.js';
 import { runBurstOnce } from '../src/burst/worker.js';
 import { DEFAULT_BLOCKLIST } from '../src/text.js';
-import { httpApi, TransmitError, type ClaimedPrayer, type StationApi } from '../src/worker.js';
+import { httpApi, TransmitError, type BurstLog, type ClaimedPrayer, type StationApi } from '../src/worker.js';
 import { SAMPLE_PRAYERS } from './fixtures/sample-prayers.js';
 
 /** Seeded random numbers, so a failing channel test fails the same way every run. */
@@ -136,6 +137,23 @@ describe('Reed-Solomon', () => {
   });
 });
 
+describe('convolutional code (the -fec presets)', () => {
+  it('soft Viterbi recovers bytes from noisy soft bits at both rates', () => {
+    const rand = rng(9);
+    const gauss = () => Math.sqrt(-2 * Math.log(rand() + 1e-12)) * Math.cos(2 * Math.PI * rand());
+    const data = Uint8Array.from({ length: 200 }, () => Math.floor(rand() * 256));
+    for (const code of ['r12', 'r23'] as const) {
+      const coded = convEncode(data, code);
+      // BPSK-style soft bits (+1 for a 0, -1 for a 1) with noise loud enough to flip about 1 bit in 25.
+      const llr = Float32Array.from(coded, (b) => (b ? -1 : 1) + 0.57 * gauss());
+      let flipped = 0;
+      coded.forEach((b, i) => (b !== (llr[i]! < 0 ? 1 : 0) ? flipped++ : 0));
+      expect(flipped).toBeGreaterThan(coded.length / 50);
+      expect(convDecode(llr, data.length, code)).toEqual(data);
+    }
+  });
+});
+
 describe('batch compression', () => {
   it('round-trips and shrinks a batch of real-looking requests by more than 4x', () => {
     const batch = encodeBatch(SAMPLE_PRAYERS);
@@ -179,6 +197,16 @@ describe('burst modem through a simulated FM radio', () => {
       expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', preset: preset.name, prayers: SAMPLE_PRAYERS });
     });
   }
+
+  it('fm-robust-fec decodes at a noise level where fm-robust gives up, and is no slower', () => {
+    const batch = encodeBatch(SAMPLE_PRAYERS);
+    const plain = presetByName('fm-robust');
+    const fec = presetByName('fm-robust-fec');
+    expect(frameSeconds(fec, batch.length)).toBeLessThan(frameSeconds(plain, batch.length) * 1.1);
+    const channel = { snrDb: -5, lowHz: 300, highHz: 3400, seed: 2 };
+    expect(listen(radioChannel(modulate(batch, plain, 'KD9XYZ'), channel))).toHaveLength(0);
+    expect(listen(radioChannel(modulate(batch, fec, 'KD9XYZ'), channel))[0]?.prayers).toEqual(SAMPLE_PRAYERS);
+  });
 
   it('dataport-turbo: 30 prayers through a strong data-port link in about 0.7 s', () => {
     const preset = presetByName('dataport-turbo');
@@ -264,12 +292,14 @@ describe('fldigi text frames', () => {
 
 function fakeApi(queue: ClaimedPrayer[]) {
   const reports: { id: string; ok: boolean; pieces?: number; error?: string }[] = [];
+  const bursts: BurstLog[] = [];
   const api: StationApi = {
     claim: async () => queue.shift() ?? null,
     claimBatch: async (max) => queue.splice(0, max),
     report: async (id, r) => void reports.push({ id, ...r }),
+    reportBurst: async (b) => void bursts.push(b),
   };
-  return { api, reports };
+  return { api, reports, bursts };
 }
 
 const cfg = { callSign: 'N0CALL', preset: presetByName('fm-standard'), maxPrayers: 50, maxFrameSeconds: 20, blocklist: DEFAULT_BLOCKLIST };
@@ -279,7 +309,7 @@ describe('burst station loop', () => {
   it('sends a batch in one burst, reports every prayer, and a receiver hears them all (simulate mode)', async () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'burst-'));
     const lines: string[] = [];
-    const { api, reports } = fakeApi([
+    const { api, reports, bursts } = fakeApi([
       { id: 'a', text: 'Pray for Señor Núñez.' },
       { id: 'b', text: 'Pray for this shit to end' },
       { id: 'c', text: 'Pray for peace.', repeats: 3 },
@@ -296,6 +326,16 @@ describe('burst station loop', () => {
     const wav = fromWav(readFileSync(path.join(dir, wavs[0]!)));
     expect(listen(wav.samples)[0]?.prayers).toEqual(['Pray for Senor Nunez.', 'Pray for peace.', 'Pray for peace.', 'Pray for peace.']);
     expect(lines.some((l) => l.includes('a receiver decodes 4 prayer(s)'))).toBe(true);
+    expect(bursts).toEqual([expect.objectContaining({ callSign: 'N0CALL', mode: 'simulate', preset: 'fm-standard', prayers: 4, frames: 1, decoded: 4, ok: true })]);
+  });
+
+  it('amplifies 1,000 times in under a second of air time (fm-fast)', async () => {
+    const lines: string[] = [];
+    const { api, bursts } = fakeApi([{ id: 'amp', text: 'Pray for peace in our town.', repeats: 1000 }]);
+    const outcome = await runBurstOnce(api, simulateTransmitter(mkdtempSync(path.join(tmpdir(), 'burst-')), (m) => lines.push(m)), { ...cfg, preset: presetByName('fm-fast') }, quiet);
+    expect(outcome).toMatchObject({ kind: 'sent', sent: 1, frames: 1 });
+    expect((outcome as { seconds: number }).seconds).toBeLessThan(1);
+    expect(bursts[0]).toMatchObject({ prayers: 1000, decoded: 1000 });
   });
 
   it('is idle with nothing queued', async () => {
@@ -306,14 +346,16 @@ describe('burst station loop', () => {
   it('on a transmit failure unkeys, reports every prayer as failed and stops', async () => {
     let stopped = false;
     const tx: BurstTransmitter = {
+      mode: 'audio',
       send: async () => {
         throw new Error('sound card busy');
       },
       stop: async () => void (stopped = true),
     };
-    const { api, reports } = fakeApi([{ id: 'a', text: 'Pray for Ana.' }, { id: 'b', text: 'Pray for Ben.' }]);
+    const { api, reports, bursts } = fakeApi([{ id: 'a', text: 'Pray for Ana.' }, { id: 'b', text: 'Pray for Ben.' }]);
     await expect(runBurstOnce(api, tx, cfg, quiet, [])).rejects.toBeInstanceOf(TransmitError);
     expect(stopped).toBe(true);
+    expect(bursts).toEqual([expect.objectContaining({ mode: 'audio', prayers: 2, ok: false, error: 'sound card busy' })]);
     expect(reports).toEqual([
       { id: 'a', ok: false, callSign: 'N0CALL', error: 'sound card busy' },
       { id: 'b', ok: false, callSign: 'N0CALL', error: 'sound card busy' },

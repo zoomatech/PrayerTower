@@ -291,6 +291,23 @@ export interface AdminRadioSettings {
   radio_batch_max: number;
 }
 
+/** One burst the station sent (burst mode), newest first in Admin → Radio. */
+export interface StationBurst {
+  id: string;
+  created_at: string;
+  call_sign: string;
+  mode: 'audio' | 'fldigi' | 'simulate';
+  preset: string;
+  prayers: number;
+  frames: number;
+  bytes: number;
+  seconds: number;
+  /** Prayers decoded back from the burst audio (simulate mode); null when not checked. */
+  decoded: number | null;
+  ok: boolean;
+  error: string | null;
+}
+
 export interface PowerPrayerStatus {
   reach: number;
   freeLeft: number;
@@ -677,6 +694,22 @@ export interface AwardSettings {
   public_hall: boolean;
 }
 export type LiveRoom = { id: string; title: string; roomUrl: string; hostName: string; isMine: boolean; startedAt: string };
+/** Harmful prayers (docs/HARMFUL_PRAYERS.md). Off by default. */
+export type HarmLevel = 'hold' | 'review' | 'allow';
+export type HarmSettings = {
+  enabled: boolean;
+  threat_action: HarmLevel;
+  hate_action: HarmLevel;
+  harm_wish_action: HarmLevel;
+  curse_action: HarmLevel;
+  revenge_action: HarmLevel;
+  abuse_action: 'support' | 'allow';
+  foul_hold_at: number;
+  foul_junk_filter: boolean;
+  flood_per_day: number;
+  extra_hate_words: string[];
+};
+export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
 export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
 export type AiTurn = { role: 'user' | 'assistant'; content: string };
 export type CircleRole = 'harmed' | 'caused' | 'unsure';
@@ -756,6 +789,8 @@ export interface GivingInfo {
   enabled: boolean;
   provider: 'none' | 'stripe' | 'zeffy';
   url: string | null;
+  /** PayPal's Donate link, a second way to give; null when not set. */
+  paypalUrl: string | null;
   minCents: number;
   maxCents: number;
   everyoneMonthly: number;
@@ -765,7 +800,7 @@ export type GiftTarget = { kind: 'everyone' } | { kind: 'member'; userId: string
 export interface MyGift {
   id: string;
   amount_cents: number;
-  status: 'pending' | 'paid' | 'refunded';
+  status: 'pending' | 'paid' | 'refunded' | 'failed';
   target_kind: GiftTarget['kind'];
   created_at: string;
 }
@@ -789,6 +824,8 @@ export interface AdminDonationSettings {
   enabled: boolean;
   provider: 'none' | 'stripe' | 'zeffy';
   donate_url: string | null;
+  paypal_url: string | null;
+  zeffy_amount_unit: 'cents' | 'dollars';
   min_cents: number;
   max_cents: number;
   priestly_per_dollar: number;
@@ -798,7 +835,7 @@ export interface AdminDonationSettings {
   allocation_max_per_request: number;
 }
 export interface AdminGift extends MyGift {
-  provider: 'stripe' | 'zeffy' | 'manual';
+  provider: 'stripe' | 'zeffy' | 'paypal' | 'manual';
   donor_name?: string | null;
 }
 
@@ -1036,21 +1073,27 @@ export const api = {
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
+    radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
-    donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
+    donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
       patch: Partial<{
         enabled: boolean;
         provider: 'none' | 'stripe' | 'zeffy';
         donateUrl: string | null;
+        paypalUrl: string | null;
+        zeffyAmountUnit: 'cents' | 'dollars';
         everyoneMonthly: number;
         allocationRequestsEnabled: boolean;
         allocationMaxPerRequest: number;
       }>,
     ) => request<{ settings: AdminDonationSettings }>('PATCH', '/admin/donation-settings', patch),
     gifts: () => get<{ donations: AdminGift[] }>('/admin/donations'),
-    recordGift: (amountCents: number, reference: string) => post('/admin/donations', { amountCents, reference: reference || undefined }),
+    refundGift: (id: string) => post<{ refunded: true }>(`/admin/donations/${id}/refund`),
+    recordGift: (gift: { amountCents: number; reference: string; via: 'manual' | 'zeffy' | 'paypal'; donorId?: string | null; target?: GiftTarget }) =>
+      post('/admin/donations', { ...gift, reference: gift.reference || undefined }),
+    syncZeffy: () => post<{ recorded: number; refunded: number; skipped: number }>('/admin/donations/zeffy-sync'),
     securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
     updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
@@ -1179,6 +1222,10 @@ export const api = {
       '/moderation/activity-flags',
     ),
   decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
+  updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
+  harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),
+  decideHarmFlood: (userId: string, action: 'release' | 'remove') => post<{ items: number }>(`/moderation/harm-floods/${userId}`, { action }),
   scriptureLeaves: () => get<{ leaves: { id: string; reference: string; text: string; translation: string | null }[] }>('/scripture-leaves'),
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),

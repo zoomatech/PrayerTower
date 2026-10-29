@@ -13,9 +13,18 @@ import { encodeTextFrame } from './text-frame.js';
 import { toWav } from './wav.js';
 import type { BurstPreset } from './presets.js';
 
+export interface SentBurst {
+  frames: number;
+  seconds: number;
+  bytes: number;
+  /** Prayers a receiver decoded back from the burst (simulate mode), or null when not checked. */
+  decoded: number | null;
+}
+
 export interface BurstTransmitter {
+  readonly mode: 'audio' | 'fldigi' | 'simulate';
   /** Send the batches in one key-up; resolves when the radio is back in receive. */
-  send(batches: Uint8Array[], preset: BurstPreset, callSign: string): Promise<{ frames: number; seconds: number }>;
+  send(batches: Uint8Array[], preset: BurstPreset, callSign: string): Promise<SentBurst>;
   /** Unkey now (after an error). */
   stop(): Promise<void>;
 }
@@ -67,6 +76,7 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
     if (o.pttOffCommand) await run(o.pttOffCommand, null, 10_000);
   };
   return {
+    mode: 'audio',
     async send(batches, preset, callSign) {
       const burst = buildBurst(batches, preset, callSign);
       const wav = writeWav(o.dir, burst);
@@ -77,7 +87,7 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
       } finally {
         await unkey();
       }
-      return { frames: burst.frames, seconds: burst.seconds };
+      return { frames: burst.frames, seconds: burst.seconds, bytes: burst.bytes, decoded: null };
     },
     stop: unkey,
   };
@@ -85,6 +95,7 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
 
 export function simulateTransmitter(dir: string, log: (m: string) => void): BurstTransmitter {
   return {
+    mode: 'simulate',
     async send(batches, preset, callSign) {
       const burst = buildBurst(batches, preset, callSign);
       const wav = writeWav(dir, burst);
@@ -92,7 +103,7 @@ export function simulateTransmitter(dir: string, log: (m: string) => void): Burs
       const count = heard.reduce((n, h) => n + h.prayers.length, 0);
       log(`[simulate] ${wav}: ${burst.frames} frame(s), ${burst.bytes} bytes, ${burst.seconds.toFixed(2)} s on air (${preset.name}); a receiver decodes ${count} prayer(s)`);
       for (const h of heard) for (const p of h.prayers) log(`[simulate]   de ${h.callSign}: ${p}`);
-      return { frames: burst.frames, seconds: burst.seconds };
+      return { frames: burst.frames, seconds: burst.seconds, bytes: burst.bytes, decoded: count };
     },
     async stop() {},
   };
@@ -100,11 +111,12 @@ export function simulateTransmitter(dir: string, log: (m: string) => void): Burs
 
 export function fldigiTransmitter(fldigi: Fldigi, txTimeoutMs: number): BurstTransmitter {
   return {
+    mode: 'fldigi',
     async send(batches, _preset, callSign) {
       const started = Date.now();
       // One key-up: every frame on its own line, then ^r returns to receive.
       await fldigi.transmit(batches.map((b) => encodeTextFrame(b, callSign)).join('\n'), txTimeoutMs);
-      return { frames: batches.length, seconds: (Date.now() - started) / 1000 };
+      return { frames: batches.length, seconds: (Date.now() - started) / 1000, bytes: batches.reduce((n, b) => n + b.length, 0), decoded: null };
     },
     stop: () => fldigi.rxOnly(),
   };

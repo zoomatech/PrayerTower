@@ -21,12 +21,25 @@ about 21 bytes a prayer (4.4x). One prayer on its own takes about 24 bytes.
 | `fm-standard` (default) | Any FM radio's mic and speaker audio | 4.0 kbit/s | 1.7 s | 3.1 s | about 10-12 dB |
 | `fm-fast` | FM audio, strong clean signal | 6.0 kbit/s | 1.2 s | 2.1 s | about 16 dB |
 | `fm-turbo` | FM audio, full-quieting signal, audio level set well | 9.2 kbit/s | 0.8 s | 1.5 s | about 22 dB |
+| `fm-robust-fec` | Any FM radio, weakest paths | 4.0 kbit/s (2.0 of data) | 2.9 s | 5.3 s | about 5 dB |
+| `fm-turbo-fec` | FM audio, strong signal | 9.2 kbit/s (6.1 of data) | 1.1 s | 2.0 s | about 15 dB |
 | `dataport-fast` | The radio's 9600 data port, or an SDR | 13 kbit/s | 0.65 s | 1.2 s | about 18-20 dB |
 | `dataport-turbo` | 9600 data port or SDR, strong signal | 17 kbit/s | 0.5 s | 1.0 s | about 24 dB |
 
 The 100-prayer column uses the benchmark's generated requests
 (`src/burst/sample.ts`) and includes the 0.1 s lead-in. Each frame also has a
 fixed 0.19 s of sync and header, so bigger batches are more efficient.
+
+The two `-fec` presets add soft-decision error correction: a rate-1/2 (or
+punctured rate-2/3) convolutional code under the Reed-Solomon code, decoded by
+a Viterbi decoder that weighs how sure the demodulator is of every bit.
+`fm-robust-fec` is a bit faster than `fm-robust` (it needs less Reed-Solomon
+parity) and decodes about 1 dB further into
+the noise; `fm-turbo-fec` is a little faster than `fm-fast` and also about
+1 dB tougher. They are opt-in (`BURST_PRESET=fm-robust-fec`); every receiver
+decodes them. The gain is smaller than the 4-5 dB such a code gives a
+coherent modem, because differential PSK compares two noisy symbols; a
+pilot-aided coherent preset is the next step for more.
 
 The receiver follows a sound card clock difference of up to ±300 ppm through
 frames of 20 seconds or more, and an SSB tuning error of up to about ±10 Hz
@@ -65,6 +78,14 @@ in about 3.7 s on `fm-standard` and 2.6 s on `fm-fast` in the benchmark.
    [9600 data port](https://en.wikipedia.org/wiki/9600_port) skips those
    filters, which is why `dataport-fast` can use twice the bandwidth.
 
+## Amplify 1,000 times
+
+An amplified prayer is sent once for each copy Admin → Radio → Amplify asks for.
+In burst mode the copies compress to almost nothing: 1,000 copies of a prayer
+add about 35 bytes and go out in about half a second on `fm-fast`. That's the
+notebook's "1,000×/second" (page 15). Admin → Radio offers 100× and 1,000× next
+to the old 2-10×. A PSK31 station still sends at most 50 copies.
+
 ## Station settings
 
 In `/etc/prayer-tower-station.env` (see `apps/station/install/station.env.example`):
@@ -86,6 +107,15 @@ The modes:
 - **audio**: the station plays the burst WAV itself. fldigi isn't needed.
 - **fldigi**: each frame is one line of text, `PTB1 CALL <base64>`, sent in a fast fldigi mode. This uses an existing fldigi setup with no new audio wiring. It is slower than `audio`, because the frame goes through fldigi's character coding.
 - **simulate**: nothing is keyed. Each burst is written to `BURST_DIR`, decoded back, and the log shows exactly what a receiver would hear. Use this to try burst mode against the live queue before going on the air.
+
+Each burst is logged to Prayer Tower (`POST /station/bursts`). With "Prayers per
+burst" above 1, Admin → Radio lists the latest bursts: prayers, air time, bytes,
+frames, preset and mode. In `simulate` mode it also shows how many prayers a
+receiver decoded back, and a line turns red if any were lost or the burst failed.
+
+A live check on 2026-10-29 sent 20 queued prayers from the local API through
+`simulate` on `fm-fast`. They went in one 0.56 s frame of 117 bytes, a receiver
+decoded all 20, and all 20 were marked transmitted.
 
 To turn it on: set Admin → Radio → "Prayers per burst" above 1, set `BURST_MODE` (start with `simulate`), and run `sudo systemctl restart prayer-tower-station`.
 
@@ -179,6 +209,8 @@ payload symbols   the preset's bins, differential PSK
 | dataport-fast | 4 | 8-111 | 3 | 32 |
 | fm-turbo | 5 | 12-66 | 4 | 32 |
 | dataport-turbo | 6 | 8-111 | 4 | 32 |
+| fm-robust-fec | 7 | 16-63 | 2 | 16, inner code rate 1/2 |
+| fm-turbo-fec | 8 | 12-66 | 4 | 16, inner code rate 2/3 |
 
 - **Known phases.** xorshift32 (x ^= x << 13; x ^= x >> 17; x ^= x << 5),
   seeded with 0x50545331 for S and 0x50545232 for R. For each carrier, from
@@ -190,6 +222,17 @@ payload symbols   the preset's bins, differential PSK
   Gray code (s XOR s>>1) is g. The carrier's phase is the previous symbol's
   phase plus s x 360° / 2^bits. The header is referenced to the sync symbol
   and the payload to the reference symbol.
+- **Inner code (presets 7 and 8).** Before modulation, the payload bytes
+  (most significant bit first) go through a constraint-length-7
+  convolutional encoder with generators 171 and 133 (octal), starting in
+  state 0 and flushed with six 0 bits. For each input bit the encoder emits
+  the 171 output then the 133 output (neither inverted). Rate 2/3 keeps
+  output bits by the repeating pattern 1, 1, 1, 0 (the 133 output of every
+  second input bit is dropped). The n coded bits are then scattered: coded
+  bit i goes to position (i x q) mod n, where q is the first number at or
+  above round(0.618034 x n) that shares no factor with n. The scattered bits
+  are laid on carriers as in "Bits to carriers" and the last symbol is zero
+  padded.
 - **Level.** The frame is scaled to an RMS of 0.2 of full scale, with peaks
   limited to 0.95.
 - **Between frames.** 50 ms of silence. A burst starts with 100 ms of silence.
@@ -203,8 +246,8 @@ receiver choices, not part of the format.
 ## Notes for the legal department
 
 - The format is fully published here and in the source code, and uses only
-  openly documented standards (DEFLATE, Brotli, Reed-Solomon, OFDM with
-  differential PSK). Compression is used to shorten transmissions, not to
+  openly documented standards (DEFLATE, Brotli, Reed-Solomon, the K=7
+  convolutional code, OFDM with differential PSK). Compression is used to shorten transmissions, not to
   obscure their meaning; anyone can decode them with the published tool.
 - The call sign travels in every frame header in plain ASCII.
 - See [RADIO_STATION.md](RADIO_STATION.md) for the station's other rules
@@ -217,4 +260,5 @@ receiver choices, not part of the format.
 - Preset DEFLATE dictionaries: [Cloudflare blog](https://blog.cloudflare.com/improving-compression-with-preset-deflate-dictionary/)
 - DEFLATE: [RFC 1951](https://www.rfc-editor.org/rfc/rfc1951). Brotli: [RFC 7932](https://www.rfc-editor.org/rfc/rfc7932).
 - Short-string compressors considered (Unishox2, Smaz, Shoco): [Unishox2](https://github.com/siara-cc/Unishox2)
+- Convolutional code (K=7, generators 171/133, punctured rates): [CCSDS 131.0-B-3, TM Synchronization and Channel Coding](https://ecss.nl/wp-content/uploads/2020/04/CCSDS-131.0-B-3_forECSS(Draft-16Oct2019).pdf), [GNU Radio wiki, CC Encoder Definition](https://wiki.gnuradio.org/index.php/CC_Encoder_Definition)
 - Context mixing and the lpaq family: [Matt Mahoney, Large Text Compression Benchmark](https://mattmahoney.net/dc/text.html)

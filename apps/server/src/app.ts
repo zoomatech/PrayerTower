@@ -13,6 +13,7 @@ import { careRoutes } from './modules/care/routes.js';
 import { commitmentRoutes } from './modules/commitments/routes.js';
 import { feedRoutes } from './modules/feed/routes.js';
 import type { Classifier } from './modules/moderation/index.js';
+import { harmRoutes } from './modules/harm/routes.js';
 import { moderationRoutes } from './modules/moderation/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { postRoutes } from './modules/posts/routes.js';
@@ -58,6 +59,7 @@ import { waitlistAdminRoutes, waitlistJoinRoutes } from './modules/waitlist/rout
 import { commonFundPublicRoutes } from './modules/common-fund/routes.js';
 import { donationPublicRoutes, donationRoutes } from './modules/donations/routes.js';
 import type { StripeKeys } from './modules/donations/index.js';
+import type { ZeffyKeys } from './modules/donations/zeffy.js';
 import type { AppleVerifier } from './modules/store/index.js';
 import { storeNotificationRoutes } from './modules/store/routes.js';
 import { amplifierRoutes } from './modules/amplifier/routes.js';
@@ -86,6 +88,8 @@ export interface AppDeps {
   clientIpHeader?: string | null;
   /** Stripe keys for giving (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET); null until Steve sets them. */
   stripe?: StripeKeys | null;
+  /** Zeffy's API key and webhook token (ZEFFY_API_KEY, ZEFFY_WEBHOOK_TOKEN); null until set. */
+  zeffy?: ZeffyKeys | null;
   /** The public account-deletion page (Google Play); null = page off. */
   deletionPage?: DeletionPageOptions | null;
   /** Bearer token for GET /metrics (Prometheus); null = no metrics endpoint. */
@@ -111,7 +115,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -227,7 +231,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     if (rateLimitPerMinute > 0) await open.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 60, timeWindow: '1 minute' });
     commonFundPublicRoutes(open, db);
     podcastPublicRoutes(open, db);
-    donationPublicRoutes(open, db, stripe);
+    donationPublicRoutes(open, db, stripe, zeffy);
     storeNotificationRoutes(open, db, appleVerifier);
   });
 
@@ -278,11 +282,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
-    donationRoutes(authed, db, stripe, webAppUrl);
+    donationRoutes(authed, db, stripe, webAppUrl, zeffy);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
+    harmRoutes(authed, db);
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);
