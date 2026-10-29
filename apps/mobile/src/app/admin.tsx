@@ -14,7 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures, useFeatures } from '@/lib/features';
@@ -321,6 +321,7 @@ function Admin() {
         <ReminderSettingsSection />
         <PracticeModeSection />
         <ModerationToolsSection />
+        <GoldfishSection />
         <PracticeSettingsSection />
         <ConversationSettingsSection />
         <SkinSettingsSection />
@@ -2188,6 +2189,45 @@ export function ModerationToolsSection() {
   );
 }
 
+/** Goldfish memory (docs/GENTLE_REPAIR.md): recent removals in the queue, which fade after a set time. */
+export function GoldfishSection() {
+  const t = useT();
+  const [s, setS] = useState<GoldfishSettings | null>(null);
+  const [days, setDays] = useState('');
+  const [repeat, setRepeat] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: GoldfishSettings) => {
+    setS(x);
+    setDays(String(x.goldfish_days));
+    setRepeat(String(x.goldfish_repeat));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.goldfish().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: { enabled?: boolean } = {}) =>
+    api.admin
+      .updateGoldfish({ days: toInt(days) ?? undefined, repeat: toInt(repeat) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('goldfish.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('goldfish.adminTitle')}</Text>
+      <Toggle label={t('goldfish.adminToggle')} hint={t('goldfish.adminHint')} value={s.goldfish_enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('goldfish.adminDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
+      <Field label={t('goldfish.adminRepeat')} keyboardType="number-pad" value={repeat} onChangeText={setRepeat} />
+      <Button label={t('goldfish.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 /** Growth ideas the big platforms missed (docs/GROWTH.md): each off until switched on here. */
 function GrowthSettingsSection() {
   const t = useT();
@@ -2265,6 +2305,31 @@ function KindnessWeather() {
           </Text>
           {w.comments !== null ? <Text style={type.small}>{t('weather.numbers', { comments: w.comments, warm: w.warm ?? 0, heated: w.heated ?? 0, lifts: w.prayers ?? 0, people: w.people ?? 0 })}</Text> : null}
         </View>
+      ))}
+    </View>
+  );
+}
+
+/** Community health: what matters each week, never time spent. Quiet weeks are folded. */
+export function CommunityHealth() {
+  const t = useT();
+  const [weeks, setWeeks] = useState<HealthWeek[] | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.admin.communityHealth().then((r) => setWeeks(r.weeks), (e) => setNote((e as Error).message));
+  }, []);
+  if (!weeks) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View testID="community-health" style={{ gap: space.xs }}>
+      <Text style={type.body} role="heading">
+        {t('health.title')}
+      </Text>
+      <Text style={type.small}>{t('health.intro')}</Text>
+      {weeks.map((w) => (
+        <Text key={w.weekStart} style={type.small}>
+          {t('weather.week', { date: w.weekStart })}:{' '}
+          {w.requests === null ? t('health.quiet') : t('health.numbers', { requests: w.requests, held: w.held ?? 0, answered: w.answered ?? 0, returning: w.returning ?? 0 })}
+        </Text>
       ))}
     </View>
   );
@@ -2415,6 +2480,10 @@ function PracticeSettingsSection() {
       <Toggle label={t('kindWords.adminTitle')} hint={t('kindWords.adminHint')} value={s.empathy_practice_enabled} onChange={(v) => save({ empathyPracticeEnabled: v })} />
       <Toggle label={t('weather.adminTitle')} hint={t('weather.adminHint')} value={s.kindness_weather_enabled} onChange={(v) => save({ kindnessWeatherEnabled: v })} />
       {s.kindness_weather_enabled ? <KindnessWeather /> : null}
+      <Toggle label={t('health.adminTitle')} hint={t('health.adminHint')} value={s.community_health_enabled} onChange={(v) => save({ communityHealthEnabled: v })} />
+      {s.community_health_enabled ? <CommunityHealth /> : null}
+      <Toggle label={t('freshDays.adminTitle')} hint={t('freshDays.adminHint')} value={s.fresh_days_enabled} onChange={(v) => save({ freshDaysEnabled: v })} />
+      <Toggle label={t('intention.adminTitle')} hint={t('intention.adminHint')} value={s.weekly_intention_enabled} onChange={(v) => save({ weeklyIntentionEnabled: v })} />
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />

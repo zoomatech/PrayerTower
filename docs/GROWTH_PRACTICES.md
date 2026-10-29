@@ -322,3 +322,52 @@ feeling, why naming the hurt helps, why a quick fix can wait.
 
 Source: Steve's notes, p. 4 ("promote empathy, with content, interaction, games & personal
 stories"). Code: `components/kind-words-card.tsx`.
+
+## Weekly intention (off)
+
+Admin → Growth practices → **Weekly intention** (migration 20261029190100). In "Your prayer
+life" on Me, a member may choose how many days a week they would like to pray: 1 to 6, so at
+least one rest day is always built in. "No aim" is the default.
+
+- A row of dots for Monday to Sunday fills in for each day they showed up. Dots never empty.
+- Once the aim is met, a kind line says "You did what you meant to this week. Rest well."
+- A week that falls short is never mentioned, and each Monday starts fresh. There is no streak.
+
+Evidence: research/Personal_Growth_Research.md §4 ("If someone sets a personal goal, it is
+weekly and includes rest days"). Code: `modules/prayer-stats` (`intentionFor`),
+`PUT /me/weekly-intention`, `components/weekly-intention.tsx`.
+
+## Community health report (off)
+
+Admin → Growth practices → **Community health report** (migration 20261029190100). Admins see,
+week by week, what matters rather than time spent in the app:
+
+- **Requests**, and how many **felt held**, meaning someone else prayed or replied within two days.
+- **Answered**: requests marked answered that week.
+- **Came back**: members active that week who were also active in the four weeks before.
+
+The report uses totals only, with no per-member numbers. A week with fewer than 5 requests shows
+"Too quiet to say".
+
+Evidence: research/Kind_Interaction_UX_Research.md §5 ("measure 'requests that felt held,'
+'prayers answered' and returning members, never time spent"). Code: `modules/kindness-weather`
+(`health`), `GET /admin/community-health`.
+
+## Fresh starts on days that matter (off)
+
+Admin → Growth practices → **Fresh starts on days that matter** (migration 20261029190200).
+Gentle rhythm already invites a fresh start on Mondays and the 1st. With this switch on:
+
+- In **Days that matter** on Me, a member may save up to three dates of their own, such as a
+  birthday, a baptism or the day they began again. Only they see them, and the dates are included
+  in their data download.
+- On that day, "Your prayer life" says "Today is … A fresh start: want to pick one small
+  intention?".
+- In communities with faith wording, the first Sunday of Advent, Ash Wednesday and Easter Sunday
+  also invite a fresh start. Open Circle never sees the seasons.
+- Nothing is pushed, and nothing is said on any other day.
+
+Evidence: the fresh-start effect, where temporal landmarks raise goal starts (Dai, Milkman &
+Riis 2014), in research/Personal_Growth_Research.md §4 ("fresh-start invitations … on the
+person's chosen milestones, such as a birthday or a church season"). Code: `modules/fresh-days`,
+`components/fresh-days.tsx`.

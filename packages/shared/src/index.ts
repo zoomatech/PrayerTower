@@ -368,6 +368,8 @@ export interface ModerationItem {
   author_note?: string | null;
   /** Hidden until a moderator decides (a held post). */
   auto_hidden?: boolean;
+  /** Goldfish memory (off): the author's recent removals, which fade, and serious ones, which don't. */
+  history?: { recent: number; serious: number; days: number; repeat: boolean };
 }
 
 export interface Appeal {
@@ -702,6 +704,10 @@ export interface PrayerStats {
   weeksPrayed: number;
   /** Weeks in a row, one rest week allowed between; null under 2, so a run is never shown as lost. */
   weekRun: number | null;
+  /** Weekly intention (Admin → Growth practices, off): only while the switch is on. */
+  intention?: { days: number | null; week: { date: string; prayed: boolean }[]; shown: number; met: boolean };
+  /** Fresh starts on days that matter (off): the member's own day, or the first day of a season. */
+  freshDay?: { label: string } | { season: 'advent' | 'lent' | 'easter' } | null;
 }
 
 /**
