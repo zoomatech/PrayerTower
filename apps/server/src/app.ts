@@ -28,6 +28,7 @@ import { surveyRoutes } from './modules/surveys/routes.js';
 import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
 import { practiceRoutes } from './modules/practices/routes.js';
+import { repairRoutes } from './modules/repair/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
@@ -289,6 +290,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     quickReactionRoutes(authed, db);
     meaningReactionRoutes(authed, db);
     practiceRoutes(authed, db);
+    repairRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);

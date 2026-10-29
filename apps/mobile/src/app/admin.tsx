@@ -1417,12 +1417,14 @@ function PracticeSettingsSection() {
   const [days, setDays] = useState('');
   const [encDays, setEncDays] = useState('');
   const [newDays, setNewDays] = useState('');
+  const [welcome, setWelcome] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const show = (x: PracticeSettings) => {
     setS(x);
     setDays(String(x.followup_days));
     setEncDays(String(x.encourager_days));
     setNewDays(String(x.newcomer_days));
+    setWelcome(x.welcome_text ?? '');
   };
   useFocusEffect(
     useCallback(() => {
@@ -1431,7 +1433,7 @@ function PracticeSettingsSection() {
   );
   const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
     api.admin
-      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, ...patch })
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, welcomeText: welcome, ...patch })
       .then((r) => {
         show(r.settings);
         resetFeatures();
@@ -1451,6 +1453,10 @@ function PracticeSettingsSection() {
       <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
       <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
+      <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
+      <Field label={t('repair.adminWelcomeText')} value={welcome} onChangeText={setWelcome} multiline maxLength={600} />
+      <Toggle label={t('repair.adminAskKindly')} hint={t('repair.adminAskKindlyHint')} value={s.ask_kindly_enabled} onChange={(v) => save({ askKindlyEnabled: v })} />
+      <Toggle label={t('repair.adminMend')} hint={t('repair.adminMendHint')} value={s.mend_enabled} onChange={(v) => save({ mendEnabled: v })} />
       <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
