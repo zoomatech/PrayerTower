@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import { withTx, type Db } from '../../db.js';
+import * as helpers from '../conversation-helpers/index.js';
 import * as meanings from './index.js';
 
 type Id = { Params: { id: string } };
@@ -10,8 +11,8 @@ export function meaningReactionRoutes(app: FastifyInstance, db: Db) {
   const id = z.object({ id: z.uuid() });
 
   app.get('/reaction-meanings', async (req) => {
-    requireUser(req);
-    return { emoji: await meanings.tree(db) };
+    // With "My meaning words" on, the member's own first word and hidden words apply.
+    return { emoji: await helpers.personalize(db, requireUser(req), await meanings.tree(db)) };
   });
 
   app.get<Id>('/posts/:id/meanings', async (req) => {
