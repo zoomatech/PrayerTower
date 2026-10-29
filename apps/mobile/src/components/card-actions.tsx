@@ -2,16 +2,16 @@
 // so the action row behaves the same everywhere.
 import { ACTION_LABELS, ENCOURAGEMENT_MAX_CHARS, FREQUENCIES, FREQUENCY_LABELS, type Card, type CardAction, type Frequency } from '@prayer-tower/shared';
 import { useCallback, useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { api, type TokenPool } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
-import { shareLink } from '@/lib/links';
 import { parseLocal, REPEAT_OPTIONS, WHEN_OPTIONS } from '@/lib/schedule';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
 import { KindCloud } from './kind-cloud';
+import { OutsideShareButton } from './outside-share';
 import { Button, Chip, ErrorText, Field, RulesWarning } from './ui';
 
 type ReportTarget = { type: 'post' | 'comment'; id: string };
@@ -196,13 +196,7 @@ export function useCardActions(onChanged: () => void) {
             />
           </>
         ) : null}
-        <Button
-          variant="ghost"
-          label={t('actions.shareOutside')}
-          onPress={() =>
-            Share.share({ message: t('actions.shareMessage', { preview: sheet.card.preview, url: shareLink(`/post/${sheet.card.id}`) }) }).catch(() => undefined)
-          }
-        />
+        <OutsideShareButton card={sheet.card} />
       </>
     );
   } else if (sheet?.kind === 'gift') {

@@ -1707,6 +1707,7 @@ function GrowthSettingsSection() {
       <Field label={t('growth.adminChainMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
       <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
       <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
+      <Toggle label={t('growth.adminShare')} hint={t('growth.adminShareHint')} value={s.share_consent_enabled} onChange={(v) => save({ shareConsentEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>

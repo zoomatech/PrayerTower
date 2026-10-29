@@ -49,7 +49,7 @@ export function Button({
         { backgroundColor: v.bg, borderColor: v.border },
         (pressed || disabled) && { opacity: disabled ? 0.5 : 0.8 },
       ]}>
-      {busy ? <ActivityIndicator color={v.fg} /> : <Text style={[styles.buttonText, small && { fontSize: 14 }, { color: v.fg }]}>{label}</Text>}
+      {busy ? <ActivityIndicator color={v.fg} aria-hidden /> : <Text style={[styles.buttonText, small && { fontSize: 14 }, { color: v.fg }]}>{label}</Text>}
     </Pressable>
   );
 }
@@ -129,7 +129,8 @@ export function Loading() {
   const t = useT();
   return (
     <View accessibilityRole="progressbar" accessibilityLabel={t('common.loading')} style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space.sm, padding: space.xl }}>
-      <ActivityIndicator color={colors.primary} />
+      {/* The spinner itself is decoration: the label above names the progress. */}
+      <ActivityIndicator color={colors.primary} aria-hidden />
       <Text style={type.small}>{t('common.loading')}</Text>
     </View>
   );

@@ -7,7 +7,7 @@ Prayer Tower in production is three pieces:
 | Piece | Where | Config |
 | --- | --- | --- |
 | Database, sign-in, photo storage | Supabase Cloud | `supabase/migrations`, pushed by the script |
-| API + worker (one Docker image, two processes) | **Fly.io** (default) or Render | `fly.toml` / `render.yaml` |
+| API + worker (one Docker image, two processes) | **Fly.io** (default), Render, or one free Oracle server | `fly.toml` / `render.yaml` / `deploy/server/compose.yml` |
 | Web app testers open in a browser (installable PWA) | Fly.io (`deploy/fly-web`) or a Render static site | built from `apps/mobile` |
 
 The iPhone app (TestFlight) points at the same API; see TESTFLIGHT_EAS_GUIDE.md and RELEASING_APPS.md. The pilot is iPhone only.
@@ -84,6 +84,10 @@ The whole page was followed on a fresh local stack standing in for Supabase Clou
 Radio, in both modes: a prayer queued, sent, counted on Prayer Cast and the poster told; a removed request was not sent and the Priestly token came back; in station mode the station program sent through fldigi (a stand-in), and when the radio didn't key it reported the failure and stopped. Two problems were fixed: members could spend a Priestly token in station mode on a prayer the station would never send (now refused with a plain message), and a sender wasn't told when a radio prayer didn't go out (now they are, and told when the token is back).
 
 Docker builds can't run in the rehearsal sandbox, so the image itself wasn't built there; the same `node` commands from `fly.toml` ran the built server and worker.
+
+## One free server instead of Fly.io
+
+`DEPLOY_TARGET=server` in `deploy/production.env` makes `scripts/go-live.sh` deploy the API, the worker and the web app to one Oracle Cloud Always Free server, with Caddy for HTTPS. That costs $0. Set the server up once with `scripts/server-setup.sh ubuntu@<IP>`. The steps are in [FREE_SERVER.md](FREE_SERVER.md).
 
 ## Render instead of Fly.io
 
