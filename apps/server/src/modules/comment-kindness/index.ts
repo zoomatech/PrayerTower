@@ -7,6 +7,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { getProfile } from '../accounts/index.js';
 import * as notifications from '../notifications/index.js';
+import * as posts from '../posts/index.js';
 
 async function switches(q: Queryable) {
   const { rows } = await q.query<{ author_hearts_enabled: boolean; comment_thanks_enabled: boolean; quiet_counts_enabled: boolean }>(
@@ -50,6 +51,7 @@ export async function heart(q: Queryable, userId: string, commentId: string, on:
   const c = await comment(q, commentId);
   if (c.post_author !== userId) throw forbidden('Only the person who asked can heart a comment');
   if (c.user_id === userId) throw badRequest('That is your own comment');
+  if (await posts.blockedBetween(q, userId, c.user_id)) throw notFound('Comment');
   if (!on) {
     await q.query('delete from public.comment_hearts where comment_id = $1', [commentId]);
     return { on: false };
@@ -73,6 +75,8 @@ export async function thank(q: Queryable, userId: string, commentId: string) {
   if (!(await switches(q)).comment_thanks_enabled) throw badRequest('Thanks for comments are switched off');
   const c = await comment(q, commentId);
   if (c.user_id === userId) throw badRequest('That is your own comment');
+  // Only on a post they may act on, and never between people where either blocked the other.
+  if (!(await posts.getActionable(q, userId, c.post_id)) || (await posts.blockedBetween(q, userId, c.user_id))) throw notFound('Comment');
   const { rowCount } = await q.query('insert into public.comment_thanks (comment_id, from_id) values ($1, $2) on conflict do nothing', [commentId, userId]);
   if (!rowCount) throw conflict('You already thanked them');
   const who = (await getProfile(q, userId))?.display_name || 'Someone';

@@ -60,4 +60,16 @@ describe('Comment kindness', () => {
     const viewer = await createUser('Quiet Viewer');
     expect((await as(viewer).get(`/posts/${post.id}`)).json().post.countsQuiet).toBe(true);
   });
+
+  it('sends nothing between people where either blocked the other', async () => {
+    await set(true, true, false);
+    const t = await thread();
+    expect((await as(t.friend).put(`/people/${t.other}/block`)).statusCode).toBe(200);
+    expect((await as(t.other).post(`/comments/${t.commentId}/thanks`)).statusCode).toBe(404);
+    expect((await as(t.asker).put(`/people/${t.friend}/block`)).statusCode).toBe(200);
+    expect((await as(t.asker).put(`/comments/${t.commentId}/heart`, { on: true })).statusCode).toBe(404);
+    expect(await notices(t.friend, 'comment_thanks')).toEqual([]);
+    expect(await notices(t.friend, 'author_heart')).toEqual([]);
+    await set(false, false, false);
+  });
 });

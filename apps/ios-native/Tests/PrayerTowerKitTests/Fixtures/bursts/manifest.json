@@ -1,0 +1,358 @@
+[
+  {
+    "file": "clean-fm-robust.wav",
+    "preset": "fm-robust",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-fm-standard.wav",
+    "preset": "fm-standard",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-fm-fast.wav",
+    "preset": "fm-fast",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-dataport-fast.wav",
+    "preset": "dataport-fast",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-fm-turbo.wav",
+    "preset": "fm-turbo",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-dataport-turbo.wav",
+    "preset": "dataport-turbo",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-fm-robust-fec.wav",
+    "preset": "fm-robust-fec",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-fm-turbo-fec.wav",
+    "preset": "fm-turbo-fec",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-fm-qam16.wav",
+    "preset": "fm-qam16",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-fm-qam64.wav",
+    "preset": "fm-qam64",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-dataport-qam64.wav",
+    "preset": "dataport-qam64",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-hf-robust.wav",
+    "preset": "hf-robust",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-hf-standard.wav",
+    "preset": "hf-standard",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "clean-hf-fast.wav",
+    "preset": "hf-fast",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "noise-fm-standard-12db.wav",
+    "preset": "fm-standard",
+    "condition": "noise",
+    "snrDb": 12,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please pray for my mom, who is having knee surgery on Thursday. Pray for the doctors and for a quick recovery.",
+      "My husband lost his job last week. Please pray that he finds new work soon and that we can keep up with the rent.",
+      "Pray for my daughter as she starts college this fall. She is nervous and far from home.",
+      "Please pray for peace in our family. My brother and my dad have not spoken in two years.",
+      "Asking for prayers for my friend Jen, who was just diagnosed with breast cancer. She starts chemo Monday.",
+      "Pray for safe travels for our mission team flying to Guatemala this Saturday.",
+      "Please pray for my grandson, who is struggling with addiction. We want him home and healthy.",
+      "Thank you all for praying. My sister is home from the hospital and doing much better. Praise God!"
+    ]
+  },
+  {
+    "file": "fading-fm-robust-fec-12db.wav",
+    "preset": "fm-robust-fec",
+    "condition": "fading",
+    "snrDb": 12,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please pray for my mom, who is having knee surgery on Thursday. Pray for the doctors and for a quick recovery.",
+      "My husband lost his job last week. Please pray that he finds new work soon and that we can keep up with the rent.",
+      "Pray for my daughter as she starts college this fall. She is nervous and far from home.",
+      "Please pray for peace in our family. My brother and my dad have not spoken in two years.",
+      "Asking for prayers for my friend Jen, who was just diagnosed with breast cancer. She starts chemo Monday.",
+      "Pray for safe travels for our mission team flying to Guatemala this Saturday.",
+      "Please pray for my grandson, who is struggling with addiction. We want him home and healthy.",
+      "Thank you all for praying. My sister is home from the hospital and doing much better. Praise God!"
+    ]
+  },
+  {
+    "file": "drift-fm-standard-12db.wav",
+    "preset": "fm-standard",
+    "condition": "drift",
+    "snrDb": 12,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please pray for my mom, who is having knee surgery on Thursday. Pray for the doctors and for a quick recovery.",
+      "My husband lost his job last week. Please pray that he finds new work soon and that we can keep up with the rent.",
+      "Pray for my daughter as she starts college this fall. She is nervous and far from home.",
+      "Please pray for peace in our family. My brother and my dad have not spoken in two years.",
+      "Asking for prayers for my friend Jen, who was just diagnosed with breast cancer. She starts chemo Monday.",
+      "Pray for safe travels for our mission team flying to Guatemala this Saturday.",
+      "Please pray for my grandson, who is struggling with addiction. We want him home and healthy.",
+      "Thank you all for praying. My sister is home from the hospital and doing much better. Praise God!"
+    ]
+  },
+  {
+    "file": "clipping-fm-qam16-15db.wav",
+    "preset": "fm-qam16",
+    "condition": "clipping",
+    "snrDb": 15,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please pray for my mom, who is having knee surgery on Thursday. Pray for the doctors and for a quick recovery.",
+      "My husband lost his job last week. Please pray that he finds new work soon and that we can keep up with the rent.",
+      "Pray for my daughter as she starts college this fall. She is nervous and far from home.",
+      "Please pray for peace in our family. My brother and my dad have not spoken in two years.",
+      "Asking for prayers for my friend Jen, who was just diagnosed with breast cancer. She starts chemo Monday.",
+      "Pray for safe travels for our mission team flying to Guatemala this Saturday.",
+      "Please pray for my grandson, who is struggling with addiction. We want him home and healthy.",
+      "Thank you all for praying. My sister is home from the hospital and doing much better. Praise God!"
+    ]
+  },
+  {
+    "file": "drift-hf-standard-6db.wav",
+    "preset": "hf-standard",
+    "condition": "drift",
+    "snrDb": 6,
+    "searchHz": 50,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please pray for my mom, who is having knee surgery on Thursday. Pray for the doctors and for a quick recovery.",
+      "My husband lost his job last week. Please pray that he finds new work soon and that we can keep up with the rent.",
+      "Pray for my daughter as she starts college this fall. She is nervous and far from home.",
+      "Please pray for peace in our family. My brother and my dad have not spoken in two years.",
+      "Asking for prayers for my friend Jen, who was just diagnosed with breast cancer. She starts chemo Monday.",
+      "Pray for safe travels for our mission team flying to Guatemala this Saturday.",
+      "Please pray for my grandson, who is struggling with addiction. We want him home and healthy.",
+      "Thank you all for praying. My sister is home from the hospital and doing much better. Praise God!"
+    ]
+  },
+  {
+    "file": "fading-hf-robust-9db.wav",
+    "preset": "hf-robust",
+    "condition": "fading",
+    "snrDb": 9,
+    "searchHz": 50,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please pray for my mom, who is having knee surgery on Thursday. Pray for the doctors and for a quick recovery.",
+      "My husband lost his job last week. Please pray that he finds new work soon and that we can keep up with the rent.",
+      "Pray for my daughter as she starts college this fall. She is nervous and far from home.",
+      "Please pray for peace in our family. My brother and my dad have not spoken in two years.",
+      "Asking for prayers for my friend Jen, who was just diagnosed with breast cancer. She starts chemo Monday.",
+      "Pray for safe travels for our mission team flying to Guatemala this Saturday.",
+      "Please pray for my grandson, who is struggling with addiction. We want him home and healthy.",
+      "Thank you all for praying. My sister is home from the hospital and doing much better. Praise God!"
+    ]
+  },
+  {
+    "file": "noise-fm-fast-15db.wav",
+    "preset": "fm-fast",
+    "condition": "noise",
+    "snrDb": 15,
+    "searchHz": 0,
+    "callSign": "N0CALL",
+    "codec": 3,
+    "prayers": [
+      "Please pray for my mom, who is having knee surgery on Thursday. Pray for the doctors and for a quick recovery.",
+      "My husband lost his job last week. Please pray that he finds new work soon and that we can keep up with the rent.",
+      "Pray for my daughter as she starts college this fall. She is nervous and far from home.",
+      "Please pray for peace in our family. My brother and my dad have not spoken in two years.",
+      "Asking for prayers for my friend Jen, who was just diagnosed with breast cancer. She starts chemo Monday.",
+      "Pray for safe travels for our mission team flying to Guatemala this Saturday.",
+      "Please pray for my grandson, who is struggling with addiction. We want him home and healthy.",
+      "Thank you all for praying. My sister is home from the hospital and doing much better. Praise God!"
+    ]
+  },
+  {
+    "file": "codec4-fm-standard.wav",
+    "preset": "fm-standard",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "K0GIN",
+    "codec": 4,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday.",
+      "Thankful for a safe trip home!",
+      "Peace for our town, and rain for the farms."
+    ]
+  },
+  {
+    "file": "relayed-fm-robust.wav",
+    "preset": "fm-robust",
+    "condition": "clean",
+    "snrDb": null,
+    "searchHz": 0,
+    "callSign": "K0GIN",
+    "via": "W1RLY",
+    "codec": 0,
+    "prayers": [
+      "Please keep my mother in mind before her surgery on Tuesday."
+    ]
+  }
+]
