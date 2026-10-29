@@ -89,6 +89,22 @@ eas build --platform ios --auto-submit
 
 This still doesn't send the app to App Store review. It stops at TestFlight. ([Expo: iOS production build](https://docs.expo.dev/tutorial/eas/ios-production-build/))
 
+### Fill in the App Store listing with one command
+
+After the first build is processed, `eas metadata:push` uploads the listing: name, subtitle, promotional text, description, keywords, categories, review notes and the review sign-in. The words come from [store/STORE_LISTING.md](store/STORE_LISTING.md), so edit them there. Apple's limits are checked before anything is sent. EAS Metadata needs an app registered with Apple and a processed build first ([Expo: Get started with EAS Metadata](https://docs.expo.dev/eas/metadata/getting-started/)).
+
+```bash
+cd apps/mobile
+STORE_SITE_URL=https://prayertower-api.fly.dev \
+STORE_COPYRIGHT="2026 <legal name>" \
+REVIEW_FIRST_NAME=<first> REVIEW_LAST_NAME=<last> REVIEW_EMAIL=<your email> REVIEW_PHONE="+1 <phone>" \
+REVIEW_ACCOUNT=review@<your domain> REVIEW_PASSWORD='<the review password>' \
+eas metadata:push
+```
+
+For Open Circle, add `EXPO_PUBLIC_EDITION=open-circle`. For an update, add `STORE_WHATS_NEW=1` to include the What's New text from [store/WHATS_NEW.md](store/WHATS_NEW.md). Screenshots and the privacy answers are still entered in App Store Connect.
+
+
 ## 7. Invite testers (App Store Connect → your app → TestFlight)
 
 **A. Internal testers** are people on your App Store Connect team. There's no review, and you can have up to 100.

@@ -170,6 +170,13 @@ export const keys: Tree = named({
     thankEveryone: 'Thank everyone who supported you',
     shareComment: '“%{body}” (%{name}, on an Open Circle request) %{url}',
   },
+  talk: {
+    suggestTrouble: "I'm here for you.",
+    careAsk: 'Want to talk about it?',
+    closing1: "I'll be thinking of you. Talk soon.",
+    closing2: 'Thank you for sharing this with me. Take care.',
+    prefCareHint: 'If an answer sounds a little down, offers "Want to talk about it?"',
+  },
   kindCloud: {
     prayer: 'Take a breath. Kind words travel far.',
   },

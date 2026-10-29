@@ -43,6 +43,7 @@ import type {
 import { env } from './env';
 import { enqueue, flushQueue, isOffline, markOnline, OfflineError, readCached, saveCached } from './offline';
 import { supabase } from './supabase';
+import type { Move, Pack } from './talk';
 
 
 /** Switches for the notebook ideas built in Batch 7. */
@@ -138,6 +139,14 @@ export interface Features {
   welcomeCard: boolean;
   askKindly: boolean;
   mend: boolean;
+  /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
+  replySuggestions: boolean;
+  meaningPrefs: boolean;
+  troubleNudge: boolean;
+  greetingPacks: boolean;
+  ownWords: boolean;
+  kindClosings: boolean;
+  talkCounts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -208,6 +217,37 @@ export interface PracticeSettings {
   welcome_text: string | null;
   ask_kindly_enabled: boolean;
   mend_enabled: boolean;
+}
+export interface ConversationSettings {
+  reply_suggestions_enabled: boolean;
+  meaning_prefs_enabled: boolean;
+  trouble_nudge_enabled: boolean;
+  greeting_packs_enabled: boolean;
+  own_words_enabled: boolean;
+  kind_closings_enabled: boolean;
+  talk_counts_enabled: boolean;
+}
+export interface ConversationPrefs {
+  replySuggestions: boolean;
+  troubleNudge: boolean;
+  kindClosings: boolean;
+  greetingPack: Pack | null;
+  shareCounts: boolean;
+}
+/** Move labels only: never words, never who. */
+export type TalkCount = { kind: 'chain'; moves: [Move, Move | 'other', Move | 'other'] } | { kind: 'emoji'; emoji: string; meaning: string; toMove: Move | 'other' };
+export interface TalkCountSummary {
+  weeks: number;
+  minShown: number;
+  chains: { moves: string[]; n: number }[];
+  otherChains: number;
+  emoji: { emoji: string; meaning: string; toMove: string; n: number }[];
+  otherEmoji: number;
+}
+export interface MeaningPref {
+  emoji: string;
+  defaultMeaning: string | null;
+  hidden: string[];
 }
 export type KindAskReason = 'dismissive' | 'grief' | 'unkind' | 'other';
 export type MendStatus = 'invited' | 'review' | 'returned' | 'delivered' | 'accepted' | 'closed' | 'withdrawn';
@@ -462,6 +502,10 @@ export interface RadioNode {
 }
 export interface RadioNodes {
   enabled: boolean;
+  /** Several stations share the queue, each with its own key. */
+  multiStation: boolean;
+  /** Prayers each station holds now and sent in the last 24 hours; node null is the main station. */
+  stations: { node: string | null; sending: number; sent: number }[];
   nodes: RadioNode[];
   reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
 }
@@ -1319,7 +1363,7 @@ export const api = {
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
     radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
-    setRadioNodesEnabled: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-nodes', { enabled }),
+    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
     removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
@@ -1379,6 +1423,10 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
+    talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean }>) =>
+      request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
@@ -1567,6 +1615,11 @@ export const api = {
   endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
   remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
   hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
+  conversationPrefs: () => get<{ prefs: ConversationPrefs }>('/me/conversation-prefs'),
+  talkCount: (c: TalkCount) => request<{ counted: boolean }>('POST', '/talk-counts', c),
+  updateConversationPrefs: (patch: Partial<ConversationPrefs>) => request<{ prefs: ConversationPrefs }>('PATCH', '/me/conversation-prefs', patch),
+  meaningWords: () => get<{ emoji: MeaningEmoji[]; prefs: MeaningPref[] }>('/me/meaning-words'),
+  setMeaningWords: (pref: MeaningPref) => put<{ prefs: MeaningPref[] }>('/me/meaning-words', pref),
   welcomeCard: () => get<{ show: boolean; text: string | null }>('/me/welcome-card'),
   dismissWelcome: () => post<{ show: boolean; text: string | null }>('/me/welcome-card/dismiss'),
   askKindly: (commentId: string, reason: KindAskReason) => post<{ sent: boolean }>(`/comments/${commentId}/ask-kindly`, { reason }),

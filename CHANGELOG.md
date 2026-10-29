@@ -4,6 +4,9 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Admin → Giving: record a gift for one member, and who gave it ([#111](https://github.com/zoomatech/PrayerTower/pull/111))
+- Growth practices: follow-ups, weekly gratitude card, gentle rhythm, all off by default ([#109](https://github.com/zoomatech/PrayerTower/pull/109))
+- Radio: Listen screen in the app and a public "Prayers on the air" page, both off by default ([#108](https://github.com/zoomatech/PrayerTower/pull/108))
 - Tell staff when a member asks for more radio prayers ([#107](https://github.com/zoomatech/PrayerTower/pull/107))
 - Radio: "on the air" and "heard" receipts, behind an off switch ([#104](https://github.com/zoomatech/PrayerTower/pull/104))
 - Emoji word leaves take the member's feed skin ([#106](https://github.com/zoomatech/PrayerTower/pull/106))

@@ -14,6 +14,7 @@ import { AiPrayers } from '@/components/ai-prayers';
 import { KindCloud } from '@/components/kind-cloud';
 import { FollowupCard } from '@/components/followup-card';
 import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
+import { ReplyHelpers } from '@/components/reply-helpers';
 import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
 import { CircleGoal } from '@/components/circle-goal';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
@@ -240,7 +241,7 @@ export default function PostScreen() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
-        {card ? <MeaningReactions postId={card.id} tokens={leafTokens} /> : null}
+        {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
@@ -463,6 +464,13 @@ export default function PostScreen() {
               <WelcomeCard />
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
               <KindCloud text={text} />
+              <ReplyHelpers
+                // Answer the comment being replied to, or else the request itself.
+                lastFromOther={(replyTo && !replyTo.isMine ? replyTo.body : null) ?? (card.isMine ? null : card.body)}
+                empty={false}
+                text={text}
+                onPick={setText}
+              />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>
                 <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />

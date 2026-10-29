@@ -31,6 +31,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
   const mail: growth.MailContext = {
     mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
     siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
+    openCircleName: config.OPEN_CIRCLE_NAME,
   };
   return {
     growth_guest_answered: growth.guestAnsweredTask(db, mail),
