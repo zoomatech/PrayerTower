@@ -172,6 +172,12 @@ public struct Invite: Codable, Sendable, Equatable, Identifiable {
         return c.url!
     }
 
+    /// The code in an invite link, which opens sign-up with it filled in.
+    public static func code(from url: URL) -> String? {
+        guard url.scheme == "prayertower", url.host() == "sign-in" || url.path() == "/sign-in" else { return nil }
+        return URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "invite" }?.value.flatMap { $0.isEmpty ? nil : $0 }
+    }
+
     /// A code for a secular community (Open Circle) invites people there by name, with no religious words.
     public func shareMessage(words w: Words) -> String {
         let url = Invite.link(code).absoluteString

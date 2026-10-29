@@ -5,7 +5,14 @@ import * as growth from '../src/modules/growth/index.js';
 import { app, as, createUser, db, newRequest } from './helpers.js';
 
 const outbox: Mail[] = [];
-const mail: growth.MailContext = { mailer: async (m) => void outbox.push(m), siteUrl: 'https://api.example.org', openCircleName: 'Open Circle' };
+/** Addresses whose mail server refuses everything. */
+const bounces = new Set<string>();
+const mail: growth.MailContext = {
+  mailer: async (m) => {
+    if (bounces.has(m.to)) throw new Error(`Mailbox unavailable: ${m.to}`);
+    outbox.push(m);
+  },
+  siteUrl: 'https://api.example.org', openCircleName: 'Open Circle' };
 const RELIGIOUS = /\b(pray\w*|god|lord|jesus|church|pastors?|priestly|scripture|blessed)\b/i;
 
 const allOff = { guestPrayerEnabled: false, prayerChainEnabled: false, prayedForWidgetEnabled: false, prayerMinuteEnabled: false };
@@ -13,6 +20,7 @@ let admin: string;
 
 beforeEach(async () => {
   outbox.length = 0;
+  bounces.clear();
   admin ??= await createUser('Growth Admin');
   await grantRole(db, admin, 'admin', null);
   await as(admin).patch('/admin/growth-settings', allOff);
@@ -198,6 +206,55 @@ describe('prayer chain', () => {
     await job('growth_chain_send', { postId: post.id });
     expect(outbox).toHaveLength(0);
     expect((await as(owner).delete(`/me/prayer-chain/${added.json().id}`)).statusCode).toBe(200);
+    expect((await as(owner).get('/me/prayer-chain')).json().people).toEqual([]);
+    // Someone who said no is never asked again, even after being taken off the list.
+    const again = await as(owner).post('/me/prayer-chain', { email: 'naomi@example.org' });
+    expect(again.statusCode).toBe(409);
+    expect(again.json().message).toBe("This person said no to your prayer chain, so they can't be added again");
+  });
+
+  it('brings a removed person back without a second invitation', async () => {
+    await as(admin).patch('/admin/growth-settings', { guestPrayerEnabled: true, prayerChainEnabled: true });
+    const owner = await createUser('Back Owner');
+    const added = await as(owner).post('/me/prayer-chain', { email: 'boaz@example.org' });
+    expect(added.statusCode, added.body).toBe(201);
+    await job('growth_chain_confirm', { memberId: added.json().id });
+    expect((await as(owner).delete(`/me/prayer-chain/${added.json().id}`)).statusCode).toBe(200);
+    expect((await as(owner).delete(`/me/prayer-chain/${added.json().id}`)).statusCode).toBe(404);
+    outbox.length = 0;
+    // The invitation job for a removed person sends nothing.
+    await job('growth_chain_confirm', { memberId: added.json().id });
+    expect(outbox).toHaveLength(0);
+    const back = await as(owner).post('/me/prayer-chain', { email: 'boaz@example.org' });
+    expect(back.statusCode).toBe(201);
+    expect(back.json().id).toBe(added.json().id);
+    expect((await as(owner).get('/me/prayer-chain')).json().people).toMatchObject([{ email: 'boaz@example.org', status: 'pending' }]);
+  });
+
+  it('one refused address does not stop the rest, and nobody is emailed twice', async () => {
+    await as(admin).patch('/admin/growth-settings', { guestPrayerEnabled: true, prayerChainEnabled: true });
+    const owner = await createUser('Bounce Owner');
+    const post = await newRequest(owner, 'Pray for my sister starting a new job.');
+    for (const email of ['gone@example.org', 'here@example.org']) {
+      const id = (await as(owner).post('/me/prayer-chain', { email })).json().id;
+      await db.query(`update public.prayer_chain_members set status = 'confirmed' where id = $1`, [id]);
+    }
+    bounces.add('gone@example.org');
+    await as(owner).post(`/posts/${post.id}/prayer-chain`);
+    await job('growth_chain_send', { postId: post.id });
+    expect(outbox.map((m) => m.to)).toEqual(['here@example.org']);
+
+    // Guests: the job fails so a retry tries the refused one again, without re-sending the others.
+    const { path } = (await as(owner).get(`/posts/${post.id}/guest-link`)).json().link;
+    await form(path, { firstName: 'Gil', email: 'gone@example.org', notify: 'on' }, '198.51.100.31');
+    await form(path, { firstName: 'Hal', email: 'here@example.org', notify: 'on' }, '198.51.100.32');
+    await as(owner).post(`/posts/${post.id}/answered`, {});
+    outbox.length = 0;
+    await expect(job('growth_guest_answered', { postId: post.id })).rejects.toThrow('Mailbox unavailable');
+    expect(outbox.map((m) => m.to)).toEqual(['here@example.org']);
+    bounces.clear();
+    await job('growth_guest_answered', { postId: post.id });
+    expect(outbox.map((m) => m.to)).toEqual(['here@example.org', 'gone@example.org']);
   });
 
   it('caps the chain size', async () => {
