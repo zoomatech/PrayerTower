@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { stationSettings } from './index.js';
+import * as nodes from './nodes.js';
 import * as schedule from './schedule.js';
 
 export const StationStatus = z.object({
@@ -24,7 +25,7 @@ export async function recordStatus(q: Queryable, s: z.infer<typeof StationStatus
   );
 }
 
-export type AlertKind = 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'queue_empty';
+export type AlertKind = 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'listener_silent' | 'queue_empty';
 
 export interface StationAlert {
   kind: AlertKind;
@@ -37,6 +38,19 @@ export interface StationAlert {
 
 /** A station that has not reported for this long is "silent" (it reports about once a minute). */
 export const STATUS_STALE_MINUTES = 10;
+/** A listener node checks in at least every few minutes (its heartbeat); after this long it is "silent". */
+export const LISTENER_STALE_MINUTES = 30;
+
+/** Enabled listener nodes that checked in once but not lately (only while listener reports are on). */
+async function silentListeners(q: Queryable, now: Date) {
+  if (!(await nodes.enabled(q))) return [];
+  const { rows } = await q.query<{ name: string; last_seen_at: Date }>(
+    `select name, last_seen_at from public.radio_nodes
+      where role = 'listener' and enabled and last_seen_at is not null and last_seen_at < $1 order by name`,
+    [new Date(now.getTime() - LISTENER_STALE_MINUTES * 60_000)],
+  );
+  return rows;
+}
 
 export async function settings(q: Queryable) {
   const { rows } = await q.query<{ station_alerts_enabled: boolean; station_overdue_minutes: number }>(
@@ -85,6 +99,11 @@ export async function alerts(q: Queryable, now = new Date()): Promise<{ enabled:
     if (!(ptt && list.some((a) => a.kind === 'ptt_failed'))) {
       list.push({ kind: ptt ? 'ptt_failed' : 'burst_failed', level: 'problem', detail: last.error ?? '', callSign: last.call_sign, since: last.created_at.toISOString() });
     }
+  }
+
+  for (const l of await silentListeners(q, now)) {
+    const mins = Math.round((now.getTime() - l.last_seen_at.getTime()) / 60_000);
+    list.push({ kind: 'listener_silent', level: 'info', detail: `${l.name}: no check-in for ${mins} min.`, callSign: null, since: l.last_seen_at.toISOString() });
   }
 
   const { rows: q2 } = await q.query<{ queued: number; oldest: Date | null }>(
@@ -173,8 +192,23 @@ export async function overview(q: Queryable, now = new Date()) {
        where status = 'failed' and transmitter = 'station' and created_at > now() - interval '24 hours')
      order by at desc limit 10`,
   );
+  // Listener nodes' heartbeats, and the latest decodes they reported (the last-heard list).
+  const { rows: listeners } = await q.query<{ name: string; last_seen_at: Date | null }>(
+    `select name, last_seen_at from public.radio_nodes where role = 'listener' and enabled order by name`,
+  );
+  const { rows: heard } = await q.query<{ node: string; call_sign: string; preset: string; snr_db: number; heard_at: Date }>(
+    `select n.name as node, c.call_sign, c.preset, c.snr_db::float8 as snr_db, c.heard_at
+       from public.channel_reports c join public.radio_nodes n on n.id = c.node_id
+      order by c.id desc limit 15`,
+  );
   const q0 = queue[0]!;
   return {
+    listeners: listeners.map((l) => ({
+      name: l.name,
+      lastHeartbeat: l.last_seen_at?.toISOString() ?? null,
+      silent: !l.last_seen_at || now.getTime() - l.last_seen_at.getTime() > LISTENER_STALE_MINUTES * 60_000,
+    })),
+    lastHeard: heard.map((r) => ({ node: r.node, callSign: r.call_sign, preset: r.preset, snrDb: r.snr_db, at: r.heard_at.toISOString() })),
     stations: stations.map(
       (s): StationHealth => ({
         callSign: s.call_sign,

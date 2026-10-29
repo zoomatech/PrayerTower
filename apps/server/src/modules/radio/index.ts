@@ -202,6 +202,8 @@ export interface StationSettings {
   radio_amplify_repeats: number;
   /** Which queued prayer goes next: first in, or by need (most urgent, fewest praying, then oldest). */
   radio_order: 'oldest' | 'need';
+  /** Requests marked "Today" or "Right now" (urgency 2 or 3) go out before the rest, whatever the order. */
+  radio_urgent_first: boolean;
   /** Burst mode: the most prayers the station may claim at once (1 = one at a time). */
   radio_batch_max: number;
   /** The public /listen page that decodes bursts from a microphone. */
@@ -214,7 +216,7 @@ export interface StationSettings {
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled, radio_urgent_first from public.token_settings',
   );
   return rows[0]!;
 }
@@ -230,8 +232,9 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
             radio_batch_max = coalesce($6, radio_batch_max),
             listen_page_enabled = coalesce($7, listen_page_enabled),
             radio_receipts_enabled = coalesce($8, radio_receipts_enabled),
-            on_air_page_enabled = coalesce($9, on_air_page_enabled)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled`,
+            on_air_page_enabled = coalesce($9, on_air_page_enabled),
+            radio_urgent_first = coalesce($10, radio_urgent_first)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled, radio_urgent_first`,
     [
       patch.radio_transmitter ?? null,
       patch.radio_station_requires_free ?? null,
@@ -242,6 +245,7 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
       patch.listen_page_enabled ?? null,
       patch.radio_receipts_enabled ?? null,
       patch.on_air_page_enabled ?? null,
+      patch.radio_urgent_first ?? null,
     ],
   );
   return rows[0]!;
@@ -252,6 +256,9 @@ const CLAIM_TIMEOUT_MINUTES = 15;
 
 /** The queue order for claimNext: by need puts the most urgent, least-prayed-for request first. */
 const NEED_ORDER = `p.urgency desc, (select count(*) from public.prayer_events e where e.post_id = p.id) asc, r.id`;
+/** Urgent first: "Today" and "Right now" requests ahead of the rest. */
+export const URGENT_LEVEL = 2;
+const URGENT_FIRST = `(p.urgency >= ${URGENT_LEVEL}) desc, `;
 
 /**
  * Hand the station the next queued prayer it may send (oldest first, or by need), or null. Never sends
@@ -281,7 +288,7 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
         where r.status = 'queued' and p.harm_category is null
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
-        order by ${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
+        order by ${s.radio_urgent_first ? URGENT_FIRST : ''}${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
     );
     const r = rows[0];
     if (!r) return null;

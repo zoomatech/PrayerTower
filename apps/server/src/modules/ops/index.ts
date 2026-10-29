@@ -142,6 +142,7 @@ const STATION_TEXT: Record<radioHealth.AlertKind, string> = {
   burst_failed: 'its last burst failed.',
   burst_overdue: 'prayers are waiting longer than they should.',
   station_silent: 'it stopped reporting.',
+  listener_silent: 'a listener node stopped checking in.',
   queue_empty: 'nothing is waiting.',
 };
 

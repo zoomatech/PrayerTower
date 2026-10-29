@@ -25,6 +25,7 @@ const BODY = `
   <p><label>Or decode a recording: <input id="file" type="file" accept="audio/*"></label></p>
 </div>
 <p id="tellrow" hidden><label><input id="tell" type="checkbox" checked> Let senders know their prayer was heard. Only a fingerprint of each prayer goes back, never the words.</label></p>
+<details id="diag" hidden><summary>Signal check for this recording</summary><pre id="diagtext"></pre></details>
 <div id="heard"></div>
 <p><button class="button" id="report" type="button" hidden>Save channel report</button></p>
 <div class="notice"><p>Tips: turn the radio up until the meter sits in the middle, keep the phone still, and keep the room quiet. The slower presets (fm-robust, fm-robust-fec, fm-standard) survive a speaker and microphone best; the fastest ones need a cable. The channel report tells the station how clear the signal is here (docs/RADIO_BURST.md, "Auto preset").</p></div>
@@ -170,6 +171,9 @@ const BODY = `
     showPackets(PTDecoder.decodePackets(audio.getChannelData(0), audio.sampleRate), audio.sampleRate, 0);
     decodedUpTo = 0; packetsUpTo = 0;
     $('status').textContent = file.name + ': ' + frames.length + ' frame(s) and ' + (packets - before) + ' packet(s) decoded.';
+    // Decode replay and diagnostics: why it did or didn't decode (docs/RADIO_BURST.md, "Diagnose a weak signal").
+    $('diagtext').textContent = PTDecoder.diagnosisReport(PTDecoder.diagnose(audio.getChannelData(0), audio.sampleRate, { searchHz: 0 })).join('\\n');
+    $('diag').hidden = false;
   }
 
   function saveReport() {

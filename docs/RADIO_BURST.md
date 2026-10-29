@@ -204,6 +204,8 @@ is above 1); while off, `/listen` is a 404.
   thread), falling back to the older ScriptProcessor where a browser lacks it.
 - It also decodes the packet fallback (below) and shows each packet's count
   and short IDs.
+- After decoding a recording it shows a **Signal check** (the same report as
+  `cli.js diagnose`, below).
 - It opens codec 0 and codec 3 frames (the station nearly always picks codec
   3). A frame packed with DEFLATE or Brotli says so, and the station CLI
   decodes it from a recording.
@@ -265,6 +267,46 @@ The modem is `apps/station/src/packet/afsk.ts`; the message format is
 `packet/message.ts`. A test round-trips packets at 48 and 44.1 kHz and through
 noise at 3 dB SNR, and checks the FCS against CRC-16/X.25's check value
 (0x906E).
+
+## Diagnose a weak signal
+
+When a burst doesn't decode, or decodes only sometimes, record it at the
+receiver and replay the recording through the decoders offline:
+
+```
+arecord -f S16_LE -r 48000 -c 1 -d 30 rx.wav
+node dist/src/burst/cli.js diagnose rx.wav          # or: diagnose rx.wav --json
+```
+
+A 20-prayer `fm-fast` burst with added noise (a test run, 2026-10-29):
+
+```
+Recording: 5.09 s at 48000 Hz
+Level: peak 0 dBFS, average -17 dBFS, 0% clipped, DC offset 0
+Noise floor -29.3 dBFS, loudest parts -9.9 dBFS
+Power: 0.1% below 300 Hz, 94% in 300-3000 Hz, 5.9% above
+Burst frames: 1; packet fallback packets: 0
+  2.1-3.04s de N0CALL, fm-fast, 28.9 dB SNR (needs 16)
+Advice:
+  - Everything decoded with a comfortable margin.
+```
+
+It checks, most likely cause first:
+
+- **Level:** very quiet audio (peak at or below -40 dBFS), clipping (0.1% of
+  samples or more at full scale), and a DC offset.
+- **Hum:** 30% or more of the power below 300 Hz, usually a ground loop.
+- **Noise:** no burst standing 6 dB above the noise floor.
+- **Margin:** each frame's measured SNR against its preset's working level
+  (the speed table). Under 3 dB of margin is flagged, and so are frames that
+  needed error correction.
+- **Tuning:** when nothing decodes, it tries again allowing an HF receiver up
+  to 50 Hz off (`BURST_SEARCH_HZ`, `0` to skip) and says if that was the fix.
+- **Packet fallback:** status packets in a recording with no bursts mean the
+  station is on `BURST_MODE=packet`.
+
+The `/listen` page shows the same report for any recording it opens. The code
+is `apps/station/src/burst/diagnose.ts`.
 
 ## Answered: a thanksgiving burst
 
