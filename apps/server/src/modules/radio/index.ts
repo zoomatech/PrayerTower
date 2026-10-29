@@ -14,6 +14,7 @@ import * as posts from '../posts/index.js';
 import * as acks from './acks.js';
 import * as fairAir from './fair-air.js';
 import * as operatorConsole from './console.js';
+import { queueOrder } from './queue-order.js';
 import * as receipts from './receipts.js';
 import * as tokens from '../tokens/index.js';
 import { requireFeature } from '../communities/index.js';
@@ -257,11 +258,6 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
 /** A claim the station hasn't reported on within this long is handed out again. */
 const CLAIM_TIMEOUT_MINUTES = 15;
 
-/** The queue order for claimNext: by need puts the most urgent, least-prayed-for request first. */
-const NEED_ORDER = `p.urgency desc, (select count(*) from public.prayer_events e where e.post_id = p.id) asc, r.id`;
-/** Urgent first: "Today" and "Right now" requests ahead of the rest. */
-export const URGENT_LEVEL = 2;
-const URGENT_FIRST = `(p.urgency >= ${URGENT_LEVEL}) desc, `;
 
 /**
  * Hand the station the next queued prayer it may send (oldest first, or by need), or null. Never sends
@@ -286,14 +282,13 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
   if (!(await operatorConsole.mayTransmit(q))) return null;
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
-    // Free automatic sends (fair air's every-request sends, ceaseless re-sends) go after members' own prayers.
     const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(
       `select r.id, ${SEND_TEXT} as body, p.moderation_status, (p.is_sensitive or (p.is_lament and not p.lament_radio)) as is_sensitive, p.harm_category, r.repeats
          from public.radio_prayers r join public.posts p on p.id = r.post_id
         where r.status = 'queued' and p.harm_category is null
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
-        order by (r.kind in ('auto', 'ceaseless')), ${s.radio_urgent_first ? URGENT_FIRST : ''}${s.radio_order === 'need' ? NEED_ORDER : 'r.id'} limit 1 for update of r skip locked`,
+        order by ${queueOrder(s)} limit 1 for update of r skip locked`,
     );
     const r = rows[0];
     if (!r) return null;

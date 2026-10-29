@@ -10,7 +10,7 @@
 import type { Task } from 'graphile-worker';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { conflict } from '../../errors.js';
+import { AppError } from '../../errors.js';
 import { enqueue } from '../../jobs.js';
 
 export async function settings(q: Queryable): Promise<{ everyRequest: boolean; dailyCap: number | null }> {
@@ -43,7 +43,7 @@ export async function checkCap(q: Queryable, userId: string, repeats: number) {
     [userId],
   );
   if (rows[0]!.n + repeats > dailyCap) {
-    throw conflict(`You can send up to ${dailyCap} radio prayers a day (an amplified one counts each time it goes out). This keeps the air fair for everyone.`);
+    throw new AppError(409, 'radio_daily_cap', `You can send up to ${dailyCap} radio prayers a day (an amplified one counts each time it goes out). This keeps the air fair for everyone.`);
   }
 }
 

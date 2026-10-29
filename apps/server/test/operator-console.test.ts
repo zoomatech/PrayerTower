@@ -67,6 +67,23 @@ describe('operator console', () => {
     expect(after.log[0]).toMatchObject({ callSign: CALL, status: 'transmitted', text: `Console queued prayer ${RUN}.` });
   });
 
+  it('lists what comes next in the order the station will be handed it', async () => {
+    await radio.updateStationSettings(db, { radio_urgent_first: true });
+    try {
+      const calm = await newRequest(poster, `Console calm prayer ${RUN}.`);
+      const urgent = await newRequest(poster, `Console urgent prayer ${RUN}.`);
+      await db.query('update public.posts set urgency = 3 where id = $1', [urgent.id]);
+      await as(member).post(`/posts/${calm.id}/radio`, { idempotencyKey: `console-calm-${RUN}` });
+      await as(member).post(`/posts/${urgent.id}/radio`, { idempotencyKey: `console-urgent-${RUN}` });
+      const next = (await as(operator).get('/radio/console')).json().queue.next as { text: string }[];
+      expect(next.map((n) => n.text).slice(0, 2)).toEqual([`Console urgent prayer ${RUN}.`, `Console calm prayer ${RUN}.`]);
+      expect((await station('/station/claim')).json().radioPrayer.text).toBe(`Console urgent prayer ${RUN}.`);
+    } finally {
+      await radio.updateStationSettings(db, { radio_urgent_first: stationDefaults.radio_urgent_first });
+      await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+    }
+  });
+
   it('hold stops the station being handed anything until resumed', async () => {
     const p = await newRequest(poster, `Console held prayer ${RUN}.`);
     await as(member).post(`/posts/${p.id}/radio`, { idempotencyKey: `console-held-${RUN}` });

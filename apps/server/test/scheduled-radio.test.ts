@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
+import * as fairAir from '../src/modules/radio/fair-air.js';
 import * as radio from '../src/modules/radio/index.js';
 import * as schedules from '../src/modules/schedules/index.js';
 import * as tokens from '../src/modules/tokens/index.js';
@@ -55,6 +56,27 @@ describe('scheduled radio sends', () => {
     expect(rows).toEqual([{ status: 'queued', repeats: 1, kind: 'prayer' }]);
     const [mine] = (await as(member).get('/me/scheduled-spends')).json().schedules;
     expect(mine).toMatchObject({ action: 'radio', status: 'done', runs: 1 });
+  });
+
+  it('skips one week, and keeps the schedule, when the member is over the daily radio cap', async () => {
+    const capDefault = (await fairAir.settings(db)).dailyCap;
+    const capped = await createUser('Sched Radio Capped');
+    await fairAir.update(db, { dailyCap: 1 });
+    try {
+      const first = await newRequest(poster, 'Pray for the crossing guards this morning.');
+      expect((await as(capped).post(`/posts/${first.id}/radio`, { idempotencyKey: `sched-cap-${capped}` })).statusCode).toBe(201);
+      const post = await newRequest(poster, 'Pray for the night nurses on the ward.');
+      const s = (await as(capped).post(`/posts/${post.id}/scheduled-spends`, { amount: 1, runAt: soon(), action: 'radio', repeatWeeks: 3 })).json().schedule;
+      await runNow(s.id);
+      const { rows } = await db.query<{ status: string; runs: number; next_run_at: Date }>('select status, runs, next_run_at from public.scheduled_spends where id = $1', [s.id]);
+      expect(rows[0]).toMatchObject({ status: 'active', runs: 1 });
+      expect(rows[0]!.next_run_at.getTime()).toBeGreaterThan(Date.now() + 6 * 86_400_000);
+      expect((await db.query('select 1 from public.radio_prayers where user_id = $1 and post_id = $2', [capped, post.id])).rows).toHaveLength(0);
+      const notes = (await as(capped).get('/me/notifications')).json().notifications as { kind: string; title: string; data: { scheduleId?: string } }[];
+      expect(notes.find((n) => n.data.scheduleId === s.id)?.title).toBe("This week's scheduled radio send was skipped");
+    } finally {
+      await fairAir.update(db, { dailyCap: capDefault });
+    }
   });
 
   it('stops and tells the member when the radio refuses it when it is time', async () => {
