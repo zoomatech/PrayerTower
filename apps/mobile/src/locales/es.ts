@@ -356,6 +356,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     chatLink: 'Imagina una conversación con Dios',
     chatTitle: 'Imagina una conversación con Dios',
     chatIntro: 'Un juego de rol para ayudarte a reflexionar y orar. Nada de lo que escribes aquí se guarda.',
+    chatUnavailable: 'This isn’t available.',
     placeholder: 'Escribe lo que hay en tu corazón…',
     send: 'Enviar',
     you: 'Tú',
