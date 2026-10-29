@@ -13,7 +13,9 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type StationHealth, type RadioSchedule, type RadioNodes } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule } from '@/lib/api';
+import { HighlightsAdmin } from '@/components/kindness-highlights';
+import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -1801,8 +1803,12 @@ function ConversationSettingsSection() {
       <Toggle label={t('talk.adminPacks')} hint={t('talk.adminPacksHint')} value={s.greeting_packs_enabled} onChange={(v) => save({ greetingPacksEnabled: v })} />
       <Toggle label={t('talk.adminOwnWords')} hint={t('talk.adminOwnWordsHint')} value={s.own_words_enabled} onChange={(v) => save({ ownWordsEnabled: v })} />
       <Toggle label={t('talk.adminClosings')} hint={t('talk.adminClosingsHint')} value={s.kind_closings_enabled} onChange={(v) => save({ kindClosingsEnabled: v })} />
+      <Toggle label={t('talk.adminMeaningRow')} hint={t('talk.adminMeaningRowHint')} value={s.meaning_row_enabled} onChange={(v) => save({ meaningRowEnabled: v })} />
       <Toggle label={t('talk.adminCounts')} hint={t('talk.adminCountsHint')} value={s.talk_counts_enabled} onChange={(v) => save({ talkCountsEnabled: v })} />
       {s.talk_counts_enabled ? <TalkCountsView /> : null}
+      <Toggle label={t('meaningProposals.adminTitle')} hint={t('meaningProposals.adminHint')} value={s.meaning_proposals_enabled} onChange={(v) => save({ meaningProposalsEnabled: v })} />
+      {s.meaning_proposals_enabled ? <MeaningProposalsAdmin /> : null}
+      <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
@@ -1814,6 +1820,7 @@ function PracticeSettingsSection() {
   const [s, setS] = useState<PracticeSettings | null>(null);
   const [days, setDays] = useState('');
   const [encDays, setEncDays] = useState('');
+  const [partnerDays, setPartnerDays] = useState('');
   const [newDays, setNewDays] = useState('');
   const [welcome, setWelcome] = useState('');
   const [note, setNote] = useState<string | null>(null);
@@ -1821,6 +1828,7 @@ function PracticeSettingsSection() {
     setS(x);
     setDays(String(x.followup_days));
     setEncDays(String(x.encourager_days));
+    setPartnerDays(String(x.partner_days));
     setNewDays(String(x.newcomer_days));
     setWelcome(x.welcome_text ?? '');
   };
@@ -1831,7 +1839,7 @@ function PracticeSettingsSection() {
   );
   const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
     api.admin
-      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, welcomeText: welcome, ...patch })
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, partnerDays: toInt(partnerDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, welcomeText: welcome, ...patch })
       .then((r) => {
         show(r.settings);
         resetFeatures();
@@ -1853,6 +1861,12 @@ function PracticeSettingsSection() {
       <Toggle label={t('practices.adminLiftUp')} hint={t('practices.adminLiftUpHint')} value={s.lift_up_enabled} onChange={(v) => save({ liftUpEnabled: v })} />
       <Toggle label={t('practices.adminGratitudeCount')} hint={t('practices.adminGratitudeCountHint')} value={s.gratitude_count_enabled} onChange={(v) => save({ gratitudeCountEnabled: v })} />
       <Toggle label={t('practices.adminBelieve')} hint={t('practices.adminBelieveHint')} value={s.believe_enabled} onChange={(v) => save({ believeEnabled: v })} />
+      <Toggle label={t('practices.adminPartners')} hint={t('practices.adminPartnersHint')} value={s.partners_enabled} onChange={(v) => save({ partnersEnabled: v })} />
+      <Field label={t('practices.adminPartnerDays')} keyboardType="number-pad" value={partnerDays} onChangeText={setPartnerDays} />
+      <Toggle label={t('highlightsKind.adminTitle')} hint={t('highlightsKind.adminHint')} value={s.highlights_enabled} onChange={(v) => save({ highlightsEnabled: v })} />
+      {s.highlights_enabled ? <HighlightsAdmin /> : null}
+      <Toggle label={t('lament.adminTitle')} hint={t('lament.adminHint')} value={s.lament_enabled} onChange={(v) => save({ lamentEnabled: v })} />
+      <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
       <Field label={t('repair.adminWelcomeText')} value={welcome} onChangeText={setWelcome} multiline maxLength={600} />

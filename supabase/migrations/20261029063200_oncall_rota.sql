@@ -45,3 +45,9 @@ alter table public.moderation_items
 
 -- Restoring a held post with one tap: logged as a restore, and its author is told. Off by default.
 alter table public.moderator_care_settings add column restore_enabled boolean not null default false;
+
+-- Every foreign key gets an index (test/indexes.test.ts).
+create index oncall_settings_escalate_to on public.oncall_settings (escalate_to);
+create index oncall_shifts_user on public.oncall_shifts (user_id);
+create index oncall_shifts_created_by on public.oncall_shifts (created_by);
+create index oncall_notes_author on public.oncall_notes (author_id);

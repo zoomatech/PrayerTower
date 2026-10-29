@@ -15,7 +15,9 @@ import { colors, radius, space, type } from '@/lib/theme';
 const WAIT_MS = 700;
 
 /** The verdict for a draft, checked a moment after typing stops. Null while off, empty, or ok. */
-export function useKindCloud(text: string): { on: boolean; verdict: KindVerdict | null; harm: HarmNote | null } {
+export type CloudContext = 'lament' | 'lamentReply';
+
+export function useKindCloud(text: string, context?: CloudContext): { on: boolean; verdict: KindVerdict | null; harm: HarmNote | null } {
   const { kindCloud } = useFeatures();
   // The last answer stays up while the member edits, so the cloud doesn't flicker on every key.
   const [checked, setChecked] = useState<{ draft: string; verdict: KindVerdict | null; harm: HarmNote | null } | null>(null);
@@ -24,24 +26,24 @@ export function useKindCloud(text: string): { on: boolean; verdict: KindVerdict 
     if (!kindCloud || !draft) return;
     let live = true;
     const timer = setTimeout(() => {
-      api.precheck(draft).then((r) => live && setChecked({ draft, verdict: r.cloud && r.cloud.level !== 'ok' ? r.cloud : null, harm: r.harm ?? null }));
+      (context ? api.precheck(draft, context) : api.precheck(draft)).then((r) => live && setChecked({ draft, verdict: r.cloud && r.cloud.level !== 'ok' ? r.cloud : null, harm: r.harm ?? null }));
     }, WAIT_MS);
     return () => {
       live = false;
       clearTimeout(timer);
     };
-  }, [kindCloud, draft]);
+  }, [kindCloud, draft, context]);
   const shown = kindCloud && draft && checked ? checked : null;
   return { on: kindCloud, verdict: shown?.verdict ?? null, harm: shown?.harm ?? null };
 }
 
 /** Sits in the corner of a composer card; nothing at all while the draft is fine. */
-export function KindCloud({ text }: { text: string }) {
+export function KindCloud({ text, context }: { text: string; context?: CloudContext }) {
   const t = useT();
-  const { verdict, harm } = useKindCloud(text);
+  const { verdict, harm } = useKindCloud(text, context);
   const strong = verdict?.level === 'strong';
   // iOS has no live regions: say the cloud out loud once when it appears or changes.
-  const spoken = verdict || harm ? [t('kindCloud.label'), harm?.message, strong ? t('kindCloud.strong') : t('kindCloud.ask')].filter(Boolean).join('. ') : null;
+  const spoken = verdict || harm ? [t('kindCloud.label'), harm?.message, strong ? t('kindCloud.strong') : verdict?.reason === 'advice' ? t('lament.adviceAsk') : t('kindCloud.ask')].filter(Boolean).join('. ') : null;
   useEffect(() => {
     if (spoken) announce(spoken);
   }, [spoken]);
@@ -64,7 +66,7 @@ export function KindCloud({ text }: { text: string }) {
             {[r.name ?? r.label, r.phone].filter(Boolean).join(' · ')}
           </Text>
         ))}
-        <Text style={styles.ask}>{strong ? t('kindCloud.strong') : t('kindCloud.ask')}</Text>
+        <Text style={styles.ask}>{strong ? t('kindCloud.strong') : verdict?.reason === 'advice' ? t('lament.adviceAsk') : t('kindCloud.ask')}</Text>
       </View>
     </View>
   );

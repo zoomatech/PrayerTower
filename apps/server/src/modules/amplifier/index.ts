@@ -107,6 +107,7 @@ const AVAILABLE = `
   from public.radio_prayers r join public.posts p on p.id = r.post_id
  where r.status <> 'failed' and r.created_at > now() - make_interval(days => $2)
    and p.moderation_status = 'visible' and not p.is_sensitive and not p.crisis and p.harm_category is null
+   and not (p.is_lament and not p.lament_radio)
    and not exists (select 1 from public.moderation_items m where m.target_type = 'post' and m.target_id = p.id
                     and (m.status = 'pending' or m.source = 'crisis'))
    and not exists (select 1 from public.live_amplifier_readings x where x.radio_prayer_id = r.id and x.operator_id = $1 and x.status <> 'released')
@@ -188,7 +189,7 @@ export async function markRead(q: Queryable, userId: string, id: string, input: 
   const r = await openReading(q, userId, id);
   // Re-check: the request may have been removed or flagged since it was claimed.
   const { rows: p } = await q.query<{ ok: boolean; poster_id: string; post_id: string }>(
-    `select p.moderation_status = 'visible' and not p.is_sensitive and p.harm_category is null as ok, p.user_id as poster_id, p.id as post_id
+    `select p.moderation_status = 'visible' and not p.is_sensitive and p.harm_category is null and not (p.is_lament and not p.lament_radio) as ok, p.user_id as poster_id, p.id as post_id
        from public.radio_prayers r join public.posts p on p.id = r.post_id where r.id = $1`,
     [r.radio_prayer_id],
   );

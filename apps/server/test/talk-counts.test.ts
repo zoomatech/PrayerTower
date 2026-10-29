@@ -47,3 +47,29 @@ describe('Counting patterns', () => {
     expect((await as(u).get('/admin/talk-counts')).statusCode).toBe(403);
   });
 });
+
+describe('Meanings in the icon row', () => {
+  it('is off by default and an admin can switch it on', async () => {
+    const admin = await createUser('Row Admin');
+    await db.query(`insert into public.user_roles (user_id, role) values ($1, 'admin')`, [admin]);
+    const { features } = await import('../src/modules/conversation-helpers/index.js');
+    expect((await features(db)).meaningIconRow).toBe(false);
+    const res = await as(admin).patch('/admin/conversation-settings', { meaningRowEnabled: true });
+    expect(res.json().settings.meaning_row_enabled).toBe(true);
+    expect((await features(db)).meaningIconRow).toBe(true);
+    await as(admin).patch('/admin/conversation-settings', { meaningRowEnabled: false });
+  });
+});
+
+describe('Kindness research page', () => {
+  it('is hidden until switched on, then shows members the folded totals', async () => {
+    const u = await createUser('Research Reader');
+    await db.query('update public.conversation_settings set research_page_enabled = false');
+    expect((await as(u).get('/kindness-research')).statusCode).toBe(404);
+    await db.query('update public.conversation_settings set research_page_enabled = true');
+    const r = (await as(u).get('/kindness-research')).json().counts;
+    expect(r).toMatchObject({ weeks: 12, minShown: 5 });
+    for (const row of r.chains) expect(row.n).toBeGreaterThanOrEqual(5);
+    await db.query('update public.conversation_settings set research_page_enabled = false');
+  });
+});
