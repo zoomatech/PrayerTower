@@ -267,7 +267,8 @@ function ActionIcon({
         hitSlop={4}
         style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
         {/* The icon is decoration; the button's name is the action's name. */}
-        <Text style={styles.actionIcon} aria-hidden>
+        {/* The icon grows with larger text only so far that it stays inside its 44 pt circle; the tip and the screen-reader label carry the words. */}
+        <Text style={styles.actionIcon} aria-hidden maxFontSizeMultiplier={1.3}>
           {glyph}
         </Text>
       </Pressable>

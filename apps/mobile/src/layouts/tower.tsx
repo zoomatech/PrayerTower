@@ -201,6 +201,7 @@ export function TowerLayout({ cards, theme, pinnedId, renderCard, header, refres
         {tokens.climber && tokens.climber !== DEFAULTS.climber ? (
           <Animated.Text
             style={[styles.climber, { transform: [{ translateY: bob }] }]}
+            maxFontSizeMultiplier={1.3}
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
             testID="tower-climber">
