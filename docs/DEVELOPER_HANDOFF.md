@@ -58,7 +58,7 @@ Public website (/, /support, /privacy, /terms, /account-deletion) is served by t
 - **Blocking** works both ways. Use `posts.getActionable()` for any action on someone's request, and `messages.isBlocked()` for messages.
 - **App structure.**
   - `src/app/` holds the screens, using Expo Router file routes.
-  - `src/lib/api.ts` is the typed API client. It handles offline caching and the queue.
+  - `src/lib/api.ts` is the typed API client. It handles offline caching and the queue. A queued post or "Praying Now" carries an `Idempotency-Key` from its first try, and the server (`apps/server/src/modules/idempotency`) answers a replay with the first result, so a slow request that did arrive is never made twice.
   - `src/lib/auth.tsx` holds the session and profile.
   - `src/components/` holds the UI.
   - `src/layouts/` holds the feed styles (column, vine, flip, carousel).

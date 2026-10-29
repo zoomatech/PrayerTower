@@ -7,7 +7,7 @@ import { useSyncExternalStore } from 'react';
 
 const QUEUE_KEY = 'offline:queue:v1';
 const CACHE_PREFIX = 'offline:cache:v1:';
-/** Queued actions older than this are dropped: a week-old "praying now" isn't now. */
+/** Queued actions older than this are dropped: a days-old "praying now" isn't now. */
 const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 
 export interface QueuedAction {
@@ -16,6 +16,8 @@ export interface QueuedAction {
   method: 'POST';
   path: string;
   body: unknown;
+  /** Sent as Idempotency-Key, the same as the first try's, so a replay is never done twice. */
+  key?: string;
   queuedAt: number;
 }
 
