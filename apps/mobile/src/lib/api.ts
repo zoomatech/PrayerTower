@@ -249,6 +249,8 @@ export interface AdminRadioSettings {
   radio_max_chars: number;
   radio_amplify_repeats: number;
   radio_order: 'oldest' | 'need';
+  /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
+  radio_batch_max: number;
 }
 
 export interface PowerPrayerStatus {
@@ -981,7 +983,7 @@ export const api = {
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need' }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
