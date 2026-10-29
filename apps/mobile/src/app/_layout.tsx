@@ -79,6 +79,9 @@ function RootStack() {
           <Stack.Screen name="legal" />
           <Stack.Screen name="podcasts" />
           <Stack.Screen name="why-gifts" />
+          <Stack.Screen name="squire-board" />
+          <Stack.Screen name="prayer-list" />
+          <Stack.Screen name="reading-plan" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="survey/[id]" />
@@ -91,6 +94,7 @@ function RootStack() {
           <Stack.Screen name="scheduled" />
           <Stack.Screen name="prayer-chain" />
           <Stack.Screen name="remembered" />
+          <Stack.Screen name="mend/[id]" />
           <Stack.Screen name="prayer-minute" />
           <Stack.Screen name="skin-idea" />
           <Stack.Screen name="token-store" />

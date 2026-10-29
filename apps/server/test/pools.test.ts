@@ -5,7 +5,7 @@ import { as, createUser, db, newRequest } from './helpers.js';
 
 // Tests share the dev database: close the pools they open.
 afterAll(async () => {
-  await db.query(`update public.token_pools set closed_at = now() where closed_at is null and name in ('Field of Faith', 'Families', 'Named pool', 'Matched pool')`);
+  await db.query(`update public.token_pools set closed_at = now() where closed_at is null and name in ('Field of Faith', 'Families', 'Named pool', 'Matched pool', 'Many hands')`);
   await db.end();
 });
 
@@ -105,7 +105,7 @@ describe('donated token pools', () => {
       expect(created.statusCode).toBe(201);
       const poolId = created.json().id;
       const listed = (await as(giver).get('/token-pools')).json().pools.find((p: { id: string }) => p.id === poolId);
-      expect(listed.match).toEqual({ ratio: 2, cap: 30, matched: 0 });
+      expect(listed.match).toEqual({ mode: 'ratio', ratio: 2, cap: 30, matched: 0 });
 
       const first = await as(giver).post(`/token-pools/${poolId}/fund`, { amount: 10, idempotencyKey: 'g1' });
       expect(first.json()).toEqual({ matched: 20, poolBalance: 40, balance: 10 });
@@ -128,4 +128,44 @@ describe('donated token pools', () => {
       await db.query('update public.notebook_settings set pool_matching_enabled = false');
     }
   });
+
+  it('matches quadratically: many small gifts earn more than one large gift', async () => {
+    const donor = await withTokens('Quadratic Donor', 200);
+    const [a, b, c] = [await withTokens('Small Giver A', 10), await withTokens('Small Giver B', 10), await withTokens('Small Giver C', 20)];
+    try {
+      await db.query('update public.notebook_settings set pool_matching_enabled = true');
+      const res = await as(donor).post('/token-pools', { name: 'Many hands', amount: 10, matchMode: 'quadratic', matchCap: 100, idempotencyKey: 'q1' });
+      expect(res.statusCode, res.body).toBe(201);
+      const poolId = res.json().id;
+      // One giver alone earns no match: (√4)² − 4 = 0.
+      expect((await as(a).post(`/token-pools/${poolId}/fund`, { amount: 4, idempotencyKey: 'qa' })).json().matched).toBe(0);
+      // A second small giver: (2 + 2)² − 8 = 8.
+      expect((await as(b).post(`/token-pools/${poolId}/fund`, { amount: 4, idempotencyKey: 'qb' })).json().matched).toBe(8);
+      // A third: (2 + 2 + 3)² − 17 = 32, so 24 more.
+      expect((await as(c).post(`/token-pools/${poolId}/fund`, { amount: 9, idempotencyKey: 'qc' })).json().matched).toBe(24);
+      const listed = (await as(a).get('/token-pools')).json().pools.find((p: { id: string }) => p.id === poolId);
+      expect(listed.match).toMatchObject({ mode: 'quadratic', cap: 100, matched: 32 });
+    } finally {
+      await db.query('update public.notebook_settings set pool_matching_enabled = false');
+    }
+  });
+
+  it('shows the community pool ledger in aggregate, only while switched on', async () => {
+    const member = await createUser('Ledger Reader');
+    expect((await as(member).get('/token-pools/ledger')).json()).toEqual({ enabled: false });
+    try {
+      await db.query('update public.notebook_settings set pool_ledger_enabled = true');
+      const before = (await as(member).get('/token-pools/ledger')).json();
+      expect(before).toMatchObject({ enabled: true });
+      const donor = await withTokens('Ledger Donor', 30);
+      await as(donor).post('/token-pools', { name: 'Families', amount: 10, idempotencyKey: 'led1' });
+      const after = (await as(member).get('/token-pools/ledger')).json();
+      expect(after.given - before.given).toBe(10);
+      expect(after.openPools - before.openPools).toBe(1);
+      expect(JSON.stringify(after)).not.toContain('Ledger Donor');
+    } finally {
+      await db.query('update public.notebook_settings set pool_ledger_enabled = false');
+    }
+  });
 });
+

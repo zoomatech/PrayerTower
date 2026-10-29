@@ -57,6 +57,46 @@ export function ThanksCard() {
   );
 }
 
+/**
+ * A gentle giving ask, the Mastodon way: shown once (the server marks it seen as soon
+ * as it shows), only after a member has been here a while, never to someone who gave.
+ */
+export function GivingAsk() {
+  const { t } = useLocale();
+  const features = useFeatures();
+  const [show, setShow] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      Promise.resolve()
+        .then(() => api.givingAsk())
+        .then(
+          (r) => {
+            if (!r.show) return;
+            setShow(true);
+            api.seenGivingAsk().catch(() => undefined);
+          },
+          () => undefined,
+        );
+    }, []),
+  );
+  if (!show) return null;
+  const go = (path: '/give' | '/why-gifts') => {
+    setShow(false);
+    router.push(path);
+  };
+  return (
+    <View style={styles.thanks} accessibilityLabel={t('notebook.givingAskTitle')}>
+      <Text style={type.heading}>{t('notebook.givingAskTitle')}</Text>
+      <Text style={type.body}>{t('notebook.givingAskBody')}</Text>
+      <View style={styles.row}>
+        <Button small label={t('whyGifts.give')} onPress={() => go('/give')} />
+        {features.whyGifts ? <Button small variant="secondary" label={t('notebook.givingAskWhy')} onPress={() => go('/why-gifts')} /> : null}
+        <Button small variant="ghost" label={t('feed.notNow')} onPress={() => setShow(false)} />
+      </View>
+    </View>
+  );
+}
+
 /** "N people have prayed for your requests", for the Me screen. */
 export function PrayedForYou() {
   const { t, wording } = useLocale();

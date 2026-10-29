@@ -14,6 +14,7 @@ export function poolRoutes(app: FastifyInstance, db: Db) {
     pools: await pools.list(db, requireUser(req), { postId: req.query.postId }),
   }));
   app.get('/me/token-pools', async (req) => ({ pools: await pools.list(db, requireUser(req), { mine: true }) }));
+  app.get('/token-pools/ledger', async (req) => pools.ledger(db, requireUser(req)));
 
   app.post('/token-pools', async (req, reply) => {
     const userId = requireUser(req);

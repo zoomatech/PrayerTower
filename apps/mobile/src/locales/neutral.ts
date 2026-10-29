@@ -290,6 +290,7 @@ export const keys: Tree = named({
     intro: 'How the Helpers team helped people who asked for support, shared with their permission and without names.',
   },
   notebook: {
+    givingAskBody: "Open Circle runs on gifts, shared by need, so nobody's attention is for sale. If it has helped you, would you give?",
     worldwide: '%{formatted} acts of support worldwide in the last day, by %{people} people',
     prayedForYou: '%{count} people have supported your requests.',
     thanksPost: 'Share good news',
@@ -301,6 +302,29 @@ export const keys: Tree = named({
     inputsHint: "Tell the host what you'd like covered. Only the host and staff see your notes.",
     inputsHostHint: 'What people would like covered. Only you and staff see these.',
     inputsPlaceholder: 'For example: please talk about how to help the families affected by the flood',
+  },
+  prayerList: {
+    title: "People I keep in mind",
+    intro: "People and things you want to remember. Only you see this list.",
+    prayed: "I thought of them",
+    prayedCount: "Times thought of: %{count}",
+    closed: "This list is not open.",
+  },
+  squire: {
+    title: "Kindness board",
+    open: "Kindness board",
+    badge: "On the kindness board",
+    off: "The kindness board is not open.",
+    intro: "Members of your community who chose to show how often they supported others in the last %{days} days. Only verified check-ins count.",
+    join: "Show me on the board",
+    joinHint: "Your name and how many times you supported others show here and on your profile. Turn it off at any time.",
+    anonymous: "You post anonymously, so your support stays private: it counts, but only you see it.",
+    empty: "No one is on the board yet.",
+    counts: "%{count} check-ins for %{people} people",
+  },
+  circleGoal: {
+    progress: '%{done} of %{target} people have checked in',
+    met: 'Goal met: %{done} people checked in (goal %{target})',
   },
   stats: {
     title: 'Your kindness',
