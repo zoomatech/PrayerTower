@@ -1,5 +1,5 @@
 // @ts-check
-// ESLint for the server, station, shared package, e2e tests and scripts.
+// ESLint for the server, station, shared package, browser extension, e2e tests and scripts.
 // The app has its own config (apps/mobile/eslint.config.js, from Expo).
 // docs/CODE_HEALTH.md.
 import js from '@eslint/js';
@@ -21,5 +21,10 @@ export default defineConfig([
     // Tests read deep into JSON answers; typing every one adds nothing.
     files: ['**/test/**/*.ts', 'apps/e2e/**/*.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
+  },
+  {
+    // The browser extension runs in web pages and the browser's extension pages.
+    files: ['apps/extension/**/*.{js,mjs}'],
+    languageOptions: { globals: { ...globals.browser, ...globals.webextensions, module: 'readonly' } },
   },
 ]);
