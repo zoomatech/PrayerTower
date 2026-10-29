@@ -26,7 +26,7 @@ Only `/post/*` paths open the app, so the site's other pages (privacy, terms, su
 3. **Android.** Get the SHA-256 fingerprint of each signing key and set them, comma-separated, as `ANDROID_CERT_SHA256` on the server. Use `eas credentials -p android` for the upload key and Play Console > Test and release > App integrity > App signing for Google's key. A Play-installed app is signed with Google's key, so list both ([Expo: Android App Links](https://docs.expo.dev/linking/android-app-links/)).
 4. **Build** the app again after setting `EXPO_PUBLIC_LINK_URL`, then restart the API after setting the server values.
 
-`APP_LINK_APP_IDS` lists the bundle IDs and package names allowed to open the links. It defaults to the store app and the staging build.
+`APP_LINK_APP_IDS` lists the bundle IDs and package names allowed to open the links. It defaults to the store app, the staging build and the native SwiftUI app (`com.zoomatech.prayertower.native`). The same file also lists them under `webcredentials`, which lets the native app use passkeys on this domain.
 
 ## Checking it
 
