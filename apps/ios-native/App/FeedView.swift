@@ -21,18 +21,24 @@ struct FeedView: View {
     @State private var savedAt: Date?
     @State private var pending = 0
     @State private var dropped: [String] = []
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var width
+    /// iPad full screen or a wide split: the plain feed shows in several columns.
+    private var wide: Bool { width == .regular }
+    #else
+    private let wide = true
+    #endif
 
     var body: some View {
         NavigationStack {
             Group {
                 if let theme, theme.kind != .column {
                     SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id })
+                } else if wide {
+                    grid
                 } else {
                     List {
-                        OfflineBanner(savedAt: savedAt, pending: pending, dropped: dropped) { Task { await load() } } onDismiss: {
-                            dropped = []
-                            Task { await OfflineStore.shared.dismissDropped() }
-                        }
+                        banner
                         SurveyPrompts()
                         ForEach(posts) { card in
                             row(card).task { if card.id == posts.last?.id { await more() } }
@@ -47,6 +53,14 @@ struct FeedView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
+                        .keyboardShortcut("n", modifiers: .command)
+                }
+                if wide {
+                    // No pull-to-refresh with a pointer: a button, and ⌘R.
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { Task { await load() } } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                            .keyboardShortcut("r", modifiers: .command)
+                    }
                 }
             }
             .navigationDestination(item: $opened) { PostDetailView(postId: $0) }
@@ -79,6 +93,34 @@ struct FeedView: View {
             .task(id: model.feedStyle) { await load() }
             .sheet(item: $encouraging) { card in EncourageSheet(card: card) { note in Task { await encourage(card, note) } } }
             .alert(notice ?? "", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) { Button("OK") {} }
+        }
+    }
+
+    private var banner: some View {
+        OfflineBanner(savedAt: savedAt, pending: pending, dropped: dropped) { Task { await load() } } onDismiss: {
+            dropped = []
+            Task { await OfflineStore.shared.dismissDropped() }
+        }
+    }
+
+    /// The plain feed in as many columns as fit (iPad, Mac), newest first, read left to right.
+    private var grid: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                banner
+                SurveyPrompts()
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 16, alignment: .top)], spacing: 16) {
+                    ForEach(posts) { card in
+                        row(card)
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(.background.secondary, in: .rect(cornerRadius: 14))
+                            .pointerHover()
+                            .task { if card.id == posts.last?.id { await more() } }
+                    }
+                }
+            }
+            .padding(16)
         }
     }
 
@@ -239,11 +281,19 @@ extension Color {
     /// The Expo theme's gold: plain gold for lines and fills, and gold text that keeps 4.5:1
     /// (#7D6308 on light backgrounds, the brighter gold on dark ones).
     static let answeredGold = Color(red: 0xC9 / 255, green: 0xA2 / 255, blue: 0x27 / 255)
+    #if os(iOS)
     static let answeredText = Color(uiColor: UIColor { t in
         t.userInterfaceStyle == .dark
             ? UIColor(red: 0xC9 / 255, green: 0xA2 / 255, blue: 0x27 / 255, alpha: 1)
             : UIColor(red: 0x7D / 255, green: 0x63 / 255, blue: 0x08 / 255, alpha: 1)
     })
+    #else
+    static let answeredText = Color(nsColor: NSColor(name: nil) { a in
+        a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            ? NSColor(red: 0xC9 / 255, green: 0xA2 / 255, blue: 0x27 / 255, alpha: 1)
+            : NSColor(red: 0x7D / 255, green: 0x63 / 255, blue: 0x08 / 255, alpha: 1)
+    })
+    #endif
 }
 
 /// "You're offline. Showing prayers saved …", how many actions wait to send, and any the

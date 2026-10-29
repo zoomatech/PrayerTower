@@ -43,7 +43,7 @@ describe('library search', () => {
     expect((await as(member).get('/library/search?q=shepherd&collection=bible-kjv')).statusCode).toBe(403);
 
     await db.query('update public.library_settings set enabled = true');
-    expect((await as(member).get('/library')).json()).toMatchObject({ enabled: true, collections: [{ id: 'bible-kjv' }, { id: 'ancient-writings' }] });
+    expect((await as(member).get('/library')).json()).toMatchObject({ enabled: true, collections: [{ id: 'bible-kjv' }, { id: 'ancient-writings' }, { id: 'oldest-texts' }] });
     const r = (await as(member).get('/library/search?q=the lord is my shepherd&collection=bible-kjv&limit=3')).json();
     expect(r.hits[0]).toMatchObject({ ref: 'Psalms 23:1', complete: true, work: { title: 'Psalms' } });
     expect(r.hits).toHaveLength(3);
@@ -56,6 +56,12 @@ describe('library search', () => {
     expect(ancient.hits.length).toBeGreaterThan(0);
     expect(ancient.hits[0].text).toMatch(/gilgamesh|enkidu/i);
     expect((await as(member).get('/library/search?q=&collection=bible-kjv')).statusCode).toBe(400);
+
+    // The oldest texts: Ptah-hotep's teaching and Hammurabi's laws, by section.
+    const ptah = (await as(member).get('/library/search?q=if thou be an emissary sent from one noble to another&collection=oldest-texts&limit=1')).json();
+    expect(ptah.hits[0]).toMatchObject({ work: { id: 'ptahhotep-gunn' } });
+    const theft = (await as(member).get('/library/search?q=steal the property of a god or palace put to death&collection=oldest-texts&limit=3')).json();
+    expect(theft.hits.some((h: { work: { id: string } }) => h.work.id === 'hammurabi-harper')).toBe(true);
   });
 
   it('only ships public-domain works', () => {
@@ -74,7 +80,7 @@ describe('library search', () => {
       await c.query('delete from public.community_memberships where user_id = $1', [member]);
       await c.query(`insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`, [member]);
       await c.query('update public.library_settings set enabled = true');
-      expect(await library.overview(c, member)).toEqual({ enabled: true, collections: [{ id: 'ancient-writings', title: 'Ancient writings', faith: false }] });
+      expect(await library.overview(c, member)).toEqual({ enabled: true, collections: [{ id: 'ancient-writings', title: 'Ancient writings', faith: false }, { id: 'oldest-texts', title: 'Oldest texts', faith: false }] });
       await expect(library.search(c, member, { q: 'shepherd', collection: 'bible-kjv', offset: 0, limit: 5 })).rejects.toThrow(/not offered/);
       expect((await library.search(c, member, { q: 'virtue', collection: 'ancient-writings', offset: 0, limit: 5 })).hits.length).toBeGreaterThan(0);
     } finally {

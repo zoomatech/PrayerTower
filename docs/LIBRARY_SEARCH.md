@@ -4,7 +4,9 @@ Ported from Winstons Syndicate (Steve, 2026-10-29: "the bible search feature FRO
 
 ## What members get
 
-Me → **Search the texts**. Type words; passages come back best first. Faith communities choose the **King James Bible** or **Ancient writings**; Open Circle gets only the ancient writings (the server refuses the Bible there).
+Me → **Search the texts**. Type words; passages come back best first. Faith communities choose the **King James Bible**, **Ancient writings** or **Oldest texts**; Open Circle gets the last two only (the server refuses the Bible there).
+
+Winstons Syndicate's scripture package (relationship search, "David slew Goliath", and fuzzy remembered-story search) is still being built there. It will come to Prayer Tower later as an **Ask the Bible** feature (Steve, 2026-10-29), so it is not ported here.
 
 ## How the search works
 
@@ -15,7 +17,7 @@ Me → **Search the texts**. Type words; passages come back best first. Faith co
 - Synonyms from the public-domain Moby Thesaurus count for 0.8 of the word (`rod` = `staff`), except for very common words.
 - Rarer words weigh more (log of total passages over passages holding the word). Ranking: every word present, then every word or a synonym, then weight, then words in the order typed, then the verse's own weight. Neighbouring hits are collapsed to one.
 
-Not ported (they need Apple frameworks): the subject–action–object relationship search (Apple NaturalLanguage tagging) and the ONNX embedding "fuzzy" search in `Packages/ZoomaBibleSearch`. The native Swift app can use those packages directly later.
+The relationship and fuzzy searches stay in Winstons Syndicate until Ask the Bible (above).
 
 ## Texts and rights
 
@@ -25,6 +27,7 @@ Not ported (they need Apple frameworks): the subject–action–object relations
 | --- | --- | --- |
 | `bible-kjv.json.gz` | KJV, 31,102 verses | Project Gutenberg eBook #10 (public domain in the US) |
 | `ancient-writings.json.gz` | 8 public-domain works, 2,813 passages: Old Babylonian Gilgamesh (Jastrow & Clay), Babylonian and Assyrian Literature, Literature of the Ancient Egyptians, Assyrian and Hebrew Hymns of Praise, Egyptian Tales, hieroglyphical literature, Marcus Aurelius (two translations) | Project Gutenberg editions via Winstons Syndicate's `AncientWritings.corpus` |
+| `oldest-texts.json.gz` | 7 works, 1,679 passages: Ptah-hotep (Gunn 1906), Breasted's Ancient Records of Egypt I (Palermo Stone, Metjen, Weni; 1906), Allen's Horus in the Pyramid Texts (1916), Barton's Royal Inscriptions of Sumer and Akkad (Urukagina; 1929), Langdon's Sumerian Liturgies and Psalms (early Lament for Ur, Kes liturgy; 1919), Hammurabi (Harper 1904), Atrahasis (Clay 1922) | Built by `python3 scripts/library-sources.py` from `sources/` (raw texts and their URLs in `sources/README.md`). The archive.org books are OCR, so the script drops page furniture and transliteration; some scanning errors remain |
 | `kjv-synonyms.txt.gz` | Synonym table | Moby Thesaurus (public domain) |
 
 Only works marked `public_domain` are loaded. Winstons Syndicate's "Ancient Texts Predating Gilgamesh & The Bible" note is marked `unverified` there and is left out.
@@ -35,4 +38,10 @@ Only works marked `public_domain` are loaded. Winstons Syndicate's "Ancient Text
 2. Add `<id>` to `COLLECTIONS` and `TITLES` in `apps/server/src/modules/library/index.ts`.
 3. Faith-only collections (`faith: true`, like the Bible) must also be filtered in `offered()`.
 
-Good next candidates are public-domain translations of the oldest texts in `/mnt/project-files/reports/oldest-ancient-texts.md` (Pyramid Texts, Instructions of Shuruppak, Ptahhotep, Code of Hammurabi). Modern translations (for example ETCSL) need permission first.
+## Oldest-list texts with no public-domain translation
+
+From `/mnt/project-files/reports/oldest-ancient-texts.md`. US public domain means published before 1931; these were first translated later, so only modern (copyrighted) translations exist, such as the Oxford ETCSL, which needs permission:
+
+- Instructions of Shuruppak (1960s), Kesh Temple Hymn (modern; Langdon's 1919 Kes liturgy is a partial early reading), Enheduanna's hymns (1968), Code of Ur-Nammu (1952), Code of Lipit-Ishtar (1948), Laws of Eshnunna (1948), the Sumerian Gilgamesh poems, Inanna's Descent and the debate poems in full.
+- Pyramid Texts and Coffin Texts in full (Mercer 1952, Faulkner 1969); Allen 1916 translates many Pyramid Text passages.
+- The Stele of the Vultures is in Barton 1929 with Urukagina.

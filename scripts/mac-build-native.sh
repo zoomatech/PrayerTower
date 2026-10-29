@@ -110,6 +110,15 @@ if grep -q "OpenCircleNative:" project.yml; then
   fi
 fi
 
+# The member app for the Mac (the same screens as the iPhone and iPad app).
+if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerMac -destination "platform=macOS" \
+     -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO build > "$LOGS/mac-app-build.txt" 2>&1; then
+  record "Mac app" PASS "macOS"
+else
+  record "Mac app" FAIL "$LOGS/mac-app-build.txt"
+  grep -E "error:" "$LOGS/mac-app-build.txt" | sort -u | head -30 >> "$LOGS/errors.txt"
+fi
+
 # The Mac operator console (Console/), built for this Mac.
 if xcodebuild -project PrayerTowerNative.xcodeproj -scheme PrayerTowerConsole -destination "platform=macOS" \
      -derivedDataPath "$ROOT/build-logs/derived-native" CODE_SIGNING_ALLOWED=NO build > "$LOGS/console-build.txt" 2>&1; then

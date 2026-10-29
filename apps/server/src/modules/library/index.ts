@@ -17,7 +17,7 @@ type CollectionFile = { format_version: 1; id: string; title: string; faith: boo
 type Collection = { id: string; title: string; faith: boolean; source: string; works: Map<string, Work>; index: PassageIndex };
 
 /** The collections, in the order the app lists them. */
-export const COLLECTIONS = ['bible-kjv', 'ancient-writings'] as const;
+export const COLLECTIONS = ['bible-kjv', 'ancient-writings', 'oldest-texts'] as const;
 export type CollectionId = (typeof COLLECTIONS)[number];
 
 export function dataDir(): string {
@@ -75,6 +75,8 @@ async function offered(q: Queryable, userId: string): Promise<CollectionId[] | n
 const TITLES: Record<CollectionId, { title: string; faith: boolean }> = {
   'bible-kjv': { title: 'King James Bible', faith: true },
   'ancient-writings': { title: 'Ancient writings', faith: false },
+  // The oldest texts on the list in docs/LIBRARY_SEARCH.md that have a public-domain translation.
+  'oldest-texts': { title: 'Oldest texts', faith: false },
 };
 
 export async function overview(q: Queryable, userId: string) {

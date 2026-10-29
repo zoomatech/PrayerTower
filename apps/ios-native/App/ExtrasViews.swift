@@ -213,7 +213,9 @@ struct PodcastsView: View {
     private func play(_ e: PodcastEpisode) {
         guard let url = URL(string: e.audioUrl) else { return }
         player?.pause()
+        #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback)
+        #endif
         let p = AVPlayer(url: url)
         p.play()
         player = p

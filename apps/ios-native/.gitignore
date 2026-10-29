@@ -14,3 +14,5 @@ OpenCircleWidgets/
 Crosspost/*-Info.plist
 Crosspost/prayertower/
 Crosspost/opencircle/
+Mac/Info.plist
+Mac/PrayerTowerMac.entitlements
