@@ -53,6 +53,7 @@ create table public.crosspost_oauth_states (
   created_at timestamptz not null default now()
 );
 alter table public.crosspost_oauth_states enable row level security;
+create index crosspost_oauth_states_user_idx on public.crosspost_oauth_states (user_id);
 
 -- Every post brought in (or skipped), so nothing is copied twice.
 create table public.crosspost_imports (

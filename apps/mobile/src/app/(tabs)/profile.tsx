@@ -107,6 +107,11 @@ export default function Profile() {
             <Text style={type.small}>{t('profile.priestly')}</Text>
           </View>
         </View>
+        {tier?.upkeep ? (
+          <Text style={type.small}>
+            {tier.upkeep.held ? t('profile.tierHeld', { tier: n(tier.upkeep.held.label) }) : t('profile.tierUpkeep', { days: tier.upkeep.days })}
+          </Text>
+        ) : null}
         {tier?.next ? (
           <Text style={type.small}>
             {t('profile.nextTier', { count: tier.next.prayersNeeded, tier: n(tier.next.label) })}
