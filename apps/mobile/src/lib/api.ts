@@ -1154,6 +1154,7 @@ export type HarmSettings = {
   flood_per_day: number;
   extra_hate_words: string[];
   explain_held: boolean;
+  read_disguises: boolean;
 };
 export type ModeratorCare = {
   settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };

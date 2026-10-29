@@ -52,6 +52,7 @@ export function HarmSettingsSection() {
       <Toggle label={t('harm.abuse')} value={s.abuse_action === 'support'} onChange={(v) => save({ abuse_action: v ? 'support' : 'allow' })} />
       <Toggle label={t('harm.junk')} value={s.foul_junk_filter} onChange={(v) => save({ foul_junk_filter: v })} />
       <Toggle label={t('harm.explain')} value={s.explain_held} onChange={(v) => save({ explain_held: v })} />
+      <Toggle label={t('harm.disguises')} hint={t('harm.disguisesHint')} value={s.read_disguises} onChange={(v) => save({ read_disguises: v })} />
       <Field label={t('harm.foulAt')} keyboardType="number-pad" value={draft.foul} onChangeText={(foul) => setDraft((d) => ({ ...d, foul }))} />
       <Field label={t('harm.floodPerDay')} keyboardType="number-pad" value={draft.flood} onChangeText={(flood) => setDraft((d) => ({ ...d, flood }))} />
       <Field label={t('harm.words')} multiline autoCapitalize="none" value={draft.words} onChangeText={(words) => setDraft((d) => ({ ...d, words }))} />

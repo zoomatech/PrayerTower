@@ -127,3 +127,12 @@ When someone posts or comments about abuse, their request opens with the hotline
 ## Regression
 
 `apps/server/test/moderation-regression.test.ts` turns every moderation switch on at once (harmful prayers, moderator care, dashboard, weekly report, restore, on-call rota, the kind cloud) and runs the whole path in both editions: false alarms, a held threat through handoff, explanation, reminders, escalation and restore; abuse and crisis posts; junk and floods; the dashboard and rota. It found two bugs, both fixed: the threat redirect used religious words on Open Circle, and handing an item to a moderator failed on teams of more than 100.
+
+## Disguised words (off by default)
+
+**Admin → Harmful prayers → Read through disguised words** (`read_disguises`). People dodge word filters with number and symbol swaps (k1ll, d!e), split or stretched letters (k.i.l.l, k i l l, diiies), misspellings (kil, ded, revenj), coded words ("unalive", "six feet under", "sewer slide", "kms") and emoji (🔪 🔫 💀 ⚰️ 🔥). With the switch on, the check also reads the text with those disguises taken off (`apps/server/src/modules/harm/unmask.ts`) and runs the same patterns on it. The research on filter evasion ("algospeak") describes exactly these tricks ([Steen et al., 2023, "You can (not) say what you want"](https://dl.acm.org/doi/10.1145/3543873.3587355); [Washington Post, 2022: "Algospeak"](https://www.washingtonpost.com/technology/2022/04/08/algospeak-tiktok-le-dollar-bean/)).
+
+- A disguised match is handled like a plain one: held or reviewed by a **person**. Nothing is ever refused because of a disguise.
+- Coded self-harm ("unalive myself", "sewer slide", "kms") gets the usual crisis support and crisis check-in.
+- The weekly report marks rules that matched only through a disguise with `:masked`.
+- `apps/server/test/harm-adversarial.test.ts` lists every disguise caught, and ordinary prayers that must stay untouched ("Our worship night was 🔥", "7 years sober", "I dye my hair for chemo week", "u guys are the best").

@@ -133,7 +133,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     ]);
   }
   await moderation.queueScan(q, 'post', post.id);
-  if (safety.mentionsCrisis(input.body)) {
+  if (safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body))) {
     await moderation.flagCrisis(q, 'post', post.id);
     post.crisis = true;
   }
@@ -245,7 +245,7 @@ export async function setTestimony(q: Queryable, userId: string, postId: string,
   const harmDecision = await harm.screen(q, userId, 'post', input.body);
   await q.query(`update public.posts set testimony = $2, testimony_at = coalesce(testimony_at, now()) where id = $1`, [postId, input.body]);
   await moderation.queueScan(q, 'post', postId);
-  const crisis = safety.mentionsCrisis(input.body);
+  const crisis = safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body));
   if (crisis) await moderation.flagCrisis(q, 'post', postId);
   await harm.apply(q, userId, 'post', postId, harmDecision);
   return { post, first: post.testimony === null, crisis };
@@ -370,7 +370,7 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
     [postId, userId, input.parentId ?? null, input.body, input.isUpdate, isAnonymous],
   );
   await moderation.queueScan(q, 'comment', rows[0]!.id);
-  const crisis = safety.mentionsCrisis(input.body);
+  const crisis = safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body));
   if (crisis) await moderation.flagCrisis(q, 'comment', rows[0]!.id);
   const harmGuidance = await harm.apply(q, userId, 'comment', rows[0]!.id, harmDecision);
   return { ...rows[0]!, crisis, harm: harmGuidance };

@@ -2031,6 +2031,8 @@ const en = {
     saved: 'Harmful-prayer settings saved.',
     floods: 'Floods from one account',
     explain: 'Let members explain a held post',
+    disguises: 'Read through disguised words',
+    disguisesHint: 'Also catches k1ll, d.i.e, diiie, "unalive", "sewer slide" and emoji such as 🔪 or 💀. These only send a post to a person; nothing is refused for them.',
     floodItems: '%{name}: %{count} held items (%{categories})',
     release: 'Show them all again',
     remove: 'Remove them all',
