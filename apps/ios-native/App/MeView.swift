@@ -12,6 +12,7 @@ struct MeView: View {
     @State private var countsError: String?
     @State private var exportFile: ExportFile?
     @State private var exporting = false
+    @State private var listenOpen = false
     @State private var error: String?
 
     private var w: Words { model.words }
@@ -78,6 +79,10 @@ struct MeView: View {
                     if model.features["signalQueue"] && model.me?.community?.shows("radio") ?? true {
                         NavigationLink(w("signalQueue.title")) { SignalQueueView() }
                     }
+                    // Listener mode: shown once Admin → Radio has the listening page on.
+                    if listenOpen && model.me?.community?.shows("radio") ?? true {
+                        NavigationLink(w("listen.title")) { ListenView(api: model.store.api, words: w, sample: SampleServer.isOn()) }
+                    }
                     Button(w(exporting ? "profile.exporting" : "profile.export")) { Task { await export() } }.disabled(exporting)
                     Button(w("profile.signOut"), role: .destructive) {
                         Task {
@@ -93,6 +98,7 @@ struct MeView: View {
             .navigationTitle(w("tabs.me"))
             .refreshable { await loadCounts() }
             .task { await loadCounts() }
+            .task { listenOpen = (try? await model.store.api.listenConfig().enabled) ?? false }
             .task(id: model.features["freshDays"]) {
                 freshDay = model.features["freshDays"] ? (try? await model.store.api.freshDayToday()) ?? nil : nil
             }

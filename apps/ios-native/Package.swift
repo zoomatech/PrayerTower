@@ -20,7 +20,7 @@ let package = Package(
     targets: [
         .target(name: "PrayerTowerKit", resources: [.copy("Resources")]),
         .target(name: "PrayerTowerSession", dependencies: ["PrayerTowerKit", .product(name: "Auth", package: "supabase-swift")]),
-        .testTarget(name: "PrayerTowerKitTests", dependencies: ["PrayerTowerKit"]),
+        .testTarget(name: "PrayerTowerKitTests", dependencies: ["PrayerTowerKit"], resources: [.copy("Fixtures")]),
         .testTarget(name: "PrayerTowerSessionTests", dependencies: ["PrayerTowerSession"]),
     ]
 )
