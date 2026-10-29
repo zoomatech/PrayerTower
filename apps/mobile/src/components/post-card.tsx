@@ -22,6 +22,7 @@ import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
+import { MeaningIcons } from './meaning-icon-row';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
@@ -167,6 +168,8 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
               </Pressable>
             );
           })}
+          {/* Emoji meanings join the same row in every skin (off unless switched on). */}
+          <MeaningIcons postId={card.id} postBody={card.body} />
         </View>
 
         {card.topComment ? (

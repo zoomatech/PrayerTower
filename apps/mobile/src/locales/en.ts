@@ -299,6 +299,8 @@ const en = {
     close: 'Close',
     leaf: '{{label}}, {{count}}',
     mine: 'yours',
+    added: 'Added %{emoji} %{word}',
+    failed: 'That didn’t go through. Please try again.',
   },
   quick: {
     tray: 'Quick reactions',
@@ -2030,6 +2032,8 @@ const en = {
     adminOwnWordsHint: 'After a suggestion is used, a light reminder to make it personal (suggested replies flatten writing and cost trust when they look automatic).',
     adminClosings: 'Kind closings',
     adminClosingsHint: 'Gentle closing lines to end a conversation kindly.',
+    adminMeaningRow: 'Meanings in the icon row',
+    adminMeaningRowHint: 'Puts the emoji meanings in every card’s single icon row, in every feed skin. Tap adds the first meaning, press and hold opens up to five, hovering shows the words. Needs Emoji meanings on.',
     adminCounts: 'Counting patterns',
     adminCountsHint: 'Anonymous weekly totals of greeting → reply → follow-up and of emoji used as replies, from members who choose to share. No words, no names.',
     countsTitle: 'Conversation patterns (last %{weeks} weeks)',

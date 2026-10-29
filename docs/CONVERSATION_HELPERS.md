@@ -34,3 +34,14 @@ The greeting research found **no published counts** of greeting → reply → fo
 - The server keeps **weekly totals** (`talk_chain_counts`, `emoji_reply_counts`). They have no member column. A separate daily cap (`talk_count_quota`, 200 a day, kept for two days) stops anyone from skewing the totals.
 - **Admin → Conversation helpers** shows the last 12 weeks. Any pattern with fewer than 5 counts is folded into "Other patterns", so a small pilot can't single anyone out.
 - Note for the legal team: these are aggregate, de-identified counts collected with opt-in. The privacy policy may want a line about them.
+
+## Meanings in the icon row (off)
+
+Admin → Conversation helpers → **Meanings in the icon row**. Needs **Emoji meanings** on too.
+The emoji join the single icon row on every post card, so every feed skin (vine, tower,
+neon, wall, and the rest) gets them without its own code: all skins draw cards with
+`PostCard`. A tap adds the emoji's first meaning. Press and hold (or the screen reader's
+"choose" action) opens up to five meanings in a sheet at the bottom of the screen, so no
+skin clips it. Hovering with an iPad pointer or a Mac shows the words above the icon.
+Each icon is 44 points, has a spoken label, and reading the chosen meaning is announced.
+The meaning list is fetched once per session, not once per card.

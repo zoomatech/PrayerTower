@@ -18,12 +18,13 @@ export interface ConversationSettings {
   own_words_enabled: boolean;
   kind_closings_enabled: boolean;
   talk_counts_enabled: boolean;
+  meaning_row_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<ConversationSettings> {
   const { rows } = await q.query<ConversationSettings>(
     `select reply_suggestions_enabled, meaning_prefs_enabled, trouble_nudge_enabled, greeting_packs_enabled, own_words_enabled, kind_closings_enabled,
-            talk_counts_enabled
+            talk_counts_enabled, meaning_row_enabled
        from public.conversation_settings`,
   );
   return rows[0]!;
@@ -37,6 +38,7 @@ export const SettingsPatch = z.object({
   ownWordsEnabled: z.boolean().optional(),
   kindClosingsEnabled: z.boolean().optional(),
   talkCountsEnabled: z.boolean().optional(),
+  meaningRowEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -45,7 +47,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        reply_suggestions_enabled = coalesce($1, reply_suggestions_enabled), meaning_prefs_enabled = coalesce($2, meaning_prefs_enabled),
        trouble_nudge_enabled = coalesce($3, trouble_nudge_enabled), greeting_packs_enabled = coalesce($4, greeting_packs_enabled),
        own_words_enabled = coalesce($5, own_words_enabled), kind_closings_enabled = coalesce($6, kind_closings_enabled),
-       talk_counts_enabled = coalesce($7, talk_counts_enabled)`,
+       talk_counts_enabled = coalesce($7, talk_counts_enabled), meaning_row_enabled = coalesce($8, meaning_row_enabled)`,
     [
       p.replySuggestionsEnabled ?? null,
       p.meaningPrefsEnabled ?? null,
@@ -54,6 +56,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.ownWordsEnabled ?? null,
       p.kindClosingsEnabled ?? null,
       p.talkCountsEnabled ?? null,
+      p.meaningRowEnabled ?? null,
     ],
   );
   return settings(q);
@@ -69,6 +72,7 @@ export async function features(q: Queryable) {
     ownWords: s.own_words_enabled,
     kindClosings: s.kind_closings_enabled,
     talkCounts: s.talk_counts_enabled,
+    meaningIconRow: s.meaning_row_enabled,
   };
 }
 

@@ -47,3 +47,16 @@ describe('Counting patterns', () => {
     expect((await as(u).get('/admin/talk-counts')).statusCode).toBe(403);
   });
 });
+
+describe('Meanings in the icon row', () => {
+  it('is off by default and an admin can switch it on', async () => {
+    const admin = await createUser('Row Admin');
+    await db.query(`insert into public.user_roles (user_id, role) values ($1, 'admin')`, [admin]);
+    const { features } = await import('../src/modules/conversation-helpers/index.js');
+    expect((await features(db)).meaningIconRow).toBe(false);
+    const res = await as(admin).patch('/admin/conversation-settings', { meaningRowEnabled: true });
+    expect(res.json().settings.meaning_row_enabled).toBe(true);
+    expect((await features(db)).meaningIconRow).toBe(true);
+    await as(admin).patch('/admin/conversation-settings', { meaningRowEnabled: false });
+  });
+});

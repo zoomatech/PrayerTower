@@ -1557,6 +1557,7 @@ function ConversationSettingsSection() {
       <Toggle label={t('talk.adminPacks')} hint={t('talk.adminPacksHint')} value={s.greeting_packs_enabled} onChange={(v) => save({ greetingPacksEnabled: v })} />
       <Toggle label={t('talk.adminOwnWords')} hint={t('talk.adminOwnWordsHint')} value={s.own_words_enabled} onChange={(v) => save({ ownWordsEnabled: v })} />
       <Toggle label={t('talk.adminClosings')} hint={t('talk.adminClosingsHint')} value={s.kind_closings_enabled} onChange={(v) => save({ kindClosingsEnabled: v })} />
+      <Toggle label={t('talk.adminMeaningRow')} hint={t('talk.adminMeaningRowHint')} value={s.meaning_row_enabled} onChange={(v) => save({ meaningRowEnabled: v })} />
       <Toggle label={t('talk.adminCounts')} hint={t('talk.adminCountsHint')} value={s.talk_counts_enabled} onChange={(v) => save({ talkCountsEnabled: v })} />
       {s.talk_counts_enabled ? <TalkCountsView /> : null}
       {note ? <Text style={type.small}>{note}</Text> : null}
