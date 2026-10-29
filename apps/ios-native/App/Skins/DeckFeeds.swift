@@ -84,6 +84,8 @@ struct FlipFeed<Row: View>: View {
 
     var body: some View {
         let words = LayoutWords(wording)
+        // A plain copy, so the Sendable transition closure doesn't reach into the view.
+        let fold = !still
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
@@ -95,8 +97,8 @@ struct FlipFeed<Row: View>: View {
                     .scrollTransition { content, phase in
                         // Snaps without turning while Reduce Motion is on.
                         content
-                            .rotation3DEffect(.degrees(still ? 0 : phase.value * -55), axis: (x: 1, y: 0, z: 0), anchor: phase.value < 0 ? .bottom : .top, perspective: 0.6)
-                            .opacity(still ? 1 : 1 - abs(phase.value) * 0.4)
+                            .rotation3DEffect(.degrees(fold ? phase.value * -55 : 0), axis: (x: 1, y: 0, z: 0), anchor: phase.value < 0 ? .bottom : .top, perspective: 0.6)
+                            .opacity(fold ? 1 - abs(phase.value) * 0.4 : 1)
                     }
                     .task { if card.id == cards.last?.id { await onEnd() } }
                 }
