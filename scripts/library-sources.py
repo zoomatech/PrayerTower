@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Builds apps/server/data/library/oldest-texts.json.gz from the public-domain translations in
-apps/server/data/library/sources/ (docs/LIBRARY_SEARCH.md). Run from the repo root:
+"""Builds the oldest-texts, world-classics and apocrypha-kjv collections in apps/server/data/library/
+from the public-domain translations in apps/server/data/library/sources/ (docs/LIBRARY_SEARCH.md).
+Run from the repo root:
 
     python3 scripts/library-sources.py
 
@@ -14,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'apps/server/data/library/sources'
-OUT = ROOT / 'apps/server/data/library/oldest-texts.json.gz'
+OUT = ROOT / 'apps/server/data/library'
 
 WORKS = [
     ('ptahhotep-gunn', 'The Instruction of Ptah-hotep and the Instruction of Ke\'gemni', 'Battiscombe G. Gunn (1906)', 'ptahhotep-kegemni-gunn-1906.txt'),
@@ -24,6 +25,18 @@ WORKS = [
     ('langdon-liturgies', 'Sumerian Liturgies and Psalms (Lament for Ur, Kes liturgy)', 'Stephen Langdon (1919)', 'langdon-sumerian-liturgies-psalms-1919.txt'),
     ('hammurabi-harper', 'The Code of Hammurabi', 'Robert Francis Harper (1904)', 'hammurabi-harper-1904.txt'),
     ('clay-deluge', 'A Hebrew Deluge Story in Cuneiform (Atrahasis)', 'Albert T. Clay (1922)', 'clay-hebrew-deluge-story-1922.txt'),
+    ('book-of-the-dead-budge', 'The Book of the Dead (introduction and extracts)', 'E. A. Wallis Budge (1920)', 'book-of-the-dead-budge-1920.txt'),
+    ('enuma-elish-budge', 'The Babylonian Legends of the Creation (Enuma Elish)', 'E. A. Wallis Budge (1921)', 'babylonian-creation-enuma-elish-budge-1921.txt'),
+]
+
+CLASSICS = [
+    ('tao-te-ching-legge', 'Tao Te Ching', 'James Legge (1891)', 'tao-te-ching-legge-1891.txt'),
+    ('analects-legge', 'The Analects of Confucius', 'James Legge (1893)', 'analects-legge-1893.txt'),
+    ('dhammapada-muller', 'The Dhammapada', 'F. Max Müller (1881)', 'dhammapada-muller-1881.txt'),
+    ('bhagavad-gita-arnold', 'The Bhagavad Gita (The Song Celestial)', 'Edwin Arnold (1885)', 'bhagavad-gita-arnold-1885.txt'),
+    ('hesiod-evelyn-white', 'Hesiod, the Homeric Hymns and Homerica', 'Hugh G. Evelyn-White (1914)', 'hesiod-homeric-hymns-evelyn-white-1914.txt'),
+    ('iliad-butler', 'The Iliad', 'Samuel Butler (1898)', 'iliad-butler-1898.txt'),
+    ('odyssey-butler', 'The Odyssey', 'Samuel Butler (1900)', 'odyssey-butler-1900.txt'),
 ]
 
 
@@ -96,19 +109,61 @@ def passages(work_id: str, text: str):
     return out
 
 
-def main():
+def verses(text: str):
+    """The King James Apocrypha: a book title line ("The Book of Tobit"), then "1:1 And ..." verses (or "1 And ..."
+    in the short additions, or plain paragraphs in the Prayer of Manasses), one book a work."""
+    works, out, book, para = [], [], None, 0
+    for block in re.split(r'\n\s*\n', body(text).replace('\r', '')):
+        lines = [l.strip() for l in block.split('\n') if l.strip()]
+        if not lines:
+            continue
+        first = lines[0]
+        if len(lines) <= 2 and first.startswith('The ') and len(first) <= 70 and not first.endswith(('.', ',', ';', ':')):
+            title = ' '.join(l for l in lines if not l.startswith('['))
+            title = re.sub(r'\s+', ' ', re.sub(r'\s*(\(or [^)]*\)|\[[^\]]*\])', '', title)).strip()
+            book = {'id': 'apocrypha-' + re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')[:60], 'title': title, 'author': '', 'rights': 'public_domain'}
+            para = 0
+            if all(w['id'] != book['id'] for w in works):
+                works.append(book)
+            continue
+        if not book or first.startswith(('[', '_')):
+            continue
+        line = ' '.join(lines)
+        m = re.match(r'^(\d+)(?::(\d+))?\s+(.*)', line)
+        if m:
+            ref = f"{book['title']} {m.group(1)}:{m.group(2)}" if m.group(2) else f"{book['title']} {m.group(1)}"
+            out.append({'workId': book['id'], 'ref': ref, 'text': m.group(3)})
+        elif len(line) > 60 and not re.match(r'^(CHAPTER|Chapter)\b', line):
+            para += 1
+            out.append({'workId': book['id'], 'ref': book['title'], 'text': line})
+    used = {p['workId'] for p in out}
+    return [w for w in works if w['id'] in used], out
+
+
+def write(out_id: str, title: str, faith: bool, source: str, works, all_passages):
+    data = {'format_version': 1, 'id': out_id, 'title': title, 'faith': faith, 'source': source, 'works': works, 'passages': all_passages}
+    path = OUT / f'{out_id}.json.gz'
+    with gzip.GzipFile(path, 'wb', mtime=0, compresslevel=9) as f:
+        f.write(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode())
+    print(f'{len(all_passages)} passages -> {path.relative_to(ROOT)}')
+
+
+def build(out_id: str, title: str, list_):
     works, all_passages = [], []
-    for work_id, title, author, file in WORKS:
+    for work_id, work_title, author, file in list_:
         found = passages(work_id, (SRC / file).read_text(encoding='utf-8', errors='replace'))
-        works.append({'id': work_id, 'title': title, 'author': author, 'rights': 'public_domain'})
+        works.append({'id': work_id, 'title': work_title, 'author': author, 'rights': 'public_domain'})
         all_passages += found
         print(f'{work_id}: {len(found)} passages')
-    data = {'format_version': 1, 'id': 'oldest-texts', 'title': 'Oldest texts', 'faith': False,
-            'source': 'Public-domain translations (before 1931) from Project Gutenberg and archive.org; see data/library/sources/README.md',
-            'works': works, 'passages': all_passages}
-    with gzip.GzipFile(OUT, 'wb', mtime=0, compresslevel=9) as f:
-        f.write(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode())
-    print(f'{len(all_passages)} passages -> {OUT.relative_to(ROOT)}')
+    write(out_id, title, False, 'Public-domain translations (before 1931) from Project Gutenberg and archive.org; see data/library/sources/README.md', works, all_passages)
+
+
+def main():
+    build('oldest-texts', 'Oldest texts', WORKS)
+    build('world-classics', 'World classics', CLASSICS)
+    works, found = verses((SRC / 'apocrypha-kjv.txt').read_text(encoding='utf-8'))
+    print(f'apocrypha: {len(works)} books')
+    write('apocrypha-kjv', 'King James Apocrypha', True, 'Project Gutenberg eBook #124 (King James Version, public domain)', works, found)
 
 
 if __name__ == '__main__':

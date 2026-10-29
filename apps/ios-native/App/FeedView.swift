@@ -33,6 +33,7 @@ struct FeedView: View {
                             dropped = []
                             Task { await OfflineStore.shared.dismissDropped() }
                         }
+                        DailyPassageCard()
                         SurveyPrompts()
                         ForEach(posts) { card in
                             row(card).task { if card.id == posts.last?.id { await more() } }

@@ -5,8 +5,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { sharePassage } from '@/components/daily-passage';
 import { Button, Chip, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api, type LibraryCollectionId, type LibraryHit, type LibraryOverview } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -14,6 +16,7 @@ const PAGE = 20;
 
 export default function LibraryScreen() {
   const t = useT();
+  const features = useFeatures();
   const [overview, setOverview] = useState<LibraryOverview | null>(null);
   const [collection, setCollection] = useState<LibraryCollectionId | null>(null);
   const [words, setWords] = useState('');
@@ -100,6 +103,9 @@ export default function LibraryScreen() {
               {h.text}
             </Text>
             {!h.complete ? <Text style={type.small}>{t('library.near')}</Text> : null}
+            {features.libraryShare ? (
+              <Button small variant="secondary" label={t('library.share')} a11yLabel={t('library.shareOne', { citation: h.citation })} onPress={() => sharePassage(h.text, h.citation)} />
+            ) : null}
           </View>
         ))}
         {hits && hits.length < total ? <Button small variant="secondary" label={t('library.more')} disabled={busy} onPress={() => run(hits.length)} /> : null}
