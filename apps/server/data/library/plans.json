@@ -1,0 +1,53 @@
+{
+  "format_version": 1,
+  "about": "Curated reading plans for Text search (docs/LIBRARY_SEARCH.md). A plan is parts read in order; each part is one work in a collection, read a number of chapters a day (Bible books, by their chapter numbers) or spread evenly over a number of days. from, to (both kept) and until (left out) mark where a part starts and stops, by an exact reference (ref) or words in the passage (find). Plans with the Bible or the Apocrypha are not offered in Open Circle.",
+  "plans": [
+    {
+      "id": "oldest-30",
+      "title": "Oldest texts in 30 days",
+      "intro": "The oldest writings we can read: Ptah-hotep's advice to his son, the Pyramid Texts, the Book of the Dead, the flood tablet of Gilgamesh, Enuma Elish, Hammurabi's laws and Egyptian tales.",
+      "parts": [
+        { "collection": "oldest-texts", "workId": "ptahhotep-gunn", "from": { "find": "Here begin the proverbs of fair speech" }, "until": { "ref": "IT IS FINISHED" }, "days": 4 },
+        { "collection": "ancient-writings", "workId": "ancient-egyptian-literature", "from": { "ref": "THE LITERATURE OF THE ANCIENT EGYPTIANS › CHAPTER II › THE PYRAMID TEXTS" }, "until": { "ref": "THE LITERATURE OF THE ANCIENT EGYPTIANS › CHAPTER IV › THE BOOK OF THE DEAD" }, "days": 5 },
+        { "collection": "oldest-texts", "workId": "book-of-the-dead-budge", "until": { "ref": "The Trustees of the British Museum have published:--" }, "days": 3 },
+        { "collection": "oldest-texts", "workId": "gilgamesh-deluge-budge", "from": { "ref": "Tablet XI, lines 1–12" }, "to": { "ref": "Tablet XI, line 205" }, "days": 3 },
+        { "collection": "oldest-texts", "workId": "enuma-elish-budge", "from": { "ref": "THE LEGEND OF THE CREATION ACCORDING TO BEROSUS AND DAMASCIUS" }, "days": 4 },
+        { "collection": "oldest-texts", "workId": "hammurabi-harper", "from": { "ref": "§ 1" }, "to": { "ref": "§ 282" }, "days": 8 },
+        { "collection": "ancient-writings", "workId": "egyptian-tales-second-series", "days": 3 }
+      ]
+    },
+    {
+      "id": "wisdom-east-30",
+      "title": "Wisdom of the East in 30 days",
+      "intro": "The Tao Te Ching, the Dhammapada and the Analects of Confucius, ten days each.",
+      "parts": [
+        { "collection": "world-classics", "workId": "tao-te-ching-legge", "from": { "ref": "Chapter 1" }, "days": 10 },
+        { "collection": "world-classics", "workId": "dhammapada-muller", "from": { "ref": "Chapter 1 (The Twin-Verses), verse 1" }, "days": 10 },
+        { "collection": "world-classics", "workId": "analects-legge", "from": { "find": "Is it not pleasant to learn with a constant perseverance" }, "days": 10 }
+      ]
+    },
+    {
+      "id": "gospels-89",
+      "title": "The Gospels in 89 days",
+      "intro": "Matthew, Mark, Luke and John, a chapter a day.",
+      "parts": [
+        { "collection": "bible-kjv", "workId": "kjv-matthew", "chapters": 1 },
+        { "collection": "bible-kjv", "workId": "kjv-mark", "chapters": 1 },
+        { "collection": "bible-kjv", "workId": "kjv-luke", "chapters": 1 },
+        { "collection": "bible-kjv", "workId": "kjv-john", "chapters": 1 }
+      ]
+    },
+    {
+      "id": "psalms-30",
+      "title": "Psalms in 30 days",
+      "intro": "All 150 psalms, five a day.",
+      "parts": [{ "collection": "bible-kjv", "workId": "kjv-psalms", "chapters": 5 }]
+    },
+    {
+      "id": "proverbs-31",
+      "title": "Proverbs in a month",
+      "intro": "One chapter of Proverbs for each day of the month.",
+      "parts": [{ "collection": "bible-kjv", "workId": "kjv-proverbs", "chapters": 1 }]
+    }
+  ]
+}

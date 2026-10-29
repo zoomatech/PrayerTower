@@ -669,7 +669,7 @@ export const NOTIFICATION_CATEGORIES = ['prayers', 'promises', 'encouragement', 
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'radio_on_air', 'radio_heard', 'spoken_prayer', 'live_amplifier_read', 'guest_prayer', 'prayer_minute', 'radio_praying_too'],
-  promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder', 'daily_reminder'],
+  promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder', 'daily_reminder', 'library_plan_reminder'],
   encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'check_back', 'check_back_update', 'author_heart', 'comment_thanks', 'thank_note', 'gratitude', 'encourager', 'encourager_checkin', 'kind_ask', 'mend_invite', 'mend_delivered', 'mend_returned', 'mend_accepted', 'mend_closed', 'partner', 'highlight_ask', 'highlights'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'circle_post', 'witness_story'],

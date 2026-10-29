@@ -20,7 +20,42 @@ Admin → Text search has two more switches, shown once search is on (`library_s
   Citations: a Bible or Apocrypha reference plus `(King James Bible)` / `(King James Apocrypha)`; any other text is `Work title, place (translator and year)`, such as `The Iliad, BOOK I (Samuel Butler (1898))`.
 - **Daily passage card**: at the top of the feed (All), a passage of 60 to 320 characters, the same all day for everyone in the community (picked by a hash of the UTC date): the King James Bible in faith communities, the ancient writings in Open Circle. **Not now** hides it for the day. It has **Share** when sharing is on. `GET /library/daily`.
 
-Both are in the Expo app (`src/components/daily-passage.tsx`, `src/app/library.tsx`) and the native app (`App/LibraryView.swift`: `DailyPassageCard`, the Share button, `LibraryAdminSection`).
+Both are in the Expo app (`src/components/daily-passage.tsx`, `src/app/library.tsx`) and the native app (`App/LibraryView.swift`: `DailyPassageCard`, the Share button, `LibraryAdminSection`). Parallels and reading plans: `src/app/parallels.tsx`, `src/app/reading-plans.tsx`; native `App/LibraryPlansView.swift`.
+
+### Parallels (off by default)
+
+Admin → Text search → **Parallels** (`library_settings.parallels_enabled`, feature `libraryParallels`). Me → **Parallels** lists curated themes; opening one shows its passages side by side (columns on a wide screen, a sideways row of cards on a phone), each with its collection, our short label, the translator's words and the citation. `GET /library/parallels`, `GET /library/parallels/:id`.
+
+The themes are in `apps/server/data/library/parallels.json`. Each side names a passage by its exact reference (`ref`) or by words it holds (`find`), how many passages from there (`count`), an optional label and an optional `cite` (our own wording for the place, such as "Genesis 8:6–11" or "Tablet XI, lines 142–155"). The words shown always come from the collection, never from the file. A server test checks that every side resolves.
+
+| Theme | Sides |
+| --- | --- |
+| The great flood | Genesis 6–8; Gilgamesh Tablet XI (Budge 1920): Ea's warning, the storm, the dove, swallow and raven, the sacrifice; Berossus as quoted by Clay; the Atrahasis famine fragment (Clay 1922) |
+| In the beginning | Genesis 1:1–3, John 1:1–3, Enuma Elish Tablet I, Hesiod's Theogony 116–138, Tao Te Ching 1 and 42 |
+| Eye for eye | Exodus 21:23–25, Leviticus 24:19–20, Hammurabi §196 and §198, Matthew 5:38–39 |
+| A blow to a pregnant woman | Exodus 21:22–23, Hammurabi §209–210 |
+| The goring ox | Exodus 21:28–29, Hammurabi §250 |
+| A thief breaking in | Exodus 22:2–3, Hammurabi §21 |
+| The golden rule | Matthew 7:12, Luke 6:31, Tobit 4:15, Analects XV.23 and XII.2 |
+| Return good for evil | Matthew 5:44, Romans 12:20–21, Tao Te Ching 63, Dhammapada 5 |
+| Clean hands before God | Psalm 24:3–4, Job 31:5–6, Book of the Dead chapter 125 |
+| Wise, not proud | Proverbs 3:7 and 1:8, Ptah-hotep's first maxim |
+
+Open Circle sees the themes without the Bible and the Apocrypha, and only those with passages from two different works left: the flood, creation and return good for evil.
+
+### Reading plans (off by default)
+
+Admin → Text search → **Reading plans** (`plans_enabled`, feature `libraryPlans`). Me → **Reading plans**. Separate from the staff-set Bible reading plan (`modules/reading-plan`, Admin → reading plan), which sends members to a Bible website.
+
+- The plans are in `apps/server/data/library/plans.json`: **Oldest texts in 30 days** (Ptah-hotep, the Pyramid Texts and Egyptian magicians' tales from Budge, the Book of the Dead, Gilgamesh Tablet XI, Enuma Elish, Hammurabi, Egyptian tales), **Wisdom of the East in 30 days** (Tao Te Ching, Dhammapada, Analects), **The Gospels in 89 days**, **Psalms in 30 days**, **Proverbs in a month**. A part is one work, read so many Bible chapters a day or spread evenly over so many days; `from`, `to` and `until` trim front matter.
+- Read in the app from the library's own texts, each day with its citation ("Psalms 16–20 (King James Bible)").
+- **Own pace**: the next day is the first one not read; reading ahead is fine and nothing is ever "behind". Finishing every day marks the plan finished.
+- **With a circle**: a member can start a plan with one of their prayer circles. Circle members see "Morning readers: 2 people reading" on the plan and can join; on each day they see how many in the circle have read it.
+- **Gentle reminder** (on by default, a switch per plan): at most one notice in the evening (after 6 pm in the member's time zone from their daily reminder, else UTC) on a day they haven't read, kind `library_plan_reminder` (Notification settings → promises). It stops after two weeks with no reading. Hourly job `library_plan_reminders`.
+- Open Circle is offered only the plans with no Bible or Apocrypha in them (the first two).
+- Tables `library_plan_follows` and `library_plan_reads` (migration `20261029223000_library_parallels_plans.sql`); both are in the member's data export.
+
+Routes: `GET /library/plans`, `PUT|DELETE /library/plans/:id/follow` (`{ circleId?, reminders? }`), `GET /library/plans/:id/days/:day`, `POST /library/plans/:id/days/:day/read`.
 
 Winstons Syndicate's scripture package (relationship search, "David slew Goliath", and fuzzy remembered-story search) is still being built there. It will come to Prayer Tower later as an **Ask the Bible** feature (Steve, 2026-10-29), so it is not ported here.
 
@@ -43,7 +78,7 @@ The relationship and fuzzy searches stay in Winstons Syndicate until Ask the Bib
 | --- | --- | --- |
 | `bible-kjv.json.gz` | KJV, 31,102 verses | Project Gutenberg eBook #10 (public domain in the US) |
 | `ancient-writings.json.gz` | 8 public-domain works, 2,813 passages: Old Babylonian Gilgamesh (Jastrow & Clay), Babylonian and Assyrian Literature, Literature of the Ancient Egyptians, Assyrian and Hebrew Hymns of Praise, Egyptian Tales, hieroglyphical literature, Marcus Aurelius (two translations) | Project Gutenberg editions via Winstons Syndicate's `AncientWritings.corpus` |
-| `oldest-texts.json.gz` | Ptah-hotep and the rest: Ptah-hotep (Gunn 1906), Breasted's Ancient Records of Egypt I (Palermo Stone, Metjen, Weni; 1906), Allen's Horus in the Pyramid Texts (1916), Barton's Royal Inscriptions of Sumer and Akkad (Urukagina; 1929), Langdon's Sumerian Liturgies and Psalms (early Lament for Ur, Kes liturgy; 1919), Hammurabi (Harper 1904), Atrahasis (Clay 1922); and since 2026-10-29 the Book of the Dead (Budge 1920, introduction and extracts, Gutenberg #7145) and Enuma Elish (Budge, *The Babylonian Legends of the Creation*, 1921, Gutenberg #9914). 9 works, 1,809 passages | Built by `python3 scripts/library-sources.py` from `sources/` (raw texts and their URLs in `sources/README.md`). The archive.org books are OCR, so the script drops page furniture and transliteration; some scanning errors remain |
+| `oldest-texts.json.gz` | Ptah-hotep and the rest: Ptah-hotep (Gunn 1906), Breasted's Ancient Records of Egypt I (Palermo Stone, Metjen, Weni; 1906), Allen's Horus in the Pyramid Texts (1916), Barton's Royal Inscriptions of Sumer and Akkad (Urukagina; 1929), Langdon's Sumerian Liturgies and Psalms (early Lament for Ur, Kes liturgy; 1919), Hammurabi (Harper 1904), Atrahasis (Clay 1922); and since 2026-10-29 the Book of the Dead (Budge 1920, introduction and extracts, Gutenberg #7145) and Enuma Elish (Budge, *The Babylonian Legends of the Creation*, 1921, Gutenberg #9914); and Gilgamesh Tablet XI, the flood, line by line (Budge, *The Babylonian Story of the Deluge*, 1920, Gutenberg #7096). 10 works | Built by `python3 scripts/library-sources.py` from `sources/` (raw texts and their URLs in `sources/README.md`). The archive.org books are OCR, so the script drops page furniture and transliteration; some scanning errors remain |
 | `apocrypha-kjv.json.gz` | The 15 books of the King James Apocrypha, 5,709 verses: 1 and 2 Esdras, Tobit, Judith, the Greek additions to Esther, Wisdom, Sirach, Baruch, the Epistle of Jeremiah, the Song of the Three Holy Children, Susanna, Bel and the Dragon, the Prayer of Manasses, 1 and 2 Maccabees. Faith communities only | Project Gutenberg eBook #124, <https://www.gutenberg.org/ebooks/124> (KJV 1611, public domain) |
 | `world-classics.json.gz` | 7 works, 3,722 passages: Tao Te Ching (James Legge, 1891), the Analects (Legge, 1893), the Dhammapada (F. Max Müller, 1881), the Bhagavad Gita, *The Song Celestial* (Edwin Arnold, 1885), Hesiod, the Homeric Hymns and Homerica (Hugh G. Evelyn-White, Loeb 1914), the Iliad (Samuel Butler, 1898), the Odyssey (Butler, 1900) | Project Gutenberg eBooks #216, #3330, #2017, #2388, #348, #2199, #1727 (all published before 1931) |
 | `kjv-synonyms.txt.gz` | Synonym table | Moby Thesaurus (public domain) |
@@ -54,6 +89,9 @@ Caveats on the 2026-10-29 additions:
 
 - **Book of the Dead**: Gutenberg #7145 is Budge's 1920 popular edition: his introduction and extracts, not the full Papyrus of Ani. The full 1895 Papyrus of Ani is on archive.org as page scans; it can be added later the same way as the OCR books.
 - **Enuma Elish**: L. W. King's *Seven Tablets of Creation* (1902) is not on Project Gutenberg, so Budge's 1921 British Museum translation is used. King's edition is on archive.org (OCR) if wanted.
+- **Gilgamesh Tablet XI**: Budge's 1920 translation, cited by line ("Tablet XI, lines 142–155"). R. Campbell Thompson's 1928 verse translation of the whole epic is also in `sources/` (archive.org OCR, `gilgamesh-thompson-1928.txt`) for later.
+- **Hammurabi's section numbers** (fixed 2026-10-29): the scan reads § as S, ii, ij or g, and the facing transliteration's numbers run a page ahead, so sections were labelled a few numbers off. The script now takes a section only after the last one and ignores the transliteration's. A few scanning errors in passages quoted by Parallels are corrected to the printed words in `OCR_FIXES` in the script.
+- **The classics' own numbering**: the Tao Te Ching by chapter, the Analects by book and chapter ("Book 15, Chapter 23"), the Dhammapada by chapter and verse, so short verses are kept and citations are exact.
 - All ten files were downloaded on the Mac (the cloud can't reach Project Gutenberg); their URLs are in `sources/README.md`.
 
 ## Adding a text

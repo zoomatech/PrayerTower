@@ -8,6 +8,7 @@ import { scanTask, type Classifier } from './modules/moderation/index.js';
 import { createClassifier } from './modules/moderation/providers.js';
 import { receiptsTask as pushReceiptsTask } from './modules/notifications/delivery.js';
 import { dueTask as dailyRemindersTask } from './modules/reminders/index.js';
+import { reminderTask as libraryPlanRemindersTask } from './modules/library/plans.js';
 import { sendPushTask } from './modules/notifications/index.js';
 import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
 import { transmitTask, type Transmitter } from './modules/radio/index.js';
@@ -78,6 +79,7 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     notifications_push_receipts: pushReceiptsTask(db, config, overrides.fetch),
     reminders_daily_due: dailyRemindersTask(),
+    library_plan_reminders: libraryPlanRemindersTask(),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
     commitments_send_due_reminders: sendDueRemindersTask(),
     prayer_list_send_due_reminders: prayerListRemindersTask(),
@@ -182,6 +184,8 @@ export const crontab = [
   // Every 5 minutes: read back Expo push receipts (only while Admin → Push delivery is on).
   // Every 5 minutes: members' own daily reminders (only while Admin → Gentle reminders is on).
   '*/5 * * * * reminders_daily_due ?max=3&fill=1h&jobKey=reminders_daily_due',
+  // Hourly: reading plan reminders, one gentle evening notice (only while Admin → Text search → Reading plans is on).
+  '7 * * * * library_plan_reminders ?max=3&fill=1h&jobKey=library_plan_reminders',
   '*/5 * * * * notifications_push_receipts ?max=3&jobKey=notifications_push_receipts',
   // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
   '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',

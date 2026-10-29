@@ -1,0 +1,324 @@
+{
+  "format_version": 1,
+  "about": "Curated parallels for Text search (docs/LIBRARY_SEARCH.md). Each side names a passage in a collection by its exact reference (ref) or by words it holds (find), and how many passages from there (count). The text and citation always come from the collection; label and cite are our own words. Faith collections (the Bible, the Apocrypha) are left out for Open Circle, and a theme needs two sides left to show.",
+  "themes": [
+    {
+      "id": "flood",
+      "title": "The great flood",
+      "intro": "Heaven sends a flood, one man is warned, builds a boat and saves his family and the animals; birds are sent out to find land, and a sacrifice follows.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Genesis 6:13",
+          "count": 2,
+          "label": "Noah is told to build the ark",
+          "cite": "Genesis 6:13–14"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "O House of reeds, O House of reeds",
+          "label": "Ea warns Uta-Napishtim (Gilgamesh, Tablet XI)"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Genesis 7:11",
+          "count": 2,
+          "label": "The fountains of the deep",
+          "cite": "Genesis 7:11–12"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "Tablet XI, lines 97–108",
+          "label": "The storm (Gilgamesh, Tablet XI)"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Genesis 8:6",
+          "count": 6,
+          "label": "The raven and the dove",
+          "cite": "Genesis 8:6–11"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "Tablet XI, lines 142–153",
+          "count": 2,
+          "label": "The dove, the swallow and the raven (Gilgamesh, Tablet XI)",
+          "cite": "Tablet XI, lines 142–155"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Genesis 8:20",
+          "count": 2,
+          "label": "Noah's sacrifice",
+          "cite": "Genesis 8:20–21"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "Tablet XI, lines 156–162",
+          "label": "Uta-Napishtim's sacrifice (Gilgamesh, Tablet XI)"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "Kronos appeared to him in his sleep",
+          "label": "Berossus's account (about 280 BC), as quoted by Clay",
+          "cite": "the account of Berossus"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "After the deluge had begun and had quickly ceased",
+          "label": "Berossus: the birds are sent out",
+          "cite": "the account of Berossus"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "Above, Adad made scarce his rain",
+          "label": "Atrahasis: the famine before the flood (a broken tablet)",
+          "cite": "the Atrahasis tablet"
+        }
+      ]
+    },
+    {
+      "id": "creation",
+      "title": "In the beginning",
+      "intro": "How the world began: from waters, chaos or the nameless.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Genesis 1:1",
+          "count": 3,
+          "cite": "Genesis 1:1–3"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "John 1:1",
+          "count": 3,
+          "cite": "John 1:1–3"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "When in the height heaven was not named",
+          "label": "The opening of Enuma Elish",
+          "cite": "Tablet I, lines 1–2"
+        },
+        {
+          "collection": "world-classics",
+          "find": "Verily at the first Chaos came to be",
+          "label": "Hesiod's Theogony",
+          "cite": "Theogony, lines 116–138"
+        },
+        {
+          "collection": "world-classics",
+          "ref": "Chapter 1",
+          "workId": "tao-te-ching-legge"
+        },
+        {
+          "collection": "world-classics",
+          "find": "The Tao produced One"
+        }
+      ]
+    },
+    {
+      "id": "eye-for-eye",
+      "title": "Eye for eye",
+      "intro": "The law of like for like, in Moses and in Hammurabi's code, about 400 years apart or more.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Exodus 21:23",
+          "count": 3,
+          "cite": "Exodus 21:23–25"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Leviticus 24:19",
+          "count": 2,
+          "cite": "Leviticus 24:19–20"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "§ 196",
+          "workId": "hammurabi-harper"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "§ 198",
+          "workId": "hammurabi-harper",
+          "label": "A different rule for a commoner"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Matthew 5:38",
+          "count": 2,
+          "cite": "Matthew 5:38–39",
+          "label": "Jesus on eye for eye"
+        }
+      ]
+    },
+    {
+      "id": "pregnant-woman",
+      "title": "A blow to a pregnant woman",
+      "intro": "Both codes set a fine when a woman loses her child in a fight, and a heavier penalty if she dies.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Exodus 21:22",
+          "count": 2,
+          "cite": "Exodus 21:22–23"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "§ 209",
+          "workId": "hammurabi-harper"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "§ 210",
+          "workId": "hammurabi-harper"
+        }
+      ]
+    },
+    {
+      "id": "goring-ox",
+      "title": "The goring ox",
+      "intro": "An ox kills a man: no penalty the first time, but the owner is liable if he was warned.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Exodus 21:28",
+          "count": 2,
+          "cite": "Exodus 21:28–29"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "§ 250",
+          "workId": "hammurabi-harper"
+        }
+      ]
+    },
+    {
+      "id": "breaking-in",
+      "title": "A thief breaking in",
+      "intro": "What happens to someone who breaks through a wall to steal.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Exodus 22:2",
+          "count": 2,
+          "cite": "Exodus 22:2–3"
+        },
+        {
+          "collection": "oldest-texts",
+          "ref": "§ 21",
+          "workId": "hammurabi-harper"
+        }
+      ]
+    },
+    {
+      "id": "golden-rule",
+      "title": "The golden rule",
+      "intro": "Treat others as you would be treated, said in many traditions.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Matthew 7:12"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Luke 6:31"
+        },
+        {
+          "collection": "apocrypha-kjv",
+          "ref": "The Book of Tobit 4:15"
+        },
+        {
+          "collection": "world-classics",
+          "ref": "Book 15, Chapter 23",
+          "workId": "analects-legge"
+        },
+        {
+          "collection": "world-classics",
+          "ref": "Book 12, Chapter 2",
+          "workId": "analects-legge"
+        }
+      ]
+    },
+    {
+      "id": "return-good",
+      "title": "Return good for evil",
+      "intro": "Answer injury with kindness, and hatred with love.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Matthew 5:44"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Romans 12:20",
+          "count": 2,
+          "cite": "Romans 12:20–21"
+        },
+        {
+          "collection": "world-classics",
+          "find": "and to recompense injury with kindness"
+        },
+        {
+          "collection": "world-classics",
+          "ref": "Chapter 1 (The Twin-Verses), verse 5",
+          "workId": "dhammapada-muller"
+        }
+      ]
+    },
+    {
+      "id": "clean-hands",
+      "title": "Clean hands before God",
+      "intro": "The one who may come before the judge of all: the Psalm's clean hands, Job's oath and the Egyptian declaration of innocence before Osiris.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Psalms 24:3",
+          "count": 2,
+          "cite": "Psalms 24:3–4"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Job 31:5",
+          "count": 2,
+          "cite": "Job 31:5–6"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "Homage to thee, O Great God, Lord of Maati",
+          "label": "The Book of the Dead, Chapter 125",
+          "cite": "Chapter 125"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "I have not acted deceitfully",
+          "label": "The declarations of innocence",
+          "cite": "Chapter 125"
+        }
+      ]
+    },
+    {
+      "id": "humble-wisdom",
+      "title": "Wise, not proud",
+      "intro": "Advice from a father to a son: do not think yourself wise.",
+      "sides": [
+        {
+          "collection": "bible-kjv",
+          "ref": "Proverbs 3:7"
+        },
+        {
+          "collection": "bible-kjv",
+          "ref": "Proverbs 1:8"
+        },
+        {
+          "collection": "oldest-texts",
+          "find": "Be not proud because thou art learned",
+          "label": "Ptah-hotep, about 2400 BC",
+          "cite": "Instruction 1"
+        }
+      ]
+    }
+  ]
+}
