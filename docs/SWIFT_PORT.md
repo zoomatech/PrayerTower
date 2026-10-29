@@ -6,7 +6,7 @@ Steve's rule (2026-10-28): the pilot stays the Expo app in `apps/mobile`. Every 
 
 - **The server.** The native app calls the same API (`apps/server`) with the same Supabase sign-in token. No server changes are needed to port a screen. Every route and error shape is in [API.md](API.md).
 - **Supabase Auth.** Sign-in, two-step codes and sessions go through [supabase-swift](https://github.com/supabase/supabase-swift), the official Swift client ([install guide](https://supabase.com/docs/reference/swift/installing)). Members keep their accounts; nothing migrates.
-- **Admin switches.** The app reads `GET /me/features` and hides anything switched off, just like the Expo app. A missing key counts as off (`Features` in `PrayerTowerKit`).
+- **Admin switches.** The app reads `GET /features` and hides anything switched off, just like the Expo app. A missing key counts as off (`Features` in `PrayerTowerKit`).
 - **Wording.** Open Circle communities get plain wording. The native app takes the same word list from `apps/mobile/src/locales/neutral.ts`, ported to a `.xcstrings` catalog when the screens are built.
 
 ## What is in `apps/ios-native` now
@@ -28,7 +28,7 @@ Each phase ships to TestFlight under the separate bundle id. The Expo app stays 
 
 1. **Sign in and the feed** (groundwork done). Add pull-to-refresh, paging and the six reaction icons in one row.
 2. **Post a request, pray, and Me.** Compose, prayer list, profile, notification settings, delete account, data download.
-3. **Push and widgets.** APNs directly (the server already stores device tokens per platform), the Pray now widget and the Lock Screen Live Activity in WidgetKit, which become simpler natively.
+3. **Push and widgets.** APNs directly (the server sends through Expo today, so it gains a direct APNs sender for native tokens), the Pray now widget and the Lock Screen Live Activity in WidgetKit, which become simpler natively.
 4. **Groups, events, conversations, giving, tokens.** One module per screen group, in the order members use them in the pilot results.
 5. **Staff and admin.** Moderation, audit log, radio admin, admin switches.
 6. **Skins.** Vine, Golden Wood, neon and the rest, drawn with SwiftUI `Canvas` and shaders instead of SVG.
