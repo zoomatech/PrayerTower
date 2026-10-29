@@ -5,7 +5,7 @@ import * as growth from '../src/modules/growth/index.js';
 import { app, as, createUser, db, newRequest } from './helpers.js';
 
 const outbox: Mail[] = [];
-const mail: growth.MailContext = { mailer: async (m) => void outbox.push(m), siteUrl: 'https://api.example.org' };
+const mail: growth.MailContext = { mailer: async (m) => void outbox.push(m), siteUrl: 'https://api.example.org', openCircleName: 'Open Circle' };
 const RELIGIOUS = /\b(pray\w*|god|lord|jesus|church|pastors?|priestly|scripture|blessed)\b/i;
 
 const allOff = { guestPrayerEnabled: false, prayerChainEnabled: false, prayedForWidgetEnabled: false, prayerMinuteEnabled: false };
