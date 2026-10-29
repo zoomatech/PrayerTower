@@ -13,10 +13,12 @@ struct SkinnedFeed<Row: View>: View {
     let onEnd: () async -> Void
     /// Swipe to pray: what a confirmed swipe right does.
     var onPray: (Card) -> Void = { _ in }
+    /// Opens a post with all its comments (the vine's "more comments" leaf).
+    var onOpen: ((Card) -> Void)?
 
     var body: some View {
         switch theme.kind {
-        case .vine: VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd)
+        case .vine: VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, onOpen: onOpen)
         case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), row: row, onEnd: onEnd)
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hasMore: hasMore, row: row, onEnd: onEnd)
@@ -37,6 +39,7 @@ struct VineFeed<Row: View>: View {
     let wording: Wording
     @ViewBuilder let row: (Card) -> Row
     let onEnd: () async -> Void
+    var onOpen: ((Card) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -48,7 +51,13 @@ struct VineFeed<Row: View>: View {
                         ForEach(card.leafComments ?? []) { c in
                             VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
                         }
-                        if card.moreComments > 0 { MoreLeaves(count: card.moreComments, look: look, wording: wording) }
+                        if card.moreComments > 0 {
+                            if let onOpen {
+                                Button { onOpen(card) } label: { MoreLeaves(count: card.moreComments, look: look, wording: wording) }.buttonStyle(.plain)
+                            } else {
+                                MoreLeaves(count: card.moreComments, look: look, wording: wording)
+                            }
+                        }
                         if look.fairytale, let scene = NeonSceneKind.after(card: i) { NeonScene(kind: scene, look: look) }
                     }
                     .task { if card.id == cards.last?.id { await onEnd() } }

@@ -20,7 +20,7 @@ struct FeedView: View {
         NavigationStack {
             Group {
                 if let theme, theme.kind != .column {
-                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more) { act(.prayingNow, on: $0) }
+                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id })
                 } else {
                     List {
                         ForEach(posts) { card in
