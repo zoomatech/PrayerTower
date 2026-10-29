@@ -54,6 +54,8 @@ function RootStack() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
+          {/* Listener mode: shows "Listening isn't turned on" unless an admin turned it on. */}
+          <Stack.Screen name="listen-on-air" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && needsCode}>
           <Stack.Screen name="two-step" />

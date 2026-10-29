@@ -36,6 +36,9 @@ import * as radio from '../radio/index.js';
 import * as radioHealth from '../radio/health.js';
 import * as radioNodes from '../radio/nodes.js';
 import * as radioAcks from '../radio/acks.js';
+import * as radioSchedule from '../radio/schedule.js';
+import * as operatorLog from '../radio/oplog.js';
+import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -245,6 +248,55 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     if (input.enabled !== undefined) await radioHealth.setPageEnabled(db, input.enabled);
     if (input.acks) await radioAcks.updateSettings(db, input.acks);
     return { enabled: await radioHealth.pageEnabled(db), health: await radioHealth.overview(db), acks: { ...(await radioAcks.settings(db)), ...(await radioAcks.stats(db)) } };
+  });
+
+  // Transmission windows and quiet hours (radio/schedule.ts).
+  app.get('/admin/radio-schedule', async (req) => {
+    await requireAdmin(req);
+    const schedule = await radioSchedule.get(db);
+    return { schedule, onAirNow: radioSchedule.onAir(schedule) };
+  });
+
+  app.patch('/admin/radio-schedule', async (req) => {
+    await requireAdmin(req);
+    const schedule = await radioSchedule.update(db, radioSchedule.SchedulePatch.parse(req.body));
+    return { schedule, onAirNow: radioSchedule.onAir(schedule) };
+  });
+
+  // Operator log (radio/oplog.ts): ?format=csv&from=&to= downloads it (the last 30 days by default) while it is on.
+  app.get('/admin/operator-log', async (req, reply) => {
+    await requireAdmin(req);
+    const { format, from, to } = z
+      .object({ format: z.enum(['json', 'csv']).default('json'), from: z.coerce.date().optional(), to: z.coerce.date().optional() })
+      .parse(req.query);
+    const on = await operatorLog.enabled(db);
+    if (format === 'json') return { enabled: on };
+    if (!on) throw notFound('Operator log');
+    const end = to ?? new Date();
+    const rows = await operatorLog.rows(db, from ?? new Date(end.getTime() - 30 * 86_400_000), end);
+    reply.header('content-type', 'text/csv; charset=utf-8').header('content-disposition', 'attachment; filename="prayer-tower-operator-log.csv"');
+    return operatorLog.toCsv(rows);
+  });
+
+  app.patch('/admin/operator-log', async (req) => {
+    await requireAdmin(req);
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+    await operatorLog.setEnabled(db, enabled);
+    return { enabled };
+  });
+
+  // Listener mode: the Listen screen from the sign-in screen, with no account.
+  app.get('/admin/listener-mode', async (req) => {
+    await requireAdmin(req);
+    const { rows } = await db.query<{ on: boolean }>('select listener_mode_enabled as on from public.token_settings');
+    return { enabled: rows[0]!.on, active: (await listenerMode(db)).enabled };
+  });
+
+  app.patch('/admin/listener-mode', async (req) => {
+    await requireAdmin(req);
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+    await setListenerMode(db, enabled);
+    return { enabled, active: (await listenerMode(db)).enabled };
   });
 
   app.get('/admin/radio-bursts', async (req) => {

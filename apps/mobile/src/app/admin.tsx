@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
@@ -352,6 +352,9 @@ function Admin() {
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             {radio.radio_transmitter === 'station' ? <StationAlertsSection /> : null}
             {radio.radio_transmitter === 'station' ? <StationHealthSection /> : null}
+            {radio.radio_transmitter === 'station' ? <RadioScheduleSection /> : null}
+            {radio.radio_transmitter === 'station' ? <OperatorLogSection /> : null}
+            {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
@@ -658,6 +661,129 @@ function StationAlertsSection() {
           )}
         </>
       ) : null}
+    </View>
+  );
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Transmission windows and quiet hours (radio/schedule.ts), off by default. */
+function RadioScheduleSection() {
+  const t = useT();
+  const [data, setData] = useState<{ schedule: RadioSchedule; onAirNow: boolean } | null>(null);
+  const [draft, setDraft] = useState<RadioSchedule | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = (d: { schedule: RadioSchedule; onAirNow: boolean }) => {
+    setData(d);
+    setDraft(d.schedule);
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioSchedule().then(load).catch(() => undefined);
+    }, []),
+  );
+  if (!data || !draft) return null;
+  const save = (patch: Partial<RadioSchedule>) => {
+    setError(null);
+    api.admin.updateRadioSchedule(patch).then(load).catch((e: Error) => setError(e.message));
+  };
+  // Sun ... Sat (4 January 2026 was a Sunday).
+  const days = [0, 1, 2, 3, 4, 5, 6].map((d) => new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 0, 4 + d))));
+  const setWindow = (i: number, w: Partial<RadioSchedule['windows'][number]>) => setDraft({ ...draft, windows: draft.windows.map((x, j) => (j === i ? { ...x, ...w } : x)) });
+  const valid = draft.windows.every((w) => w.days.length && HHMM.test(w.start) && HHMM.test(w.end)) && [draft.quietStart, draft.quietEnd].every((v) => !v || HHMM.test(v));
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.scheduleOff')} selected={!data.schedule.enabled} onPress={() => save({ enabled: false })} />
+        <Chip label={t('admin.scheduleOn')} selected={data.schedule.enabled} onPress={() => save({ enabled: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.scheduleHint')}</Text>
+      {data.schedule.enabled ? (
+        <>
+          <Text style={[type.small, data.onAirNow ? null : { color: colors.danger }]}>{t(`admin.scheduleNow.${data.onAirNow ? 'on' : 'off'}`)}</Text>
+          <Field label={t('admin.scheduleTz')} value={draft.timeZone} autoCapitalize="none" onChangeText={(v) => setDraft({ ...draft, timeZone: v })} />
+          <Text style={type.small}>{t('admin.scheduleQuiet')}</Text>
+          <View style={styles.row}>
+            <Field label={t('admin.scheduleQuietStart')} value={draft.quietStart ?? ''} placeholder="22:00" onChangeText={(v) => setDraft({ ...draft, quietStart: v.trim() || null })} />
+            <Field label={t('admin.scheduleQuietEnd')} value={draft.quietEnd ?? ''} placeholder="06:00" onChangeText={(v) => setDraft({ ...draft, quietEnd: v.trim() || null })} />
+          </View>
+          <Text style={type.small}>{t('admin.scheduleWindows')}</Text>
+          {draft.windows.map((w, i) => (
+            <View key={i}>
+              <View style={styles.row}>
+                {days.map((d, day) => (
+                  <Chip key={d} label={d} selected={w.days.includes(day)} onPress={() => setWindow(i, { days: w.days.includes(day) ? w.days.filter((x) => x !== day) : [...w.days, day].sort() })} />
+                ))}
+              </View>
+              <View style={styles.row}>
+                <Field label={t('admin.scheduleStart')} value={w.start} placeholder="18:00" onChangeText={(v) => setWindow(i, { start: v.trim() })} />
+                <Field label={t('admin.scheduleEnd')} value={w.end} placeholder="21:00" onChangeText={(v) => setWindow(i, { end: v.trim() })} />
+                <Button small variant="ghost" label={t('admin.scheduleRemove')} onPress={() => setDraft({ ...draft, windows: draft.windows.filter((_, j) => j !== i) })} />
+              </View>
+            </View>
+          ))}
+          <View style={styles.row}>
+            <Button small variant="ghost" label={t('admin.scheduleAdd')} onPress={() => setDraft({ ...draft, windows: [...draft.windows, { days: [1, 2, 3, 4, 5], start: '18:00', end: '21:00' }] })} />
+            <Button small label={t('admin.scheduleSave')} disabled={!valid} onPress={() => save({ timeZone: draft.timeZone.trim(), quietStart: draft.quietStart, quietEnd: draft.quietEnd, windows: draft.windows })} />
+          </View>
+          <ErrorText error={error} />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** The operator log as CSV (radio/oplog.ts), off by default. */
+function OperatorLogSection() {
+  const t = useT();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.operatorLog().then((r) => setEnabled(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (enabled === null) return null;
+  const set = (on: boolean) => api.admin.setOperatorLog(on).then((r) => setEnabled(r.enabled)).catch(() => undefined);
+  const download = () => {
+    setError(null);
+    api.admin
+      .operatorLogCsv()
+      .then((csv) => saveText('prayer-tower-operator-log.csv', csv, 'text/csv', 'public.comma-separated-values-text'))
+      .catch((e: Error) => setError(e.message));
+  };
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.operatorLogOff')} selected={!enabled} onPress={() => set(false)} />
+        <Chip label={t('admin.operatorLogOn')} selected={enabled} onPress={() => set(true)} />
+      </View>
+      <Text style={type.small}>{t('admin.operatorLogHint')}</Text>
+      {enabled ? <Button small label={t('admin.operatorLogDownload')} onPress={download} /> : null}
+      <ErrorText error={error} />
+    </View>
+  );
+}
+
+/** Listener mode: the Listen screen from the sign-in screen, with no account. */
+function ListenerModeSection() {
+  const t = useT();
+  const [data, setData] = useState<{ enabled: boolean; active: boolean } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.listenerMode().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const set = (on: boolean) => api.admin.setListenerMode(on).then(setData).catch(() => undefined);
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.listenerModeOff')} selected={!data.enabled} onPress={() => set(false)} />
+        <Chip label={t('admin.listenerModeOn')} selected={data.enabled} onPress={() => set(true)} />
+      </View>
+      <Text style={type.small}>{t('admin.listenerModeHint')}</Text>
+      {data.enabled && !data.active ? <Text style={[type.small, { color: colors.danger }]}>{t('admin.listenerModeInactive')}</Text> : null}
     </View>
   );
 }

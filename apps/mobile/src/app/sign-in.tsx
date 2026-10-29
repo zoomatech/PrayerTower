@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 
@@ -38,8 +38,11 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Listener mode (Admin → Radio): anyone near a radio can listen without an account.
+  const [canListen, setCanListen] = useState(false);
   useEffect(() => {
     api.signupConfig().then((c) => setInviteOnly(c.inviteOnly), () => undefined);
+    api.listenConfig().then((c) => setCanListen(c.enabled), () => undefined);
   }, []);
 
   const submit = async () => {
@@ -147,6 +150,7 @@ export default function SignIn() {
             label={mode === 'sign-in' ? t('signIn.toSignUp') : t('signIn.toSignIn')}
             onPress={() => switchMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
           />
+          {canListen ? <Button variant="ghost" testID="listen-on-air" label={t('signIn.listen')} onPress={() => router.push('/listen-on-air')} /> : null}
           <LanguagePicker heading={false} />
         </View>
       </KeyboardAvoidingView>

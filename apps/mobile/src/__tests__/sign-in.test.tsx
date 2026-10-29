@@ -1,13 +1,13 @@
 // Sign-in and invite-only sign-up, as a new pilot member meets them.
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { renderApp } from '@/__tests__/helpers';
 import SignIn from '@/app/sign-in';
 import { api } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
-jest.mock('@/lib/api', () => ({ api: { signupConfig: jest.fn(async () => ({ inviteOnly: true })) } }));
+jest.mock('@/lib/api', () => ({ api: { signupConfig: jest.fn(async () => ({ inviteOnly: true })), listenConfig: jest.fn(async () => ({ enabled: false, receipts: false })) } }));
 const mockSetRecovering = jest.fn();
 jest.mock('@/lib/auth-links', () => ({ authRedirectUrl: () => 'prayertower://account-security' }));
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ setRecovering: mockSetRecovering, linkError: null }) }));
@@ -41,6 +41,15 @@ describe('Sign in', () => {
     await type('Password', 'wrong-password');
     await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Invalid login credentials')).toBeTruthy();
+  });
+
+  it('offers listening without an account only while listener mode is on', async () => {
+    await renderApp(<SignIn />);
+    expect(screen.queryByRole('button', { name: 'Listen to radio prayers (no account needed)' })).toBeNull();
+    (api.listenConfig as jest.Mock).mockResolvedValueOnce({ enabled: true, receipts: false });
+    await renderApp(<SignIn />);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Listen to radio prayers (no account needed)' }));
+    expect(router.push).toHaveBeenCalledWith('/listen-on-air');
   });
 });
 
