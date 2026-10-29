@@ -1,11 +1,12 @@
 // Burst mode: the compression, error correction, modem and station loop,
 // end to end through a simulated radio channel.
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import vm from 'node:vm';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bundle, OUTPUT } from '../scripts/build-listen.js';
+import { appBundle, APP_OUTPUT, bundle, OUTPUT } from '../scripts/build-listen.js';
 import { autoChooser, DEFAULT_AUTO_PRESETS, parseCandidates, pickPreset, readReport } from '../src/burst/auto.js';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { cmCompress, cmDecompress } from '../src/burst/cm.js';
@@ -15,6 +16,7 @@ import { fft } from '../src/burst/fft.js';
 import { demodulate, frameSeconds, modulate } from '../src/burst/ofdm.js';
 import { PRESETS, presetByName } from '../src/burst/presets.js';
 import { rsDecode, rsEncode } from '../src/burst/rs.js';
+import { fingerprint } from '../src/burst/sha256.js';
 import { samplePrayers } from '../src/burst/sample.js';
 import { decodeTextFrames, encodeTextFrame } from '../src/burst/text-frame.js';
 import { simulateTransmitter, type BurstTransmitter } from '../src/burst/transmit.js';
@@ -365,20 +367,56 @@ describe('auto preset', () => {
 });
 
 describe('browser listening page', () => {
-  it('the committed decoder bundle is up to date (npm run build:listen -w @prayer-tower/station)', async () => {
+  it('the committed decoder bundles are up to date (npm run build:listen -w @prayer-tower/station)', async () => {
     expect(readFileSync(OUTPUT, 'utf8')).toBe(await bundle());
+    expect(readFileSync(APP_OUTPUT, 'utf8')).toBe(await appBundle());
+  });
+
+  it('fingerprints prayers exactly as SHA-256 does, for receipts', () => {
+    for (const text of ['', 'Pray for peace.', 'Pray for Señor Núñez 🙏', 'x'.repeat(55), 'y'.repeat(64), 'z'.repeat(3000)]) {
+      expect(fingerprint(text)).toBe(createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 32));
+    }
   });
 
   it('the bundle decodes a burst recorded at 44.1 kHz in a plain JavaScript context, with no Node APIs', async () => {
     const source = await bundle();
     const js = JSON.parse(source.slice(source.indexOf('= ') + 2, source.lastIndexOf(';'))) as string;
-    const context: { PTDecoder?: { decodeAudio(x: Float32Array, rate: number): Array<{ callSign: string; prayers: string[] | null; snrDb: number }>; channelReport(f: unknown[]): { snrDb: number } | null } } = {};
+    const context: { PTDecoder?: { decodeAudio(x: Float32Array, rate: number): Array<{ callSign: string; prayers: string[] | null; snrDb: number }>; channelReport(f: unknown[]): { snrDb: number } | null; fingerprint(text: string): string } } = {};
     vm.runInNewContext(`${js}; this.PTDecoder = PTDecoder;`, context);
     const burst = buildBurst([encodeBatch(SAMPLE_PRAYERS)], presetByName('fm-robust-fec'), 'KD9XYZ');
     const heard = context.PTDecoder!.decodeAudio(resample(burst.audio, 48_000, 44_100), 44_100);
     expect(heard).toHaveLength(1);
     expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', prayers: SAMPLE_PRAYERS });
     expect(context.PTDecoder!.channelReport(heard)?.snrDb).toBeGreaterThan(20);
+    expect(context.PTDecoder!.fingerprint(SAMPLE_PRAYERS[0]!)).toBe(sentHash(SAMPLE_PRAYERS[0]!));
+  });
+});
+
+describe("the app's Listen screen", () => {
+  it('decodes a burst arriving in small microphone chunks, once, and fingerprints it for a receipt', async () => {
+    // A path in a variable keeps the app's file out of this package's TypeScript project.
+    const appModule = new URL('../../mobile/src/lib/burst-listen.ts', import.meta.url).pathname;
+    const { BurstListener, receiptHashes, toMono } = (await import(/* @vite-ignore */ appModule)) as {
+      BurstListener: new (rate: number) => { push(s: Float32Array): void; decode(): Array<{ callSign: string; prayers: string[] | null }> };
+      receiptHashes(f: { prayers: string[] | null }): string[];
+      toMono(data: ArrayBufferLike, channels: number, encoding: 'float32'): Float32Array;
+    };
+    const burst = buildBurst([encodeBatch(SAMPLE_PRAYERS)], presetByName('fm-robust-fec'), 'KD9XYZ');
+    const rate = 44_100;
+    const audio = resample(burst.audio, 48_000, rate);
+    const mic = new Float32Array(rate * 3 + audio.length + rate * 4);
+    mic.set(audio, rate * 3);
+    const l = new BurstListener(rate);
+    const heard = [];
+    for (let i = 0; i < mic.length; i += 4096) {
+      // As the stream delivers it: interleaved float32, here mono.
+      l.push(toMono(mic.slice(i, i + 4096).buffer, 1, 'float32'));
+      if ((i / 4096) % 12 === 0) heard.push(...l.decode());
+    }
+    heard.push(...l.decode());
+    expect(heard).toHaveLength(1);
+    expect(heard[0]).toMatchObject({ callSign: 'KD9XYZ', prayers: SAMPLE_PRAYERS });
+    expect(receiptHashes(heard[0]!)).toEqual([...new Set(SAMPLE_PRAYERS)].map((p) => sentHash(p)));
   });
 });
 

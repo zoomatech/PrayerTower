@@ -4,6 +4,7 @@ import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import * as radio from './index.js';
+import * as receipts from './receipts.js';
 
 export function radioRoutes(app: FastifyInstance, db: Db) {
   // Spend Priestly tokens (token_settings.radio_prayer_cost) to send this request out by radio.
@@ -19,6 +20,13 @@ export function radioRoutes(app: FastifyInstance, db: Db) {
 
   // Prayer Cast: the public log of prayers that went out.
   app.get('/prayer-cast', async (req) => radio.castLog(db, requireUser(req)));
+
+  // The app's Listen screen: shown while Admin → Radio has the listening page on.
+  app.get('/radio/listen', async (req) => {
+    requireUser(req);
+    const s = await radio.stationSettings(db);
+    return { enabled: s.listen_page_enabled, receipts: s.listen_page_enabled && (await receipts.enabled(db)) };
+  });
 
   app.get('/me/radio-prayers', async (req) => {
     const userId = requireUser(req);

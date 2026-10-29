@@ -202,11 +202,13 @@ export interface StationSettings {
   listen_page_enabled: boolean;
   /** "On the air" receipts: tell senders when their prayer went out and when a listener heard it (receipts.ts). */
   radio_receipts_enabled: boolean;
+  /** The public /on-the-air page: counts of what went out, never content. */
+  on_air_page_enabled: boolean;
 }
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled from public.token_settings',
   );
   return rows[0]!;
 }
@@ -221,8 +223,9 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
             radio_order = coalesce($5, radio_order),
             radio_batch_max = coalesce($6, radio_batch_max),
             listen_page_enabled = coalesce($7, listen_page_enabled),
-            radio_receipts_enabled = coalesce($8, radio_receipts_enabled)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled`,
+            radio_receipts_enabled = coalesce($8, radio_receipts_enabled),
+            on_air_page_enabled = coalesce($9, on_air_page_enabled)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled, radio_receipts_enabled, on_air_page_enabled`,
     [
       patch.radio_transmitter ?? null,
       patch.radio_station_requires_free ?? null,
@@ -232,6 +235,7 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
       patch.radio_batch_max ?? null,
       patch.listen_page_enabled ?? null,
       patch.radio_receipts_enabled ?? null,
+      patch.on_air_page_enabled ?? null,
     ],
   );
   return rows[0]!;

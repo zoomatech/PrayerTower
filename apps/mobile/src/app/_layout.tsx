@@ -97,6 +97,7 @@ function RootStack() {
           <Stack.Screen name="radio-requests" />
           <Stack.Screen name="macro-needs" />
           <Stack.Screen name="prayer-cast" />
+          <Stack.Screen name="listen" />
           <Stack.Screen name="highlights" />
           <Stack.Screen name="awards" />
           <Stack.Screen name="branch" />

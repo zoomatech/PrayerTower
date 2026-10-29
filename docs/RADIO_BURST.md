@@ -167,12 +167,18 @@ into `apps/server/src/modules/listen/decoder.generated.ts`. After changing
 the decoder, run `npm run build:listen -w @prayer-tower/station`; a station
 test fails while the bundle is out of date.
 
+**In the app.** Prayer Cast shows "Listen to the radio" while the listening page is on. The Listen screen streams the microphone (expo-audio's `useAudioStream`, 48 kHz float PCM) through the same decoder, bundled as an ES module into `apps/mobile/src/lib/burst-decoder.generated.js` by the same build script. It keeps a rolling 24-second window and decodes it every 2 seconds.
+
 ## Receipts
 
 Off until Admin → Radio → "On-the-air receipts on" (`token_settings.radio_receipts_enabled`).
 
 - **On the air.** When the station reports a prayer sent, the member who sent it gets a notice: "It went out at 2:05 PM UTC from N0CALL on fm-qam16." The time is in the member's quiet-hours time zone if they set one, otherwise UTC. It works with the PSK31 loop and the log transmitter too, without a preset.
-- **Heard.** In burst mode the station also reports `sentHash` for each prayer: the first 32 hex digits of SHA-256 of the exact (ASCII-folded) text it sent. A listener's `/listen` page, with the listener's agreement, sends `POST /listen/heard` with the call sign, preset, SNR and those fingerprints, never the words. Each fingerprint matches prayers that call sign sent in the last 24 hours. The first report of each tells its sender and the person who asked; later reports only count (`radio_prayers.heard_count`, best `heard_snr_db`). The route is public, limited to 20 requests a minute per IP address, and a 404 while receipts are off.
+- **Heard.** In burst mode the station also reports `sentHash` for each prayer: the first 32 hex digits of SHA-256 of the exact (ASCII-folded) text it sent. A listener's `/listen` page or the app's Listen screen, with the listener's agreement, sends `POST /listen/heard` with the call sign, preset, SNR and those fingerprints, never the words. Each fingerprint matches prayers that call sign sent in the last 24 hours. The first report of each tells its sender and the person who asked; later reports only count (`radio_prayers.heard_count`, best `heard_snr_db`). The route is public, limited to 20 requests a minute per IP address, and a 404 while receipts are off.
+
+## Prayers on the air (public page)
+
+Off until Admin → Radio → "On-the-air page on" (`token_settings.on_air_page_enabled`). `/on-the-air` (and `/open-circle/on-the-air`, worded "Messages") shows how many prayers the station sent in the last 24 hours, 7 days and in all, how many listeners reported hearing, and the latest 20 bursts (time, count, air time, preset). Counts only: it never shows a prayer's words, who sent or asked for it, or anything about a listener. Simulated bursts and the log transmitter are left out.
 
 ## Auto preset
 

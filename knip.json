@@ -29,7 +29,8 @@
   },
   "ignoreExportsUsedInFile": true,
   "ignore": [
-    "deploy/fly-web/site/**"
+    "deploy/fly-web/site/**",
+    "apps/mobile/src/lib/burst-decoder.generated.js"
   ],
   "ignoreBinaries": [
     "openssl"

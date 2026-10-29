@@ -26,7 +26,11 @@ afterAll(async () => {
 describe('listening page', () => {
   it('is a 404 until Admin → Radio turns it on, then serves the decoder', async () => {
     expect((await app.inject({ method: 'GET', url: '/listen' })).statusCode).toBe(404);
+    expect((await as(admin).get('/radio/listen')).json()).toEqual({ enabled: false, receipts: false });
     expect((await as(admin).patch('/admin/radio-settings', { listenPage: true })).json().settings.listen_page_enabled).toBe(true);
+    // The app's Listen screen follows the same switch.
+    expect((await as(admin).get('/radio/listen')).json()).toEqual({ enabled: true, receipts: false });
+    expect((await app.inject({ method: 'GET', url: '/radio/listen' })).statusCode).toBe(401);
     const page = await app.inject({ method: 'GET', url: '/listen' });
     expect(page.statusCode).toBe(200);
     expect(page.body).toContain('Start listening');
@@ -38,7 +42,7 @@ describe('listening page', () => {
 
 describe('radio station', () => {
   it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
-    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1, listen_page_enabled: false, radio_receipts_enabled: false });
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1, listen_page_enabled: false, radio_receipts_enabled: false, on_air_page_enabled: false });
     expect((await station('/station/claim')).statusCode).toBe(409); // log mode
     const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
     expect(s.json().settings.radio_transmitter).toBe('station');
@@ -269,5 +273,32 @@ describe('radio station', () => {
     await as(admin).patch('/admin/radio-settings', { receipts: false, batchMax: 1 });
     expect((await app.inject({ method: 'GET', url: '/listen' })).body).not.toContain('id="receipts-on"');
     await as(admin).patch('/admin/radio-settings', { listenPage: false });
+  });
+
+  it('shows counts of what really went out on the public on-the-air page, never the words', async () => {
+    expect((await app.inject({ method: 'GET', url: '/on-the-air' })).statusCode).toBe(404);
+    await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+    await as(admin).patch('/admin/radio-settings', { transmitter: 'station', batchMax: 10 });
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    const poster = await createUser('On Air Poster');
+    const secret = `Pray for my private matter ${Date.now()}.`;
+    const p = await newRequest(poster, secret);
+    await as(poster).post(`/posts/${p.id}/radio`, { idempotencyKey: 'on-air-1' });
+    const before = (await db.query(`select count(*)::int as n from public.radio_prayers where status = 'transmitted' and transmitter = 'station' and transmitted_at > now() - interval '1 day'`)).rows[0].n;
+    const [c] = (await station('/station/claim-batch', { max: 10 })).json().radioPrayers;
+    await station(`/station/radio-prayers/${c.id}/result`, { ok: true, callSign: 'N0CALL', preset: 'fm-standard' });
+    await station('/station/bursts', { callSign: 'N0CALL', mode: 'audio', preset: 'fm-standard<script>', prayers: 1, frames: 1, bytes: 40, seconds: 1.23, ok: true });
+    await station('/station/bursts', { callSign: 'N0CALL', mode: 'simulate', preset: 'sim-only-preset', prayers: 99, frames: 1, bytes: 40, seconds: 9.87, ok: true });
+    expect((await as(admin).patch('/admin/radio-settings', { onAirPage: true })).json().settings.on_air_page_enabled).toBe(true);
+    const page = (await app.inject({ method: 'GET', url: '/on-the-air' })).body;
+    expect(page).toContain('Prayers on the air');
+    expect(page).toContain(`<p class="big">${before + 1}</p>`);
+    expect(page).toContain('1.23 s');
+    expect(page).toContain('fm-standard&lt;script&gt;');
+    expect(page).not.toContain('sim-only-preset');
+    expect(page).not.toContain(secret);
+    expect(page).not.toContain('On Air Poster');
+    await as(admin).patch('/admin/radio-settings', { onAirPage: false, batchMax: 1 });
+    expect((await app.inject({ method: 'GET', url: '/on-the-air' })).statusCode).toBe(404);
   });
 });

@@ -59,3 +59,5 @@ export function channelReport(frames: readonly HeardFrame[], now = new Date()): 
 }
 
 export { SAMPLE_RATE };
+/** Receipt fingerprint of a decoded prayer, as the station reports it ("Receipts" in docs/RADIO_BURST.md). */
+export { fingerprint } from './sha256.js';
