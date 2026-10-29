@@ -26,6 +26,9 @@ struct MeView: View {
         NavigationStack {
             List {
                 FeedStyleSection()
+                if model.features["themeProposals"] {
+                    Section { NavigationLink("Make your own feed skin") { ThemeMakerView() } }
+                }
                 if model.features["freshDays"] {
                     if let line = freshDay?.line { Section { Text(line) } }
                     Section { FreshDaysSection() } header: { Text("Days that matter") }
@@ -75,7 +78,8 @@ struct FeedStyleSection: View {
                 }
             }
         }
-        .task { choices = try? await model.store.api.feedThemes() }
+        // On every return to Me, so a skin just made in the theme maker is there to choose.
+        .onAppear { Task { choices = try? await model.store.api.feedThemes() } }
     }
 
     private func choose(_ slug: String) async {

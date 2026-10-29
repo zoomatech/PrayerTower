@@ -48,6 +48,7 @@ The native feed reads the member's skin from `GET /feed` (`theme`) and draws it 
 - **Swipe to pray**: one card at a time; a swipe right or the Pray button asks before it prays, so a swipe never records a prayer by itself. Next, Pray and VoiceOver actions do the same without a swipe.
 - **Flip**: one request per page, turned with a fold (`scrollTransition`), with "1 of 12" and the last page's thank-you.
 - Neon Cinderella's castle, pumpkin coach, midnight clock and glass slipper are the Expo app's own drawings: the same SVG path data (`NeonArt.swift`), each line stroked as a glowing tube with a white-hot core.
+- **Make your own feed skin** (Me, behind the `themeProposals` switch): layout, colors with a color picker, drawing style, comment shape and stem, with a live preview drawn by the real feed skins (`SkinMaker`, `ThemeMakerView`). The skin is the member's in Feed style at once; others get it once an admin approves it.
 - Every drawing is hidden from VoiceOver, and the spark, bursts and climber stop with Reduce Motion.
 
 ## Port order
