@@ -80,8 +80,12 @@ function Invites() {
       t('invites.created', { count: n }),
     ).then(() => setNote(''));
 
-  const share = (code: string) =>
-    Share.share({ message: t('invites.shareMessage', { code, url: Linking.createURL('/sign-in', { queryParams: { invite: code } }) }) }).catch(() => undefined);
+  // A code for a secular community (Open Circle) invites people there by name, with no religious words.
+  const share = (code: string, community: Invite['community']) => {
+    const url = Linking.createURL('/sign-in', { queryParams: { invite: code } });
+    const message = community?.secular ? t('invites.shareMessageTo', { name: community.name, code, url }) : t('invites.shareMessage', { code, url });
+    return Share.share({ message }).catch(() => undefined);
+  };
 
   const sendEmail = (code: string) => {
     const email = to.trim();
@@ -157,7 +161,7 @@ function Invites() {
             </Text>
             {i.status === 'active' ? (
               <View style={styles.row}>
-                <Button small variant="secondary" label={t('invites.share')} onPress={() => share(i.code)} />
+                <Button small variant="secondary" label={t('invites.share')} onPress={() => share(i.code, i.community)} />
                 <Button small variant="secondary" label={t('invites.emailCode', { code: i.code })} onPress={() => setEmailing(emailing === i.code ? null : i.code)} />
                 <Button
                   small

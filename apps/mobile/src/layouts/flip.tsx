@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { Tr } from '@/lib/i18n';
+import { useReducedMotion } from '@/lib/motion';
 import { colors, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -15,6 +16,7 @@ type Page = { kind: 'card'; card: Card } | { kind: 'end' };
 export function FlipLayout({ cards, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const [height, setHeight] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   const pages: Page[] = [
     ...cards.map((card) => ({ kind: 'card' as const, card })),
     ...(atEnd && cards.length > 0 ? [{ kind: 'end' as const }] : []),
@@ -22,7 +24,10 @@ export function FlipLayout({ cards, pinnedId, renderCard, header, refreshing, on
 
   const renderPage = ({ item, index }: { item: Page; index: number }) => {
     const range = [(index - 1) * height, index * height, (index + 1) * height];
-    const turn = {
+    // Reduce Motion: pages still snap, but don't tilt, shrink or fade as they turn.
+    const turn = reduced
+      ? null
+      : {
       opacity: scrollY.interpolate({ inputRange: range, outputRange: [0.3, 1, 0.3], extrapolate: 'clamp' }),
       transform: [
         { perspective: 1200 },

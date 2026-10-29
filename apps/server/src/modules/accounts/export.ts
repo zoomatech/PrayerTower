@@ -34,6 +34,7 @@ const SECTIONS: Record<string, Section> = {
   circleRequests: { table: 'circle_requests', where: 'user_id = $1', omit: ['closed_by'] },
   churchApplications: { table: 'churches', where: 'applicant_id = $1', omit: ['reviewed_by'] },
   feedback: { table: 'feedback', where: 'user_id = $1', omit: ['closed_by'] },
+  skinIdeas: { table: 'theme_proposals', where: 'user_id = $1', omit: ['reviewed_by'] },
   following: { table: 'follows', where: 'user_id = $1' },
   blocked: { table: 'user_blocks', where: 'user_id = $1' },
   notifications: { table: 'notifications', where: 'user_id = $1', omit: ['dedupe_key'] },

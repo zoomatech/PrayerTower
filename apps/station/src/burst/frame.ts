@@ -5,8 +5,19 @@
 //     call sign (8 ASCII bytes, space padded)  flags=0
 //   message: batch bytes (codec byte + compressed prayers), then CRC-32 of them
 //   payload: the message cut into equal Reed-Solomon blocks, interleaved byte by byte
-import { crc32 } from 'node:zlib';
 import { rsDecode, rsEncode } from './rs.js';
+
+/** CRC-32 (IEEE 802.3, the one zlib and PNG use), in plain code so a browser can run the decoder too. */
+const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c;
+});
+function crc32(bytes: Uint8Array): number {
+  let c = 0xffffffff;
+  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff]! ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
 
 export const HEADER_BYTES = 16;
 export const HEADER_PARITY = 16;

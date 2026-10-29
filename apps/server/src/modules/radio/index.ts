@@ -196,11 +196,13 @@ export interface StationSettings {
   radio_order: 'oldest' | 'need';
   /** Burst mode: the most prayers the station may claim at once (1 = one at a time). */
   radio_batch_max: number;
+  /** The public /listen page that decodes bursts from a microphone. */
+  listen_page_enabled: boolean;
 }
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled from public.token_settings',
   );
   return rows[0]!;
 }
@@ -213,9 +215,18 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
             radio_max_chars = coalesce($3, radio_max_chars),
             radio_amplify_repeats = coalesce($4, radio_amplify_repeats),
             radio_order = coalesce($5, radio_order),
-            radio_batch_max = coalesce($6, radio_batch_max)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max`,
-    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null, patch.radio_order ?? null, patch.radio_batch_max ?? null],
+            radio_batch_max = coalesce($6, radio_batch_max),
+            listen_page_enabled = coalesce($7, listen_page_enabled)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max, listen_page_enabled`,
+    [
+      patch.radio_transmitter ?? null,
+      patch.radio_station_requires_free ?? null,
+      patch.radio_max_chars ?? null,
+      patch.radio_amplify_repeats ?? null,
+      patch.radio_order ?? null,
+      patch.radio_batch_max ?? null,
+      patch.listen_page_enabled ?? null,
+    ],
   );
   return rows[0]!;
 }

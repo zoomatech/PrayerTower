@@ -265,7 +265,7 @@ export interface TokenSummary {
   priestly: PriestlyStatus;
 }
 
-export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip';
+export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit';
 
 export interface FeedTheme {
   slug: string;
@@ -354,6 +354,8 @@ export interface Appeal {
 export interface FeedThemeChoices {
   themes: { slug: string; name: string; layout: FeedLayoutKind; status: 'active' | 'beta'; is_default: boolean }[];
   current: string | null;
+  /** The viewer's current theme with its tokens (comment trees use its colors). */
+  theme?: FeedTheme | null;
 }
 
 export interface FeedPage {
@@ -642,3 +644,19 @@ export const FEEDBACK_TAGS = ['bug', 'crash', 'idea', 'confusing', 'content', 'n
 export type FeedbackTag = (typeof FEEDBACK_TAGS)[number];
 export const FEEDBACK_SEVERITIES = ['low', 'medium', 'high', 'blocker'] as const;
 export type FeedbackSeverity = (typeof FEEDBACK_SEVERITIES)[number];
+
+/** WCAG 2.x contrast ratio of two #RRGGBB colors (1 to 21). */
+export function contrastRatio(a: string, b: string): number {
+  const lum = (hex: string) => {
+    const [r, g, bl] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * bl!;
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+}
+
+/** Comment text color in the app; a member skin's comment background must keep 4.5:1 against it (WCAG AA). */
+export const COMMENT_TEXT = '#2B2433';

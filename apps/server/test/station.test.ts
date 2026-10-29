@@ -22,9 +22,22 @@ afterAll(async () => {
   await db.end();
 });
 
+describe('listening page', () => {
+  it('is a 404 until Admin → Radio turns it on, then serves the decoder', async () => {
+    expect((await app.inject({ method: 'GET', url: '/listen' })).statusCode).toBe(404);
+    expect((await as(admin).patch('/admin/radio-settings', { listenPage: true })).json().settings.listen_page_enabled).toBe(true);
+    const page = await app.inject({ method: 'GET', url: '/listen' });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('Start listening');
+    expect(page.body).toContain('PTDecoder');
+    await as(admin).patch('/admin/radio-settings', { listenPage: false });
+    expect((await app.inject({ method: 'GET', url: '/listen' })).statusCode).toBe(404);
+  });
+});
+
 describe('radio station', () => {
   it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
-    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1 });
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1, listen_page_enabled: false });
     expect((await station('/station/claim')).statusCode).toBe(409); // log mode
     const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
     expect(s.json().settings.radio_transmitter).toBe('station');
