@@ -146,6 +146,6 @@ const styles = StyleSheet.create({
   card: { gap: space.sm, padding: space.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primarySoft },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   resting: { fontWeight: '600' },
-  helped: { ...type.small, color: colors.primary, fontWeight: '600' },
+  helped: { ...type.small, color: colors.primary, fontWeight: '600', minHeight: 44, textAlignVertical: 'center' },
   widely: { ...type.small, color: colors.textMuted },
 });
