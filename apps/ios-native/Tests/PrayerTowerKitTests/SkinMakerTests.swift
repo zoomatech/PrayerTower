@@ -49,7 +49,7 @@ import Testing
     @Test func hasTwoSampleRequestsWithCommentsInEachWording() {
         let faith = SkinMaker.sampleCards(.faith), neutral = SkinMaker.sampleCards(.neutral)
         #expect(faith.count == 2 && neutral.count == 2)
-        #expect(faith.allSatisfy { $0.leafComments?.count == 1 })
+        #expect(faith.allSatisfy { $0.leafComments?.count == 1 && $0.moreComments == 0 })
         let words = neutral.flatMap { [$0.body] + ($0.leafComments ?? []).map(\.body) }.joined(separator: " ")
         #expect(words.range(of: "pray", options: .caseInsensitive) == nil)
     }

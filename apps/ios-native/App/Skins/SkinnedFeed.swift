@@ -48,6 +48,7 @@ struct VineFeed<Row: View>: View {
                         ForEach(card.leafComments ?? []) { c in
                             VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
                         }
+                        if card.moreComments > 0 { MoreLeaves(count: card.moreComments, look: look, wording: wording) }
                         if look.fairytale, let scene = NeonSceneKind.after(card: i) { NeonScene(kind: scene, look: look) }
                     }
                     .task { if card.id == cards.last?.id { await onEnd() } }
@@ -204,6 +205,32 @@ struct VineLeaf<Content: View>: View {
             ctx.stroke(p, with: .color(Color(look.lit ? look.stem : look.branch)), style: .init(lineWidth: max(1.5, look.stemWidth / 3), lineCap: .round))
         }
         .frame(width: depth == 0 ? 44 : 72)
+    }
+}
+
+/// The older comments waiting behind frosted glass, with how many there are (BlurredLeaves in vine.tsx).
+struct MoreLeaves: View {
+    let count: Int
+    let look: VineLook
+    let wording: Wording
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: 10) {
+                ForEach(0..<3, id: \.self) { _ in LeafOutline().fill(Color(look.leaf)).frame(width: 46, height: 30) }
+            }
+            .blur(radius: 6)
+            .opacity(0.7)
+            .accessibilityHidden(true)
+            Text(Skin.moreComments(count))
+                .font(.footnote.bold())
+                .foregroundStyle(Color(RGB.commentText))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(Color(look.leafBox(wording)), in: .capsule)
+        }
+        .padding(.leading, 58)
+        .padding(.vertical, 10)
     }
 }
 

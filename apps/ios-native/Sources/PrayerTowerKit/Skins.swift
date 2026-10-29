@@ -248,3 +248,17 @@ public enum Skin {
         wording == .neutral ? "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." : look.tipText
     }
 }
+
+extension Card {
+    /// Comments not shown on the feed's leaves, for the "more comments" leaf under them; 0 for none.
+    public var moreComments: Int {
+        let shown = leafComments?.count ?? 0
+        return shown > 0 ? max(0, counts.comments - shown) : 0
+    }
+}
+
+extension Skin {
+    public static func moreComments(_ n: Int) -> String {
+        n == 1 ? "1 more comment on this request" : "\(n) more comments on this request"
+    }
+}

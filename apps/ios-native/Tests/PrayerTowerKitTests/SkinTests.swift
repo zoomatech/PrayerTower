@@ -79,6 +79,8 @@ extension APIClientTests {
         #expect(page.theme?.kind == .vine)
         #expect(VineLook(page.theme).stemWidth == 12)
         #expect(page.posts.first?.leafComments?.first?.author.displayName == "Ruth")
+        #expect(page.posts.first?.moreComments == 0)
+        #expect(Skin.moreComments(1) == "1 more comment on this request" && Skin.moreComments(4) == "4 more comments on this request")
     }
 
     @Test func choosesAFeedSkinOrGoesBackToTheUsualFeed() async throws {
