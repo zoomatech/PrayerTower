@@ -18,6 +18,7 @@ import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
 import * as givingSplit from '../giving-split/index.js';
+import * as library from '../library/index.js';
 import * as growth from '../growth/index.js';
 import * as reminders from '../reminders/index.js';
 import * as goldfish from '../goldfish/index.js';
@@ -204,7 +205,6 @@ export async function features(q: Queryable) {
   const s = await settings(q);
   const { rows: legal } = await q.query<{ enabled: boolean }>('select enabled from public.legal_settings');
   const { rows: match } = await q.query<{ enabled: boolean }>('select enabled from public.material_match_settings');
-  const { rows: library } = await q.query<{ enabled: boolean }>('select enabled from public.library_settings');
   return {
     worldwideCount: s.worldwide_count_enabled,
     thanksCard: s.thanks_card_enabled,
@@ -242,8 +242,8 @@ export async function features(q: Queryable) {
     crosspost: s.crosspost_enabled,
     /** Paid radio prayers are matched with equal material help (modules/material-match). */
     materialMatch: match[0]?.enabled === true,
-    /** Scripture and ancient writings search (modules/library, Admin → Library search). */
-    library: library[0]?.enabled === true,
+    /** Scripture and ancient writings search, sharing and the daily card (modules/library, Admin → Text search). */
+    ...(await library.features(q)),
     /** Growth ideas (modules/growth, Admin → Growth). */
     ...(await growth.features(q)),
     /** Giving split (modules/giving-split, Admin → Giving split). */

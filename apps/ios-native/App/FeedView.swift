@@ -39,6 +39,7 @@ struct FeedView: View {
                 } else {
                     List {
                         banner
+                        DailyPassageCard()
                         SurveyPrompts()
                         ForEach(posts) { card in
                             row(card).task { if card.id == posts.last?.id { await more() } }

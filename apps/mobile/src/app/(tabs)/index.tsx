@@ -15,6 +15,7 @@ import { KindnessPromise } from '@/components/kind-norms';
 import { TellFounder } from '@/components/tell-founder';
 import { Highlights } from "@/components/highlights";
 import { MacroNeeds } from "@/components/macro-needs";
+import { DailyPassage } from "@/components/daily-passage";
 import { GivingAsk, ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
 import { AcrossCard } from "@/components/across-card";
@@ -214,6 +215,7 @@ export default function Feed() {
           </View>
         </View>
       ) : null}
+      {filter === "all" ? <DailyPassage /> : null}
       {filter === "all" ? <ThanksCard /> : null}
       {filter === "all" ? <GivingAsk /> : null}
       {filter === "all" ? <AcrossCard onAction={onAction} /> : null}
