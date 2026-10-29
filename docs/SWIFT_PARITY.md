@@ -72,6 +72,7 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
 | `ai-chat` | `AiChatView`, `AiTurnsView` | ✅ |
 | `circle-prep` | `CirclePrepView` | ✅ |
 | `crosspost` | `CrosspostView` | ✅ |
+| `library` (Bible and ancient writings search) | `LibraryView`, admin switch in `LibraryAdminSection` | ✅ |
 | `token-store` | `TokenStoreView` (StoreKit 2, practice mode) | ✅ |
 | `+not-found` | `RouteView` | ✅ |
 
