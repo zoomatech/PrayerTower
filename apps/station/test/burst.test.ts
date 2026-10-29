@@ -19,7 +19,7 @@ import { samplePrayers } from '../src/burst/sample.js';
 import { decodeTextFrames, encodeTextFrame } from '../src/burst/text-frame.js';
 import { simulateTransmitter, type BurstTransmitter } from '../src/burst/transmit.js';
 import { fromWav, resample, toWav } from '../src/burst/wav.js';
-import { runBurstOnce } from '../src/burst/worker.js';
+import { runBurstOnce, sentHash } from '../src/burst/worker.js';
 import { DEFAULT_BLOCKLIST } from '../src/text.js';
 import { httpApi, TransmitError, type BurstLog, type ClaimedPrayer, type StationApi } from '../src/worker.js';
 import { SAMPLE_PRAYERS } from './fixtures/sample-prayers.js';
@@ -394,7 +394,7 @@ describe('fldigi text frames', () => {
 });
 
 function fakeApi(queue: ClaimedPrayer[]) {
-  const reports: { id: string; ok: boolean; pieces?: number; error?: string }[] = [];
+  const reports: { id: string; ok: boolean; pieces?: number; error?: string; preset?: string; sentHash?: string }[] = [];
   const bursts: BurstLog[] = [];
   const api: StationApi = {
     claim: async () => queue.shift() ?? null,
@@ -421,13 +421,17 @@ describe('burst station loop', () => {
     expect(outcome).toMatchObject({ kind: 'sent', sent: 2, rejected: 1, frames: 1 });
     expect(reports).toEqual([
       { id: 'b', ok: false, callSign: 'N0CALL', error: 'rejected by station content filter' },
-      { id: 'a', ok: true, callSign: 'N0CALL', pieces: 1 },
-      { id: 'c', ok: true, callSign: 'N0CALL', pieces: 1 },
+      { id: 'a', ok: true, callSign: 'N0CALL', pieces: 1, preset: 'fm-standard', sentHash: sentHash('Pray for Senor Nunez.') },
+      { id: 'c', ok: true, callSign: 'N0CALL', pieces: 1, preset: 'fm-standard', sentHash: sentHash('Pray for peace.') },
     ]);
     const wavs = readdirSync(dir);
     expect(wavs).toHaveLength(1);
     const wav = fromWav(readFileSync(path.join(dir, wavs[0]!)));
-    expect(listen(wav.samples)[0]?.prayers).toEqual(['Pray for Senor Nunez.', 'Pray for peace.', 'Pray for peace.', 'Pray for peace.']);
+    const decoded = listen(wav.samples)[0]?.prayers ?? [];
+    expect(decoded).toEqual(['Pray for Senor Nunez.', 'Pray for peace.', 'Pray for peace.', 'Pray for peace.']);
+    // A listener's receipt: the fingerprint of what it decoded matches what the station reported.
+    expect(sentHash(decoded[0]!)).toBe(reports[1]!.sentHash);
+    expect(sentHash(decoded[0]!)).toMatch(/^[0-9a-f]{32}$/);
     expect(lines.some((l) => l.includes('a receiver decodes 4 prayer(s)'))).toBe(true);
     expect(bursts).toEqual([expect.objectContaining({ callSign: 'N0CALL', mode: 'simulate', preset: 'fm-standard', prayers: 4, frames: 1, decoded: 4, ok: true })]);
   });

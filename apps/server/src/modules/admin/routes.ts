@@ -184,6 +184,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         order: z.enum(['oldest', 'need']).optional(),
         batchMax: z.number().int().min(1).max(500).optional(),
         listenPage: z.boolean().optional(),
+        receipts: z.boolean().optional(),
       })
       .parse(req.body);
     return {
@@ -191,6 +192,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         radio_order: input.order,
         radio_batch_max: input.batchMax,
         listen_page_enabled: input.listenPage,
+        radio_receipts_enabled: input.receipts,
         radio_transmitter: input.transmitter,
         radio_station_requires_free: input.stationRequiresFree,
         radio_amplify_repeats: input.amplifyRepeats,

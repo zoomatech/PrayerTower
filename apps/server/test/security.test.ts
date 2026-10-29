@@ -85,6 +85,8 @@ describe('endpoint auth', () => {
       'GET /open-circle/promise',
       // The radio listening page (404 while switched off; decoding happens in the browser).
       'GET /listen',
+      // A listener's receipt: prayer fingerprints only, rate limited (404 while switched off).
+      'POST /listen/heard',
       // Why we run on gifts, not ads: the web page and the same words for the app (404 while switched off).
       'GET /why-donations',
       'GET /open-circle/why-donations',

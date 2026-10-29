@@ -357,6 +357,11 @@ function Admin() {
                 <Text style={type.small}>{t('admin.listenPageHint')}</Text>
               </>
             ) : null}
+            <View style={styles.row}>
+              <Chip label={t('admin.receiptsOff')} selected={!radio.radio_receipts_enabled} onPress={() => saveRadio({ receipts: false })} />
+              <Chip label={t('admin.receiptsOn')} selected={radio.radio_receipts_enabled} onPress={() => saveRadio({ receipts: true })} />
+            </View>
+            <Text style={type.small}>{t('admin.receiptsHint')}</Text>
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
