@@ -22,6 +22,7 @@ import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
 import * as pushDelivery from '../notifications/delivery.js';
+import * as reminders from '../reminders/index.js';
 import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
@@ -55,6 +56,7 @@ import * as seedPrayers from '../seed-prayers/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as audit from '../audit/index.js';
+import * as moderationTools from '../moderation/tools.js';
 import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
@@ -491,6 +493,14 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await requireAdmin(req);
     return { settings: await conversationHelpers.settings(db) };
   });
+  app.get('/admin/reminder-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await reminders.settings(db) };
+  });
+  app.patch('/admin/reminder-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await reminders.updateSettings(db, reminders.SettingsPatch.parse(req.body)) };
+  });
   app.get('/admin/push-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await pushDelivery.settings(db), health: await pushDelivery.health(db) };
@@ -828,12 +838,33 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     };
   });
 
+  // Moderation tools: search, bulk decisions and audit log filters (docs/MODERATION_TOOLS.md).
+  app.get('/admin/moderation-tools', async (req) => {
+    await requireAdmin(req);
+    return { settings: await moderationTools.settings(db) };
+  });
+
+  app.patch('/admin/moderation-tools', async (req) => {
+    await requireAdmin(req);
+    return { settings: await moderationTools.updateSettings(db, moderationTools.SettingsPatch.parse(req.body)) };
+  });
+
   // Staff audit log, newest first; ?before= pages back, ?actorId= / ?targetId= filter.
   app.get('/admin/audit-log', async (req) => {
     await requireAdmin(req);
     const query = z
-      .object({ actorId: z.uuid().optional(), targetId: z.uuid().optional(), before: z.iso.datetime({ offset: true }).optional(), limit: z.coerce.number().int().min(1).max(200).default(50) })
+      .object({
+        actorId: z.uuid().optional(),
+        targetId: z.uuid().optional(),
+        before: z.iso.datetime({ offset: true }).optional(),
+        limit: z.coerce.number().int().min(1).max(200).default(50),
+        // Moderation tools (off): filter by action, words, and a start time.
+        action: z.string().trim().min(1).max(100).optional(),
+        q: z.string().trim().min(1).max(200).optional(),
+        since: z.iso.datetime({ offset: true }).optional(),
+      })
       .parse(req.query);
+    if (query.action || query.q || query.since) await moderationTools.requireOn(db);
     return { entries: await audit.list(db, query) };
   });
 

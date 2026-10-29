@@ -11,6 +11,7 @@ import type { Queryable } from '../../db.js';
  */
 const STAFF_ROUTES = new Set([
   'POST /moderation/items/:id/decision',
+  'POST /moderation/items/bulk',
   'POST /moderation/items/:id/escalate',
   'POST /moderation/appeals/:id/decision',
   'POST /moderation/activity-flags/:id',
@@ -90,13 +91,30 @@ export interface AuditEntry {
   created_at: string;
 }
 
-export async function list(q: Queryable, opts: { actorId?: string; targetId?: string; before?: string; limit: number }): Promise<AuditEntry[]> {
+export interface ListOptions {
+  actorId?: string;
+  targetId?: string;
+  before?: string;
+  limit: number;
+  /** Moderation tools: part of the action ('moderation', 'PATCH /admin/'), words anywhere in the entry, and a start time. */
+  action?: string;
+  q?: string;
+  since?: string;
+}
+
+/** `ilike` text matching `s` anywhere, with its wildcards taken literally. */
+export const like = (s: string) => `%${s.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
+export async function list(q: Queryable, opts: ListOptions): Promise<AuditEntry[]> {
   const { rows } = await q.query<AuditEntry>(
     `select l.id, l.actor_id, p.display_name as actor_name, l.action, l.target_id, l.params, l.body, l.status, l.created_at
        from public.staff_audit_log l left join public.profiles p on p.id = l.actor_id
       where ($1::uuid is null or l.actor_id = $1) and ($2::uuid is null or l.target_id = $2) and ($3::timestamptz is null or l.created_at < $3)
+        and ($5::text is null or l.action ilike $5)
+        and ($6::text is null or concat_ws(' ', l.action, p.display_name, l.target_id::text, l.body::text) ilike $6)
+        and ($7::timestamptz is null or l.created_at >= $7)
       order by l.created_at desc, l.id desc limit $4`,
-    [opts.actorId ?? null, opts.targetId ?? null, opts.before ?? null, opts.limit],
+    [opts.actorId ?? null, opts.targetId ?? null, opts.before ?? null, opts.limit, opts.action ? like(opts.action) : null, opts.q ? like(opts.q) : null, opts.since ?? null],
   );
   return rows;
 }
