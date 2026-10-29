@@ -14,7 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type ReminderSettings, type SecuritySettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures, useFeatures } from '@/lib/features';
@@ -319,6 +319,7 @@ function Admin() {
         <GivingSplitSection />
         <PushDeliverySection />
         <ReminderSettingsSection />
+        <PracticeModeSection />
         <ModerationToolsSection />
         <PracticeSettingsSection />
         <ConversationSettingsSection />
@@ -1840,6 +1841,42 @@ function GivingSplitSection() {
 }
 
 /** Gentle reminders: a daily reminder that never mentions a missed day, and weeks of prayer (docs/GENTLE_REMINDERS.md). */
+export function PracticeModeSection() {
+  const t = useT();
+  const [d, setD] = useState<{ settings: PracticeModeSettings; connected: PracticeConnected } | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceMode().then(setD).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Partial<PracticeModeSettings>) =>
+    api.admin
+      .updatePracticeMode(patch)
+      .then((r) => (setD(r), resetFeatures(), setNote(t('practiceMode.saved'))))
+      .catch((e) => setNote((e as Error).message));
+  if (!d) return note ? <Text style={type.small}>{note}</Text> : null;
+  const c = d.connected;
+  const list = [
+    c.ai && t('practiceMode.aiOn'),
+    c.videoServer && t('practiceMode.videoOn'),
+    c.jaas && t('practiceMode.jaasOn'),
+    c.appStore && t('practiceMode.storeOn'),
+  ].filter(Boolean);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('practiceMode.title')}</Text>
+      <Text style={type.small}>{t('practiceMode.intro')}</Text>
+      <Text style={type.small}>{list.length ? t('practiceMode.connected', { list: list.join(', ') }) : t('practiceMode.nothing')}</Text>
+      <Toggle label={t('practiceMode.ai')} hint={t('practiceMode.aiHint')} value={d.settings.ai} onChange={(v) => save({ ai: v })} />
+      <Toggle label={t('practiceMode.live')} hint={t('practiceMode.liveHint')} value={d.settings.live} onChange={(v) => save({ live: v })} />
+      <Toggle label={t('practiceMode.purchases')} hint={t('practiceMode.purchasesHint')} value={d.settings.purchases} onChange={(v) => save({ purchases: v })} />
+      {c.practicePurchasesAllowed ? null : <Text style={type.small}>{t('practiceMode.noPracticeBuy')}</Text>}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 export function ReminderSettingsSection() {
   const t = useT();
   const [s, setS] = useState<ReminderSettings | null>(null);

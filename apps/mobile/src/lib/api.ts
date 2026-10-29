@@ -1304,6 +1304,22 @@ export interface SecuritySettings {
   passkeys_enabled: boolean;
 }
 
+/** Admin → Practice mode: try the paid services before their keys are set (docs/PRACTICE_MODE.md). */
+export interface PracticeModeSettings {
+  ai: boolean;
+  live: boolean;
+  purchases: boolean;
+}
+
+/** What is really connected; a practice switch does nothing once its real service is. */
+export interface PracticeConnected {
+  ai: boolean;
+  jaas: boolean;
+  videoServer: boolean;
+  appStore: boolean;
+  practicePurchasesAllowed: boolean;
+}
+
 export interface ReminderSettings {
   daily_reminder_enabled: boolean;
   gentle_streak_enabled: boolean;
@@ -1366,6 +1382,8 @@ export interface TokenPurchase {
   currency: 'regular' | 'priestly';
   status: 'credited' | 'refunded';
   purchased_at: string | null;
+  /** A practice purchase (Admin → Practice mode): no money moved. */
+  practice?: boolean;
 }
 
 /** Cross-posting: the member's own Facebook and Threads posts copied here. */
@@ -1798,6 +1816,9 @@ export const api = {
     moderationTools: () => get<{ settings: { tools_enabled: boolean; bulk_max: number } }>('/admin/moderation-tools'),
     updateModerationTools: (patch: { enabled?: boolean; bulkMax?: number }) =>
       request<{ settings: { tools_enabled: boolean; bulk_max: number } }>('PATCH', '/admin/moderation-tools', patch),
+    practiceMode: () => get<{ settings: PracticeModeSettings; connected: PracticeConnected }>('/admin/practice-mode'),
+    updatePracticeMode: (patch: Partial<PracticeModeSettings>) =>
+      request<{ settings: PracticeModeSettings; connected: PracticeConnected }>('PATCH', '/admin/practice-mode', patch),
     reminderSettings: () => get<{ settings: ReminderSettings }>('/admin/reminder-settings'),
     updateReminderSettings: (patch: { dailyReminderEnabled?: boolean; gentleStreakEnabled?: boolean; quietAfter?: number }) =>
       request<{ settings: ReminderSettings }>('PATCH', '/admin/reminder-settings', patch),
@@ -1969,7 +1990,7 @@ export const api = {
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
   tokenStore: () =>
-    get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[] }>('/token-store'),
+    get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[]; practice?: boolean }>('/token-store'),
   /** A StoreKit 2 signed transaction; the server checks it with Apple before crediting. */
   buyTokens: (signedTransaction: string) => post<{ purchase: TokenPurchaseResult }>('/token-store/purchases', { platform: 'ios', signedTransaction }),
   tokenPurchases: () => get<{ purchases: TokenPurchase[] }>('/me/token-purchases'),

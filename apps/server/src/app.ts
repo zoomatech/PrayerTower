@@ -51,7 +51,9 @@ import { prayerListRoutes } from './modules/prayer-list/routes.js';
 import { readingPlanRoutes } from './modules/reading-plan/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
-import { liveRoutes } from './modules/live/routes.js';
+import { liveRoutes, practiceRoomRoutes } from './modules/live/routes.js';
+import type { JaasKeys } from './modules/live/jaas.js';
+import { practiceModeRoutes } from './modules/practice-mode/routes.js';
 import type { Converse } from './modules/ai/provider.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
@@ -129,6 +131,10 @@ export interface AppDeps {
   appleVerifier?: AppleVerifier | null;
   /** Cross-posting from Facebook and Threads: Meta app keys for "Connect"; null = extension only. */
   crosspost?: CrosspostOptions | null;
+  /** Practice token purchases may be switched on (Admin → Practice mode); false when the App Store is set to production. */
+  practicePurchases?: boolean;
+  /** Jitsi as a Service keys for live rooms (JAAS_*); null = not set. */
+  jaas?: JaasKeys | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
@@ -140,7 +146,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null, practicePurchases = false, jaas = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -273,6 +279,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     podcastPublicRoutes(open, db);
     donationPublicRoutes(open, db, stripe, zeffy);
     storeNotificationRoutes(open, db, appleVerifier);
+    practiceRoomRoutes(open);
   });
 
   // Cross-posting: the browser extension (its own key), the Meta sign-in return and the Threads webhook.
@@ -327,7 +334,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     liveActivityRoutes(authed, db);
     skinRoutes(authed, db);
     securityRoutes(authed, db);
-    futureRoutes(authed, db, appleVerifier);
+    futureRoutes(authed, db, appleVerifier, practicePurchases);
     aiRoutes(authed, db, converse);
     lampRoutes(authed, db);
     circleGoalRoutes(authed, db);
@@ -335,7 +342,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     groupGiftRoutes(authed, db);
     prayerListRoutes(authed, db);
     readingPlanRoutes(authed, db);
-    liveRoutes(authed, db);
+    liveRoutes(authed, db, jaas);
+    practiceModeRoutes(authed, db, { converse, jaas: !!jaas, appStore: !!appleVerifier, practicePurchases });
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
     quickReactionRoutes(authed, db);

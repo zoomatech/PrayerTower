@@ -10,7 +10,7 @@ afterAll(async () => {
 describe('switched-off groundwork for blocked features', () => {
   it('keeps token purchase, the fund page and the AI conversation off by default', async () => {
     const member = await createUser('Future Member');
-    expect((await as(member).get('/token-store')).json()).toEqual({ enabled: false, products: [] });
+    expect((await as(member).get('/token-store')).json()).toEqual({ enabled: false, products: [], practice: false });
     const buy = await as(member).post('/token-store/purchases', { platform: 'ios', signedTransaction: 'eyJhbGciOiJFUzI1NiJ9.e30.x' });
     expect(buy.statusCode).toBe(403);
     expect((await as(member).get('/common-prayer-fund')).json()).toEqual({ enabled: false });

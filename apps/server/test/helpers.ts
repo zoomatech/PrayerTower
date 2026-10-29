@@ -23,6 +23,7 @@ export const routes: { method: string; url: string }[] = [];
 export const app = buildApp({
   onRoute: (r) => routes.push(r),
   db,
+  practicePurchases: true,
   verifyToken: async (token) => {
     if (!token.startsWith('test:')) throw new Error('bad token');
     // "test:<userId>:aal2" is a session that entered the two-step code.
