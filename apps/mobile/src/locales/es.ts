@@ -916,6 +916,12 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     prayingToo: "I'm praying too",
     prayingHint: "Adds one to an anonymous count. Only a fingerprint of the prayer is sent, when you're online.",
     prayingDone: "You're praying too.",
+    input: "Sound from",
+    inputHint: "A radio's audio out through a sound card or cable works better than holding the device near a speaker.",
+    inputDefault: "This device's microphone",
+    sample: "Decode a sample burst",
+    sampleNote: "Sample data: a recorded burst, decoded on this device. Nothing is sent anywhere.",
+    report: "Signal report sent: %{count} matched.",
   },
 
   macro: {

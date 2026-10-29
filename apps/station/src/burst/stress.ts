@@ -27,9 +27,9 @@ const CLIP = 0.3;
 
 const isHf = (p: BurstPreset) => p.name.startsWith('hf-');
 
-/** One burst through one condition: how many of `prayers` came out intact and in order, and how many decoded prayers were never sent. */
-export function stressTrial(p: BurstPreset, prayers: readonly string[], impairment: Impairment, snrDb: number, seed: number): { heard: number; wrong: number } {
-  let audio = buildBurst(planFrames(prayers, p, 20), p, 'N0CALL').audio;
+/** One burst of `prayers` as a receiver would record it through one condition (48 kHz). */
+export function impairedBurst(p: BurstPreset, prayers: readonly string[], impairment: Impairment, snrDb: number, seed: number, callSign = 'N0CALL'): Float32Array {
+  let audio = buildBurst(planFrames(prayers, p, 20), p, callSign).audio;
   if (impairment === 'clipping') {
     let peak = 0;
     for (const s of audio) peak = Math.max(peak, Math.abs(s));
@@ -41,7 +41,15 @@ export function stressTrial(p: BurstPreset, prayers: readonly string[], impairme
   const shape = impairment === 'fading' ? fading : HF_CHANNELS.quiet;
   const offsetHz = impairment === 'drift' && isHf(p) ? HF_OFFSET_HZ : 0;
   const channel: HfChannel = { ...shape, ...bandFor(p), snrDb, offsetHz, seed };
-  const got = listen(hfChannel(audio, channel), isHf(p) ? 50 : 0).flatMap((h) => h.prayers);
+  return hfChannel(audio, channel);
+}
+
+/** How far off a receiver may be tuned for this preset in these tests: 50 Hz on HF (BURST_SEARCH_HZ), else 0. */
+export const searchHzFor = (p: BurstPreset) => (isHf(p) ? 50 : 0);
+
+/** One burst through one condition: how many of `prayers` came out intact and in order, and how many decoded prayers were never sent. */
+export function stressTrial(p: BurstPreset, prayers: readonly string[], impairment: Impairment, snrDb: number, seed: number): { heard: number; wrong: number } {
+  const got = listen(impairedBurst(p, prayers, impairment, snrDb, seed), searchHzFor(p)).flatMap((h) => h.prayers);
   const sent = new Set(prayers);
   let heard = 0;
   for (const t of got) if (t === prayers[heard]) heard++;

@@ -27,6 +27,10 @@ struct ConsoleView: View {
                     NavigationLink(w("radioAdmin.open")) { RadioAdminView(api: model.demo == nil ? model.store.api : nil, words: w) }
                 }
             }
+            // Listener mode: decode bursts from a receiver plugged into this Mac (or its microphone).
+            Section {
+                NavigationLink(w("listen.title")) { ListenView(api: model.demo == nil ? model.store.api : nil, words: w) }
+            }
             if model.notOperator {
                 Section { Text(w("macConsole.notOperator")) }
             } else if model.off {

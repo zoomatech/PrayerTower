@@ -1,15 +1,22 @@
 // Bundles the burst decoder (src/burst/web.ts) for the server's /listen page,
 // and as a module for the app's Listen screen. Run after changing the decoder:
 // npm run build:listen -w @prayer-tower/station (a station test fails while
-// either committed bundle is out of date).
+// either committed bundle, or the native apps' primers, is out of date).
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { DICTIONARY_V1 } from '../src/burst/dictionary.js';
+import { PRIMER_V1 } from '../src/burst/primer.js';
+import { PRIMER_V2_EXTRA } from '../src/burst/primer2.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const OUTPUT = path.resolve(here, '../../server/src/modules/listen/decoder.generated.ts');
 export const APP_OUTPUT = path.resolve(here, '../../mobile/src/lib/burst-decoder.generated.js');
+/** The compressor's primers for the native apps' decoder (apps/ios-native, BurstCM.swift). */
+export const NATIVE_PRIMERS = path.resolve(here, '../../ios-native/Sources/PrayerTowerKit/Resources/burst-primers.json');
+
+export const nativePrimers = () => `${JSON.stringify({ v1: PRIMER_V1 + DICTIONARY_V1, v2: PRIMER_V1 + PRIMER_V2_EXTRA + DICTIONARY_V1 }, null, 1)}\n`;
 
 const compile = async (format: 'iife' | 'esm') =>
   (
@@ -39,5 +46,6 @@ export async function bundle(): Promise<string> {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   writeFileSync(OUTPUT, await bundle());
   writeFileSync(APP_OUTPUT, await appBundle());
-  console.log(`wrote ${OUTPUT} and ${APP_OUTPUT}`);
+  writeFileSync(NATIVE_PRIMERS, nativePrimers());
+  console.log(`wrote ${OUTPUT}, ${APP_OUTPUT} and ${NATIVE_PRIMERS}`);
 }

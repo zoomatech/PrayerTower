@@ -36,6 +36,8 @@ public enum SampleServer {
         let ruth = card("sample-p1", "Ruth", mine: false, "Please pray for my mother's surgery on Tuesday.")
         let mine = card("sample-p2", "Sample Member", mine: true, "Asking for strength for my new job.")
         return [
+            ("GET", "^/radio/listen$", #"{"enabled":true,"receipts":true}"#),
+            ("POST", "^/listen/heard$", #"{"matched":0}"#),
             ("GET", "^/me$", """
             {"profile":{"id":"\(memberId)","display_name":"Sample Member","bio":"","onboarded_at":"2026-10-01T00:00:00Z"},"roles":["member"],"community":null}
             """),
