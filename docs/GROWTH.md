@@ -11,6 +11,7 @@ Steve asked on 2026-10-28 for "a way to boost usage that the other Social Media 
 | 3 | "Prayed for you today" on the widget | The existing Pray now widget adds one line: "💛 Ana and 2 others prayed for you today". | `prayed_for_widget_enabled` |
 | 4 | Prayer minute | Under Me → **My prayer minute**, the member picks one minute a day. At that minute they get a gentle notice saying how many others chose the same moment. The screen shows a real count of people who have it open and three requests that were prayed for least today. | `prayer_minute_enabled` |
 | 5 | Sharing only with consent | Under their own post, the author picks **Who can share this outside the app?**: **Only me** (the default), **Members can send a link** (the link needs the app; the words never leave), or **Anyone can share a card** (a web page at `/card/<code>` with the words, and the first name unless the post is anonymous). Everyone else's **Share outside** button sends only what the author chose, or says the post stays inside the app. Comments can be shared only by the person who wrote them. | `share_consent_enabled` |
+| 6 | Praying for you now, on the Lock Screen (iPhone) | On their own open request, the asker taps **Show on my Lock Screen**. For up to 8 hours a Live Activity on the Lock Screen and Dynamic Island shows "💛 Praying for you · 3" and "Ana and 2 others prayed for you". It updates as people pray, ends when the request is answered, and **Take off my Lock Screen** ends it early. | `prayed_for_live_enabled` (updates also need `APNS_KEY_ID` and `APNS_PRIVATE_KEY`) |
 
 In Open Circle, links are `/circle/<code>` instead of `/pray/<code>`. The pages wear Open Circle's brand, and the wording is "I'm thinking of you", "support circle" and "kindness minute". No religious words appear.
 
@@ -26,12 +27,15 @@ In Open Circle, links are `/circle/<code>` instead of `/pray/<code>`. The pages 
 
 - **Sharing consent:** with feature 5 on, nothing about a post leaves the app unless its author chose it. Only the author can change the choice. Going back to **Only me** deletes the card link for good; a new card gets a new link. A post that mentions crisis can never be a card. The card page is read-only, `noindex`, and a 404 while the switch is off or the post is hidden. If the author also made a guest link (feature 1), the card points to it.
 
+- **Lock Screen privacy:** the Live Activity never shows the request's words, and never names anyone who prayed anonymously (they count, unnamed). At most three at once per member and one per request. The worker checks every minute and pushes only when the count changed, at Apple's low priority (5). A token Apple says is gone is dropped.
+
 ## Server settings
 
 | Variable | What it does |
 |---|---|
 | `PUBLIC_SITE_URL` | This API host's public address, for example `https://api.<your-domain>`. Prayer-chain and answered emails link to it. Unset = those emails are not sent. |
 | `SMTP_URL`, `MAIL_FROM` | The same mail settings as the weekly digest. Unset = no email. |
+| `APNS_KEY_ID`, `APNS_PRIVATE_KEY` | An Apple push key (.p8) for Live Activity updates, with `APPLE_TEAM_ID`. Unset = the Lock Screen activity starts but doesn't update. `APNS_PRODUCTION=false` for development builds. |
 | `GUEST_IP_SALT` | Optional. Keeps the guest spam-check hash stable across restarts. |
 
 The app builds the share link from `EXPO_PUBLIC_LINK_URL`, the same as other shared links ([APP_LINKS.md](APP_LINKS.md)).
@@ -46,6 +50,7 @@ The app builds the share link from `EXPO_PUBLIC_LINK_URL`, the same as other sha
 | GET | `/posts/:id/share` | anyone who can see the post (what they may send) |
 | PUT | `/posts/:id/share` | the author (`{ level: 'private' \| 'link' \| 'card' }`) |
 | GET | `/card/:token` | anyone (the share card) |
+| POST | `/me/live-activities`, `/me/live-activities/end` | the asker (the activity's push token) |
 | GET / POST / DELETE | `/me/prayer-chain`, `/me/prayer-chain/:id` | members |
 | POST | `/posts/:id/prayer-chain` | the asker |
 | GET / POST | `/chain/:token` | anyone with the emailed link (join or stop) |
@@ -54,11 +59,11 @@ The app builds the share link from `EXPO_PUBLIC_LINK_URL`, the same as other sha
 | GET | `/prayer-minute/now` | members |
 | POST | `/prayer-minute/join` | members |
 
-Background jobs: `growth_guest_answered`, `growth_chain_confirm` and `growth_chain_send` (queued), `growth_prayer_minute` (every minute) and `growth_purge` (daily at 03:20 UTC).
+Background jobs: `live_activity_refresh` (every minute), `growth_guest_answered`, `growth_chain_confirm` and `growth_chain_send` (queued), `growth_prayer_minute` (every minute) and `growth_purge` (daily at 03:20 UTC).
 
 ## Known limits
 
-- The widget refreshes its prayed-for line when the app loads the feed, the same as the rest of the widget. It doesn't change between app opens. A server push straight to the widget, or a Live Activity, would need extra Apple setup and isn't built.
+- The home-screen widget refreshes its prayed-for line when the app loads the feed. For live updates between app opens, use feature 6 (the Lock Screen Live Activity).
 - Sending a prayer chain by text message (SMS) isn't built. It needs a paid SMS provider, so it goes last under the money rule.
 - An anonymous request sent to the member's own prayer chain carries their first name in the email, because the member chose to send it to people who know them.
 

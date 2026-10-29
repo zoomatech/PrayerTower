@@ -1769,6 +1769,13 @@ const en = {
     category: {"threat": "threats", "hate": "hate", "harm_wish": "prayers for harm", "curse": "curses", "revenge": "revenge"},
   },
   growth: {
+    liveStart: 'Show on my Lock Screen',
+    liveStop: 'Take off my Lock Screen',
+    liveHint: 'For the next 8 hours, your Lock Screen shows how many people prayed for this, with first names. Never the words of your request.',
+    liveHeading: 'Praying for you',
+    liveWaiting: 'Waiting for the first prayer',
+    adminLive: 'Praying for you now, on the Lock Screen',
+    adminLiveHint: "iPhone only. A member can put their own open request on their Lock Screen for up to 8 hours; it updates as people pray, with first names and a count. Updates need the server's Apple push key (APNS_KEY_ID, APNS_PRIVATE_KEY).",
     shareChoice: 'Who can share this outside the app?',
     shareChoiceHint: 'Nobody can share your post outside the app unless you say so here. You can change your mind at any time; making it private again turns off the card link.',
     sharePrivate: 'Only me',

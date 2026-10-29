@@ -133,6 +133,8 @@ export interface Features {
   /** Giving split (docs/GIVING_SPLIT.md): a share of gifts to the member's own support page. */
   givingSplit: boolean;
   givingSplitMax: number;
+  /** "Praying for you now" on the Lock Screen (iOS Live Activity, docs/GROWTH.md). */
+  prayedForLive: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -287,6 +289,7 @@ export interface GrowthSettings {
   prayer_minute_enabled: boolean;
   guest_email_days: number;
   share_consent_enabled: boolean;
+  prayed_for_live_enabled: boolean;
 }
 export interface GivingSplit {
   url: string;
@@ -1471,7 +1474,7 @@ export const api = {
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
-    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean }>) =>
+    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean; prayedForLiveEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
     updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
@@ -1621,6 +1624,9 @@ export const api = {
   memberGivingSplit: (userId: string, cents?: number) =>
     get<{ split: GivingSplit | null }>(`/people/${userId}/giving-split${cents ? `?cents=${cents}` : ''}`),
   postGivingSplit: (postId: string) => get<{ split: GivingSplit | null }>(`/posts/${postId}/giving-split`),
+  startLiveActivity: (body: { postId: string; pushToken: string; appId: string }) =>
+    post<{ id: string; props: { heading: string; line: string; count: number } }>('/me/live-activities', body),
+  endLiveActivity: (pushToken: string) => post<{ ended: true }>('/me/live-activities/end', { pushToken }),
   shareState: (postId: string) => get<{ share: ShareState | null }>(`/posts/${postId}/share`),
   setShareLevel: (postId: string, level: ShareLevel) => request<{ share: ShareState }>('PUT', `/posts/${postId}/share`, { level }),
   prayerChain: () => get<{ people: ChainPerson[] }>('/me/prayer-chain'),

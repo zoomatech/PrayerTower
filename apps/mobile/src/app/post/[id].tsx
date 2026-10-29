@@ -9,6 +9,7 @@ import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
 import { GuestShare } from '@/components/guest-share';
+import { LiveFollow } from '@/components/live-follow';
 import { ShareChoice } from '@/components/outside-share';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
@@ -364,6 +365,7 @@ export default function PostScreen() {
 
         {card && prayable ? <GuestShare card={card} /> : null}
         {card ? <ShareChoice card={card} /> : null}
+        {card ? <LiveFollow card={card} /> : null}
 
         {card && prayable && spokenOn ? <SpokenPrayers postId={id} /> : null}
         {card && prayable ? <CircleGoal postId={id} /> : null}

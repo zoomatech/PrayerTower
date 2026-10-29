@@ -43,6 +43,9 @@ export const keys: Tree = named({
     shareMessage: 'You are invited to Open Circle. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
   },
   growth: {
+    liveHint: 'For the next 8 hours, your Lock Screen shows how many people sent support, with first names. Never the words of your request.',
+    liveHeading: 'Thinking of you',
+    liveWaiting: 'Waiting for the first kind word',
     shareLinkMessage: 'Could you send some support? %{url}',
     guestShare: 'Let friends without the app send support',
     guestShareHint: 'Anyone with the link can read this request and tap "I\'m thinking of you". No account needed.',

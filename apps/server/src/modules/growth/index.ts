@@ -29,11 +29,12 @@ export interface GrowthSettings {
   prayer_minute_enabled: boolean;
   guest_email_days: number;
   share_consent_enabled: boolean;
+  prayed_for_live_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<GrowthSettings> {
   const { rows } = await q.query<GrowthSettings>(
-    `select guest_prayer_enabled, prayer_chain_enabled, prayer_chain_max, prayed_for_widget_enabled, prayer_minute_enabled, guest_email_days, share_consent_enabled
+    `select guest_prayer_enabled, prayer_chain_enabled, prayer_chain_max, prayed_for_widget_enabled, prayer_minute_enabled, guest_email_days, share_consent_enabled, prayed_for_live_enabled
        from public.growth_settings`,
   );
   return rows[0]!;
@@ -47,6 +48,7 @@ export const SettingsPatch = z.object({
   prayerMinuteEnabled: z.boolean().optional(),
   guestEmailDays: z.number().int().min(1).max(365).optional(),
   shareConsentEnabled: z.boolean().optional(),
+  prayedForLiveEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -55,7 +57,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        guest_prayer_enabled = coalesce($1, guest_prayer_enabled), prayer_chain_enabled = coalesce($2, prayer_chain_enabled),
        prayer_chain_max = coalesce($3, prayer_chain_max), prayed_for_widget_enabled = coalesce($4, prayed_for_widget_enabled),
        prayer_minute_enabled = coalesce($5, prayer_minute_enabled), guest_email_days = coalesce($6, guest_email_days),
-       share_consent_enabled = coalesce($7, share_consent_enabled)`,
+       share_consent_enabled = coalesce($7, share_consent_enabled), prayed_for_live_enabled = coalesce($8, prayed_for_live_enabled)`,
     [
       p.guestPrayerEnabled ?? null,
       p.prayerChainEnabled ?? null,
@@ -64,6 +66,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.prayerMinuteEnabled ?? null,
       p.guestEmailDays ?? null,
       p.shareConsentEnabled ?? null,
+      p.prayedForLiveEnabled ?? null,
     ],
   );
   return settings(q);
@@ -78,14 +81,15 @@ export async function features(q: Queryable) {
     prayedForWidget: s.prayed_for_widget_enabled,
     prayerMinute: s.prayer_minute_enabled,
     shareConsent: s.share_consent_enabled,
+    prayedForLive: s.prayed_for_live_enabled,
   };
 }
 
 const newToken = () => randomBytes(18).toString('base64url');
-const firstName = (name: string | null | undefined) => (name ?? '').trim().split(/\s+/)[0] || null;
+export const firstName = (name: string | null | undefined) => (name ?? '').trim().split(/\s+/)[0] || null;
 
 /** Whether a community uses Open Circle's non-religious wording. */
-async function secularCommunity(q: Queryable, communityId: string): Promise<boolean> {
+export async function secularCommunity(q: Queryable, communityId: string): Promise<boolean> {
   const { rows } = await q.query<{ neutral: boolean }>(
     `select coalesce(vocabulary ->> 'wording', case when tradition = 'secular' then 'neutral' else 'faith' end) = 'neutral' as neutral
        from public.communities where id = $1`,

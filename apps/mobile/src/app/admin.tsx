@@ -1620,6 +1620,7 @@ function GrowthSettingsSection() {
       <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
       <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
       <Toggle label={t('growth.adminShare')} hint={t('growth.adminShareHint')} value={s.share_consent_enabled} onChange={(v) => save({ shareConsentEnabled: v })} />
+      <Toggle label={t('growth.adminLive')} hint={t('growth.adminLiveHint')} value={s.prayed_for_live_enabled} onChange={(v) => save({ prayedForLiveEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
