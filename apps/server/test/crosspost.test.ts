@@ -75,6 +75,10 @@ describe('Cross-posting while on', () => {
 
     const send = (payload: object, k = key) => extensionApp.inject({ method: 'POST', url: '/crosspost/extension/posts', headers: { 'x-crosspost-key': k }, payload });
     expect((await send({ source: 'facebook', text: 'x' }, 'ptx_wrong')).statusCode).toBe(401);
+    // The extension's settings page checks the key when it is saved.
+    const check = (k: string) => extensionApp.inject({ method: 'GET', url: '/crosspost/extension/check', headers: { 'x-crosspost-key': k } });
+    expect((await check('ptx_wrong')).statusCode).toBe(401);
+    expect((await check(key)).json()).toEqual({ ok: true, on: true, paused: false });
     const first = await send({ source: 'facebook', text: 'Beautiful morning at the lake with the kids!', pageUrl: 'https://www.facebook.com/', media: [{ data: JPEG.toString('base64') }, { data: Buffer.from('not an image').toString('base64') }] });
     expect(first.statusCode).toBe(201);
     const postId = first.json().postId;
@@ -241,6 +245,27 @@ describe('Cross-posting while on', () => {
       { body: 'Our garden is blooming', kinds: ['image'] },
       { body: 'Watch the puppy', kinds: ['video'] },
     ]);
+  });
+
+  it('tells the member a week before a Facebook connection ends, and again when it has stopped', async () => {
+    const member = await createUser('Reconnect Rita');
+    const fbUser = `fb-rita-${Date.now()}`;
+    await db.query(
+      "insert into public.crosspost_accounts (user_id, provider, external_user_id, access_token, token_expires_at) values ($1, 'facebook', $2, $3, now() + interval '3 days')",
+      [member, fbUser, meta.sealToken(opts.tokenKey!, 'fb-token')],
+    );
+    const { rows } = await db.query<{ id: string }>('select id from public.crosspost_accounts where external_user_id = $1', [fbUser]);
+    const notices = async () =>
+      (await db.query<{ title: string; data: { screen: string } }>("select title, data from public.notifications where user_id = $1 and kind = 'crosspost_reconnect' order by created_at", [member])).rows;
+    const quiet = fakeMeta({ '/me/posts': { data: [] } });
+    await meta.checkAccount(db, rows[0]!.id, opts, store, quiet);
+    await db.query('update public.crosspost_accounts set last_checked_at = null where id = $1', [rows[0]!.id]);
+    await meta.checkAccount(db, rows[0]!.id, opts, store, quiet);
+    // Once per connection, however often it is checked.
+    expect(await notices()).toEqual([{ title: 'Reconnect Facebook this week', data: { screen: 'crosspost', provider: 'facebook' } }]);
+    const revoked = fakeMeta({ '/me/posts': { error: { message: 'Session expired', code: 190, type: 'OAuthException' } } });
+    await meta.checkAccount(db, rows[0]!.id, opts, store, revoked);
+    expect((await notices()).map((n) => n.title)).toEqual(['Reconnect Facebook this week', 'Reconnect Facebook']);
   });
 
   it('verifies the Threads webhook and queues new posts from connected members', async () => {

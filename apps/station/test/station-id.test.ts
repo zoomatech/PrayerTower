@@ -93,3 +93,14 @@ describe('station ID in Morse code', () => {
     expect(sent[1]!.split('\n').at(-1)).not.toBe('de K1ABC');
   });
 });
+
+describe('ID timer for the operator console', () => {
+  it('reports when it last identified and how often it must', () => {
+    let now = Date.parse('2026-10-29T08:00:00Z');
+    const id = new StationId('N0CALL', 10 * 60_000, { wpm: 20, toneHz: 800 }, () => now);
+    expect(id.statusDetail()).toBe('last=never every=10');
+    id.take();
+    now += 60_000;
+    expect(id.statusDetail()).toBe('last=2026-10-29T08:00:00.000Z every=10');
+  });
+});

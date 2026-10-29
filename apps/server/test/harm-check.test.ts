@@ -15,6 +15,7 @@ const DEFAULTS: HarmSettings = {
   flood_per_day: 5,
   extra_hate_words: [],
   explain_held: true,
+  read_disguises: false,
 };
 const cats = (t: string) => check(t).categories;
 const action = (t: string) => decide(check(t), DEFAULTS)?.action ?? 'none';

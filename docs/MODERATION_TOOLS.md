@@ -1,7 +1,7 @@
 # Moderation tools
 
 One switch in **Admin → Moderation tools**, off until an admin turns it on
-(migration `20261029081200_moderation_tools.sql`, `modules/moderation/tools.ts`).
+(migration `20261029091200_moderation_tools.sql`, `modules/moderation/tools.ts`).
 
 ## Search (Moderation screen)
 

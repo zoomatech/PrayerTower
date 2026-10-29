@@ -1,4 +1,4 @@
-// Practice mode for the paid services (migration 20261029081400_practice_mode.sql,
+// Practice mode for the paid services (migration 20261029091400_practice_mode.sql,
 // docs/PRACTICE_MODE.md). Three switches in Admin → Practice mode, all off. Each
 // lets a feature be tried before its paid key is set, and says plainly that it
 // is practice. A real key always wins over its switch.

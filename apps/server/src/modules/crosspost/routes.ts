@@ -3,8 +3,11 @@ import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import { withTx, type Db } from '../../db.js';
 import { AppError, badRequest } from '../../errors.js';
+import { isSecular } from '../communities/index.js';
 import * as crosspost from './index.js';
 import * as meta from './meta.js';
+
+const UNKNOWN_KEY = 'Unknown extension key. Make a new one in the app: Me → Copy my Facebook posts.';
 
 const provider = (p: unknown) => z.enum(crosspost.SOURCES).parse(p);
 
@@ -66,11 +69,19 @@ export function crosspostPublicRoutes(app: FastifyInstance, db: Db, opts: meta.C
     }
   });
 
+  // The extension's settings page checks the key when it is saved.
+  app.get('/crosspost/extension/check', async (req, reply) => {
+    const key = req.headers['x-crosspost-key'];
+    const userId = await crosspost.userForExtensionKey(db, typeof key === 'string' ? key : undefined);
+    if (!userId) return reply.code(401).send({ error: 'unauthorized', message: UNKNOWN_KEY });
+    return { ok: true, on: await crosspost.available(db, userId), paused: (await crosspost.settingsOf(db, userId)).paused };
+  });
+
   // The browser extension: one post, with its photos and videos, sent the moment the member clicked Post.
   app.post('/crosspost/extension/posts', { bodyLimit: EXTENSION_BODY_LIMIT }, async (req, reply) => {
     const key = req.headers['x-crosspost-key'];
     const userId = await crosspost.userForExtensionKey(db, typeof key === 'string' ? key : undefined);
-    if (!userId) return reply.code(401).send({ error: 'unauthorized', message: 'Unknown extension key. Make a new one in the app: Me → Cross-posting.' });
+    if (!userId) return reply.code(401).send({ error: 'unauthorized', message: UNKNOWN_KEY });
     const input = ExtensionPost.parse(req.body);
     const media: { bytes: Buffer; contentType: crosspost.MediaType }[] = [];
     for (const m of input.media) {
@@ -100,13 +111,15 @@ export function crosspostPublicRoutes(app: FastifyInstance, db: Db, opts: meta.C
     const name = p.success && p.data === 'threads' ? 'Threads' : 'Facebook';
     const { code, state, error } = req.query;
     if (!p.success || error || !code || !state) return reply.code(400).send(page('Not connected', `${name} was not connected. You can close this page and try again from the app.`));
+    let userId: string;
     try {
-      await withTx(db, (tx) => meta.finishConnect(tx, p.data, state, code, opts));
+      ({ userId } = await withTx(db, (tx) => meta.finishConnect(tx, p.data, state, code, opts)));
     } catch (err) {
       const message = err instanceof AppError ? err.message : `${name} did not accept the sign-in. Try again from the app.`;
       return reply.code(400).send(page('Not connected', message.replace(/[<>&]/g, '')));
     }
-    return page(`${name} connected`, `Your new ${name} posts will now appear on your Prayer Tower account too. You can close this page and go back to the app.`);
+    const where = (await isSecular(db, userId)) ? 'your account here' : 'your Prayer Tower account';
+    return page(`${name} connected`, `Your new ${name} posts will now appear on ${where} too. You can close this page and go back to the app.`);
   });
 
   // Threads webhook: Meta checks the endpoint with a GET, then POSTs signed notifications.

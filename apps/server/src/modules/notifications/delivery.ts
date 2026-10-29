@@ -1,4 +1,4 @@
-// Push delivery (migration 20261029081000_push_reliability.sql), used while
+// Push delivery (migration 20261029091000_push_reliability.sql), used while
 // Admin → Push delivery is on. Every push to each device is recorded, so:
 // - a retried job sends only to the devices that didn't get it (never twice);
 // - Expo's "slow down" (HTTP 429, a 5xx, or a MessageRateExceeded ticket or

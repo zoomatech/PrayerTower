@@ -25,6 +25,7 @@ import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
 import * as safety from '../safety/index.js';
+import * as safetyCenter from '../safety-center/index.js';
 import * as skins from '../skins/index.js';
 
 export interface NotebookSettings {
@@ -250,6 +251,8 @@ export async function features(q: Queryable) {
     ...(await skins.features(q)),
     /** Two-step sign-in (modules/security, Admin → Sign-in security). */
     ...(await security.features(q)),
+    /** Member safety center: report, block, mute and hide in one place (modules/safety-center). */
+    ...(await safetyCenter.features(q)),
   };
 }
 

@@ -92,12 +92,14 @@ function RootStack() {
           <Stack.Screen name="why-gifts" />
           <Stack.Screen name="squire-board" />
           <Stack.Screen name="prayer-list" />
+          <Stack.Screen name="safety" />
           <Stack.Screen name="reading-plan" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="crosspost" />
           <Stack.Screen name="survey/[id]" />
           <Stack.Screen name="feedback-triage" />
+          <Stack.Screen name="operator-console" />
           <Stack.Screen name="import" />
           <Stack.Screen name="appeal/[id]" />
           <Stack.Screen name="people/[id]" />

@@ -1,19 +1,22 @@
 // The decoder as the browser listening page uses it (docs/RADIO_BURST.md,
 // "Listen in a browser"). No Node APIs here: the build script bundles this
 // file for the page, which feeds it microphone audio and shows each frame.
-// Codecs 0 (plain) and 3 (context mixing, what the station almost always
-// picks) decode here; frames that used DEFLATE or Brotli say so instead.
+// Codecs 0 (plain), 3 (context mixing, what the station almost always
+// picks) and 4 (context mixing v2) decode here; frames that used DEFLATE or Brotli say so instead.
 import type { ChannelReport } from './auto.js';
 import { cmDecompress } from './cm.js';
 import { DICTIONARY_V1 } from './dictionary.js';
 import { demodulate, SAMPLE_RATE } from './ofdm.js';
 import { PRIMER_V1 } from './primer.js';
+import { PRIMER_V2_EXTRA } from './primer2.js';
+import { unwrapRelay } from './relay-frame.js';
 import { resample } from './wav.js';
 import { demodulate as demodulatePackets } from '../packet/afsk.js';
 import { parseStatus, type PacketStatus } from '../packet/message.js';
 
 const latin1 = (s: string) => Uint8Array.from(s, (ch) => ch.charCodeAt(0));
 let primer: Uint8Array | null = null;
+let primer2: Uint8Array | null = null;
 
 export interface HeardFrame {
   callSign: string;
@@ -23,16 +26,30 @@ export interface HeardFrame {
   /** The prayers, or null when the frame used a codec the page can't unpack. */
   prayers: string[] | null;
   codec: number;
+  /** The batch as it arrived (a relay re-sends it, relay.ts). */
+  batch: Uint8Array;
+  /** A relay re-sent it: callSign is the station it came from, via the relay, after this many hops. */
+  via?: string;
+  hops?: number;
   /** Where the frame ended, in 48 kHz samples from the start of the audio given. */
   end: number;
   start: number;
 }
 
 function unpack(batch: Uint8Array): string[] | null {
+  try {
+    return unpackOrThrow(batch);
+  } catch {
+    return null;
+  }
+}
+
+function unpackOrThrow(batch: Uint8Array): string[] | null {
   const body = batch.subarray(1);
   let bytes: Uint8Array;
   if (batch[0] === 0) bytes = body;
   else if (batch[0] === 3) bytes = cmDecompress(body, (primer ??= latin1(PRIMER_V1 + DICTIONARY_V1)), 'v1');
+  else if (batch[0] === 4) bytes = cmDecompress(body, (primer2 ??= latin1(PRIMER_V1 + PRIMER_V2_EXTRA + DICTIONARY_V1)), 'v2', 2);
   else return null;
   let text = '';
   for (let i = 0; i < bytes.length; i += 4096) text += String.fromCharCode(...bytes.subarray(i, i + 4096));
@@ -41,16 +58,22 @@ function unpack(batch: Uint8Array): string[] | null {
 
 /** Decode every frame in audio recorded at `rate` samples a second. searchHz: allow an HF (SSB) receiver tuned up to this far off. */
 export function decodeAudio(samples: Float32Array, rate: number, searchHz = 0): HeardFrame[] {
-  return demodulate(resample(samples, rate, SAMPLE_RATE), 0.4, searchHz).map((f) => ({
-    callSign: f.callSign,
-    preset: f.preset,
-    snrDb: f.snrDb,
-    corrected: f.corrected,
-    prayers: unpack(f.batch),
-    codec: f.batch[0] ?? -1,
-    start: f.start,
-    end: f.end,
-  }));
+  return demodulate(resample(samples, rate, SAMPLE_RATE), 0.4, searchHz).map((f) => {
+    const relayed = unwrapRelay(f.batch);
+    const inner = relayed?.inner ?? f.batch;
+    return {
+      callSign: relayed?.origin ?? f.callSign,
+      ...(relayed ? { via: f.callSign, hops: relayed.hops } : {}),
+      preset: f.preset,
+      snrDb: f.snrDb,
+      corrected: f.corrected,
+      prayers: unpack(inner),
+      codec: inner[0] ?? -1,
+      batch: f.batch,
+      start: f.start,
+      end: f.end,
+    };
+  });
 }
 
 /** The channel report a station's BURST_PRESET=auto reads (auto.ts), for the frames heard. */

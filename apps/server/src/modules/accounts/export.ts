@@ -64,6 +64,7 @@ const SECTIONS: Record<string, Section> = {
   skinLikes: { table: 'theme_likes', where: 'user_id = $1' },
   following: { table: 'follows', where: 'user_id = $1' },
   blocked: { table: 'user_blocks', where: 'user_id = $1' },
+  muted: { table: 'user_mutes', where: 'user_id = $1' },
   notifications: { table: 'notifications', where: 'user_id = $1', omit: ['dedupe_key'] },
   milestones: { table: 'milestone_awards', where: 'user_id = $1' },
   tokenAccounts: { table: 'token_accounts', where: 'user_id = $1' },

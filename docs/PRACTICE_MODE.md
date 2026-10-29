@@ -33,7 +33,7 @@ The room opens with `?jwt=<token>` added to its address. 8x8 documents the token
 
 | Part | Location |
 |---|---|
-| Database | `supabase/migrations/20261029081400_practice_mode.sql` (`paid_practice_settings`) |
+| Database | `supabase/migrations/20261029091400_practice_mode.sql` (`paid_practice_settings`) |
 | Server | `apps/server/src/modules/practice-mode/`, `live/jaas.ts`; used in `ai/routes.ts`, `ai/auto-pray.ts`, `live/index.ts`, `store/index.ts` |
 | App | Admin → Practice mode (`PracticeModeSection` in `app/admin.tsx`), `app/token-store.tsx`, `practiceTransaction` in `lib/token-store.ts` |
 | Tests | `apps/server/test/practice-mode.test.ts`, `apps/mobile/src/__tests__/practice-mode.test.tsx` |

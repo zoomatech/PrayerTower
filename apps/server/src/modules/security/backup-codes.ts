@@ -1,4 +1,4 @@
-// Backup codes for two-step sign-in (migration 20261029081300_two_step_recovery.sql,
+// Backup codes for two-step sign-in (migration 20261029091300_two_step_recovery.sql,
 // Admin → Sign-in security → Backup codes, off). A member who turned on two-step
 // sign-in gets ten one-time codes to save. If they lose their phone, one code turns
 // two-step sign-in off (their authenticator factors are removed) so they can sign in

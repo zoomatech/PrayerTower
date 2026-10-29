@@ -170,6 +170,7 @@ export interface Features {
   gentleStreak: boolean;
   /** Moderation tools (Admin → Moderation tools): search, bulk decisions, audit log filters. */
   moderationTools: boolean;
+  safetyCenter: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -624,6 +625,21 @@ export interface RadioSchedule {
   windows: RadioWindow[];
   quietStart: string | null;
   quietEnd: string | null;
+}
+
+export interface RadioConsole {
+  paused: boolean;
+  windowOverrideUntil: string | null;
+  onAirNow: boolean;
+  schedule: RadioSchedule & { inWindow: boolean };
+  queue: {
+    queued: number;
+    sending: number;
+    oldestMinutes: number | null;
+    next: { id: string; text: string; urgency: number; repeats: number; waitingMinutes: number }[];
+  };
+  stations: { callSign: string; lastHeartbeat: string; lastIdAt: string | null; everyMinutes: number | null; nextIdAt: string | null }[];
+  log: { at: string; callSign: string; station: string; preset: string; status: string; heard: boolean; error: string | null; text: string }[];
 }
 
 export interface StationHealth {
@@ -1162,9 +1178,10 @@ export type HarmSettings = {
   flood_per_day: number;
   extra_hate_words: string[];
   explain_held: boolean;
+  read_disguises: boolean;
 };
 export type ModeratorCare = {
-  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
+  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; safety_dashboard_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
   colleagues: { id: string; display_name: string }[];
 };
 export type ModerationDashboard = {
@@ -1174,6 +1191,16 @@ export type ModerationDashboard = {
   falseAlarms: { category: string; decided: number; dismissed: number; rate: number | null }[];
   floods: { floods: number; accounts: number; items: number };
   handoffs: number;
+};
+export type SafetyDashboard = {
+  days: number;
+  maxWaitMinutes: number;
+  held: { source: string; held: number; oldest_minutes: number | null; over_limit: number }[];
+  response: { decided: number; median_minutes: number | null; p90_minutes: number | null; within_limit: number };
+  alerts: { reminded: number; escalated: number };
+  restores: { moderator: string | null; restores: number }[];
+  appeals: { overturned: number; upheld: number };
+  rota: { enabled: boolean; timezone: string; shifts: number; gaps: { weekday: number; start_minute: number; end_minute: number }[] };
 };
 export type HarmReport = {
   id: string;
@@ -1617,6 +1644,8 @@ export const api = {
   decideAppeal: (id: string, action: 'uphold' | 'overturn', note?: string) =>
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
+  radioConsole: () => get<RadioConsole>('/radio/console'),
+  updateRadioConsole: (patch: { paused?: boolean; windowOverrideMinutes?: number }) => request<RadioConsole>('PATCH', '/radio/console', patch),
   admin: {
     communities: () => get<{ communities: Community[] }>('/admin/communities'),
     awardSettings: () => get<{ settings: AwardSettings }>('/admin/award-settings'),
@@ -1731,6 +1760,8 @@ export const api = {
     radioHealth: () => get<StationHealth>('/admin/radio-health'),
     radioSchedule: () => get<{ schedule: RadioSchedule; onAirNow: boolean }>('/admin/radio-schedule'),
     updateRadioSchedule: (patch: Partial<RadioSchedule>) => request<{ schedule: RadioSchedule; onAirNow: boolean }>('PATCH', '/admin/radio-schedule', patch),
+    radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
+    setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
     operatorLog: () => get<{ enabled: boolean }>('/admin/operator-log'),
     setOperatorLog: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/operator-log', { enabled }),
     operatorLogCsv: () => getText('/admin/operator-log?format=csv'),
@@ -1981,6 +2012,9 @@ export const api = {
   updateOncall: (patch: Partial<OncallSettings>) => request<{ settings: OncallSettings }>('PATCH', '/admin/oncall', patch),
   addOncallShift: (shift: { userId: string; weekday: number; startMinute: number; endMinute: number }) => post<{ id: string }>('/admin/oncall/shifts', shift),
   removeOncallShift: (id: string) => request<{ ok: boolean }>('DELETE', `/admin/oncall/shifts/${id}`),
+  safetyCenterSwitch: () => get<{ enabled: boolean }>('/admin/safety-center'),
+  setSafetyCenter: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/safety-center', { enabled }),
+  safetyDashboard: (days = 7) => get<{ dashboard: SafetyDashboard }>(`/admin/safety-dashboard?days=${days}`),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
   harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),
@@ -1989,6 +2023,18 @@ export const api = {
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
+  isMuted: (userId: string) => get<{ muted: boolean }>(`/people/${userId}/mute`),
+  mute: (userId: string) => put<{ muted: boolean }>(`/people/${userId}/mute`),
+  unmute: (userId: string) => request<{ muted: boolean }>('DELETE', `/people/${userId}/mute`),
+  safetyCenter: () =>
+    get<{
+      safety: {
+        blocks: { id: string; displayName: string }[];
+        mutes: { id: string; displayName: string }[];
+        hidden: { id: string; excerpt: string }[];
+        reports: { id: string; targetType: string; createdAt: string; reviewed: boolean }[];
+      };
+    }>('/me/safety'),
   tokenStore: () =>
     get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[]; practice?: boolean }>('/token-store'),
   /** A StoreKit 2 signed transaction; the server checks it with Apple before crediting. */

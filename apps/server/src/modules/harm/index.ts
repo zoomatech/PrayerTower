@@ -11,6 +11,8 @@ import type { Queryable } from '../../db.js';
 import { AppError } from '../../errors.js';
 import * as communities from '../communities/index.js';
 import * as notifications from '../notifications/index.js';
+import { mentionsCrisis } from '../safety/index.js';
+import { unmask } from './unmask.js';
 
 export const CATEGORIES = ['threat', 'hate', 'harm_wish', 'curse', 'revenge', 'abuse_disclosure', 'foul'] as const;
 export type Category = (typeof CATEGORIES)[number];
@@ -31,9 +33,9 @@ const THREAT = [
 ];
 
 const DEATH_OR_HARM =
-  '(?:die|dies|dead|death|drop dead|suffer|suffers|gets? cancer|burn in hell|rot in hell|rot|go to hell|be destroyed|perish|get hurt|be hurt|have an accident|crash|be struck|lose everything|be punished|be killed)';
+  '(?:die|dies|dead|death|drop dead|suffer|suffers|gets? cancer|burn in hell|rot in hell|rot|go to hell|be destroyed|perish|gets? hurt|be hurt|have an accident|crash|be struck|lose everything|be punished|be killed)';
 const HARM_WISH = [
-  new RegExp(`\\b(?:pray(?:ing)?|hope|hoping|wish|wishing|want|asking (?:god|the lord|jesus)|ask (?:god|the lord|jesus))\\b(?: (?:that|for))? ${OTHER}\\b(?![^.!?]{0,30}\\b(?:not|\\w+n't|never|no longer|stop|as|because|since|who|while|before|when|if)\\b)[^.!?]{0,30}?\\b${DEATH_OR_HARM}\\b(?![^.!?]{0,20}\\b(?:peacefully|in peace|without pain|comfortabl\\w*|at home|surrounded)\\b)`, 'i'),
+  new RegExp(`\\b(?:pray(?:ing)?|hope|hoping|wish|wishing|want|asking (?:god|the lord|jesus)|ask (?:god|the lord|jesus))\\b(?: (?:that|for))? ${OTHER}\\b(?![^.!?]{0,30}\\b(?:not|\\w+n't|(?:do|does|did|wo|ca|is|was|would|should|could)nt|never|no longer|stop|as|because|since|who|while|before|when|if)\\b)[^.!?]{0,30}?\\b${DEATH_OR_HARM}\\b(?![^.!?]{0,20}\\b(?:peacefully|in peace|without pain|comfortabl\\w*|at home|surrounded)\\b)`, 'i'),
   new RegExp(`\\b(?:god|lord|jesus|father|heaven),? (?:please )?(?:strike|smite|punish|destroy|kill|curse|damn|crush)\\s+${OTHER}`, 'i'),
   new RegExp(`(?<!(?:n't|not|never) )\\b(?:may|let) (?:god |the lord |heaven )?(?:strike|smite|punish|destroy|kill|curse|damn|crush)\\s+${OTHER}`, 'i'),
   new RegExp(`(?<!(?:n't|not|never) )\\b(?:may|let) ${OTHER} (?:die|suffer|rot|burn|perish|be destroyed)\\b`, 'i'),
@@ -83,16 +85,23 @@ export interface Verdict {
 }
 
 /** Sorts text into categories. Pure, so the app's precheck and the tests can use it. */
-export function check(text: string, extraHateWords: string[] = []): Verdict {
+export function check(text: string, extraHateWords: string[] = [], unmasked = false): Verdict {
   const t = text.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/[\u2018\u2019]/g, "'");
   const words = t.split(/[^\p{L}\p{N}'*]+/u).filter(Boolean);
   const swears = words.filter((w) => SWEAR.test(w.replace(/^'+|'+$/g, ''))).length;
   const rules: string[] = [];
+  // The same patterns also run on the text with disguises taken off (k1ll, unalive, 🔪);
+  // those matches are marked ":masked" in the weekly report.
+  const plain = unmasked ? unmask(text) : null;
+  const disguised = plain !== null && plain !== t.toLowerCase().replace(/\s+/g, ' ').trim();
   const has = (name: Category, list: RegExp[]) => {
-    list.forEach((r, i) => r.test(t) && rules.push(`${name}:${i}`));
+    list.forEach((r, i) => {
+      if (r.test(t)) rules.push(`${name}:${i}`);
+      else if (disguised && r.test(plain)) rules.push(`${name}:${i}:masked`);
+    });
     return rules.some((r) => r.startsWith(`${name}:`));
   };
-  const lower = t.toLowerCase();
+  const lower = disguised ? `${t.toLowerCase()}\n${plain}` : t.toLowerCase();
   const cats: Category[] = [];
   if (has('threat', THREAT)) cats.push('threat');
   const extra = extraHateWords.some((w) => w.trim() && new RegExp(`\\b${escape(w.trim().toLowerCase())}\\b`, 'i').test(lower));
@@ -100,7 +109,7 @@ export function check(text: string, extraHateWords: string[] = []): Verdict {
   if (has('hate', HATE) || extra) cats.push('hate');
   if (has('harm_wish', HARM_WISH)) cats.push('harm_wish');
   if (has('curse', CURSE)) cats.push('curse');
-  if (!REVENGE_RELEASED.test(t) && has('revenge', REVENGE)) cats.push('revenge');
+  if (!REVENGE_RELEASED.test(t) && !(disguised && REVENGE_RELEASED.test(plain)) && has('revenge', REVENGE)) cats.push('revenge');
   if (has('abuse_disclosure', ABUSE)) cats.push('abuse_disclosure');
   const others = words.length - swears;
   const junk = swears >= 3 && others < 3 && !REAL.test(t) && cats.length === 0;
@@ -126,6 +135,8 @@ export interface HarmSettings {
   extra_hate_words: string[];
   /** A member whose post was held can explain it to the moderator. */
   explain_held: boolean;
+  /** Also read through disguises: k1ll, unalive, 🔪 (unmask.ts). Matches go to a person, never refused. */
+  read_disguises: boolean;
 }
 const COLUMNS = [
   'enabled',
@@ -140,6 +151,7 @@ const COLUMNS = [
   'flood_per_day',
   'extra_hate_words',
   'explain_held',
+  'read_disguises',
 ] as const satisfies readonly (keyof HarmSettings)[];
 
 export async function settings(q: Queryable): Promise<HarmSettings> {
@@ -162,6 +174,7 @@ export const SettingsPatch = z
     flood_per_day: z.number().int().min(1).max(1000),
     extra_hate_words: z.array(z.string().trim().min(2).max(60)).max(500),
     explain_held: z.boolean(),
+    read_disguises: z.boolean(),
   })
   .partial();
 
@@ -306,7 +319,7 @@ export function guidance(d: Decision, secular = false): Guidance {
 export async function precheck(q: Queryable, text: string, userId?: string): Promise<Guidance | null> {
   const s = await settings(q);
   if (!s.enabled || !text.trim()) return null;
-  const d = decide(check(text, s.extra_hate_words), s);
+  const d = decide(check(text, s.extra_hate_words, s.read_disguises), s);
   return d ? guidance(d, userId ? await communities.isSecular(q, userId) : false) : null;
 }
 
@@ -319,7 +332,7 @@ export async function precheck(q: Queryable, text: string, userId?: string): Pro
 export async function screen(q: Queryable, userId: string, _target: Target, text: string): Promise<Decision | null> {
   const s = await settings(q);
   if (!s.enabled || !text.trim()) return null;
-  const d = decide(check(text, s.extra_hate_words), s);
+  const d = decide(check(text, s.extra_hate_words, s.read_disguises), s);
   if (!d) return null;
   // Nothing is saved, so the member can simply say more and post again.
   if (d.action === 'filter') throw new AppError(422, 'filtered', guidance(d, await communities.isSecular(q, userId)).message);
@@ -454,4 +467,15 @@ export async function metrics(q: Queryable, since: Date) {
     [since],
   );
   return rows;
+}
+
+/**
+ * Self-harm said in code ("unalive myself", "kms", "sewer slide") that the usual crisis
+ * check misses: true only while disguises are read (read_disguises), so the crisis
+ * support and the moderator's crisis check-in follow as usual.
+ */
+export async function codedCrisis(q: Queryable, text: string): Promise<boolean> {
+  if (!text.trim() || mentionsCrisis(text)) return false;
+  const s = await settings(q);
+  return s.enabled && s.read_disguises && mentionsCrisis(unmask(text));
 }
