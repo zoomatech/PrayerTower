@@ -23,6 +23,14 @@ jest.mock('@/lib/supabase', () => ({
       updateUser: jest.fn(async () => ({ data: {}, error: null })),
       setSession: jest.fn(async () => ({ data: {}, error: null })),
       onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      mfa: {
+        getAuthenticatorAssuranceLevel: jest.fn(async () => ({ data: { currentLevel: 'aal1', nextLevel: 'aal1' }, error: null })),
+        listFactors: jest.fn(async () => ({ data: { all: [], totp: [], phone: [] }, error: null })),
+        enroll: jest.fn(async () => ({ data: null, error: null })),
+        challenge: jest.fn(async () => ({ data: { id: 'challenge-1' }, error: null })),
+        verify: jest.fn(async () => ({ data: {}, error: null })),
+        unenroll: jest.fn(async () => ({ data: {}, error: null })),
+      },
     },
   },
 }));

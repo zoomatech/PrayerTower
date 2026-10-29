@@ -74,6 +74,8 @@ export interface Features {
   prayerChain: boolean;
   prayedForWidget: boolean;
   prayerMinute: boolean;
+  /** Members can turn on two-step sign-in with an authenticator app. */
+  twoStep: boolean;
 }
 
 export interface GrowthSettings {
@@ -698,6 +700,57 @@ export interface TokenPurchase {
   purchased_at: string | null;
 }
 
+/** Giving (off until an admin turns it on and sets up Stripe or a Zeffy link). */
+export interface GivingInfo {
+  enabled: boolean;
+  provider: 'none' | 'stripe' | 'zeffy';
+  url: string | null;
+  minCents: number;
+  maxCents: number;
+  everyoneMonthly: number;
+  allocationRequests: boolean;
+}
+export type GiftTarget = { kind: 'everyone' } | { kind: 'member'; userId: string } | { kind: 'pool'; poolId: string };
+export interface MyGift {
+  id: string;
+  amount_cents: number;
+  status: 'pending' | 'paid' | 'refunded';
+  target_kind: GiftTarget['kind'];
+  created_at: string;
+}
+export interface RadioAllowance {
+  enabled: boolean;
+  freeThisMonth: number;
+  granted: number;
+  canRequest: boolean;
+  pendingRequest: number | null;
+  maxPerRequest: number;
+}
+export interface AllocationRequestRow {
+  id: string;
+  count: number;
+  note: string;
+  name: string;
+  sent_last_30_days: number;
+  created_at: string;
+}
+export interface AdminDonationSettings {
+  enabled: boolean;
+  provider: 'none' | 'stripe' | 'zeffy';
+  donate_url: string | null;
+  min_cents: number;
+  max_cents: number;
+  priestly_per_dollar: number;
+  regular_per_dollar: number;
+  everyone_monthly: number;
+  allocation_requests_enabled: boolean;
+  allocation_max_per_request: number;
+}
+export interface AdminGift extends MyGift {
+  provider: 'stripe' | 'zeffy' | 'manual';
+  donor_name?: string | null;
+}
+
 export const api = {
   /** Public: whether sign-up needs an invite code. */
   signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
@@ -930,6 +983,21 @@ export const api = {
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need' }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
+    donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean }>('/admin/donation-settings'),
+    updateDonationSettings: (
+      patch: Partial<{
+        enabled: boolean;
+        provider: 'none' | 'stripe' | 'zeffy';
+        donateUrl: string | null;
+        everyoneMonthly: number;
+        allocationRequestsEnabled: boolean;
+        allocationMaxPerRequest: number;
+      }>,
+    ) => request<{ settings: AdminDonationSettings }>('PATCH', '/admin/donation-settings', patch),
+    gifts: () => get<{ donations: AdminGift[] }>('/admin/donations'),
+    recordGift: (amountCents: number, reference: string) => post('/admin/donations', { amountCents, reference: reference || undefined }),
+    securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
+    updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
       patch: Partial<{
@@ -1061,6 +1129,14 @@ export const api = {
   tokenPurchases: () => get<{ purchases: TokenPurchase[] }>('/me/token-purchases'),
   donatePriestly: (amount: number) =>
     post('/tokens/priestly/donate', { amount, idempotencyKey: `donate-${Date.now()}` }),
+  givingInfo: () => get<GivingInfo>('/donations/info'),
+  giveCheckout: (amountCents: number, target: GiftTarget, showDonor: boolean) =>
+    post<{ donationId: string; url: string }>('/donations/checkout', { amountCents, target, showDonor, idempotencyKey: `give-${Date.now()}` }),
+  myGifts: () => get<{ donations: MyGift[] }>('/me/donations'),
+  radioAllowance: () => get<RadioAllowance>('/me/radio-allowance'),
+  askForRadioPrayers: (count: number, note: string) => post('/me/radio-allocation-requests', { count, note }),
+  radioRequests: () => get<{ requests: AllocationRequestRow[] }>('/staff/radio-allocation-requests'),
+  decideRadioRequest: (id: string, grant: number) => post(`/staff/radio-allocation-requests/${id}/decide`, { grant }),
   features: () => get<{ features: Features }>('/features'),
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),

@@ -3,8 +3,11 @@ import type { FastifyRequest } from 'fastify';
 import { AppError } from './errors.js';
 import type { Queryable } from './db.js';
 
-/** Verifies a bearer token and returns the Supabase Auth user id (`sub`). */
-export type TokenVerifier = (token: string) => Promise<string>;
+/**
+ * Verifies a bearer token and returns the Supabase Auth user id (`sub`), or the
+ * id with the session's assurance level (`aal`: aal2 once the two-step code was entered).
+ */
+export type TokenVerifier = (token: string) => Promise<string | { sub: string; aal?: string }>;
 
 /**
  * Supabase Auth signs access tokens with asymmetric keys (ES256/RS256) and
@@ -22,7 +25,7 @@ export function supabaseJwksVerifier(supabaseUrl: string): TokenVerifier {
       audience: 'authenticated',
     });
     if (!payload.sub) throw new Error('token has no sub');
-    return payload.sub;
+    return { sub: payload.sub, aal: typeof payload.aal === 'string' ? payload.aal : undefined };
   };
 }
 
@@ -43,17 +46,26 @@ export function makeAuthHook(verify: TokenVerifier, db: Queryable) {
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) throw new AppError(401, 'unauthenticated', 'Missing bearer token');
     let userId: string;
+    let aal: string | undefined;
     try {
-      userId = await verify(header.slice(7));
+      const v = await verify(header.slice(7));
+      userId = typeof v === 'string' ? v : v.sub;
+      aal = typeof v === 'string' ? undefined : v.aal;
     } catch {
       throw new AppError(401, 'unauthenticated', 'Invalid or expired token');
     }
-    const { rows } = await db.query<{ suspended_until: Date | null }>(
-      'select suspended_until from public.profiles where id = $1 and deleted_at is null',
+    // two_step: the member turned on two-step sign-in (a verified Supabase Auth TOTP factor).
+    const { rows } = await db.query<{ suspended_until: Date | null; two_step: boolean }>(
+      `select p.suspended_until,
+              exists (select 1 from auth.mfa_factors f where f.user_id = p.id and f.status::text = 'verified') as two_step
+         from public.profiles p where p.id = $1 and p.deleted_at is null`,
       [userId],
     );
     const profile = rows[0];
     if (!profile) throw new AppError(401, 'unauthenticated', 'No profile for this user');
+    if (profile.two_step && aal !== 'aal2') {
+      throw new AppError(401, 'two_step_required', 'Enter the code from your authenticator app to finish signing in');
+    }
     const suspended = profile.suspended_until && profile.suspended_until > new Date();
     // Suspended members can still read, appeal, and protect themselves: block, report, leave a
     // conversation, mark it read, ask a pastor for help, and delete their account.

@@ -5,7 +5,7 @@
 # a short wait clears it.
 set -uo pipefail
 for attempt in 1 2 3; do
-  npm run db:start -- -x mailpit && exit 0
+  npm run db:start && exit 0
   echo "Supabase did not start (attempt $attempt). Ports in use:"
   (ss -ltnp 2>/dev/null || true) | grep -E ':543[0-9]{2}' || true
   npx supabase stop --no-backup || true

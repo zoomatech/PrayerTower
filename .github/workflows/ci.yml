@@ -17,8 +17,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       # Local Supabase stack (Postgres, Auth, Storage) in Docker; applies migrations.
-      # No tests read email (sign-up confirmations are off), and skipping Mailpit avoids
-      # the runner's port 54324 already being taken (seen 2026-10-28).
+      # Mailpit runs too: 20-password-reset reads the reset code from it. The script
+      # retries when a port is briefly taken (seen 2026-10-28).
       - run: scripts/ci-db-start.sh
       # Server tests with a coverage report: fails below the thresholds in
       # apps/server/vitest.config.ts (docs/CODE_HEALTH.md).

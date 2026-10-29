@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
+import { TwoStepSettings } from '@/components/two-step';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { authRedirectUrl } from '@/lib/auth-links';
@@ -89,6 +90,7 @@ export default function AccountSecurityScreen() {
               busy={busy === 'email'}
               disabled={!email.includes('@') || email.trim() === session?.user.email || busy !== null}
             />
+            <TwoStepSettings />
           </>
         )}
         <ErrorText error={error} />
