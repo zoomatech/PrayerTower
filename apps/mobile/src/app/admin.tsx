@@ -1817,6 +1817,8 @@ function LibrarySection() {
         <>
           <Toggle label={t('library.adminShare')} hint={t('library.adminShareHint')} value={on.shareEnabled} onChange={(shareEnabled) => save({ shareEnabled })} />
           <Toggle label={t('library.adminDaily')} hint={t('library.adminDailyHint')} value={on.dailyEnabled} onChange={(dailyEnabled) => save({ dailyEnabled })} />
+          <Toggle label={t('library.adminParallels')} hint={t('library.adminParallelsHint')} value={on.parallelsEnabled} onChange={(parallelsEnabled) => save({ parallelsEnabled })} />
+          <Toggle label={t('library.adminPlans')} hint={t('library.adminPlansHint')} value={on.plansEnabled} onChange={(plansEnabled) => save({ plansEnabled })} />
         </>
       ) : null}
       {note ? <Text style={type.small}>{note}</Text> : null}

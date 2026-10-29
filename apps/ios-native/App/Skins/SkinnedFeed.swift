@@ -265,17 +265,22 @@ struct GateTop: View {
     var body: some View {
         Canvas { ctx, size in
             let line = GraphicsContext.Shading.color(Color(look.stem))
-            let w = min(size.width - 40, 260.0), x0 = (size.width - w) / 2
+            // Explicit CGFloat keeps the type checker fast (older Xcode gives up on the mixed form).
+            let h: CGFloat = size.height
+            let w: CGFloat = min(size.width - 40, 260)
+            let x0: CGFloat = (size.width - w) / 2
             var arch = Path()
-            arch.move(to: CGPoint(x: x0, y: size.height))
-            arch.addLine(to: CGPoint(x: x0, y: size.height * 0.45))
-            arch.addQuadCurve(to: CGPoint(x: x0 + w, y: size.height * 0.45), control: CGPoint(x: x0 + w / 2, y: -size.height * 0.15))
-            arch.addLine(to: CGPoint(x: x0 + w, y: size.height))
+            arch.move(to: CGPoint(x: x0, y: h))
+            arch.addLine(to: CGPoint(x: x0, y: h * 0.45))
+            arch.addQuadCurve(to: CGPoint(x: x0 + w, y: h * 0.45), control: CGPoint(x: x0 + w / 2, y: -h * 0.15))
+            arch.addLine(to: CGPoint(x: x0 + w, y: h))
             ctx.stroke(arch, with: line, lineWidth: 1.2)
             ctx.stroke(arch.offsetBy(dx: 0, dy: 8), with: line, lineWidth: 0.6)
             for i in 0..<9 {
-                let a = Double.pi * (0.1 + 0.8 * Double(i) / 8)
-                let pt = CGPoint(x: x0 + w / 2 - cos(a) * w * 0.38, y: size.height * 0.42 - sin(a) * size.height * 0.32)
+                let a: CGFloat = .pi * (0.1 + 0.8 * CGFloat(i) / 8)
+                let px: CGFloat = x0 + w / 2 - cos(a) * w * 0.38
+                let py: CGFloat = h * 0.42 - sin(a) * h * 0.32
+                let pt = CGPoint(x: px, y: py)
                 ctx.fill(Path(ellipseIn: CGRect(x: pt.x - 1.5, y: pt.y - 1.5, width: 3, height: 3)), with: .color(Color(look.tendril)))
             }
             var moon = Path(ellipseIn: CGRect(x: size.width - 60, y: 10, width: 26, height: 26))

@@ -239,6 +239,8 @@ export default function Profile() {
           {features.prayerChain ? <Button small variant="secondary" label={t('growth.chainOpen')} onPress={() => router.push('/prayer-chain')} /> : null}
           {features.prayerList ? <Button small variant="secondary" label={t('prayerList.title')} onPress={() => router.push('/prayer-list')} /> : null}
           {features.library ? <Button small variant="secondary" label={t('library.title')} onPress={() => router.push('/library')} /> : null}
+          {features.libraryParallels ? <Button small variant="secondary" label={t('library.parallels')} onPress={() => router.push('/parallels')} /> : null}
+          {features.libraryPlans ? <Button small variant="secondary" label={t('library.plans')} onPress={() => router.push('/reading-plans')} /> : null}
           {features.readingPlan && wording === 'faith' ? <Button small variant="secondary" label={t('readingPlan.title')} onPress={() => router.push('/reading-plan')} /> : null}
           {features.squireBoard ? <Button small variant="secondary" label={t('squire.open')} onPress={() => router.push('/squire-board')} /> : null}
           {features.prayerMinute ? <Button small variant="secondary" label={t('growth.minuteOpen')} onPress={() => router.push('/prayer-minute')} /> : null}

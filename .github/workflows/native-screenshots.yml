@@ -1,0 +1,40 @@
+# App Store screenshots of the native apps, taken on GitHub's macOS runner (it has the iOS
+# Simulator runtimes, so nothing runs on a member's Mac). Run it from the Actions tab, or it runs
+# when the screenshot script changes. The pictures are kept as the "native-screenshots" artifact.
+name: Native screenshots
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: [scripts/mac-screenshots-native.sh, .github/workflows/native-screenshots.yml]
+
+jobs:
+  screenshots:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh prayertower 2>&1 | tee build-logs/screenshots-run/prayertower.txt
+      - shell: bash
+        run: mkdir -p build-logs/screenshots-run && bash scripts/mac-screenshots-native.sh opencircle 2>&1 | tee build-logs/screenshots-run/opencircle.txt
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: native-screenshots
+          path: store-screenshots/native
+          if-no-files-found: warn
+      - name: Show what happened
+        if: ${{ !cancelled() }}
+        run: |
+          for f in build-logs/screenshots-*/*.txt build-logs/native-*/*.txt; do
+            [ -f "$f" ] || continue
+            case "$f" in */screenshots-run/*) tail -25 "$f" | while IFS= read -r l; do echo "::notice title=$f::$l"; done; continue ;; esac
+            grep -hE "error:|FAIL|failed|Unable" "$f" | sort -u | head -15 | while IFS= read -r l; do echo "::error title=$f::$l"; done || true
+          done
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: native-screenshots-logs
+          path: build-logs/screenshots-*/*.txt
+          if-no-files-found: ignore
