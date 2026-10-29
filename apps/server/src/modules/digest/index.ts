@@ -125,6 +125,8 @@ export async function sendDigests(q: Queryable, mailer: Mailer | null, week = is
   );
   let sent = 0;
   let skipped = 0;
+  let failed = 0;
+  let firstError: unknown = null;
   for (const m of rows) {
     const d = await buildDigest(q, m.id);
     // Nothing to say this week: no email.
@@ -132,10 +134,19 @@ export async function sendDigests(q: Queryable, mailer: Mailer | null, week = is
       skipped++;
       continue;
     }
-    await mailer(renderDigest(d, m.locale, m.email, !!m.secular));
+    // One address the mail server refuses must not stop everyone after it.
+    try {
+      await mailer(renderDigest(d, m.locale, m.email, !!m.secular));
+    } catch (err) {
+      failed++;
+      firstError ??= err;
+      continue;
+    }
     await q.query('update public.profiles set digest_sent_week = $2 where id = $1', [m.id, week]);
     sent++;
   }
+  // The job's retry sends only the ones that failed: the rest are marked sent for this week.
+  if (failed) throw new Error(`weekly digest: ${failed} of ${failed + sent} emails failed (${(firstError as Error)?.message ?? 'unknown'})`);
   return { sent, skipped };
 }
 

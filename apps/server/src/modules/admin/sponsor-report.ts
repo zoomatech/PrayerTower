@@ -5,7 +5,7 @@
 import type { Task } from 'graphile-worker';
 import type { Queryable } from '../../db.js';
 import { memberLang } from '../../language.js';
-import type { Mailer } from '../digest/mailer.js';
+import { sendEach, type Mailer } from '../digest/mailer.js';
 import { weekly, type PilotWeek } from './report.js';
 
 export type ReportLang = 'en' | 'es';
@@ -170,10 +170,11 @@ export function weeklySponsorReportTask(q: Queryable, mailer: Mailer | null, to:
     if (!mailer || !to.length) return helpers.logger.info('sponsor report: SPONSOR_REPORT_TO or SMTP_URL not set, skipped');
     const rows = await weekly(q, weeks);
     const week = rows.at(-2)?.week_start ?? rows.at(-1)?.week_start ?? '';
-    for (const r of await recipientLangs(q, to, fallback)) {
+    const recipients = await recipientLangs(q, to, fallback);
+    const sent = await sendEach(recipients, (r) => {
       const text = `${L[r.lang].title}\n\n${rows.map(TEXT_LINE[r.lang]).join('\n')}\n`;
-      await mailer({ to: r.to, subject: SUBJECT[r.lang](week), text, html: toHtml(rows, r.lang) });
-    }
-    helpers.logger.info(`sponsor report: sent to ${to.length}`);
+      return mailer({ to: r.to, subject: SUBJECT[r.lang](week), text, html: toHtml(rows, r.lang) });
+    });
+    helpers.logger.info(`sponsor report: sent to ${sent} of ${recipients.length}`);
   };
 }

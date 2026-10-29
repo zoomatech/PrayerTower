@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { buildDigest, isoWeek, sendDigests } from '../src/modules/digest/index.js';
-import type { Mail } from '../src/modules/digest/mailer.js';
+import { sendEach, type Mail } from '../src/modules/digest/mailer.js';
 import { as, createUser, db, newRequest } from './helpers.js';
 import { languages } from '../src/language.js';
 
@@ -53,6 +53,30 @@ describe('weekly email digest', () => {
     expect(es.text).toContain('(tu petición)');
   });
 
+  it('keeps sending after one address fails, and the retry sends only that one', async () => {
+    const poster = await createUser('Digest Lois');
+    const bad = await createUser('Digest Eunice');
+    const good = await createUser('Digest Timothy');
+    const post = await newRequest(poster, 'Pray for our long drive home.');
+    for (const m of [bad, good]) {
+      await as(m).post(`/posts/${post.id}/praying-now`, {});
+      await as(m).patch('/me', { digestEnabled: true });
+    }
+    const week = `test-fail-${isoWeek()}-${good}`;
+    const outbox: Mail[] = [];
+    let refuse = true;
+    const mailer = async (m: Mail) => {
+      if (refuse && m.to === `${bad}@test.local`) throw new Error('mailbox unavailable');
+      outbox.push(m);
+    };
+    await expect(sendDigests(db, mailer, week)).rejects.toThrow(/emails failed \(mailbox unavailable\)/);
+    expect(outbox.filter((m) => m.to === `${good}@test.local`)).toHaveLength(1);
+    refuse = false;
+    await sendDigests(db, mailer, week);
+    expect(outbox.filter((m) => m.to === `${good}@test.local`)).toHaveLength(1);
+    expect(outbox.filter((m) => m.to === `${bad}@test.local`)).toHaveLength(1);
+  });
+
   it('never emails a sensitive request, or one across a block', async () => {
     const poster = await createUser('Digest Poster');
     const member = await createUser('Digest Reader');
@@ -70,5 +94,19 @@ describe('weekly email digest', () => {
 
   it('does nothing without SMTP', async () => {
     expect(await sendDigests(db, null)).toEqual({ sent: 0, skipped: 0 });
+  });
+});
+
+describe('emails to a short list (sponsors, admins)', () => {
+  it('sends to the rest after one fails, and throws only when every send failed', async () => {
+    const sent: string[] = [];
+    const send = async (to: string) => {
+      if (to.startsWith('bad')) throw new Error('refused');
+      sent.push(to);
+    };
+    expect(await sendEach(['a@x.org', 'bad@x.org', 'b@x.org'], send)).toBe(2);
+    expect(sent).toEqual(['a@x.org', 'b@x.org']);
+    await expect(sendEach(['bad1@x.org', 'bad2@x.org'], send)).rejects.toThrow('refused');
+    expect(await sendEach([], send)).toBe(0);
   });
 });
