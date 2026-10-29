@@ -103,6 +103,7 @@ const SECTIONS: Record<string, Section> = {
   reportsMade: { table: 'moderation_items', where: 'reporter_id = $1', omit: ['user_id', 'decided_by', 'ai_categories', 'source'] },
   assistantUse: { table: 'ai_usage', where: 'user_id = $1' },
   announcementsDismissed: { table: 'announcement_dismissals', where: 'user_id = $1' },
+  dailyReminder: { table: 'daily_reminders', where: 'user_id = $1' },
   partnerPool: { table: 'partner_pool', where: 'user_id = $1' },
   partnerships: { table: 'partnerships', where: 'a_id = $1 or b_id = $1' },
 };
