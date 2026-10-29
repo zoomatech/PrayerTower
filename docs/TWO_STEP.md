@@ -38,7 +38,7 @@ Members can add a code from an authenticator app (Google Authenticator, Microsof
 ## Passkeys (Admin → Sign-in security → Passkeys, off)
 - Members sign in with Face ID, Touch ID or a security key, using Supabase Auth passkeys (beta, [changelog](https://supabase.com/changelog/46458-passkeys-for-supabase-auth-beta)).
   - **Add a passkey** is on Me → Password and email.
-  - **Sign in with a passkey** is on the sign-in screen.
+  - **Use a passkey** is on the sign-in screen.
 - **Web browsers only for now.** Supabase's passkey API uses the browser's WebAuthn, and its changelog doesn't cover native apps yet, so the iPhone app doesn't show passkeys.
   - The future native Swift app can use Apple's passkey APIs directly (docs/SWIFT_PORT.md).
 - A passkey replaces the password, not the authenticator code. A member with two-step sign-in still enters the code.
