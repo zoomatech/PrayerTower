@@ -265,7 +265,8 @@ struct GateTop: View {
     var body: some View {
         Canvas { ctx, size in
             let line = GraphicsContext.Shading.color(Color(look.stem))
-            let w = min(size.width - 40, 260.0), x0 = (size.width - w) / 2
+            let w: Double = min(size.width - 40, 260.0)
+            let x0: Double = (size.width - w) / 2
             var arch = Path()
             arch.move(to: CGPoint(x: x0, y: size.height))
             arch.addLine(to: CGPoint(x: x0, y: size.height * 0.45))
@@ -274,8 +275,10 @@ struct GateTop: View {
             ctx.stroke(arch, with: line, lineWidth: 1.2)
             ctx.stroke(arch.offsetBy(dx: 0, dy: 8), with: line, lineWidth: 0.6)
             for i in 0..<9 {
-                let a = Double.pi * (0.1 + 0.8 * Double(i) / 8)
-                let pt = CGPoint(x: x0 + w / 2 - cos(a) * w * 0.38, y: size.height * 0.42 - sin(a) * size.height * 0.32)
+                let a: Double = Double.pi * (0.1 + 0.8 * Double(i) / 8)
+                let px: Double = x0 + w / 2 - cos(a) * w * 0.38
+                let py: Double = size.height * 0.42 - sin(a) * size.height * 0.32
+                let pt = CGPoint(x: px, y: py)
                 ctx.fill(Path(ellipseIn: CGRect(x: pt.x - 1.5, y: pt.y - 1.5, width: 3, height: 3)), with: .color(Color(look.tendril)))
             }
             var moon = Path(ellipseIn: CGRect(x: size.width - 60, y: 10, width: 26, height: 26))

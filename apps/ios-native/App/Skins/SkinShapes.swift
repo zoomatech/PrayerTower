@@ -102,12 +102,16 @@ struct Mark: View {
             switch shape {
             case .flower:
                 Canvas { ctx, box in
-                    let p = size * 0.42, r = (size - p) / 2, mid = box.width / 2
+                    let p: Double = size * 0.42
+                    let r: Double = (size - p) / 2
+                    let mid: Double = box.width / 2
                     for deg in stride(from: 0.0, to: 360, by: 72) {
-                        let a = (deg - 90) * .pi / 180
-                        ctx.fill(Path(ellipseIn: CGRect(x: mid - p / 2 + r * cos(a), y: mid - p / 2 + r * sin(a), width: p, height: p)), with: .color(color))
+                        let a: Double = (deg - 90) * Double.pi / 180
+                        let x: Double = mid - p / 2 + r * cos(a)
+                        let y: Double = mid - p / 2 + r * sin(a)
+                        ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: p, height: p)), with: .color(color))
                     }
-                    let c = p * 0.8
+                    let c: Double = p * 0.8
                     ctx.fill(Path(ellipseIn: CGRect(x: mid - c / 2, y: mid - c / 2, width: c, height: c)), with: .color(center))
                 }
                 .frame(width: size, height: size)

@@ -84,6 +84,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash scripts/mac-build-native.sh
+      # The result table, first errors and performance numbers as annotations, so they can be
+      # read from the checks API without downloading the logs.
+      - name: Results as annotations
+        if: ${{ !cancelled() }}
+        run: |
+          d=$(ls -d build-logs/native-* 2>/dev/null | grep -v derived | tail -1)
+          [ -n "$d" ] || exit 0
+          [ -s "$d/errors.txt" ] && head -40 "$d/errors.txt" | while IFS= read -r l; do echo "::error title=ios::${l//%/%25}"; done
+          [ -s "$d/performance.txt" ] && head -20 "$d/performance.txt" | while IFS= read -r l; do echo "::notice title=performance::${l//%/%25}"; done
+          grep -hE "Test Case .* failed|recorded|error:" "$d"/ui-walks.txt 2>/dev/null | sort -u | head -40 | while IFS= read -r l; do echo "::warning title=tests::${l//%/%25}"; done
+          exit 0
       - name: Performance numbers
         if: ${{ !cancelled() }}
         run: |
