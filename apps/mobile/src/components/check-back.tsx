@@ -43,7 +43,9 @@ export function CheckBack({ postId }: { postId: string }) {
 
   return (
     <View style={styles.card} testID="check-back">
-      <Text style={type.heading}>{t('checkBack.title')}</Text>
+      <Text style={type.heading} accessibilityRole="header">
+        {t('checkBack.title')}
+      </Text>
       {dueAt ? (
         <>
           <Text style={type.body}>{t('checkBack.due', { date: new Date(dueAt).toLocaleDateString(language, { weekday: 'long', month: 'long', day: 'numeric' }) })}</Text>
