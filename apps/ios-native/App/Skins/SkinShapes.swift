@@ -118,7 +118,7 @@ struct Mark: View {
                 }
                 .frame(width: size, height: size)
             case .star:
-                Text("✦").font(.system(size: size)).foregroundStyle(color).neonTube(color)
+                DecorativeGlyph(glyph: "✦", size: size, color: color).neonTube(color)
             default:
                 EmptyView()
             }

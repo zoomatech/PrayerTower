@@ -176,7 +176,7 @@ struct PostDetailView: View {
     @ViewBuilder private func prayedList(_ p: Prayers) -> some View {
         Text(w("post.prayed", count: p.count)).font(.subheadline.bold())
         if !p.people.isEmpty {
-            Text(p.people.map(\.displayName).joined(separator: ", ")).font(.footnote).foregroundStyle(.secondary)
+            Text(p.people.map(\.displayName).joined(separator: ", ")).font(.footnote).foregroundStyle(Color.subtle)
         }
     }
 
@@ -190,7 +190,7 @@ struct PostDetailView: View {
 
     @ViewBuilder private var commentList: some View {
         if comments.isEmpty {
-            Text(w("post.noComments")).foregroundStyle(.secondary)
+            Text(w("post.noComments")).foregroundStyle(Color.subtle)
         }
         ForEach(comments) { item in
             let c = item.comment

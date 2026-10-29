@@ -19,7 +19,7 @@ struct SkinGalleryView: View {
                         Button("Try again") { Task { await run { try await model.store.api.skinGallery() } } }
                     }
                 }
-                if skins?.isEmpty == true { Text("No skins to show yet.").foregroundStyle(.secondary) }
+                if skins?.isEmpty == true { Text("No skins to show yet.").foregroundStyle(Color.subtle) }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 16)], spacing: 16) {
                     ForEach(skins ?? []) { skin in card(skin) }
                 }
@@ -36,7 +36,7 @@ struct SkinGalleryView: View {
             HStack {
                 VStack(alignment: .leading) {
                     Text(s.displayName(model.wording)).bold()
-                    Text(s.byline).font(.footnote).foregroundStyle(.secondary)
+                    Text(s.byline).font(.footnote).foregroundStyle(Color.subtle)
                 }
                 Spacer()
                 Button {

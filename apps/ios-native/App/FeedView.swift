@@ -221,7 +221,7 @@ struct CardRow: View {
                 Text(card.preview)
                 if card.counts.prayers > 0 {
                     Text(model.wording == .neutral ? "\(card.counts.prayers) people thinking of this" : "\(card.counts.prayers) praying")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.subtle)
                 }
             }
             .contentShape(.rect)
@@ -262,7 +262,7 @@ struct EncourageSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section { Text(card.preview).foregroundStyle(.secondary) }
+                Section { Text(card.preview).foregroundStyle(Color.subtle) }
                 Section { KindComposer(title: "A few kind words", text: $text, limit: 77) }
             }
             .navigationTitle("Encourage")

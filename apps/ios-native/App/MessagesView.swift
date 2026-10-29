@@ -18,7 +18,7 @@ struct MessagesView: View {
         NavigationStack {
             List {
                 Section {
-                    Text(w("messages.privacy")).font(.footnote).foregroundStyle(.secondary)
+                    Text(w("messages.privacy")).font(.footnote).foregroundStyle(Color.subtle)
                     if groupsOn { NavigationLink(w("messages.groups")) { GroupsView() } }
                     if eventsOn { NavigationLink(w("messages.events")) { EventsView() } }
                     if careOn { NavigationLink(w("messages.care")) { CareView() } }
@@ -37,7 +37,7 @@ struct MessagesView: View {
                     Section(parts.requests.isEmpty ? "" : w("messages.conversations")) { ForEach(parts.rest) { row($0) } }
                 }
                 if loaded && items.isEmpty {
-                    Section { Text(w("messages.empty")).foregroundStyle(.secondary) }
+                    Section { Text(w("messages.empty")).foregroundStyle(Color.subtle) }
                 }
             }
             .overlay { if !loaded && error == nil { ProgressView() } }
@@ -54,10 +54,10 @@ struct MessagesView: View {
                 HStack {
                     Text(c.title).font(.headline).lineLimit(1)
                     Spacer()
-                    Text(w("messages.kinds.\(c.kind)")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("messages.kinds.\(c.kind)")).font(.caption).foregroundStyle(Color.subtle)
                 }
                 if c.kind == "group" {
-                    Text(w("groups.members", count: c.memberCount)).font(.caption).foregroundStyle(.secondary)
+                    Text(w("groups.members", count: c.memberCount)).font(.caption).foregroundStyle(Color.subtle)
                 }
                 if let last = c.lastMessage { Text(last).lineLimit(2) }
                 if c.unread > 0 {
@@ -145,12 +145,12 @@ struct ConversationScreen: View {
     @ViewBuilder private func header(_ c: ConversationView.Info) -> some View {
         if let topic = c.topic { Text(topic) }
         if c.isGroup {
-            Text(w("groups.members", count: c.members.count + 1)).font(.caption).foregroundStyle(.secondary)
+            Text(w("groups.members", count: c.members.count + 1)).font(.caption).foregroundStyle(Color.subtle)
         }
         if let post = c.post {
             Button { openedPost = post.id } label: {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(w("conversation.about")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("conversation.about")).font(.caption).foregroundStyle(Color.subtle)
                     Text(post.excerpt)
                 }
             }
@@ -229,7 +229,7 @@ struct ConversationScreen: View {
     private func reportSheet(_ m: ChatMessage) -> some View {
         NavigationStack {
             Form {
-                Section { Text(m.body).foregroundStyle(.secondary) }
+                Section { Text(m.body).foregroundStyle(Color.subtle) }
                 Section {
                     TextField(w("conversation.whatsWrong"), text: $reason, axis: .vertical).lineLimit(2...6)
                 } footer: { Text(w("conversation.reportNote")) }
@@ -312,7 +312,7 @@ struct InviteSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                if people?.isEmpty == true { Text(w("conversation.followToInvite")).foregroundStyle(.secondary) }
+                if people?.isEmpty == true { Text(w("conversation.followToInvite")).foregroundStyle(Color.subtle) }
                 ForEach(people ?? []) { p in
                     Button {
                         if picked.contains(p.id) { picked.remove(p.id) } else { picked.insert(p.id) }
@@ -391,14 +391,14 @@ struct GroupsView: View {
                     Button(w("groups.start")) { creating = true }
                 }
             }
-            if loaded && groups.isEmpty { Section { Text(w("groups.empty")).foregroundStyle(.secondary) } }
+            if loaded && groups.isEmpty { Section { Text(w("groups.empty")).foregroundStyle(Color.subtle) } }
             ForEach(groups) { g in
                 Button { Task { await open(g) } } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(g.title).font(.headline)
                         if let topic = g.topic { Text(topic) }
                         Text("\(w("groups.members", count: g.memberCount)) · \(w(g.joined ? "groups.joined" : "groups.tapToJoin"))")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.subtle)
                     }
                 }
                 .buttonStyle(.plain)

@@ -18,7 +18,7 @@ struct FreshDaysSection: View {
     var body: some View {
         Group {
             Text("Save up to three days of your own, like a birthday or a day you began again. On that day, Me offers a fresh start. Only you see them.")
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(Color.subtle)
             ForEach(days) { d in
                 HStack {
                     Text("\(d.label) · \(when(d))")

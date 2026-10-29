@@ -22,7 +22,7 @@ struct ParallelsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(t.title).font(.headline)
                                 Text(t.intro)
-                                Text(t.texts.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+                                Text(t.texts.joined(separator: " · ")).font(.caption).foregroundStyle(Color.subtle)
                             }
                         }
                     }
@@ -67,7 +67,7 @@ struct ParallelThemeView: View {
                 if let error { Text(error).foregroundStyle(.red) }
                 if let theme {
                     Text(theme.intro)
-                    Text(w("library.parallelsCount", count: theme.sides.count)).font(.caption).foregroundStyle(.secondary)
+                    Text(w("library.parallelsCount", count: theme.sides.count)).font(.caption).foregroundStyle(Color.subtle)
                     if wide {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), alignment: .top)], spacing: 12) { cards(theme) }
                     } else {
@@ -89,10 +89,10 @@ struct ParallelThemeView: View {
     @ViewBuilder private func cards(_ theme: ParallelTheme) -> some View {
         ForEach(Array(theme.sides.enumerated()), id: \.offset) { _, s in
             VStack(alignment: .leading, spacing: 6) {
-                Text(s.excerpt.collectionTitle).font(.caption).foregroundStyle(.secondary)
+                Text(s.excerpt.collectionTitle).font(.caption).foregroundStyle(Color.subtle)
                 if let label = s.label { Text(label).font(.headline) }
                 Text(s.excerpt.text).textSelection(.enabled)
-                Text(s.excerpt.citation).font(.caption).foregroundStyle(.secondary)
+                Text(s.excerpt.citation).font(.caption).foregroundStyle(Color.subtle)
                 if model.features["libraryShare"] {
                     Button(w("library.share")) { sharing = SharedPassage(post: Library.shared(s.excerpt.text, citation: s.excerpt.citation)) }
                         .accessibilityLabel(w("library.shareOne", ["citation": s.excerpt.citation]))
@@ -144,9 +144,9 @@ struct ReadingPlansView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(p.title).font(.headline)
             Text(p.intro)
-            Text(w("library.planDays", count: p.days)).font(.caption).foregroundStyle(.secondary)
+            Text(w("library.planDays", count: p.days)).font(.caption).foregroundStyle(Color.subtle)
             ForEach(p.circles) { c in
-                Text(w("library.planCircleReading", ["circle": c.name], count: c.readers)).font(.caption).foregroundStyle(.secondary)
+                Text(w("library.planCircleReading", ["circle": c.name], count: c.readers)).font(.caption).foregroundStyle(Color.subtle)
             }
         }
         if let f = p.following {
@@ -157,7 +157,7 @@ struct ReadingPlansView: View {
             Toggle(isOn: Binding(get: { f.reminders }, set: { v in act { try await model.store.api.followPlan(p.id, reminders: v) } })) {
                 VStack(alignment: .leading) {
                     Text(w("library.planReminders"))
-                    Text(w("library.planRemindersHint")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("library.planRemindersHint")).font(.caption).foregroundStyle(Color.subtle)
                 }
             }
             Button(w("library.planStop"), role: .destructive) { act { try await model.store.api.unfollowPlan(p.id) } }
@@ -205,11 +205,11 @@ struct PlanDayView: View {
             VStack(alignment: .leading, spacing: 12) {
                 if let error { Text(error).foregroundStyle(.red) }
                 if let data {
-                    Text(w("library.planDayOf", ["day": String(data.day), "days": String(data.plan.days)])).font(.caption).foregroundStyle(.secondary)
+                    Text(w("library.planDayOf", ["day": String(data.day), "days": String(data.plan.days)])).font(.caption).foregroundStyle(Color.subtle)
                     Text(data.reading.citation).font(.headline)
                     Text(data.reading.text).textSelection(.enabled)
                     if let c = data.circle {
-                        Text(w("library.planCircleToday", ["circle": c.name, "readers": String(c.readers), "reading": String(c.reading)])).font(.caption).foregroundStyle(.secondary)
+                        Text(w("library.planCircleToday", ["circle": c.name, "readers": String(c.readers), "reading": String(c.reading)])).font(.caption).foregroundStyle(Color.subtle)
                     }
                     if data.following != nil {
                         if data.read {

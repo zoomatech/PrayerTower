@@ -18,11 +18,11 @@ struct CirclesView: View {
                         NavigationLink(value: c.id) {
                             VStack(alignment: .leading) {
                                 Text(c.name).font(.headline)
-                                Text("\(c.members) of 12").font(.caption).foregroundStyle(.secondary)
+                                Text("\(c.members) of 12").font(.caption).foregroundStyle(Color.subtle)
                             }
                         }
                     }
-                    if circles.isEmpty { Text("Start a circle for a few people you trust, or join one with a code.").foregroundStyle(.secondary) }
+                    if circles.isEmpty { Text("Start a circle for a few people you trust, or join one with a code.").foregroundStyle(Color.subtle) }
                 }
                 Section("Start a circle") {
                     TextField("Circle name", text: $name)
@@ -152,11 +152,11 @@ struct CirclePostView: View {
                 .accessibilityElement(children: .combine)
             }
             ForEach(post.replies) { r in
-                Text("\(r.author.displayName ?? "A member"): \(r.body)").font(.callout).foregroundStyle(.secondary)
+                Text("\(r.author.displayName ?? "A member"): \(r.body)").font(.callout).foregroundStyle(Color.subtle)
             }
             HStack {
                 if post.isMine {
-                    Text("\(post.prayed ?? 0) prayed").font(.caption).foregroundStyle(.secondary)
+                    Text("\(post.prayed ?? 0) prayed").font(.caption).foregroundStyle(Color.subtle)
                 } else {
                     Button(post.prayedByMe ? "Prayed" : (model.wording == .neutral ? "I'm thinking of you" : "I prayed")) {
                         Task { await call { _ = try await model.store.api.circlePray(postId: post.id) } }

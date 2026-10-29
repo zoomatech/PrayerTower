@@ -97,12 +97,12 @@ struct ThemeMakerView: View {
                 .disabled(!maker.canSave || busy)
             }
             Section("Your skins") {
-                if mine.isEmpty { Text("No skins yet.").foregroundStyle(.secondary) }
+                if mine.isEmpty { Text("No skins yet.").foregroundStyle(Color.subtle) }
                 ForEach(mine) { p in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(p.name).bold()
                         Text(p.statusLine).font(.footnote)
-                        if let note = p.reviewNote, !note.isEmpty { Text(note).font(.footnote).foregroundStyle(.secondary) }
+                        if let note = p.reviewNote, !note.isEmpty { Text(note).font(.footnote).foregroundStyle(Color.subtle) }
                     }
                     .accessibilityElement(children: .combine)
                 }

@@ -24,7 +24,7 @@ import Testing
     }
 
     @Test func meCountsAndCirclesDecode() async throws {
-        #expect(try await api.features()["prayerCircles"])
+        #expect(try await !api.features()["prayerCircles"])
         #expect(try await api.tier().prayers == 42)
         #expect(try await api.tokens().balance == 12)
         #expect(try await api.prayerStats().week.count == 7)

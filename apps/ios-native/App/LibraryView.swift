@@ -67,9 +67,9 @@ struct LibraryView: View {
         let bible = collection == Library.bible
         VStack(alignment: .leading, spacing: 4) {
             Text(bible ? h.ref : h.work.title).font(.headline)
-            if !bible && !h.ref.isEmpty { Text(h.ref).font(.caption).foregroundStyle(.secondary) }
+            if !bible && !h.ref.isEmpty { Text(h.ref).font(.caption).foregroundStyle(Color.subtle) }
             Text(h.text).textSelection(.enabled)
-            if !h.complete { Text(w("library.near")).font(.caption).foregroundStyle(.secondary) }
+            if !h.complete { Text(w("library.near")).font(.caption).foregroundStyle(Color.subtle) }
         }
         .accessibilityElement(children: .combine)
         if model.features["libraryShare"] {
@@ -128,32 +128,32 @@ struct LibraryAdminSection: View {
                 Toggle(isOn: Binding(get: { on.enabled == true }, set: { save(LibrarySettings(enabled: $0)) })) {
                     VStack(alignment: .leading) {
                         Text(w("library.adminToggle"))
-                        Text(w("library.adminHint")).font(.caption).foregroundStyle(.secondary)
+                        Text(w("library.adminHint")).font(.caption).foregroundStyle(Color.subtle)
                     }
                 }
                 if on.enabled == true {
                     Toggle(isOn: Binding(get: { on.shareEnabled == true }, set: { save(LibrarySettings(shareEnabled: $0)) })) {
                         VStack(alignment: .leading) {
                             Text(w("library.adminShare"))
-                            Text(w("library.adminShareHint")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("library.adminShareHint")).font(.caption).foregroundStyle(Color.subtle)
                         }
                     }
                     Toggle(isOn: Binding(get: { on.dailyEnabled == true }, set: { save(LibrarySettings(dailyEnabled: $0)) })) {
                         VStack(alignment: .leading) {
                             Text(w("library.adminDaily"))
-                            Text(w("library.adminDailyHint")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("library.adminDailyHint")).font(.caption).foregroundStyle(Color.subtle)
                         }
                     }
                     Toggle(isOn: Binding(get: { on.parallelsEnabled == true }, set: { save(LibrarySettings(parallelsEnabled: $0)) })) {
                         VStack(alignment: .leading) {
                             Text(w("library.adminParallels"))
-                            Text(w("library.adminParallelsHint")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("library.adminParallelsHint")).font(.caption).foregroundStyle(Color.subtle)
                         }
                     }
                     Toggle(isOn: Binding(get: { on.plansEnabled == true }, set: { save(LibrarySettings(plansEnabled: $0)) })) {
                         VStack(alignment: .leading) {
                             Text(w("library.adminPlans"))
-                            Text(w("library.adminPlansHint")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("library.adminPlansHint")).font(.caption).foregroundStyle(Color.subtle)
                         }
                     }
                 }
@@ -192,9 +192,9 @@ struct DailyPassageCard: View {
         Group {
             if model.features["libraryDaily"], let daily, daily.enabled, let p = daily.passage, hidden != daily.day {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(w("library.dailyTitle")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("library.dailyTitle")).font(.caption).foregroundStyle(Color.subtle)
                     Text(p.text).textSelection(.enabled)
-                    Text(p.credit).font(.caption).foregroundStyle(.secondary)
+                    Text(p.credit).font(.caption).foregroundStyle(Color.subtle)
                     HStack {
                         if daily.share == true { Button(w("library.share")) { sharing = SharedPassage(post: Library.shared(p.text, citation: p.credit)) }.buttonStyle(.bordered) }
                         Button(w("feed.notNow")) { hidden = daily.day }.buttonStyle(.borderless)

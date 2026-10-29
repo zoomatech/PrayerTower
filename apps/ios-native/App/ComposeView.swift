@@ -238,11 +238,11 @@ private struct ChipStyle: ButtonStyle {
     let on: Bool
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .padding(.horizontal, 12).padding(.vertical, 8)
+            .padding(.horizontal, 14).padding(.vertical, 8)
             .frame(minHeight: 44)
             .foregroundStyle(on ? Color.white : Color.primary)
             // #0061CC: white text on it reads at 5.8:1, where white on system blue is only about 4:1.
-            .background(on ? Color(red: 0, green: 0.38, blue: 0.8) : Color.secondary.opacity(0.15), in: .capsule)
+            .background(on ? Color(red: 0, green: 0.38, blue: 0.8) : Color.secondary.opacity(0.15), in: .rect(cornerRadius: 12))
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
@@ -278,7 +278,7 @@ struct LabelHint: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text(title)
-            Text(hint).font(.footnote).foregroundStyle(.secondary)
+            Text(hint).font(.footnote).foregroundStyle(Color.subtle)
         }
     }
 }

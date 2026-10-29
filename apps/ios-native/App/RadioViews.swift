@@ -103,12 +103,12 @@ private struct TrailRow: View {
         let w = model.words
         VStack(alignment: .leading, spacing: 2) {
             Text(w(entry.amplified ? "radioTrail.sentAmplified" : "radioTrail.sent", ["time": shortTime(entry.sentAt)]) + (entry.callSign.map { " · \($0)" } ?? ""))
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundStyle(Color.subtle)
             ForEach(entry.nodes, id: \.name) { n in
                 Text(w("radioTrail.node", ["name": n.name, "snr": n.snrDb.formatted(.number.precision(.fractionLength(0...1)))]))
             }
             if entry.phones > 0 { Text(w("radioTrail.phones", count: entry.phones)) }
-            if entry.nodes.isEmpty && entry.phones == 0 { Text(w("radioTrail.none")).font(.footnote).foregroundStyle(.secondary) }
+            if entry.nodes.isEmpty && entry.phones == 0 { Text(w("radioTrail.none")).font(.footnote).foregroundStyle(Color.subtle) }
         }
         .accessibilityElement(children: .combine)
     }
@@ -217,7 +217,7 @@ struct SignalQueueView: View {
                     Button(w("common.tryAgain")) { Task { await load() } }
                 }
             }
-            if items?.isEmpty == true { Section { Text(w("signalQueue.empty")).foregroundStyle(.secondary) } }
+            if items?.isEmpty == true { Section { Text(w("signalQueue.empty")).foregroundStyle(Color.subtle) } }
             ForEach(items ?? []) { s in
                 NavigationLink { PostDetailView(postId: s.postId) } label: { row(s) }
             }
@@ -231,7 +231,7 @@ struct SignalQueueView: View {
     private func row(_ s: SignalEntry) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("“\(s.excerpt)”")
-            Text(details(s)).font(.footnote).foregroundStyle(.secondary)
+            Text(details(s)).font(.footnote).foregroundStyle(Color.subtle)
             if let code = s.signalCode, let spoken = s.spokenCode {
                 Text(code).font(.system(.headline, design: .monospaced)).tracking(2)
                     .accessibilityLabel(w("signalQueue.codeLabel", ["code": spoken]))

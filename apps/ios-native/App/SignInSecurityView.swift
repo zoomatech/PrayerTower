@@ -146,7 +146,7 @@ struct PasskeysSection: View {
                 HStack {
                     Text(p.name ?? "Passkey")
                     Spacer()
-                    Text(p.createdAt, style: .date).foregroundStyle(.secondary)
+                    Text(p.createdAt, style: .date).foregroundStyle(Color.subtle)
                 }
                 .swipeActions { Button("Remove", role: .destructive) { Task { await remove(p) } } }
             }

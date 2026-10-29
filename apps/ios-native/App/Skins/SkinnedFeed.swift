@@ -17,6 +17,11 @@ struct SkinnedFeed<Row: View>: View {
     var onOpen: ((Card) -> Void)?
 
     var body: some View {
+        // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
+        layouts.solidNavigationBar()
+    }
+
+    @ViewBuilder private var layouts: some View {
         switch theme.kind {
         case .vine: VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, onOpen: onOpen)
         case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), row: row, onEnd: onEnd)
@@ -64,6 +69,7 @@ struct VineFeed<Row: View>: View {
                 }
                 Text(Skin.tip(look, wording))
                     .font(.footnote)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color(look.tipColor))
                     .backdropPlate(look.backdrop)
                     .padding(.leading, 44)
@@ -358,7 +364,7 @@ struct WallFeed<Row: View>: View {
                             // "2 / 9", and on the first post how to reach the next.
                             Text("\(i + 1) / \(cards.count)" + (i == 0 ? " · \(words.wallSwipe)" : ""))
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.subtle)
                                 .accessibilityLabel(words.wallPosition(i + 1, of: cards.count))
                         }
                         .backdropPlate(look.backdrop)
@@ -414,7 +420,7 @@ struct TowerFeed<Row: View>: View {
                     .task { if card.id == cards.last?.id { await onEnd() } }
                 }
                 if !hasMore, !cards.isEmpty {
-                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).onBackdrop(look.backdrop).padding(.vertical, 24)
+                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).onBackdrop(look.backdrop).padding(.vertical, 24)
                 }
             }
             .scrollTargetLayout()
@@ -438,7 +444,7 @@ struct TowerFeed<Row: View>: View {
             let index = Double(cards.firstIndex { $0.id == floor } ?? 0)
             VStack(spacing: 0) {
                 Rectangle().fill(Color(look.mortar)).frame(width: 2, height: max(20, 200 - index * 24))
-                Text(look.climber).font(.title)
+                DecorativeGlyph(glyph: look.climber, size: 28)
             }
             .frame(maxHeight: .infinity, alignment: .top)
             .padding(.trailing, 4)
@@ -538,9 +544,15 @@ struct CircuitFeed<Row: View>: View {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     row(card)
                         .padding(16)
-                        .background(BackdropText(on: look.backdrop).plate ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color(look.backdrop).opacity(0.92)), in: .rect(cornerRadius: 10))
-                        .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)).accessibilityHidden(true) }
-                        .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                        // Only the screen's glass and frame lean; the words stay flat, so none are
+                        // squeezed or cut off at an angle.
+                        .background {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(BackdropText(on: look.backdrop).plate ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color(look.backdrop).opacity(0.92)))
+                                .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)) }
+                                .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                                .accessibilityHidden(true)
+                        }
                         .padding(.leading, 18)
                         .padding(.trailing, 40)
                         .overlay(alignment: .trailing) {
@@ -552,7 +564,7 @@ struct CircuitFeed<Row: View>: View {
                 if !hasMore, !cards.isEmpty {
                     VStack(spacing: 8) {
                         Circle().stroke(Color(look.wire), lineWidth: 2).frame(width: 18, height: 18).neonTube(Color(look.wire)).accessibilityHidden(true)
-                        Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).backdropPlate(look.backdrop)
+                        Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).backdropPlate(look.backdrop)
                     }
                     .padding(.trailing, 40)
                 }

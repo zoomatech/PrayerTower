@@ -59,7 +59,7 @@ struct AwardHallView: View {
     var body: some View {
         List {
             Section { Text(w("award.hallIntro")) }
-            if hall?.years.isEmpty ?? true { Text(w("award.none")).foregroundStyle(.secondary) }
+            if hall?.years.isEmpty ?? true { Text(w("award.none")).foregroundStyle(Color.subtle) }
             ForEach(hall?.years ?? []) { y in
                 Section(String(y.year)) {
                     ForEach(y.winners, id: \.rank) { p in
@@ -89,12 +89,12 @@ struct BranchView: View {
     var body: some View {
         List {
             Section { Text(w("vine.branchIntro")) }
-            if let cards, cards.isEmpty { Text(w("vine.branchEmpty")).foregroundStyle(.secondary) }
+            if let cards, cards.isEmpty { Text(w("vine.branchEmpty")).foregroundStyle(Color.subtle) }
             ForEach(cards ?? []) { c in
                 NavigationLink { PostDetailView(postId: c.id) } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(c.preview.isEmpty ? c.body : c.preview).lineLimit(4)
-                        if c.counts.prayers > 0 { Text(w("card.praying", count: c.counts.prayers)).font(.caption).foregroundStyle(.secondary) }
+                        if c.counts.prayers > 0 { Text(w("card.praying", count: c.counts.prayers)).font(.caption).foregroundStyle(Color.subtle) }
                     }
                 }
             }
@@ -130,7 +130,7 @@ struct SquireBoardView: View {
                 }
                 Section {
                     let entries = board.entries ?? []
-                    if entries.isEmpty { Text(w("squire.empty")).foregroundStyle(.secondary) }
+                    if entries.isEmpty { Text(w("squire.empty")).foregroundStyle(Color.subtle) }
                     ForEach(entries) { e in
                         NavigationLink { PersonView(id: e.personId) } label: {
                             HStack(spacing: 12) {
@@ -184,7 +184,7 @@ struct PodcastsView: View {
                     .buttonStyle(.borderless)
                 }
             }
-            if let shows, shows.isEmpty { Text(w("podcasts.empty")).foregroundStyle(.secondary) }
+            if let shows, shows.isEmpty { Text(w("podcasts.empty")).foregroundStyle(Color.subtle) }
             ForEach(shows ?? []) { s in
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
@@ -197,7 +197,7 @@ struct PodcastsView: View {
                             Text(e.title).bold()
                             if !e.description.isEmpty { Text(e.description).lineLimit(4) }
                             Text([day(e.publishedAt), e.minutes.map { w("podcasts.minutes", count: $0) } ?? ""].filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.caption).foregroundStyle(Color.subtle)
                             Button(w("podcasts.play", ["title": e.title])) { play(e) }.buttonStyle(.borderless)
                         }
                     }
@@ -320,7 +320,7 @@ struct ReadingPlanView: View {
                             } else {
                                 Button(w("readingPlan.markRead")) { Task { await run($error) { self.now = try await model.store.api.markReadingRead(plan.id) } } }
                             }
-                            Text(w("readingPlan.readers", count: r.readers)).font(.caption).foregroundStyle(.secondary)
+                            Text(w("readingPlan.readers", count: r.readers)).font(.caption).foregroundStyle(Color.subtle)
                         }
                         if let c = plan.conversationId {
                             NavigationLink(w("readingPlan.discuss")) { ConversationScreen(id: c) }
@@ -465,7 +465,7 @@ struct ChurchReviewView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            if churches.isEmpty { Text(w("churchReview.empty")).foregroundStyle(.secondary) }
+            if churches.isEmpty { Text(w("churchReview.empty")).foregroundStyle(Color.subtle) }
             ForEach(churches) { c in
                 Section {
                     Text(c.name).font(.headline)
@@ -531,7 +531,7 @@ struct WitnessView: View {
                     filter = $0 == "open" ? nil : $0
                 }
             }
-            if cases.isEmpty { Text(w("witness.empty")).foregroundStyle(.secondary) }
+            if cases.isEmpty { Text(w("witness.empty")).foregroundStyle(Color.subtle) }
             ForEach(cases) { c in
                 Section {
                     Text(summary(c)).font(.caption)

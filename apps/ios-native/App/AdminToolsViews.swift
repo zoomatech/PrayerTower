@@ -135,7 +135,7 @@ struct SurveysAdminView: View {
             if let notice { Text(notice) }
             if let error { Text(error).foregroundStyle(.red) }
             Section(w("surveysAdmin.list")) {
-                if items.isEmpty { Text(w("surveysAdmin.empty")).foregroundStyle(.secondary) }
+                if items.isEmpty { Text(w("surveysAdmin.empty")).foregroundStyle(Color.subtle) }
                 ForEach(items) { s in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(listLine(s)).font(.caption)
@@ -287,7 +287,7 @@ struct LegalCasesView: View {
                 }
             }
             Section(w("legalCases.cases")) {
-                if cases.isEmpty { Text(w("legalCases.empty")).foregroundStyle(.secondary) }
+                if cases.isEmpty { Text(w("legalCases.empty")).foregroundStyle(Color.subtle) }
                 ForEach(cases) { c in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(caseLine(c)).font(.caption)
@@ -486,7 +486,7 @@ struct PodcastsAdminView: View {
             Section { Text(w("podcastsAdmin.intro")) }
             if !enabled { Text(w("podcastsAdmin.off")).foregroundStyle(.orange) }
             if let error { Text(error).foregroundStyle(.red) }
-            if shows.isEmpty { Text(w("podcastsAdmin.empty")).foregroundStyle(.secondary) }
+            if shows.isEmpty { Text(w("podcastsAdmin.empty")).foregroundStyle(Color.subtle) }
             ForEach(shows) { s in
                 ShowAdminSection(show: s, busy: busy) { call in act(call) }
             }

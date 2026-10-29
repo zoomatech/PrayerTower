@@ -1,5 +1,6 @@
 import PrayerTowerKit
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
 
 /// Photos on posts, kept in memory and on disk by their storage path. The signed URL changes
@@ -56,3 +57,14 @@ struct CachedPhoto: View {
         .task(id: path) { image = await ImageCache.shared.image(path: path, url: url) }
     }
 }
+#else
+/// On the Mac, the system's image loading; the cache above is for the iPhone and iPad app.
+struct CachedPhoto: View {
+    let path: String
+    let url: URL
+
+    var body: some View {
+        AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { Color.secondary.opacity(0.1).frame(height: 200) }
+    }
+}
+#endif

@@ -122,11 +122,11 @@ struct ScheduledGiftsView: View {
         List {
             Section { Text(w("scheduled.intro")) }
             if let error { Section { Text(error).foregroundStyle(.red) } }
-            if items?.isEmpty == true { Section { Text(w("scheduled.empty")).foregroundStyle(.secondary) } }
+            if items?.isEmpty == true { Section { Text(w("scheduled.empty")).foregroundStyle(Color.subtle) } }
             ForEach(items ?? []) { s in
                 VStack(alignment: .leading, spacing: 6) {
                     Button("“\(s.excerpt)”") { opened = s.postId }.buttonStyle(.plain)
-                    Text(line(s)).font(.caption).foregroundStyle(.secondary)
+                    Text(line(s)).font(.caption).foregroundStyle(Color.subtle)
                     if let e = s.error { Text(e).font(.caption) }
                     if s.status == "active" {
                         Button(w("common.cancel"), role: .destructive) {
@@ -206,7 +206,7 @@ struct NotificationSettingsView: View {
                     Picker(w("notifySettings.until"), selection: Binding(get: { quiet.end }, set: { e in Task { await save(prefs.quiet(on: true, end: e)) } })) {
                         ForEach(NotificationPrefs.ends, id: \.self) { Text($0).tag($0) }
                     }
-                    Text(quiet.timeZone).font(.footnote).foregroundStyle(.secondary)
+                    Text(quiet.timeZone).font(.footnote).foregroundStyle(Color.subtle)
                 }
             }
             if let error { Section { Text(error).foregroundStyle(.red) } }

@@ -34,6 +34,9 @@ final class AccessibilityAuditTests: XCTestCase {
                     for _ in 0..<5 where !link.isHittable { app.collectionViews.firstMatch.swipeUp() }
                     XCTAssertTrue(link.waitForExistence(timeout: 5), "\(name) link at \(size)")
                     link.tap()
+                    // Let the push finish before the audit: mid-slide, text is half faded.
+                    _ = app.navigationBars[name].waitForExistence(timeout: 5)
+                    sleep(1)
                     try audit(app, "\(name) at \(size)")
                     // Back to the list; a skin whose bar has no back button (seen once at the largest
                     // text) gets a fresh launch instead.

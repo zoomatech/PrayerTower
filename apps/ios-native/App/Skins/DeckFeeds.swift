@@ -44,7 +44,7 @@ struct SwipeFeed<Row: View>: View {
                         Spacer(minLength: 0)
                         Button("\(words.pray) ›") { confirming = card }.buttonStyle(.borderedProminent)
                     }
-                    Text("\(deck.index + 1) of \(cards.count)").font(.caption).foregroundStyle(.secondary)
+                    Text("\(deck.index + 1) of \(cards.count)").font(.caption).foregroundStyle(Color.subtle)
                 } else if hasMore {
                     ProgressView(words.loadingMore)
                 } else {
@@ -91,7 +91,7 @@ struct FlipFeed<Row: View>: View {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     VStack(spacing: 12) {
                         ScrollView { row(card).padding(20) }.scrollBounceBehavior(.basedOnSize)
-                        Text(words.folio(i, of: cards.count)).font(.caption).foregroundStyle(.secondary).padding(.bottom, 12)
+                        Text(words.folio(i, of: cards.count)).font(.caption).foregroundStyle(Color.subtle).padding(.bottom, 12)
                     }
                     .containerRelativeFrame([.horizontal, .vertical])
                     .scrollTransition { content, phase in
@@ -105,7 +105,7 @@ struct FlipFeed<Row: View>: View {
                 if !hasMore {
                     VStack(spacing: 8) {
                         Text(words.lastPage).font(.title3.bold())
-                        Text(words.allSeen).multilineTextAlignment(.center).foregroundStyle(.secondary)
+                        Text(words.allSeen).multilineTextAlignment(.center).foregroundStyle(Color.subtle)
                     }
                     .padding(32)
                     .containerRelativeFrame([.horizontal, .vertical])

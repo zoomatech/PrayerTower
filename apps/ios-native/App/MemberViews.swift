@@ -190,7 +190,7 @@ struct NotificationsView: View {
         NavigationStack {
             List {
                 if let error { Text(error).foregroundStyle(.red) }
-                if items?.isEmpty == true { Text(w("notices.empty")).foregroundStyle(.secondary) }
+                if items?.isEmpty == true { Text(w("notices.empty")).foregroundStyle(Color.subtle) }
                 ForEach(items ?? []) { n in
                     VStack(alignment: .leading, spacing: 6) {
                         // A notice with nowhere to go is plain text, not a dimmed button VoiceOver reads as unavailable.
@@ -225,7 +225,7 @@ struct NotificationsView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(n.title).font(n.read_at == nil ? .body.bold() : .body)
             Text(n.body)
-            Text(shortDateTime(n.created_at)).font(.footnote).foregroundStyle(.secondary)
+            Text(shortDateTime(n.created_at)).font(.footnote).foregroundStyle(Color.subtle)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -512,7 +512,7 @@ struct PersonView: View {
                     }
                 }
                 Section {
-                    if page?.posts.isEmpty == true { Text(w("person.noPosts", ["name": p.displayName])).foregroundStyle(.secondary) }
+                    if page?.posts.isEmpty == true { Text(w("person.noPosts", ["name": p.displayName])).foregroundStyle(Color.subtle) }
                     ForEach(page?.posts ?? []) { c in
                         Button { opened = c.id } label: {
                             VStack(alignment: .leading, spacing: 4) {
@@ -563,7 +563,7 @@ struct RememberedView: View {
         List {
             Section { Text(w("practices.rememberedIntro")) }
             if let error { Text(error).foregroundStyle(.red) }
-            if items?.isEmpty == true { Text(w("practices.rememberedEmpty")).foregroundStyle(.secondary) }
+            if items?.isEmpty == true { Text(w("practices.rememberedEmpty")).foregroundStyle(Color.subtle) }
             ForEach(items ?? []) { i in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(w("practices.rememberedAnswered", ["date": longDate(i.answeredAt)])).font(.footnote)
@@ -598,7 +598,7 @@ struct HighlightsView: View {
         List {
             Section { Text(w("highlightsKind.intro")) }
             if let error { Text(error).foregroundStyle(.red) }
-            if h?.enabled == true && h?.weeks.isEmpty == true { Text(w("highlightsKind.empty")).foregroundStyle(.secondary) }
+            if h?.enabled == true && h?.weeks.isEmpty == true { Text(w("highlightsKind.empty")).foregroundStyle(Color.subtle) }
             ForEach(h?.weeks ?? []) { week in
                 Section(w("highlightsKind.weekOf", ["date": longDate(week.week)])) {
                     ForEach(week.items) { Text("“\($0.text)”").italic() }
@@ -681,11 +681,11 @@ struct HelpStoriesView: View {
                 if shown.enabled {
                     Section {
                         Text(w("helpStories.intro"))
-                        if shown.stories.isEmpty { Text(w("helpStories.none")).foregroundStyle(.secondary) }
+                        if shown.stories.isEmpty { Text(w("helpStories.none")).foregroundStyle(Color.subtle) }
                         ForEach(shown.stories) { Text($0.body) }
                     }
                 } else if mine.isEmpty {
-                    Text(w("helpStories.off")).foregroundStyle(.secondary)
+                    Text(w("helpStories.off")).foregroundStyle(Color.subtle)
                 }
             }
         }

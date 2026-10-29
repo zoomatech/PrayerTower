@@ -114,7 +114,7 @@ struct MeView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(p.displayName.isEmpty ? w("profile.me") : p.displayName).font(.title2.bold())
             if let why = p.whyHere, !why.isEmpty {
-                Text(why.map { w("enums.whyHere.\($0)") }.joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)
+                Text(why.map { w("enums.whyHere.\($0)") }.joined(separator: " · ")).font(.footnote).foregroundStyle(Color.subtle)
             }
         }
     }
@@ -160,7 +160,7 @@ struct MeView: View {
         let big = typeSize.isAccessibilitySize
         return VStack(alignment: big ? .leading : .center, spacing: 2) {
             Text(value).font(.title3.bold()).lineLimit(big ? nil : 2).minimumScaleFactor(big ? 1 : 0.6)
-            Text(label).font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(big ? .leading : .center)
+            Text(label).font(.caption2).foregroundStyle(Color.subtle).multilineTextAlignment(big ? .leading : .center)
         }
         .frame(maxWidth: .infinity, alignment: big ? .leading : .center)
         .accessibilityElement(children: .combine)
@@ -219,7 +219,7 @@ struct DeleteAccountView: View {
             Section {
                 Text(w("deleteAccount.intro"))
                 Text(w("deleteAccount.list"))
-                Text(w("deleteAccount.keep")).font(.footnote).foregroundStyle(.secondary)
+                Text(w("deleteAccount.keep")).font(.footnote).foregroundStyle(Color.subtle)
             }
             Section(w("deleteAccount.confirm")) {
                 TextField("DELETE", text: $confirm)

@@ -73,12 +73,12 @@ struct PrayerListView: View {
                 }
                 Section {
                     let items = list?.items ?? []
-                    if items.isEmpty { Text(w("prayerList.empty")).foregroundStyle(.secondary) }
+                    if items.isEmpty { Text(w("prayerList.empty")).foregroundStyle(Color.subtle) }
                     ForEach(items) { item in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.name).font(.headline)
                             if !item.note.isEmpty { Text(item.note) }
-                            Text(w("prayerList.prayedCount", count: item.prayedCount)).font(.caption).foregroundStyle(.secondary)
+                            Text(w("prayerList.prayedCount", count: item.prayedCount)).font(.caption).foregroundStyle(Color.subtle)
                             HStack {
                                 Button(w("prayerList.prayed")) { Task { await change { try await model.store.api.prayedForListItem(item.id) } } }
                                 Spacer()
@@ -129,7 +129,7 @@ struct PrayerMinuteView: View {
                 }
                 Section(w("growth.minuteRequests")) {
                     let cards = now.requests ?? []
-                    if cards.isEmpty { Text(w("growth.minuteNoRequests")).foregroundStyle(.secondary) }
+                    if cards.isEmpty { Text(w("growth.minuteNoRequests")).foregroundStyle(Color.subtle) }
                     ForEach(cards) { c in
                         NavigationLink { PostDetailView(postId: c.id) } label: { Text(c.preview.isEmpty ? c.body : c.preview).lineLimit(4) }
                     }
@@ -138,9 +138,9 @@ struct PrayerMinuteView: View {
             Section {
                 if let t = minute?.time {
                     Text(w("growth.minuteSaved", ["time": t, "zone": minute?.timeZone ?? ""]))
-                    if let o = minute?.others, o > 0 { Text(w("growth.minuteOthers", count: o)).foregroundStyle(.secondary) }
+                    if let o = minute?.others, o > 0 { Text(w("growth.minuteOthers", count: o)).foregroundStyle(Color.subtle) }
                 } else {
-                    Text(w("growth.minuteNone")).foregroundStyle(.secondary)
+                    Text(w("growth.minuteNone")).foregroundStyle(Color.subtle)
                 }
                 TextField(w("growth.minuteTime"), text: $time).keyboardType(.numbersAndPunctuation)
                 Button(w("growth.minuteSave")) {
@@ -196,12 +196,12 @@ struct PrayerChainView: View {
                 } footer: { Text(w("growth.chainPhoneHint")) }
             }
             Section {
-                if people.isEmpty { Text(w("growth.chainEmpty")).foregroundStyle(.secondary) }
+                if people.isEmpty { Text(w("growth.chainEmpty")).foregroundStyle(Color.subtle) }
                 ForEach(people) { p in
                     HStack {
                         VStack(alignment: .leading) {
                             Text(p.email ?? p.phone ?? "")
-                            Text(w("growth.chainStatus.\(p.status)")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("growth.chainStatus.\(p.status)")).font(.caption).foregroundStyle(Color.subtle)
                         }
                         Spacer()
                         Button(w("growth.chainRemove"), role: .destructive) { Task { await add { try await model.store.api.removeFromPrayerChain(p.id) } } }
@@ -241,12 +241,12 @@ struct PrayerCastView: View {
                     LabeledContent(w("cast.transmissions"), value: String(cast.totals.sends))
                 }
                 Section {
-                    if cast.cast.isEmpty { Text(w("cast.empty")).foregroundStyle(.secondary) }
+                    if cast.cast.isEmpty { Text(w("cast.empty")).foregroundStyle(Color.subtle) }
                     ForEach(cast.cast) { c in
                         NavigationLink { PostDetailView(postId: c.post_id) } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(c.text).lineLimit(4)
-                                Text(line(c)).font(.caption).foregroundStyle(.secondary)
+                                Text(line(c)).font(.caption).foregroundStyle(Color.subtle)
                             }
                         }
                     }
@@ -285,7 +285,7 @@ struct PowerPrayerSection: View {
             if let sent {
                 Text(sent == 0 ? w("post.powerNone") : w(card.isMine ? "post.powerSentYou" : "post.powerSentThem", count: sent))
             } else if let status, let reason = status.blockedReason, !card.isMine {
-                Text(w("post.powerBlocked", ["reason": reason])).font(.footnote).foregroundStyle(.secondary)
+                Text(w("post.powerBlocked", ["reason": reason])).font(.footnote).foregroundStyle(Color.subtle)
             } else if let status, status.blockedReason == nil, status.cost == 0 || balance >= status.cost {
                 Button(status.cost == 0 ? w("post.powerFree", count: status.reach) : w("post.powerCost", ["cost": String(status.cost)], count: status.reach)) {
                     Task { await send() }
@@ -332,7 +332,7 @@ struct PoolsView: View {
             if let notice { Section { Text(notice) } }
             Section(w("pools.open")) {
                 let others = open.filter { $0.isMine != true }
-                if others.isEmpty { Text(w("pools.noneOpen")).foregroundStyle(.secondary) }
+                if others.isEmpty { Text(w("pools.noneOpen")).foregroundStyle(Color.subtle) }
                 ForEach(others) { p in
                     VStack(alignment: .leading, spacing: 6) {
                         PoolSummary(pool: p)
@@ -347,7 +347,7 @@ struct PoolsView: View {
                 }
             }
             Section(w("pools.yours")) {
-                if mine.isEmpty { Text(w("pools.noneMine")).foregroundStyle(.secondary) }
+                if mine.isEmpty { Text(w("pools.noneMine")).foregroundStyle(Color.subtle) }
                 ForEach(mine) { p in
                     VStack(alignment: .leading, spacing: 6) {
                         PoolSummary(pool: p)
@@ -412,10 +412,10 @@ struct PoolSummary: View {
             if let purpose = pool.purpose, !purpose.isEmpty { Text(purpose) }
             if let donor = pool.donor { Text(w("pools.from", ["name": donor])).font(.caption) }
             if let realm = pool.realm { Text(w("pools.only", ["realm": w("enums.prayerRealm.\(realm)")])).font(.caption) }
-            Text(w("pools.left", ["per": String(pool.drawAmount)], count: pool.balance)).font(.caption).foregroundStyle(.secondary)
+            Text(w("pools.left", ["per": String(pool.drawAmount)], count: pool.balance)).font(.caption).foregroundStyle(Color.subtle)
             if let m = pool.match {
                 let vars = ["ratio": String(m.ratio), "matched": String(m.matched), "cap": String(m.cap)]
-                Text(w(m.mode == "quadratic" ? "pools.matchingMany" : "pools.matching", vars)).font(.caption).foregroundStyle(.secondary)
+                Text(w(m.mode == "quadratic" ? "pools.matchingMany" : "pools.matching", vars)).font(.caption).foregroundStyle(Color.subtle)
             }
         }
     }
@@ -619,7 +619,7 @@ struct MacroNeedsView: View {
         Form {
             Section { Text(w("macroAdmin.intro")) }
             Section(w("macroAdmin.featured")) {
-                if needs.isEmpty { Text(w("macroAdmin.none")).foregroundStyle(.secondary) }
+                if needs.isEmpty { Text(w("macroAdmin.none")).foregroundStyle(Color.subtle) }
                 ForEach(needs) { n in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(n.title).font(.headline)

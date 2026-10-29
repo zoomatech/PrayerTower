@@ -41,9 +41,9 @@ struct SignInView: View {
     var body: some View {
         Form {
             Section {
-                Text("🕊").font(.system(size: 44)).accessibilityHidden(true)
+                DecorativeGlyph(glyph: "🕊", size: 44)
                 Text(w.server("Prayer Tower")).font(.largeTitle.bold())
-                Text(w("signIn.tagline")).foregroundStyle(.secondary)
+                Text(w("signIn.tagline")).foregroundStyle(Color.subtle)
             }
             switch mode {
             case .forgot: forgot

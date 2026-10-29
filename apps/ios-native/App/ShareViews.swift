@@ -49,7 +49,7 @@ struct ShareSheet: View {
     @ViewBuilder private var askPeople: some View {
         let w = model.words
         if let people {
-            if people.isEmpty { Text(w("actions.followToAsk")).foregroundStyle(.secondary) }
+            if people.isEmpty { Text(w("actions.followToAsk")).foregroundStyle(Color.subtle) }
             ForEach(people) { p in
                 Toggle(p.displayName, isOn: Binding(
                     get: { picked.contains(p.id) },
@@ -67,7 +67,7 @@ struct ShareSheet: View {
                 .disabled(picked.isEmpty || busy)
             }
         } else {
-            Text(w("common.loading")).foregroundStyle(.secondary)
+            Text(w("common.loading")).foregroundStyle(Color.subtle)
         }
     }
 
@@ -108,7 +108,7 @@ struct OutsideShareRow: View {
                 if state.canShare {
                     ShareLink(w("actions.shareOutside"), item: message(path: state.path, words: state.words))
                 } else {
-                    Text(w("growth.shareKeptPrivate")).foregroundStyle(.secondary)
+                    Text(w("growth.shareKeptPrivate")).foregroundStyle(Color.subtle)
                 }
             } else if !loaded {
                 ProgressView()
@@ -204,7 +204,7 @@ struct GuestShareSection: View {
                         Button(w("growth.guestStop"), role: .destructive) { stop() }
                     } else {
                         Button(w("growth.guestShare")) { create() }
-                        Text(w("growth.guestShareHint")).font(.footnote).foregroundStyle(.secondary)
+                        Text(w("growth.guestShareHint")).font(.footnote).foregroundStyle(Color.subtle)
                     }
                     if model.features["prayerChain"] { Button(w("growth.chainSend")) { toChain() } }
                     if let note { Text(note).font(.footnote) }

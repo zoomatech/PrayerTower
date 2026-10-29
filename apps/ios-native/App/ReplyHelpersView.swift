@@ -29,7 +29,7 @@ struct ReplyHelpersView: View {
                     }
                     .accessibilityElement(children: .contain)
                     .accessibilityLabel(model.words("talk.suggested"))
-                    if ownWords { Text(model.words("talk.ownWords")).font(.footnote).foregroundStyle(.secondary) }
+                    if ownWords { Text(model.words("talk.ownWords")).font(.footnote).foregroundStyle(Color.subtle) }
                 }
             }
         }
