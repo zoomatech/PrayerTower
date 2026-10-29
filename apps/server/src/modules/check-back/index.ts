@@ -12,7 +12,6 @@ import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import { settings } from '../practices/index.js';
 
-export const CHECK_BACK_DAYS = [3, 7, 14] as const;
 export const CheckBackPatch = z.object({ days: z.union([z.literal(3), z.literal(7), z.literal(14), z.null()]) });
 
 async function enabled(q: Queryable) {
