@@ -13,6 +13,7 @@ import { unwrapRelay } from './relay-frame.js';
 import { resample } from './wav.js';
 import { demodulate as demodulatePackets } from '../packet/afsk.js';
 import { parseStatus, type PacketStatus } from '../packet/message.js';
+import { finiteSamples } from './samples.js';
 
 const latin1 = (s: string) => Uint8Array.from(s, (ch) => ch.charCodeAt(0));
 let primer: Uint8Array | null = null;
@@ -58,7 +59,7 @@ function unpackOrThrow(batch: Uint8Array): string[] | null {
 
 /** Decode every frame in audio recorded at `rate` samples a second. searchHz: allow an HF (SSB) receiver tuned up to this far off. */
 export function decodeAudio(samples: Float32Array, rate: number, searchHz = 0): HeardFrame[] {
-  return demodulate(resample(samples, rate, SAMPLE_RATE), 0.4, searchHz).map((f) => {
+  return demodulate(resample(finiteSamples(samples), rate, SAMPLE_RATE), 0.4, searchHz).map((f) => {
     const relayed = unwrapRelay(f.batch);
     const inner = relayed?.inner ?? f.batch;
     return {
