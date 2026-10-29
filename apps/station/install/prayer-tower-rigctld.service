@@ -23,6 +23,9 @@ ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# rigctld has no password (rigctld(1), SECURITY): only this machine may reach it.
+IPAddressDeny=any
+IPAddressAllow=localhost
 LockPersonality=yes
 
 [Install]

@@ -39,6 +39,15 @@ export function suggestionKey(lastFromOther: string | null, empty: boolean): str
   return move ? KEY[move] : null;
 }
 
+/**
+ * The reply that pairs with the kind of post being answered: the second half of the pair
+ * the post opens (Schegloff 1968). A lament gets presence, never advice.
+ */
+export function pairKey(postType: string | null | undefined, lament = false): string | null {
+  if (lament) return 'talk.pairs.lament';
+  return postType ? `talk.pairs.${postType}` : null;
+}
+
 // A short, downbeat answer, the kind that often comes before a trouble is told
 // (Heritage 1998 on "oh"-prefaced answers to "how are you"; Jefferson on troubles talk).
 const DOWNBEAT =

@@ -29,6 +29,7 @@ import { createSms, type SmsSend } from './modules/growth/sms.js';
 import { createApns, type ApnsSend } from './modules/live-activity/apns.js';
 import { refreshTask as liveActivityRefreshTask } from './modules/live-activity/index.js';
 import * as practices from './modules/practices/index.js';
+import * as checkBack from './modules/check-back/index.js';
 import { writeDueTask as autoPrayTask } from './modules/ai/auto-pray.js';
 import { createConverser, type Converse } from './modules/ai/provider.js';
 import { sendDueRemindersTask as prayerListRemindersTask } from './modules/prayer-list/index.js';
@@ -61,6 +62,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { apns?:
     live_activity_refresh: liveActivityRefreshTask(db, overrides.apns !== undefined ? overrides.apns : apnsFrom(config)),
     practices_followup: practices.followupDueTask(db),
     practices_gratitude: practices.gratitudeDueTask(db),
+    check_back_due: checkBack.dueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     notifications_push_receipts: pushReceiptsTask(db, config, overrides.fetch),
@@ -149,4 +151,5 @@ export const crontab = [
   '0 17 * * * practices_followup ?max=10&fill=1d&jobKey=practices_followup',
   // Hourly: the gratitude card invitation at 6 pm on each member's chosen day (only while switched on).
   '0 * * * * practices_gratitude ?max=3&jobKey=practices_gratitude',
+  '30 * * * * check_back_due ?max=3&jobKey=check_back_due',
 ].join('\n');

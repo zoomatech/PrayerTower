@@ -16,6 +16,7 @@ const SECTIONS: Record<string, Section> = {
   quickReactions: { table: 'quick_reactions', where: 'user_id = $1' },
   meaningReactions: { table: 'meaning_reactions', where: 'user_id = $1' },
   followups: { table: 'request_followups', where: 'user_id = $1' },
+  checkBacks: { table: 'check_backs', where: 'user_id = $1' },
   gratitudeDay: { table: 'gratitude_prefs', where: 'user_id = $1' },
   gratitude: { table: 'gratitude_entries', where: 'user_id = $1' },
   liftUp: { table: 'lift_up_entries', where: 'user_id = $1' },

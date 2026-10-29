@@ -17,6 +17,8 @@ export interface NewNotification {
   dedupeKey?: string;
   /** Template in notifications/i18n.ts, used when the recipient reads another language. */
   t?: { key: string; params?: Params };
+  /** In-app only: no push. */
+  quiet?: boolean;
 }
 
 /** Write the in-app notification and queue its push, in the caller's transaction. */
@@ -45,7 +47,7 @@ export async function notify(q: Queryable, userId: string, n: NewNotification): 
   );
   const id = rows[0]?.id;
   if (!id) return null;
-  await enqueue(q, 'notifications_send_push', { notificationId: id });
+  if (!n.quiet) await enqueue(q, 'notifications_send_push', { notificationId: id });
   return id;
 }
 
