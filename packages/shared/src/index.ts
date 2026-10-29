@@ -226,6 +226,10 @@ export interface Card {
   isSensitive: boolean;
   /** The poster welcomes prayer and positive thoughts from people of any faith or none. */
   allSupportWelcome: boolean;
+  /** A lament: grief or anguish to be heard, with gentle replies and no advice. */
+  lament?: boolean;
+  /** The author said this lament may go out by radio. */
+  lamentRadio?: boolean;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
@@ -613,7 +617,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'radio_on_air', 'radio_heard', 'spoken_prayer', 'live_amplifier_read', 'guest_prayer', 'prayer_minute'],
   promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder'],
-  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'gratitude', 'encourager', 'kind_ask', 'mend_invite', 'mend_delivered', 'mend_returned', 'mend_accepted', 'mend_closed'],
+  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'gratitude', 'encourager', 'kind_ask', 'mend_invite', 'mend_delivered', 'mend_returned', 'mend_accepted', 'mend_closed', 'partner', 'highlight_ask', 'highlights'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
   tokens: ['mint', 'milestone', 'scheduled_spend', 'radio_not_sent', 'token_purchase_refunded'],
