@@ -2337,6 +2337,12 @@ const en = {
     tilesHint: 'Leave it empty for a plain grid. With OpenStreetMap tiles, the map shows their credit line.',
     save: 'Save map settings',
     badLocation: 'Write it as latitude, longitude, for example 39.8, -89.6',
+    title: 'Listener map',
+    sdr: 'RTL-SDR dongle, %{tuning}',
+    radio: 'A radio on a sound card',
+    stationPin: 'The station',
+    recent: 'Latest reports',
+    unplaced: 'Not on the map yet: %{names}',
   },
   packet: {
     off: 'Packet fallback off',

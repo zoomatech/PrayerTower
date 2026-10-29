@@ -3,7 +3,7 @@
 # agents for the signed-in user (no sudo). Guide: docs/STATION_OPERATOR_GUIDE.md,
 # "Station on a Mac".
 #
-#   bash apps/station/install/mac/install-mac.sh [--hamlib] [--listener] [--listener-only]
+#   bash apps/station/install/mac/install-mac.sh [--hamlib] [--listener] [--listener-only] [--sdr]
 #   bash apps/station/install/mac/install-mac.sh --uninstall
 # Or with nothing cloned:
 #   curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/mac/install-mac.sh | bash -s -- --hamlib
@@ -11,6 +11,7 @@
 #   --hamlib         also run Hamlib rigctld (rig control), from Homebrew
 #   --listener       also run a receive-only listener node (records with sox, from Homebrew)
 #   --listener-only  a listener node only: the station agent stays off
+#   --sdr            the listener node hears through an RTL-SDR USB dongle (rtl_fm, from Homebrew's librtlsdr)
 #   --repo URL / --branch NAME  where to fetch the code when not run from a clone
 set -euo pipefail
 
@@ -30,14 +31,19 @@ die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 [ "$(id -u)" -ne 0 ] || die "run without sudo: the station runs as you, from your login"
 
 uid=$(id -u)
-unload() { launchctl bootout "gui/$uid/$label.$1" 2>/dev/null || true; rm -f "$agents/$label.$1.plist"; }
+unload() {
+  launchctl bootout "gui/$uid/$label.$1" 2>/dev/null || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do launchctl print "gui/$uid/$label.$1" > /dev/null 2>&1 || break; sleep 0.5; done
+  rm -f "$agents/$label.$1.plist"
+}
 
-with_hamlib=0 with_listener=0 listener_only=0 uninstall=0
+with_hamlib=0 with_listener=0 listener_only=0 with_sdr=0 uninstall=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --hamlib) with_hamlib=1 ;;
     --listener) with_listener=1 ;;
     --listener-only) with_listener=1; listener_only=1 ;;
+    --sdr) with_sdr=1; with_listener=1 ;;
     --uninstall) uninstall=1 ;;
     --repo) repo_url=${2:?--repo needs a URL}; shift ;;
     --branch) branch=${2:?--branch needs a name}; shift ;;
@@ -89,6 +95,7 @@ if [ "$with_hamlib" = 1 ] || [ "$with_listener" = 1 ]; then
   command -v brew >/dev/null || die "Homebrew is needed for Hamlib and sox: https://brew.sh"
   if [ "$with_hamlib" = 1 ]; then log "Installing Hamlib (Homebrew)"; brew install hamlib; fi
   if [ "$with_listener" = 1 ]; then log "Installing sox (Homebrew)"; brew install sox; fi
+  if [ "$with_sdr" = 1 ]; then log "Installing librtlsdr (Homebrew)"; brew install librtlsdr; fi
 fi
 
 log "Building the worker"
@@ -118,8 +125,14 @@ copy_conf() { [ -f "$conf/$2" ] || { cp "$repo/apps/station/install/$1" "$conf/$
 copy_conf station.env.example station.env
 if [ "$with_hamlib" = 1 ]; then copy_conf rigctld.env.example rigctld.env; fi
 if [ "$with_listener" = 1 ]; then copy_conf listener.env.example listener.env; fi
+if [ "$with_sdr" = 1 ] && ! grep -q '^LISTEN_SOURCE=' "$conf/listener.env"; then
+  printf '%s\n' '' '# RTL-SDR dongle (--sdr): set the station frequency, e.g. 146.52M.' 'LISTEN_SOURCE=rtlsdr' 'LISTEN_SDR_FREQ=' >> "$conf/listener.env"
+fi
 # On a Mac, bursts play with afplay and the listener records with sox.
-grep -q '^BURST_PLAY_CMD=' "$conf/station.env" || printf '%s\n' '# macOS: afplay plays to the default output; pick the USB interface in System Settings > Sound.' 'BURST_PLAY_CMD=afplay {wav}' >> "$conf/station.env"
+# Quoted: run.sh reads the settings with bash, where an unquoted space ends the value.
+grep -q '^BURST_PLAY_CMD=' "$conf/station.env" || printf '%s\n' '# macOS: afplay plays to the default output; pick the USB interface in System Settings > Sound.' "BURST_PLAY_CMD='afplay {wav}'" >> "$conf/station.env"
+# Earlier installers wrote it unquoted, which stopped the station from starting.
+sed -i '' "s/^BURST_PLAY_CMD=afplay {wav}$/BURST_PLAY_CMD='afplay {wav}'/" "$conf/station.env"
 
 # One launchd agent per job (launchd.plist(5)). KeepAlive restarts a job that
 # fails; run.sh turns the station's "transmit failed" exit (3) into a clean
@@ -142,8 +155,15 @@ agent() {
 </dict>
 </plist>
 PLIST
+  # bootout returns before the job is gone, and bootstrapping it again too soon fails
+  # ("Bootstrap failed: 5: Input/output error"): wait for it to go, then try a few times.
   launchctl bootout "gui/$uid/$label.$job" 2>/dev/null || true
-  launchctl bootstrap "gui/$uid" "$agents/$label.$job.plist"
+  for _ in 1 2 3 4 5 6 7 8 9 10; do launchctl print "gui/$uid/$label.$job" > /dev/null 2>&1 || break; sleep 0.5; done
+  for try in 1 2 3 4 5; do
+    launchctl bootstrap "gui/$uid" "$agents/$label.$job.plist" && return 0
+    [ "$try" = 5 ] || sleep 1
+  done
+  die "launchd would not start $label.$job"
 }
 
 ready() { ! grep -q "^$2=\$" "$conf/$1"; }
@@ -157,8 +177,8 @@ else
   echo "Fill in $conf/station.env (API URL, STATION_API_KEY, CALL_SIGN), then run this installer again to start it."
 fi
 if [ "$with_listener" = 1 ]; then
-  if ready listener.env NODE_KEY; then log "Starting the listener node"; agent listener
-  else echo "Fill in $conf/listener.env (NODE_KEY from Admin → Radio → Listener nodes), then run this installer again."; fi
+  if ready listener.env NODE_KEY && ready listener.env LISTEN_SDR_FREQ; then log "Starting the listener node"; agent listener
+  else echo "Fill in $conf/listener.env (NODE_KEY from Admin → Radio → Listener nodes, and LISTEN_SDR_FREQ with --sdr), then run this installer again."; fi
 fi
 
 cat <<MSG

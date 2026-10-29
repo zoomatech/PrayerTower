@@ -54,7 +54,7 @@ export async function checkHealth(o: HealthOptions): Promise<Check[]> {
     try {
       const [hz, keyed] = [await o.rig.frequency(), await o.rig.ptt()];
       // Between bursts the radio should be in receive; keyed here means PTT is stuck.
-      checks.push({ name: 'rig', ok: !keyed, detail: `${(hz / 1e6).toFixed(6)} MHz, ${keyed ? 'TRANSMITTING (PTT stuck?)' : 'receive'}` });
+      checks.push({ name: 'rig', ok: !keyed, detail: `${(hz / 1e6).toFixed(6)} MHz, ${keyed ? 'TRANSMITTING (PTT stuck?)' : keyed === null ? 'PTT not reported by this radio' : 'receive'}` });
     } catch (err) {
       checks.push({ name: 'rig', ok: false, detail: (err as Error).message });
     }

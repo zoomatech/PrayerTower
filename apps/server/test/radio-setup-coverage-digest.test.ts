@@ -147,6 +147,15 @@ describe('coverage map', () => {
     expect(point.snrDb).toBe(18);
   });
 
+  it('shows what a node listens with: an RTL-SDR dongle or a sound card', async () => {
+    const r = await app.inject({ method: 'POST', url: '/node/heartbeat', headers: { 'x-node-key': nodeKey }, payload: { receiver: { kind: 'rtl-sdr', freqHz: 146_520_000, mode: 'fm' } } });
+    expect(r.statusCode).toBe(200);
+    const map = (await as(admin).get('/admin/radio-coverage')).json();
+    expect(map.points.find((p: { id: string }) => p.id === nodeId).receiver).toEqual({ kind: 'rtl-sdr', freqHz: 146_520_000, mode: 'fm' });
+    expect((await as(admin).get('/admin/radio-nodes')).json().nodes.find((n: { id: string }) => n.id === nodeId).receiver).toMatchObject({ kind: 'rtl-sdr' });
+    expect((await app.inject({ method: 'POST', url: '/node/heartbeat', headers: { 'x-node-key': nodeKey }, payload: { receiver: { kind: 'tv-tuner' } } })).statusCode).toBe(400);
+  });
+
   it('lets an admin place or remove a node by hand', async () => {
     const other = (await as(admin).post('/admin/radio-nodes', { name: `Valley ${RUN}` })).json().node;
     let map = (await as(admin).get('/admin/radio-coverage')).json();

@@ -148,8 +148,11 @@ export function nodeRoutes(app: FastifyInstance, db: Db) {
   // A node that opted in (NODE_LOCATION) adds its approximate location for the coverage map (coverage.ts).
   app.post('/node/heartbeat', async (req) => {
     const node = await nodes.authenticateRequest(db, req, 'listener');
-    const { location, relay } = z.object({ location: coverage.Location.optional(), relay: nodes.RelayStatus.optional() }).parse(req.body ?? {});
+    const { location, relay, receiver } = z
+      .object({ location: coverage.Location.optional(), relay: nodes.RelayStatus.optional(), receiver: nodes.Receiver.optional() })
+      .parse(req.body ?? {});
     if (location) await coverage.fromNode(db, node.id, location);
+    if (receiver) await nodes.recordReceiver(db, node.id, receiver);
     if (relay) await nodes.recordRelay(db, node.id, relay);
     return { ok: true };
   });

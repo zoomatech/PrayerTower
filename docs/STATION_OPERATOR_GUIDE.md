@@ -77,6 +77,14 @@ from November 2025 or later.
    sudo systemctl start prayer-tower-station
    ```
 
+**Tested on every change.** Each change to the station or its installers runs both installers
+on throwaway machines (`.github/workflows/station-install.yml`): this one on Ubuntu with
+systemd, and the Mac one with launchd. Each install runs the station in simulate mode against a
+stand-in server, so nothing is keyed. It checks that a burst is sent, decoded and reported, that
+the health check and rig control (the dummy radio) work, and that updating and uninstalling
+leave the settings in place. The Pi first-boot file is checked against cloud-init's schema.
+The script is `apps/station/install/ci/dry-run.sh`. Never run it on a station that is on the air.
+
 ## What you need
 
 - An FM transceiver. A mobile with a 6-pin mini-DIN **data port** is best,
@@ -279,6 +287,37 @@ station reads as a plain `BURST_AUTO_REPORT` file.
 If the internet or Prayer Tower is down, the node keeps the reports it could not send, up to 500 for up to 23 hours. It sends them, oldest first, as soon as the server answers again ("sent N kept report(s)" in its log). That way a prayer it heard during the outage still counts as heard, and the station doesn't send it again. They are kept in `outbox.json` in the node's state directory, so a restart or a power cut doesn't lose them. A report the server refuses, such as one with a wrong key, is not kept.
 
 ![Listener nodes](images/radio/listener-nodes.png)
+
+### Listener with an RTL-SDR dongle
+
+A listener node doesn't need a radio. An RTL-SDR USB dongle (about $30, the kind sold
+for TV and scanner use) and a small antenna can do the receiving. Off by default.
+
+1. Install with `--sdr`:
+   - On a Pi: `... | sudo bash -s -- --listener-only --sdr`. This installs `rtl-sdr`
+     (`rtl_fm`), lets the listener service open the dongle, and adds the lines below to
+     `/etc/prayer-tower-listener.env`.
+   - On a Mac: `install-mac.sh --listener-only --sdr`. This installs Homebrew's `librtlsdr`.
+2. Plug in the dongle, then check it with `rtl_test -t`.
+3. In the listener settings, set the station's frequency:
+
+   ```
+   LISTEN_SOURCE=rtlsdr
+   LISTEN_SDR_FREQ=146.52M
+   ```
+
+   That is all FM needs. Optional settings:
+
+   | Setting | What it does |
+   | --- | --- |
+   | `LISTEN_SDR_GAIN` | Gain in dB. Auto by default. |
+   | `LISTEN_SDR_PPM` | Corrects the dongle's frequency error. Cheap dongles are often 20 to 60 ppm off; a TCXO dongle is about 1. |
+   | `LISTEN_SDR_DEVICE` | Picks a dongle when there are several. |
+   | `LISTEN_SDR_MODE=usb` | For an HF station. Below 24 MHz the dongle also needs `LISTEN_SDR_DIRECT=on` (direct sampling) or an upconverter. The 50 Hz tuning search is then on by default. |
+
+4. Restart the listener. It runs `rtl_fm` with no squelch, so the start of a burst is never cut
+   off, and decodes it like audio from a sound card. Admin → Radio and the coverage map show
+   the node as "RTL-SDR" with its frequency.
 
 ## Several stations (one shared queue)
 

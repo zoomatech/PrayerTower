@@ -15,6 +15,8 @@ export interface RadioNode {
   enabled: boolean;
   created_at: string;
   last_seen_at: string | null;
+  /** What it listens with (heartbeat), null until it says. */
+  receiver: z.infer<typeof Receiver> | null;
 }
 
 const hash = (key: string) => createHash('sha256').update(key).digest('hex');
@@ -52,7 +54,7 @@ export async function stationCounts(q: Queryable) {
 }
 
 export async function list(q: Queryable): Promise<RadioNode[]> {
-  const { rows } = await q.query<RadioNode>(`select id, name, role, enabled, created_at, last_seen_at from public.radio_nodes order by created_at`);
+  const { rows } = await q.query<RadioNode>(`select id, name, role, enabled, created_at, last_seen_at, receiver from public.radio_nodes order by created_at`);
   return rows;
 }
 
@@ -60,7 +62,7 @@ export async function list(q: Queryable): Promise<RadioNode[]> {
 export async function create(q: Queryable, name: string, role: RadioNode['role'] = 'listener'): Promise<{ node: RadioNode; key: string }> {
   const key = `ptn_${randomBytes(24).toString('hex')}`;
   const { rows } = await q.query<RadioNode>(
-    `insert into public.radio_nodes (name, role, key_hash) values ($1, $2, $3) returning id, name, role, enabled, created_at, last_seen_at`,
+    `insert into public.radio_nodes (name, role, key_hash) values ($1, $2, $3) returning id, name, role, enabled, created_at, last_seen_at, receiver`,
     [name.trim(), role, hash(key)],
   );
   return { node: rows[0]!, key };
@@ -68,7 +70,7 @@ export async function create(q: Queryable, name: string, role: RadioNode['role']
 
 export async function update(q: Queryable, id: string, patch: { enabled?: boolean }) {
   const { rows } = await q.query<RadioNode>(
-    `update public.radio_nodes set enabled = coalesce($2, enabled) where id = $1 returning id, name, role, enabled, created_at, last_seen_at`,
+    `update public.radio_nodes set enabled = coalesce($2, enabled) where id = $1 returning id, name, role, enabled, created_at, last_seen_at, receiver`,
     [id, patch.enabled ?? null],
   );
   if (!rows[0]) throw notFound('Radio node');
@@ -85,11 +87,22 @@ export async function authenticate(q: Queryable, key: string | undefined, role: 
   if (!key) throw new AppError(401, 'unauthenticated', 'Missing node key');
   const { rows } = await q.query<RadioNode>(
     `update public.radio_nodes set last_seen_at = now() where key_hash = $1 and role = $2 and enabled
-     returning id, name, role, enabled, created_at, last_seen_at`,
+     returning id, name, role, enabled, created_at, last_seen_at, receiver`,
     [hash(key), role],
   );
   if (!rows[0]) throw new AppError(401, 'unauthenticated', 'Bad node key');
   return rows[0];
+}
+
+/** A listener's receiver (station sdr.ts): a radio on a sound card, or an RTL-SDR dongle. */
+export const Receiver = z.object({
+  kind: z.enum(['sound-card', 'rtl-sdr']),
+  freqHz: z.number().int().min(1).max(10e9).optional(),
+  mode: z.enum(['fm', 'usb']).optional(),
+});
+
+export async function recordReceiver(q: Queryable, nodeId: string, r: z.infer<typeof Receiver>) {
+  await q.query('update public.radio_nodes set receiver = $2 where id = $1', [nodeId, r]);
 }
 
 /** A store-and-forward relay's report, sent with its heartbeat (station relay.ts, RelayStatus). */
@@ -227,7 +240,7 @@ async function signedNode(q: Queryable, req: NodeRequest, role: RadioNode['role'
   // Newer than the last one, or it is a replay.
   const { rows: seen } = await q.query<RadioNode>(
     `update public.radio_nodes set last_seen_at = now(), last_signed_ms = $2 where id = $1 and (last_signed_ms is null or last_signed_ms < $2)
-     returning id, name, role, enabled, created_at, last_seen_at`,
+     returning id, name, role, enabled, created_at, last_seen_at, receiver`,
     [node.id, ts],
   );
   if (!seen[0]) throw new AppError(401, 'replayed', 'This signed request was already used');
