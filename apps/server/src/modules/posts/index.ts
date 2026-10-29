@@ -10,6 +10,7 @@ import { badgesOf } from '../churches/index.js';
 import * as moderation from '../moderation/index.js';
 import * as harm from '../harm/index.js';
 import * as safety from '../safety/index.js';
+import * as skins from '../skins/index.js';
 import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 
@@ -46,7 +47,8 @@ export const NewPost = z.object({
   /** "Prayer and positive thoughts welcome": support from people of any faith or none. */
   allSupportWelcome: z.boolean().default(false),
   media: z
-    .array(z.object({ kind: z.enum(['image', 'video']), storagePath: z.string().min(1).max(500) }))
+    // durationMs: the clip's length from the picker, checked against the video cap (modules/skins).
+    .array(z.object({ kind: z.enum(['image', 'video']), storagePath: z.string().min(1).max(500), durationMs: z.number().int().min(0).max(86_400_000).optional() }))
     .max(10)
     .default([]),
 });
@@ -81,6 +83,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
   const harmDecision = await harm.screen(q, userId, 'post', input.body);
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
+  await skins.checkVideos(q, input.media);
   for (const m of input.media) {
     // Exactly the shape /media/upload-url hands out: <user id>/<uuid>.<ext>, no other folders.
     if (!m.storagePath.startsWith(`${userId}/`) || !/^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(m.storagePath.slice(userId.length + 1))) throw badRequest('Media must be uploaded through /media/upload-url');
@@ -327,6 +330,7 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
   if (input.parentId) {
     const { rowCount } = await q.query('select 1 from public.comments where id = $1 and post_id = $2', [input.parentId, postId]);
     if (!rowCount) throw badRequest('Reply target is not on this post');
+    await skins.checkReplyDepth(q, input.parentId);
   }
   await safety.checkNewMember(q, userId, 'comment', input.body);
   await safety.checkFlood(q, userId, 'comment', input.body);

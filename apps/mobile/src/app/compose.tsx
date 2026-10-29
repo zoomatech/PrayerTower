@@ -109,13 +109,21 @@ export default function Compose() {
   };
 
   const pick = async () => {
+    const max = features.videoMaxSeconds;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
       allowsMultipleSelection: true,
       selectionLimit: MAX_MEDIA - assets.length,
       quality: 0.8,
+      videoMaxDuration: max,
+      // Short clips at 720p keep storage and data use low (docs/FEED_SKINS.md, video cap).
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
-    if (!result.canceled) setAssets((prev) => [...prev, ...result.assets].slice(0, MAX_MEDIA));
+    if (result.canceled) return;
+    // Videos over the cap are left out, with a note; the server refuses them too.
+    const fits = result.assets.filter((a) => a.type !== 'video' || a.duration == null || a.duration <= max * 1000 + 500);
+    setError(fits.length < result.assets.length ? t('compose.videoTooLong', { count: max }) : null);
+    setAssets((prev) => [...prev, ...fits].slice(0, MAX_MEDIA));
   };
 
   return (
