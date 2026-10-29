@@ -30,6 +30,7 @@ import { DailyReminderCard } from '@/components/daily-reminder-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { KindWordsCard } from '@/components/kind-words-card';
 import { WeeklyIntention } from '@/components/weekly-intention';
+import { FreshDayLine, FreshDaysCard } from '@/components/fresh-days';
 import { KindMilestones } from '@/components/kind-milestones';
 import { QuietCountsCard } from '@/components/comment-kindness';
 import { LanguagePicker } from '@/components/language-picker';
@@ -185,6 +186,7 @@ export default function Profile() {
                 <View key={d.date} style={[styles.dot, d.prayed && styles.dotOn]} />
               ))}
             </View>
+            {stats.freshDay ? <FreshDayLine day={stats.freshDay} /> : null}
             {stats.intention ? <WeeklyIntention intention={stats.intention} onChange={setStats} /> : null}
             {features.gentleRhythm && stats.welcomeBack ? <Text style={type.body}>{t('practices.welcomeBack')}</Text> : null}
             {features.gentleRhythm && stats.freshStart ? (
@@ -206,6 +208,7 @@ export default function Profile() {
         ) : null}
         <GratitudeCard />
         <KindWordsCard />
+        <FreshDaysCard />
         <DailyReminderCard />
         <KindMilestones />
         <QuietCountsCard />

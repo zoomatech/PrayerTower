@@ -41,6 +41,12 @@ export const keys: Tree = named({
   pathBack: {
     adminHint: 'When a moderator removes a post or comment, the notice says the author may post it again with changes, and only the author can open their own words to edit. Never offered for posts wishing harm, flooding or automated accounts.',
   },
+  freshDays: {
+    advent: 'A new season begins today. Want to pick one small intention?',
+    lent: 'A new season begins today. Want to pick one small intention?',
+    easter: 'A new season begins today. Want to pick one small intention?',
+    adminHint: 'Members may save up to three dates of their own. On that day, Me invites one small intention. Shown only on the day, never pushed.',
+  },
   intention: {
     title: 'How many days this week would you like to check in?',
     adminHint: 'On Me, a member may choose to check in 1 to 6 days a week, so rest is built in. Dots fill in for the days they showed up and never empty; a week that falls short is never mentioned.',

@@ -352,3 +352,22 @@ The report uses totals only, with no per-member numbers. A week with fewer than 
 Evidence: research/Kind_Interaction_UX_Research.md §5 ("measure 'requests that felt held,'
 'prayers answered' and returning members, never time spent"). Code: `modules/kindness-weather`
 (`health`), `GET /admin/community-health`.
+
+## Fresh starts on days that matter (off)
+
+Admin → Growth practices → **Fresh starts on days that matter** (migration 20261029190200).
+Gentle rhythm already invites a fresh start on Mondays and the 1st. With this switch on:
+
+- In **Days that matter** on Me, a member may save up to three dates of their own, such as a
+  birthday, a baptism or the day they began again. Only they see them, and the dates are included
+  in their data download.
+- On that day, "Your prayer life" says "Today is … A fresh start: want to pick one small
+  intention?".
+- In communities with faith wording, the first Sunday of Advent, Ash Wednesday and Easter Sunday
+  also invite a fresh start. Open Circle never sees the seasons.
+- Nothing is pushed, and nothing is said on any other day.
+
+Evidence: the fresh-start effect, where temporal landmarks raise goal starts (Dai, Milkman &
+Riis 2014), in research/Personal_Growth_Research.md §4 ("fresh-start invitations … on the
+person's chosen milestones, such as a birthday or a church season"). Code: `modules/fresh-days`,
+`components/fresh-days.tsx`.

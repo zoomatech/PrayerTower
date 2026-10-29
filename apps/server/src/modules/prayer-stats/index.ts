@@ -2,6 +2,7 @@
 // requests prayed for, and a streak. Only the member sees them, they can be
 // turned off, and nothing here ranks members against each other.
 import type { Queryable } from '../../db.js';
+import { freshDay, type FreshDay } from '../fresh-days/index.js';
 import { settings as practiceSettings } from '../practices/index.js';
 import { weeksOfPrayer } from '../reminders/index.js';
 
@@ -27,6 +28,8 @@ export interface PrayerStats {
   weekRun: number | null;
   /** Weekly intention (Admin → Growth practices, off): present only while the switch is on. */
   intention?: Intention;
+  /** Fresh starts on days that matter (off): the member's own day or a season's first day, else null. */
+  freshDay?: FreshDay | null;
 }
 
 export interface Intention {
@@ -102,6 +105,7 @@ export async function prayerStats(q: Queryable, userId: string, timeZone: string
     [userId, timeZone],
   );
   const today = counts[0]!.today;
+  const practice = await practiceSettings(q);
   const dates = days.map((d) => d.day);
   const set = new Set(dates);
   const t = dayNumber(today);
@@ -114,7 +118,8 @@ export async function prayerStats(q: Queryable, userId: string, timeZone: string
     ...rhythm(dates, today),
     ...weeksOfPrayer(dates, today),
     week: Array.from({ length: 7 }, (_, i) => isoOf(t - 6 + i)).map((date) => ({ date, prayed: set.has(date) })),
-    ...((await practiceSettings(q)).weekly_intention_enabled ? { intention: intentionFor(p[0]?.weekly_intention ?? null, dates, today) } : {}),
+    ...(practice.weekly_intention_enabled ? { intention: intentionFor(p[0]?.weekly_intention ?? null, dates, today) } : {}),
+    ...(practice.fresh_days_enabled ? { freshDay: await freshDay(q, userId, today) } : {}),
   };
 }
 

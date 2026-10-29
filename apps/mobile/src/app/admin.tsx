@@ -2403,6 +2403,7 @@ function PracticeSettingsSection() {
       {s.kindness_weather_enabled ? <KindnessWeather /> : null}
       <Toggle label={t('health.adminTitle')} hint={t('health.adminHint')} value={s.community_health_enabled} onChange={(v) => save({ communityHealthEnabled: v })} />
       {s.community_health_enabled ? <CommunityHealth /> : null}
+      <Toggle label={t('freshDays.adminTitle')} hint={t('freshDays.adminHint')} value={s.fresh_days_enabled} onChange={(v) => save({ freshDaysEnabled: v })} />
       <Toggle label={t('intention.adminTitle')} hint={t('intention.adminHint')} value={s.weekly_intention_enabled} onChange={(v) => save({ weeklyIntentionEnabled: v })} />
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />

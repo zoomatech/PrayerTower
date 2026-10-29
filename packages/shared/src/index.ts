@@ -676,6 +676,8 @@ export interface PrayerStats {
   weekRun: number | null;
   /** Weekly intention (Admin → Growth practices, off): only while the switch is on. */
   intention?: { days: number | null; week: { date: string; prayed: boolean }[]; shown: number; met: boolean };
+  /** Fresh starts on days that matter (off): the member's own day, or the first day of a season. */
+  freshDay?: { label: string } | { season: 'advent' | 'lent' | 'easter' } | null;
 }
 
 /**
