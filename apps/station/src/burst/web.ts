@@ -9,6 +9,8 @@ import { DICTIONARY_V1 } from './dictionary.js';
 import { demodulate, SAMPLE_RATE } from './ofdm.js';
 import { PRIMER_V1 } from './primer.js';
 import { resample } from './wav.js';
+import { demodulate as demodulatePackets } from '../packet/afsk.js';
+import { parseStatus, type PacketStatus } from '../packet/message.js';
 
 const latin1 = (s: string) => Uint8Array.from(s, (ch) => ch.charCodeAt(0));
 let primer: Uint8Array | null = null;
@@ -61,3 +63,11 @@ export function channelReport(frames: readonly HeardFrame[], now = new Date()): 
 export { SAMPLE_RATE };
 /** Receipt fingerprint of a decoded prayer, as the station reports it ("Receipts" in docs/RADIO_BURST.md). */
 export { fingerprint } from './sha256.js';
+
+/** The packet fallback's status packets (packet/message.ts) in the audio, each with the sample where it ended. */
+export function decodePackets(samples: Float32Array, rate: number): (PacketStatus & { end: number })[] {
+  return demodulatePackets(samples, rate).flatMap((p) => {
+    const s = parseStatus(p.frame);
+    return s ? [{ ...s, end: p.end }] : [];
+  });
+}

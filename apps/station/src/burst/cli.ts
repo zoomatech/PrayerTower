@@ -1,6 +1,6 @@
 // Burst tools for operators and listeners (node dist/src/burst/cli.js ...):
 //
-//   decode <file.wav> [report.json]  print every prayer decoded from a recording; with a
+//   decode <file.wav> [report.json]  print every prayer (and packet fallback status) decoded from a recording; with a
 //                               report file, also write the measured SNR for BURST_PRESET=auto.
 //                               From an HF (SSB) receiver, set BURST_SEARCH_HZ=50 to allow
 //                               for tuning up to 50 Hz off (slower)
@@ -23,6 +23,8 @@ import { fromWav, resample, toWav } from './wav.js';
 import { SAMPLE_RATE } from './ofdm.js';
 import { samplePrayers } from './sample.js';
 import { simMarkdown, simTable } from './sim.js';
+import { demodulate as demodulatePackets } from '../packet/afsk.js';
+import { parseStatus } from '../packet/message.js';
 
 const [cmd, arg, arg2] = process.argv.slice(2);
 
@@ -36,11 +38,13 @@ switch (cmd) {
     if (!arg) throw new Error('usage: decode <file.wav> [report.json]');
     const wav = fromWav(readFileSync(arg));
     const heard = listen(resample(wav.samples, wav.sampleRate, SAMPLE_RATE), Number(process.env.BURST_SEARCH_HZ ?? 0) || 0);
-    if (!heard.length) out('No burst frames decoded.');
+    const packets = demodulatePackets(wav.samples, wav.sampleRate).flatMap((p) => parseStatus(p.frame) ?? []);
+    if (!heard.length && !packets.length) out('No burst frames decoded.');
     for (const h of heard) {
       out(`-- de ${h.callSign} (${h.preset}, ${h.snrDb.toFixed(1)} dB SNR${h.corrected ? ', errors corrected' : ''}), ${h.prayers.length} prayer(s)`);
       for (const p of h.prayers) out(p);
     }
+    for (const p of packets) out(`-- packet de ${p.callSign}: ${p.count} prayer(s), part ${p.page}/${p.pages}: ${p.ids.join(' ')}`);
     const report = reportFrom(heard);
     if (arg2 && report) {
       await writeReport(arg2, report);

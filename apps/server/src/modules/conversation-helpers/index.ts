@@ -2,7 +2,7 @@
 // research: talk comes in pairs (a greeting gets a greeting, thanks gets "you're
 // welcome"; Schegloff 1968, Switchboard DAMSL), "how are you" often carries a real
 // need (Heritage 1998), and suggested replies help warmth but flatten writing and
-// cost trust when they look automatic (Hohenstein 2023; Arnold 2020). Six switches,
+// cost trust when they look automatic (Hohenstein 2023; Arnold 2020). Their switches,
 // all off (conversation_settings), and each member opts in (conversation_prefs).
 // The suggestions themselves are worked out on the device; nothing a member types
 // is sent anywhere for them.
@@ -21,12 +21,13 @@ export interface ConversationSettings {
   meaning_row_enabled: boolean;
   research_page_enabled: boolean;
   meaning_proposals_enabled: boolean;
+  type_prompts_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<ConversationSettings> {
   const { rows } = await q.query<ConversationSettings>(
     `select reply_suggestions_enabled, meaning_prefs_enabled, trouble_nudge_enabled, greeting_packs_enabled, own_words_enabled, kind_closings_enabled,
-            talk_counts_enabled, meaning_row_enabled, research_page_enabled, meaning_proposals_enabled
+            talk_counts_enabled, meaning_row_enabled, research_page_enabled, meaning_proposals_enabled, type_prompts_enabled
        from public.conversation_settings`,
   );
   return rows[0]!;
@@ -43,6 +44,7 @@ export const SettingsPatch = z.object({
   meaningRowEnabled: z.boolean().optional(),
   researchPageEnabled: z.boolean().optional(),
   meaningProposalsEnabled: z.boolean().optional(),
+  typePromptsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -53,7 +55,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        own_words_enabled = coalesce($5, own_words_enabled), kind_closings_enabled = coalesce($6, kind_closings_enabled),
        talk_counts_enabled = coalesce($7, talk_counts_enabled), meaning_row_enabled = coalesce($8, meaning_row_enabled),
        research_page_enabled = coalesce($9, research_page_enabled),
-       meaning_proposals_enabled = coalesce($10, meaning_proposals_enabled)`,
+       meaning_proposals_enabled = coalesce($10, meaning_proposals_enabled), type_prompts_enabled = coalesce($11, type_prompts_enabled)`,
     [
       p.replySuggestionsEnabled ?? null,
       p.meaningPrefsEnabled ?? null,
@@ -65,6 +67,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.meaningRowEnabled ?? null,
       p.researchPageEnabled ?? null,
       p.meaningProposalsEnabled ?? null,
+      p.typePromptsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -83,6 +86,7 @@ export async function features(q: Queryable) {
     meaningIconRow: s.meaning_row_enabled,
     kindnessResearch: s.research_page_enabled,
     meaningProposals: s.meaning_proposals_enabled,
+    typePrompts: s.type_prompts_enabled,
   };
 }
 

@@ -23,6 +23,20 @@ export const keys: Tree = named({
   crosspost: {
     extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
   },
+  kindMilestones: {
+    peopleFirst: 'You lifted someone up for the first time.',
+    peopleMany: 'You’ve lifted up %{level} people.',
+    requestsFirst: 'You supported your first request.',
+    requestsMany: 'You’ve supported %{level} requests.',
+    checkinsFirst: 'You kept your first promise to check in.',
+    checkinsMany: 'You’ve kept %{level} promises to check in.',
+    adminHint: 'Members see private markers on Me (first time lifting someone up, then 10, 25, 50 and up for people supported, encouragements, promises kept and kind words). Only the member sees them: no leaderboard, no comparison, nothing to lose, and good news is never counted.',
+  },
+  checkBack: {
+    hint: 'Want a gentle reminder to share how it’s going? When you post an update, everyone who supported you gets a quiet heads-up, never a buzz.',
+    due: 'We’ll check back with you on %{date}. Post an update any time, and everyone who supported you gets a quiet heads-up.',
+    adminHint: 'The person who asked can pick a gentle reminder (3 days, a week or 2 weeks) to share how it’s going. When they post an update, everyone who supported them gets one quiet in-app heads-up a day, with no push and none of the update’s words.',
+  },
   kindIntro: {
     meaningsBody: 'Press and hold Thinking of You, Well Wishes, Encourage or Promise to Check In to pick the words behind it, like “Holding you close.” A tap still does the action.',
   },
@@ -213,6 +227,12 @@ export const keys: Tree = named({
   talk: {
     adminMeaningRowHint: 'Every card keeps its one row of action icons, in every feed skin. Thinking of you, well wishes, encourage and promise carry their emoji’s meanings: hovering shows them, pressing and holding opens up to five to choose from. Needs Emoji meanings on.',
     suggestTrouble: "I'm here for you.",
+    pairs: {
+      prayer_request: 'Thinking of you right now. You are not alone in this.',
+      praise: 'That’s wonderful! Thank you for telling us.',
+      open_prayer: 'Joining you in this.',
+    },
+    adminTypePromptsHint: 'Members who turned on reply suggestions get one reply that pairs with the kind of post they’re answering: a request gets “thinking of you”, good news gets gladness, a lament gets presence with no advice. A tap only fills the box.',
     careAsk: 'Want to talk about it?',
     closing1: "I'll be thinking of you. Talk soon.",
     closing2: 'Thank you for sharing this with me. Take care.',
