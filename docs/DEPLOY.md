@@ -21,6 +21,10 @@ npx supabase db push
 
 In Supabase Auth settings, set the Site URL and a production SMTP sender so sign-up emails arrive.
 
+Check the sender before going live: `npm run mail-test -w @prayer-tower/server` signs in to `SMTP_URL`, and adding an address (`-- you@example.org`) also sends a test email. `scripts/go-live.sh --check` runs the sign-in check. The password is never printed. Free senders that work: Brevo, 300 a day (`smtp://<login, @ as %40>:<SMTP key>@smtp-relay.brevo.com:587`, [Brevo SMTP](https://developers.brevo.com/docs/supabase-smtp-integration)), and Resend, 100 a day (`smtp://resend:<API key>@smtp.resend.com:587`, [Resend SMTP](https://www.resend.com/docs/send-with-smtp.md)). Both need a verified domain.
+
+`scripts/go-live.sh --check` also runs `npm run check-config -w @prayer-tower/server`, which checks every server setting the way the server does at start-up (for example `STATION_API_KEY` needs 24 or more characters and `APPLE_TEAM_ID` is 10 capital letters or digits). It names a bad setting and never prints its value, so a typo stops the deploy instead of the server.
+
 ## 2. API and worker server
 
 On a small Linux server with Docker:

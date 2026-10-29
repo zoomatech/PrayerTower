@@ -386,6 +386,8 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'delete from public.welcome_dismissed where user_id = $1',
     'delete from public.kind_asks where sender_id = $1',
     'delete from public.mends where hurt_id = $1 or author_id = $1',
+    'delete from public.conversation_prefs where user_id = $1',
+    'delete from public.meaning_prefs where user_id = $1',
     'delete from public.messages where user_id = $1',
     'delete from public.conversation_members where user_id = $1',
     'delete from public.follows where user_id = $1 or followee_id = $1',

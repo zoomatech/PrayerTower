@@ -12,9 +12,11 @@ import { LeafMark } from '@/layouts/motifs';
 import { circuitTokens } from '@/layouts/circuit';
 import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
+import { useTalkCount } from '@/components/reply-helpers';
 import { api, type MeaningEmoji, type MeaningLeaf } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
+import { moveOf } from '@/lib/talk';
 import { colors, radius, space, type } from '@/lib/theme';
 
 /** The part of a feed skin a leaf reads (the Vine skin's tokens fit this shape). */
@@ -63,8 +65,9 @@ export function Leaf({ icon, label, count, mine, tokens, onPress }: { icon: stri
   );
 }
 
-export function MeaningReactions({ postId, tokens }: { postId: string; tokens?: LeafTokens }) {
+export function MeaningReactions({ postId, postBody, tokens }: { postId: string; postBody?: string; tokens?: LeafTokens }) {
   const { meaningReactions } = useFeatures();
+  const count = useTalkCount();
   const { t, wording } = useLocale();
   const [tree, setTree] = useState<MeaningEmoji[]>([]);
   const [leaves, setLeaves] = useState<MeaningLeaf[]>([]);
@@ -94,11 +97,14 @@ export function MeaningReactions({ postId, tokens }: { postId: string; tokens?: 
       setError(null);
       setLeaves((await fn()).leaves);
       setOpen(null);
+      return true;
     } catch (e) {
       setError((e as Error).message);
+      return false;
     }
   };
-  const choose = (emoji: string, meaning: string) => act(() => api.chooseMeaning(postId, emoji, meaning));
+  const choose = (emoji: string, meaning: string) =>
+    act(() => api.chooseMeaning(postId, emoji, meaning)).then((ok) => ok && count({ kind: 'emoji', emoji, meaning, toMove: moveOf(postBody) ?? 'other' }));
   const mineFor = (emoji: string) => leaves.find((l) => l.emoji === emoji && l.mine);
 
   return (

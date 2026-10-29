@@ -18,6 +18,7 @@ import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
+import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
 import * as safety from '../safety/index.js';
 import * as skins from '../skins/index.js';
@@ -227,6 +228,8 @@ export async function features(q: Queryable) {
     ...(await growth.features(q)),
     /** Growth practices: follow-ups, gratitude card, gentle rhythm (modules/practices, Admin → Growth practices). */
     ...(await practices.features(q)),
+    /** Conversation helpers: reply suggestions, meaning words, care after "how are you", greeting packs, own words, kind closings. */
+    ...(await conversationHelpers.features(q)),
     /** Feed skins, comment trees, skin ideas and the video cap (modules/skins, Admin → Feed skins). */
     ...(await skins.features(q)),
     /** Two-step sign-in (modules/security, Admin → Sign-in security). */

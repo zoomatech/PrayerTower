@@ -73,10 +73,20 @@ for item in "SUPABASE_ACCESS_TOKEN|invite hook, auth settings and emails set for
             "STATION_API_KEY|radio station, after the pilot [C6]" \
             "SENTRY_DSN|crash reports [B5]" \
             "OPENAI_API_KEY|AI moderation (or ANTHROPIC_API_KEY) [B5]" \
-            "SPONSOR_REPORT_TO|weekly sponsor report [B5]"; do
+            "SPONSOR_REPORT_TO|weekly sponsor report [B5]" \
+            "ZEFFY_API_KEY|Zeffy gifts recorded automatically [B11]" \
+            "STRIPE_SECRET_KEY|giving through Stripe [B11]"; do
   v=${item%%|*}; what=${item#*|}
   if [ -n "${!v:-}" ]; then printf '  [x] %-22s %s\n' "$v" "$what"; else printf '  [ ] %-22s %s\n' "$v" "$what"; fi
 done
+# A setting the server would refuse (a short key, a bad address) stops here, not after deploying.
+log "Checking the server's settings"
+(cd "$root" && npm run --silent check-config -w @prayer-tower/server) || die "fix the settings above in $env_file"
+# The email sender signs in before anything deploys (it never prints the password).
+if [ -n "${SMTP_URL:-}" ]; then
+  log "Checking the email sender (SMTP_URL)"
+  (cd "$root" && npm run --silent mail-test -w @prayer-tower/server) || die "the email sender didn't work; fix SMTP_URL or MAIL_FROM (STEVE_TODO.md A4)"
+fi
 [ "$mode" = --check ] && exit 0
 
 # 2. Database: link the project and push every migration in supabase/migrations.

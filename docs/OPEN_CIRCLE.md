@@ -119,6 +119,10 @@ Build the Open Circle app with `EXPO_PUBLIC_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_
 
 When Steve picks the real name, change it in four places: `EXPO_PUBLIC_OPEN_CIRCLE_NAME` (the build), `OPEN_CIRCLE_NAME` (the server), Admin → Communities (the community's name), and the App Store listing.
 
+Email to Open Circle members and their guests (digest, invites, guest and keep-in-touch emails) is sent under `OPEN_CIRCLE_NAME`, with `MAIL_FROM`'s address, so the sender never reads Prayer Tower. Set `OPEN_CIRCLE_MAIL_FROM` to use Open Circle's own address once it has a domain.
+
+The sign-up and password-reset emails come from Supabase (supabase/templates, uploaded by `scripts/go-live.sh`). People who sign up in the Open Circle app get an Open Circle version of each, with an Open Circle subject line. Those templates spell out "Open Circle", so a rename also changes them and the two subjects in `supabase/config.toml`.
+
 ## Where the code is
 
 | Part | Location |

@@ -4,6 +4,8 @@ App Store only: the pilot is iPhone only. The Google Play text is archived in [a
 
 > Drafted 2026-10-28 for the pilot, for Steve to edit. Character counts are checked against each field's limit. App Store limits: Promotional Text 170 characters, Description 4,000, Keywords 100 bytes ([Apple](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)). App name and subtitle are 30 characters each; check these in App Store Connect.
 >
+> `eas metadata:push` uploads this file's App name, Subtitle, Promotional text, Keywords, Description and App Review notes (apps/mobile/store.config.js, steps in [TESTFLIGHT_EAS_GUIDE.md](../TESTFLIGHT_EAS_GUIDE.md)). Keep each in its code block under the same bold label. The app's tests fail if a field goes over Apple's limit.
+>
 > Keep the listing honest about the pilot. Don't promise radio prayers or features that are switched off when the build goes in for review.
 
 ## Apple App Store

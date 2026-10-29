@@ -37,6 +37,10 @@ describe('Open Circle, the non-religious community', () => {
     const moved = (await as(circle).post('/me/community', { slug: 'open-circle' })).json().community;
     expect(moved).toMatchObject({ slug: 'open-circle', tradition: 'secular' });
     expect((await as(circle).get('/me')).json().community.slug).toBe('open-circle');
+    // The sign-up and reset emails read the community from auth metadata (supabase/templates).
+    const meta = async (id: string) => (await db.query(`select raw_user_meta_data ->> 'community' as c from auth.users where id = $1`, [id])).rows[0].c;
+    expect(await meta(circle)).toBe('open-circle');
+    expect(await meta(christian)).not.toBe('open-circle');
 
     const prayer = await newRequest(christian, 'Please pray for my mother.');
     const support = await newRequest(circle, 'Big job interview tomorrow, wish me luck!');
