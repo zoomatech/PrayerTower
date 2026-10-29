@@ -3,7 +3,7 @@ import SwiftUI
 
 // Radio for members, as the Expo app (docs/STATION_OPERATOR_GUIDE.md): on a post, send it on the
 // air or amplified with Priestly tokens, keep it on the air, schedule a send and see where it was
-// heard; on Me, My signal queue and Scheduled sends. Each part follows its switch (Radio.offer).
+// heard; on Me, My signal queue (Scheduled sends are in GiftViews). Each part follows its switch (Radio.offer).
 
 private func shortTime(_ iso: String, weekday: Bool = false) -> String {
     let f = ISO8601DateFormatter()
@@ -256,67 +256,6 @@ struct SignalQueueView: View {
             error = nil
         } catch let e as APIError where e.status == 404 {
             off = true
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
-}
-
-/// Scheduled sends: tokens or radio sends set for a later time, with Cancel while active.
-struct ScheduledView: View {
-    @Environment(AppModel.self) private var model
-    @State private var items: [ScheduledSpend]?
-    @State private var error: String?
-
-    private var w: Words { model.words }
-
-    var body: some View {
-        List {
-            Section { Text(w("scheduled.intro")) }
-            if let error {
-                Section {
-                    Text(error).foregroundStyle(.red)
-                    Button(w("common.tryAgain")) { Task { await load() } }
-                }
-            }
-            if items?.isEmpty == true { Section { Text(w("scheduled.empty")).foregroundStyle(.secondary) } }
-            ForEach(items ?? []) { s in
-                VStack(alignment: .leading, spacing: 4) {
-                    NavigationLink { PostDetailView(postId: s.postId) } label: { Text("“\(s.excerpt)”") }
-                    Text(details(s)).font(.footnote).foregroundStyle(.secondary)
-                    if let e = s.error { Text(e).font(.footnote).foregroundStyle(.red) }
-                    if s.status == "active" {
-                        Button(w("common.cancel"), role: .destructive) { Task { await cancel(s.id) } }.buttonStyle(.borderless)
-                    }
-                }
-            }
-        }
-        .overlay { if items == nil && error == nil { ProgressView() } }
-        .navigationTitle(w("profile.scheduled"))
-        .refreshable { await load() }
-        .task { await load() }
-    }
-
-    private func details(_ s: ScheduledSpend) -> String {
-        var parts = [w("scheduled.status.\(s.status)"), s.isRadio ? w("scheduled.\(s.action ?? "radio")") : w("scheduled.tokens", count: s.amount)]
-        if s.status == "active" { parts.append(shortTime(s.nextRunAt, weekday: true)) }
-        if s.repeatWeeks > 1 { parts.append(w("scheduled.weeks", ["done": String(s.runs), "total": String(s.repeatWeeks)])) }
-        return parts.joined(separator: " · ")
-    }
-
-    private func load() async {
-        do {
-            items = try await model.store.api.scheduledSpends()
-            error = nil
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
-
-    private func cancel(_ id: String) async {
-        do {
-            _ = try await model.store.api.cancelScheduledSpend(id)
-            await load()
         } catch {
             self.error = error.localizedDescription
         }

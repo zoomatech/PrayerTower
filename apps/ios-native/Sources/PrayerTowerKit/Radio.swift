@@ -50,28 +50,8 @@ public struct SignalEntry: Codable, Sendable, Equatable, Identifiable {
     public var spokenCode: String? { signalCode.map { $0.map(String.init).joined(separator: " ") } }
 }
 
-/// A send set for a later time (`/me/scheduled-spends`): tokens, or the request by radio.
-public struct ScheduledSpend: Codable, Sendable, Equatable, Identifiable {
-    public let id: String
-    public let postId: String
-    public let amount: Int
-    public let nextRunAt: String
-    public let repeatWeeks: Int
-    public let runs: Int
-    /// reach (tokens) | radio | amplify; older servers leave it out (reach).
-    public let action: String?
-    /// active | done | cancelled | failed
-    public let status: String
-    public let error: String?
-    public let excerpt: String
-
-    enum CodingKeys: String, CodingKey {
-        case id, amount, runs, action, status, error, excerpt
-        case postId = "post_id"
-        case nextRunAt = "next_run_at"
-        case repeatWeeks = "repeat_weeks"
-    }
-
+extension ScheduledSpend {
+    /// A radio send (or amplified one) rather than a token gift.
     public var isRadio: Bool { action == "radio" || action == "amplify" }
 }
 
@@ -162,7 +142,6 @@ private struct RadioPrayerWrapper: Decodable { let radioPrayer: RadioPrayer }
 private struct RadioSend: Encodable { let idempotencyKey: String; let amplify: Bool }
 private struct Trail: Decodable { let trail: [RadioTrailEntry] }
 private struct Signals: Decodable { let signals: [SignalEntry] }
-private struct Schedules: Decodable { let schedules: [ScheduledSpend] }
 private struct OneSchedule: Decodable { let schedule: ScheduledSpend }
 private struct KeepOnAirState: Decodable { let keepOnAir: Bool }
 
@@ -181,6 +160,4 @@ extension APIClient {
     public func scheduleSpend(postId: String, _ s: NewScheduledSpend) async throws -> ScheduledSpend {
         try await (post("/posts/\(postId)/scheduled-spends", body: s) as OneSchedule).schedule
     }
-    public func scheduledSpends() async throws -> [ScheduledSpend] { try await (get("/me/scheduled-spends") as Schedules).schedules }
-    public func cancelScheduledSpend(_ id: String) async throws -> Ignored { try await send(request("DELETE", "/scheduled-spends/\(id)")) }
 }

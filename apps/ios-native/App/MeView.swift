@@ -47,7 +47,6 @@ struct MeView: View {
                     if model.features["signalQueue"] && model.me?.community?.shows("radio") ?? true {
                         NavigationLink(w("signalQueue.title")) { SignalQueueView() }
                     }
-                    NavigationLink(w("profile.scheduled")) { ScheduledView() }
                     Button(w(exporting ? "profile.exporting" : "profile.export")) { Task { await export() } }.disabled(exporting)
                     Button(w("profile.signOut"), role: .destructive) {
                         Task {
