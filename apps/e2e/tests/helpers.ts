@@ -17,8 +17,7 @@ export async function signIn(page: Page, who: Demo, { tour = false } = {}) {
   await page.goto('/sign-in');
   await page.locator('input').nth(0).fill(`${who}@demo.prayertower.local`);
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
-  // Exact: "Sign in with a passkey" sits below the password button.
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: /sign in/i }).last().click();
   // Exact: the sign-in screen's "Listen to radio prayers" link would match a loose search.
   await expect(page.getByText('Prayers', { exact: true }).first()).toBeVisible();
 }
