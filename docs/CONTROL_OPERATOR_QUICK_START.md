@@ -59,10 +59,16 @@ Both are recorded in Admin → Audit log.
 | Alert | First thing to try |
 | --- | --- |
 | No sound card | Re-seat the USB interface, then `sudo systemctl restart prayer-tower-station`. |
-| The radio did not key (PTT) | Check the PTT cable and that rigctld is running (`systemctl status prayer-tower-rigctld`). If the radio is stuck transmitting, press **Hold** first. |
+| The radio did not key (PTT) | Check the PTT cable and that rigctld is running (`systemctl status prayer-tower-rigctld`). If the radio is stuck transmitting, press **Hold** first, then run `sudo systemctl restart prayer-tower-station`, which unkeys the radio as it starts. If it still transmits, switch the radio off. |
 | The last burst failed | The station has stopped itself. Read the error on the Health page, fix it, then restart the station. |
 | A burst is overdue | Check whether the station is held, outside its windows, or not reporting. |
 | The station stopped reporting | Check that the Pi is powered and online. Then run `journalctl -u prayer-tower-station -n 50`. |
+
+The station already protects against the worst faults by itself:
+
+- It unkeys after every burst, even a failed one.
+- It unkeys when it starts and before it exits on a crash.
+- A listener node keeps its reports through an internet outage or a power cut and sends them when it's back.
 
 You can check a weak signal offline with the
 [diagnose tool](STATION_OPERATOR_GUIDE.md#diagnose-a-weak-signal), using a recording from any receiver.
