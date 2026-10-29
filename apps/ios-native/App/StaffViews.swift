@@ -30,6 +30,7 @@ struct StaffSection: View {
                 NavigationLink(w("profile.moderation")) { ModerationView() }
                 if Staff.isAdmin(roles) {
                     NavigationLink(w("admin.metrics")) { AdminHubView() }
+                    NavigationLink(w("radioAdmin.open")) { RadioAdminView(api: model.store.api, words: w) }
                     NavigationLink(w("profile.settings")) { AdminBoardsView() }
                     NavigationLink(w("admin.announcements")) { AnnouncementsAdminView() }
                     NavigationLink(w("admin.invites")) { InvitesView() }

@@ -224,11 +224,13 @@ export async function markAnswered(q: Queryable, userId: string, postId: string)
   if (!post) throw notFound('Post');
   if (post.user_id !== userId) throw forbidden('Only the poster can mark a request answered');
   if (!canTransition(post.state, 'answered')) throw badRequest('This post is already answered');
+  // Conditional, so two taps at once can't both mark it (and tell everyone twice).
   const { rows } = await q.query<PostRow>(
-    `update public.posts set state = 'answered', answered_at = now() where id = $1 returning *`,
+    `update public.posts set state = 'answered', answered_at = now() where id = $1 and state <> 'answered' returning *`,
     [postId],
   );
-  return rows[0]!;
+  if (!rows[0]) throw badRequest('This post is already answered');
+  return rows[0];
 }
 
 // Testimonies ------------------------------------------------------------------
