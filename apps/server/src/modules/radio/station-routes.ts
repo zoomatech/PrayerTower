@@ -13,6 +13,7 @@ import * as acks from './acks.js';
 import * as receipts from './receipts.js';
 import * as nodes from './nodes.js';
 import * as setup from './setup.js';
+import * as sky from './sky.js';
 import * as coverage from './coverage.js';
 import * as packet from './packet.js';
 
@@ -89,6 +90,14 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
     const test = await setup.claim(db, callSign ?? null);
     if (!test) return reply.code(204).send();
     return { test };
+  });
+
+  // Where to point the dish (sky.ts), for a station with a rotator (ROTATOR=rotctld); 204 while off.
+  app.get('/station/sky', async (req, reply) => {
+    await requireStation(req);
+    const p = await sky.now(db);
+    if (!p) return reply.code(204).send();
+    return { az: p.az, el: p.el, target: p.target, aboveMinimum: p.aboveMinimum };
   });
 
   app.post<{ Params: { id: string } }>('/station/setup-test/:id/result', async (req) => {

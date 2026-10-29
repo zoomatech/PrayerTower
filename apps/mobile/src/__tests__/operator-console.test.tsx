@@ -21,6 +21,7 @@ const view: RadioConsole = {
   schedule: { enabled: true, timeZone: 'America/Chicago', windows: [{ days: [1], start: '19:00', end: '20:00' }], quietStart: null, quietEnd: null, inWindow: false },
   queue: { queued: 2, sending: 0, oldestMinutes: 12, next: [{ id: 'r1', text: 'Pray for the night shift.', urgency: 2, repeats: 1, waitingMinutes: 12 }] },
   stations: [{ callSign: 'K0GIN', lastHeartbeat: new Date().toISOString(), lastIdAt: new Date().toISOString(), everyMinutes: 5, nextIdAt: soon }],
+  sky: { target: "moon", name: null, az: 123.4, el: 5.2, aboveMinimum: false, minElevation: 10, holdBelow: true, next: { at: new Date().toISOString(), rising: true } },
   relays: [{ node: "Ridge", reportedAt: new Date().toISOString(), callSign: "K1RLY", relayedLastHour: 3, secondsLastHour: 4.2, budgetSeconds: 120, skipped: { duplicate: 2 } }],
   beacon: { enabled: true, minutes: 60, recent: [{ id: "b1", sentAt: new Date().toISOString(), status: "heard", callSign: "K0GIN", preset: "fm-standard", heard: [{ by: "Hilltop", snrDb: 18.4, peakDbfs: null }] }] },
   log: [{ at: new Date().toISOString(), callSign: 'K0GIN', station: 'main', preset: 'fm-standard', status: 'transmitted', heard: true, error: null, text: 'Pray for calm seas.' }],
@@ -40,6 +41,8 @@ it('shows why the station is quiet, the ID timer, the queue and the log', async 
   expect(screen.getByText('Pray for the night shift.')).toBeTruthy();
   expect(screen.getByText(/fm-standard · sent · heard by a listener/)).toBeTruthy();
   expect(screen.getByText('Hilltop (18 dB)')).toBeTruthy();
+  expect(screen.getByText('The Moon: azimuth 123.4°, elevation 5.2°')).toBeTruthy();
+  expect(screen.getByText(/Rises above 10° at .* Transmissions wait until it is up./)).toBeTruthy();
   expect(screen.getByText('3 frames re-sent in the last hour, 4.2 s of its 120 s air time')).toBeTruthy();
   expect(screen.getByText('Not re-sent: already sent 2')).toBeTruthy();
 });

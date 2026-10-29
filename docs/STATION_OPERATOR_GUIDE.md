@@ -24,6 +24,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
 | Operator alerts (push on station problems) | Admin → Radio → Operator alerts | [Operator alerts](#operator-alerts) |
 | Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
+| Dish and sky target (where to point, rotator follows, hold while low) | Admin → Radio → Dish and sky target, plus `ROTATOR=rotctld` to turn a rotator | [Dish and sky target](#dish-and-sky-target) |
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
 | Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
 | Weekly radio digest | Admin → Radio → Weekly digest | [Weekly radio digest](#weekly-radio-digest) |
@@ -405,6 +406,7 @@ One screen for the control operator: Me → **Operator console**. It is off unti
 | Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10 with their wait, urgency and repeats. |
 | Relays | Each [store-and-forward relay](RADIO_BURST.md#store-and-forward-relay) that reported in the last hour: frames re-sent and air time used of its budget, and frames it did not re-send by reason. A relay sends this with its listener heartbeat. |
 | Reception beacon | When the [reception beacon](#reception-beacon) is on: the last day's beacons and every receiver that heard each one, with its SNR. |
+| Dish and sky target | When the [sky target](#dish-and-sky-target) is on and the dish location is set: where to point now (azimuth and elevation), when the target next rises or sets past the lowest useful elevation, and whether transmissions are held because it is too low. |
 | Log | The last 20 transmissions in 24 hours (the same rows as the [operator log](#operator-log)): time, call sign, preset, sent or failed, heard by a listener, and the text. |
 
 The screen refreshes every 15 seconds. Holds and overrides are recorded in Admin → Audit log. Turning the console off lifts any hold or override, so nothing stays held by a screen no one can open.
@@ -418,6 +420,27 @@ Off until an admin turns on **Operator alerts** in Admin → Radio (under the op
 Off until an admin turns on **Reception beacon** in Admin → Radio (under the operator console switch) and picks how often: every 30, 60 (the default), 120 or 240 minutes. Each time, the station sends the setup wizard's short test burst ("Station test" and a code, with its call sign in the frame). The station needs no new settings, and the setup wizard itself can stay off. Every listener node and listening page that decodes the beacon reports it, and each receiver is kept with its signal-to-noise ratio. The operator console shows the last 24 hours: when each beacon went out, which receivers heard it and how strongly, or that none did. This makes changes in reception through the day easy to see.
 
 No beacon goes out while the console's hold is on or outside the transmission windows. Turning the beacon off drops any beacon still waiting for the station. While a beacon is waiting (up to 5 minutes), a setup wizard test has to wait for it.
+
+## Dish and sky target
+
+For the notebook's idea of a dish pointed at the sky. Off until an admin turns on **Dish and sky target** in Admin → Radio (under the operator console switch). Pick a target: straight up (zenith), the Moon, Alpha Centauri, or your own (a name, right ascension in hours and declination in degrees). Enter the dish's latitude and longitude (kept to 0.01°, about 1 km) and the lowest useful elevation (0 to 30°; 10° by default, to stay above trees and buildings).
+
+The operator console then shows where to point now (azimuth from true north, elevation above the horizon) and when the target next rises or sets past that elevation. With **Hold transmissions while the target is too low** on, nothing goes out while it is below; the console's send-now override does not lift this.
+
+The positions are low precision on purpose (a few arcminutes for the Moon, about half a degree for Alpha Centauri because precession since 2000 is left out). A 60 cm dish at 10 GHz has a beam about 3.5° wide, so this is well inside it.
+
+**Turning a rotator.** On the station computer, run Hamlib's `rotctld` for your rotator (default port 4533) and set in `station.env`:
+
+```
+ROTATOR=rotctld
+ROTATOR_HOST=127.0.0.1
+ROTATOR_PORT=4533
+ROTATOR_STEP_DEG=2
+ROTATOR_MIN_EL=0
+ROTATOR_MAX_EL=90
+```
+
+Every minute the station asks the server where the target is and sends `P az el` when it has moved more than `ROTATOR_STEP_DEG`. Elevation is kept between `ROTATOR_MIN_EL` and `ROTATOR_MAX_EL` for rotators with limits. The station's status shows a `rotator` check with the last position sent or the last error. With the sky target off, the rotator is left where it is. Like `rigctld`, `rotctld` has no password, so keep it on 127.0.0.1.
 
 ## Operator log
 
@@ -625,6 +648,7 @@ opens fast enough, and drop back to a slower preset.
 Station identification, frequencies and control-operator duties are in
 [RADIO_STATION.md](RADIO_STATION.md). The call sign travels in plain ASCII in
 every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.md).
+For the legal department: signals aimed at the sky (the dish and sky target) should be checked against the band and power rules for the frequency used, including any for Earth-Moon-Earth work.
 
 ## Sources
 
@@ -646,4 +670,8 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Hamlib model numbers (`RIG_MAKE_MODEL`, `MAX_MODELS_PER_BACKEND` 1000, the radios in the setup wizard): [Hamlib, include/hamlib/riglist.h](https://github.com/Hamlib/Hamlib/blob/master/include/hamlib/riglist.h)
 - OpenStreetMap tiles need attribution, a real User-Agent and conforming caching: [OSMF Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/), summarised in [flutter_map, "Using OpenStreetMap (direct)"](https://docs.fleaflet.dev/tile-servers/using-openstreetmap-direct)
+- rotctld default port 4533, `P` (set_pos) and `p` (get_pos): [rotctld(1)](https://www.mankier.com/1/rotctld)
+- Sidereal time formula: [USNO, "Computing Greenwich Apparent Sidereal Time"](https://aa.usno.navy.mil/faq/GAST)
+- Moon position and topocentric parallax: [Paul Schlyter, "How to compute planetary positions"](https://stjarnhimlen.se/comp/ppcomp.html)
+- Alpha Centauri J2000 coordinates: [Wikipedia, "Alpha Centauri"](https://en.wikipedia.org/wiki/Alpha_Centauri)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)

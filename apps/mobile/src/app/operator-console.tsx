@@ -124,6 +124,23 @@ function OperatorConsole() {
           </>
         ) : null}
 
+        {data.sky ? (
+          <View style={[styles.card, data.sky.aboveMinimum ? null : styles.offAir]}>
+            <Text style={type.heading}>{t('operatorConsole.sky')}</Text>
+            <Text style={type.body}>
+              {t('operatorConsole.skyPoint', { target: data.sky.name ?? t(`operatorConsole.skyTarget.${data.sky.target}`), az: data.sky.az.toFixed(1), el: data.sky.el.toFixed(1) })}
+            </Text>
+            <Text style={type.small}>
+              {data.sky.target === 'zenith'
+                ? t('operatorConsole.skyZenith')
+                : data.sky.next
+                  ? t(data.sky.next.rising ? 'operatorConsole.skyRises' : 'operatorConsole.skySets', { time: clock(data.sky.next.at), min: data.sky.minElevation })
+                  : t(data.sky.aboveMinimum ? 'operatorConsole.skyAlwaysUp' : 'operatorConsole.skyNeverUp', { min: data.sky.minElevation })}
+              {!data.sky.aboveMinimum && data.sky.holdBelow ? ` ${t('operatorConsole.skyHeld')}` : ''}
+            </Text>
+          </View>
+        ) : null}
+
         <Text style={type.heading}>{t('operatorConsole.idTimer')}</Text>
         {data.stations.length === 0 ? <Empty text={t('operatorConsole.noStations')} /> : null}
         {data.stations.map((s) => {

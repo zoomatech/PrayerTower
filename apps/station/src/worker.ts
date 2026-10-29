@@ -37,6 +37,8 @@ export interface StationApi {
   /** The setup wizard's next test tone or burst (setup-test.ts), and its result. */
   setupTest?: SetupApi['setupTest'];
   setupResult?: SetupApi['setupResult'];
+  /** Where to point the dish (rotator.ts); null while the sky target is off. */
+  skyTarget?(): Promise<{ az: number; el: number } | null>;
 }
 
 export interface StationConfig {
@@ -154,6 +156,14 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
     async setupResult(id, result) {
       const res = await post(`/station/setup-test/${id}/result`, result);
       if (!res.ok) throw new Error(`setup test report failed (${res.status})`);
+    },
+    async skyTarget() {
+      const res = await fetchImpl(`${baseUrl.replace(/\/$/, '')}/station/sky`, { headers: { 'x-station-key': stationKey } });
+      // 204: the sky target is off or has no location; 404: an older server without it.
+      if (res.status === 204 || res.status === 404) return null;
+      if (!res.ok) throw new Error(`sky target failed (${res.status})`);
+      const json = (await res.json()) as { az: number; el: number };
+      return { az: json.az, el: json.el };
     },
     async reportStatus(status) {
       const res = await post('/station/status', status);
