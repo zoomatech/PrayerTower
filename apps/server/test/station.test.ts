@@ -24,7 +24,7 @@ afterAll(async () => {
 
 describe('radio station', () => {
   it('hands queued prayers to the station only in station mode, free, with a valid key', async () => {
-    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest' });
+    expect(stationDefaults).toEqual({ radio_transmitter: 'log', radio_station_requires_free: true, radio_max_chars: 1000, radio_amplify_repeats: 3, radio_order: 'oldest', radio_batch_max: 1 });
     expect((await station('/station/claim')).statusCode).toBe(409); // log mode
     const s = await as(admin).patch('/admin/radio-settings', { transmitter: 'station' });
     expect(s.json().settings.radio_transmitter).toBe('station');
@@ -160,5 +160,26 @@ describe('radio station', () => {
     };
     expect((await as(admin).patch('/admin/radio-settings', { order: 'need' })).json().settings.radio_order).toBe('need');
     expect(await order()).toEqual(['Pray for my surgery tomorrow.', 'Pray for my garden.', 'Pray for my move.', 'Pray for my job search.']);
+  });
+
+  it('burst mode hands out several prayers at once, never more than the admin allows', async () => {
+    await db.query(`update public.radio_prayers set status = 'failed', error = 'test reset' where status in ('queued', 'sending')`);
+    await as(admin).patch('/admin/radio-settings', { transmitter: 'station', order: 'oldest' });
+    await tokens.updateSettings(db, { radio_funding: 'free' });
+    const poster = await createUser('Burst Poster');
+    const sender = await createUser('Burst Sender');
+    for (let i = 0; i < 5; i++) {
+      const p = await newRequest(poster, `Burst prayer number ${i}.`);
+      await as(sender).post(`/posts/${p.id}/radio`, { idempotencyKey: `burst-${i}` });
+    }
+    // Off (1) by default: one at a time even when the station asks for more.
+    const one = (await station('/station/claim-batch', { max: 10 })).json().radioPrayers;
+    expect(one.map((r: { text: string }) => r.text)).toEqual(['Burst prayer number 0.']);
+    expect((await as(admin).patch('/admin/radio-settings', { batchMax: 3 })).json().settings.radio_batch_max).toBe(3);
+    const three = (await station('/station/claim-batch', { max: 10 })).json().radioPrayers;
+    expect(three.map((r: { text: string }) => r.text)).toEqual(['Burst prayer number 1.', 'Burst prayer number 2.', 'Burst prayer number 3.']);
+    expect((await station('/station/claim-batch', { max: 10 })).json().radioPrayers).toHaveLength(1);
+    expect((await station('/station/claim-batch')).statusCode).toBe(204);
+    for (const r of [...one, ...three]) await station(`/station/radio-prayers/${r.id}/result`, { ok: true, callSign: 'N0CALL' });
   });
 });

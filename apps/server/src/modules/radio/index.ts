@@ -188,11 +188,13 @@ export interface StationSettings {
   radio_amplify_repeats: number;
   /** Which queued prayer goes next: first in, or by need (most urgent, fewest praying, then oldest). */
   radio_order: 'oldest' | 'need';
+  /** Burst mode: the most prayers the station may claim at once (1 = one at a time). */
+  radio_batch_max: number;
 }
 
 export async function stationSettings(q: Queryable): Promise<StationSettings> {
   const { rows } = await q.query<StationSettings>(
-    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order from public.token_settings',
+    'select radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max from public.token_settings',
   );
   return rows[0]!;
 }
@@ -204,9 +206,10 @@ export async function updateStationSettings(q: Queryable, patch: Partial<Station
             radio_station_requires_free = coalesce($2, radio_station_requires_free),
             radio_max_chars = coalesce($3, radio_max_chars),
             radio_amplify_repeats = coalesce($4, radio_amplify_repeats),
-            radio_order = coalesce($5, radio_order)
-      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order`,
-    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null, patch.radio_order ?? null],
+            radio_order = coalesce($5, radio_order),
+            radio_batch_max = coalesce($6, radio_batch_max)
+      returning radio_transmitter, radio_station_requires_free, radio_max_chars, radio_amplify_repeats, radio_order, radio_batch_max`,
+    [patch.radio_transmitter ?? null, patch.radio_station_requires_free ?? null, patch.radio_max_chars ?? null, patch.radio_amplify_repeats ?? null, patch.radio_order ?? null, patch.radio_batch_max ?? null],
   );
   return rows[0]!;
 }
@@ -254,6 +257,18 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
     return { id: r.id, text: r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars), repeats: r.repeats };
   }
   return null;
+}
+
+/** Burst mode: up to `max` prayers (capped by radio_batch_max), in the order claimNext hands them out. */
+export async function claimBatch(q: Queryable, max: number) {
+  const limit = Math.max(1, Math.min(max, (await stationSettings(q)).radio_batch_max));
+  const out: { id: string; text: string; repeats: number }[] = [];
+  while (out.length < limit) {
+    const next = await claimNext(q);
+    if (!next) break;
+    out.push(next);
+  }
+  return out;
 }
 
 export const StationResult = z.object({

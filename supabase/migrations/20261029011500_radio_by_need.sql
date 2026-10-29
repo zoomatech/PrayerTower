@@ -5,3 +5,9 @@
 -- oldest. 'oldest' (the default) keeps first in, first out.
 alter table public.token_settings
   add column radio_order text not null default 'oldest' check (radio_order in ('oldest', 'need'));
+
+-- Burst mode: the station may claim up to radio_batch_max prayers at once and
+-- send them in one compressed transmission (apps/station, docs/RADIO_BURST.md).
+-- 1 (the default) keeps one prayer per claim.
+alter table public.token_settings
+  add column radio_batch_max integer not null default 1 check (radio_batch_max between 1 and 500);
