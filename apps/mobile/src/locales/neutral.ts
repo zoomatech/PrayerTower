@@ -276,6 +276,10 @@ export const keys: Tree = named({
     inputsHostHint: 'What people would like covered. Only you and staff see these.',
     inputsPlaceholder: 'For example: please talk about how to help the families affected by the flood',
   },
+  circleGoal: {
+    progress: '%{done} of %{target} people have checked in',
+    met: 'Goal met: %{done} people checked in (goal %{target})',
+  },
   stats: {
     title: 'Your kindness',
     days: 'Days you showed up',

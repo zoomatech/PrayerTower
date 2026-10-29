@@ -68,6 +68,7 @@ export interface Features {
   poolMatching: boolean;
   lamps: boolean;
   poolLedger: boolean;
+  circleGoals: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -143,6 +144,7 @@ export interface NotebookSettings {
   lamps_enabled: boolean;
   lamps_per_week: number;
   pool_ledger_enabled: boolean;
+  circle_goals_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -697,6 +699,11 @@ export type AiSettings = {
   auto_pray_days: number;
 };
 
+/** Circle goals: "N people pray for this by <date>". */
+export type CircleGoal =
+  | { enabled: false }
+  | { enabled: true; canSet: boolean; goal: { target: number; endsAt: string; prayed: number; met: boolean; ended: boolean } | null };
+
 /** Lamp awards: thanks with a note, recognition only. */
 export type Lamps = {
   enabled: boolean;
@@ -1128,7 +1135,7 @@ export const api = {
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1157,6 +1164,9 @@ export const api = {
   myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
   createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number; matchMode?: 'ratio' | 'quadratic' }) =>
     post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
+  circleGoal: (postId: string) => get<CircleGoal>(`/posts/${postId}/circle-goal`),
+  setCircleGoal: (postId: string, target: number, days: number) => request<CircleGoal>('PUT', `/posts/${postId}/circle-goal`, { target, days }),
+  removeCircleGoal: (postId: string) => request<CircleGoal>('DELETE', `/posts/${postId}/circle-goal`),
   lamps: (personId: string) => get<Lamps>(`/people/${personId}/lamps`),
   giveLamp: (personId: string, note: string) => post<{ id: string }>(`/people/${personId}/lamps`, { note }),
   aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),

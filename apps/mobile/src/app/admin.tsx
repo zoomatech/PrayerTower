@@ -1286,6 +1286,7 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.poolMatching')} hint={t('admin.toggle.poolMatchingHint')} value={s.pool_matching_enabled} onChange={(v) => save({ poolMatchingEnabled: v })} />
       <Toggle label={t('admin.toggle.lamps')} hint={t('admin.toggle.lampsHint')} value={s.lamps_enabled} onChange={(v) => save({ lampsEnabled: v })} />
       <Toggle label={t('admin.toggle.poolLedger')} hint={t('admin.toggle.poolLedgerHint')} value={s.pool_ledger_enabled} onChange={(v) => save({ poolLedgerEnabled: v })} />
+      <Toggle label={t('admin.toggle.circleGoals')} hint={t('admin.toggle.circleGoalsHint')} value={s.circle_goals_enabled} onChange={(v) => save({ circleGoalsEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />
