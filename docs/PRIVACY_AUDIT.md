@@ -20,6 +20,8 @@ Done 2026-10-28 against the code on `main`, the privacy policy draft ([legal/PRI
 
 1. **Logs drop database row values.** `logSafeError` in `apps/server/src/app.ts` is the log serializer for errors. Test: `observability.test.ts` makes a real duplicate-key error with an email in its detail and checks that the logged error doesn't contain it.
 2. **Deletion resets every setting.** `deleteAccount` in `apps/server/src/modules/accounts/index.ts`. Test: `account-deletion.test.ts` sets quiet hours with a time zone, the digest and other settings, deletes the account, and checks every value is back to its default.
+   - Since 2026-10-29, `deleteTheRest` also deletes every row in any table that points at the member with `on delete cascade` (the profile row stays for the ledger, so those cascades never fire on their own). `account-deletion.test.ts` checks no such row is left. Kept on purpose: emptied ledger-held requests, group chats the member started (without their messages), and staff safety records.
+   - The export has a matching guard: `export.test.ts` fails when a table points at a member and is neither exported nor listed in `NOT_EXPORTED`.
 3. **The staff audit log keeps invitees out.** `bodyOf` in `apps/server/src/modules/audit/index.ts`. Test: `audit-log.test.ts` imports a CSV with two people and makes an invite whose note has an email, then checks that no name or email is in the log.
 4. **Own backups expire.** `scripts/backup-db.sh` deletes only the dated folders it made, older than `KEEP_DAYS`. Tested on folders dated 60 days ago and today, plus an unrelated folder (only the old dated one was removed).
 

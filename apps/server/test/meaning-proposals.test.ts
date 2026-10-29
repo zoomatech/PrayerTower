@@ -61,8 +61,10 @@ describe('Member-made emoji meanings', () => {
     const u = await createUser('Meaning Full');
     const full = (await tree(u)).find((e) => e.meanings.length === 5);
     if (full) {
-      await as(u).post('/me/meaning-proposals', { emoji: full.key, label: 'So glad for you' });
-      const p = (await as(admin).get('/admin/meaning-proposals')).json().proposals.find((x: { label: string }) => x.label === 'So glad for you');
+      // A label of its own each run: the test database keeps earlier runs' proposals, and a repeat is refused.
+      const label = `So glad for you ${Date.now() % 100000}`;
+      await as(u).post('/me/meaning-proposals', { emoji: full.key, label });
+      const p = (await as(admin).get('/admin/meaning-proposals')).json().proposals.find((x: { label: string }) => x.label === label);
       expect((await as(admin).post(`/admin/meaning-proposals/${p.id}`, { approve: true })).statusCode).toBe(409);
       expect((await as(admin).post(`/admin/meaning-proposals/${p.id}`, { approve: false })).json().status).toBe('declined');
     }

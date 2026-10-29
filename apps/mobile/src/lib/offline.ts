@@ -23,7 +23,7 @@ interface State {
   online: boolean;
   queued: QueuedAction[];
   /** What happened to queued actions the server refused (e.g. a removed request). */
-  dropped: string[];
+  dropped: { label: string; message: string }[];
 }
 
 let state: State = { online: true, queued: [], dropped: [] };
@@ -134,7 +134,7 @@ export async function flushQueue(send: (a: QueuedAction) => Promise<unknown>) {
         // Anything else is a refusal (e.g. the request was removed): drop it and say so.
         const status = (e as { status?: number }).status ?? 0;
         if (isOffline(e) || status >= 500 || status === 429) break;
-        set({ dropped: [...state.dropped, `${next.label}: ${(e as Error).message}`] });
+        set({ dropped: [...state.dropped, { label: next.label, message: (e as Error).message }] });
       }
       set({ queued: state.queued.slice(1) });
       await persist();
@@ -145,3 +145,6 @@ export async function flushQueue(send: (a: QueuedAction) => Promise<unknown>) {
 }
 
 export const dismissDropped = () => set({ dropped: [] });
+
+/** How many actions are waiting to send. */
+export const pendingCount = () => state.queued.length;

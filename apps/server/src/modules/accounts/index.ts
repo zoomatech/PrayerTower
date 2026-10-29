@@ -353,6 +353,32 @@ export function presentIdentity(
 
 // Account deletion ------------------------------------------------------------------
 
+// Tables that point at a member "on delete cascade" belong to that member, but
+// the profile row stays behind (the ledger needs it), so nothing cascades on its
+// own. This sweeps every such table the list in deleteAccount doesn't name, so a feature
+// added later can't leave a member's rows behind. Kept: requests (handled
+// there), shared group conversations, and staff safety records.
+const KEEP_ON_DELETE = new Set(['posts', 'conversations', 'moderation_items', 'harm_events', 'feed_themes']);
+
+async function deleteTheRest(q: Queryable, userId: string) {
+  const { rows } = await q.query<{ tbl: string; col: string }>(
+    `select c.conrelid::regclass::text as tbl, a.attname as col
+       from pg_constraint c
+       join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+      where c.contype = 'f' and cardinality(c.conkey) = 1
+        and c.confrelid in ('public.profiles'::regclass, 'auth.users'::regclass)
+        and c.connamespace = 'public'::regnamespace and c.confdeltype = 'c'`,
+  );
+  for (const r of rows) {
+    const table = r.tbl.replace(/^public\./, '');
+    if (table === 'profiles' || KEEP_ON_DELETE.has(table)) continue;
+    const col = `"${r.col.replace(/"/g, '""')}"`;
+    await q.query(`delete from public.${table} where ${col} = $1`, [userId]);
+  }
+  // A skin the member made stays for the communities using it, no longer tied to them.
+  await q.query('update public.feed_themes set owner_id = null where owner_id = $1', [userId]);
+}
+
 /**
  * Delete a member's account (App Store Review Guideline 5.1.1(v)). Their
  * sign-in, profile details and everything they wrote or did are removed. Only
@@ -433,6 +459,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
   ]) {
     await q.query(sql, [userId]);
   }
+  await deleteTheRest(q, userId);
   await q.query(
     // Every setting goes back to its default too: quiet hours hold a time zone, a hint of where the member lives.
     `update public.profiles set display_name = 'Deleted member', handle = null, bio = default, why_here = default,
