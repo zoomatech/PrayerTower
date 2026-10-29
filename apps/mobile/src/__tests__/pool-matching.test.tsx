@@ -12,6 +12,10 @@ jest.mock('@/lib/api', () => ({
   api: { features: jest.fn(), myTokenPools: jest.fn(), tokenPools: jest.fn(), tokens: jest.fn(), createTokenPool: jest.fn(), fundTokenPool: jest.fn(), poolLedger: jest.fn() },
 }));
 
+// The pools screen loads five requests and animates its cards; on a busy CI runner the
+// first render alone has taken over 5 s (Jest's default), so give each test more room.
+jest.setTimeout(15_000);
+
 const pool = (over: Partial<TokenPool> = {}): TokenPool => ({
   id: 'p1', name: 'Philanthropic first post', purpose: '', realm: null, drawAmount: 5, drawsPerMemberDay: 1, donor: 'Ethel', isMine: false, open: true, balance: 40,
   match: { mode: 'ratio', ratio: 2, cap: 30, matched: 20 }, ...over,
