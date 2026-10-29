@@ -87,13 +87,13 @@ export async function pending(q: Queryable) {
 export const Decision = z.object({ status: z.enum(['cleared', 'confirmed']), note: z.string().trim().max(1000).optional() });
 
 export async function decide(q: Queryable, moderatorId: string, id: string, d: z.infer<typeof Decision>) {
-  const { rows } = await q.query<{ status: string }>('select status from public.activity_flags where id = $1', [id]);
+  // One statement, so two moderators deciding at once can't both win.
+  const { rowCount } = await q.query(
+    `update public.activity_flags set status = $2, note = $3, decided_by = $4, decided_at = now() where id = $1 and status = 'pending'`,
+    [id, d.status, d.note ?? null, moderatorId],
+  );
+  if (rowCount) return;
+  const { rows } = await q.query('select 1 from public.activity_flags where id = $1', [id]);
   if (!rows[0]) throw notFound('Flag');
-  if (rows[0].status !== 'pending') throw conflict('This flag was already decided');
-  await q.query(`update public.activity_flags set status = $2, note = $3, decided_by = $4, decided_at = now() where id = $1`, [
-    id,
-    d.status,
-    d.note ?? null,
-    moderatorId,
-  ]);
+  throw conflict('This flag was already decided');
 }
