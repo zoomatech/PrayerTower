@@ -15,6 +15,7 @@ import { HarmSupport, takeSupport } from '@/components/harm-support';
 import { GuestShare } from '@/components/guest-share';
 import { LiveFollow } from '@/components/live-follow';
 import { ShareChoice } from '@/components/outside-share';
+import { OfflineBanner } from '@/components/offline-banner';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
@@ -60,6 +61,7 @@ export default function PostScreen() {
   const treeTokens = useMemo(() => (skin?.layout === 'tower' ? tabletTokens(skin) : vineTokens(skin?.layout === 'vine' ? skin : null)), [skin]);
   const leafTokens = useMemo(() => wordLeafTokens(skin), [skin]);
   const [card, setCard] = useState<Card | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
   const [text, setText] = useState('');
@@ -94,10 +96,14 @@ export default function PostScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [p, c, pr, t, pw] = await Promise.all([api.post(id), api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
+      // Offline, a request saved with the feed still opens; the rest fills in once back online.
+      const p = await api.post(id);
+      setCard(p.post);
+      setSavedAt(p.savedAt ?? null);
+      if (p.savedAt) return;
+      const [c, pr, t, pw] = await Promise.all([api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
       setPower(pw);
       setTokens(t);
-      setCard(p.post);
       setComments(c.comments);
       setPrayers(pr);
     } catch (e) {
@@ -268,6 +274,19 @@ export default function PostScreen() {
       {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
   );
+
+  // Offline: just the saved request, read-only, until it can be loaded again.
+  if (savedAt && card) {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+          <OfflineBanner savedAt={savedAt} onRetry={load} />
+          <PostCard card={card} onAction={onAction} expanded />
+        </ScrollView>
+      </Screen>
+    );
+  }
 
   return (
     <Screen style={roomy ? styles.roomy : undefined}>

@@ -86,11 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session) await signedIn();
       setLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
       // Called from inside Supabase's lock, so the next step runs after it returns.
-      if (next) setTimeout(() => void signedIn(), 0);
-      else {
+      // The first event repeats the saved session that getSession above already loaded,
+      // and an hourly token refresh changes nothing on the profile: skip both (one /me at start, not two).
+      if (next) {
+        if (event !== 'INITIAL_SESSION' && event !== 'TOKEN_REFRESHED') setTimeout(() => void signedIn(), 0);
+      } else {
         setNeedsCode(false);
         setProfile(null);
         setRoles([]);
