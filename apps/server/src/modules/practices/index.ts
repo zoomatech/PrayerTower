@@ -12,6 +12,9 @@
 //      days. Either side ends it with one tap, no reason shown; it ends on its own.
 //   5. Answered & remembered: a look-back, opened only when the member chooses, of
 //      their own answered requests with a grateful word. Loss never resurfaces.
+//   6. Ted Lasso nudges: a private weekly "Who did you lift up this week?", a count of
+//      weeks of gratitude that only grows (never a streak to lose), and a "Believe"
+//      moment when a prayer is answered.
 import type { Task } from 'graphile-worker';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
@@ -33,11 +36,14 @@ export interface PracticeSettings {
   welcome_text: string | null;
   ask_kindly_enabled: boolean;
   mend_enabled: boolean;
+  lift_up_enabled: boolean;
+  gratitude_count_enabled: boolean;
+  believe_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
-            welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled
+            welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -56,6 +62,9 @@ export const SettingsPatch = z.object({
   welcomeText: z.string().trim().max(600).optional(),
   askKindlyEnabled: z.boolean().optional(),
   mendEnabled: z.boolean().optional(),
+  liftUpEnabled: z.boolean().optional(),
+  gratitudeCountEnabled: z.boolean().optional(),
+  believeEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -67,7 +76,9 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        newcomer_days = coalesce($7, newcomer_days), remembered_enabled = coalesce($8, remembered_enabled),
        welcome_card_enabled = coalesce($9, welcome_card_enabled),
        welcome_text = case when $10::text is null then welcome_text else nullif($10, '') end,
-       ask_kindly_enabled = coalesce($11, ask_kindly_enabled), mend_enabled = coalesce($12, mend_enabled)`,
+       ask_kindly_enabled = coalesce($11, ask_kindly_enabled), mend_enabled = coalesce($12, mend_enabled),
+       lift_up_enabled = coalesce($13, lift_up_enabled), gratitude_count_enabled = coalesce($14, gratitude_count_enabled),
+       believe_enabled = coalesce($15, believe_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -81,6 +92,9 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.welcomeText ?? null,
       p.askKindlyEnabled ?? null,
       p.mendEnabled ?? null,
+      p.liftUpEnabled ?? null,
+      p.gratitudeCountEnabled ?? null,
+      p.believeEnabled ?? null,
     ],
   );
   return settings(q);
@@ -97,6 +111,9 @@ export async function features(q: Queryable) {
     welcomeCard: s.welcome_card_enabled,
     askKindly: s.ask_kindly_enabled,
     mend: s.mend_enabled,
+    liftUp: s.lift_up_enabled,
+    gratitudeCount: s.gratitude_count_enabled,
+    believe: s.believe_enabled,
   };
 }
 
@@ -207,7 +224,8 @@ async function requireGratitude(q: Queryable) {
 
 /** The member's chosen day and this week's card, if any. Earlier weeks are never shown as missed. */
 export async function gratitude(q: Queryable, userId: string, timeZone: string) {
-  if (!(await settings(q)).gratitude_enabled) return { enabled: false as const };
+  const s = await settings(q);
+  if (!s.gratitude_enabled) return { enabled: false as const };
   const { rows: pref } = await q.query<{ weekday: number; time_zone: string }>('select weekday, time_zone from public.gratitude_prefs where user_id = $1', [userId]);
   const tz = pref[0]?.time_zone ?? timeZone;
   const { rows } = await q.query<{ week_start: string; items: string[] }>(
@@ -220,7 +238,42 @@ export async function gratitude(q: Queryable, userId: string, timeZone: string) 
     weekday: pref[0]?.weekday ?? null,
     weekStart: rows[0]!.week_start,
     items: rows[0]!.items ?? [],
+    // Weeks of gratitude: every week with a card, ever. It only grows; nothing is "missed".
+    weeks: s.gratitude_count_enabled ? await gratitudeWeeks(q, userId) : null,
   };
+}
+
+async function gratitudeWeeks(q: Queryable, userId: string) {
+  const { rows } = await q.query<{ n: number }>('select count(*)::int as n from public.gratitude_entries where user_id = $1', [userId]);
+  return rows[0]!.n;
+}
+
+// 6. Lift-up reflection -------------------------------------------------------------------
+
+/** This week's private answer to "Who did you lift up this week?". Earlier weeks stay private and are never counted. */
+export async function liftUp(q: Queryable, userId: string, timeZone: string) {
+  if (!(await settings(q)).lift_up_enabled) return { enabled: false as const };
+  const { rows } = await q.query<{ week_start: string; body: string | null }>(
+    `select to_char(${weekStartSql}, 'YYYY-MM-DD') as week_start,
+            (select body from public.lift_up_entries where user_id = $1 and week_start = ${weekStartSql}) as body`,
+    [userId, timeZone],
+  );
+  return { enabled: true as const, weekStart: rows[0]!.week_start, body: rows[0]!.body ?? '' };
+}
+
+export const LiftUp = z.object({ body: z.string().trim().max(280), timeZone: z.string().min(1).max(64) });
+
+/** Save this week's answer; an empty answer clears it. */
+export async function saveLiftUp(q: Queryable, userId: string, input: z.infer<typeof LiftUp>) {
+  if (!(await settings(q)).lift_up_enabled) throw badRequest('The weekly reflection is switched off');
+  if (!input.body) await q.query(`delete from public.lift_up_entries where user_id = $1 and week_start = ${weekStartSql}`, [userId, input.timeZone]);
+  else
+    await q.query(
+      `insert into public.lift_up_entries (user_id, week_start, body) values ($1, ${weekStartSql}, $3)
+       on conflict (user_id, week_start) do update set body = excluded.body, updated_at = now()`,
+      [userId, input.timeZone, input.body],
+    );
+  return liftUp(q, userId, input.timeZone);
 }
 
 export const GratitudeDay = z.object({

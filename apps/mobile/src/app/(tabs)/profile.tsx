@@ -22,6 +22,7 @@ import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
 import { ConversationPrefsCard } from '@/components/conversation-prefs-card';
 import { EncouragerCard } from '@/components/encourager-card';
+import { LiftUpCard } from '@/components/lift-up-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
@@ -182,6 +183,7 @@ export default function Profile() {
           </View>
         ) : null}
         <GratitudeCard />
+        <LiftUpCard />
         <EncouragerCard />
         <ConversationPrefsCard />
         <AwardCard />

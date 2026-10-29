@@ -181,6 +181,11 @@ export const keys: Tree = named({
     prayer: 'Take a breath. Kind words travel far.',
   },
   practices: {
+    believeSign: 'BELIEVE',
+    believeMine: 'Your hope came true. Someone out there needs to hear this. Will you share what happened?',
+    believeTheirs: 'Something you cared about turned out well. Your support mattered.',
+    liftUpIntro: 'A kind word, a meal, a text, a visit. Noticing it helps you do it again. Only you see this.',
+    adminBelieveHint: 'A "Believe" card when a request turns out well, for the person who asked (with an invitation to share) and for the people who supported them.',
     followupIntro: "People were thinking of you. If you'd like, let them know how it's going. There's no wrong answer, and you can say nothing at all.",
     followupPlaceholder: 'A few words for the people who supported you (optional)',
     gratitudeShare: 'Share as good news',

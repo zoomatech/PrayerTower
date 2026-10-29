@@ -16,6 +16,7 @@ import { useTalkCount } from '@/components/reply-helpers';
 import { api, type MeaningEmoji, type MeaningLeaf } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
+import { announce } from '@/lib/motion';
 import { moveOf } from '@/lib/talk';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -134,11 +135,16 @@ export function MeaningReactions({ postId, postBody, tokens }: { postId: string;
             accessibilityHint={t('meanings.hint')}
             accessibilityLabel={`${e.emoji} ${word(e.meanings[0]!)}`}
             accessibilityActions={[{ name: 'longpress', label: t('meanings.choose', { emoji: e.emoji }) }]}
-            onAccessibilityAction={() => setOpen(e)}
+            onAccessibilityAction={() => {
+              setOpen(e);
+              announce(t('meanings.choose', { emoji: e.emoji }));
+            }}
             onPress={() => choose(e.key, e.meanings[0]!.key)}
             onLongPress={() => setOpen(e)}
             style={({ pressed }) => [styles.emoji, mineFor(e.key) && styles.leafMine, pressed && { opacity: 0.6 }]}>
-            <Text style={styles.emojiText}>{e.emoji}</Text>
+            <Text style={styles.emojiText} maxFontSizeMultiplier={2}>
+              {e.emoji}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -152,6 +158,7 @@ export function MeaningReactions({ postId, postBody, tokens }: { postId: string;
                 testID={`meaning-${open.key}-${m.key}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
+                accessibilityLabel={`${open.emoji} ${word(m)}`}
                 onPress={() => choose(open.key, m.key)}
                 style={[styles.choice, on && styles.leafMine]}>
                 <Text style={styles.leafLabel}>
@@ -178,7 +185,8 @@ export function MeaningReactions({ postId, postBody, tokens }: { postId: string;
 const styles = StyleSheet.create({
   wrap: { gap: space.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  leaf: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 36, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  // 44 points: Apple's smallest comfortable tap target.
+  leaf: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 44, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   // A leaf's outline: two rounded corners, two points.
   pointed: { borderTopLeftRadius: 2, borderBottomRightRadius: 2, borderTopRightRadius: radius.lg, borderBottomLeftRadius: radius.lg },
   // A stone tablet: squared corners with a rounded top.
