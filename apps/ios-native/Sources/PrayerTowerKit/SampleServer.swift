@@ -17,6 +17,24 @@ public enum SampleServer {
 
     public static func isOn(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool { arguments.contains(argument) }
 
+    /// The screen to open first, for store screenshots: `-PTScreen feed|promises|messages|notices|me|post`.
+    public static func screen(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> String? {
+        guard isOn(arguments), let i = arguments.firstIndex(of: "-PTScreen"), i + 1 < arguments.count else { return nil }
+        return arguments[i + 1]
+    }
+
+    /// The tab for a screen name (MainTabs tags), and whether to open the sample request.
+    public static func tab(for screen: String?) -> (tab: Int, openPost: Bool) {
+        switch screen {
+        case "promises": (1, false)
+        case "messages": (2, false)
+        case "notices": (5, false)
+        case "me": (4, false)
+        case "post": (0, true)
+        default: (0, false)
+        }
+    }
+
     /// A URLSession whose every request is answered from the sample data.
     public static func session() -> URLSession {
         let config = URLSessionConfiguration.ephemeral

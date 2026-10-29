@@ -19,6 +19,7 @@ import ActivityKit
     }
 }
 
+#if os(iOS)
 /// "Show on my Lock Screen" for the member's own open request: how many people prayed, and first
 /// names, for up to 8 hours. Off until Admin → Growth turns on the Live Activity switch.
 struct LiveFollowView: View {
@@ -92,3 +93,10 @@ struct LiveFollowView: View {
         if let token { _ = try? await model.store.api.endLiveActivity(pushToken: token) }
     }
 }
+#else
+/// Live Activities are iPhone and iPad only.
+struct LiveFollowView: View {
+    let card: Card
+    var body: some View { EmptyView() }
+}
+#endif

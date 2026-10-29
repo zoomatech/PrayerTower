@@ -1,12 +1,19 @@
 import PrayerTowerKit
 import PrayerTowerSession
 import SwiftUI
+import AuthenticationServices
+#if os(iOS)
 import UIKit
+#endif
 
 /// The window the system passkey sheet is shown from.
 @MainActor
-func presentationWindow() -> UIWindow? {
+func presentationWindow() -> ASPresentationAnchor? {
+    #if os(iOS)
     UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first(where: \.isKeyWindow)
+    #else
+    NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first
+    #endif
 }
 
 struct SignInView: View {
