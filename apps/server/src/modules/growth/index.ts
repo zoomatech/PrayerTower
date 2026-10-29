@@ -345,7 +345,7 @@ export async function addChainMember(q: Queryable, userId: string, to: z.infer<t
   if ('phone' in to && !s.prayer_chain_sms_enabled) throw forbidden('Text messages for the prayer chain are turned off for now');
   const { rows: count } = await q.query<{ all: number; today: number }>(
     `select count(*) filter (where status <> 'left')::int as all, count(*) filter (where created_at > now() - interval '1 day')::int as today
-       from public.prayer_chain_members where owner_id = $1`,
+       from public.prayer_chain_members where owner_id = $1 and removed_at is null`,
     [userId],
   );
   if (count[0]!.all >= s.prayer_chain_max) throw badRequest(`Your prayer chain can have up to ${s.prayer_chain_max} people`);
@@ -355,22 +355,36 @@ export async function addChainMember(q: Queryable, userId: string, to: z.infer<t
      on conflict do nothing returning id`,
     [userId, 'email' in to ? to.email : null, 'phone' in to ? to.phone : null, newToken()],
   );
-  // Someone who left, or was already asked, is never asked again.
-  if (!rows[0]) throw conflict('This address or number is already on your list');
+  if (!rows[0]) {
+    // Someone removed earlier comes back without a second invitation; someone who
+    // said no (or replied STOP) is never asked again.
+    const { rows: back } = await q.query<{ id: string }>(
+      `update public.prayer_chain_members set removed_at = null
+        where owner_id = $1 and (email = $2 or phone = $3) and removed_at is not null and status <> 'left' returning id`,
+      [userId, 'email' in to ? to.email : null, 'phone' in to ? to.phone : null],
+    );
+    if (back[0]) return { id: back[0].id };
+    const { rowCount: said } = await q.query(
+      `select 1 from public.prayer_chain_members where owner_id = $1 and (email = $2 or phone = $3) and status = 'left' and removed_at is not null`,
+      [userId, 'email' in to ? to.email : null, 'phone' in to ? to.phone : null],
+    );
+    if (said) throw conflict("This person said no to your prayer chain, so they can't be added again");
+    throw conflict('This address or number is already on your list');
+  }
   await enqueue(q, 'growth_chain_confirm', { memberId: rows[0].id });
   return { id: rows[0].id };
 }
 
 export async function listChain(q: Queryable, userId: string) {
   const { rows } = await q.query<{ id: string; email: string | null; phone: string | null; status: string; created_at: Date }>(
-    'select id, email, phone, status::text, created_at from public.prayer_chain_members where owner_id = $1 order by created_at',
+    'select id, email, phone, status::text, created_at from public.prayer_chain_members where owner_id = $1 and removed_at is null order by created_at',
     [userId],
   );
   return rows.map((r) => ({ id: r.id, email: r.email, phone: r.phone, status: r.status as 'pending' | 'confirmed' | 'left', createdAt: r.created_at }));
 }
 
 export async function removeChainMember(q: Queryable, userId: string, id: string) {
-  const { rowCount } = await q.query('delete from public.prayer_chain_members where id = $1 and owner_id = $2', [id, userId]);
+  const { rowCount } = await q.query('update public.prayer_chain_members set removed_at = now() where id = $1 and owner_id = $2 and removed_at is null', [id, userId]);
   if (!rowCount) throw notFound('Person');
 }
 
@@ -403,7 +417,7 @@ export async function sendToChain(q: Queryable, userId: string, postId: string) 
   await requireChain(q);
   await ownOpenRequest(q, userId, postId);
   const { rows: people } = await q.query<{ n: number }>(
-    `select count(*)::int as n from public.prayer_chain_members where owner_id = $1 and status = 'confirmed'`,
+    `select count(*)::int as n from public.prayer_chain_members where owner_id = $1 and status = 'confirmed' and removed_at is null`,
     [userId],
   );
   if (people[0]!.n === 0) throw badRequest('No one on your prayer chain has said yes yet');
@@ -425,7 +439,7 @@ export function chainConfirmTask(q: Queryable, ctx: MailContext): Task {
     if (!ctx.siteUrl) return;
     const { memberId } = payload as { memberId: string };
     const { rows } = await q.query<{ email: string | null; phone: string | null; token: string; status: string }>(
-      'select email, phone, token, status::text from public.prayer_chain_members where id = $1',
+      'select email, phone, token, status::text from public.prayer_chain_members where id = $1 and removed_at is null',
       [memberId],
     );
     const m = rows[0];
@@ -472,7 +486,7 @@ export function chainSendTask(q: Queryable, ctx: MailContext): Task {
     const name = firstName((await getProfile(q, post.user_id))?.display_name) ?? 'A friend';
     const prayUrl = `${ctx.siteUrl}${guestPath(link[0].token, secular)}`;
     const { rows } = await q.query<{ id: string; email: string | null; phone: string | null; token: string }>(
-      `select id, email, phone, token from public.prayer_chain_members where owner_id = $1 and status = 'confirmed'`,
+      `select id, email, phone, token from public.prayer_chain_members where owner_id = $1 and status = 'confirmed' and removed_at is null`,
       [post.user_id],
     );
     const texts = !!ctx.sms && (await settings(q)).prayer_chain_sms_enabled;
@@ -658,13 +672,17 @@ export async function now(q: Queryable, userId: string) {
 
 // Housekeeping -----------------------------------------------------------------------
 
-/** Daily: erase guest emails past their time, old presence rows and chain invites nobody answered in 30 days. */
+/** Daily: erase guest emails past their time, old presence rows, chain invites nobody answered in 30 days,
+ *  and people removed from a chain 30 days ago (except those who said no, who are never asked again). */
 export function purgeTask(q: Queryable): Task {
   return async () => {
     const s = await settings(q);
     await q.query('update public.guest_prayers set email = null where email is not null and created_at < now() - make_interval(days => $1)', [s.guest_email_days]);
     await q.query("delete from public.prayer_minute_presence where seen_at < now() - interval '1 day'");
-    await q.query("delete from public.prayer_chain_members where status = 'pending' and created_at < now() - interval '30 days'");
+    await q.query(
+      `delete from public.prayer_chain_members
+        where (status = 'pending' and created_at < now() - interval '30 days') or (status <> 'left' and removed_at < now() - interval '30 days')`,
+    );
   };
 }
 
