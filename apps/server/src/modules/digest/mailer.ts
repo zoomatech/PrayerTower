@@ -29,3 +29,24 @@ export function createMailer(config: Pick<Config, 'SMTP_URL' | 'MAIL_FROM'> & Pa
     await transport.sendMail({ from: secular ? openCircleFrom : from, ...mail });
   };
 }
+
+/**
+ * Send one email to each recipient of a small list (sponsors, admins). One refused address
+ * doesn't stop the rest, and a job retry never repeats the ones sent: only when every send
+ * failed (the mail server is down) does this throw, so the job tries again later.
+ */
+export async function sendEach<T>(recipients: T[], send: (r: T) => Promise<void>): Promise<number> {
+  let sent = 0;
+  let firstError: unknown = null;
+  for (const r of recipients) {
+    try {
+      await send(r);
+      sent++;
+    } catch (err) {
+      firstError ??= err;
+    }
+  }
+  if (recipients.length && !sent) throw firstError;
+  if (firstError) console.error(`email: ${recipients.length - sent} of ${recipients.length} not sent`, firstError);
+  return sent;
+}

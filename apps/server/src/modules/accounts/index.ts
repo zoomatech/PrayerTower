@@ -294,11 +294,12 @@ export async function search(q: Queryable, term: string, limit = 20) {
        from public.profiles p
        left join auth.users u on u.id = p.id
        left join public.user_roles r on r.user_id = p.id
-      where p.display_name ilike '%' || $1 || '%' or u.email ilike '%' || $1 || '%'
+      where p.display_name ilike $1 or u.email ilike $1
       group by p.id, u.email
       order by p.display_name
       limit $2`,
-    [term, limit],
+    // "%" and "_" in the search are letters, not wildcards ("j_smith" finds only j_smith).
+    [`%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`, limit],
   );
   return rows;
 }
@@ -470,6 +471,8 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'delete from public.hidden_posts where user_id = $1',
     'delete from public.notifications where user_id = $1',
     'delete from public.push_tokens where user_id = $1',
+    // Offline replay keys keep a copy of the first answer (a post's words).
+    'delete from public.request_keys where user_id = $1',
     'delete from public.feedback where user_id = $1',
     'delete from public.activity_flags where user_id = $1',
     'delete from public.moderation_appeals where user_id = $1',

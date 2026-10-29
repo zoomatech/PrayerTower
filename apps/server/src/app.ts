@@ -7,6 +7,7 @@ import { makeAuthHook, type TokenVerifier } from './auth.js';
 import type { Db } from './db.js';
 import { AppError } from './errors.js';
 import { adminRoutes } from './modules/admin/routes.js';
+import { idempotencyHooks } from './modules/idempotency/index.js';
 import { auditHook } from './modules/audit/index.js';
 import { accountRoutes } from './modules/accounts/routes.js';
 import { careRoutes } from './modules/care/routes.js';
@@ -320,6 +321,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   app.register(async (authed) => {
     markScope(authed, catalog, 'member');
     authed.addHook('preHandler', makeAuthHook(verifyToken, db));
+    // Offline replays carry an Idempotency-Key, so a post sent twice is made once.
+    idempotencyHooks(authed, db);
     // Every successful staff change goes to the audit log (Admin → Audit log).
     authed.addHook('onSend', auditHook(db));
     // Counted per member after sign-in, so people sharing a network don't share a limit.

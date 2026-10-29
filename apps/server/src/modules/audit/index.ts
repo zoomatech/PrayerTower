@@ -64,7 +64,8 @@ export function auditHook(db: Queryable) {
   return async (req: FastifyRequest, reply: FastifyReply, payload: unknown) => {
     const actor = req.auth?.userId;
     const action = auditedAction(req.method, req.routeOptions?.url);
-    if (!actor || !action || reply.statusCode >= 400) return payload;
+    // A replayed answer (an offline retry, see modules/idempotency) changed nothing new.
+    if (!actor || !action || reply.statusCode >= 400 || reply.getHeader('idempotent-replay')) return payload;
     try {
       const params = (req.params ?? {}) as Record<string, string>;
       await db.query(
