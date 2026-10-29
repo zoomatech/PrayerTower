@@ -23,7 +23,8 @@ async function inTx(fn: (c: PoolClient) => Promise<void>) {
   }
 }
 
-const SKINS = ['beanstalk', 'golden-wood', 'moonlit-gate', 'wall'];
+const SKINS = ['beanstalk', 'golden-wood', 'moonlit-gate', 'wall', 'prayer-tower'];
+const OPEN_CIRCLE_SKINS = ['beanstalk', 'climbing-tower', 'golden-wood', 'moonlit-gate', 'wall'];
 
 describe('Feed skins', () => {
   it('are hidden and refused while off, then offered and chosen once on', async () => {
@@ -59,12 +60,12 @@ describe('Feed skins', () => {
     });
   });
 
-  it('are offered in Open Circle too', async () => {
+  it('are offered in Open Circle too, the tower without a religious name', async () => {
     const { rows } = await db.query<{ slug: string }>(
       `select t.slug from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
         join public.communities c on c.id = d.community_id where c.slug = 'open-circle' and t.gated`,
     );
-    expect(rows.map((r) => r.slug).sort()).toEqual([...SKINS].sort());
+    expect(rows.map((r) => r.slug).sort()).toEqual(OPEN_CIRCLE_SKINS);
   });
 });
 

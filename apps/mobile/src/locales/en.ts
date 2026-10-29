@@ -1454,6 +1454,17 @@ const en = {
   },
   tree: {
     more: { one: '1 more leaf on this branch', other: '%{count} more leaves on this branch' },
+    moreTablets: { one: '1 more stone tablet here', other: '%{count} more stone tablets here' },
+  },
+  tower: {
+    base: 'The foot of the tower. Climb to the first request.',
+    floor: 'Floor %{n} of %{total}',
+    top: 'You reached the top of the tower.',
+    climbUp: 'Climb up',
+    climbDown: 'Climb down',
+    directionLabel: 'Which swipe climbs',
+    pullDown: 'Swipe down to climb',
+    pushUp: 'Swipe up to climb',
   },
   wall: {
     swipe: 'Swipe up for the next post',

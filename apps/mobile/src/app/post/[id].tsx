@@ -18,6 +18,7 @@ import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
 import { colors, space, type } from '@/lib/theme';
+import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
 
 export default function PostScreen() {
@@ -33,7 +34,7 @@ export default function PostScreen() {
     if (!features.commentTree) return;
     api
       .feedThemes()
-      .then((r) => setTreeTokens(vineTokens(r.theme?.layout === 'vine' ? r.theme : null)))
+      .then((r) => setTreeTokens(r.theme?.layout === 'tower' ? tabletTokens(r.theme) : vineTokens(r.theme?.layout === 'vine' ? r.theme : null)))
       .catch(() => undefined);
   }, [features.commentTree]);
   const [card, setCard] = useState<Card | null>(null);

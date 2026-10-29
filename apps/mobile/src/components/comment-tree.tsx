@@ -5,7 +5,9 @@
 // quiet tree. Replies spread off a leaf as a side branch, but only to the
 // third level (comment_tree_max_depth): after that, parallel leaves only, so a
 // back-and-forth chain can't grow. For prayer and encouragement, not debate.
-// Colors come from the member's vine skin. Reduced motion turns the growing off.
+// Colors come from the member's vine skin. On the Prayer Tower the leaves are
+// stone tablets, and replies are smaller sub-tablets (leafShape 'tablet').
+// Reduced motion turns the growing off.
 import type { Comment } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -80,6 +82,7 @@ function Leaf({ comment, depth, props, tree }: { comment: Comment; depth: number
   }, [grow, reduced]);
   const { tokens } = props;
   const pointed = tokens.leafShape === 'pointed';
+  const tablet = tokens.leafShape === 'tablet';
   const highlighted = comment.id === props.highlightId;
   return (
     <Animated.View
@@ -99,7 +102,7 @@ function Leaf({ comment, depth, props, tree }: { comment: Comment; depth: number
       <View style={styles.leafRow}>
         {/* The twig from the branch to this leaf, and the leaf itself. */}
         <View style={[styles.twig, { backgroundColor: depth === 0 ? tokens.stem : tokens.branch }]} />
-        <View style={[styles.leafShape, pointed ? styles.pointed : styles.round, { backgroundColor: tokens.leaf }]} />
+        <View style={[styles.leafShape, tablet ? styles.tabletMark : pointed ? styles.pointed : styles.round, { backgroundColor: tokens.leaf }]} />
         <View
           style={[
             styles.body,
@@ -107,6 +110,7 @@ function Leaf({ comment, depth, props, tree }: { comment: Comment; depth: number
               backgroundColor: highlighted ? colors.primarySoft : tokens.leafSoft,
               borderColor: tokens.leaf,
             },
+            tablet && [styles.tablet, { borderColor: tokens.branch }, depth > 0 && styles.subTablet],
           ]}
         >
           {props.renderBody(comment, depth < props.maxDepth)}
@@ -119,6 +123,7 @@ function Leaf({ comment, depth, props, tree }: { comment: Comment; depth: number
 
 function Branch({ parentId, depth, props, tree }: { parentId: string | null; depth: number; props: CommentTreeProps; tree: Map<string | null, Comment[]> }) {
   const { t } = useLocale();
+  const moreKey = props.tokens.leafShape === 'tablet' ? 'tree.moreTablets' : 'tree.more';
   const leaves = tree.get(parentId) ?? [];
   const opened = useMemo(() => ancestorsOf(props.comments, props.highlightId), [props.comments, props.highlightId]);
   const [open, setOpen] = useState(() => opened.has(parentId));
@@ -142,7 +147,7 @@ function Branch({ parentId, depth, props, tree }: { parentId: string | null; dep
       {hidden > 0 ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('tree.more', { count: hidden })}
+          accessibilityLabel={t(moreKey, { count: hidden })}
           onPress={() => {
             // The hidden leaves shuffle forward out of the blur.
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -167,7 +172,7 @@ function Branch({ parentId, depth, props, tree }: { parentId: string | null; dep
               ]}
             />
           ))}
-          <Text style={styles.blurText}>{t('tree.more', { count: hidden })}</Text>
+          <Text style={styles.blurText}>{t(moreKey, { count: hidden })}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -208,6 +213,11 @@ const styles = StyleSheet.create({
     padding: space.sm,
     gap: 2,
   },
+  // A stone tablet: square corners at the foot, a rounded top, a heavier edge.
+  tabletMark: { width: 12, height: 16, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderRadius: 1 },
+  tablet: { borderWidth: 2, borderRadius: 4, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  // Replies are smaller sub-tablets.
+  subTablet: { borderWidth: 1.5, paddingVertical: space.xs, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
   blur: {
     height: 48,
     justifyContent: 'center',

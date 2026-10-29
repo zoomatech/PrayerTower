@@ -40,7 +40,8 @@ const DEFAULTS = {
   stemWidth: 4,
   /** Two thin parallel lines instead of one stem (Moonlit Gate's silver tracery). */
   stemDouble: false,
-  leafShape: 'round' as 'round' | 'pointed',
+  /** 'tablet' is for comment trees on the Prayer Tower: stone tablets instead of leaves. */
+  leafShape: 'round' as 'round' | 'pointed' | 'tablet',
 };
 type VineTokens = typeof DEFAULTS;
 
@@ -50,7 +51,7 @@ export function vineTokens(theme: FeedTheme | null): VineTokens {
   const out = { ...DEFAULTS } as Record<string, unknown>;
   for (const [k, v] of Object.entries(DEFAULTS)) if (typeof t[k] === typeof v) out[k] = t[k];
   out.stemWidth = Math.min(Math.max(Number(out.stemWidth) || DEFAULTS.stemWidth, 2), 14);
-  if (out.leafShape !== 'pointed') out.leafShape = 'round';
+  if (out.leafShape !== 'pointed' && out.leafShape !== 'tablet') out.leafShape = 'round';
   return out as VineTokens;
 }
 
