@@ -10,32 +10,74 @@ func presentationWindow() -> UIWindow? {
 }
 
 struct SignInView: View {
+    enum Mode { case signIn, signUp, forgot }
+
     @Environment(AppModel.self) private var model
+    @State private var mode = Mode.signIn
     @State private var email = ""
     @State private var password = ""
+    @State private var name = ""
+    @State private var invite = ""
+    @State private var code = ""
+    @State private var resetSent = false
+    /// The reset code was accepted: choose a new password before going in.
+    @State private var choosing = false
+    @State private var again = ""
     @State private var busy = false
+    @State private var notice: String?
     @State private var error: String?
-    /// Passkeys and backup codes follow Admin → Sign-in security (public sign-in settings).
-    @State private var config = SignupConfig()
+    /// Invite-only, passkeys and backup codes follow Admin (public sign-in settings).
+    @State private var config = SignupConfig(inviteOnly: true)
+
+    private var w: Words { model.words }
 
     var body: some View {
         Form {
             Section {
-                TextField("Email", text: $email)
-                    .textContentType(.username)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                SecureField("Password", text: $password)
-                    .textContentType(.password)
-            } header: {
-                Text("Prayer Tower").font(.largeTitle.bold()).textCase(nil)
+                Text("🕊").font(.system(size: 44)).accessibilityHidden(true)
+                Text(w.server("Prayer Tower")).font(.largeTitle.bold())
+                Text(w("signIn.tagline")).foregroundStyle(.secondary)
+            }
+            switch mode {
+            case .forgot: forgot
+            default: account
             }
             if let error { Text(error).foregroundStyle(.red) }
-            Button(busy ? "Signing in…" : "Sign in") {
-                Task { await signIn() }
+            if let notice { Text(notice) }
+        }
+        .task { config = (try? await model.store.api.signupConfig()) ?? SignupConfig(inviteOnly: true) }
+        .onChange(of: model.invite, initial: true) { _, code in
+            // An invite link opens straight to sign-up with the code filled in.
+            guard let code else { return }
+            invite = code
+            switchMode(.signUp)
+            model.invite = nil
+        }
+    }
+
+    @ViewBuilder private var account: some View {
+        Section {
+            if mode == .signUp {
+                TextField(w("signIn.name"), text: $name).textContentType(.name)
+                if config.inviteOnly {
+                    TextField(w("signIn.inviteCode"), text: $invite, prompt: Text(w("signIn.invitePlaceholder")))
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                }
             }
-            .disabled(busy || !email.contains("@") || password.count < 6)
-            if config.passkeys {
+            TextField(w("signIn.email"), text: $email)
+                .textContentType(.username)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+            SecureField(w("signIn.password"), text: $password)
+                .textContentType(mode == .signUp ? .newPassword : .password)
+        }
+        Section {
+            Button(w(mode == .signIn ? "signIn.signIn" : "signIn.createAccount")) { Task { await submit() } }
+                .disabled(!ready)
+            if mode == .signUp && config.inviteOnly { Text(w("signIn.inviteHint")).font(.footnote) }
+            if mode == .signUp { LegalLinksView(prefix: w("signIn.legalPrefix")) }
+            if mode == .signIn && config.passkeys {
                 Button {
                     Task { await passkey() }
                 } label: {
@@ -43,30 +85,98 @@ struct SignInView: View {
                 }
                 .disabled(busy)
             }
+            if mode == .signIn { Button(w("signIn.forgot")) { switchMode(.forgot) } }
+            Button(w(mode == .signIn ? "signIn.toSignUp" : "signIn.toSignIn")) { switchMode(mode == .signIn ? .signUp : .signIn) }
         }
-        .task { config = (try? await model.store.api.signupConfig()) ?? SignupConfig() }
     }
 
-    private func signIn() async {
-        busy = true
-        defer { busy = false }
-        do {
-            model.state = try await model.store.signIn(email: email, password: password)
-            error = nil
-        } catch {
-            self.error = error.localizedDescription
+    @ViewBuilder private var forgot: some View {
+        if choosing {
+            Section { Text(w("accountSecurity.chooseNew")).font(.headline) }
+            NewPasswordSection(password: $password, again: $again) {
+                Task {
+                    await run {
+                        try await model.store.setPassword(password)
+                        model.state = await model.store.current()
+                    }
+                }
+            }
+            Button(w("accountSecurity.cancelReset"), role: .destructive) {
+                Task {
+                    await model.store.signOut()
+                    choosing = false
+                    switchMode(.signIn)
+                }
+            }
+        } else {
+            Section(w("signIn.forgotTitle")) {
+                Text(w(resetSent ? "signIn.resetSent" : "signIn.forgotIntro"))
+                TextField(w("signIn.email"), text: $email)
+                    .keyboardType(.emailAddress)
+                    .textContentType(.username)
+                    .textInputAutocapitalization(.never)
+                    .disabled(resetSent)
+                if resetSent {
+                    TextField(w("signIn.resetCode"), text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+                    Button(w("signIn.resetContinue")) {
+                        Task { await run { try await model.store.verifyResetCode(email: email, code: code); choosing = true } }
+                    }
+                    .disabled(busy || code.trimmingCharacters(in: .whitespaces).count < 6)
+                    Button(w("signIn.resetAgain")) { resetSent = false }
+                } else {
+                    Button(w("signIn.resetSend")) { Task { await run { try await model.store.sendPasswordReset(email: email); resetSent = true } } }
+                        .disabled(busy || !email.contains("@"))
+                }
+            }
+            Button(w("signIn.toSignIn")) { switchMode(.signIn) }
+        }
+    }
+
+    private var ready: Bool {
+        guard !busy, email.contains("@") else { return false }
+        if mode == .signIn { return password.count >= 6 }
+        let named = !name.trimmingCharacters(in: .whitespaces).isEmpty
+        return password.count >= 8 && named && (!config.inviteOnly || !invite.trimmingCharacters(in: .whitespaces).isEmpty)
+    }
+
+    private func switchMode(_ next: Mode) {
+        mode = next
+        error = nil
+        notice = nil
+        resetSent = false
+        code = ""
+    }
+
+    private func submit() async {
+        await run {
+            if mode == .signIn {
+                model.state = try await model.store.signIn(email: email, password: password)
+            } else if let state = try await model.store.signUp(email: email, password: password, name: name, invite: invite, openCircle: model.wording == .neutral) {
+                model.state = state
+            } else {
+                notice = w("signIn.checkEmail")
+            }
         }
     }
 
     private func passkey() async {
         guard let window = presentationWindow() else { return }
+        await run { model.state = try await model.store.signInWithPasskey(from: window) }
+    }
+
+    private func run(_ step: () async throws -> Void) async {
         busy = true
         defer { busy = false }
         do {
-            model.state = try await model.store.signInWithPasskey(from: window)
+            try await step()
             error = nil
         } catch {
-            self.error = error.localizedDescription
+            // The two refusals from the invite check, in the app's words.
+            switch error.localizedDescription {
+            case "Prayer Tower is invite-only right now. Enter your invite code.": self.error = w("signIn.inviteNeeded")
+            case "That invite code is not valid. Check it, or ask for a new one.": self.error = w("signIn.inviteInvalid")
+            default: self.error = error.localizedDescription
+            }
         }
     }
 }

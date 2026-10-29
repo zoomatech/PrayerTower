@@ -24,7 +24,6 @@ struct MeView: View {
                     Section { header(profile) }
                     Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
                 }
-                Section { NavigationLink(w("tabs.notices")) { NoticesView() } }
                 PrayerLifeSection()
                 GratitudeSection()
                 KindWordsSection()
@@ -61,7 +60,22 @@ struct MeView: View {
                     Section { NavigationLink(w("starter.title")) { AdminKindnessView() } }
                 }
                 Section {
+                    if model.features["remembered"] { NavigationLink(w("practices.lookBack")) { RememberedView() } }
+                    if model.features["kindnessHighlights"] { NavigationLink(w("highlightsKind.title")) { HighlightsView() } }
+                    NavigationLink(w("helpStories.title")) { HelpStoriesView() }
+                }
+                Section {
+                    if model.features["safetyCenter"] { NavigationLink(w("safetyCenter.title")) { SafetyCenterView() } }
+                    NavigationLink(w("profile.rules")) { RulesView() }
+                    Button(w("profile.tour")) { model.showTour = true }
+                    NavigationLink(w("profile.feedback")) { FeedbackView() }
+                }
+                Section {
+                    NavigationLink(w("accountSecurity.title")) { AccountSecurityView() }
                     NavigationLink("Sign-in security") { SignInSecurityView() }
+                    if model.features["signalQueue"] && model.me?.community?.shows("radio") ?? true {
+                        NavigationLink(w("signalQueue.title")) { SignalQueueView() }
+                    }
                     Button(w(exporting ? "profile.exporting" : "profile.export")) { Task { await export() } }.disabled(exporting)
                     Button(w("profile.signOut"), role: .destructive) {
                         Task {

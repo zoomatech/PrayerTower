@@ -40,6 +40,12 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public let testimony: String?
     public let background: String?
     public let media: [CardMedia]?
+    // Radio (Radio.swift). Older servers leave these out.
+    /// A lament: it goes on the air only when its author said so (`lamentRadio`).
+    public var lament: Bool? = nil
+    public var lamentRadio: Bool? = nil
+    /// Only on the author's own request: it goes out again when the air is quiet.
+    public var keepOnAir: Bool? = nil
     /// Newest few comments, newest first, while comments as leaves is on (the drawn vine and tower).
     public let leafComments: [LeafComment]?
     /// An answered-prayer story: the request it tells the ending of.
@@ -91,11 +97,17 @@ public struct Profile: Codable, Sendable, Equatable {
     public let showPrayerStats: Bool?
     /// Missing on profiles fetched before the setting existed.
     public let notificationPrefs: NotificationPrefs?
+    /// nil until the member finishes the welcome questions.
+    public let onboardedAt: String?
+    public let supportWanted: [String]?
+    public let supportOffered: [String]?
+    public let prayForScope: [String]?
 
     public init(
         id: String, displayName: String, anonymousByDefault: Bool? = nil, whyHere: [String]? = nil, traumaContentOptOut: Bool? = nil,
         updatesInFirstComment: Bool? = nil, promptsEnabled: Bool? = nil, promptTone: String? = nil, digestEnabled: Bool? = nil, showPrayerStats: Bool? = nil,
-        notificationPrefs: NotificationPrefs? = nil
+        notificationPrefs: NotificationPrefs? = nil, onboardedAt: String? = nil, supportWanted: [String]? = nil, supportOffered: [String]? = nil,
+        prayForScope: [String]? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -108,6 +120,10 @@ public struct Profile: Codable, Sendable, Equatable {
         self.digestEnabled = digestEnabled
         self.showPrayerStats = showPrayerStats
         self.notificationPrefs = notificationPrefs
+        self.onboardedAt = onboardedAt
+        self.supportWanted = supportWanted
+        self.supportOffered = supportOffered
+        self.prayForScope = prayForScope
     }
 
     enum CodingKeys: String, CodingKey {
@@ -122,6 +138,10 @@ public struct Profile: Codable, Sendable, Equatable {
         case digestEnabled = "digest_enabled"
         case showPrayerStats = "show_prayer_stats"
         case notificationPrefs = "notification_prefs"
+        case onboardedAt = "onboarded_at"
+        case supportWanted = "support_wanted"
+        case supportOffered = "support_offered"
+        case prayForScope = "pray_for_scope"
     }
 }
 

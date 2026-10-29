@@ -8,7 +8,7 @@ struct PostDetailView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let postId: String
-    /// Words to start the comment box with (a removed comment, posted again with changes).
+    /// A removed comment's words, to change and share again.
     var draft: String?
     @State private var card: Card?
     @State private var comments: [ThreadedComment] = []
@@ -41,6 +41,7 @@ struct PostDetailView: View {
                 if let harm { Section { HarmBox(note: harm) } }
                 if card.isMine && prayable { Section { ownerTools(card) } }
                 if card.isMine, model.features["followupNudge"] { FollowupSection(postId: card.id) { Task { await load() } } }
+                if let radio = Binding($card) { RadioSection(card: radio) }
                 if card.isMine { Section { LiveFollowView(card: card) } }
                 if prayable, let prayers { Section { prayedList(prayers) } }
                 Section(w("post.comments")) { commentList }
@@ -63,7 +64,10 @@ struct PostDetailView: View {
         .navigationTitle(card.map { w("enums.postType.\($0.postType)") } ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
-        .task { await load() }
+        .task {
+            if let draft, text.isEmpty { text = draft }
+            await load()
+        }
         .confirmationDialog(w("post.report"), isPresented: Binding(get: { reporting != nil }, set: { if !$0 { reporting = nil } }), titleVisibility: .visible) {
             ForEach(0..<5, id: \.self) { i in
                 Button(w("actions.reasons.\(i)")) { Task { await report(ReportReason.all[i]) } }
@@ -230,7 +234,6 @@ struct PostDetailView: View {
         do {
             let c = try await api.post(postId)
             card = c
-            if let draft, text.isEmpty { text = draft }
             comments = CommentThread.ordered(try await api.comments(postId: postId))
             if !Compose.discussionTypes.contains(c.postType) { prayers = try? await api.prayers(postId: postId) }
             if model.features["replyChoice"] { replyChoice = try? await api.replyChoice(postId: postId) }

@@ -11,7 +11,9 @@ struct PrayerTowerApp: App {
             RootView()
                 .environment(model)
                 .task { await model.start() }
-                .onOpenURL { url in model.openPost = PrayNow.postId(from: url) }
+                .onOpenURL { url in
+                    if let code = Invite.code(from: url) { model.invite = code } else { model.openPost = PrayNow.postId(from: url) }
+                }
         }
     }
 }
@@ -37,6 +39,10 @@ final class AppModel {
     var tree: [MeaningEmoji] = []
     /// A request to open from a widget or Live Activity tap.
     var openPost: String?
+    /// The code from an invite link (prayertower://sign-in?invite=CODE), for sign-up.
+    var invite: String?
+    /// The tour shows once after the welcome questions.
+    var showTour = false
     /// Bumped when the member picks another feed style, so the feed reloads in it.
     var feedStyle: String?
 
@@ -66,6 +72,7 @@ final class AppModel {
         wording = Wording(self.me?.community)
         talkPrefs = Talk.anyOn(features) ? ((try? await store.api.conversationPrefs()) ?? ConversationPrefs()) : nil
         tree = features["meaningReactions"] && features["meaningIconRow"] ? ((try? await store.api.reactionMeanings()) ?? []) : []
+        if let p = self.me?.profile, p.onboardedAt != nil, !Tour.seen(p.id) { showTour = true }
     }
 }
 
@@ -91,7 +98,9 @@ struct RootView: View {
             switch model.state {
             case .signedOut: SignInView()
             case .needsCode: CodeView()
-            case .signedIn: MainTabs()
+            case .signedIn:
+                // New members answer the welcome questions first.
+                if let me = model.me, me.profile.onboardedAt == nil { OnboardingView() } else { MainTabs() }
             }
         }
     }

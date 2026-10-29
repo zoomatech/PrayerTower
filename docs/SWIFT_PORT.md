@@ -40,7 +40,6 @@ Each one reads the same admin switch as the Expo app and shows nothing while it 
 | "Share how it's going?" on the author's own post, once, with "Prefer not to say" | `followupNudge` | `FollowupAnswer`, `FollowupSection` |
 | Who can reply: the author picks everyone, people who prayed, or no comments; others see a gentle note instead of the box | `replyChoice` | `ReplyChoiceState` |
 | Answered marks: a gold "Answered" mark on the card, and links between a request and its answered-prayer story | `answeredStories` for the links | `Card.isAnswered`, `StoryLink` |
-| Notices on Me, with "Post again with changes" on a removal the moderator allowed: the author's own words open in the composer or the post's comment box | `pathBack` | `AppNotice`, `RemovedWords`, `NoticesView` |
 | Admin → Kindness (admins only): the kindness starter set in one tap, and the weekly kindness weather from totals | `kindness_weather_enabled` for the weather | `KindnessStarter`, `WeatherWeek`, `AdminKindnessView` |
 
 Commit to Pray and Gift Tokens keep their icons in the row, and for now say they are coming soon (phases 2 and 4). Open Circle wording comes from the same words as `neutral.ts`, and a test checks the kind cloud has no religious words there.

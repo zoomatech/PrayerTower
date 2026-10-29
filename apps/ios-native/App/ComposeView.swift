@@ -12,7 +12,7 @@ struct ComposeView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     var onPosted: (Card) -> Void = { _ in }
-    /// A post to start from (three good things shared as praise).
+    /// Words to start from: three good things shared as praise, or a removed post being changed and shared again.
     var start: NewPost?
 
     @State private var draft = NewPost()

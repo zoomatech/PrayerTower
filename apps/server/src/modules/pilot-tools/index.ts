@@ -8,7 +8,7 @@ import type { Task } from 'graphile-worker';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { notFound } from '../../errors.js';
-import type { Mailer } from '../digest/mailer.js';
+import { sendEach, type Mailer } from '../digest/mailer.js';
 import * as notifications from '../notifications/index.js';
 import { esc } from '../site/index.js';
 
@@ -227,7 +227,12 @@ export async function runWeekly(q: Queryable, mailer: Mailer | null, now = new D
      on conflict (week_start) do nothing returning week_start`,
     [sum.weekStart, sum.newItems, sum.openItems, sum.errors],
   );
-  if (!fresh.length) return { week: sum.weekStart, notified: 0, emailed: 0 };
+  const wantEmail = s.feedback_summary_email && !!mailer;
+  if (!fresh.length) {
+    // Already done this week, unless a failed run left the email unsent (the retry finishes it).
+    const { rows: done } = await q.query<{ emailed_at: Date | null }>('select emailed_at from public.feedback_summaries where week_start = $1', [sum.weekStart]);
+    if (!wantEmail || done[0]?.emailed_at) return { week: sum.weekStart, notified: 0, emailed: 0 };
+  }
   const { rows: admins } = await q.query<{ id: string; email: string | null }>(
     `select distinct r.user_id as id, u.email from public.user_roles r join auth.users u on u.id = r.user_id where r.role = 'admin'`,
   );
@@ -241,11 +246,11 @@ export async function runWeekly(q: Queryable, mailer: Mailer | null, now = new D
     });
   }
   let emailed = 0;
-  if (s.feedback_summary_email && mailer) {
-    for (const a of admins.filter((x) => x.email)) {
-      await mailer({ to: a.email!, subject: `Pilot feedback, week of ${sum.weekStart}`, text: toText(sum), html: toHtml(sum) });
-      emailed++;
-    }
+  if (wantEmail) {
+    emailed = await sendEach(
+      admins.filter((x) => x.email),
+      (a) => mailer!({ to: a.email!, subject: `Pilot feedback, week of ${sum.weekStart}`, text: toText(sum), html: toHtml(sum) }),
+    );
     await q.query('update public.feedback_summaries set emailed_at = now() where week_start = $1', [sum.weekStart]);
   }
   return { week: sum.weekStart, notified: admins.length, emailed };
