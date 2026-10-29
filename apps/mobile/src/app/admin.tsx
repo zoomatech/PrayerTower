@@ -1333,7 +1333,7 @@ function LiveSection() {
       api.admin.liveSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
     }, []),
   );
-  const save = (patch: { enabled?: boolean } = {}) =>
+  const save = (patch: { enabled?: boolean; circlesEnabled?: boolean } = {}) =>
     api.admin
       .updateLiveSettings({ jitsiUrl: draft.url.trim(), maxMinutes: toInt(draft.minutes) ?? undefined, ...patch })
       .then((r) => {
@@ -1346,6 +1346,7 @@ function LiveSection() {
     <View style={styles.section}>
       <Text style={type.heading}>{t('admin.liveSection')}</Text>
       <Toggle label={t('admin.toggle.live')} hint={t('admin.toggle.liveHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Toggle label={t('admin.toggle.videoCircles')} hint={t('admin.toggle.videoCirclesHint')} value={s.circles_enabled} onChange={(v) => save({ circlesEnabled: v })} />
       <Field label={t('admin.field.jitsiUrl')} value={draft.url} onChangeText={(url) => setDraft((d) => ({ ...d, url }))} autoCapitalize="none" keyboardType="url" />
       <Field label={t('admin.field.liveMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
       <Button label={t('admin.btn.saveLive')} onPress={() => save()} />

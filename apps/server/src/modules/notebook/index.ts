@@ -33,6 +33,7 @@ import * as schedules from '../schedules/index.js';
 import * as ceaseless from '../radio/ceaseless.js';
 import * as safetyCenter from '../safety-center/index.js';
 import * as skins from '../skins/index.js';
+import * as videoCircles from '../video-circles/index.js';
 
 export interface NotebookSettings {
   worldwide_count_enabled: boolean;
@@ -271,6 +272,8 @@ export async function features(q: Queryable) {
     signalQueue: await signalQueue.enabled(q),
     /** Kind norms: the kindness promise, the first-replies reminder, resting threads, "This helped" (modules/kind-norms, Admin → Kind norms). */
     ...(await kindNorms.features(q)),
+    /** Private video circles about a Mend (modules/video-circles, Admin → Live video). */
+    videoCircles: await videoCircles.enabled(q),
   };
 }
 

@@ -22,10 +22,12 @@ export interface LiveSettings {
   enabled: boolean;
   jitsi_url: string | null;
   max_minutes: number;
+  /** Private video circles for a dispute (modules/video-circles). They use the same video server. */
+  circles_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<LiveSettings> {
-  const { rows } = await q.query<LiveSettings>('select enabled, jitsi_url, max_minutes from public.live_settings');
+  const { rows } = await q.query<LiveSettings>('select enabled, jitsi_url, max_minutes, circles_enabled from public.live_settings');
   return rows[0]!;
 }
 
@@ -34,14 +36,15 @@ export const SettingsPatch = z.object({
   /** Empty string clears it. */
   jitsiUrl: z.union([z.literal(''), z.url().regex(/^https:\/\//, 'Use an https:// address')]).optional(),
   maxMinutes: z.number().int().min(15).max(720).optional(),
+  circlesEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
   const url = p.jitsiUrl === undefined ? undefined : p.jitsiUrl.replace(/\/+$/, '') || null;
   await q.query(
     `update public.live_settings set enabled = coalesce($1, enabled), max_minutes = coalesce($2, max_minutes),
-       jitsi_url = case when $3::boolean then $4 else jitsi_url end`,
-    [p.enabled ?? null, p.maxMinutes ?? null, url !== undefined, url ?? null],
+       jitsi_url = case when $3::boolean then $4 else jitsi_url end, circles_enabled = coalesce($5, circles_enabled)`,
+    [p.enabled ?? null, p.maxMinutes ?? null, url !== undefined, url ?? null, p.circlesEnabled ?? null],
   );
   return settings(q);
 }
@@ -75,13 +78,25 @@ export async function liveNow(q: Queryable, userId: string, opts: LiveOptions = 
     [userId, s.max_minutes],
   );
   const practiceOn = (await practice.settings(q)).live;
-  const jaas = opts.jaas ?? null;
-  const name = jaas && rows.some((r) => isJaasRoom(jaas, r.roomUrl)) ? await displayName(q, userId) : '';
-  for (const r of rows) {
-    if (practice.isPracticeRoom(r.roomUrl)) r.roomUrl = practice.practiceRoomUrl(r.roomUrl, opts.base ?? '');
-    else if (jaas && isJaasRoom(jaas, r.roomUrl)) r.roomUrl = await jaasJoinUrl(jaas, r.roomUrl, { id: userId, name, moderator: r.isMine });
-  }
-  return { enabled: true, canHost: await canHost(q, userId), canCreateRoom: !!s.jitsi_url || !!jaas || practiceOn, rooms: rows };
+  for (const r of rows) r.roomUrl = await joinUrl(q, r.roomUrl, userId, r.isMine, opts);
+  return { enabled: true, canHost: await canHost(q, userId), canCreateRoom: !!s.jitsi_url || !!opts.jaas || practiceOn, rooms: rows };
+}
+
+/** The address this member opens: practice rooms are served here, and JaaS rooms need a signed join link (the host joins as moderator). */
+export async function joinUrl(q: Queryable, roomUrl: string, userId: string, host: boolean, opts: LiveOptions = {}) {
+  if (practice.isPracticeRoom(roomUrl)) return practice.practiceRoomUrl(roomUrl, opts.base ?? '');
+  if (opts.jaas && isJaasRoom(opts.jaas, roomUrl)) return jaasJoinUrl(opts.jaas, roomUrl, { id: userId, name: await displayName(q, userId), moderator: host });
+  return roomUrl;
+}
+
+/** A new room with a long random name, so nobody can guess it: own Jitsi server first, then JaaS, then a practice room. Null when none is set up. */
+export async function newRoomUrl(q: Queryable, opts: LiveOptions = {}) {
+  const s = await settings(q);
+  const name = `PrayerTower-${randomBytes(12).toString('base64url')}`;
+  if (s.jitsi_url) return `${s.jitsi_url}/${name}`;
+  if (opts.jaas) return jaasRoomUrl(opts.jaas, name);
+  if ((await practice.settings(q)).live) return practice.practiceRoom(name);
+  return null;
 }
 
 async function displayName(q: Queryable, userId: string) {
@@ -106,12 +121,9 @@ export async function start(q: Queryable, userId: string, input: z.infer<typeof 
     if (!allowedVideoUrl(input.link, hosts)) throw badRequest(`Live links must be on ${hosts.slice(0, 4).join(', ')} or another allowed meeting site`);
     roomUrl = input.link;
   } else {
-    // A long random name, so nobody can guess a room. Own Jitsi server first, then JaaS, then a practice room.
-    const name = `PrayerTower-${randomBytes(12).toString('base64url')}`;
-    if (s.jitsi_url) roomUrl = `${s.jitsi_url}/${name}`;
-    else if (opts.jaas) roomUrl = jaasRoomUrl(opts.jaas, name);
-    else if ((await practice.settings(q)).live) roomUrl = practice.practiceRoom(name);
-    else throw badRequest('No video server is set up. Paste a meeting link instead.');
+    const url = await newRoomUrl(q, opts);
+    if (!url) throw badRequest('No video server is set up. Paste a meeting link instead.');
+    roomUrl = url;
   }
   const { rows } = await q.query<{ id: string }>(
     `insert into public.live_rooms (host_id, community_id, title, room_url) values ($1, public.member_community_id($1), $2, $3) returning id`,

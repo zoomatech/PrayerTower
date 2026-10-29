@@ -148,6 +148,8 @@ export const NOT_EXPORTED = [
   'crosspost_oauth_states',
   // The error log names only the last member an error happened to (docs/PILOT_TOOLS.md).
   'error_reports',
+  // A video circle about a Mend: its only member link is the hosting moderator. The Mend itself is exported.
+  'video_circles',
   'evidence_holds',
   'harm_events',
   'invite_codes',
