@@ -819,6 +819,65 @@ export interface RadioConsole {
   /** Prayer without ceasing: kept requests re-sent when the air is quiet. Null while off. */
   ceaseless: { enabled: boolean; gapMinutes: number; inRotation: number; sentLastDay: number } | null;
   relays: { node: string; reportedAt: string; callSign: string; relayedLastHour: number; secondsLastHour: number; budgetSeconds: number; skipped: Record<string, number> }[];
+  /** The band plan's pick now and the next 24 hours; null while off (optional for older servers). */
+  band?: BandOutlook | null;
+  /** Urgent prayers; null while off. */
+  urgent?: UrgentRadio | null;
+}
+
+/** Admin → Radio → Band plan (server radio/band-plan.ts). */
+export interface RadioBand {
+  label: string;
+  freqHz: number;
+  mode: 'fm' | 'usb';
+  preset?: string;
+}
+export interface SpaceWeather {
+  sfi: number;
+  kp: number;
+  fluxAt: string;
+  fetchedAt: string;
+}
+export interface BandPick {
+  band: RadioBand;
+  reason: 'hf' | 'only' | 'vhf' | 'no-data';
+  mufMhz: number | null;
+  workingMhz: number | null;
+}
+export interface BandOutlook {
+  now: BandPick | null;
+  spaceWeather: SpaceWeather | null;
+  hours: { at: string; band: string | null; mufMhz: number | null; onAir: boolean }[];
+}
+export interface BandPlan {
+  enabled: boolean;
+  bands: RadioBand[];
+  spaceWeather: SpaceWeather | null;
+  outlook: BandOutlook | null;
+}
+
+/** Admin → Radio → Urgent prayers (server radio/urgent.ts). */
+export interface UrgentPrayer {
+  id: string;
+  postId: string;
+  text: string;
+  status: string;
+  repeats: number;
+  flaggedAt: string;
+  transmittedAt: string | null;
+  confirmedAt: string | null;
+  heardCount: number;
+  retries: number;
+}
+export interface UrgentRadio {
+  enabled: boolean;
+  repeats: number;
+  preset: string;
+  confirmMinutes: number;
+  maxRetries: number;
+  presetNow: string | null;
+  nextWindowAt: string | null;
+  prayers: UrgentPrayer[];
 }
 
 export type SkyTarget = 'zenith' | 'moon' | 'alpha_centauri' | 'custom';
@@ -2156,6 +2215,12 @@ export const api = {
     qslCards: () => get<{ enabled: boolean; cards: QslCard[] }>('/admin/qsl-cards'),
     setQslCards: (enabled: boolean) => request<{ enabled: boolean; cards: QslCard[] }>('PATCH', '/admin/qsl-cards', { enabled }),
     stationReport: () => get<StationReportOverview>('/admin/station-report'),
+    bandPlan: () => get<BandPlan>('/admin/band-plan'),
+    updateBandPlan: (patch: { enabled?: boolean; bands?: RadioBand[] }) => request<BandPlan>('PATCH', '/admin/band-plan', patch),
+    urgentRadio: () => get<UrgentRadio>('/admin/urgent-radio'),
+    updateUrgentRadio: (patch: Partial<Pick<UrgentRadio, 'enabled' | 'repeats' | 'preset' | 'confirmMinutes' | 'maxRetries'>>) => request<UrgentRadio>('PATCH', '/admin/urgent-radio', patch),
+    flagUrgent: (postId: string) => request<{ id: string; nextWindowAt: string | null }>('POST', '/admin/urgent-radio', { postId }),
+    unflagUrgent: (id: string) => request<UrgentRadio>('DELETE', `/admin/urgent-radio/${id}`),
     updateStationReport: (patch: { enabled?: boolean; email?: boolean }) => request<StationReportOverview>('PATCH', '/admin/station-report', patch),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => request<{ enabled: boolean; multiStation: boolean; signaturesRequired: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),

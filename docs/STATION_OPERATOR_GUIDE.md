@@ -38,6 +38,8 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Listener sign-up (a public page; approved listeners get a guided Pi or Mac setup) | Admin → Radio → Listener sign-up | [Listener sign-up](#listener-sign-up) |
 | Thank-you cards (QSL-style cards for confirmed reception) | Admin → Radio → Thank-you cards | [Thank-you cards](#thank-you-cards) |
 | Weekly station report (bursts, prayers delivered, listener coverage, problems) | Admin → Radio → Station report | [Weekly station report](#weekly-station-report) |
+| Band plan (on HF, the band for each burst picked from NOAA space weather) | Admin → Radio → Band plan, plus `BAND_PLAN=server` | [Band plan](#band-plan) |
+| Urgent prayers (sent first in the next window, repeated, robust preset, confirmed by a listener) | Admin → Radio → Urgent prayers | [Urgent prayers](#urgent-prayers) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
 | Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
@@ -697,6 +699,60 @@ each Monday, once per week. Counts and listener names only: no request text,
 no names of members. The station keeps every burst of the last eight weeks
 for this report.
 
+## Band plan
+
+Off by default. Admin → Radio → **Band plan on**, then list the bands the
+station may use, one per line: a name, the frequency in MHz, `fm` or `usb`, and
+a burst preset if that band wants its own, for example:
+
+```
+40 m, 7.103, usb
+20 m, 14.103, usb, hf-standard
+15 m, 21.103, usb
+```
+
+With more than one HF band (under 30 MHz), the server picks the band for each
+burst from free space-weather data: the 10.7 cm solar flux and the planetary K
+index from NOAA's Space Weather Prediction Center, read every three hours by
+the `radio_space_weather` job while the plan is on. The pick is a rough
+estimate, not a forecast service: the flux gives a sunspot number, the sunspot
+number gives the noon critical frequency near the station (its longitude comes
+from the coverage map's station dot), that falls at night, and the maximum
+usable frequency of a 3,000 km hop is about three times it. The station uses
+the highest band at or under 80% of that, and drops a band during a
+geomagnetic storm (Kp 5 and up). With one HF band, VHF/UHF bands only, or no
+space weather yet, it uses the first band.
+
+Admin → Radio and the operator console show the band now, the estimated MUF,
+the solar flux and K index, and the hours over the next day when the band
+changes, marked when they fall outside the transmission windows.
+
+On the station, set `BAND_PLAN=server` (it needs `RIG_CONTROL=rigctld`). Before
+each burst the station asks the server for the band (`GET /station/band`) and
+retunes the radio through rigctld only when it changed, in `USB` or `FM`
+(`BAND_PLAN_USB_MODE`, `BAND_PLAN_FM_MODE`, for radios that call it `PKTUSB`
+or similar). If the server can't be reached, it stays where it is. A band's
+preset is used unless the prayer is urgent.
+
+## Urgent prayers
+
+Off by default. Admin → Radio → **Urgent prayers on**. An admin or radio
+operator opens a prayer request and taps **Send as an urgent prayer**. Only a
+request that could go on the air anyway can be marked: visible, not sensitive,
+not answered, nothing harmful, nothing waiting for a moderator.
+
+An urgent prayer goes first in the queue, so it leaves in the next
+transmission window (Admin → Radio shows when that is). Its burst carries
+urgent prayers only, said 3 times (2, 3 or 5), on the robust preset:
+`hf-robust` when the band plan's band is HF, `fm-robust-fec` otherwise, unless
+an admin picks a preset. When a listener node decodes it, it is confirmed, and
+whoever marked it is told. One that no listener confirms within 15 minutes
+goes out again, up to twice, while a listener node is running. **Not urgent**
+takes the mark off one still waiting; it keeps its place in the ordinary queue.
+
+The operator console lists the last two days of urgent prayers: waiting, sent
+and waiting for a listener, or confirmed.
+
 ## Security
 
 What protects the station, and the few things an operator decides.
@@ -812,6 +868,9 @@ For the legal department: signals aimed at the sky (the dish and sky target) sho
 
 ## Sources
 
+- NOAA SWPC JSON products (`f107_cm_flux.json`, `planetary_k_index_1m.json`): [NOAA SWPC data service](https://services.swpc.noaa.gov/json/)
+- Sunspot number from the 10.7 cm flux: [Space Weather Services (BOM), "The 10.7 cm solar radio flux"](https://www.sws.bom.gov.au/Educational/2/2/5)
+- MUF about three times the critical frequency for a long hop: [Wikipedia, "Maximum usable frequency"](https://en.wikipedia.org/wiki/Maximum_usable_frequency); best working frequency about 80-85% of MUF: [Electronics Notes, "MUF, LUF and FOT"](https://www.electronics-notes.com/articles/antennas-propagation/ionospheric/maximum-lowest-critical-optimum-usable-working-frequency.php)
 - Deviation target and monitor-radio level method: [Masters Communications, "Setting audio levels"](https://masterscommunications.com/products/radio-adapter/faq/setting-audio-levels.html)
 - Data port 1200 vs 9600, APRS off, AGC off, receive level about -11 dBFS, low power and heat: [SEAPAC 2025, "VARA FM setup"](https://seapac.org/workshop-presentations_files/2025/SEAPAC%202025%20VARA%20FM%20SETUP%20(3).pdf)
 - Digirig PTT by RTS, flow control off, keeping system sounds off the interface: [Digirig, "Getting started with Digirig Mobile"](https://digirig.net/?p=5478)

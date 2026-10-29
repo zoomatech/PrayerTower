@@ -90,3 +90,16 @@ export function onAir(s: Schedule, now = new Date()): boolean {
     return (w.days.includes(day) && minute >= start) || (w.days.includes((day + 6) % 7) && minute < end);
   });
 }
+
+/**
+ * When the station may next transmit, looking ahead up to eight days in 5-minute steps:
+ * `now` while it already may, null when no window ever opens.
+ */
+export function nextOpening(s: Schedule, now = new Date()): Date | null {
+  for (let i = 0; i <= 8 * 24 * 12; i++) {
+    const at = new Date(Math.ceil(now.getTime() / 300_000) * 300_000 + i * 300_000);
+    if (i === 0 && onAir(s, now)) return now;
+    if (onAir(s, at)) return at;
+  }
+  return null;
+}
