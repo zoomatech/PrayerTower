@@ -379,6 +379,7 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <OperatorLogSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioConsoleSection /> : null}
             {radio.radio_transmitter === 'station' ? <SkyTargetSection /> : null}
+            <CeaselessSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -775,6 +776,31 @@ function RadioScheduleSection() {
           </View>
           <ErrorText error={error} />
         </>
+      ) : null}
+    </View>
+  );
+}
+
+/** Prayer without ceasing (radio/ceaseless.ts), off by default. */
+function CeaselessSection() {
+  const t = useT();
+  const [s, setS] = useState<{ enabled: boolean; gapMinutes: number } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioCeaseless().then(setS).catch(() => undefined);
+    }, []),
+  );
+  if (!s) return null;
+  const save = (patch: { enabled?: boolean; gapMinutes?: number }) => api.admin.setRadioCeaseless(patch).then(setS).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.ceaseless')} hint={t('admin.ceaselessHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      {s.enabled ? (
+        <View style={styles.row}>
+          {[15, 30, 60, 120].map((m) => (
+            <Chip key={m} label={t('admin.ceaselessGap', { minutes: m })} selected={s.gapMinutes === m} onPress={() => save({ gapMinutes: m })} />
+          ))}
+        </View>
       ) : null}
     </View>
   );

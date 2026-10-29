@@ -230,6 +230,8 @@ export interface Card {
   lament?: boolean;
   /** The author said this lament may go out by radio. */
   lamentRadio?: boolean;
+  /** Only on the author's own request: it goes out again when the air is quiet (radio/ceaseless.ts). */
+  keepOnAir?: boolean;
   /** A "prayer answered" story: the request it tells the ending of. */
   answers?: { id: string; preview: string } | null;
   /** A request's "prayer answered" story, once posted. */

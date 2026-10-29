@@ -18,6 +18,7 @@ import * as replyChoice from '../reply-choice/index.js';
 import * as checkBack from '../check-back/index.js';
 import * as coolDown from '../cool-down/index.js';
 import * as radioThanks from '../radio/thanksgiving.js';
+import * as ceaseless from '../radio/ceaseless.js';
 
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
@@ -84,6 +85,10 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
 
   app.put<{ Params: { id: string } }>('/posts/:id/lament', async (req) =>
     posts.setLament(db, requireUser(req), req.params.id, posts.LamentPatch.parse(req.body)),
+  );
+
+  app.put<{ Params: { id: string } }>('/posts/:id/keep-on-air', async (req) =>
+    ceaseless.setKeepOnAir(db, requireUser(req), req.params.id, z.object({ on: z.boolean() }).parse(req.body).on),
   );
 
   app.put<{ Params: { id: string } }>('/posts/:id/testimony', async (req) => {

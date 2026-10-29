@@ -141,6 +141,14 @@ function OperatorConsole() {
           </View>
         ) : null}
 
+        {data.ceaseless ? (
+          <View style={styles.card}>
+            <Text style={type.heading}>{t('operatorConsole.ceaseless')}</Text>
+            <Text style={type.body}>{t('operatorConsole.ceaselessCounts', { count: data.ceaseless.inRotation, minutes: data.ceaseless.gapMinutes })}</Text>
+            <Text style={type.small}>{t('operatorConsole.ceaselessSent', { count: data.ceaseless.sentLastDay })}</Text>
+          </View>
+        ) : null}
+
         <Text style={type.heading}>{t('operatorConsole.idTimer')}</Text>
         {data.stations.length === 0 ? <Empty text={t('operatorConsole.noStations')} /> : null}
         {data.stations.map((s) => {
