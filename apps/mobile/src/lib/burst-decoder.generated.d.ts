@@ -18,6 +18,7 @@ export interface ChannelReport {
   preset: string;
 }
 export const SAMPLE_RATE: number;
-export function decodeAudio(samples: Float32Array, rate: number): HeardFrame[];
+/** searchHz: allow an HF (SSB) receiver tuned up to this far off (slower). */
+export function decodeAudio(samples: Float32Array, rate: number, searchHz?: number): HeardFrame[];
 export function channelReport(frames: readonly HeardFrame[], now?: Date): ChannelReport | null;
 export function fingerprint(text: string): string;

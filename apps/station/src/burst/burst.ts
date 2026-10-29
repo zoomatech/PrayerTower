@@ -64,6 +64,7 @@ export interface HeardPrayers {
 }
 
 /** Everything decodable in a 48 kHz recording, frame by frame. */
-export function listen(audio: Float32Array): HeardPrayers[] {
-  return demodulate(audio).map((f) => ({ callSign: f.callSign, preset: f.preset, prayers: decodeBatch(f.batch), corrected: f.corrected, snrDb: f.snrDb }));
+/** searchHz: on HF (SSB), also try tuning errors up to this far either way (demodulate). */
+export function listen(audio: Float32Array, searchHz = 0): HeardPrayers[] {
+  return demodulate(audio, 0.4, searchHz).map((f) => ({ callSign: f.callSign, preset: f.preset, prayers: decodeBatch(f.batch), corrected: f.corrected, snrDb: f.snrDb }));
 }

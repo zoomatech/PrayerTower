@@ -91,6 +91,17 @@ for a given signal, but only with the compressor off and the level steady.
 Once a receiver can send back channel reports, `BURST_PRESET=auto` picks for
 you ([RADIO_BURST.md](RADIO_BURST.md), "Auto preset").
 
+## HF (shortwave) instead of FM
+
+The same station can send on HF single sideband with the `hf-` presets ([RADIO_BURST.md](RADIO_BURST.md), "HF presets").
+
+- **Radio mode.** Use upper sideband in the radio's DATA mode (USB-D, DATA-U, PKT-U). On many radios that mode turns the speech compressor off and takes audio from the data input. If yours doesn't, turn the compressor off yourself.
+- **Filter.** Use the widest SSB filter (2.7-3.0 kHz). The presets sit in 469-2578 Hz.
+- **Level.** Raise the transmit audio until ALC just starts to move, then back off to no ALC. Overdrive smears every carrier.
+- **Presets.** Start with `hf-robust`. Move to `hf-standard` once bursts decode every time, and to `hf-fast` only on good paths. For auto choice set `BURST_PRESET=auto` and `BURST_AUTO_PRESETS=hf-robust,hf-standard,hf-fast`, with `BURST_AUTO_MARGIN_DB=6`.
+- **Receiving.** Decode with `BURST_SEARCH_HZ=50 node /opt/prayer-tower-station/dist/src/burst/cli.js decode rx.wav`, or tick "Shortwave (SSB) radio" on `/listen`. That allows for a receiver tuned up to 50 Hz off.
+- **Try it with no radio.** `BURST_MODE=simulate` with `BURST_SIM_HF=moderate` sends every burst through a simulated fading HF path.
+
 ## 5. First tests, in order
 
 Each step uses the settings in `/etc/prayer-tower-station.env`; restart with
@@ -133,4 +144,5 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - Data port 1200 vs 9600, APRS off, AGC off, receive level about -11 dBFS, low power and heat: [SEAPAC 2025, "VARA FM setup"](https://seapac.org/workshop-presentations_files/2025/SEAPAC%202025%20VARA%20FM%20SETUP%20(3).pdf)
 - Digirig PTT by RTS, flow control off, keeping system sounds off the interface: [Digirig, "Getting started with Digirig Mobile"](https://digirig.net/?p=5478)
 - `rigctl`/`rigctld` options and `T` (set_ptt): [hamlib rigctl manual](https://hamlib.sourceforge.net/snapshots/man1/rigctl.1.html)
+- HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)

@@ -9,9 +9,11 @@
 // BURST_PRESET=auto picks a preset before each burst from a receiver's channel report:
 //   BURST_AUTO_REPORT (file or URL; BURST_DIR/channel.json), BURST_AUTO_PRESETS (the FM presets
 //   without QAM), BURST_AUTO_MARGIN_DB (3), BURST_AUTO_MAX_AGE_MIN (30). Simulate mode can add
-//   noise with BURST_SIM_SNR_DB and writes its receiver's report to BURST_AUTO_REPORT.
+//   noise with BURST_SIM_SNR_DB and writes its receiver's report to BURST_AUTO_REPORT;
+//   BURST_SIM_HF=quiet|moderate|poor sends it through a simulated HF SSB path instead.
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { HF_CHANNELS } from './burst/hf-channel.js';
 import { fldigiClient } from './fldigi.js';
 import { DEFAULT_BLOCKLIST } from './text.js';
 import { EXIT_TRANSMIT_FAILED } from './health.js';
@@ -65,12 +67,15 @@ if (burstMode !== 'off') {
   const reportSource = env('BURST_AUTO_REPORT', path.join(dir, 'channel.json'));
   const simSnr = process.env.BURST_SIM_SNR_DB;
   if (simSnr !== undefined && !Number.isFinite(Number(simSnr))) throw new Error('BURST_SIM_SNR_DB must be a number');
+  const simHf = process.env.BURST_SIM_HF;
+  if (simHf !== undefined && !(simHf in HF_CHANNELS)) throw new Error(`BURST_SIM_HF must be one of ${Object.keys(HF_CHANNELS).join(', ')}`);
   const auto = env('BURST_PRESET', 'fm-standard') === 'auto';
   const tx =
     burstMode === 'simulate'
       ? simulateTransmitter(dir, console.log, {
           snrDb: simSnr === undefined ? undefined : Number(simSnr),
           reportFile: /^https?:/.test(reportSource) ? undefined : reportSource,
+          hf: simHf as keyof typeof HF_CHANNELS | undefined,
         })
       : burstMode === 'fldigi'
         ? fldigiTransmitter(fldigi, cfg.txTimeoutMs)
