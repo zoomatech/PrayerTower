@@ -183,6 +183,12 @@ describe('radio station', () => {
     for (const r of [...one, ...three]) await station(`/station/radio-prayers/${r.id}/result`, { ok: true, callSign: 'N0CALL' });
   });
 
+  it('allows Amplify up to 1,000 copies for burst-mode stations, and no more', async () => {
+    expect((await as(admin).patch('/admin/radio-settings', { amplifyRepeats: 1000 })).json().settings.radio_amplify_repeats).toBe(1000);
+    expect((await as(admin).patch('/admin/radio-settings', { amplifyRepeats: 1001 })).statusCode).toBe(400);
+    await as(admin).patch('/admin/radio-settings', { amplifyRepeats: stationDefaults.radio_amplify_repeats });
+  });
+
   it('logs each burst for Admin → Radio, newest first, from the station only', async () => {
     const burst = { callSign: 'N0CALL', mode: 'simulate', preset: 'fm-fast', prayers: 20, frames: 1, bytes: 117, seconds: 0.56, decoded: 20, ok: true };
     expect((await station('/station/bursts', burst)).statusCode).toBe(200);

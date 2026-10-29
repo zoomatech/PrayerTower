@@ -20,8 +20,12 @@ export interface BurstConfig {
 
 export type BurstOutcome = { kind: 'idle' } | { kind: 'sent'; sent: number; rejected: number; frames: number; seconds: number } | { kind: 'rejected'; rejected: number };
 
-/** An amplified prayer appears `repeats` times; the copies cost almost nothing after compression. */
-const MAX_REPEATS = 50;
+/**
+ * An amplified prayer appears `repeats` times. The copies cost almost nothing
+ * after compression (1,000 copies add about 35 bytes), so burst mode allows up
+ * to 1,000, where the PSK31 loop stops at 50.
+ */
+const MAX_REPEATS = 1000;
 
 export async function runBurstOnce(
   api: StationApi,
