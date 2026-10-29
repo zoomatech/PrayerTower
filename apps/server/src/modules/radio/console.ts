@@ -6,6 +6,7 @@
 // members with the radio_operator role may use it.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
+import * as bandPlan from './band-plan.js';
 import * as beacon from './beacon.js';
 import * as ceaseless from './ceaseless.js';
 import * as health from './health.js';
@@ -14,6 +15,7 @@ import * as oplog from './oplog.js';
 import { queueOrder } from './queue-order.js';
 import * as schedule from './schedule.js';
 import * as sky from './sky.js';
+import * as urgent from './urgent.js';
 
 export interface ConsoleSettings {
   enabled: boolean;
@@ -117,6 +119,9 @@ export async function view(q: Queryable, now = new Date()) {
     sky: await sky.now(q, now),
     ceaseless: await ceaseless.summary(q),
     beacon: { enabled: b.enabled, minutes: b.minutes, recent: b.enabled ? await beacon.recent(q, now) : [] },
+    // The band plan's pick now and the next 24 hours (band-plan.ts), and urgent prayers (urgent.ts); null while each is off.
+    band: await bandPlan.outlook(q, now),
+    urgent: (await urgent.settings(q)).enabled ? await urgent.list(q, now) : null,
     log: log.map((r) => ({ at: r.time_utc, callSign: r.call_sign, station: r.station, preset: r.preset, status: r.status, heard: r.heard, error: r.error, text: r.contents.slice(0, 140) })),
   };
 }

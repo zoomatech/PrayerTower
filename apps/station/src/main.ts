@@ -18,6 +18,8 @@
 // Dish rotator (docs/STATION_OPERATOR_GUIDE.md, "Dish and sky target"), off unless ROTATOR=rotctld:
 //   ROTATOR_HOST (127.0.0.1), ROTATOR_PORT (4533), ROTATOR_STEP_DEG (2), ROTATOR_MIN_EL (0), ROTATOR_MAX_EL (90).
 // STATION_FREQ_HZ: the frequency for the operator log when RIG_FREQ_HZ is not set.
+// Band plan (docs/STATION_OPERATOR_GUIDE.md, "Band plan"), off unless BAND_PLAN=server: retune to the
+//   server's band before each burst (needs RIG_CONTROL=rigctld); BAND_PLAN_USB_MODE (USB), BAND_PLAN_FM_MODE (FM).
 // Station ID (docs/STATION_OPERATOR_GUIDE.md, "Station ID"), off unless STATION_ID=cw: the call sign
 //   in Morse code after a burst, the first time and then every STATION_ID_MINUTES (10);
 //   STATION_ID_WPM (20), STATION_ID_TONE_HZ (800).
@@ -32,6 +34,7 @@ import { autoChooser, DEFAULT_AUTO_PRESETS, parseCandidates } from './burst/auto
 import { presetByName } from './burst/presets.js';
 import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTransmitter } from './burst/transmit.js';
 import { runBurstOnce } from './burst/worker.js';
+import { bandFollower } from './band.js';
 import { RIG_MODES, rigctldClient, tuneRig, type Rig } from './rig.js';
 import { DishFollower, rotctldClient } from './rotator.js';
 import { StationId } from './station-id.js';
@@ -111,6 +114,13 @@ const stationId =
 // Under systemd, STATE_DIRECTORY is /var/lib/prayer-tower-station; the health check reads the heartbeat there.
 const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
 
+const bandMode = env('BAND_PLAN', 'off');
+if (!['off', 'server'].includes(bandMode)) throw new Error('BAND_PLAN must be off or server');
+if (bandMode === 'server' && !rig) throw new Error('BAND_PLAN=server retunes the radio, so it needs RIG_CONTROL=rigctld');
+const bandModes = { usb: env('BAND_PLAN_USB_MODE', 'USB').toUpperCase(), fm: env('BAND_PLAN_FM_MODE', 'FM').toUpperCase() };
+for (const m of Object.values(bandModes)) if (!(RIG_MODES as readonly string[]).includes(m)) throw new Error(`BAND_PLAN_*_MODE must be one of ${RIG_MODES.join(', ')}`);
+const bandPlan = bandMode === 'server' && rig ? bandFollower(api, rig, bandModes) : undefined;
+
 let burst: { tx: BurstTransmitter; cfg: Parameters<typeof runBurstOnce>[2] } | null = null;
 if (burstMode !== 'off') {
   const dir = env('BURST_DIR', path.join(stateDir ?? '.', 'bursts'));
@@ -164,6 +174,7 @@ if (burstMode !== 'off') {
       maxPrayers: int('BURST_MAX_PRAYERS', '50', 1, 500),
       maxFrameSeconds: int('BURST_MAX_FRAME_SECONDS', '20', 1, 120),
       codecV2: process.env.BURST_CODEC_V2 === 'on',
+      beforeBurst: bandPlan,
       blocklist: cfg.blocklist,
       frequencyHz: cfg.frequencyHz,
     },

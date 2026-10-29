@@ -6,7 +6,7 @@ import { foldAscii, passesFilter } from '../text.js';
 import { reportWithRetry, REPORT_RETRY_MS, TransmitError, type BurstLog, type ClaimedPrayer, type StationApi } from '../worker.js';
 import { planFrames } from './burst.js';
 import { fingerprint } from './sha256.js';
-import type { BurstPreset } from './presets.js';
+import { presetByName, type BurstPreset } from './presets.js';
 import type { BurstTransmitter, SentBurst } from './transmit.js';
 
 export interface BurstConfig {
@@ -23,6 +23,11 @@ export interface BurstConfig {
   frequencyHz?: number;
   /** BURST_CODEC_V2=on: also try codec 4 (codec.ts), once every receiver can read it. */
   codecV2?: boolean;
+  /**
+   * BAND_PLAN=server: before each burst, retune to the server's band (main.ts). Returns that
+   * band's preset and frequency, or null to keep the station's own.
+   */
+  beforeBurst?: () => Promise<{ preset?: BurstPreset; frequencyHz?: number } | null>;
 }
 
 export type BurstOutcome = { kind: 'idle' } | { kind: 'sent'; sent: number; rejected: number; frames: number; seconds: number } | { kind: 'rejected'; rejected: number };
@@ -56,7 +61,12 @@ export async function runBurstOnce(
   if (!ok.length) return { kind: 'rejected', rejected };
 
   const texts = ok.flatMap((p) => Array<string>(Math.max(1, Math.min(p.repeats ?? 1, MAX_REPEATS))).fill(foldAscii(p.text)));
-  const preset = cfg.choosePreset ? await cfg.choosePreset() : cfg.preset;
+  const band = cfg.beforeBurst ? await cfg.beforeBurst().catch((err: Error) => (log(`[burst] band plan: ${err.message}; staying where we are`), null)) : null;
+  const frequencyHz = band?.frequencyHz ?? cfg.frequencyHz;
+  // An urgent burst (server urgent.ts) uses the preset it came with; then the band's, then auto or the fixed one.
+  const urgentPreset = known(ok.find((p) => p.urgent && p.preset)?.preset, log);
+  const preset = urgentPreset ?? band?.preset ?? (cfg.choosePreset ? await cfg.choosePreset() : cfg.preset);
+  if (ok.some((p) => p.urgent)) log(`[burst] urgent: ${ok.length} prayer(s) on ${preset.name}`);
   const batches = planFrames(texts, preset, cfg.maxFrameSeconds, { codecV2: cfg.codecV2 });
   const logBurst = (b: Omit<BurstLog, 'callSign' | 'mode' | 'preset' | 'prayers'>) =>
     api
@@ -73,12 +83,23 @@ export async function runBurstOnce(
     throw new TransmitError(message);
   }
   for (const p of ok) {
-    const result = { ok: true, callSign: cfg.callSign, pieces: sent.frames, preset: preset.name, sentHash: sentHash(foldAscii(p.text)), frequencyHz: cfg.frequencyHz };
+    const result = { ok: true, callSign: cfg.callSign, pieces: sent.frames, preset: preset.name, sentHash: sentHash(foldAscii(p.text)), frequencyHz };
     await reportWithRetry(api, p.id, result, retryMs);
   }
   await logBurst({ ...sent, seconds: Math.round(sent.seconds * 100) / 100, ok: true });
   log(`[burst] ${ok.length} prayer(s) sent in ${sent.frames} frame(s), ${sent.seconds.toFixed(2)} s, ${preset.name}`);
   return { kind: 'sent', sent: ok.length, rejected, frames: sent.frames, seconds: sent.seconds };
+}
+
+/** A preset the server named, if this station knows it (an older station may not). */
+function known(name: string | undefined, log: (m: string) => void): BurstPreset | undefined {
+  if (!name) return undefined;
+  try {
+    return presetByName(name);
+  } catch {
+    log(`[burst] the server asked for preset "${name}", which this station doesn't have; using its own`);
+    return undefined;
+  }
 }
 
 /** What a listener sends back to say it heard a prayer (docs/RADIO_BURST.md, "Receipts"): never the words. */

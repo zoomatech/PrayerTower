@@ -119,6 +119,10 @@ public struct RadioConsole: Codable, Sendable, Equatable {
     public let sky: SkyNow?
     public let ceaseless: Ceaseless?
     public let relays: [Relay]
+    /// The band now and when it changes (RadioPlan.swift); nil while the band plan is off.
+    public var band: BandOutlook? = nil
+    /// Urgent prayers; nil while they are off.
+    public var urgent: UrgentRadio? = nil
 }
 
 /// Admin → Radio → Station health (server radio/health.ts overview). `health` is nil while it is off.
@@ -289,6 +293,9 @@ public struct ConsoleDemo: Sendable, Equatable {
             relays: [.init(node: "Hilltop", reportedAt: iso(-2), callSign: "N0CALL-2", relayedLastHour: 4, secondsLastHour: 12.5, budgetSeconds: 120,
                            skipped: ["duplicate": 3])]
         )
+        let plan = RadioPlanDemo(now: now)
+        console.band = plan.plan.outlook
+        console.urgent = plan.urgent
         health = StationHealth(enabled: true, health: .init(
             stations: [.init(callSign: "N0CALL", lastHeartbeat: iso(-1), silent: false, checks: [.init(name: "audio_device", ok: true, detail: "Sample sound card")],
                              bursts24h: 18, failed24h: 1, prayers24h: 42, lastBurstAt: iso(-4), lastError: nil)],
