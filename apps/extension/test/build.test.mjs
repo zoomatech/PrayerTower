@@ -28,4 +28,21 @@ describe('build', () => {
     expect(manifest.name).toBe('Prayer Tower Cross-posting');
     expect(() => build('other', root)).toThrow(/Unknown edition/);
   });
+
+  it('adds Safari\'s minimum version only to the Safari build', () => {
+    const root = copy();
+    const chrome = JSON.parse(readFileSync(join(build('prayertower', root), 'manifest.json'), 'utf8'));
+    expect(chrome.browser_specific_settings).toBeUndefined();
+    const safari = JSON.parse(readFileSync(join(build('opencircle', root, { safari: true }), 'manifest.json'), 'utf8'));
+    expect(safari.browser_specific_settings).toEqual({ safari: { strict_min_version: '16.4' } });
+    // Apple: in iOS the background must be nonpersistent; a Manifest V3 service worker is.
+    expect(safari.background).toEqual({ service_worker: 'src/background.js' });
+  });
+
+  it('has a settings page that follows dark mode and the device text size', () => {
+    const page = readFileSync(join(import.meta.dirname, '..', 'src', 'options.html'), 'utf8');
+    expect(page).toContain('color-scheme: light dark');
+    expect(page).toContain('prefers-color-scheme: dark');
+    expect(page).toContain('-apple-system-body');
+  });
 });

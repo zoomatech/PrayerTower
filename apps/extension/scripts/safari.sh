@@ -24,7 +24,7 @@ if ! xcrun --find safari-web-extension-packager >/dev/null 2>&1; then
   exit 1
 fi
 
-DIST="$(node "$HERE/scripts/build.mjs" "$EDITION")"
+DIST="$(node "$HERE/scripts/build.mjs" "$EDITION" --safari)"
 OUT="$ROOT/build/safari/$EDITION"
 xcrun safari-web-extension-packager "$DIST" \
   --project-location "$OUT" \
