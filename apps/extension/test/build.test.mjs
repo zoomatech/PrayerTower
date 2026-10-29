@@ -35,6 +35,8 @@ describe('build', () => {
     expect(chrome.browser_specific_settings).toBeUndefined();
     const safari = JSON.parse(readFileSync(join(build('opencircle', root, { safari: true }), 'manifest.json'), 'utf8'));
     expect(safari.browser_specific_settings).toEqual({ safari: { strict_min_version: '16.4' } });
+    expect(safari.options_ui.open_in_tab).toBeUndefined();
+    expect(chrome.options_ui.open_in_tab).toBe(true);
     // Apple: in iOS the background must be nonpersistent; a Manifest V3 service worker is.
     expect(safari.background).toEqual({ service_worker: 'src/background.js' });
   });
