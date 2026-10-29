@@ -5,6 +5,7 @@ import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from '
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
+import { CalmBanner } from '@/components/calm-thread';
 import { CheckBack } from '@/components/check-back';
 import { ThankNoteCard } from '@/components/thank-note';
 import { CommentKindness, useCommentKindness } from '@/components/comment-kindness';
@@ -529,6 +530,7 @@ export default function PostScreen() {
           <>
             <View style={styles.section}>
               <Text style={type.heading}>{t('post.comments')}</Text>
+              <CalmBanner postId={card.id} refresh={comments.length} />
               {comments.length === 0 ? <Empty text={t('post.noComments')} /> : null}
               {features.commentTree ? (
                 // Skins drawn in light (Moonlit Gate, Neon Cinderella) keep their night sky behind the comments.

@@ -104,6 +104,16 @@ export interface MeaningLeaf {
   mine: boolean;
 }
 
+/** A thread that heated up: a calm note for everyone, or slow mode a moderator chose. */
+export type CalmState = { kind: 'warm' } | { kind: 'slow'; until: string; minutes: number };
+export interface CalmThread {
+  postId: string;
+  startedAt: string;
+  heated: number;
+  people: number;
+  preview: string;
+}
+
 /** The asker's one thank-you note to everyone who prayed; `glad` (how many answered "Glad to") only for the asker. */
 export interface ThankNote {
   body: string;
@@ -194,6 +204,7 @@ export interface Features {
   checkBack: boolean;
   kindMilestones: boolean;
   thankNote: boolean;
+  calmThreads: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -292,6 +303,7 @@ export interface PracticeSettings {
   check_back_enabled: boolean;
   kind_milestones_enabled: boolean;
   thank_note_enabled: boolean;
+  calm_threads_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -1706,7 +1718,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -1899,6 +1911,9 @@ export const api = {
   myWitnessStories: () => get<{ stories: { id: string; body: string; status: 'awaiting_consent' | 'approved' | 'declined'; createdAt: string }[] }>('/me/witness-stories'),
   decideWitnessStory: (id: string, approve: boolean) => post<{ ok: true }>(`/me/witness-stories/${id}/decision`, { approve }),
   draftWitnessStory: (caseId: string, body: string) => post<{ id: string }>(`/witness/cases/${caseId}/story`, { body }),
+  calmThread: (postId: string) => get<{ enabled: boolean; calm: CalmState | null }>(`/posts/${postId}/calm`),
+  calmThreads: () => get<{ threads: CalmThread[] }>('/moderation/calm-threads'),
+  decideCalmThread: (postId: string, action: 'settle' | 'slow', hours = 6) => post<{ enabled: boolean; calm: CalmState | null }>(`/moderation/calm-threads/${postId}`, { action, hours }),
   thankNote: (postId: string) => get<{ enabled: boolean; note: ThankNote | null; canWrite: boolean }>(`/posts/${postId}/thank-note`),
   sendThankNote: (postId: string, body: string) => post<{ sent: number }>(`/posts/${postId}/thank-note`, { body }),
   gladThankNote: (postId: string) => post<{ glad: boolean }>(`/posts/${postId}/thank-note/glad`),

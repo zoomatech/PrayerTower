@@ -189,3 +189,27 @@ you for carrying this with me…"), and the kind cloud checks it as usual.
 
 Code: `modules/thank-note`, `components/thank-note.tsx`. The tables `thank_notes` and
 `thank_note_glad` are included in account deletion and export.
+
+## Calm threads (off)
+
+Admin → Growth practices → **Calm threads** (migration 20261029018900). This is
+de-escalation for a whole comment thread, in the Ted Lasso spirit. It is the
+thread-wide partner of cool-down, which works between two people.
+
+- **Warm.** A thread turns warm when three comments the kind cloud would flag, from two
+  or more people, arrive within two hours. Everyone on the post then sees "Let’s take a
+  breath together… Be curious, not judgmental" above the comments. The note fades on its
+  own after six quiet hours.
+- **A person decides.** The thread appears under Moderation → **Warm threads**, showing
+  only counts ("3 heated comments from 2 people") and the post's first words. A
+  moderator reads the thread and chooses **It’s fine** or **Slow it down (6 hours)**.
+- **Slow mode.** Only a moderator can turn it on. Each person may then comment once
+  every 10 minutes, and anyone who tries sooner is told how long to wait. The app never
+  limits anyone on its own, following Steve's rule that a person reviews anything before
+  it is blocked.
+- **Privacy.** Only who commented and when is kept (`heated_comments`), never the words.
+
+Evidence: Facebook Groups' conflict alerts and comment slow-down, Hacker News's delay on
+deep replies, and Cornell's "conversations gone awry" work
+(research/Kind_Interaction_UX_Research.md, sections 2–3). Code: `modules/calm-threads`,
+`components/calm-thread.tsx`.

@@ -116,3 +116,18 @@ shows a public number.
 Code: `modules/comment-kindness`, `components/comment-kindness.tsx`. The tables
 `comment_hearts`, `comment_thanks` and `quiet_count_prefs` are included in account
 deletion and export.
+
+## Everything shipped on 2026-10-29 (all off by default)
+
+| Feature | Where to switch it on | Doc |
+| --- | --- | --- |
+| Meanings ride on the action icons (one row, hover / press and hold) | Conversation helpers → Meanings in the icon row | this file |
+| Member-made emoji meanings | Conversation helpers | this file |
+| Kindness research page | Conversation helpers | this file |
+| Reply prompts by kind of post | Conversation helpers | this file |
+| The asker's heart, Thank for a comment, Quiet counts | Conversation helpers | this file |
+| Cool-down, lament posts, answered-prayer stories, kindness intro | Growth practices | GROWTH_PRACTICES.md |
+| Check back, quiet milestones, thank the pray-ers, calm threads | Growth practices | GROWTH_PRACTICES.md |
+
+Every one of them has Open Circle wording, and `open-circle-wording.test.ts` checks it.
+For accessibility, see `ACCESSIBILITY_KINDNESS_TOOLS.md`.

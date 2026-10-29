@@ -49,12 +49,13 @@ export interface PracticeSettings {
   check_back_enabled: boolean;
   kind_milestones_enabled: boolean;
   thank_note_enabled: boolean;
+  calm_threads_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
             welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled,
-            partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled, answered_stories_enabled, kindness_intro_enabled, check_back_enabled, kind_milestones_enabled, thank_note_enabled
+            partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled, answered_stories_enabled, kindness_intro_enabled, check_back_enabled, kind_milestones_enabled, thank_note_enabled, calm_threads_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -86,6 +87,7 @@ export const SettingsPatch = z.object({
   checkBackEnabled: z.boolean().optional(),
   kindMilestonesEnabled: z.boolean().optional(),
   thankNoteEnabled: z.boolean().optional(),
+  calmThreadsEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -104,7 +106,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        highlights_enabled = coalesce($18, highlights_enabled), cool_down_enabled = coalesce($19, cool_down_enabled),
        lament_enabled = coalesce($20, lament_enabled), answered_stories_enabled = coalesce($21, answered_stories_enabled),
        kindness_intro_enabled = coalesce($22, kindness_intro_enabled), check_back_enabled = coalesce($23, check_back_enabled),
-       kind_milestones_enabled = coalesce($24, kind_milestones_enabled), thank_note_enabled = coalesce($25, thank_note_enabled)`,
+       kind_milestones_enabled = coalesce($24, kind_milestones_enabled), thank_note_enabled = coalesce($25, thank_note_enabled),
+       calm_threads_enabled = coalesce($26, calm_threads_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -131,6 +134,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.checkBackEnabled ?? null,
       p.kindMilestonesEnabled ?? null,
       p.thankNoteEnabled ?? null,
+      p.calmThreadsEnabled ?? null,
     ],
   );
   return settings(q);
@@ -159,6 +163,7 @@ export async function features(q: Queryable) {
     checkBack: s.check_back_enabled,
     kindMilestones: s.kind_milestones_enabled,
     thankNote: s.thank_note_enabled,
+    calmThreads: s.calm_threads_enabled,
   };
 }
 

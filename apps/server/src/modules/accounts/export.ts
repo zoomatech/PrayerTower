@@ -21,6 +21,7 @@ const SECTIONS: Record<string, Section> = {
   quietCounts: { table: 'quiet_count_prefs', where: 'user_id = $1' },
   thankNotes: { table: 'thank_notes', where: 'user_id = $1' },
   thankNoteGlad: { table: 'thank_note_glad', where: 'user_id = $1' },
+  heatedComments: { table: 'heated_comments', where: 'user_id = $1' },
   gratitudeDay: { table: 'gratitude_prefs', where: 'user_id = $1' },
   gratitude: { table: 'gratitude_entries', where: 'user_id = $1' },
   liftUp: { table: 'lift_up_entries', where: 'user_id = $1' },

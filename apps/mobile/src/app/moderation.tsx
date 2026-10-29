@@ -14,6 +14,7 @@ import { api } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { MendQueue } from '@/components/gentle-repair';
+import { CalmThreadsQueue } from '@/components/calm-thread';
 import { colors, radius, space, type } from '@/lib/theme';
 
 const RULE_CHOICES = (Object.keys(MODERATION_RULES) as ModerationRule[]).filter((r) => r !== 'safe_messaging');
@@ -91,6 +92,7 @@ function Moderation() {
         <ErrorText error={error} />
         <HarmFloods onError={setError} />
         <MendQueue />
+        <CalmThreadsQueue />
         {flags.length ? <Text style={type.heading}>{t('moderation.flagsTitle')}</Text> : null}
         {flags.map((f) => (
           <View key={f.id} style={styles.item}>

@@ -1919,6 +1919,7 @@ function PracticeSettingsSection() {
       <Toggle label={t('checkBack.adminTitle')} hint={t('checkBack.adminHint')} value={s.check_back_enabled} onChange={(v) => save({ checkBackEnabled: v })} />
       <Toggle label={t('kindMilestones.adminTitle')} hint={t('kindMilestones.adminHint')} value={s.kind_milestones_enabled} onChange={(v) => save({ kindMilestonesEnabled: v })} />
       <Toggle label={t('thankNote.adminTitle')} hint={t('thankNote.adminHint')} value={s.thank_note_enabled} onChange={(v) => save({ thankNoteEnabled: v })} />
+      <Toggle label={t('calm.adminTitle')} hint={t('calm.adminHint')} value={s.calm_threads_enabled} onChange={(v) => save({ calmThreadsEnabled: v })} />
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
