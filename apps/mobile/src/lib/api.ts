@@ -391,6 +391,21 @@ export interface StationAlerts {
   alerts: StationAlert[];
 }
 
+/** A receive-only listener node (server radio/nodes.ts). */
+export interface RadioNode {
+  id: string;
+  name: string;
+  role: 'listener' | 'station';
+  enabled: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+}
+export interface RadioNodes {
+  enabled: boolean;
+  nodes: RadioNode[];
+  reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
+}
+
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
 export interface StationBurst {
   id: string;
@@ -1199,6 +1214,11 @@ export const api = {
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
+    radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
+    setRadioNodesEnabled: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-nodes', { enabled }),
+    addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
+    updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
+    removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
     updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
