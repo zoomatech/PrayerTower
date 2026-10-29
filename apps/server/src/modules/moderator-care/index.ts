@@ -76,7 +76,9 @@ export async function handoff(q: Queryable, moderatorId: string, itemId: string,
   if (input.toUserId) {
     if (input.toUserId === moderatorId) throw badRequest('Pick someone else');
     if (input.toUserId === item.user_id) throw badRequest("A moderator can't decide about their own post");
-    if (!(await colleagues(q, moderatorId)).some((c) => c.id === input.toUserId)) throw badRequest('That person is not a moderator');
+    // Checked directly: the colleagues list is capped for display, and a big team may not all fit in it.
+    const { rowCount } = await q.query(`select 1 from public.user_roles where user_id = $1 and role in ('moderator', 'admin')`, [input.toUserId]);
+    if (!rowCount) throw badRequest('That person is not a moderator');
   }
   await q.query(
     `update public.moderation_items set handoff_from = $2, handoff_to = $3, handoff_note = $4, handoff_at = now() where id = $1`,

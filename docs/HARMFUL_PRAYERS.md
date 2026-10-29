@@ -113,3 +113,15 @@ The check, the holds, the review queue and the flood bundling work the same on O
 - **The limit** (`max_wait_minutes`, 60): a held, harmful-prayer or crisis item still waiting at `remind_at_percent` (50%) of the limit reminds whoever is on call (every moderator if nobody is). Past the limit, it goes to the person named in **When the wait passes, tell**, or to every admin. Each item is reminded and escalated once. The notices give counts and minutes, never the post's words. The check runs every 5 minutes (job `oncall_check`).
 - **Notes for the next shift** sit at the top of the moderation screen (`POST /moderation/oncall/notes`).
 - Code: `apps/server/src/modules/moderator-care/oncall.ts`, migration `20261029063200_oncall_rota.sql`, test `apps/server/test/oncall.test.ts`.
+
+## Hotlines after posting
+
+When someone posts or comments about abuse, their request opens with the hotlines above it ("You are not alone" and the numbers), as well as the private notice. Nothing is hidden or blocked. Self-harm keeps the existing crisis box with 988 (STAFF_HANDBOOK.md).
+
+## One-tap restore (off by default)
+
+**Admin → Moderator care → One-tap restore for held posts** (`restore_enabled`). Held items show **Restore** instead of Keep. One tap puts the post back up, logs a `restore` in `moderation_actions` (with the moderator) besides the decision in the staff audit log (Admin → Audit log), and tells the author "Your request is back up". Removed posts still come back only through an appeal.
+
+## Regression
+
+`apps/server/test/moderation-regression.test.ts` turns every moderation switch on at once (harmful prayers, moderator care, dashboard, weekly report, restore, on-call rota, the kind cloud) and runs the whole path in both editions: false alarms, a held threat through handoff, explanation, reminders, escalation and restore; abuse and crisis posts; junk and floods; the dashboard and rota. It found two bugs, both fixed: the threat redirect used religious words on Open Circle, and handing an item to a moderator failed on teams of more than 100.

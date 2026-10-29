@@ -53,6 +53,13 @@ test.describe.serial('harmful prayers', () => {
     }
   });
 
+  test('someone describing abuse sees the hotlines after posting, and the post stays up', async ({ page }) => {
+    await signIn(page, 'carol');
+    const id = await post(page, unique('[Demo] My husband hits me and I am scared to go home.'));
+    await expect(page.getByText('Domestic violence: 1-800-799-7233')).toBeVisible();
+    await expect.poll(async () => (await status(id))?.moderation_status).toBe('visible');
+  });
+
   test('a threat is held, and the poster can explain it', async ({ page }) => {
     await signIn(page, 'carol');
     const id = await post(page, threat);

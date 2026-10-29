@@ -233,6 +233,10 @@ export interface Guidance {
 
 /** Open Circle (secular) wording for the categories whose usual word speaks of God or Scripture. */
 const SECULAR: Partial<Record<Category, { title: string; message: string }>> = {
+  threat: {
+    title: 'That sounds like a lot of anger',
+    message: 'Anger can be said honestly here. If you are thinking of hurting someone, please talk to someone you trust first. You could ask for support with the anger, and for protection and justice.',
+  },
   hate: { title: 'Speak for people, not against them', message: 'Every group here is made of people someone loves. Try sharing what happened, and what would help.' },
   harm_wish: {
     title: 'Ask for justice and safety',
@@ -240,6 +244,7 @@ const SECULAR: Partial<Record<Category, { title: string; message: string }>> = {
   },
   curse: { title: 'Wish for good, never for harm', message: 'You can pour out your hurt here. Try asking for fairness, for protection, and for your own healing.' },
   revenge: { title: 'Ask for justice and healing', message: 'Revenge rarely brings peace. Try asking for justice, and for support while you heal.' },
+  foul: { title: 'Tell us what is going on', message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to support you.' },
 };
 
 /** A gentle word for the member: a redirect, never a lecture. Secular members get wording with no religious words. */
