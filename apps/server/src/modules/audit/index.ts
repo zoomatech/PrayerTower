@@ -96,6 +96,8 @@ export interface ListOptions {
   actorId?: string;
   targetId?: string;
   before?: string;
+  /** With `before`: the id of the last entry shown, so entries sharing its time aren't skipped. */
+  beforeId?: string;
   limit: number;
   /** Moderation tools: part of the action ('moderation', 'PATCH /admin/'), words anywhere in the entry, and a start time. */
   action?: string;
@@ -110,12 +112,15 @@ export async function list(q: Queryable, opts: ListOptions): Promise<AuditEntry[
   const { rows } = await q.query<AuditEntry>(
     `select l.id, l.actor_id, p.display_name as actor_name, l.action, l.target_id, l.params, l.body, l.status, l.created_at
        from public.staff_audit_log l left join public.profiles p on p.id = l.actor_id
-      where ($1::uuid is null or l.actor_id = $1) and ($2::uuid is null or l.target_id = $2) and ($3::timestamptz is null or l.created_at < $3)
+      where ($1::uuid is null or l.actor_id = $1) and ($2::uuid is null or l.target_id = $2) 
+        -- Pages compare whole milliseconds, as the app receives them: a time cut to the
+        -- millisecond, or entries written in one transaction, would otherwise drop off a page.
+        and ($3::timestamptz is null or (date_trunc('milliseconds', l.created_at), l.id) < ($3, coalesce($8::uuid, '00000000-0000-0000-0000-000000000000')))
         and ($5::text is null or l.action ilike $5)
         and ($6::text is null or concat_ws(' ', l.action, p.display_name, l.target_id::text, l.body::text) ilike $6)
         and ($7::timestamptz is null or l.created_at >= $7)
-      order by l.created_at desc, l.id desc limit $4`,
-    [opts.actorId ?? null, opts.targetId ?? null, opts.before ?? null, opts.limit, opts.action ? like(opts.action) : null, opts.q ? like(opts.q) : null, opts.since ?? null],
+      order by date_trunc('milliseconds', l.created_at) desc, l.id desc limit $4`,
+    [opts.actorId ?? null, opts.targetId ?? null, opts.before ?? null, opts.limit, opts.action ? like(opts.action) : null, opts.q ? like(opts.q) : null, opts.since ?? null, opts.beforeId ?? null],
   );
   return rows;
 }

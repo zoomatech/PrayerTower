@@ -1021,7 +1021,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return { settings: await goldfish.updateSettings(db, goldfish.SettingsPatch.parse(req.body)) };
   });
 
-  // Staff audit log, newest first; ?before= pages back, ?actorId= / ?targetId= filter.
+  // Staff audit log, newest first; ?before=&beforeId= (the last entry's time and id) pages back, ?actorId= / ?targetId= filter.
   app.get('/admin/audit-log', async (req) => {
     await requireAdmin(req);
     const query = z
@@ -1029,6 +1029,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         actorId: z.uuid().optional(),
         targetId: z.uuid().optional(),
         before: z.iso.datetime({ offset: true }).optional(),
+        beforeId: z.uuid().optional(),
         limit: z.coerce.number().int().min(1).max(200).default(50),
         // Moderation tools (off): filter by action, words, and a start time.
         action: z.string().trim().min(1).max(100).optional(),

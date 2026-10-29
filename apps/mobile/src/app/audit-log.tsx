@@ -34,10 +34,11 @@ function AuditLog() {
     : {};
   const filterKey = JSON.stringify([filters.action, filters.since ? 'week' : '']);
 
-  const load = useCallback(async (before?: string, applied: typeof filters = {}) => {
+  const load = useCallback(async (after?: AuditEntry, applied: typeof filters = {}) => {
     try {
-      const page = (await api.admin.auditLog({ before, limit: PAGE, ...applied })).entries;
-      setEntries((prev) => (before ? [...prev, ...page] : page));
+      // The last entry's time and id: entries sharing its time still come on the next page.
+      const page = (await api.admin.auditLog({ before: after?.created_at, beforeId: after?.id, limit: PAGE, ...applied })).entries;
+      setEntries((prev) => (after ? [...prev, ...page] : page));
       setMore(page.length === PAGE);
     } catch (e) {
       setError((e as Error).message);
@@ -97,7 +98,7 @@ function AuditLog() {
             {details(e) ? <Text style={styles.details}>{details(e)}</Text> : null}
           </View>
         ))}
-        {more ? <Button variant="secondary" label={t('auditLog.more')} onPress={() => load(entries.at(-1)?.created_at, filters)} /> : null}
+        {more ? <Button variant="secondary" label={t('auditLog.more')} onPress={() => load(entries.at(-1), filters)} /> : null}
       </ScrollView>
     </Screen>
   );

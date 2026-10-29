@@ -5,9 +5,10 @@
 // otherwise say "prayer", "church" and the like. "Thinking of you" replaces prayer.
 import en from '@/locales/en';
 import { keys as neutral } from '@/locales/neutral';
+import { neutralEnglish } from '@/lib/neutral-tree';
 
 type Tree = { [key: string]: string | Tree };
-const RELIGIOUS = /\b(pray|prayer|prayers|praying|prayed|god|lord|jesus|christ|psalm|church|faith|priestly|bless|blessing|blessings|blessed|amen|pastor|scripture|bible|gospel|sermon|worship|ministry|prayer tower)\b/i;
+const RELIGIOUS = /\b(pray|prayer|prayers|praying|prayed|pray-ers|confession|bible|god|lord|jesus|christ|psalm|church|faith|priestly|bless|blessing|blessings|blessed|amen|pastor|scripture|bible|gospel|sermon|worship|ministry|prayer tower)\b/i;
 
 function strings(e: Tree, n: Tree | undefined, path: string, out: [string, string][]) {
   for (const [k, v] of Object.entries(e)) {
@@ -18,8 +19,26 @@ function strings(e: Tree, n: Tree | undefined, path: string, out: [string, strin
   return out;
 }
 
-it.each(['give', 'radioRequests', 'twoStep', 'accountSecurity', 'invites', 'kindCloud', 'meanings', 'talk', 'practices', 'repair', 'growth', 'harm', 'across', 'quick', 'highlights', 'card', 'highlightsKind', 'coolDown', 'research', 'lament', 'answeredStory', 'kindIntro', 'checkBack', 'kindMilestones', 'commentKindness', 'thankNote', 'calm', 'quietCounts', 'meaningProposals', 'listen', 'circles', 'encCheck', 'weather', 'circleWelcome', 'pathBack', 'replyChoice', 'kindWords', 'goldfish', 'intention', 'health', 'freshDays', 'circleUpdates', 'starter', 'offline', 'reminders', 'modTools', 'pushDelivery', 'profile', 'notifySettings', 'deleteAccount', 'stats'])('%s has no religious words in Open Circle', (section) => {
-  const e = (en as unknown as Tree)[section] as Tree;
-  const religious = strings(e, neutral[section] as Tree | undefined, `${section}.`, []).filter(([, text]) => RELIGIOUS.test(text));
+// Strings that only faith communities ever see (the server hides these features from
+// Open Circle), or admin hints that describe what faith communities get.
+const FAITH_ONLY = [
+  /^ai\.(chatLink|chatTitle|chatIntro|ai)$/,
+  /^care\.confessionNote/,
+  /^readingPlan\./,
+  /^church(Review)?\./,
+  /^admin\.(toggle\.(confession|confessionHint|aiChat|aiChatHint|readingPlan|readingPlanHint|crossCommunityHint|supportLabelHint)|field\.confessionDays|newCommunityHint)$/,
+  /^skins\.seasonalHint$/,
+];
+
+it('Open Circle English has no religious words anywhere, admin screens included', () => {
+  const tree = neutralEnglish(en as unknown as Tree, neutral as unknown as Tree) as Tree;
+  const religious = strings(tree, undefined, '', [])
+    .filter(([key, text]) => RELIGIOUS.test(text) && !FAITH_ONLY.some((re) => re.test(key)))
+    .map(([key, text]) => `${key}: ${text}`);
   expect(religious).toEqual([]);
+});
+
+it('renames the app, never leaves "Message Tower"', () => {
+  const tree = neutralEnglish({ a: 'Prayer Tower pilot report', b: 'Pray-ers can write' }, {}) as Tree;
+  expect(tree).toEqual({ a: 'Open Circle pilot report', b: 'Supporters can write' });
 });

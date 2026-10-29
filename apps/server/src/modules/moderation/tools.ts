@@ -45,6 +45,8 @@ export const Search = z.object({
   target: z.enum(['post', 'comment', 'reaction', 'message', 'event', 'spoken_prayer']).optional(),
   /** Decided items: page back from this decision time. */
   before: z.iso.datetime({ offset: true }).optional(),
+  /** With `before`: the last item's id, so decisions sharing its time aren't skipped. */
+  beforeId: z.uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
@@ -66,13 +68,13 @@ export async function search(q: Queryable, s: z.infer<typeof Search>) {
         and ($2::text is null or m.source::text = $2)
         and ($3::text is null or m.target_type::text = $3)
         and ($4::text is null or concat_ws(' ', po.body, c.body, r.note, x.body, ev.title, ev.description, m.reason, a.display_name, d.display_name) ilike $4)
-        and ($5::timestamptz is null or m.decided_at < $5)
+        and ($5::timestamptz is null or (date_trunc('milliseconds', m.decided_at), m.id) < ($5, coalesce($7::uuid, '00000000-0000-0000-0000-000000000000')))
       order by case when $1 = 'pending' then (m.source = 'crisis') end desc,
                case when $1 = 'pending' then m.auto_hidden end desc,
                case when $1 = 'pending' then m.id end,
-               m.decided_at desc nulls last, m.id desc
+               date_trunc('milliseconds', m.decided_at) desc nulls last, m.id desc
       limit $6`,
-    [s.status, s.source ?? null, s.target ?? null, s.q ? like(s.q) : null, s.before ?? null, s.limit],
+    [s.status, s.source ?? null, s.target ?? null, s.q ? like(s.q) : null, s.before ?? null, s.limit, s.beforeId ?? null],
   );
   return rows;
 }

@@ -1562,6 +1562,7 @@ export interface ModerationSearch {
   status?: 'pending' | 'decided';
   source?: ModerationItem['source'];
   before?: string;
+  beforeId?: string;
 }
 
 export interface SecuritySettings {
@@ -2003,7 +2004,7 @@ export const api = {
     emailInvite: (code: string, input: { email: string; language?: 'en' | 'es'; message?: string }) =>
       post<{ sent: boolean; language: 'en' | 'es' }>(`/admin/invites/${encodeURIComponent(code)}/email`, input),
     setInviteOnly: (inviteOnly: boolean) => request<{ inviteOnly: boolean }>('PATCH', '/admin/invite-settings', { inviteOnly }),
-    auditLog: (q: { before?: string; limit?: number; action?: string; q?: string; since?: string } = {}) =>
+    auditLog: (q: { before?: string; beforeId?: string; limit?: number; action?: string; q?: string; since?: string } = {}) =>
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
