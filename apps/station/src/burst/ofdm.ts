@@ -342,8 +342,8 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     const plen = payloadLength(header.messageLength, preset.parity);
     const syms = Math.ceil((plen * 8) / (c * preset.bitsPerSymbol));
     const refAt = at + (1 + hdrSyms) * S;
-    const end = best - GUARD + (2 + hdrSyms + syms) * S;
-    if (refAt + syms * S + N > x.length + BACKOFF) break; // the recording stops mid-frame
+    // The recording stops mid-frame (allowing for a sender whose clock runs up to 0.1% fast).
+    if (refAt + (syms * S + N) * 0.999 > x.length + BACKOFF) break;
     // A tuning offset (SSB) also leaks energy between carriers; past a fraction
     // of a hertz, shift the frame back into tune before reading the payload.
     const offsetHz = (track.bias * SAMPLE_RATE) / (2 * Math.PI * S);
@@ -351,12 +351,13 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     let srcAt = refAt;
     if (Math.abs(offsetHz) > 0.25) {
       const from = Math.max(0, refAt - S);
-      src = shiftFrequency(x.subarray(from, Math.min(x.length, end + S)), -offsetHz);
+      src = shiftFrequency(x.subarray(from, Math.min(x.length, refAt + (syms + 2) * S + Math.ceil(syms * S * 0.001))), -offsetHz);
       srcAt = refAt - from;
       track.bias = 0;
     }
     const pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track);
     const result = decodePayload(ungroup(pv, preset.bitsPerSymbol, plen), header.messageLength, preset.parity);
+    const end = refAt + BACKOFF - GUARD + (syms + 1) * S + Math.round(track.off);
     if (result) {
       frames.push({ ...header, preset: preset.name, batch: result.batch, corrected: result.corrected, start: best - GUARD, end });
       i = end - 1;
