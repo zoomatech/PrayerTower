@@ -356,6 +356,7 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <RadioScheduleSection /> : null}
             {radio.radio_transmitter === 'station' ? <OperatorLogSection /> : null}
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
+            {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
@@ -762,6 +763,25 @@ function OperatorLogSection() {
       <Text style={type.small}>{t('admin.operatorLogHint')}</Text>
       {enabled ? <Button small label={t('admin.operatorLogDownload')} onPress={download} /> : null}
       <ErrorText error={error} />
+    </View>
+  );
+}
+
+/** Thanksgiving bursts for answered requests, and listeners' "I'm praying too" (both off by default). */
+function RadioFollowupsSection() {
+  const t = useT();
+  const [data, setData] = useState<{ thanksgiving: boolean; prayingToo: boolean } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioFollowups().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const set = (patch: { thanksgiving?: boolean; prayingToo?: boolean }) => api.admin.setRadioFollowups(patch).then(setData).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.thanksgivingBurst')} hint={t('admin.thanksgivingBurstHint')} value={data.thanksgiving} onChange={(v) => set({ thanksgiving: v })} />
+      <Toggle label={t('admin.prayingTooSwitch')} hint={t('admin.prayingTooSwitchHint')} value={data.prayingToo} onChange={(v) => set({ prayingToo: v })} />
     </View>
   );
 }

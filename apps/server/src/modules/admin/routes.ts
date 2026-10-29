@@ -40,6 +40,8 @@ import * as radioAcks from '../radio/acks.js';
 import * as radioSchedule from '../radio/schedule.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
+import * as radioThanks from '../radio/thanksgiving.js';
+import * as prayingToo from '../radio/praying-too.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -298,6 +300,20 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
     await setListenerMode(db, enabled);
     return { enabled, active: (await listenerMode(db)).enabled };
+  });
+
+  // Thanksgiving bursts for answered requests (radio/thanksgiving.ts) and listeners' "I'm praying too" (radio/praying-too.ts).
+  app.get('/admin/radio-followups', async (req) => {
+    await requireAdmin(req);
+    return { thanksgiving: await radioThanks.enabled(db), prayingToo: await prayingToo.enabled(db) };
+  });
+
+  app.patch('/admin/radio-followups', async (req) => {
+    await requireAdmin(req);
+    const input = z.object({ thanksgiving: z.boolean().optional(), prayingToo: z.boolean().optional() }).parse(req.body);
+    if (input.thanksgiving !== undefined) await radioThanks.setEnabled(db, input.thanksgiving);
+    if (input.prayingToo !== undefined) await prayingToo.setEnabled(db, input.prayingToo);
+    return { thanksgiving: await radioThanks.enabled(db), prayingToo: await prayingToo.enabled(db) };
   });
 
   app.get('/admin/radio-bursts', async (req) => {
