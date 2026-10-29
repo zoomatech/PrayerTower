@@ -268,6 +268,76 @@ The modem is `apps/station/src/packet/afsk.ts`; the message format is
 noise at 3 dB SNR, and checks the FCS against CRC-16/X.25's check value
 (0x906E).
 
+## Compression v2 (codec 4)
+
+Off by default: set `BURST_CODEC_V2=on` in the station's settings **after**
+every listener node, the app and the `/listen` page run a version that reads
+codec 4 (older receivers report the frame's codec as unknown). With it on, the
+station tries codec 4 alongside the others and keeps whichever is smallest, so
+it is never worse.
+
+What changed against codec 3, measured on the same two sets (the 30
+hand-written requests in `test/fixtures/sample-prayers.ts` and 100 generated
+ones from `src/burst/sample.ts`, neither of which is in any primer):
+
+| Step | 30 requests | 100 requests | One request |
+| --- | --- | --- | --- |
+| Codec 3 | 623 bytes | 1,148 | 23 |
+| + two more models (the current word alone; bytes 2-3 back) and an APM stage | 602 | 1,115 | 20 |
+| + mixer weights chosen by the last byte's kind (letter, space, other) | 596 | 1,067 | 22 |
+| + a longer shared phrase primer (`src/burst/primer2.ts`, 50 more requests, updates and Open Circle wordings) | **570** (-8.5%) | **1,073** (-6.5%) | **18** (-22%) |
+| Tried and dropped: replacing 63 common phrases with single bytes before coding | 579 | 915 | 20 |
+
+The phrase substitution only won on the generated set, whose sentences repeat
+from a small template; on hand-written requests it lost, so codec 4 leaves
+phrase knowledge to the primer.
+
+Air time and prayers a second (`BURST_CODEC_V2=on cli.js bench`, 2026-10-29):
+
+| Preset | 30 sample prayers, codec 3 | codec 4 | 100 prayers, codec 3 | codec 4 |
+| --- | --- | --- | --- | --- |
+| `fm-robust` | 3.63s (8.3/s) | 3.22s (9.3/s) | 6.13s (16.3/s) | 5.81s (17.2/s) |
+| `fm-standard` | 1.81s (16.6/s) | 1.69s (17.8/s) | 3.05s (32.7/s) | 2.84s (35.2/s) |
+| `fm-fast` | 1.33s (22.6/s) | 1.25s (23.9/s) | 2.14s (46.7/s) | 2.00s (50.1/s) |
+| `dataport-fast` | 0.80s (37.6/s) | 0.77s (38.8/s) | 1.18s (84.6/s) | 1.11s (90.1/s) |
+| `fm-turbo` | 0.99s (30.3/s) | 0.94s (31.8/s) | 1.52s (65.9/s) | 1.45s (69.2/s) |
+| `fm-robust-fec` | 3.05s (9.8/s) | 2.84s (10.6/s) | 5.29s (18.9/s) | 5.00s (20.0/s) |
+| `hf-robust` | 6.13s (4.9/s) | 5.67s (5.3/s) | 10.78s (9.3/s) | 10.16s (9.8/s) |
+| `hf-standard` | 3.29s (9.1/s) | 3.08s (9.7/s) | 5.62s (17.8/s) | 5.31s (18.8/s) |
+
+Codec 4 needs about 6 MB more memory per encode or decode (the APM table and two more models) and
+a few milliseconds; the browser and app decoders handle it.
+
+## Store-and-forward relay
+
+A listener node with a transmitter can re-send the bursts it decodes, so
+listeners beyond the station's range still hear them. Off unless `RELAY=on` in
+`/etc/prayer-tower-listener.env` (see `apps/station/install/listener.env.example`).
+
+The relay re-sends a frame only when all of these hold (loop protection):
+
+- The frame came from a station listed in `RELAY_FROM`, never from just anyone.
+- It isn't the relay's own transmission heard back (its own call sign).
+- It has passed fewer relays than `RELAY_MAX_HOPS` (default 1, at most 3). A
+  relay never re-sends another relay's copy unless hops allow it.
+- The same batch hasn't been relayed here in the last 10 minutes.
+- The relay can read it (it never re-sends what it can't vouch for).
+- It is within `RELAY_MAX_SECONDS_PER_HOUR` of airtime (default 120).
+
+It waits `RELAY_DELAY_MS` (1 s) for the channel to clear, then sends the frame
+on the same preset under its own call sign (`RELAY_CALL_SIGN`), which is its
+identification. The original station and the hop count travel inside (codec 5,
+below), so receivers show "From N0CALL (relayed by K1RLY)". Listener nodes
+report a relayed prayer as heard from the original station, so receipts and
+acknowledgements work, but they send no channel report for it (the signal is
+the relay's, not the station's). `RELAY_MODE=simulate` (the default) writes
+each relayed burst to the state directory without keying anything; `audio`
+plays it through `RELAY_PLAY_CMD` with `RELAY_PTT_ON_CMD` and `RELAY_PTT_OFF_CMD`.
+
+Receivers older than the relay show a relayed frame as unreadable and keep
+decoding the rest. The code is `apps/station/src/relay.ts` and
+`src/burst/relay-frame.ts`.
+
 ## Diagnose a weak signal
 
 When a burst doesn't decode, or decodes only sometimes, record it at the
@@ -455,6 +525,27 @@ arithmetic, so it gives the same bits on every machine. In outline:
   per partial byte) and squashed. Weights learn from the coding error.
 - Before coding, encoder and decoder both run the model over the primer text,
   without output.
+
+### Codec 4: context mixing version 2
+
+The same coder and data layout as codec 3, with these differences (the `v === 2`
+branches in `cm.ts`):
+
+- Nine models: codec 3's seven, plus the current word alone and the two bytes
+  before the last one (a sparse context).
+- Three mixer weight sets per partial byte, picked by the last byte: a letter,
+  a space, or anything else.
+- An APM stage: the mixer's probability, stretched, picks two of 33 buckets in
+  a table indexed by the last byte and the partial byte; the interpolated value
+  r gives the final p = (mixer + 3r) / 4, and both buckets move toward the bit
+  by their share (rate 1/64).
+- Primer: PRIMER_V1, then PRIMER_V2_EXTRA, then DICTIONARY_V1.
+
+### Codec 5: relay envelope
+
+Not a compressor. Byte 1 is the hop count (1-3), byte 2 the origin call sign's
+length n (3-10), then n ASCII bytes of the call sign, then the original batch
+(codec byte first, never another envelope).
 
 ### Waveform
 

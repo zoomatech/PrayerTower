@@ -25,7 +25,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 const PERIODS = [7, 30, 90];
 const REPORT_WEEKS = 12;
 const TREND: (keyof PilotWeek)[] = ['requests_posted', 'praying_now_taps', 'commitments_made', 'commitment_checkins'];
-const ROLES: Role[] = ['admin', 'moderator', 'pastor_counselor', 'witness', 'prayer_partner'];
+const ROLES: Role[] = ['admin', 'moderator', 'pastor_counselor', 'witness', 'prayer_partner', 'radio_operator'];
 
 // Metric names come from the server; known ones are translated, the rest are prettified.
 const LABELS: Record<string, string> = { ai_flags: 'AI flags', active_pray_ers: 'Active pray-ers', checkins: 'Check-ins' };
@@ -370,6 +370,7 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <StationHealthSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioScheduleSection /> : null}
             {radio.radio_transmitter === 'station' ? <OperatorLogSection /> : null}
+            {radio.radio_transmitter === 'station' ? <RadioConsoleSection /> : null}
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -752,6 +753,29 @@ function RadioScheduleSection() {
           <ErrorText error={error} />
         </>
       ) : null}
+    </View>
+  );
+}
+
+/** The operator console switch (radio/console.ts), off by default. */
+function RadioConsoleSection() {
+  const t = useT();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioConsole().then((r) => setEnabled(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (enabled === null) return null;
+  const set = (on: boolean) => api.admin.setRadioConsole(on).then((r) => setEnabled(r.enabled)).catch(() => undefined);
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.radioConsoleOff')} selected={!enabled} onPress={() => set(false)} />
+        <Chip label={t('admin.radioConsoleOn')} selected={enabled} onPress={() => set(true)} />
+      </View>
+      <Text style={type.small}>{t('admin.radioConsoleHint')}</Text>
+      {enabled ? <Button small label={t('profile.operatorConsole')} onPress={() => router.push('/operator-console')} /> : null}
     </View>
   );
 }

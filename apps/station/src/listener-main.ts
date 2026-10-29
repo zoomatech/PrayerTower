@@ -6,8 +6,13 @@
 //   LISTEN_RECEIPTS (on: report decoded prayers' fingerprints, for acknowledgements and receipts), LISTEN_REPORT_FILE (also write the report here for a station on this machine)
 //   LISTEN_SIGN (off; on: sign each report with the key instead of sending it, docs "Signed listener reports")
 //   NODE_LOCATION (unset: share nothing): "lat,lon" or "lat,lon,Place" for Admin → Radio's coverage map, rounded to about a city
+//   RELAY (off; on: re-send decoded bursts, docs/RADIO_BURST.md "Store-and-forward relay"): RELAY_CALL_SIGN, RELAY_FROM,
+//   RELAY_MAX_HOPS (1), RELAY_MAX_SECONDS_PER_HOUR (120), RELAY_DELAY_MS (1000), RELAY_MODE (simulate | audio),
+//   RELAY_PLAY_CMD, RELAY_PTT_ON_CMD, RELAY_PTT_OFF_CMD, RELAY_PTT_DELAY_MS (300)
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { audioTransmitter, simulateTransmitter } from './burst/transmit.js';
+import { Relay, relayConfig } from './relay.js';
 import { checkApiUrl } from './secure-url.js';
 import { defaultRecordCommand, httpListenerApi, listenOnce, parseLocation, RollingDecoder, startRecorder } from './listener.js';
 
@@ -32,6 +37,28 @@ const location = parseLocation(process.env.NODE_LOCATION);
 const everyMs = num('LISTEN_DECODE_SECONDS', 6, 1, 20) * 1000;
 const stateDir = process.env.STATE_DIRECTORY?.split(':')[0];
 const heartbeat = stateDir ? path.join(stateDir, 'heartbeat') : null;
+
+// Store-and-forward relay: off unless RELAY=on (relay.ts).
+const relayCfg = relayConfig(process.env);
+let relay: Relay | null = null;
+if (relayCfg) {
+  const dir = path.join(stateDir ?? '.', 'relay');
+  const mode = process.env.RELAY_MODE ?? 'simulate';
+  if (mode !== 'simulate' && mode !== 'audio') throw new Error('RELAY_MODE must be simulate or audio');
+  const tx =
+    mode === 'audio'
+      ? audioTransmitter({
+          playCommand: process.env.RELAY_PLAY_CMD || (process.platform === 'darwin' ? 'afplay {wav}' : 'aplay -q {wav}'),
+          pttOnCommand: process.env.RELAY_PTT_ON_CMD ?? '',
+          pttOffCommand: process.env.RELAY_PTT_OFF_CMD ?? '',
+          pttDelayMs: num('RELAY_PTT_DELAY_MS', 300, 0, 5000),
+          dir,
+          txTimeoutMs: 120_000,
+        })
+      : simulateTransmitter(dir, (m) => console.log(`[relay] ${m}`));
+  relay = new Relay(relayCfg, tx);
+  console.log(`[relay] on (${mode}) as ${relayCfg.callSign}, relaying ${relayCfg.from.join(', ')}, up to ${relayCfg.maxHops} hop(s)`);
+}
 
 const dec = new RollingDecoder();
 const command = process.env.LISTEN_RECORD_CMD || defaultRecordCommand();
@@ -60,5 +87,13 @@ while (!stopping) {
       // Not fatal.
     }
   }
-  await listenOnce(dec, api, cfg).catch((err: Error) => console.error(`[listener] ${err.message}`));
+  const frames = await listenOnce(dec, api, cfg).catch((err: Error) => {
+    console.error(`[listener] ${err.message}`);
+    return [];
+  });
+  for (const f of frames) {
+    if (!relay) break;
+    const r = await relay.consider(f).catch((err: Error) => ({ relayed: false as const, reason: err.message }));
+    console.log(r.relayed ? `[relay] re-sent ${f.callSign}'s frame (${r.seconds.toFixed(2)} s)` : `[relay] not re-sent (${r.reason}): ${f.callSign}`);
+  }
 }

@@ -313,6 +313,9 @@ export default function Profile() {
         {radioOn && giving?.allocationRequests && roles.some((r) => r === 'moderator' || r === 'admin' || r === 'pastor_counselor') ? (
           <Button variant="secondary" label={t('radioRequests.title')} onPress={() => router.push('/radio-requests')} />
         ) : null}
+        {radioOn && roles.some((r) => r === 'radio_operator' || r === 'admin') ? (
+          <Button variant="secondary" label={t('profile.operatorConsole')} onPress={() => router.push('/operator-console')} />
+        ) : null}
         {roles.includes('admin') ? <Button variant="secondary" label={t('profile.admin')} onPress={() => router.push('/admin')} /> : null}
         <ErrorText error={error} />
         <Button variant="ghost" label={t('profile.tour')} onPress={() => router.push('/tour')} />

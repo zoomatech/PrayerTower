@@ -22,6 +22,7 @@ const STAFF_ROUTES = new Set([
   'POST /macro-needs',
   'POST /macro-needs/:id/end',
   'POST /macro-needs/:id/helped',
+  'PATCH /radio/console',
 ]);
 /** Bodies that hold pastoral, private or legal-case text: the action is logged, the text is not. */
 const NO_BODY = new Set(['POST /witness/cases/:id/notes', 'PATCH /witness/cases/:id', 'POST /admin/legal/cases', 'POST /admin/legal/cases/:id/notes', 'POST /moderation/items/:id/escalate']);

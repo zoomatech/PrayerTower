@@ -184,7 +184,8 @@ export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: Lis
   if (!frames.length) return frames;
   // One channel report per station heard: its weakest frame.
   const byStation = new Map<string, ListenedFrame[]>();
-  for (const f of frames) byStation.set(f.callSign, [...(byStation.get(f.callSign) ?? []), f]);
+  // A relayed frame's signal is the relay's, not the station's, so it never steers the station's preset.
+  for (const f of frames.filter((x) => !x.via)) byStation.set(f.callSign, [...(byStation.get(f.callSign) ?? []), f]);
   for (const [callSign, fs] of byStation) {
     const r = channelReport(fs)!;
     log(`[listener] heard ${callSign}: ${fs.length} frame(s), ${r.snrDb} dB, ${r.preset}`);

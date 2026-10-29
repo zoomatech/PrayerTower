@@ -21,6 +21,8 @@ export interface BurstConfig {
   blocklist: readonly string[];
   /** RIG_FREQ_HZ or STATION_FREQ_HZ, reported with each prayer for the operator log. */
   frequencyHz?: number;
+  /** BURST_CODEC_V2=on: also try codec 4 (codec.ts), once every receiver can read it. */
+  codecV2?: boolean;
 }
 
 export type BurstOutcome = { kind: 'idle' } | { kind: 'sent'; sent: number; rejected: number; frames: number; seconds: number } | { kind: 'rejected'; rejected: number };
@@ -55,7 +57,7 @@ export async function runBurstOnce(
 
   const texts = ok.flatMap((p) => Array<string>(Math.max(1, Math.min(p.repeats ?? 1, MAX_REPEATS))).fill(foldAscii(p.text)));
   const preset = cfg.choosePreset ? await cfg.choosePreset() : cfg.preset;
-  const batches = planFrames(texts, preset, cfg.maxFrameSeconds);
+  const batches = planFrames(texts, preset, cfg.maxFrameSeconds, { codecV2: cfg.codecV2 });
   const logBurst = (b: Omit<BurstLog, 'callSign' | 'mode' | 'preset' | 'prayers'>) =>
     api
       .reportBurst?.({ callSign: cfg.callSign, mode: tx.mode, preset: preset.name, prayers: texts.length, ...b })
