@@ -4,3 +4,5 @@
 Config.xcconfig
 App/Info.plist
 App/PrayerTowerNative.entitlements
+Widgets/Info.plist
+Widgets/PrayerTowerWidgets.entitlements

@@ -11,6 +11,7 @@ struct PrayerTowerApp: App {
             RootView()
                 .environment(model)
                 .task { await model.start() }
+                .onOpenURL { url in model.openPost = PrayNow.postId(from: url) }
         }
     }
 }
@@ -30,8 +31,12 @@ final class AppModel {
     var words = Words(.faith)
     /// The signed-in member, their community and roles (`/me`).
     var me: Me?
+    /// The member's choices for the conversation helpers, loaded only while a helper is switched on.
+    var talkPrefs: ConversationPrefs?
     /// Emoji meanings for the action row, loaded only while both meaning switches are on.
     var tree: [MeaningEmoji] = []
+    /// A request to open from a widget or Live Activity tap.
+    var openPost: String?
     /// Bumped when the member picks another feed style, so the feed reloads in it.
     var feedStyle: String?
 
@@ -59,6 +64,7 @@ final class AppModel {
         features = await f ?? Features(values: [:])
         self.me = await me
         wording = Wording(self.me?.community)
+        talkPrefs = Talk.anyOn(features) ? ((try? await store.api.conversationPrefs()) ?? ConversationPrefs()) : nil
         tree = features["meaningReactions"] && features["meaningIconRow"] ? ((try? await store.api.reactionMeanings()) ?? []) : []
     }
 }
