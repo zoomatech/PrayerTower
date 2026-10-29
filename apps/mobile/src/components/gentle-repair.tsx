@@ -111,7 +111,7 @@ export function MendQueue() {
       {!mends.length ? <Text style={type.small}>{t('repair.queueEmpty')}</Text> : null}
       {mends.map((m) => (
         <View key={m.id} style={styles.card}>
-          <Text style={type.small} onPress={() => router.push(`/post/${m.comment.postId}`)}>
+          <Text style={type.small} accessibilityRole="link" onPress={() => router.push(`/post/${m.comment.postId}`)}>
             {m.author?.displayName}: “{m.comment.body}”
           </Text>
           {m.sorry ? (

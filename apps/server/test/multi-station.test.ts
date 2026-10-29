@@ -34,7 +34,7 @@ describe('several stations sharing one queue', () => {
     await tokens.updateSettings(db, { radio_funding: 'free' });
     const { key } = (await as(admin).post('/admin/radio-nodes', { name: 'Valley station', role: 'station' })).json();
     expect((await station('/station/claim-batch', key, { max: 5 })).statusCode).toBe(401);
-    expect((await as(admin).patch('/admin/radio-nodes', { multiStation: true })).json()).toEqual({ enabled: false, multiStation: true });
+    expect((await as(admin).patch('/admin/radio-nodes', { multiStation: true })).json()).toEqual({ enabled: false, multiStation: true, signaturesRequired: false });
     expect((await station('/station/claim-batch', key, { max: 5 })).statusCode).toBe(204);
     // A listener's key is not a station key.
     const listener = (await as(admin).post('/admin/radio-nodes', { name: 'Listener only' })).json();

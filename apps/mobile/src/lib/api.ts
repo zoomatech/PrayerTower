@@ -104,6 +104,14 @@ export interface MeaningLeaf {
   mine: boolean;
 }
 
+/** A private kindness milestone: the highest level reached for one kind of kindness. */
+export interface KindMilestone {
+  metric: 'people' | 'requests' | 'encouragements' | 'checkins' | 'words';
+  level: number;
+  count: number;
+  new: boolean;
+}
+
 export interface Features {
   worldwideCount: boolean;
   thanksCard: boolean;
@@ -175,6 +183,8 @@ export interface Features {
   lament: boolean;
   answeredStories: boolean;
   kindnessIntro: boolean;
+  checkBack: boolean;
+  kindMilestones: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -186,6 +196,7 @@ export interface Features {
   meaningIconRow: boolean;
   kindnessResearch: boolean;
   meaningProposals: boolean;
+  typePrompts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -266,6 +277,8 @@ export interface PracticeSettings {
   lament_enabled: boolean;
   answered_stories_enabled: boolean;
   kindness_intro_enabled: boolean;
+  check_back_enabled: boolean;
+  kind_milestones_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -278,6 +291,7 @@ export interface ConversationSettings {
   meaning_row_enabled: boolean;
   research_page_enabled: boolean;
   meaning_proposals_enabled: boolean;
+  type_prompts_enabled: boolean;
 }
 export interface ConversationPrefs {
   replySuggestions: boolean;
@@ -654,6 +668,8 @@ export interface RadioNodes {
   enabled: boolean;
   /** Several stations share the queue, each with its own key. */
   multiStation: boolean;
+  /** Listener nodes must sign each request (LISTEN_SIGN=on) instead of sending their key. */
+  signaturesRequired: boolean;
   /** Prayers each station holds now and sent in the last 24 hours; node null is the main station. */
   stations: { node: string | null; sending: number; sent: number }[];
   nodes: RadioNode[];
@@ -1155,6 +1171,34 @@ export type HarmSettings = {
   foul_junk_filter: boolean;
   flood_per_day: number;
   extra_hate_words: string[];
+  explain_held: boolean;
+};
+export type ModeratorCare = {
+  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
+  colleagues: { id: string; display_name: string }[];
+};
+export type ModerationDashboard = {
+  days: number;
+  queue: { source: string; pending: number; oldest_minutes: number | null }[];
+  speed: { source: string; decided: number; median_minutes: number | null; p90_minutes: number | null }[];
+  falseAlarms: { category: string; decided: number; dismissed: number; rate: number | null }[];
+  floods: { floods: number; accounts: number; items: number };
+  handoffs: number;
+};
+export type HarmReport = {
+  id: string;
+  week_start: string;
+  report: { flagged: number; bundled: number; rules: { rule: string; flagged: number; dismissed: number; removed: number; falseAlarmRate: number | null; tooLoose: boolean }[] };
+};
+export type OncallSettings = { enabled: boolean; max_wait_minutes: number; remind_at_percent: number; timezone: string; escalate_to: string | null };
+export type OncallShift = { id: string; user_id: string; display_name: string; weekday: number; start_minute: number; end_minute: number };
+export type OncallStatus = {
+  settings: OncallSettings;
+  onCall: { user_id: string; display_name: string; end_minute: number }[];
+  waiting: number;
+  oldest_minutes: number | null;
+  over: number;
+  notes: { id: string; author_name: string | null; body: string; created_at: string }[];
 };
 export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
 export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
@@ -1419,9 +1463,9 @@ export const api = {
       return { post: card, savedAt: saved.savedAt };
     }
   },
-  createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
+  createPost: (input: NewPost) => post<{ post: Card; harm?: HarmNote | null }>('/posts', input),
   /** Text-only posts made offline wait in the queue. */
-  createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card }>('/posts', input, 'Your post'),
+  createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card; harm?: HarmNote | null }>('/posts', input, 'Your post'),
   deletePost: (id: string) => request<{ deleted: true }>('DELETE', `/posts/${id}`),
   deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
   hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
@@ -1432,7 +1476,7 @@ export const api = {
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
-    post<{ comment: { id: string; crisis: boolean }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
+    post<{ comment: { id: string; crisis: boolean; harm?: HarmNote | null }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
   prayingNow: (id: string) => postOrQueue<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`, {}, 'Praying Now'),
@@ -1624,9 +1668,11 @@ export const api = {
     radioCoverage: () => get<RadioCoverage>('/admin/radio-coverage'),
     updateRadioCoverage: (patch: { enabled?: boolean; tileUrl?: string; station?: { lat: number; lon: number } | null }) => request<RadioCoverage>('PATCH', '/admin/radio-coverage', patch),
     placeRadioNode: (id: string, location: { lat: number; lon: number; place?: string } | null) => request<RadioCoverage>('PUT', `/admin/radio-nodes/${id}/location`, { location }),
+    radioPacket: () => get<{ enabled: boolean }>('/admin/radio-packet'),
+    setRadioPacket: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-packet', { enabled }),
     radioDigest: () => get<RadioDigest>('/admin/radio-digest'),
     updateRadioDigest: (patch: { enabled?: boolean; email?: boolean }) => request<RadioDigest>('PATCH', '/admin/radio-digest', patch),
-    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
+    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => request<{ enabled: boolean; multiStation: boolean; signaturesRequired: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
     removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
@@ -1702,10 +1748,10 @@ export const api = {
     highlightQueue: () => get<{ items: HighlightQueueItem[] }>('/admin/kindness-highlights'),
     pickHighlight: (id: string, pick: boolean, shownText?: string) => post<{ items: HighlightQueueItem[] }>(`/admin/kindness-highlights/${id}`, { pick, ...(shownText ? { shownText } : {}) }),
     sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
-    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean }>) =>
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -1838,6 +1884,16 @@ export const api = {
       '/moderation/activity-flags',
     ),
   decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  moderatorCare: () => get<ModeratorCare>('/moderation/care'),
+  updateModeratorCare: (patch: Partial<ModeratorCare['settings']>) => request<{ settings: ModeratorCare['settings'] }>('PATCH', '/admin/moderator-care-settings', patch),
+  handoff: (itemId: string, toUserId?: string, note?: string) => post<{ ok: boolean }>(`/moderation/items/${itemId}/handoff`, { toUserId, note }),
+  moderationDashboard: (days = 7) => get<{ dashboard: ModerationDashboard; reports: HarmReport[] }>(`/admin/moderation-dashboard?days=${days}`),
+  oncall: () => get<{ status: OncallStatus; shifts?: OncallShift[] }>('/moderation/oncall'),
+  addOncallNote: (body: string) => post<{ id: string }>('/moderation/oncall/notes', { body }),
+  oncallAdmin: () => get<{ settings: OncallSettings; shifts: OncallShift[]; people: { id: string; display_name: string }[] }>('/admin/oncall'),
+  updateOncall: (patch: Partial<OncallSettings>) => request<{ settings: OncallSettings }>('PATCH', '/admin/oncall', patch),
+  addOncallShift: (shift: { userId: string; weekday: number; startMinute: number; endMinute: number }) => post<{ id: string }>('/admin/oncall/shifts', shift),
+  removeOncallShift: (id: string) => request<{ ok: boolean }>('DELETE', `/admin/oncall/shifts/${id}`),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
   harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),
@@ -1898,6 +1954,10 @@ export const api = {
   myWitnessStories: () => get<{ stories: { id: string; body: string; status: 'awaiting_consent' | 'approved' | 'declined'; createdAt: string }[] }>('/me/witness-stories'),
   decideWitnessStory: (id: string, approve: boolean) => post<{ ok: true }>(`/me/witness-stories/${id}/decision`, { approve }),
   draftWitnessStory: (caseId: string, body: string) => post<{ id: string }>(`/witness/cases/${caseId}/story`, { body }),
+  kindMilestones: () => get<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones'),
+  kindMilestonesSeen: () => post<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones/seen'),
+  checkBack: (postId: string) => get<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`),
+  setCheckBack: (postId: string, days: 3 | 7 | 14 | null) => put<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`, { days }),
   followup: (postId: string) => get<{ enabled: boolean; pending: boolean }>(`/posts/${postId}/followup`),
   answerFollowup: (postId: string, answer: FollowupAnswer, body?: string) =>
     post<{ answer: FollowupAnswer; crisis: boolean }>(`/posts/${postId}/followup`, body ? { answer, body } : { answer }),

@@ -342,6 +342,28 @@ export function CoverageSection() {
   );
 }
 
+/** Packet fallback (server radio/packet.ts): short IDs and counts over 1200-baud APRS packets. */
+export function PacketFallbackSection() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioPacket().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  const set = (enabled: boolean) => api.admin.setRadioPacket(enabled).then((r) => setOn(r.enabled)).catch(() => undefined);
+  return (
+    <View style={{ gap: space.sm }}>
+      <View style={styles.row}>
+        <Chip label={t('packet.off')} selected={!on} onPress={() => set(false)} />
+        <Chip label={t('packet.on')} selected={on} onPress={() => set(true)} />
+      </View>
+      <Text style={type.small}>{t('packet.hint')}</Text>
+    </View>
+  );
+}
+
 export function RadioDigestSection() {
   const t = useT();
   const [data, setData] = useState<RadioDigest | null>(null);

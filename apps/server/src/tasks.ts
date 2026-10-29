@@ -19,6 +19,8 @@ import { weeklyResupplyTask } from './modules/tiers/index.js';
 import { weeklyTask as radioDigestTask } from './modules/radio/digest.js';
 import { weeklyTask as feedbackSummaryTask } from './modules/pilot-tools/index.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
+import { weeklyReportTask as harmWeeklyReportTask } from './modules/moderator-care/index.js';
+import { oncallCheckTask } from './modules/moderator-care/oncall.js';
 import { publishDueTask as seedPrayersTask } from './modules/seed-prayers/index.js';
 import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
@@ -28,6 +30,7 @@ import { createSms, type SmsSend } from './modules/growth/sms.js';
 import { createApns, type ApnsSend } from './modules/live-activity/apns.js';
 import { refreshTask as liveActivityRefreshTask } from './modules/live-activity/index.js';
 import * as practices from './modules/practices/index.js';
+import * as checkBack from './modules/check-back/index.js';
 import { writeDueTask as autoPrayTask } from './modules/ai/auto-pray.js';
 import { createConverser, type Converse } from './modules/ai/provider.js';
 import { sendDueRemindersTask as prayerListRemindersTask } from './modules/prayer-list/index.js';
@@ -60,6 +63,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { apns?:
     live_activity_refresh: liveActivityRefreshTask(db, overrides.apns !== undefined ? overrides.apns : apnsFrom(config)),
     practices_followup: practices.followupDueTask(db),
     practices_gratitude: practices.gratitudeDueTask(db),
+    check_back_due: checkBack.dueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
@@ -83,6 +87,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { apns?:
     radio_digest_weekly: radioDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     feedback_summary_weekly: feedbackSummaryTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     token_ledger_check: ledgerCheckTask(db),
+    harm_weekly_report: harmWeeklyReportTask(db),
+    oncall_check: oncallCheckTask(db),
     jobs_failure_check: failureCheckTask(db),
     ops_heartbeat: heartbeatTask(db),
     ops_check: opsCheckTask(db),
@@ -122,6 +128,10 @@ export const crontab = [
   '30 7 * * 1 feedback_summary_weekly ?max=10&fill=1d&jobKey=feedback_summary_weekly',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
   '30 3 * * * retention_purge ?max=10&fill=1d&jobKey=retention_purge',
+  // Monday 07:00: last week's harmful-prayer report to admins (only while the switch is on).
+  '0 7 * * 1 harm_weekly_report ?max=10&fill=1d&jobKey=harm_weekly_report',
+  // Every 5 minutes: held posts waiting too long remind whoever is on call, then an admin (only while the rota is on).
+  '*/5 * * * * oncall_check ?max=3&fill=15m&jobKey=oncall_check',
   // Daily 04:15: re-derive every token balance from the ledger; alerts admins on any mismatch.
   '15 4 * * * token_ledger_check ?max=10&fill=1d&jobKey=token_ledger_check',
   // Every 10 minutes: alert admins about jobs that ran out of tries or keep failing.
@@ -145,4 +155,5 @@ export const crontab = [
   '0 17 * * * practices_followup ?max=10&fill=1d&jobKey=practices_followup',
   // Hourly: the gratitude card invitation at 6 pm on each member's chosen day (only while switched on).
   '0 * * * * practices_gratitude ?max=3&jobKey=practices_gratitude',
+  '30 * * * * check_back_due ?max=3&jobKey=check_back_due',
 ].join('\n');

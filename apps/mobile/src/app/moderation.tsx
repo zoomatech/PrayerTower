@@ -8,6 +8,8 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 
 import { CircleRequests } from '@/components/circle-requests';
 import { HarmFloods } from '@/components/harm-admin';
+import { BreakCard, HandoffRow, HardText, useModeratorCare } from '@/components/moderator-care';
+import { OncallBanner } from '@/components/oncall';
 import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -31,6 +33,7 @@ function Moderation() {
   const [error, setError] = useState<string | null>(null);
   const [rules, setRules] = useState<Record<string, ModerationRule>>({});
   const [appeals, setAppeals] = useState<Appeal[]>([]);
+  const care = useModeratorCare();
   const [flags, setFlags] = useState<Awaited<ReturnType<typeof api.activityFlags>>['flags']>([]);
 
   const load = useCallback(async () => {
@@ -89,6 +92,11 @@ function Moderation() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <Text style={type.title}>{t('profile.moderation')}</Text>
         <ErrorText error={error} />
+        <OncallBanner />
+        <BreakCard care={care} />
+        {/* On a break the queue steps aside until the moderator comes back (moderator care). */}
+        {care.onBreak ? null : (
+          <>
         <HarmFloods onError={setError} />
         <MendQueue />
         {flags.length ? <Text style={type.heading}>{t('moderation.flagsTitle')}</Text> : null}
@@ -128,8 +136,9 @@ function Moderation() {
               {t(`moderation.target.${item.target_type}`)} · {t(`moderation.source.${item.source}`)} ·{' '}
               {new Date(item.created_at).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
             </Text>
-            <Text style={type.body}>{item.content ?? t('moderation.gone')}</Text>
+            <HardText item={item} care={care} />
             {item.reason ? <Text style={styles.reason}>{t('moderation.why', { reason: item.reason })}</Text> : null}
+            <HandoffRow item={item} care={care} onDone={() => setItems((prev) => prev.filter((i) => i.id !== item.id))} onError={setError} />
             {item.source === 'crisis' ? (
               // Someone may be in danger: reach out and keep it up; remove only method details. Never suspend.
               <View style={styles.row}>
@@ -149,7 +158,12 @@ function Moderation() {
                   ))}
                 </View>
                 <View style={styles.row}>
-                  <Button small variant="secondary" label={t('moderation.keep')} onPress={() => decide(item, { action: 'dismiss' })} />
+                  <Button
+                    small
+                    variant="secondary"
+                    label={care.restore && item.auto_hidden ? t('modCare.restore') : t('moderation.keep')}
+                    onPress={() => decide(item, { action: 'dismiss' })}
+                  />
                   <Button small label={t('moderation.remove')} onPress={() => decide(item, { action: 'remove', rule: rules[item.id] ?? 'other' })} />
                   <Button
                     small
@@ -170,6 +184,8 @@ function Moderation() {
             ) : null}
           </View>
         ))}
+          </>
+        )}
       </ScrollView>
     </Screen>
   );

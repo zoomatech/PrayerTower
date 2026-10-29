@@ -5,12 +5,14 @@ import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from '
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
+import { CheckBack } from '@/components/check-back';
 import { CoolDownCard } from '@/components/cool-down-card';
 import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { isLit } from '@/components/vine-flow';
 import { CrisisSupport } from '@/components/crisis';
+import { HarmSupport, takeSupport } from '@/components/harm-support';
 import { GuestShare } from '@/components/guest-share';
 import { LiveFollow } from '@/components/live-follow';
 import { ShareChoice } from '@/components/outside-share';
@@ -79,6 +81,8 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
+  // Hotlines for someone who has just described abuse (from posting it, or a comment).
+  const [harmSupport, setHarmSupport] = useState(() => takeSupport(id));
   // The answered / testimony panel: closed, or open with the draft text.
   const [testimony, setTestimony] = useState<string | null>(null);
   // The "how it turned out" story panel: closed, or open with the draft text.
@@ -130,6 +134,7 @@ export default function PostScreen() {
       setWarnedFor(null);
       const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
       if (r.comment.crisis) setSupport(true);
+      if (r.comment.harm?.resources?.length) setHarmSupport(r.comment.harm);
       if (r.coolDown) setCoolNudge((n) => n + 1);
       setText('');
       setReplyTo(null);
@@ -305,8 +310,10 @@ export default function PostScreen() {
         ) : null}
         {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
+        {card?.isMine && card.postType === 'prayer_request' && card.state !== 'answered' ? <CheckBack postId={card.id} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
+        {harmSupport ? <HarmSupport note={harmSupport} /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
 
@@ -564,6 +571,8 @@ export default function PostScreen() {
                 empty={false}
                 text={text}
                 onPick={setText}
+                postType={replyTo || card.isMine ? null : card.postType}
+                lament={!replyTo && !card.isMine && features.lament && !!card.lament}
               />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>
