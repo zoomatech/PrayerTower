@@ -13,6 +13,7 @@ function recorder() {
   const api: ListenerApi = {
     channelReport: async (r) => void calls.push({ kind: 'report', body: r }),
     heard: async (r) => void calls.push({ kind: 'heard', body: r }),
+    heartbeat: async () => void calls.push({ kind: 'heartbeat', body: {} }),
   };
   return { api, calls };
 }
@@ -57,6 +58,7 @@ describe('listener node', () => {
       heard: async () => {
         throw new Error('should not be called');
       },
+      heartbeat: async () => {},
     };
     dec.push(new Float32Array([...silence(0.3), ...burst.audio, ...silence(0.3)]));
     expect(await listenOnce(dec, failing, { searchHz: 0, receipts: false }, (m) => logs.push(m))).toHaveLength(1);
@@ -99,7 +101,7 @@ describe('listener node', () => {
     expect(defaultRecordCommand('darwin')).toMatch(/^rec /);
   });
 
-  it('posts reports with the node key, and receipts without it; a switched-off server is not an error', async () => {
+  it('posts reports, fingerprints and heartbeats with the node key; a switched-off server is not an error', async () => {
     const seen: { url: string; key: string | null; body: string }[] = [];
     let status = 200;
     const fetchImpl = (async (url: string, init: RequestInit) => {
@@ -109,9 +111,11 @@ describe('listener node', () => {
     const api = httpListenerApi('https://api.test/', 'ptn_abc', fetchImpl);
     await api.channelReport({ callSign: 'N0CALL', preset: 'fm-fast', snrDb: 18 });
     await api.heard({ callSign: 'N0CALL', preset: 'fm-fast', snrDb: 18, hashes: ['0'.repeat(32)] });
+    await api.heartbeat();
     expect(seen.map((s) => [s.url, s.key])).toEqual([
       ['https://api.test/node/channel-report', 'ptn_abc'],
-      ['https://api.test/listen/heard', null],
+      ['https://api.test/node/heard', 'ptn_abc'],
+      ['https://api.test/node/heartbeat', 'ptn_abc'],
     ]);
     status = 404;
     await api.channelReport({ callSign: 'N0CALL', preset: 'fm-fast', snrDb: 18 });

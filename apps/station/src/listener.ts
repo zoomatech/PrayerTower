@@ -2,9 +2,11 @@
 // A Raspberry Pi with a receiver on its sound card records continuously, keeps
 // the last 24 seconds, decodes them every few seconds, and for each new frame
 // reports what it measured (call sign, preset, SNR) to Prayer Tower. A station
-// on BURST_PRESET=auto then picks its preset from real reception. With radio
-// receipts on, it also reports the prayers' fingerprints (never the words), so
-// senders hear that a listener decoded their prayer.
+// on BURST_PRESET=auto then picks its preset from real reception. It also
+// reports the prayers' fingerprints (never the words): that acknowledges them
+// (a prayer nobody heard is sent again, while that switch is on) and, with radio
+// receipts on, tells senders a listener decoded their prayer. A heartbeat about
+// once a minute tells the server the listener is running.
 import { spawn, type ChildProcess } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { channelReport, decodeAudio, fingerprint, type HeardFrame } from './burst/web.js';
@@ -63,35 +65,40 @@ export function s16le(buf: Buffer, carry: { rest: Buffer }): Float32Array {
 export interface ListenerApi {
   channelReport(r: { callSign: string; preset: string; snrDb: number }): Promise<void>;
   heard(r: { callSign: string; preset: string; snrDb: number; hashes: string[] }): Promise<void>;
+  heartbeat(): Promise<void>;
 }
 
-/** Prayer Tower's listener endpoints: POST /node/channel-report (x-node-key) and the public POST /listen/heard. */
+/** Prayer Tower's listener endpoints: POST /node/channel-report, /node/heard and /node/heartbeat, each with the node key (x-node-key). */
 export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch): ListenerApi {
   const base = baseUrl.replace(/\/$/, '');
-  const post = (path: string, body: object, key: boolean) =>
+  const post = (path: string, body: object) =>
     fetchImpl(`${base}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...(key ? { 'x-node-key': nodeKey } : {}) },
+      headers: { 'content-type': 'application/json', 'x-node-key': nodeKey },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(10_000),
     });
   return {
     async channelReport(r) {
-      const res = await post('/node/channel-report', r, true);
+      const res = await post('/node/channel-report', r);
       // 404: an admin has listener reports switched off.
       if (!res.ok && res.status !== 404) throw new Error(`channel report failed (${res.status})`);
     },
     async heard(r) {
-      const res = await post('/listen/heard', r, false);
-      // 404: receipts are switched off.
+      const res = await post('/node/heard', r);
+      // 404: receipts, acknowledgements and listener reports are all switched off.
       if (!res.ok && res.status !== 404) throw new Error(`receipt failed (${res.status})`);
+    },
+    async heartbeat() {
+      const res = await post('/node/heartbeat', {});
+      if (!res.ok) throw new Error(`heartbeat failed (${res.status})`);
     },
   };
 }
 
 export interface ListenerConfig {
   searchHz: number;
-  /** Also report prayers' fingerprints for "heard" receipts. */
+  /** Also report prayers' fingerprints, for acknowledgements and "heard" receipts. */
   receipts: boolean;
   /** Also write the latest channel report here, for a station on the same machine (BURST_AUTO_REPORT). */
   reportFile?: string;

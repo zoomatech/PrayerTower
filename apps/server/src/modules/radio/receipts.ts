@@ -78,6 +78,8 @@ export async function heard(q: Queryable, report: z.infer<typeof HeardReport>): 
       returning r.id, r.post_id, r.user_id, p.user_id as poster_id, hit.first, r.heard_at`,
     [hashes, report.callSign, HEARD_WINDOW_HOURS, report.snrDb],
   );
+  // A listener node's report also acknowledges the prayer (acks.ts); senders are told only while receipts are on.
+  if (!(await enabled(q))) return rows.length;
   for (const r of rows.filter((x) => x.first)) {
     for (const userId of new Set([r.user_id, r.poster_id])) {
       const time = await timeFor(q, userId, r.heard_at);
