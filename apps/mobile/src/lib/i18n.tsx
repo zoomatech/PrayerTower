@@ -20,6 +20,7 @@ import { env } from '@/lib/env';
 import en from '@/locales/en';
 import es from '@/locales/es';
 import { keys as neutralKeys, literals as neutralLiterals } from '@/locales/neutral';
+import { neutralEnglish, neutralString } from '@/lib/neutral-tree';
 
 export const LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -30,16 +31,8 @@ export type LanguageChoice = Language | 'system';
 
 const STORAGE_KEY = 'prayer-tower.language';
 type Tree = { [key: string]: unknown };
-function merge(base: Tree, over: Tree): Tree {
-  const out: Tree = { ...base };
-  for (const [k, v] of Object.entries(over)) {
-    const b = out[k];
-    out[k] = v && typeof v === 'object' && b && typeof b === 'object' ? merge(b as Tree, v as Tree) : v;
-  }
-  return out;
-}
 
-const i18n = new I18n({ en, es, 'en-neutral': merge(en as Tree, neutralKeys) });
+const i18n = new I18n({ en, es, 'en-neutral': neutralEnglish(en as Tree, neutralKeys, env.openCircleName) });
 i18n.defaultLocale = 'en';
 i18n.enableFallback = true;
 
@@ -122,7 +115,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       t,
       label: (group, v, english) => (v ? i18n.t(`enums.${group}.${v}`, { locale, defaultValue: english ?? v }) : ''),
       wording: words,
-      n: (text) => (locale === 'en-neutral' ? (neutralLiterals[text] ?? text) : text),
+      n: (text) => (locale === 'en-neutral' ? (neutralLiterals[text] ?? neutralString(text, env.openCircleName)) : text),
     };
   }, [language, locale, words, choice, setChoice]);
 
