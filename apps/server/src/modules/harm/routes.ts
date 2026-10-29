@@ -61,6 +61,14 @@ export function harmRoutes(app: FastifyInstance, db: Db) {
     return { settings: await care.updateSettings(db, care.SettingsPatch.parse(req.body)) };
   });
 
+  // Admin → Moderation dashboard and the weekly tuning reports (dashboard_enabled).
+  app.get('/admin/moderation-dashboard', async (req) => {
+    await requireAdmin(req);
+    if (!(await care.settings(db)).dashboard_enabled) throw forbidden('The moderation dashboard is switched off (Admin → Moderator care)');
+    const { days } = z.object({ days: z.coerce.number().int().min(1).max(365).default(7) }).parse(req.query);
+    return { dashboard: await care.dashboard(db, days), reports: await care.reports(db) };
+  });
+
   app.post<{ Params: { id: string } }>('/moderation/items/:id/handoff', async (req) => {
     const moderatorId = await requireModerator(req);
     const input = care.Handoff.parse(req.body);

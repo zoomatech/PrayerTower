@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Field, Toggle } from '@/components/ui';
-import { api, type HarmFlood, type HarmSettings, type ModeratorCare } from '@/lib/api';
+import { api, type HarmFlood, type HarmReport, type HarmSettings, type ModerationDashboard, type ModeratorCare } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -88,11 +88,67 @@ export function ModeratorCareSection() {
       <Text style={type.heading}>{t('modCare.section')}</Text>
       <Toggle label={t('modCare.enabled')} hint={t('modCare.enabledHint')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
       <Toggle label={t('modCare.blur')} value={s.blur_hard} onChange={(v) => save({ blur_hard: v })} />
+      <Toggle label={t('modCare.dashboard')} value={s.dashboard_enabled} onChange={(v) => save({ dashboard_enabled: v })} />
+      <Toggle label={t('modCare.weekly')} hint={t('modCare.weeklyHint')} value={s.weekly_report_enabled} onChange={(v) => save({ weekly_report_enabled: v })} />
       <Field label={t('modCare.breakAfterMinutes')} keyboardType="number-pad" value={draft.minutes} onChangeText={(minutes) => setDraft((d) => ({ ...d, minutes }))} />
       <Field label={t('modCare.breakAfterItems')} keyboardType="number-pad" value={draft.items} onChangeText={(items) => setDraft((d) => ({ ...d, items }))} />
       <Field label={t('modCare.breakMinutes')} keyboardType="number-pad" value={draft.length} onChangeText={(length) => setDraft((d) => ({ ...d, length }))} />
       <Button label={t('modCare.save')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Admin → Moderation dashboard: queue size and waits, decision speed, false alarms, floods, and the weekly reports. */
+export function ModerationDashboardSection() {
+  const t = useT();
+  const [data, setData] = useState<{ dashboard: ModerationDashboard; reports: HarmReport[] } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      // Switched off: the server says 403 and the section stays hidden.
+      api.moderationDashboard().then(setData, () => setData(null));
+    }, []),
+  );
+  if (!data) return null;
+  const d = data.dashboard;
+  const pct = (r: number | null) => (r === null ? '–' : `${Math.round(r * 100)}%`);
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('modCare.dashTitle', { days: d.days })}</Text>
+      <Text style={type.body}>{t('modCare.dashQueue')}</Text>
+      {d.queue.length ? (
+        d.queue.map((r) => (
+          <Text key={r.source} style={type.small}>
+            {t('modCare.dashQueueRow', { source: t(`moderation.source.${r.source}`), pending: r.pending, oldest: r.oldest_minutes ?? 0 })}
+          </Text>
+        ))
+      ) : (
+        <Text style={type.small}>{t('modCare.dashEmpty')}</Text>
+      )}
+      <Text style={type.body}>{t('modCare.dashSpeed')}</Text>
+      {d.speed.map((r) => (
+        <Text key={r.source} style={type.small}>
+          {t('modCare.dashSpeedRow', { source: t(`moderation.source.${r.source}`), decided: r.decided, median: r.median_minutes ?? 0, p90: r.p90_minutes ?? 0 })}
+        </Text>
+      ))}
+      <Text style={type.body}>{t('modCare.dashFalse')}</Text>
+      {d.falseAlarms.map((r) => (
+        <Text key={r.category} style={type.small}>
+          {t('modCare.dashFalseRow', { category: r.category, dismissed: r.dismissed, decided: r.decided, rate: pct(r.rate) })}
+        </Text>
+      ))}
+      <Text style={type.small}>{t('modCare.dashFloods', { floods: d.floods.floods, accounts: d.floods.accounts, items: d.floods.items, handoffs: d.handoffs })}</Text>
+      {data.reports.slice(0, 1).map((r) => (
+        <View key={r.id} style={{ gap: space.xs }}>
+          <Text style={type.body}>{t('modCare.dashReport', { week: r.week_start.slice(0, 10), flagged: r.report.flagged, bundled: r.report.bundled })}</Text>
+          {r.report.rules.map((x) => (
+            <Text key={x.rule} style={type.small}>
+              {x.rule}: {t('modCare.dashRuleRow', { flagged: x.flagged, dismissed: x.dismissed, removed: x.removed, rate: pct(x.falseAlarmRate) })}
+              {x.tooLoose ? ` · ${t('modCare.tooLoose')}` : ''}
+            </Text>
+          ))}
+        </View>
+      ))}
     </View>
   );
 }

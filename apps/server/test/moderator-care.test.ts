@@ -4,6 +4,8 @@ import { grantRole } from '../src/modules/accounts/index.js';
 import * as harm from '../src/modules/harm/index.js';
 import * as care from '../src/modules/moderator-care/index.js';
 import { as, createUser, db } from './helpers.js';
+import { buildTaskList } from '../src/tasks.js';
+import { config } from './helpers.js';
 
 const harmDefaults = await harm.settings(db);
 const careDefaults = await care.settings(db);
@@ -80,5 +82,59 @@ describe('explaining a held post', () => {
     const { item } = await heldPost(member, "I'm going to hurt them.");
     expect((await as(member).post(`/moderation/items/${item.id}/appeal`, { message: 'Please' })).statusCode).toBe(400);
     await harm.updateSettings(db, { explain_held: true });
+  });
+});
+
+describe('moderation dashboard and weekly report', () => {
+  it('is off by default, then shows the queue, speed, false alarms and floods', async () => {
+    await care.updateSettings(db, { dashboard_enabled: false });
+    expect((await as(admin).get('/admin/moderation-dashboard')).statusCode).toBe(403);
+    await as(admin).patch('/admin/moderator-care-settings', { dashboard_enabled: true });
+    expect((await as(mod1).get('/admin/moderation-dashboard')).statusCode).toBe(403);
+
+    // One false alarm (dismissed) and one real one (removed).
+    const wish = await heldPost(await createUser('Hurt'), 'I pray he dies.');
+    await as(mod1).post(`/moderation/items/${wish.item.id}/decision`, { action: 'dismiss' });
+    const wish2 = await heldPost(await createUser('Cruel'), 'I hope my neighbor dies.');
+    await as(mod1).post(`/moderation/items/${wish2.item.id}/decision`, { action: 'remove', rule: 'harm' });
+
+    const { dashboard } = (await as(admin).get('/admin/moderation-dashboard?days=1')).json();
+    expect(dashboard.queue.find((r: { source: string }) => r.source === 'harm')).toMatchObject({ pending: expect.any(Number), oldest_minutes: expect.any(Number) });
+    expect(dashboard.speed.find((r: { source: string }) => r.source === 'harm').decided).toBeGreaterThanOrEqual(2);
+    const wishes = dashboard.falseAlarms.find((r: { category: string }) => r.category === 'harm_wish');
+    expect(wishes.dismissed).toBeGreaterThanOrEqual(1);
+    expect(wishes.rate).toBeGreaterThan(0);
+    expect(dashboard.floods).toMatchObject({ floods: expect.any(Number), items: expect.any(Number) });
+    expect(dashboard.handoffs).toBeGreaterThanOrEqual(1);
+  });
+
+  it('reports each word rule with how moderators decided, and flags rules mostly dismissed', async () => {
+    const start = new Date(Date.now() - 86_400_000);
+    for (let i = 0; i < 3; i++) {
+      const { item } = await heldPost(await createUser(`Loose ${i}`), `I curse my neighbor number ${i}.`);
+      await as(mod1).post(`/moderation/items/${item.id}/decision`, { action: 'dismiss' });
+    }
+    const report = await care.weeklyReport(db, start);
+    const curse = report.rules.find((r) => r.rule === 'curse:0')!;
+    expect(curse).toMatchObject({ dismissed: expect.any(Number), tooLoose: true });
+    expect(curse.falseAlarmRate).toBeGreaterThanOrEqual(0.5);
+    // Never the members' words.
+    expect(JSON.stringify(report)).not.toContain('neighbor');
+  });
+
+  it('sends the Monday report to admins once a week, only while switched on', async () => {
+    const run = () => buildTaskList(db, config).harm_weekly_report!({}, {} as never);
+    const week = care.lastWeekStart().toISOString().slice(0, 10);
+    await db.query('delete from public.harm_weekly_reports where week_start = $1', [week]);
+    await care.updateSettings(db, { weekly_report_enabled: false });
+    await run();
+    expect((await db.query('select 1 from public.harm_weekly_reports where week_start = $1', [week])).rows).toHaveLength(0);
+    await care.updateSettings(db, { weekly_report_enabled: true });
+    await run();
+    await run();
+    expect((await db.query('select 1 from public.harm_weekly_reports where week_start = $1', [week])).rows).toHaveLength(1);
+    const { rows } = await db.query(`select body from public.notifications where user_id = $1 and kind = 'harm_weekly_report'`, [admin]);
+    expect(rows).toHaveLength(1);
+    expect((await as(admin).get('/admin/moderation-dashboard')).json().reports[0].week_start).toBeDefined();
   });
 });

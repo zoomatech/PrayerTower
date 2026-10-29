@@ -93,3 +93,14 @@ The queue shows the reason: "Possible threat: a person should read this", "Praye
 ## Explaining a held post
 
 When a post is held, its author gets a notice ("Your request is waiting for a moderator") with **Explain it**. Their explanation (once, up to 1,000 characters) is shown with the item, and items with an explanation sort ahead of other held items. Admins can turn this off (`explain_held`). The moderator's keep or remove decision then works as usual, and a removal can still be appealed. Floods don't get the notice.
+
+## Moderation dashboard and weekly report (off by default)
+
+Both switches are in **Admin → Moderator care**.
+
+- **Dashboard** (`dashboard_enabled`, `GET /admin/moderation-dashboard?days=7`): what is waiting now and the oldest wait, by source; how fast items were decided (median and slowest tenth); the harmful-prayer false-alarm rate per category (flags a moderator kept, out of those decided); floods (how many, from how many accounts, items held) and handoffs.
+- **Weekly report** (`weekly_report_enabled`, Monday 07:00 UTC, job `harm_weekly_report`): for each word rule (`harm_events.rules`, such as `curse:0` or `hate:admin_words`), how often it flagged last week and how moderators decided. A rule with at least 3 decisions that moderators kept half the time or more is marked **worth loosening**. Admins get a notice; reports are kept in `harm_weekly_reports`. It holds counts only, never member text. Floods are left out, because they say more about one account than about the words.
+
+## Open Circle (secular edition)
+
+The check, the holds, the review queue and the flood bundling work the same on Open Circle. The redirects members read use secular wording: "Ask for justice and safety", not "leave the rest to God", and no Scripture. Notices and error messages also pass through the usual neutral-wording filter. `apps/server/test/harm-open-circle.test.ts` checks that nothing an Open Circle member reads from it has a religious word.

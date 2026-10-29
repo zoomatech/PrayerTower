@@ -675,8 +675,21 @@ export type HarmSettings = {
   explain_held: boolean;
 };
 export type ModeratorCare = {
-  settings: { enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
+  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
   colleagues: { id: string; display_name: string }[];
+};
+export type ModerationDashboard = {
+  days: number;
+  queue: { source: string; pending: number; oldest_minutes: number | null }[];
+  speed: { source: string; decided: number; median_minutes: number | null; p90_minutes: number | null }[];
+  falseAlarms: { category: string; decided: number; dismissed: number; rate: number | null }[];
+  floods: { floods: number; accounts: number; items: number };
+  handoffs: number;
+};
+export type HarmReport = {
+  id: string;
+  week_start: string;
+  report: { flagged: number; bundled: number; rules: { rule: string; flagged: number; dismissed: number; removed: number; falseAlarmRate: number | null; tooLoose: boolean }[] };
 };
 export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
 export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
@@ -1176,6 +1189,7 @@ export const api = {
   moderatorCare: () => get<ModeratorCare>('/moderation/care'),
   updateModeratorCare: (patch: Partial<ModeratorCare['settings']>) => request<{ settings: ModeratorCare['settings'] }>('PATCH', '/admin/moderator-care-settings', patch),
   handoff: (itemId: string, toUserId?: string, note?: string) => post<{ ok: boolean }>(`/moderation/items/${itemId}/handoff`, { toUserId, note }),
+  moderationDashboard: (days = 7) => get<{ dashboard: ModerationDashboard; reports: HarmReport[] }>(`/admin/moderation-dashboard?days=${days}`),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
   harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),

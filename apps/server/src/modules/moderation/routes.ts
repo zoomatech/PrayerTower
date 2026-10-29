@@ -51,10 +51,10 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   // Warn before posting: if the AI would flag this text, the app shows the rules first (Instagram-style nudge).
   // Never blocks; any error or a missing classifier means no warning.
   app.post('/moderation/precheck', async (req) => {
-    requireUser(req);
+    const userId = requireUser(req);
     const { text } = z.object({ text: z.string().max(10_000) }).parse(req.body);
     // The harmful-prayer check (free, no AI): a gentle word and any hotlines, only when it applies (docs/HARMFUL_PRAYERS.md).
-    const harmWord = await harm.precheck(db, text).catch(() => null);
+    const harmWord = await harm.precheck(db, userId, text).catch(() => null);
     const harmPart = harmWord ? { harm: harmWord } : {};
     if (!classify || !text.trim()) return { warn: false, ...harmPart };
     const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
