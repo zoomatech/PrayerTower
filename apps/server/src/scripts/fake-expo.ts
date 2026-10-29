@@ -23,11 +23,8 @@ createServer((req, res) => {
     if (req.url === '/--/api/v2/push/send') {
       if (mode === 'busy') return reply(503, { errors: [{ code: 'SERVICE_UNAVAILABLE' }] });
       const messages = (Array.isArray(body) ? body : [body]) as { to: string; title: string; body: string; collapseId?: string }[];
-      for (const m of messages) {
-        // Line breaks out, so a request can't write fake lines into this log.
-        const line = `push → ${m.to}: ${m.title} — ${m.body}${m.collapseId ? ` (collapseId ${m.collapseId})` : ''}`.replace(/\n|\r/g, ' ');
-        console.log(line);
-      }
+      // Each push as JSON on one line: quotes and line breaks are escaped, so a request can't forge log lines.
+      for (const m of messages) console.log('push', JSON.stringify({ to: m.to, title: m.title, body: m.body, collapseId: m.collapseId }));
       return reply(200, {
         data: messages.map(() => (mode === 'dead' ? { status: 'error', message: 'not registered', details: { error: 'DeviceNotRegistered' } } : { status: 'ok', id: `fake-${next++}` })),
       });
