@@ -31,7 +31,7 @@ const week = (over: Partial<StationReport> = {}): StationReport => ({
 it('approves a listener and, with no email set up, offers the setup link to share', async () => {
   admin.listenerSignups.mockResolvedValue({ enabled: true, emailReady: false, signups: [signup(), signup({ id: 's2', name: 'Bo', status: 'joined' })] });
   admin.approveListener.mockResolvedValue({ signup: signup({ status: 'approved' }), setupUrl: 'https://api.example.org/listeners/setup/abc', emailed: false });
-  const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+  const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
   await renderApp(<ListenerSignupSection />);
   expect(await screen.findByText('1 request waiting')).toBeTruthy();
   expect(screen.getByText('Ann, Chatham')).toBeTruthy();

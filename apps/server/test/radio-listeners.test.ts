@@ -287,7 +287,7 @@ describe('weekly station report', () => {
     expect(r.bursts.airSeconds - before.bursts.airSeconds).toBeGreaterThanOrEqual(12);
     expect(r.prayers.delivered - before.prayers.delivered).toBeGreaterThanOrEqual(1);
     expect(r.prayers.heard - before.prayers.heard).toBeGreaterThanOrEqual(1);
-    expect(r.problems.byKind.ptt_failed - (before.problems.byKind.ptt_failed ?? 0)).toBe(1);
+    expect((r.problems.byKind.ptt_failed ?? 0) - (before.problems.byKind.ptt_failed ?? 0)).toBe(1);
     expect(r.problems.burstErrors).toContainEqual(expect.objectContaining({ error: 'PTT did not key' }));
     expect(r.listeners.perNode.find((n) => n.name === 'Report Listener')).toMatchObject({ reports: 1, snrDb: 14, quality: 'fair', receiver: null });
     expect(r.listeners.joined - before.listeners.joined).toBeGreaterThanOrEqual(1);
