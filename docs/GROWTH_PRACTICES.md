@@ -171,3 +171,21 @@ Rules, following the gentle-rhythm practice:
 
 Code: `modules/kind-milestones`, `components/kind-milestones.tsx`, table
 `kind_milestones_seen` (included in account deletion and export).
+
+## Thank the pray-ers (off)
+
+Admin → Growth practices → **Thank the pray-ers** (migration 20261029018800). On their own
+post, once someone has prayed, the person who asked sees **Thank everyone who prayed**.
+They write one warm note of up to 600 characters. Three starters help them begin ("Thank
+you for carrying this with me…"), and the kind cloud checks it as usual.
+
+- Everyone who prayed or promised to pray gets the note once. Each post can have only one
+  note.
+- Each pray-er sees it on the post as "A thank-you from Ana" and can answer **Glad to**.
+- Only the person who asked sees how many said they were glad to. Strangers see nothing.
+- This sits beside the older quick thanks (a 77-character line with an icon). It is the
+  "gratitude letter" in research/Personal_Growth_Research.md, which found that writing
+  thanks lifts the writer as well as the reader.
+
+Code: `modules/thank-note`, `components/thank-note.tsx`. The tables `thank_notes` and
+`thank_note_glad` are included in account deletion and export.

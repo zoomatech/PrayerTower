@@ -20,6 +20,14 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  thankNote: {
+    title: 'Thank everyone who supported you',
+    hint: 'Write one warm note. Everyone who supported this gets it, once.',
+    starter2: 'I felt your support, and it made a difference. ',
+    send: 'Send to everyone who supported you',
+    adminTitle: 'Thank the supporters',
+    adminHint: 'The person who asked can send one warm note to everyone who supported their post, with starters to help. Each supporter hears once and can answer “Glad to”; only the asker sees how many did.',
+  },
   quietCounts: {
     seen: 'Hide support numbers on posts I see',
     seenHint: 'You’ll see “People are with you” instead of a number.',
