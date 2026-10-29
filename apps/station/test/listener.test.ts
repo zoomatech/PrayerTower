@@ -138,3 +138,15 @@ describe('listener node', () => {
     expect(asked).toEqual(['k', 'k']);
   });
 });
+
+describe('station on a Mac', () => {
+  it('finds output devices in system_profiler JSON, and fails with none', async () => {
+    const { macAudioCheck } = await import('../src/status.js');
+    const listing = { SPAudioDataType: [{ _items: [{ _name: 'MacBook Pro Microphone', coreaudio_device_input: 1 }, { _name: 'USB Audio Device', coreaudio_device_output: 2, coreaudio_device_input: 1 }] }] };
+    expect(await macAudioCheck(async () => JSON.stringify(listing))).toEqual({ name: 'audio', ok: true, detail: 'USB Audio Device' });
+    expect((await macAudioCheck(async () => JSON.stringify({ SPAudioDataType: [{ _items: [] }] }))).ok).toBe(false);
+    expect((await macAudioCheck(async () => 'not json')).ok).toBe(false);
+    // A listing without output markers still names what is there.
+    expect(await macAudioCheck(async () => JSON.stringify({ SPAudioDataType: [{ _items: [{ _name: 'Speakers' }] }] }))).toMatchObject({ ok: true, detail: 'Speakers' });
+  });
+});

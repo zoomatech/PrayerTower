@@ -4,7 +4,7 @@
 // roles. The server checks the admin role on every call.
 import { COMMUNITY_FEATURES, POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { HarmSettingsSection } from '@/components/harm-admin';
@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -310,6 +310,7 @@ function Admin() {
         <NotebookSettingsSection />
         <GrowthSettingsSection />
         <PracticeSettingsSection />
+        <ConversationSettingsSection />
         <SkinSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
@@ -349,7 +350,7 @@ function Admin() {
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             {radio.radio_transmitter === 'station' ? <StationAlertsSection /> : null}
-            {radio.radio_batch_max > 1 ? <ListenerNodesSection /> : null}
+            {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
               <>
@@ -534,8 +535,11 @@ function DeletionRequestsSection() {
   );
 }
 
-/** Receive-only listener nodes: their keys (shown once), on/off, and what each last heard. Off by default. */
-function ListenerNodesSection() {
+/**
+ * Radio nodes: receive-only listener nodes and extra stations sharing the queue,
+ * each with its own key (shown once). Both off by default.
+ */
+function RadioNodesSection({ burst }: { burst: boolean }) {
   const t = useT();
   const [data, setData] = useState<RadioNodes | null>(null);
   const [name, setName] = useState('');
@@ -545,42 +549,63 @@ function ListenerNodesSection() {
   }, []);
   useFocusEffect(load);
   if (!data) return null;
-  const add = async () => {
+  const add = async (role: 'listener' | 'station') => {
     if (!name.trim()) return;
-    const made = await api.admin.addRadioNode(name.trim()).catch(() => null);
+    const made = await api.admin.addRadioNode(name.trim(), role).catch(() => null);
     if (made) {
       setNewKey({ name: made.node.name, key: made.key });
       setName('');
       load();
     }
   };
+  const save = (patch: { enabled?: boolean; multiStation?: boolean }) => api.admin.setRadioNodesEnabled(patch).then(load).catch(() => undefined);
+  const shown = data.nodes.filter((n) => (n.role === 'listener' ? data.enabled : data.multiStation));
   return (
     <View>
       <View style={styles.row}>
-        <Chip label={t('admin.listenersOff')} selected={!data.enabled} onPress={() => api.admin.setRadioNodesEnabled(false).then(load)} />
-        <Chip label={t('admin.listenersOn')} selected={data.enabled} onPress={() => api.admin.setRadioNodesEnabled(true).then(load)} />
+        <Chip label={t('admin.multiStationOff')} selected={!data.multiStation} onPress={() => save({ multiStation: false })} />
+        <Chip label={t('admin.multiStationOn')} selected={data.multiStation} onPress={() => save({ multiStation: true })} />
       </View>
-      <Text style={type.small}>{t('admin.listenersHint')}</Text>
-      {data.enabled ? (
+      <Text style={type.small}>{t('admin.multiStationHint')}</Text>
+      {data.multiStation
+        ? data.stations.map((s) => (
+            <Text key={s.node ?? 'main'} style={type.small}>
+              {t('admin.stationCount', { name: s.node ?? t('admin.mainStation'), sending: s.sending, sent: s.sent })}
+            </Text>
+          ))
+        : null}
+      {burst ? (
         <>
-          {data.nodes
-            .filter((n) => n.role === 'listener')
-            .map((n) => (
-              <View key={n.id} style={styles.row}>
-                <Text style={type.small}>
-                  {t('admin.listenerLine', { name: n.name, seen: n.last_seen_at ? new Date(n.last_seen_at).toLocaleString() : t('admin.listenerNever') })}
-                </Text>
-                <Chip label={n.enabled ? t('admin.listenerOn') : t('admin.listenerOff')} selected={n.enabled} onPress={() => api.admin.updateRadioNode(n.id, { enabled: !n.enabled }).then(load)} />
-                <Button small variant="ghost" label={t('admin.listenerRemove')} onPress={() => api.admin.removeRadioNode(n.id).then(load)} />
-              </View>
-            ))}
-          {data.reports.map((r) => (
+          <View style={styles.row}>
+            <Chip label={t('admin.listenersOff')} selected={!data.enabled} onPress={() => save({ enabled: false })} />
+            <Chip label={t('admin.listenersOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
+          </View>
+          <Text style={type.small}>{t('admin.listenersHint')}</Text>
+        </>
+      ) : null}
+      {shown.map((n) => (
+        <View key={n.id} style={styles.row}>
+          <Text style={type.small}>
+            {t(n.role === 'station' ? 'admin.stationNodeLine' : 'admin.listenerLine', { name: n.name, seen: n.last_seen_at ? new Date(n.last_seen_at).toLocaleString() : t('admin.listenerNever') })}
+          </Text>
+          <Chip label={n.enabled ? t('admin.listenerOn') : t('admin.listenerOff')} selected={n.enabled} onPress={() => api.admin.updateRadioNode(n.id, { enabled: !n.enabled }).then(load)} />
+          <Button small variant="ghost" label={t('admin.listenerRemove')} onPress={() => api.admin.removeRadioNode(n.id).then(load)} />
+        </View>
+      ))}
+      {data.enabled
+        ? data.reports.map((r) => (
             <Text key={r.node} style={type.small}>
               {t('admin.listenerHeard', { name: r.node, callSign: r.call_sign, snr: r.snr_db, preset: r.preset, when: new Date(r.heard_at).toLocaleString() })}
             </Text>
-          ))}
+          ))
+        : null}
+      {data.enabled || data.multiStation ? (
+        <>
           <Field label={t('admin.listenerName')} value={name} onChangeText={setName} />
-          <Button variant="secondary" label={t('admin.listenerAdd')} onPress={add} />
+          <View style={styles.row}>
+            {data.enabled ? <Button variant="secondary" label={t('admin.listenerAdd')} onPress={() => add('listener')} /> : null}
+            {data.multiStation ? <Button variant="secondary" label={t('admin.stationAdd')} onPress={() => add('station')} /> : null}
+          </View>
           {newKey ? (
             <Text selectable style={type.small}>
               {t('admin.listenerKey', { name: newKey.name, key: newKey.key })}
@@ -1464,6 +1489,75 @@ function GrowthSettingsSection() {
       <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
       <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Counting patterns: weekly totals of move labels; rows under the minimum are folded together. */
+function TalkCountsView() {
+  const t = useT();
+  const [c, setC] = useState<TalkCountSummary | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.admin.talkCounts().then((r) => setC(r.counts), (e) => setNote((e as Error).message));
+  }, []);
+  if (!c) return note ? <Text style={type.small}>{note}</Text> : null;
+  const move = (m: string) => t(`talk.move.${m}`);
+  return (
+    <View testID="talk-counts" style={{ gap: space.xs }}>
+      <Text style={type.body}>{t('talk.countsTitle', { weeks: c.weeks })}</Text>
+      {!c.chains.length && !c.emoji.length && !c.otherChains && !c.otherEmoji ? <Text style={type.small}>{t('talk.countsEmpty')}</Text> : null}
+      {c.chains.length || c.otherChains ? <Text style={type.small}>{t('talk.countsChains')}</Text> : null}
+      {c.chains.map((r) => (
+        <Text key={r.moves.join('-')} style={type.small}>
+          {r.moves.map(move).join(' → ')}: {r.n}
+        </Text>
+      ))}
+      {c.otherChains ? <Text style={type.small}>{t('talk.countsFolded', { min: c.minShown, n: c.otherChains })}</Text> : null}
+      {c.emoji.length || c.otherEmoji ? <Text style={type.small}>{t('talk.countsEmoji')}</Text> : null}
+      {c.emoji.map((r) => (
+        <Text key={`${r.emoji}-${r.meaning}-${r.toMove}`} style={type.small}>
+          {t('talk.countsEmojiRow', { emoji: r.emoji, meaning: r.meaning, move: move(r.toMove), n: r.n })}
+        </Text>
+      ))}
+      {c.otherEmoji ? <Text style={type.small}>{t('talk.countsFolded', { min: c.minShown, n: c.otherEmoji })}</Text> : null}
+    </View>
+  );
+}
+
+/** Conversation helpers (docs/CONVERSATION_HELPERS.md): each off until switched on; members still choose on Me. */
+function ConversationSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<ConversationSettings | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.conversationSettings().then((r) => setS(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateConversationSettings>[0]) =>
+    api.admin
+      .updateConversationSettings(patch)
+      .then((r) => {
+        setS(r.settings);
+        resetFeatures();
+        setNote(t('talk.adminSave'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('talk.adminTitle')}</Text>
+      <Text style={type.small}>{t('talk.adminIntro')}</Text>
+      <Toggle label={t('talk.adminSuggestions')} hint={t('talk.adminSuggestionsHint')} value={s.reply_suggestions_enabled} onChange={(v) => save({ replySuggestionsEnabled: v })} />
+      <Toggle label={t('talk.adminMeaning')} hint={t('talk.adminMeaningHint')} value={s.meaning_prefs_enabled} onChange={(v) => save({ meaningPrefsEnabled: v })} />
+      <Toggle label={t('talk.adminCare')} hint={t('talk.adminCareHint')} value={s.trouble_nudge_enabled} onChange={(v) => save({ troubleNudgeEnabled: v })} />
+      <Toggle label={t('talk.adminPacks')} hint={t('talk.adminPacksHint')} value={s.greeting_packs_enabled} onChange={(v) => save({ greetingPacksEnabled: v })} />
+      <Toggle label={t('talk.adminOwnWords')} hint={t('talk.adminOwnWordsHint')} value={s.own_words_enabled} onChange={(v) => save({ ownWordsEnabled: v })} />
+      <Toggle label={t('talk.adminClosings')} hint={t('talk.adminClosingsHint')} value={s.kind_closings_enabled} onChange={(v) => save({ kindClosingsEnabled: v })} />
+      <Toggle label={t('talk.adminCounts')} hint={t('talk.adminCountsHint')} value={s.talk_counts_enabled} onChange={(v) => save({ talkCountsEnabled: v })} />
+      {s.talk_counts_enabled ? <TalkCountsView /> : null}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

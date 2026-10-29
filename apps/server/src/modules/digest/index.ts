@@ -98,7 +98,7 @@ export function renderDigest(d: Digest, saved: Locale, to: string, secular = fal
 <p>${esc(t.hello(d.name))}</p><p>${esc(t.week(d))}${t.promises(d) ? `<br>${esc(t.promises(d))}` : ''}</p>
 ${d.answered.length ? `<h3>${esc(t.answered)}</h3><ul>${d.answered.map((a) => `<li>${esc(a.body)}${a.mine ? ` <em>${esc(t.mine)}</em>` : ''}</li>`).join('')}</ul>` : ''}
 <hr><p style="font-size:13px;color:#6b6478">${esc(t.off)}</p></body></html>`;
-  return { to, subject: t.subject, text, html };
+  return { to, subject: t.subject, text, html, ...(secular && { secular }) };
 }
 
 /** ISO week label, e.g. 2026-W44: one digest per member per week. */

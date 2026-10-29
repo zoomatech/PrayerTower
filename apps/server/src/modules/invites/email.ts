@@ -97,5 +97,5 @@ ${stores.length ? `<ul>${stores.map((s) => `<li><a href="${esc(s.url)}">${esc(s.
 ${signUp ? `<p>${esc(t.open)}<br><a href="${esc(signUp)}">${esc(signUp)}</a></p>` : ''}
 ${input.message ? `<p><strong>${esc(t.note(input.from))}</strong><br>${esc(input.message)}</p>` : ''}
 <hr><p style="font-size:13px;color:#6b6478">${esc(t.footer)}</p></body></html>`;
-  return { to: input.to, subject: t.subject, text, html };
+  return { to: input.to, subject: t.subject, text, html, ...(input.community?.secular && { secular: true }) };
 }

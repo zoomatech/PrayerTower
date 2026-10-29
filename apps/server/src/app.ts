@@ -29,6 +29,7 @@ import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
 import { practiceRoutes } from './modules/practices/routes.js';
 import { repairRoutes } from './modules/repair/routes.js';
+import { conversationHelperRoutes } from './modules/conversation-helpers/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
@@ -192,6 +193,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
   // The radio station authenticates with its own key, not a member login.
   app.register(async (station) => {
     markScope(station, catalog, 'station');
+    // Generous: a station polls every few seconds, but keys are checked against the database.
+    if (rateLimitPerMinute > 0) await station.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 300, timeWindow: '1 minute' });
     stationRoutes(station, db, stationKey);
   });
 
@@ -310,6 +313,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     meaningReactionRoutes(authed, db);
     practiceRoutes(authed, db);
     repairRoutes(authed, db);
+    conversationHelperRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);

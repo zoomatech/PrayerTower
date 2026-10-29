@@ -252,14 +252,14 @@ const NEED_ORDER = `p.urgency desc, (select count(*) from public.prayer_events e
  * a name: only the request text. Skips (and fails) requests that were removed,
  * are marked sensitive, or have moderation still pending.
  */
-export async function claimNext(q: Queryable): Promise<{ id: string; text: string; repeats: number } | null> {
+export async function claimNext(q: Queryable, nodeId: string | null = null): Promise<{ id: string; text: string; repeats: number } | null> {
   const s = await stationSettings(q);
   if (s.radio_transmitter !== 'station') throw conflict('Radio is not in station mode');
   if (s.radio_station_requires_free && (await tokens.settings(q)).radio_funding !== 'free') {
     throw conflict('Amateur rules: the station only sends while radio prayers are free (radio_funding = free)');
   }
   await q.query(
-    `update public.radio_prayers set status = 'queued', claimed_at = null
+    `update public.radio_prayers set status = 'queued', claimed_at = null, claimed_by_node = null
       where status = 'sending' and claimed_at < now() - make_interval(mins => $1)`,
     [CLAIM_TIMEOUT_MINUTES],
   );
@@ -280,18 +280,18 @@ export async function claimNext(q: Queryable): Promise<{ id: string; text: strin
       await failAndRefund(q, r.id, `not sent: ${skip}`);
       continue;
     }
-    await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now() where id = $1`, [r.id]);
+    await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now(), claimed_by_node = $2 where id = $1`, [r.id, nodeId]);
     return { id: r.id, text: r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars), repeats: r.repeats };
   }
   return null;
 }
 
 /** Burst mode: up to `max` prayers (capped by radio_batch_max), in the order claimNext hands them out. */
-export async function claimBatch(q: Queryable, max: number) {
+export async function claimBatch(q: Queryable, max: number, nodeId: string | null = null) {
   const limit = Math.max(1, Math.min(max, (await stationSettings(q)).radio_batch_max));
   const out: { id: string; text: string; repeats: number }[] = [];
   while (out.length < limit) {
-    const next = await claimNext(q);
+    const next = await claimNext(q, nodeId);
     if (!next) break;
     out.push(next);
   }
@@ -355,16 +355,17 @@ export async function recentBursts(q: Queryable, limit = 10): Promise<StationBur
   return rows;
 }
 
-export async function reportResult(q: Queryable, id: string, result: z.infer<typeof StationResult>) {
+/** nodeId: the reporting station (null for the main station); only the station holding the claim may report it. */
+export async function reportResult(q: Queryable, id: string, result: z.infer<typeof StationResult>, nodeId: string | null = null) {
   const { rows } = await q.query<{ id: string; post_id: string; poster_id: string; sender_id: string }>(
     `update public.radio_prayers r
         set status = $2::public.radio_prayer_status, transmitter = 'station', call_sign = $3, pieces = $4, error = $5,
             transmitted_at = case when $2::public.radio_prayer_status = 'transmitted' then now() end,
             preset = $6, sent_hash = $7
        from public.posts p
-      where r.id = $1 and r.status = 'sending' and p.id = r.post_id
+      where r.id = $1 and r.status = 'sending' and p.id = r.post_id and r.claimed_by_node is not distinct from $8
       returning r.id, r.post_id, p.user_id as poster_id, r.user_id as sender_id`,
-    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error'), result.preset ?? null, result.sentHash ?? null],
+    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error'), result.preset ?? null, result.sentHash ?? null, nodeId],
   );
   const r = rows[0];
   if (!r) throw badRequest('That radio prayer is not being sent');

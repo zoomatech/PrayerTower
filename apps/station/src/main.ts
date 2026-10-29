@@ -4,7 +4,7 @@
 //   TX_TIMEOUT_SECONDS (180), MAX_PIECE_CHARS (500), BLOCKLIST_FILE (one word per line, added to the default list)
 // Burst mode (docs/RADIO_BURST.md), off unless BURST_MODE is set:
 //   BURST_MODE (off | audio | fldigi | simulate), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
-//   BURST_MAX_FRAME_SECONDS (20), BURST_PLAY_CMD ("aplay -q {wav}"), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
+//   BURST_MAX_FRAME_SECONDS (20), BURST_PLAY_CMD ("aplay -q {wav}"; "afplay {wav}" on macOS), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
 //   BURST_PTT_DELAY_MS (300), BURST_DIR (bursts/ under the state directory), BURST_FLDIGI_MODEM (8PSK1000F)
 // BURST_PRESET=auto picks a preset before each burst from a receiver's channel report:
 //   BURST_AUTO_REPORT (file or URL; BURST_DIR/channel.json; "server" reads listener nodes' reports
@@ -99,7 +99,8 @@ if (burstMode !== 'off') {
       : burstMode === 'fldigi'
         ? fldigiTransmitter(fldigi, cfg.txTimeoutMs)
         : audioTransmitter({
-            playCommand: env('BURST_PLAY_CMD', 'aplay -q {wav}'),
+            // afplay is built into macOS (docs/STATION_OPERATOR_GUIDE.md, "Station on a Mac").
+            playCommand: env('BURST_PLAY_CMD', process.platform === 'darwin' ? 'afplay {wav}' : 'aplay -q {wav}'),
             pttOnCommand: process.env.BURST_PTT_ON_CMD ?? '',
             pttOffCommand: process.env.BURST_PTT_OFF_CMD ?? '',
             rig,

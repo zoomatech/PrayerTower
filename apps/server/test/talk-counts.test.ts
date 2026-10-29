@@ -1,0 +1,49 @@
+// Counting patterns: anonymous weekly totals of move labels, only from members who
+// chose to share while the switch is on; the admin view folds rows under five.
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { as, createUser, db } from './helpers.js';
+
+const on = (v: boolean) => db.query('update public.conversation_settings set talk_counts_enabled = $1', [v]);
+const chain = { kind: 'chain', moves: ['greeting', 'greeting', 'howAreYou'] };
+
+beforeAll(async () => {
+  await on(false);
+  await db.query('truncate public.talk_chain_counts, public.emoji_reply_counts');
+});
+afterAll(async () => {
+  await on(false);
+  await db.end();
+});
+
+describe('Counting patterns', () => {
+  it('counts nothing while off or until the member chooses to share', async () => {
+    const u = await createUser('Count Member');
+    expect((await as(u).post('/talk-counts', chain)).json()).toEqual({ counted: false });
+    await on(true);
+    expect((await as(u).post('/talk-counts', chain)).json()).toEqual({ counted: false });
+    await as(u).patch('/me/conversation-prefs', { shareCounts: true });
+    expect((await as(u).post('/talk-counts', chain)).json()).toEqual({ counted: true });
+    expect((await as(u).post('/talk-counts', { kind: 'chain', moves: ['other', 'greeting', 'thanks'] })).statusCode).toBe(400);
+    const { rows } = await db.query('select * from public.talk_chain_counts');
+    expect(rows).toHaveLength(1);
+    expect(Object.keys(rows[0]!).sort()).toEqual(['first_move', 'followup_move', 'n', 'reply_move', 'week']);
+  });
+
+  it('keeps emoji replies by the move they answer, and the admin view hides small rows', async () => {
+    await on(true);
+    const admin = await createUser('Count Admin');
+    await db.query(`insert into public.user_roles (user_id, role) values ($1, 'admin')`, [admin]);
+    const u = await createUser('Count Sharer');
+    await as(u).patch('/me/conversation-prefs', { shareCounts: true });
+    const { rows } = await db.query<{ emoji_key: string; meaning_key: string }>('select emoji_key, meaning_key from public.reaction_meanings limit 1');
+    const e = { kind: 'emoji', emoji: rows[0]!.emoji_key, meaning: rows[0]!.meaning_key, toMove: 'trouble' };
+    expect((await as(u).post('/talk-counts', { ...e, meaning: 'nope' })).statusCode).toBe(400);
+    for (let i = 0; i < 5; i++) await as(u).post('/talk-counts', e);
+    for (let i = 0; i < 4; i++) await as(u).post('/talk-counts', { kind: 'chain', moves: ['thanks', 'thanks', 'farewell'] });
+    const s = (await as(admin).get('/admin/talk-counts')).json().counts;
+    expect(s.emoji).toEqual([{ emoji: e.emoji, meaning: e.meaning, toMove: 'trouble', n: 5 }]);
+    expect(s.chains).toEqual([]);
+    expect(s.otherChains).toBe(5);
+    expect((await as(u).get('/admin/talk-counts')).statusCode).toBe(403);
+  });
+});

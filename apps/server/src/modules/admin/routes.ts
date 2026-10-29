@@ -23,6 +23,8 @@ import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
+import * as talkCounts from '../conversation-helpers/counts.js';
+import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as milestones from '../milestones/index.js';
 import * as moderation from '../moderation/index.js';
 import * as posts from '../posts/index.js';
@@ -187,14 +189,21 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   // Listener nodes (radio/nodes.ts): their keys, switch and latest reports.
   app.get('/admin/radio-nodes', async (req) => {
     await requireAdmin(req);
-    return { enabled: await radioNodes.enabled(db), nodes: await radioNodes.list(db), reports: await radioNodes.latestReports(db) };
+    return {
+      enabled: await radioNodes.enabled(db),
+      multiStation: await radioNodes.multiStation(db),
+      nodes: await radioNodes.list(db),
+      reports: await radioNodes.latestReports(db),
+      stations: await radioNodes.stationCounts(db),
+    };
   });
 
   app.patch('/admin/radio-nodes', async (req) => {
     await requireAdmin(req);
-    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
-    await radioNodes.setEnabled(db, enabled);
-    return { enabled };
+    const { enabled, multiStation } = z.object({ enabled: z.boolean().optional(), multiStation: z.boolean().optional() }).parse(req.body);
+    if (enabled !== undefined) await radioNodes.setEnabled(db, enabled);
+    if (multiStation !== undefined) await radioNodes.setMultiStation(db, multiStation);
+    return { enabled: await radioNodes.enabled(db), multiStation: await radioNodes.multiStation(db) };
   });
 
   // The key is in this answer only; the server keeps its hash.
@@ -319,6 +328,20 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/notebook-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await notebook.updateSettings(db, notebook.SettingsPatch.parse(req.body)) };
+  });
+
+  // Conversation helpers (docs/CONVERSATION_HELPERS.md): each off until switched on here.
+  app.get('/admin/conversation-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await conversationHelpers.settings(db) };
+  });
+  app.patch('/admin/conversation-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await conversationHelpers.updateSettings(db, conversationHelpers.SettingsPatch.parse(req.body)) };
+  });
+  app.get('/admin/talk-counts', async (req) => {
+    await requireAdmin(req);
+    return { counts: await talkCounts.summary(db) };
   });
 
   // Growth practices (docs/GROWTH_PRACTICES.md): each off until switched on here.
