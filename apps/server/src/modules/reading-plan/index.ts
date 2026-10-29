@@ -25,7 +25,7 @@ export async function today(q: Queryable, userId: string) {
             (select max(d.day) from public.reading_plan_days d where d.plan_id = p.id) as days
        from public.reading_plans p
       where p.community_id = public.member_community_id($1) and p.archived_at is null and p.starts_on <= current_date
-      order by p.starts_on desc limit 1`,
+      order by p.starts_on desc, p.created_at desc limit 1`,
     [userId],
   );
   const plan = rows[0];
@@ -103,7 +103,7 @@ export async function plans(q: Queryable, userId: string) {
             (select count(*)::int from public.reading_plan_days d where d.plan_id = p.id) as days,
             (select count(distinct r.user_id)::int from public.reading_plan_reads r where r.plan_id = p.id) as readers
        from public.reading_plans p where p.community_id = public.member_community_id($1)
-      order by p.starts_on desc limit 50`,
+      order by p.archived_at is not null, p.starts_on desc, p.created_at desc limit 50`,
     [userId],
   );
   return rows.map((r) => ({ id: r.id, title: r.title, startsOn: r.starts_on, days: r.days, readers: r.readers, archived: !!r.archived_at }));

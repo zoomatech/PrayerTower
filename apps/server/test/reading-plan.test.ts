@@ -32,7 +32,7 @@ describe('Bible reading plan', () => {
     expect(today.plan.reading.url).toBe('https://www.biblegateway.com/passage/?search=John%202&version=WEB');
     const read = (await as(member).post(`/reading-plan/${id}/read`)).json();
     expect(read.plan.reading).toMatchObject({ read: true, readers: 1 });
-    expect((await as(pastor).get('/staff/reading-plans')).json().plans[0]).toMatchObject({ id, days: 3, readers: 1, archived: false });
+    expect((await as(pastor).get('/staff/reading-plans')).json().plans.find((p: { id: string }) => p.id === id)).toMatchObject({ id, days: 3, readers: 1, archived: false });
 
     expect((await as(pastor).post(`/staff/reading-plans/${id}/archive`)).json()).toEqual({ archived: true });
     expect((await as(member).get('/reading-plan')).json()).toEqual({ enabled: true, plan: null });
