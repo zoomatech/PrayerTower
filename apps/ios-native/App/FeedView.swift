@@ -172,6 +172,7 @@ struct CardRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(card.author.displayName).font(.subheadline.bold())
                 Text(card.preview)
+                StoryLinks(card: card) { model.openPost = $0 }
                 if card.counts.prayers > 0 {
                     Text(model.wording == .neutral ? "\(card.counts.prayers) people thinking of this" : "\(card.counts.prayers) praying")
                         .font(.caption).foregroundStyle(.secondary)

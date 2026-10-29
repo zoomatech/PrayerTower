@@ -257,3 +257,69 @@ struct GuestShareSection: View {
         }
     }
 }
+
+/// "Answers: …" on a story and "Read how it turned out" on its request.
+struct StoryLinks: View {
+    @Environment(AppModel.self) private var model
+    let card: Card
+    let open: (String) -> Void
+
+    var body: some View {
+        if model.features["answeredStories"] {
+            if let a = card.answers {
+                Button("🌅 " + model.words("answeredStory.answers", ["preview": a.preview])) { open(a.id) }
+                    .buttonStyle(.borderless).font(.footnote)
+            }
+            if let id = card.storyId {
+                Button("🌅 " + model.words("answeredStory.read")) { open(id) }
+                    .buttonStyle(.borderless).font(.footnote)
+            }
+        }
+    }
+}
+
+/// On the asker's own request: a short story of how it turned out, posted as its own card.
+struct AnsweredStorySection: View {
+    @Environment(AppModel.self) private var model
+    let card: Card
+    let posted: (StoryPosted) -> Void
+    @State private var text: String?
+    @State private var busy = false
+    @State private var error: String?
+
+    var body: some View {
+        let w = model.words
+        Section {
+            if text != nil {
+                Text(w("answeredStory.hint")).font(.footnote)
+                KindComposer(title: w("answeredStory.placeholder"), text: Binding(get: { text ?? "" }, set: { text = $0 }), limit: 2000)
+                HStack {
+                    Button(w("answeredStory.post")) { send() }
+                        .disabled(busy || (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Spacer()
+                    Button(w("common.cancel")) { text = nil }
+                }
+                .buttonStyle(.borderless)
+                if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+            } else {
+                Button(w("answeredStory.open")) { text = "" }
+            }
+        } header: {
+            if text != nil { Text(w("answeredStory.label")) }
+        }
+    }
+
+    private func send() {
+        busy = true
+        Task {
+            defer { busy = false }
+            do {
+                let r = try await model.store.api.answeredStory(postId: card.id, body: text ?? "")
+                text = nil
+                posted(r)
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+}

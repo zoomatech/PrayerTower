@@ -25,6 +25,7 @@ struct PostDetailView: View {
     @State private var encouraging: Card?
     @State private var gifting: Card?
     @State private var sharing: Card?
+    @State private var story: String?
     @State private var deleteArmed = false
     @State private var busy = false
     @State private var notice: String?
@@ -46,6 +47,12 @@ struct PostDetailView: View {
                 if prayable { Section { PowerPrayerSection(card: card) } }
                 if prayable { GuestShareSection(card: card) }
                 ShareChoiceSection(card: card)
+                if model.features["answeredStories"] && card.isMine && card.postType == "prayer_request" && card.storyId == nil {
+                    AnsweredStorySection(card: card) { posted in
+                        if posted.crisis { support = true }
+                        story = posted.post.id
+                    }
+                }
                 Section(w("post.comments")) { commentList }
                 Section { composer(card) }
                 Section { reportButton(w("actions.reportPost")) { reporting = ("post", card.id) } }
@@ -80,6 +87,7 @@ struct PostDetailView: View {
         }
         .sheet(item: $committing) { card in CommitSheet(card: card) { notice = $0 } }
         .sheet(item: $gifting) { card in GiftSheet(card: card) { notice = $0 } }
+        .navigationDestination(item: $story) { PostDetailView(postId: $0) }
         .sheet(item: $sharing) { card in ShareSheet(card: card) { notice = $0 } }
         .sheet(item: $encouraging) { card in
             EncourageSheet(card: card) { note in
@@ -108,6 +116,7 @@ struct PostDetailView: View {
                 .background(style.map { Color(hex: $0.color) } ?? .clear, in: .rect(cornerRadius: 12))
                 .foregroundStyle(style.map { Color(hex: $0.text) } ?? .primary)
             ForEach(card.media ?? [], id: \.storagePath) { m in MediaView(media: m) }
+            StoryLinks(card: card) { story = $0 }
             if let t = card.testimony, !t.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(w("post.testimonyLabel")).font(.caption.bold())

@@ -71,3 +71,15 @@ extension APIClient {
         return try await (post("/posts/\(postId)/ask", body: AskBody(recipientIds: people, note: n.isEmpty ? nil : n)) as Sent).sent
     }
 }
+
+public struct StoryPosted: Decodable, Sendable {
+    public let post: Card
+    public let crisis: Bool
+}
+
+extension APIClient {
+    /// The asker's short follow-up on how a request turned out, linked both ways.
+    public func answeredStory(postId: String, body text: String) async throws -> StoryPosted {
+        try await post("/posts/\(postId)/answered-story", body: ["body": text.trimmingCharacters(in: .whitespacesAndNewlines)])
+    }
+}
