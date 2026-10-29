@@ -29,6 +29,11 @@ export const keys: Tree = named({
     radioFree: 'Free radio messages left this month: {{count}}',
     radioGranted: 'Extra radio messages granted to you: {{count}}',
   },
+  listen: {
+    intro: 'Hold this phone near a radio tuned to the station. When a burst plays, the messages in it appear here. The sound stays on this phone.',
+    tell: 'Let senders know their message was heard',
+    tellHint: 'Only a fingerprint of each message goes back, never the words.',
+  },
   radioRequests: {
     title: 'Radio message requests',
     sent: 'Radio messages sent in the last 30 days: {{count}}',
@@ -182,6 +187,11 @@ export const keys: Tree = named({
     prayer: 'Take a breath. Kind words travel far.',
   },
   practices: {
+    believeSign: 'BELIEVE',
+    believeMine: 'Your hope came true. Someone out there needs to hear this. Will you share what happened?',
+    believeTheirs: 'Something you cared about turned out well. Your support mattered.',
+    liftUpIntro: 'A kind word, a meal, a text, a visit. Noticing it helps you do it again. Only you see this.',
+    adminBelieveHint: 'A "Believe" card when a request turns out well, for the person who asked (with an invitation to share) and for the people who supported them.',
     followupIntro: "People were thinking of you. If you'd like, let them know how it's going. There's no wrong answer, and you can say nothing at all.",
     followupPlaceholder: 'A few words for the people who supported you (optional)',
     gratitudeShare: 'Share as good news',
@@ -348,11 +358,6 @@ export const keys: Tree = named({
     off: "Buying tokens isn't available yet. You can earn tokens by supporting others.",
     intro: 'Tokens you buy work just like tokens you earn. %{percent}% of every purchase goes to the Common Fund, which pays for direct help to people in real need.',
     priestly: '%{count} Lighthouse tokens',
-  },
-  listen: {
-    intro: 'Hold this phone near a radio tuned to the Open Circle station. When a burst plays, the messages in it appear here. The sound stays on this phone.',
-    tell: 'Let senders know their message was heard',
-    tellHint: 'Only a fingerprint of each message goes back, never the words.',
   },
   card: { pastorBadge: '%{title}, a verified mentor', answered: '✨ Worked out', praying: '%{count} thinking of this', firstToPray: 'Be the first to lift this up', testimony: 'Story' },
   enums: {

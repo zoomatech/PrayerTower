@@ -63,7 +63,7 @@ describe('AI conversation (not God) and the circle facilitator', () => {
     await as(admin).patch('/admin/communities/open-circle', { status: 'active' });
     const member = await createUser('AI Secular');
     expect((await as(member).post('/me/community', { slug: 'open-circle' })).statusCode).toBeLessThan(300);
-    expect((await as(member).get('/ai-chat')).json().enabled).toBe(false);
+    expect((await as(member).get('/ai-chat')).json()).toEqual({ enabled: false, warning: null });
     expect((await as(member).post('/ai-chat', { message: 'Hello' })).statusCode).toBe(403);
   });
 

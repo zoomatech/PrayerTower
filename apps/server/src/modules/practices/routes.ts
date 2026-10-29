@@ -43,6 +43,16 @@ export function practiceRoutes(app: FastifyInstance, db: Db) {
     return practices.saveGratitude(db, requireUser(req), input);
   });
 
+  app.get('/me/lift-up', async (req) => {
+    const { tz: timeZone } = tz.parse(req.query);
+    return practices.liftUp(db, requireUser(req), validTimeZone(timeZone) ? timeZone : 'UTC');
+  });
+  app.put('/me/lift-up', async (req) => {
+    const input = practices.LiftUp.parse(req.body);
+    if (!validTimeZone(input.timeZone)) input.timeZone = 'UTC';
+    return practices.saveLiftUp(db, requireUser(req), input);
+  });
+
   app.get('/me/encourager', async (req) => practices.encourager(db, requireUser(req)));
   app.put('/me/encourager/volunteer', async (req) => practices.setVolunteer(db, requireUser(req), practices.Volunteer.parse(req.body)));
   app.post('/me/encourager/ask', async (req) => withTx(db, (tx) => practices.askForEncourager(tx, requireUser(req))));

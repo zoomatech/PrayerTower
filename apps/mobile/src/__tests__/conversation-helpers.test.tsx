@@ -4,7 +4,7 @@ import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useState } from 'react';
 
 import { renderApp } from '@/__tests__/helpers';
-import { Pressable, Text } from 'react-native';
+import { AccessibilityInfo, Pressable, Text } from 'react-native';
 
 import { ReplyHelpers, resetConversationPrefs, useTalkCount } from '@/components/reply-helpers';
 import { api, type ConversationPrefs } from '@/lib/api';
@@ -63,9 +63,14 @@ describe('ReplyHelpers', () => {
     await renderApp(<Composer last="Thank you!" empty={false} />);
     await act(async () => undefined);
     expect(screen.queryByText(/Make them yours/)).toBeNull();
-    const chip = await screen.findByText("You're so welcome.");
+    const spoken = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+    // A suggestion is a button with a hint, not a checkbox.
+    const chip = await screen.findByRole('button', { name: "You're so welcome." });
+    expect(chip.props.accessibilityHint).toMatch(/edit them before sending/);
     await act(async () => fireEvent.press(chip));
     expect(screen.getByText(/Make them yours/)).toBeTruthy();
+    expect(spoken).toHaveBeenCalledWith(expect.stringContaining('Added to your message box'));
+    spoken.mockRestore();
   });
 
   it('offers a greeting from the chosen tradition to open with', async () => {
