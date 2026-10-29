@@ -7,7 +7,7 @@ import { PassageIndex, parseSynonyms, stem } from '../src/modules/library/search
 import { as, createUser, db } from './helpers.js';
 
 afterAll(async () => {
-  await db.query('update public.library_settings set enabled = false');
+  await db.query('update public.library_settings set enabled = false, share_enabled = false, daily_enabled = false, parallels_enabled = false, plans_enabled = false');
   await db.end();
 });
 
@@ -43,9 +43,9 @@ describe('library search', () => {
     expect((await as(member).get('/library/search?q=shepherd&collection=bible-kjv')).statusCode).toBe(403);
 
     await db.query('update public.library_settings set enabled = true');
-    expect((await as(member).get('/library')).json()).toMatchObject({ enabled: true, collections: [{ id: 'bible-kjv' }, { id: 'ancient-writings' }] });
+    expect((await as(member).get('/library')).json()).toMatchObject({ enabled: true, collections: [{ id: 'bible-kjv' }, { id: 'apocrypha-kjv' }, { id: 'ancient-writings' }, { id: 'oldest-texts' }, { id: 'world-classics' }] });
     const r = (await as(member).get('/library/search?q=the lord is my shepherd&collection=bible-kjv&limit=3')).json();
-    expect(r.hits[0]).toMatchObject({ ref: 'Psalms 23:1', complete: true, work: { title: 'Psalms' } });
+    expect(r.hits[0]).toMatchObject({ ref: 'Psalms 23:1', complete: true, work: { title: 'Psalms' }, citation: 'Psalms 23:1 (King James Bible)' });
     expect(r.hits).toHaveLength(3);
     expect(r.total).toBeGreaterThan(3);
 
@@ -56,6 +56,18 @@ describe('library search', () => {
     expect(ancient.hits.length).toBeGreaterThan(0);
     expect(ancient.hits[0].text).toMatch(/gilgamesh|enkidu/i);
     expect((await as(member).get('/library/search?q=&collection=bible-kjv')).statusCode).toBe(400);
+
+    // The oldest texts: Ptah-hotep's teaching and Hammurabi's laws, by section.
+    const ptah = (await as(member).get('/library/search?q=if thou be an emissary sent from one noble to another&collection=oldest-texts&limit=1')).json();
+    expect(ptah.hits[0]).toMatchObject({ work: { id: 'ptahhotep-gunn' } });
+    const theft = (await as(member).get('/library/search?q=steal the property of a god or palace put to death&collection=oldest-texts&limit=3')).json();
+    expect(theft.hits.some((h: { work: { id: string } }) => h.work.id === 'hammurabi-harper')).toBe(true);
+
+    // The Apocrypha by verse, and the world classics.
+    const tobit = (await as(member).get('/library/search?q=Tobit&collection=apocrypha-kjv&limit=1')).json();
+    expect(tobit.hits[0].citation).toMatch(/^The Book of Tobit \d+:\d+ \(King James Apocrypha\)$/);
+    const tao = (await as(member).get('/library/search?q=the tao that can be trodden&collection=world-classics&limit=1')).json();
+    expect(tao.hits[0].work.id).toBe('tao-te-ching-legge');
   });
 
   it('only ships public-domain works', () => {
@@ -74,13 +86,34 @@ describe('library search', () => {
       await c.query('delete from public.community_memberships where user_id = $1', [member]);
       await c.query(`insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`, [member]);
       await c.query('update public.library_settings set enabled = true');
-      expect(await library.overview(c, member)).toEqual({ enabled: true, collections: [{ id: 'ancient-writings', title: 'Ancient writings', faith: false }] });
+      expect(await library.overview(c, member)).toEqual({ enabled: true, collections: [{ id: 'ancient-writings', title: 'Ancient writings', faith: false }, { id: 'oldest-texts', title: 'Oldest texts', faith: false }, { id: 'world-classics', title: 'World classics', faith: false }] });
       await expect(library.search(c, member, { q: 'shepherd', collection: 'bible-kjv', offset: 0, limit: 5 })).rejects.toThrow(/not offered/);
       expect((await library.search(c, member, { q: 'virtue', collection: 'ancient-writings', offset: 0, limit: 5 })).hits.length).toBeGreaterThan(0);
     } finally {
       await c.query('rollback');
       c.release();
     }
+  });
+
+  it('shows a daily passage only while search and the daily card are both on, the same all day', async () => {
+    const member = await createUser('Library Daily');
+    await db.query('update public.library_settings set enabled = true, daily_enabled = false, share_enabled = false');
+    expect((await as(member).get('/library/daily')).json()).toEqual({ enabled: false });
+    await db.query('update public.library_settings set daily_enabled = true');
+    const today = (await as(member).get('/library/daily')).json();
+    expect(today).toMatchObject({ enabled: true, share: false, passage: { collection: 'bible-kjv' } });
+    expect(today.passage.citation).toBe(`${today.passage.ref} (King James Bible)`);
+    expect((await as(member).get('/library/daily')).json().passage.ref).toBe(today.passage.ref);
+    const other = await library.daily(db, member, '2026-01-02');
+    expect(other.enabled && other.passage.text.length).toBeGreaterThanOrEqual(60);
+    await db.query('update public.library_settings set enabled = false');
+    expect((await as(member).get('/library/daily')).json()).toEqual({ enabled: false });
+  });
+
+  it('credits ancient passages to their work and translator', () => {
+    const work = { id: 'w', title: 'Meditations', author: 'Marcus Aurelius', rights: 'public_domain' as const };
+    expect(library.citation('ancient-writings', 'Book IV', work)).toBe('Meditations, Book IV (Marcus Aurelius)');
+    expect(library.citation('ancient-writings', '', { ...work, author: '' })).toBe('Meditations');
   });
 
   it('lets only admins change the switch', async () => {

@@ -12,12 +12,12 @@ import { forbidden } from '../../errors.js';
 import * as communities from '../communities/index.js';
 import { PassageIndex, parseSynonyms, type Passage } from './search.js';
 
-type Work = { id: string; title: string; author: string; rights: 'public_domain' };
+export type Work = { id: string; title: string; author: string; rights: 'public_domain' };
 type CollectionFile = { format_version: 1; id: string; title: string; faith: boolean; source: string; works: Work[]; passages: Passage[] };
 type Collection = { id: string; title: string; faith: boolean; source: string; works: Map<string, Work>; index: PassageIndex };
 
 /** The collections, in the order the app lists them. */
-export const COLLECTIONS = ['bible-kjv', 'ancient-writings'] as const;
+export const COLLECTIONS = ['bible-kjv', 'apocrypha-kjv', 'ancient-writings', 'oldest-texts', 'world-classics'] as const;
 export type CollectionId = (typeof COLLECTIONS)[number];
 
 export function dataDir(): string {
@@ -49,32 +49,69 @@ export function collection(id: CollectionId): Collection {
   return made;
 }
 
-async function enabled(q: Queryable) {
-  const { rows } = await q.query<{ enabled: boolean }>('select enabled from public.library_settings');
-  return rows[0]?.enabled === true;
-}
-
 export async function settings(q: Queryable) {
-  return { enabled: await enabled(q) };
+  const { rows } = await q.query<{ enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean }>(
+    `select enabled, share_enabled as "shareEnabled", daily_enabled as "dailyEnabled", parallels_enabled as "parallelsEnabled",
+            plans_enabled as "plansEnabled" from public.library_settings`,
+  );
+  return rows[0] ?? { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false };
 }
 
-export const SettingsPatch = z.object({ enabled: z.boolean() });
+const enabled = async (q: Queryable) => (await settings(q)).enabled;
+
+export const SettingsPatch = z.object({
+  enabled: z.boolean().optional(),
+  shareEnabled: z.boolean().optional(),
+  dailyEnabled: z.boolean().optional(),
+  parallelsEnabled: z.boolean().optional(),
+  plansEnabled: z.boolean().optional(),
+});
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
-  await q.query('update public.library_settings set enabled = $1', [p.enabled]);
+  await q.query(
+    `update public.library_settings set enabled = coalesce($1, enabled), share_enabled = coalesce($2, share_enabled),
+       daily_enabled = coalesce($3, daily_enabled), parallels_enabled = coalesce($4, parallels_enabled), plans_enabled = coalesce($5, plans_enabled)`,
+    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null],
+  );
   return settings(q);
 }
 
-/** The collections this member may search. */
-async function offered(q: Queryable, userId: string): Promise<CollectionId[] | null> {
-  if (!(await enabled(q))) return null;
-  const secular = await communities.isSecular(q, userId);
-  return COLLECTIONS.filter((id) => !(secular && id === 'bible-kjv'));
+/** The switches the app needs: sharing, the daily card, parallels and reading plans only count while search itself is on. */
+export async function features(q: Queryable) {
+  const s = await settings(q);
+  return {
+    library: s.enabled,
+    libraryShare: s.enabled && s.shareEnabled,
+    libraryDaily: s.enabled && s.dailyEnabled,
+    libraryParallels: s.enabled && s.parallelsEnabled,
+    libraryPlans: s.enabled && s.plansEnabled,
+  };
 }
 
-const TITLES: Record<CollectionId, { title: string; faith: boolean }> = {
+/** "Psalms 23:1 (King James Bible)" or "Meditations, Book IV (Marcus Aurelius)": what a shared passage is credited to. */
+export function citation(id: CollectionId, ref: string, work: Work) {
+  if (id === 'bible-kjv') return `${ref} (King James Bible)`;
+  if (id === 'apocrypha-kjv') return `${ref} (King James Apocrypha)`;
+  const where = ref && ref !== work.title ? `${work.title}, ${ref}` : work.title;
+  return work.author ? `${where} (${work.author})` : where;
+}
+
+/** The collections this member may search. */
+export async function offered(q: Queryable, userId: string): Promise<CollectionId[] | null> {
+  if (!(await enabled(q))) return null;
+  const secular = await communities.isSecular(q, userId);
+  // Open Circle gets every collection but the Bible and its Apocrypha.
+  return COLLECTIONS.filter((id) => !(secular && TITLES[id].faith));
+}
+
+export const TITLES: Record<CollectionId, { title: string; faith: boolean }> = {
   'bible-kjv': { title: 'King James Bible', faith: true },
+  'apocrypha-kjv': { title: 'King James Apocrypha', faith: true },
   'ancient-writings': { title: 'Ancient writings', faith: false },
+  // The oldest texts on the list in docs/LIBRARY_SEARCH.md that have a public-domain translation.
+  'oldest-texts': { title: 'Oldest texts', faith: false },
+  // Public-domain translations of other traditions' classics: Tao Te Ching, Analects, Dhammapada, Gita, Hesiod, Homer.
+  'world-classics': { title: 'World classics', faith: false },
 };
 
 export async function overview(q: Queryable, userId: string) {
@@ -103,7 +140,40 @@ export async function search(q: Queryable, userId: string, input: z.infer<typeof
       const p = c.index.passages[index]!;
       const work = c.works.get(p.workId)!;
       // A Bible verse's reference already names its book; an ancient passage is credited to its work.
-      return { ref: p.ref, text: p.text, complete, work: { id: work.id, title: work.title, author: work.author } };
+      return { ref: p.ref, text: p.text, complete, work: { id: work.id, title: work.title, author: work.author }, citation: citation(input.collection, p.ref, work) };
     }),
   };
+}
+
+// The daily passage --------------------------------------------------------------------
+
+const candidates = new Map<CollectionId, number[]>();
+
+/** Passages short enough for a card, in order; picked from by the day. */
+function cardPassages(id: CollectionId) {
+  const known = candidates.get(id);
+  if (known) return known;
+  const list = collection(id).index.passages.flatMap((p, i) => (p.text.length >= 60 && p.text.length <= 320 ? [i] : []));
+  candidates.set(id, list);
+  return list;
+}
+
+/** A number from the date, the same all day for everyone (FNV-1a). */
+function dayNumber(day: string) {
+  let h = 2166136261;
+  for (const c of day) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  return h;
+}
+
+/** Today's passage: the King James Bible for faith communities, the ancient writings in Open Circle. */
+export async function daily(q: Queryable, userId: string, day = new Date().toISOString().slice(0, 10)) {
+  const f = await features(q);
+  const ids = f.libraryDaily ? await offered(q, userId) : null;
+  if (!ids) return { enabled: false as const };
+  const id: CollectionId = ids.includes('bible-kjv') ? 'bible-kjv' : 'ancient-writings';
+  const list = cardPassages(id);
+  const c = collection(id);
+  const p = c.index.passages[list[dayNumber(day) % list.length]!]!;
+  const work = c.works.get(p.workId)!;
+  return { enabled: true as const, day, share: f.libraryShare, passage: { collection: id, ref: p.ref, text: p.text, complete: true, work: { id: work.id, title: work.title, author: work.author }, citation: citation(id, p.ref, work) } };
 }

@@ -30,7 +30,8 @@
       "entry": [
         "scripts/*.ts",
         "src/burst/web.ts",
-        "src/listener-main.ts"
+        "src/listener-main.ts",
+        "install/ci/*.mjs"
       ]
     }
   },

@@ -64,3 +64,24 @@ These steps are in STEVE_TODO.md:
    Automatic signing registers the app IDs and app groups on the first archive.
 5. The listing text, privacy answers and TestFlight text in `docs/store/` (they apply to the
    native builds as they are; see "Native builds" in STORE_LISTING.md).
+
+## iPad and Mac
+
+Both apps run on iPad (`TARGETED_DEVICE_FAMILY` 1,2, all orientations). On iPad in a regular-width
+window the tabs become a sidebar in a split view, the feed becomes a multi-column grid with pointer
+hover, and ⌘1–⌘6 switch sections, ⌘N writes a post and ⌘R refreshes. PrayerTowerMac
+(`com.zoomatech.prayertower.mac`) is the member app for the Mac, built from the same SwiftUI code
+(not the operator console). `scripts/mac-build-native.sh` builds it headless.
+
+## Store screenshots
+
+```bash
+scripts/mac-screenshots-native.sh               # Prayer Tower
+scripts/mac-screenshots-native.sh opencircle
+```
+
+The script makes a temporary iPhone Pro Max and iPad Pro 13-inch Simulator, boots it in the
+background (no Simulator window), sets the status bar to 9:41 with full bars, and launches the app
+with its sample data (`-PTSampleData -PTScreen feed|post|promises|messages|notices|me`). It saves
+each screen with `xcrun simctl io … screenshot` to `store-screenshots/native/<edition>/<device>/`,
+then deletes the Simulators. It needs an iOS Simulator runtime (`xcodebuild -downloadPlatform iOS`).

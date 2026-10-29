@@ -8,6 +8,7 @@ import { scanTask, type Classifier } from './modules/moderation/index.js';
 import { createClassifier } from './modules/moderation/providers.js';
 import { receiptsTask as pushReceiptsTask } from './modules/notifications/delivery.js';
 import { dueTask as dailyRemindersTask } from './modules/reminders/index.js';
+import { reminderTask as libraryPlanRemindersTask } from './modules/library/plans.js';
 import { sendPushTask } from './modules/notifications/index.js';
 import { afterPrayingNowTask } from './modules/prayer-actions/index.js';
 import { transmitTask, type Transmitter } from './modules/radio/index.js';
@@ -23,6 +24,7 @@ import { weeklySponsorReportTask } from './modules/admin/sponsor-report.js';
 import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 import { weeklyTask as radioDigestTask } from './modules/radio/digest.js';
+import { weeklyTask as stationReportTask } from './modules/radio/station-report.js';
 import { weeklyTask as feedbackSummaryTask } from './modules/pilot-tools/index.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
 import { weeklyReportTask as harmWeeklyReportTask } from './modules/moderator-care/index.js';
@@ -77,6 +79,7 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     notifications_push_receipts: pushReceiptsTask(db, config, overrides.fetch),
     reminders_daily_due: dailyRemindersTask(),
+    library_plan_reminders: libraryPlanRemindersTask(),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
     commitments_send_due_reminders: sendDueRemindersTask(),
     prayer_list_send_due_reminders: prayerListRemindersTask(),
@@ -100,6 +103,7 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
       config.SPONSOR_REPORT_LANG,
     ),
     radio_digest_weekly: radioDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
+    station_report_weekly: stationReportTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     feedback_summary_weekly: feedbackSummaryTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     token_ledger_check: ledgerCheckTask(db),
     harm_weekly_report: harmWeeklyReportTask(db),
@@ -142,6 +146,8 @@ export const crontab = [
   '0 8 * * 1 sponsor_report_weekly ?max=10&fill=1d',
   // Monday 07:00: last week's radio prayer digest, emailed to admins when that is on (only while switched on).
   '0 7 * * 1 radio_digest_weekly ?max=10&fill=1d&jobKey=radio_digest_weekly',
+  // Monday 07:10: last week's station report, emailed to admins and radio operators when that is on (only while switched on).
+  '10 7 * * 1 station_report_weekly ?max=10&fill=1d&jobKey=station_report_weekly',
   // Monday 07:30: last week's pilot feedback and errors, to admins (only while switched on).
   '30 7 * * 1 feedback_summary_weekly ?max=10&fill=1d&jobKey=feedback_summary_weekly',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
@@ -178,6 +184,8 @@ export const crontab = [
   // Every 5 minutes: read back Expo push receipts (only while Admin → Push delivery is on).
   // Every 5 minutes: members' own daily reminders (only while Admin → Gentle reminders is on).
   '*/5 * * * * reminders_daily_due ?max=3&fill=1h&jobKey=reminders_daily_due',
+  // Hourly: reading plan reminders, one gentle evening notice (only while Admin → Text search → Reading plans is on).
+  '7 * * * * library_plan_reminders ?max=3&fill=1h&jobKey=library_plan_reminders',
   '*/5 * * * * notifications_push_receipts ?max=3&jobKey=notifications_push_receipts',
   // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
   '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',

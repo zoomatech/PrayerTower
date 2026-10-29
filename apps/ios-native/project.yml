@@ -40,6 +40,8 @@ targets:
       properties:
         CFBundleDisplayName: Prayer Tower
         UILaunchScreen: {}
+        # iPad: every orientation, so it can run side by side with other apps (Split View).
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this phone.
         # Widget and Live Activity taps open prayertower:///post/<id>.
         CFBundleURLTypes:
@@ -72,6 +74,7 @@ targets:
       base:
         # A separate bundle id from the Expo pilot (com.zoomatech.prayertower) until the native app replaces it.
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -103,6 +106,8 @@ targets:
       properties:
         CFBundleDisplayName: Open Circle
         UILaunchScreen: {}
+        # iPad: every orientation, so it can run side by side with other apps (Split View).
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this phone.
         CFBundleURLTypes:
           - CFBundleURLName: com.zoomatech.opencircle.native
@@ -127,6 +132,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -158,6 +164,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -190,6 +197,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -225,6 +233,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.crosspost
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -260,6 +269,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native.crosspost
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -277,6 +287,58 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.uiwalks
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: YES
+
+  # The member app on the Mac: the same SwiftUI screens as the iPhone and iPad app, built for macOS
+  # (App/Platform.swift covers the few differences). Not the operator console.
+  PrayerTowerMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes: [Info.plist, PrayerTowerNative.entitlements]
+      - Shared
+    scheme: {}
+    dependencies:
+      - package: PrayerTowerKit
+        products:
+          - PrayerTowerKit
+          - PrayerTowerSession
+    info:
+      path: Mac/Info.plist
+      properties:
+        CFBundleDisplayName: Prayer Tower
+        LSApplicationCategoryType: public.app-category.lifestyle
+        NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this Mac.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.zoomatech.prayertower.mac
+            CFBundleURLSchemes: [prayertower]
+        PTSupabaseURL: $(PT_SUPABASE_URL)
+        PTSupabaseKey: $(PT_SUPABASE_KEY)
+        PTApiURL: $(PT_API_URL)
+        PTLinkURL: $(PT_LINK_URL)
+        PTTermsURL: $(PT_TERMS_URL)
+        PTPrivacyURL: $(PT_PRIVACY_URL)
+        PTSupportEmail: $(PT_SUPPORT_EMAIL)
+        PTEdition: prayer-tower
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: Mac/PrayerTowerMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.device.audio-input: true
+        # Saving exports (your data, reports) where you choose.
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.developer.associated-domains: ["webcredentials:$(PT_PASSKEY_DOMAIN)"]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.mac
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+    configFiles:
+      Debug: Config.xcconfig
+      Release: Config.xcconfig
 
   # The Mac operator console for the station's control operator (Console/, docs/SWIFT_PORT.md):
   # the operator console, station health, keying controls and a menu bar item, in place of the web console.

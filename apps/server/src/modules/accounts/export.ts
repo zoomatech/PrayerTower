@@ -55,6 +55,8 @@ const SECTIONS: Record<string, Section> = {
   crosspostAccounts: { table: 'crosspost_accounts', where: 'user_id = $1', omit: ['access_token'] },
   crosspostImports: { table: 'crosspost_imports', where: 'user_id = $1' },
   readings: { table: 'reading_plan_reads', where: 'user_id = $1' },
+  libraryPlans: { table: 'library_plan_follows', where: 'user_id = $1' },
+  libraryPlanReads: { table: 'library_plan_reads', where: 'user_id = $1' },
   prayers: { table: 'prayer_events', where: 'user_id = $1' },
   prompts: { table: 'prayer_prompts', where: 'user_id = $1' },
   thanksSent: { table: 'thanks', where: 'user_id = $1' },
@@ -155,6 +157,8 @@ export const NOT_EXPORTED = [
   'invite_codes',
   'legal_case_notes',
   'legal_cases',
+  // Listener requests point only at the admin who reviewed them (staff record).
+  'listener_signups',
   'macro_needs',
   'oncall_notes',
   'oncall_settings',

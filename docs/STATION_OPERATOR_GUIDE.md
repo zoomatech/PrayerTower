@@ -35,6 +35,9 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
 | Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
 | Weekly radio digest | Admin → Radio → Weekly digest | [Weekly radio digest](#weekly-radio-digest) |
+| Listener sign-up (a public page; approved listeners get a guided Pi or Mac setup) | Admin → Radio → Listener sign-up | [Listener sign-up](#listener-sign-up) |
+| Thank-you cards (QSL-style cards for confirmed reception) | Admin → Radio → Thank-you cards | [Thank-you cards](#thank-you-cards) |
+| Weekly station report (bursts, prayers delivered, listener coverage, problems) | Admin → Radio → Station report | [Weekly station report](#weekly-station-report) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
 | Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
@@ -76,6 +79,14 @@ from November 2025 or later.
    ```
    sudo systemctl start prayer-tower-station
    ```
+
+**Tested on every change.** Each change to the station or its installers runs both installers
+on throwaway machines (`.github/workflows/station-install.yml`): this one on Ubuntu with
+systemd, and the Mac one with launchd. Each install runs the station in simulate mode against a
+stand-in server, so nothing is keyed. It checks that a burst is sent, decoded and reported, that
+the health check and rig control (the dummy radio) work, and that updating and uninstalling
+leave the settings in place. The Pi first-boot file is checked against cloud-init's schema.
+The script is `apps/station/install/ci/dry-run.sh`. Never run it on a station that is on the air.
 
 ## What you need
 
@@ -279,6 +290,37 @@ station reads as a plain `BURST_AUTO_REPORT` file.
 If the internet or Prayer Tower is down, the node keeps the reports it could not send, up to 500 for up to 23 hours. It sends them, oldest first, as soon as the server answers again ("sent N kept report(s)" in its log). That way a prayer it heard during the outage still counts as heard, and the station doesn't send it again. They are kept in `outbox.json` in the node's state directory, so a restart or a power cut doesn't lose them. A report the server refuses, such as one with a wrong key, is not kept.
 
 ![Listener nodes](images/radio/listener-nodes.png)
+
+### Listener with an RTL-SDR dongle
+
+A listener node doesn't need a radio. An RTL-SDR USB dongle (about $30, the kind sold
+for TV and scanner use) and a small antenna can do the receiving. Off by default.
+
+1. Install with `--sdr`:
+   - On a Pi: `... | sudo bash -s -- --listener-only --sdr`. This installs `rtl-sdr`
+     (`rtl_fm`), lets the listener service open the dongle, and adds the lines below to
+     `/etc/prayer-tower-listener.env`.
+   - On a Mac: `install-mac.sh --listener-only --sdr`. This installs Homebrew's `librtlsdr`.
+2. Plug in the dongle, then check it with `rtl_test -t`.
+3. In the listener settings, set the station's frequency:
+
+   ```
+   LISTEN_SOURCE=rtlsdr
+   LISTEN_SDR_FREQ=146.52M
+   ```
+
+   That is all FM needs. Optional settings:
+
+   | Setting | What it does |
+   | --- | --- |
+   | `LISTEN_SDR_GAIN` | Gain in dB. Auto by default. |
+   | `LISTEN_SDR_PPM` | Corrects the dongle's frequency error. Cheap dongles are often 20 to 60 ppm off; a TCXO dongle is about 1. |
+   | `LISTEN_SDR_DEVICE` | Picks a dongle when there are several. |
+   | `LISTEN_SDR_MODE=usb` | For an HF station. Below 24 MHz the dongle also needs `LISTEN_SDR_DIRECT=on` (direct sampling) or an upconverter. The 50 Hz tuning search is then on by default. |
+
+4. Restart the listener. It runs `rtl_fm` with no squelch, so the start of a burst is never cut
+   off, and decodes it like audio from a sound card. Admin → Radio and the coverage map show
+   the node as "RTL-SDR" with its frequency.
 
 ## Several stations (one shared queue)
 
@@ -599,6 +641,61 @@ With **Email it to admins on Mondays** on (and SMTP set up), the
 UTC each Monday, once per week.
 
 ![Weekly radio digest](images/radio/weekly-digest.png)
+
+## Listener sign-up
+
+Off by default. Admin → Radio → **Listener sign-up on** publishes a page at
+`/listeners` (and `/open-circle/listeners` in Open Circle's words) where
+anyone with an RTL-SDR dongle or a radio asks to run a listener node. They
+give a name, an email, which receiver and computer they have, and, only if
+they want to be on the coverage map, a location (rounded to about a city).
+A ham call sign is optional: listeners only receive, so no license is needed.
+
+Each request waits in Admin → Radio for a person to read it. **Approve** makes
+a one-use setup link that works for 14 days. With email set up (`SMTP_URL`) it
+is emailed; otherwise the admin sends it from the share sheet. A new approval
+replaces an old unused link, and **Decline** stops it.
+
+The link opens a guided setup page for their Raspberry Pi or Mac: the one
+install command (`get-station.sh --listener-only --sdr`, or
+`install-mac.sh --listener-only --sdr`), then **Make my key**, which makes the
+node and shows its key once, already filled into their settings lines
+(server address, `NODE_KEY`, `LISTEN_SDR_FREQ` from the setup wizard's
+frequency, and `NODE_LOCATION` if they gave one). The key is never stored,
+only its hash, and the link stops working once the key is made. The new node
+is named after them, placed on the coverage map if they gave a location, and
+appears in Listener nodes like any other. Set `PUBLIC_SITE_URL` so the links
+and the server address on the page are the public https one.
+
+## Thank-you cards
+
+Off by default. With Admin → Radio → **Thank-you cards on**, a listener node
+whose report matches prayers the station really sent (the same fingerprints
+receipts use) gets a digital thank-you card, like a ham radio QSL card. There
+is one card per station call sign per UTC day, with the date, the first and
+last time heard, the preset, the best signal (SNR), how many it decoded, and a
+running card number. Each card is a printable page at an unguessable
+`/qsl/<link>`. The node's log prints the link the first time each day, and a
+listener who came through sign-up gets it by email. A node made from an Open
+Circle sign-up gets Open Circle's words ("messages heard"). A card never shows
+a prayer's words or who asked. Admin → Radio lists the newest cards.
+
+## Weekly station report
+
+Off by default. Admin → Radio → **Station report on** shows last week
+(Monday to Sunday, UTC) next to this week so far: bursts sent and failed, air
+time, prayers delivered, heard by a listener, failed and still waiting;
+listeners reporting (and which were quiet), each node's median signal, new
+listener requests and nodes, and thank-you cards; and problems, counted from
+operator alerts as they started (`radio_alert_history`, kept while operator
+alerts are on), failed bursts with their errors, and failed prayers. Radio
+operators (the control operator) see it read only in the operator console.
+
+With **Email it to admins and radio operators on Mondays** on (and SMTP set
+up), the `station_report_weekly` job emails last week's report at 07:10 UTC
+each Monday, once per week. Counts and listener names only: no request text,
+no names of members. The station keeps every burst of the last eight weeks
+for this report.
 
 ## Security
 

@@ -5,7 +5,7 @@ import Foundation
 // ancient writings for everyone; members type words and get passages, best first.
 
 public struct LibraryCollection: Codable, Sendable, Equatable, Identifiable {
-    /// bible-kjv | ancient-writings
+    /// bible-kjv | apocrypha-kjv | ancient-writings | oldest-texts | world-classics
     public let id: String
     public let title: String
     public let faith: Bool
@@ -33,6 +33,36 @@ public struct LibraryHit: Codable, Sendable, Equatable {
     /// False when the passage holds only some of the words ("near matches").
     public let complete: Bool
     public let work: Work
+    /// "Psalms 23:1 (King James Bible)": what a shared passage is credited to.
+    public let citation: String?
+
+    /// The citation, or the work's title from a server too old to send one.
+    public var credit: String { citation ?? (ref.isEmpty ? work.title : "\(work.title), \(ref)") }
+}
+
+/// Today's passage for the feed card (GET /library/daily), the same all day.
+public struct LibraryDaily: Decodable, Sendable, Equatable {
+    public let enabled: Bool
+    public let day: String?
+    /// Whether the card may offer Share.
+    public let share: Bool?
+    public let passage: LibraryHit?
+}
+
+/// Admin: text search and its extras: sharing, the daily card, parallels and reading plans. Nil fields are left as they are.
+public struct LibrarySettings: Codable, Sendable, Equatable {
+    public var enabled: Bool?
+    public var shareEnabled: Bool?
+    public var dailyEnabled: Bool?
+    public var parallelsEnabled: Bool?
+    public var plansEnabled: Bool?
+    public init(enabled: Bool? = nil, shareEnabled: Bool? = nil, dailyEnabled: Bool? = nil, parallelsEnabled: Bool? = nil, plansEnabled: Bool? = nil) {
+        self.enabled = enabled
+        self.shareEnabled = shareEnabled
+        self.dailyEnabled = dailyEnabled
+        self.parallelsEnabled = parallelsEnabled
+        self.plansEnabled = plansEnabled
+    }
 }
 
 public struct LibraryResults: Codable, Sendable, Equatable {
@@ -44,16 +74,22 @@ public struct LibraryResults: Codable, Sendable, Equatable {
 public enum Library {
     public static let page = 20
     public static let bible = "bible-kjv"
-}
 
-private struct LibrarySwitch: Codable { let enabled: Bool }
+    /// A new post holding the passage in quotes and where it is from, for the member to edit (Share a passage).
+    public static func shared(_ text: String, citation: String) -> NewPost {
+        var post = NewPost()
+        post.body = String("“\(text.trimmingCharacters(in: .whitespacesAndNewlines))”\n— \(citation)".prefix(5000))
+        return post
+    }
+}
 
 extension APIClient {
     public func library() async throws -> LibraryOverview { try await get("/library") }
     public func searchLibrary(_ q: String, collection: String, offset: Int = 0, limit: Int = Library.page) async throws -> LibraryResults {
         try await get("/library/search", query: ["q": q.trimmingCharacters(in: .whitespaces), "collection": collection, "offset": String(offset), "limit": String(limit)])
     }
-    /// Admin: the library's on/off switch.
-    public func libraryOn() async throws -> Bool { try await (get("/admin/library") as LibrarySwitch).enabled }
-    public func setLibrary(_ on: Bool) async throws -> Bool { try await (send(body(request("PATCH", "/admin/library"), LibrarySwitch(enabled: on))) as LibrarySwitch).enabled }
+    public func libraryDaily() async throws -> LibraryDaily { try await get("/library/daily") }
+    /// Admin: the library's switches.
+    public func librarySettings() async throws -> LibrarySettings { try await get("/admin/library") }
+    public func setLibrary(_ patch: LibrarySettings) async throws -> LibrarySettings { try await send(body(request("PATCH", "/admin/library"), patch)) }
 }

@@ -7,7 +7,11 @@ import { api, ApiError, type RadioConsole } from '@/lib/api';
 
 jest.mock('@/lib/api', () => {
   const actual = jest.requireActual('@/lib/api');
-  return { ApiError: actual.ApiError, api: { radioConsole: jest.fn(), updateRadioConsole: jest.fn() } };
+  return {
+    ApiError: actual.ApiError,
+    // The weekly station report shows only while an admin has it on (listener-admin.test.tsx covers it on).
+    api: { radioConsole: jest.fn(), updateRadioConsole: jest.fn(), admin: { stationReport: jest.fn(async () => ({ enabled: false, email: false, thisWeek: null, lastWeek: null, history: [] })) } },
+  };
 });
 let mockRoles = ['radio_operator'];
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ roles: mockRoles }) }));

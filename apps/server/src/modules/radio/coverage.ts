@@ -85,13 +85,15 @@ export interface MapPoint {
   lastHeardAt: string | null;
   lastSeenAt: string | null;
   quality: Quality;
+  /** What it listens with, when it has said (nodes.ts Receiver). */
+  receiver: { kind: 'sound-card' | 'rtl-sdr'; freqHz?: number; mode?: 'fm' | 'usb' } | null;
 }
 
 /** Placed listener nodes and the station, for the map. Unplaced nodes are counted, not shown. */
 export async function map(q: Queryable) {
   const s = await settings(q);
-  const { rows } = await q.query<{ id: string; name: string; place: string | null; lat: string | null; lon: string | null; snr: number | null; reports: number; last_heard: string | null; last_seen_at: string | null }>(
-    `select n.id, n.name, n.place, n.lat, n.lon, n.last_seen_at,
+  const { rows } = await q.query<{ id: string; name: string; place: string | null; lat: string | null; lon: string | null; snr: number | null; reports: number; last_heard: string | null; last_seen_at: string | null; receiver: MapPoint['receiver'] }>(
+    `select n.id, n.name, n.place, n.lat, n.lon, n.last_seen_at, n.receiver,
             (select percentile_cont(0.5) within group (order by c.snr_db)::float8 from public.channel_reports c where c.node_id = n.id and c.heard_at > now() - interval '24 hours') as snr,
             (select count(*)::int from public.channel_reports c where c.node_id = n.id and c.heard_at > now() - interval '24 hours') as reports,
             (select max(c.heard_at) from public.channel_reports c where c.node_id = n.id) as last_heard
@@ -101,7 +103,7 @@ export async function map(q: Queryable) {
     .filter((r) => r.lat !== null && r.lon !== null)
     .map((r) => {
       const snrDb = r.snr === null ? null : Math.round(r.snr * 10) / 10;
-      return { id: r.id, name: r.name, place: r.place, lat: Number(r.lat), lon: Number(r.lon), snrDb, reports: r.reports, lastHeardAt: r.last_heard, lastSeenAt: r.last_seen_at, quality: quality(snrDb) };
+      return { id: r.id, name: r.name, place: r.place, lat: Number(r.lat), lon: Number(r.lon), snrDb, reports: r.reports, lastHeardAt: r.last_heard, lastSeenAt: r.last_seen_at, quality: quality(snrDb), receiver: r.receiver };
     });
   const unplaced = rows.filter((r) => r.lat === null || r.lon === null).map((r) => ({ id: r.id, name: r.name }));
   return { ...s, points, unplaced };

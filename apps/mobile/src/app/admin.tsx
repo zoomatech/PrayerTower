@@ -12,9 +12,10 @@ import { OncallAdminSection } from '@/components/oncall';
 import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
+import { ListenerSignupSection, QslCardsSection, StationReportSection } from '@/components/listener-admin';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings, type Sponsor, type SponsorKind } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings, type Sponsor, type SponsorKind, type LibrarySettings } from '@/lib/api';
 import { errorText } from '@/lib/error-report';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
@@ -397,6 +398,9 @@ function Admin() {
             {radio.radio_transmitter === 'station' ? <PacketFallbackSection /> : null}
             {radio.radio_transmitter === 'station' ? <CoverageSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioDigestSection /> : null}
+            {radio.radio_transmitter === 'station' ? <StationReportSection /> : null}
+            {radio.radio_transmitter === 'station' ? <ListenerSignupSection /> : null}
+            {radio.radio_transmitter === 'station' ? <QslCardsSection /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
               <>
@@ -1789,23 +1793,31 @@ function MaterialMatchSection() {
 /** Scripture and ancient writings search, ported from Winstons Syndicate (off by default). */
 function LibrarySection() {
   const t = useT();
-  const [on, setOn] = useState<boolean | null>(null);
+  const [on, setOn] = useState<LibrarySettings | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      api.admin.library().then((r) => setOn(r.enabled), (e) => setNote((e as Error).message));
+      api.admin.library().then(setOn, (e) => setNote((e as Error).message));
     }, []),
   );
-  const save = (enabled: boolean) =>
+  const save = (patch: Partial<LibrarySettings>) =>
     api.admin
-      .updateLibrary({ enabled })
-      .then((r) => (setOn(r.enabled), resetFeatures(), setNote(t('library.saved'))))
+      .updateLibrary(patch)
+      .then((r) => (setOn(r), resetFeatures(), setNote(t('library.saved'))))
       .catch((e) => setNote((e as Error).message));
   if (on === null) return note ? <Text style={type.small}>{note}</Text> : null;
   return (
     <View style={styles.section}>
       <Text style={type.heading}>{t('library.adminTitle')}</Text>
-      <Toggle label={t('library.adminToggle')} hint={t('library.adminHint')} value={on} onChange={save} />
+      <Toggle label={t('library.adminToggle')} hint={t('library.adminHint')} value={on.enabled} onChange={(enabled) => save({ enabled })} />
+      {on.enabled ? (
+        <>
+          <Toggle label={t('library.adminShare')} hint={t('library.adminShareHint')} value={on.shareEnabled} onChange={(shareEnabled) => save({ shareEnabled })} />
+          <Toggle label={t('library.adminDaily')} hint={t('library.adminDailyHint')} value={on.dailyEnabled} onChange={(dailyEnabled) => save({ dailyEnabled })} />
+          <Toggle label={t('library.adminParallels')} hint={t('library.adminParallelsHint')} value={on.parallelsEnabled} onChange={(parallelsEnabled) => save({ parallelsEnabled })} />
+          <Toggle label={t('library.adminPlans')} hint={t('library.adminPlansHint')} value={on.plansEnabled} onChange={(plansEnabled) => save({ plansEnabled })} />
+        </>
+      ) : null}
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

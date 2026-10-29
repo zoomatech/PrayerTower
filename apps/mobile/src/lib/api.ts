@@ -168,6 +168,12 @@ export interface Features {
   /** Paid radio prayers are matched with equal material help. */
   materialMatch: boolean;
   library: boolean;
+  /** Share a passage from text search into a new post, and the daily passage card (docs/LIBRARY_SEARCH.md). */
+  libraryShare: boolean;
+  libraryDaily: boolean;
+  /** Parallels across texts and reading plans from the library (docs/LIBRARY_SEARCH.md). */
+  libraryParallels: boolean;
+  libraryPlans: boolean;
   /** Growth ideas (docs/GROWTH.md). */
   guestPrayer: boolean;
   prayerChain: boolean;
@@ -963,6 +969,72 @@ export interface RadioDigest {
   weeks: RadioDigestWeek[];
 }
 
+/** Admin → Radio → Listener requests (server radio/listener-signup.ts). */
+export interface ListenerSignup {
+  id: string;
+  name: string;
+  email: string;
+  place: string;
+  lat: number | null;
+  lon: number | null;
+  receiver: 'rtl-sdr' | 'radio' | 'not-sure';
+  platform: 'pi' | 'mac' | 'other';
+  callSign: string | null;
+  note: string;
+  edition: 'prayer-tower' | 'open-circle';
+  status: 'pending' | 'approved' | 'declined' | 'joined';
+  setupExpiresAt: string | null;
+  nodeId: string | null;
+  createdAt: string;
+}
+export interface ListenerSignups {
+  enabled: boolean;
+  /** Whether approving can email the setup link (SMTP set up); otherwise the admin sends it. */
+  emailReady: boolean;
+  signups: ListenerSignup[];
+}
+
+/** Admin → Radio → Thank-you cards (server radio/qsl.ts). */
+export interface QslCard {
+  token: string;
+  path: string;
+  node: string;
+  callSign: string;
+  day: string;
+  serial: number;
+  preset: string;
+  bestSnrDb: number;
+  prayers: number;
+  firstHeardAt: string;
+  lastHeardAt: string;
+  edition: 'prayer-tower' | 'open-circle';
+}
+
+/** Admin → Radio and the operator console → Weekly station report (server radio/station-report.ts). */
+export interface StationReport {
+  weekStart: string;
+  bursts: { sent: number; failed: number; airSeconds: number; prayers: number; presets: Record<string, number> };
+  prayers: { delivered: number; heard: number; failed: number; waiting: number };
+  listeners: {
+    nodes: number;
+    reporting: number;
+    quiet: string[];
+    placed: number;
+    signups: number;
+    joined: number;
+    cards: number;
+    perNode: { name: string; receiver: string | null; reports: number; snrDb: number | null; quality: 'strong' | 'fair' | 'weak' | 'none' }[];
+  };
+  problems: { total: number; byKind: Record<string, number>; burstErrors: { error: string; count: number }[] };
+}
+export interface StationReportOverview {
+  enabled: boolean;
+  email: boolean;
+  thisWeek: StationReport | null;
+  lastWeek: StationReport | null;
+  history: StationReport[];
+}
+
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
 export interface StationBurst {
   id: string;
@@ -1499,8 +1571,27 @@ export type ReadingPlanToday =
       } | null;
     };
 export type LibraryOverview = { enabled: false } | { enabled: true; collections: { id: LibraryCollectionId; title: string; faith: boolean }[] };
-export type LibraryCollectionId = 'bible-kjv' | 'ancient-writings';
-export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string } };
+export type LibraryCollectionId = 'bible-kjv' | 'apocrypha-kjv' | 'ancient-writings' | 'oldest-texts' | 'world-classics';
+export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string };
+export type LibraryDaily =
+  | { enabled: false }
+  | { enabled: true; day: string; share: boolean; passage: { collection: LibraryCollectionId; ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string } };
+export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean };
+/** Passages from one place in a collection, with their citation. */
+export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string };
+export type ParallelThemes = { enabled: false } | { enabled: true; themes: { id: string; title: string; intro: string; texts: string[] }[] };
+export type ParallelTheme = { id: string; title: string; intro: string; sides: (LibraryExcerpt & { label: string | null })[] };
+export type PlanProgress = { read: number; next: number | null; finished: boolean; reminders: boolean; circle: { id: string; name: string } | null };
+export type ReadingPlan = { id: string; title: string; intro: string; days: number; faith: boolean; following: PlanProgress | null; circles: { id: string; name: string; readers: number }[] };
+export type ReadingPlans = { enabled: false } | { enabled: true; circles: { id: string; name: string }[]; plans: ReadingPlan[] };
+export type ReadingPlanDay = {
+  plan: { id: string; title: string; days: number };
+  day: number;
+  reading: LibraryExcerpt;
+  read: boolean;
+  following: PlanProgress | null;
+  circle: { id: string; name: string; readers: number; reading: number } | null;
+};
 export type LibraryResults = { total: number; source: string; hits: LibraryHit[] };
 export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
 
@@ -1983,8 +2074,8 @@ export const api = {
     createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
       post<{ announcement: Announcement }>('/admin/announcements', input),
     endAnnouncement: (id: string) => post<{ announcement: Announcement }>(`/admin/announcements/${id}/end`),
-    library: () => get<{ enabled: boolean }>('/admin/library'),
-    updateLibrary: (patch: { enabled: boolean }) => request<{ enabled: boolean }>('PATCH', '/admin/library', patch),
+    library: () => get<LibrarySettings>('/admin/library'),
+    updateLibrary: (patch: Partial<LibrarySettings>) => request<LibrarySettings>('PATCH', '/admin/library', patch),
     materialMatch: () =>
       get<{ settings: { enabled: boolean; centsPerToken: number }; owed: { count: number; cents: number; since: string | null }; fulfilled: { count: number; cents: number } }>(
         '/admin/material-match',
@@ -2075,6 +2166,15 @@ export const api = {
     setRadioPacket: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-packet', { enabled }),
     radioDigest: () => get<RadioDigest>('/admin/radio-digest'),
     updateRadioDigest: (patch: { enabled?: boolean; email?: boolean }) => request<RadioDigest>('PATCH', '/admin/radio-digest', patch),
+    listenerSignups: () => get<ListenerSignups>('/admin/listener-signups'),
+    setListenerSignups: (enabled: boolean) => request<ListenerSignups>('PATCH', '/admin/listener-signups', { enabled }),
+    approveListener: (id: string) => request<{ signup: ListenerSignup; setupUrl: string; emailed: boolean }>('POST', `/admin/listener-signups/${id}/approve`),
+    declineListener: (id: string) => request<{ signup: ListenerSignup }>('POST', `/admin/listener-signups/${id}/decline`),
+    removeListenerSignup: (id: string) => request<{ ok: true }>('DELETE', `/admin/listener-signups/${id}`),
+    qslCards: () => get<{ enabled: boolean; cards: QslCard[] }>('/admin/qsl-cards'),
+    setQslCards: (enabled: boolean) => request<{ enabled: boolean; cards: QslCard[] }>('PATCH', '/admin/qsl-cards', { enabled }),
+    stationReport: () => get<StationReportOverview>('/admin/station-report'),
+    updateStationReport: (patch: { enabled?: boolean; email?: boolean }) => request<StationReportOverview>('PATCH', '/admin/station-report', patch),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => request<{ enabled: boolean; multiStation: boolean; signaturesRequired: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
@@ -2249,6 +2349,14 @@ export const api = {
   prayedForListItem: (id: string) => post<PrayerList>(`/me/prayer-list/${id}/prayed`, {}),
   readingPlan: () => get<ReadingPlanToday>('/reading-plan'),
   library: () => get<LibraryOverview>('/library'),
+  libraryDaily: () => get<LibraryDaily>('/library/daily'),
+  parallels: () => get<ParallelThemes>('/library/parallels'),
+  parallel: (id: string) => get<ParallelTheme>(`/library/parallels/${encodeURIComponent(id)}`),
+  readingPlans: () => get<ReadingPlans>('/library/plans'),
+  followPlan: (id: string, input: { circleId?: string | null; reminders?: boolean } = {}) => request<ReadingPlans>('PUT', `/library/plans/${encodeURIComponent(id)}/follow`, input),
+  unfollowPlan: (id: string) => request<ReadingPlans>('DELETE', `/library/plans/${encodeURIComponent(id)}/follow`),
+  planDay: (id: string, day: number) => get<ReadingPlanDay>(`/library/plans/${encodeURIComponent(id)}/days/${day}`),
+  readPlanDay: (id: string, day: number) => request<ReadingPlanDay>('POST', `/library/plans/${encodeURIComponent(id)}/days/${day}/read`, {}),
   searchLibrary: (input: { q: string; collection: LibraryCollectionId; offset?: number; limit?: number }) =>
     get<LibraryResults>(`/library/search?${new URLSearchParams({ q: input.q, collection: input.collection, offset: String(input.offset ?? 0), limit: String(input.limit ?? 20) })}`),
   markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),

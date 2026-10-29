@@ -50,6 +50,8 @@ export async function check(q: Queryable, now = new Date()): Promise<{ opened: s
   for (const key of opened) {
     const a = current.get(key)!;
     await q.query('insert into public.radio_open_alerts (key, opened_at) values ($1, $2) on conflict do nothing', [key, now]);
+    // Kept for the weekly station report (station-report.ts).
+    await q.query('insert into public.radio_alert_history (kind, call_sign, detail, opened_at) values ($1, $2, $3, $4)', [a.kind, a.callSign ?? null, a.detail ?? null, now]);
     for (const { user_id } of to) {
       await notifications.notify(q, user_id, {
         kind: 'radio_alert',

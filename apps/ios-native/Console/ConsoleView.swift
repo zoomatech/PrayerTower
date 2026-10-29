@@ -30,6 +30,8 @@ struct ConsoleView: View {
             // Listener mode: decode bursts from a receiver plugged into this Mac (or its microphone).
             Section {
                 NavigationLink(w("listen.title")) { ListenView(api: model.demo == nil ? model.store.api : nil, words: w) }
+                // The weekly station report, read only, for radio operators (StationReportView).
+                NavigationLink(w("stationReport.title")) { StationReportView(api: model.demo == nil ? model.store.api : nil, words: w, operatorView: true) }
             }
             if model.notOperator {
                 Section { Text(w("macConsole.notOperator")) }

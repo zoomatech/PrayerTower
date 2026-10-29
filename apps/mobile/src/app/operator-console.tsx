@@ -8,6 +8,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { StationReportSection } from '@/components/listener-admin';
 import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, ApiError, type RadioConsole } from '@/lib/api';
@@ -257,6 +258,7 @@ function OperatorConsole() {
             {l.error ? <Text style={styles.error}>{l.error}</Text> : null}
           </View>
         ))}
+        <StationReportSection operator />
         <ErrorText error={error} />
       </ScrollView>
     </Screen>

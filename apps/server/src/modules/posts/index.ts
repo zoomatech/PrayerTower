@@ -545,23 +545,18 @@ export async function thank(q: Queryable, userId: string, postId: string, input:
   const post = await get(q, postId);
   if (!post) throw notFound('Post');
   if (post.user_id !== userId) throw forbidden('Only the poster can send thanks');
-  const { rows } = await q.query<{ user_id: string }>(
-    `select distinct user_id from (
-       select user_id from public.prayer_events where post_id = $1
-       union select user_id from public.commitments where post_id = $1
-     ) s where user_id <> $2 and ($3::uuid[] is null or user_id = any($3::uuid[]))`,
-    [postId, userId, input.recipientIds ?? null],
-  );
-  for (const r of rows) {
+  const picked = input.recipientIds && new Set(input.recipientIds);
+  const recipients = (await prayedBy(q, postId, userId)).filter((id) => !picked || picked.has(id));
+  for (const r of recipients) {
     await q.query('insert into public.thanks (post_id, user_id, recipient_id, icon, message) values ($1, $2, $3, $4, $5)', [
       postId,
       userId,
-      r.user_id,
+      r,
       input.icon,
       input.message ?? null,
     ]);
   }
-  return { post, recipients: rows.map((r) => r.user_id) };
+  return { post, recipients };
 }
 
 /** Who prayed for a post, by name or "Anonymous", with the total. */

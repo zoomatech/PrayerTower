@@ -102,16 +102,18 @@ struct Mark: View {
             switch shape {
             case .flower:
                 Canvas { ctx, box in
-                    let p: Double = size * 0.42
-                    let r: Double = (size - p) / 2
-                    let mid: Double = box.width / 2
-                    for deg in stride(from: 0.0, to: 360, by: 72) {
-                        let a: Double = (deg - 90) * Double.pi / 180
-                        let x: Double = mid - p / 2 + r * cos(a)
-                        let y: Double = mid - p / 2 + r * sin(a)
+                    // Explicit CGFloat keeps the type checker fast (older Xcode gives up on the mixed form).
+                    let s = CGFloat(size)
+                    let p: CGFloat = s * 0.42
+                    let r: CGFloat = (s - p) / 2
+                    let mid: CGFloat = box.width / 2
+                    for deg in stride(from: CGFloat(0), to: 360, by: 72) {
+                        let a: CGFloat = (deg - 90) * .pi / 180
+                        let x: CGFloat = mid - p / 2 + r * cos(a)
+                        let y: CGFloat = mid - p / 2 + r * sin(a)
                         ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: p, height: p)), with: .color(color))
                     }
-                    let c: Double = p * 0.8
+                    let c: CGFloat = p * 0.8
                     ctx.fill(Path(ellipseIn: CGRect(x: mid - c / 2, y: mid - c / 2, width: c, height: c)), with: .color(center))
                 }
                 .frame(width: size, height: size)
