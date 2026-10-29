@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -349,6 +349,7 @@ function Admin() {
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
             {radio.radio_transmitter === 'station' ? <StationAlertsSection /> : null}
+            {radio.radio_batch_max > 1 ? <ListenerNodesSection /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
               <>
@@ -529,6 +530,64 @@ function DeletionRequestsSection() {
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+/** Receive-only listener nodes: their keys (shown once), on/off, and what each last heard. Off by default. */
+function ListenerNodesSection() {
+  const t = useT();
+  const [data, setData] = useState<RadioNodes | null>(null);
+  const [name, setName] = useState('');
+  const [newKey, setNewKey] = useState<{ name: string; key: string } | null>(null);
+  const load = useCallback(() => {
+    api.admin.radioNodes().then(setData).catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  if (!data) return null;
+  const add = async () => {
+    if (!name.trim()) return;
+    const made = await api.admin.addRadioNode(name.trim()).catch(() => null);
+    if (made) {
+      setNewKey({ name: made.node.name, key: made.key });
+      setName('');
+      load();
+    }
+  };
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.listenersOff')} selected={!data.enabled} onPress={() => api.admin.setRadioNodesEnabled(false).then(load)} />
+        <Chip label={t('admin.listenersOn')} selected={data.enabled} onPress={() => api.admin.setRadioNodesEnabled(true).then(load)} />
+      </View>
+      <Text style={type.small}>{t('admin.listenersHint')}</Text>
+      {data.enabled ? (
+        <>
+          {data.nodes
+            .filter((n) => n.role === 'listener')
+            .map((n) => (
+              <View key={n.id} style={styles.row}>
+                <Text style={type.small}>
+                  {t('admin.listenerLine', { name: n.name, seen: n.last_seen_at ? new Date(n.last_seen_at).toLocaleString() : t('admin.listenerNever') })}
+                </Text>
+                <Chip label={n.enabled ? t('admin.listenerOn') : t('admin.listenerOff')} selected={n.enabled} onPress={() => api.admin.updateRadioNode(n.id, { enabled: !n.enabled }).then(load)} />
+                <Button small variant="ghost" label={t('admin.listenerRemove')} onPress={() => api.admin.removeRadioNode(n.id).then(load)} />
+              </View>
+            ))}
+          {data.reports.map((r) => (
+            <Text key={r.node} style={type.small}>
+              {t('admin.listenerHeard', { name: r.node, callSign: r.call_sign, snr: r.snr_db, preset: r.preset, when: new Date(r.heard_at).toLocaleString() })}
+            </Text>
+          ))}
+          <Field label={t('admin.listenerName')} value={name} onChangeText={setName} />
+          <Button variant="secondary" label={t('admin.listenerAdd')} onPress={add} />
+          {newKey ? (
+            <Text selectable style={type.small}>
+              {t('admin.listenerKey', { name: newKey.name, key: newKey.key })}
+            </Text>
+          ) : null}
+        </>
+      ) : null}
     </View>
   );
 }
@@ -1416,10 +1475,16 @@ function PracticeSettingsSection() {
   const t = useT();
   const [s, setS] = useState<PracticeSettings | null>(null);
   const [days, setDays] = useState('');
+  const [encDays, setEncDays] = useState('');
+  const [newDays, setNewDays] = useState('');
+  const [welcome, setWelcome] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const show = (x: PracticeSettings) => {
     setS(x);
     setDays(String(x.followup_days));
+    setEncDays(String(x.encourager_days));
+    setNewDays(String(x.newcomer_days));
+    setWelcome(x.welcome_text ?? '');
   };
   useFocusEffect(
     useCallback(() => {
@@ -1428,7 +1493,7 @@ function PracticeSettingsSection() {
   );
   const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
     api.admin
-      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, ...patch })
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, welcomeText: welcome, ...patch })
       .then((r) => {
         show(r.settings);
         resetFeatures();
@@ -1444,6 +1509,14 @@ function PracticeSettingsSection() {
       <Field label={t('practices.adminFollowupDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
       <Toggle label={t('practices.adminGratitude')} hint={t('practices.adminGratitudeHint')} value={s.gratitude_enabled} onChange={(v) => save({ gratitudeEnabled: v })} />
       <Toggle label={t('practices.adminRhythm')} hint={t('practices.adminRhythmHint')} value={s.gentle_rhythm_enabled} onChange={(v) => save({ gentleRhythmEnabled: v })} />
+      <Toggle label={t('practices.adminEncourager')} hint={t('practices.adminEncouragerHint')} value={s.encourager_enabled} onChange={(v) => save({ encouragerEnabled: v })} />
+      <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
+      <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
+      <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
+      <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
+      <Field label={t('repair.adminWelcomeText')} value={welcome} onChangeText={setWelcome} multiline maxLength={600} />
+      <Toggle label={t('repair.adminAskKindly')} hint={t('repair.adminAskKindlyHint')} value={s.ask_kindly_enabled} onChange={(v) => save({ askKindlyEnabled: v })} />
+      <Toggle label={t('repair.adminMend')} hint={t('repair.adminMendHint')} value={s.mend_enabled} onChange={(v) => save({ mendEnabled: v })} />
       <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
@@ -1503,6 +1576,15 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.poolMatching')} hint={t('admin.toggle.poolMatchingHint')} value={s.pool_matching_enabled} onChange={(v) => save({ poolMatchingEnabled: v })} />
       <Toggle label={t('admin.toggle.kindCloud')} hint={t('admin.toggle.kindCloudHint')} value={s.kind_cloud_enabled} onChange={(v) => save({ kindCloudEnabled: v })} />
       <Toggle label={t('admin.toggle.meaningReactions')} hint={t('admin.toggle.meaningReactionsHint')} value={s.meaning_reactions_enabled} onChange={(v) => save({ meaningReactionsEnabled: v })} />
+      <Toggle label={t('admin.toggle.lamps')} hint={t('admin.toggle.lampsHint')} value={s.lamps_enabled} onChange={(v) => save({ lampsEnabled: v })} />
+      <Toggle label={t('admin.toggle.poolLedger')} hint={t('admin.toggle.poolLedgerHint')} value={s.pool_ledger_enabled} onChange={(v) => save({ poolLedgerEnabled: v })} />
+      <Toggle label={t('admin.toggle.circleGoals')} hint={t('admin.toggle.circleGoalsHint')} value={s.circle_goals_enabled} onChange={(v) => save({ circleGoalsEnabled: v })} />
+      <Toggle label={t('admin.toggle.givingAsk')} hint={t('admin.toggle.givingAskHint')} value={s.giving_ask_enabled} onChange={(v) => save({ givingAskEnabled: v })} />
+      <Toggle label={t('admin.toggle.supportLinks')} hint={t('admin.toggle.supportLinksHint')} value={s.support_links_enabled} onChange={(v) => save({ supportLinksEnabled: v })} />
+      <Toggle label={t('admin.toggle.squireBoard')} hint={t('admin.toggle.squireBoardHint')} value={s.squire_board_enabled} onChange={(v) => save({ squireBoardEnabled: v })} />
+      <Toggle label={t('admin.toggle.groupGifts')} hint={t('admin.toggle.groupGiftsHint')} value={s.group_gifts_enabled} onChange={(v) => save({ groupGiftsEnabled: v })} />
+      <Toggle label={t('admin.toggle.prayerList')} hint={t('admin.toggle.prayerListHint')} value={s.prayer_list_enabled} onChange={(v) => save({ prayerListEnabled: v })} />
+      <Toggle label={t('admin.toggle.readingPlan')} hint={t('admin.toggle.readingPlanHint')} value={s.reading_plan_enabled} onChange={(v) => save({ readingPlanEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />

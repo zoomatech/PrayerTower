@@ -25,6 +25,7 @@ import * as growth from './modules/growth/index.js';
 import * as practices from './modules/practices/index.js';
 import { writeDueTask as autoPrayTask } from './modules/ai/auto-pray.js';
 import { createConverser, type Converse } from './modules/ai/provider.js';
+import { sendDueRemindersTask as prayerListRemindersTask } from './modules/prayer-list/index.js';
 
 export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
   const mail: growth.MailContext = {
@@ -43,6 +44,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
     commitments_send_due_reminders: sendDueRemindersTask(),
+    prayer_list_send_due_reminders: prayerListRemindersTask(),
     commitments_weekly_review: weeklyReviewTask(db),
     tiers_weekly_resupply: weeklyResupplyTask(db),
     radio_transmit: transmitTask(db, overrides.transmit),
@@ -74,6 +76,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
 // daily and weekly ones after 10 (about 2 hours). Failures show in Admin → Background jobs.
 export const crontab = [
   '* * * * * commitments_send_due_reminders ?max=3&fill=10m&jobKey=commitments_send_due_reminders',
+  // My prayer list reminders (only while switched on).
+  '*/5 * * * * prayer_list_send_due_reminders ?max=3&fill=1h&jobKey=prayer_list_send_due_reminders',
   // Scheduled token gifts (Friday evening, game start).
   '* * * * * schedules_run_due ?max=3&fill=10m&jobKey=schedules_run_due',
   // Event reminders, shortly before each event starts.

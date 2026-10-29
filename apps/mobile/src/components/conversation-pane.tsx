@@ -8,6 +8,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance 
 
 import { CrisisSupport } from '@/components/crisis';
 import { KindCloud } from '@/components/kind-cloud';
+import { GroupGift } from '@/components/group-gift';
 import { Button, Chip, ErrorText, Field, RulesWarning } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -23,6 +24,7 @@ const POLL_MS = 5000;
 export function ConversationPane({ id, onClose }: { id: string; onClose?: () => void }) {
   const { kindCloud } = useFeatures();
   const { t } = useLocale();
+  const features = useFeatures();
   const [view, setView] = useState<ConversationView | null>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -130,6 +132,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
               {c.members.length + 1} {c.members.length === 0 ? 'member' : 'members'} · {c.isPublic ? 'open to all' : 'invite only'}
             </Text>
           ) : null}
+          {c.kind === 'group' && !c.isRequest && features.groupGifts ? <GroupGift target="group" id={id} /> : null}
           {c.post ? (
             <Pressable onPress={() => router.push(`/post/${c.post!.id}`)} style={styles.post} accessibilityRole="link">
               <Text style={type.small}>{t('conversation.about')}</Text>

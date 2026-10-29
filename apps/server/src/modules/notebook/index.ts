@@ -48,6 +48,18 @@ export interface NotebookSettings {
   pool_matching_enabled: boolean;
   kind_cloud_enabled: boolean;
   meaning_reactions_enabled: boolean;
+  lamps_enabled: boolean;
+  lamps_per_week: number;
+  pool_ledger_enabled: boolean;
+  circle_goals_enabled: boolean;
+  giving_ask_enabled: boolean;
+  giving_ask_after_days: number;
+  support_links_enabled: boolean;
+  squire_board_enabled: boolean;
+  squire_board_days: number;
+  group_gifts_enabled: boolean;
+  prayer_list_enabled: boolean;
+  reading_plan_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
@@ -55,7 +67,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, kind_cloud_enabled, meaning_reactions_enabled from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, kind_cloud_enabled, meaning_reactions_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled, squire_board_enabled, squire_board_days, group_gifts_enabled, prayer_list_enabled, reading_plan_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -86,6 +98,18 @@ export const SettingsPatch = z.object({
   poolMatchingEnabled: z.boolean().optional(),
   kindCloudEnabled: z.boolean().optional(),
   meaningReactionsEnabled: z.boolean().optional(),
+  lampsEnabled: z.boolean().optional(),
+  lampsPerWeek: z.number().int().min(1).max(20).optional(),
+  poolLedgerEnabled: z.boolean().optional(),
+  circleGoalsEnabled: z.boolean().optional(),
+  givingAskEnabled: z.boolean().optional(),
+  givingAskAfterDays: z.number().int().min(1).max(365).optional(),
+  supportLinksEnabled: z.boolean().optional(),
+  squireBoardEnabled: z.boolean().optional(),
+  squireBoardDays: z.number().int().min(1).max(365).optional(),
+  groupGiftsEnabled: z.boolean().optional(),
+  prayerListEnabled: z.boolean().optional(),
+  readingPlanEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -106,7 +130,16 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        why_gifts_enabled = coalesce($22, why_gifts_enabled),
        pool_matching_enabled = coalesce($23, pool_matching_enabled),
        kind_cloud_enabled = coalesce($24, kind_cloud_enabled),
-       meaning_reactions_enabled = coalesce($25, meaning_reactions_enabled)`,
+       meaning_reactions_enabled = coalesce($25, meaning_reactions_enabled),
+       lamps_enabled = coalesce($26, lamps_enabled), lamps_per_week = coalesce($27, lamps_per_week),
+       pool_ledger_enabled = coalesce($28, pool_ledger_enabled),
+       circle_goals_enabled = coalesce($29, circle_goals_enabled),
+       giving_ask_enabled = coalesce($30, giving_ask_enabled), giving_ask_after_days = coalesce($31, giving_ask_after_days),
+       support_links_enabled = coalesce($32, support_links_enabled),
+       squire_board_enabled = coalesce($33, squire_board_enabled), squire_board_days = coalesce($34, squire_board_days),
+       group_gifts_enabled = coalesce($35, group_gifts_enabled),
+       prayer_list_enabled = coalesce($36, prayer_list_enabled),
+       reading_plan_enabled = coalesce($37, reading_plan_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -133,6 +166,18 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.poolMatchingEnabled ?? null,
       p.kindCloudEnabled ?? null,
       p.meaningReactionsEnabled ?? null,
+      p.lampsEnabled ?? null,
+      p.lampsPerWeek ?? null,
+      p.poolLedgerEnabled ?? null,
+      p.circleGoalsEnabled ?? null,
+      p.givingAskEnabled ?? null,
+      p.givingAskAfterDays ?? null,
+      p.supportLinksEnabled ?? null,
+      p.squireBoardEnabled ?? null,
+      p.squireBoardDays ?? null,
+      p.groupGiftsEnabled ?? null,
+      p.prayerListEnabled ?? null,
+      p.readingPlanEnabled ?? null,
     ],
   );
   return settings(q);
@@ -165,6 +210,14 @@ export async function features(q: Queryable) {
     kindCloud: s.kind_cloud_enabled,
     /** Emoji reactions that open to positive meanings (modules/meaning-reactions). */
     meaningReactions: s.meaning_reactions_enabled,
+    lamps: s.lamps_enabled,
+    poolLedger: s.pool_ledger_enabled,
+    circleGoals: s.circle_goals_enabled,
+    supportLinks: s.support_links_enabled,
+    squireBoard: s.squire_board_enabled,
+    groupGifts: s.group_gifts_enabled,
+    prayerList: s.prayer_list_enabled,
+    readingPlan: s.reading_plan_enabled,
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,
@@ -232,6 +285,27 @@ export async function thanksCard(q: Queryable, userId: string) {
 
 export async function dismissThanksCard(q: Queryable, userId: string) {
   await q.query('update public.profiles set thanks_card_dismissed_at = now() where id = $1', [userId]);
+}
+
+// Gentle giving ask (research/Contributing_Without_Ad_Money.md, suggestion 11) ---------
+
+/** Shown once: giving is set up, the member has been here long enough, never saw it, never gave. */
+export async function givingAsk(q: Queryable, userId: string) {
+  const s = await settings(q);
+  if (!s.giving_ask_enabled) return { show: false };
+  const { rows } = await q.query<{ show: boolean }>(
+    `select (select enabled from public.donation_settings)
+            and pr.giving_ask_seen_at is null
+            and pr.created_at <= now() - make_interval(days => $2)
+            and not exists (select 1 from public.donations d where d.donor_id = $1 and d.status = 'paid') as show
+       from public.profiles pr where pr.id = $1`,
+    [userId, s.giving_ask_after_days],
+  );
+  return { show: rows[0]?.show === true };
+}
+
+export async function seenGivingAsk(q: Queryable, userId: string) {
+  await q.query('update public.profiles set giving_ask_seen_at = coalesce(giving_ask_seen_at, now()) where id = $1', [userId]);
 }
 
 // Sermon and meeting inputs ------------------------------------------------------------

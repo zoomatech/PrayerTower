@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { Lamps } from '@/components/lamps';
+import { SupportLinkButton } from '@/components/support-link';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -88,6 +90,7 @@ export default function PersonScreen() {
                 ✝ {person.pastor.title} · {person.pastor.church}
               </Text>
             ) : null}
+            {person.squire ? <Text style={styles.pastor}>{t('squire.badge')}</Text> : null}
             {person.whyHere.length ? (
               <Text style={type.body}>{person.whyHere.map((w) => WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS] ?? w).join(' · ')}</Text>
             ) : null}
@@ -121,6 +124,8 @@ export default function PersonScreen() {
               {blocked ? t('person.unblock', { name: person.displayName }) : t('person.block', { name: person.displayName })}
             </Text>
             {blocked ? <Text style={type.small}>{t('person.blockedNote')}</Text> : null}
+            {!blocked ? <Lamps personId={person.id} name={person.displayName} /> : null}
+            {!blocked && person.supportUrl ? <SupportLinkButton url={person.supportUrl} name={person.displayName} /> : null}
           </View>
         ) : null}
         {person && cards.length === 0 ? <Empty text={t('person.noPosts', { name: person.displayName })} /> : null}

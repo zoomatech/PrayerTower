@@ -109,6 +109,14 @@ export interface Features {
   kindCloud: boolean;
   /** Emoji reactions that open to positive meanings, shown as leaves. */
   meaningReactions: boolean;
+  lamps: boolean;
+  poolLedger: boolean;
+  circleGoals: boolean;
+  supportLinks: boolean;
+  squireBoard: boolean;
+  groupGifts: boolean;
+  prayerList: boolean;
+  readingPlan: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -123,6 +131,13 @@ export interface Features {
   followupNudge: boolean;
   gratitudeCard: boolean;
   gentleRhythm: boolean;
+  /** A welcoming volunteer for a newcomer's first days, and the "Answered & remembered" look-back. */
+  encourager: boolean;
+  remembered: boolean;
+  /** Gentle repair (docs/GENTLE_REPAIR.md): first-comment welcome card, "ask kindly" notes, Mend. */
+  welcomeCard: boolean;
+  askKindly: boolean;
+  mend: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -185,6 +200,44 @@ export interface PracticeSettings {
   followup_days: number;
   gratitude_enabled: boolean;
   gentle_rhythm_enabled: boolean;
+  encourager_enabled: boolean;
+  encourager_days: number;
+  newcomer_days: number;
+  remembered_enabled: boolean;
+  welcome_card_enabled: boolean;
+  welcome_text: string | null;
+  ask_kindly_enabled: boolean;
+  mend_enabled: boolean;
+}
+export type KindAskReason = 'dismissive' | 'grief' | 'unkind' | 'other';
+export type MendStatus = 'invited' | 'review' | 'returned' | 'delivered' | 'accepted' | 'closed' | 'withdrawn';
+export interface Sorry {
+  whatIDid: string;
+  onMe: string;
+  nextTime: string;
+}
+export interface Mend {
+  id: string;
+  role: 'author' | 'hurt' | 'moderator';
+  status: MendStatus;
+  comment: { postId: string; body: string };
+  author: { displayName: string } | null;
+  sorry: Sorry | null;
+  canRevise: boolean;
+  moderatorNote: string | null;
+}
+export interface EncouragerMatch {
+  id: string;
+  role: 'newcomer' | 'encourager';
+  other: { id: string; displayName: string };
+  endsAt: string;
+}
+export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
+export interface RememberedItem {
+  id: string;
+  body: string;
+  testimony: string | null;
+  answeredAt: string;
 }
 export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
 export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[] };
@@ -249,6 +302,18 @@ export interface NotebookSettings {
   pool_matching_enabled: boolean;
   kind_cloud_enabled: boolean;
   meaning_reactions_enabled: boolean;
+  lamps_enabled: boolean;
+  lamps_per_week: number;
+  pool_ledger_enabled: boolean;
+  circle_goals_enabled: boolean;
+  giving_ask_enabled: boolean;
+  giving_ask_after_days: number;
+  support_links_enabled: boolean;
+  squire_board_enabled: boolean;
+  squire_board_days: number;
+  group_gifts_enabled: boolean;
+  prayer_list_enabled: boolean;
+  reading_plan_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -386,6 +451,21 @@ export interface StationAlerts {
   alerts: StationAlert[];
 }
 
+/** A receive-only listener node (server radio/nodes.ts). */
+export interface RadioNode {
+  id: string;
+  name: string;
+  role: 'listener' | 'station';
+  enabled: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+}
+export interface RadioNodes {
+  enabled: boolean;
+  nodes: RadioNode[];
+  reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
+}
+
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
 export interface StationBurst {
   id: string;
@@ -424,7 +504,7 @@ export interface TokenPool {
   open: boolean;
   balance: number;
   /** A matching pledge, while matching is switched on. */
-  match: { ratio: number; cap: number; matched: number } | null;
+  match: { mode: 'ratio' | 'quadratic'; ratio: number; cap: number; matched: number } | null;
   /** Only when listed for a request: why the member can't draw, or null. */
   blockedReason?: string | null;
 }
@@ -821,6 +901,48 @@ export type AiSettings = {
   auto_pray_days: number;
 };
 
+/** Circle goals: "N people pray for this by <date>". */
+export type CircleGoal =
+  | { enabled: false }
+  | { enabled: true; canSet: boolean; goal: { target: number; endsAt: string; prayed: number; met: boolean; ended: boolean } | null };
+
+/** Lamp awards: thanks with a note, recognition only. */
+export type SquireBoard =
+  | { enabled: false }
+  | {
+      enabled: true;
+      days: number;
+      onBoard: boolean;
+      canJoin: boolean;
+      entries: { rank: number; personId: string; name: string; prayers: number; peoplePrayedFor: number; you: boolean }[];
+    };
+
+export type PrayerListItem = { id: string; name: string; note: string; remind: 'off' | 'daily' | 'weekly'; nextReminderAt: string | null; lastPrayedAt: string | null; prayedCount: number };
+export type PrayerList = { enabled: false } | { enabled: true; items: PrayerListItem[] };
+
+export type ReadingPlanToday =
+  | { enabled: false }
+  | {
+      enabled: true;
+      plan: {
+        id: string;
+        title: string;
+        day: number;
+        days: number;
+        conversationId: string | null;
+        reading: { reference: string; url: string; read: boolean; readers: number } | null;
+      } | null;
+    };
+export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
+
+export type Lamps = {
+  enabled: boolean;
+  count: number;
+  lamps: { id: string; note: string; createdAt: string; giverId: string; giverName: string }[];
+  canGive: boolean;
+  leftThisWeek: number;
+};
+
 /** Auto-Pray: AI prayers under a request, counted apart from prayers by people. */
 export type AiPrayers = {
   enabled: boolean;
@@ -1196,6 +1318,11 @@ export const api = {
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
+    radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
+    setRadioNodesEnabled: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-nodes', { enabled }),
+    addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
+    updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
+    removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
     updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
@@ -1253,7 +1380,7 @@ export const api = {
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -1263,7 +1390,7 @@ export const api = {
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1284,9 +1411,35 @@ export const api = {
       idempotencyKey: `power-${postId}-${Date.now()}`,
     }),
   tokenPools: (postId?: string) => get<{ pools: TokenPool[] }>(postId ? `/token-pools?postId=${postId}` : '/token-pools'),
+  poolLedger: () =>
+    get<
+      | { enabled: false }
+      | { enabled: true; given: number; givers: number; matched: number; reachedRequests: number; reachedLast30Days: number; requestsHelped: number; returned: number; openPools: number }
+    >('/token-pools/ledger'),
   myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
-  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number }) =>
+  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number; matchMode?: 'ratio' | 'quadratic' }) =>
     post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
+  circleGoal: (postId: string) => get<CircleGoal>(`/posts/${postId}/circle-goal`),
+  setCircleGoal: (postId: string, target: number, days: number) => request<CircleGoal>('PUT', `/posts/${postId}/circle-goal`, { target, days }),
+  removeCircleGoal: (postId: string) => request<CircleGoal>('DELETE', `/posts/${postId}/circle-goal`),
+  squireBoard: () => get<SquireBoard>('/squire-board'),
+  setSquireBoard: (on: boolean) => request<SquireBoard>('PUT', '/me/squire-board', { public: on }),
+  groupGiftInfo: (target: 'group' | 'event', id: string) => get<{ enabled: false } | { enabled: true; recipients: number }>(`/${target}s/${id}/gift`),
+  giveToGroup: (target: 'group' | 'event', id: string, amount: number) =>
+    post<{ recipients: number; each: number; given: number; balance: number }>(`/${target}s/${id}/gift`, { amount, idempotencyKey: `${target}-gift-${id}-${Date.now()}` }),
+  prayerList: () => get<PrayerList>('/me/prayer-list'),
+  addToPrayerList: (input: { name: string; note?: string; remind: 'off' | 'daily' | 'weekly'; hour: number; tzOffsetMinutes: number }) => post<PrayerList>('/me/prayer-list', input),
+  editPrayerListItem: (id: string, input: Partial<{ name: string; note: string; remind: 'off' | 'daily' | 'weekly'; hour: number; tzOffsetMinutes: number }>) =>
+    request<PrayerList>('PATCH', `/me/prayer-list/${id}`, input),
+  removePrayerListItem: (id: string) => request<PrayerList>('DELETE', `/me/prayer-list/${id}`),
+  prayedForListItem: (id: string) => post<PrayerList>(`/me/prayer-list/${id}/prayed`, {}),
+  readingPlan: () => get<ReadingPlanToday>('/reading-plan'),
+  markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),
+  staffReadingPlans: () => get<{ plans: StaffReadingPlan[] }>('/staff/reading-plans'),
+  createReadingPlan: (input: { title: string; startsOn: string; references: string[]; conversationId?: string | null }) => post<{ id: string }>('/staff/reading-plans', input),
+  archiveReadingPlan: (planId: string) => post<{ archived: true }>(`/staff/reading-plans/${planId}/archive`, {}),
+  lamps: (personId: string) => get<Lamps>(`/people/${personId}/lamps`),
+  giveLamp: (personId: string, note: string) => post<{ id: string }>(`/people/${personId}/lamps`, { note }),
   aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),
   setAutoPray: (postId: string, on: boolean) => request<AiPrayers>('PUT', `/posts/${postId}/auto-pray`, { on }),
   fundTokenPool: (id: string, amount: number) => post<{ matched: number; poolBalance: number; balance: number }>(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
@@ -1393,6 +1546,8 @@ export const api = {
   worldwide: () => get<{ stats: WorldwideStats }>('/stats/worldwide'),
   thanksCard: () => get<{ card: { show: boolean; answeredYouPrayedFor: number } }>('/me/thanks-card'),
   dismissThanksCard: () => post<{ dismissed: true }>('/me/thanks-card/dismiss'),
+  givingAsk: () => get<{ show: boolean }>('/me/giving-ask'),
+  seenGivingAsk: () => post<{ ok: true }>('/me/giving-ask/seen'),
   eventInputs: (id: string) => get<{ canSeeAll: boolean; inputs: EventInput[] }>(`/events/${id}/inputs`),
   addEventInput: (id: string, body: string) => post<{ input: { id: string; crisis: boolean } }>(`/events/${id}/inputs`, { body }),
   removeEventInput: (id: string, inputId: string) => request<{ removed: true }>('DELETE', `/events/${id}/inputs/${inputId}`),
@@ -1406,6 +1561,22 @@ export const api = {
   gratitude: (tz: string) => get<Gratitude>(`/me/gratitude?tz=${encodeURIComponent(tz)}`),
   setGratitudeDay: (weekday: number | null, timeZone: string) => put<Gratitude>('/me/gratitude/day', { weekday, timeZone }),
   saveGratitude: (items: string[], timeZone: string) => put<Gratitude>('/me/gratitude', { items, timeZone }),
+  encourager: () => get<EncouragerState>('/me/encourager'),
+  setVolunteer: (on: boolean, agree?: boolean) => put<EncouragerState>('/me/encourager/volunteer', { on, ...(agree ? { agree } : {}) }),
+  askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
+  endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
+  remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
+  hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
+  welcomeCard: () => get<{ show: boolean; text: string | null }>('/me/welcome-card'),
+  dismissWelcome: () => post<{ show: boolean; text: string | null }>('/me/welcome-card/dismiss'),
+  askKindly: (commentId: string, reason: KindAskReason) => post<{ sent: boolean }>(`/comments/${commentId}/ask-kindly`, { reason }),
+  inviteMend: (commentId: string) => post<{ mend: Mend }>(`/comments/${commentId}/mend`),
+  mend: (id: string) => get<{ mend: Mend }>(`/mends/${id}`),
+  writeSorry: (id: string, sorry: Sorry) => put<{ mend: Mend }>(`/mends/${id}/sorry`, sorry),
+  acceptMend: (id: string) => post<{ mend: Mend }>(`/mends/${id}/accept`),
+  closeMend: (id: string) => post<{ mend: Mend }>(`/mends/${id}/close`),
+  mendQueue: () => get<{ mends: Mend[] }>('/moderation/mends'),
+  reviewMend: (id: string, approve: boolean, note?: string) => post<{ status: MendStatus }>(`/moderation/mends/${id}`, note ? { approve, note } : { approve }),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),

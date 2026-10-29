@@ -6,14 +6,17 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { whenText } from '@/components/events';
+import { GroupGift } from '@/components/group-gift';
 import { EventInputs } from '@/components/notebook';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function EventScreen() {
   const { t, label } = useLocale();
+  const features = useFeatures();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<PrayerEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +93,7 @@ export default function EventScreen() {
         ) : null}
 
         {e && !e.cancelled && (e.isHost || e.myRsvp) ? <EventInputs eventId={id} /> : null}
+        {e && !e.cancelled && features.groupGifts ? <GroupGift target="event" id={id} /> : null}
 
         {e && !e.isHost ? (
           reporting ? (

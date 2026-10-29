@@ -66,8 +66,25 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
     const p = await accounts.getProfile(db, req.params.id);
     if (!p || p.deleted_at || (p.id !== viewerId && (await posts.blockedBetween(db, viewerId, p.id)))) throw notFound('Person');
     const [status, ids, badges] = await Promise.all([accounts.followStatus(db, viewerId, p.id), posts.namedPostIds(db, p.id, viewerId), badgesOf(db, [p.id])]);
+    // An outside support link shows only while switched on, and only within the member's community.
+    const { rows: link } = await db.query<{ show: boolean; squire: boolean }>(
+      `select (select support_links_enabled from public.notebook_settings) and public.member_community_id($1) = public.member_community_id($2) as show,
+              (select squire_board_enabled from public.notebook_settings) and public.member_community_id($1) is not distinct from public.member_community_id($2) as squire`,
+      [viewerId, p.id],
+    );
     return {
-      person: { id: p.id, displayName: p.display_name, handle: p.handle, bio: p.bio, whyHere: p.why_here, pastor: badges.get(p.id) ?? null, ...status },
+      person: {
+        id: p.id,
+        displayName: p.display_name,
+        handle: p.handle,
+        bio: p.bio,
+        whyHere: p.why_here,
+        pastor: badges.get(p.id) ?? null,
+        supportUrl: link[0]?.show && p.support_url ? p.support_url : null,
+        // On the public Prayer Squire track (opted in, not anonymous), while the board is on.
+        squire: link[0]?.squire === true && p.squire_public && !p.anonymous_by_default,
+        ...status,
+      },
       posts: await posts.cards(db, ids, viewerId),
     };
   });

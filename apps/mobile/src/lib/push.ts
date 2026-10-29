@@ -48,13 +48,17 @@ async function register(): Promise<void> {
 function openFrom(response: Notifications.NotificationResponse | null) {
   if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
   const data = response.notification.request.content.data;
-  if (typeof data?.conversationId === 'string') router.push(`/conversation/${data.conversationId}`);
+  if (typeof data?.mendId === 'string') router.push(`/mend/${data.mendId}`);
+  else if (typeof data?.conversationId === 'string') router.push(`/conversation/${data.conversationId}`);
   else if (typeof data?.storyId === 'string') router.push('/help-stories');
   else if (typeof data?.eventId === 'string') router.push(`/event/${data.eventId}`);
   else if (typeof data?.postId === 'string') router.push(`/post/${data.postId}`);
   else if (data?.screen === 'prayer-minute') router.push('/prayer-minute');
   else if (data?.screen === 'give') router.push('/give');
   else if (data?.screen === 'radio-requests') router.push('/radio-requests');
+  else if (data?.screen === 'gratitude' || data?.screen === 'encourager') router.push('/profile');
+  else if (data?.screen === 'prayer-list') router.push('/prayer-list');
+  else if (typeof data?.personId === 'string') router.push(`/people/${data.personId}`);
 }
 
 /** Call once the member is signed in and onboarded. */
