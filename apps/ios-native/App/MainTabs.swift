@@ -43,7 +43,7 @@ struct FeedStyleSection: View {
                             HStack {
                                 Text(Skin.name(t.name, model.wording))
                                 Spacer()
-                                if current == t.slug { Image(systemName: "checkmark") }
+                                if current == t.slug { Image(systemName: "checkmark").accessibilityHidden(true) }
                             }
                         }
                         .accessibilityAddTraits(current == t.slug ? .isSelected : [])
