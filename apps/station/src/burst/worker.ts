@@ -11,6 +11,8 @@ import type { BurstTransmitter, SentBurst } from './transmit.js';
 export interface BurstConfig {
   callSign: string;
   preset: BurstPreset;
+  /** BURST_PRESET=auto: picks the preset before each burst (auto.ts) instead of the fixed one. */
+  choosePreset?: () => Promise<BurstPreset>;
   /** Most prayers claimed per burst (the server may hand out fewer). */
   maxPrayers: number;
   /** Longest single frame on the air; a bigger batch becomes several frames in the same key-up. */
@@ -49,14 +51,15 @@ export async function runBurstOnce(
   if (!ok.length) return { kind: 'rejected', rejected };
 
   const texts = ok.flatMap((p) => Array<string>(Math.max(1, Math.min(p.repeats ?? 1, MAX_REPEATS))).fill(foldAscii(p.text)));
-  const batches = planFrames(texts, cfg.preset, cfg.maxFrameSeconds);
+  const preset = cfg.choosePreset ? await cfg.choosePreset() : cfg.preset;
+  const batches = planFrames(texts, preset, cfg.maxFrameSeconds);
   const logBurst = (b: Omit<BurstLog, 'callSign' | 'mode' | 'preset' | 'prayers'>) =>
     api
-      .reportBurst?.({ callSign: cfg.callSign, mode: tx.mode, preset: cfg.preset.name, prayers: texts.length, ...b })
+      .reportBurst?.({ callSign: cfg.callSign, mode: tx.mode, preset: preset.name, prayers: texts.length, ...b })
       .catch((err: Error) => log(`[burst] could not log the burst: ${err.message}`));
   let sent: SentBurst;
   try {
-    sent = await tx.send(batches, cfg.preset, cfg.callSign);
+    sent = await tx.send(batches, preset, cfg.callSign);
   } catch (err) {
     await tx.stop().catch(() => undefined);
     const message = String((err as Error).message ?? err).slice(0, 500);
@@ -66,7 +69,7 @@ export async function runBurstOnce(
   }
   for (const p of ok) await reportWithRetry(api, p.id, { ok: true, callSign: cfg.callSign, pieces: sent.frames }, retryMs);
   await logBurst({ ...sent, seconds: Math.round(sent.seconds * 100) / 100, ok: true });
-  log(`[burst] ${ok.length} prayer(s) sent in ${sent.frames} frame(s), ${sent.seconds.toFixed(2)} s, ${cfg.preset.name}`);
+  log(`[burst] ${ok.length} prayer(s) sent in ${sent.frames} frame(s), ${sent.seconds.toFixed(2)} s, ${preset.name}`);
   return { kind: 'sent', sent: ok.length, rejected, frames: sent.frames, seconds: sent.seconds };
 }
 

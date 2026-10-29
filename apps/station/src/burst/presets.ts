@@ -24,6 +24,8 @@ export interface BurstPreset {
   bitsPerSymbol: 1 | 2 | 3 | 4 | 6;
   /** Reed-Solomon parity bytes per 255-byte block (corrects half as many bad bytes). */
   parity: number;
+  /** Lowest SNR in 2.5 kHz (dB) where it still decodes reliably on a simulated channel; the auto picker adds a margin. */
+  minSnrDb: number;
   /** Inner convolutional code with soft-decision decoding (the "-fec" presets); none when absent. */
   inner?: InnerCode;
   /** 'qam': coherent Gray-coded QAM with pilot carriers (qam.ts) instead of differential PSK. Needs an inner code. */
@@ -42,6 +44,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 1,
     parity: 48,
+    minSnrDb: 6,
   },
   {
     ...base,
@@ -52,6 +55,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 2,
     parity: 32,
+    minSnrDb: 11,
   },
   {
     ...base,
@@ -62,6 +66,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 3,
     parity: 32,
+    minSnrDb: 16,
   },
   {
     ...base,
@@ -72,6 +77,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 111,
     bitsPerSymbol: 3,
     parity: 32,
+    minSnrDb: 19,
   },
   {
     ...base,
@@ -82,6 +88,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 66,
     bitsPerSymbol: 4,
     parity: 32,
+    minSnrDb: 22,
   },
   {
     ...base,
@@ -92,6 +99,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 111,
     bitsPerSymbol: 4,
     parity: 32,
+    minSnrDb: 24,
   },
   {
     ...base,
@@ -102,6 +110,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 2,
     parity: 16,
+    minSnrDb: 5,
     inner: 'r12',
   },
   {
@@ -113,6 +122,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 66,
     bitsPerSymbol: 4,
     parity: 16,
+    minSnrDb: 15,
     inner: 'r23',
   },
   {
@@ -124,6 +134,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 63,
     bitsPerSymbol: 4,
     parity: 16,
+    minSnrDb: 12,
     inner: 'r34',
     modulation: 'qam',
   },
@@ -136,6 +147,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 66,
     bitsPerSymbol: 6,
     parity: 16,
+    minSnrDb: 18,
     inner: 'r34',
     modulation: 'qam',
   },
@@ -148,6 +160,7 @@ export const PRESETS: readonly BurstPreset[] = [
     lastBin: 111,
     bitsPerSymbol: 6,
     parity: 16,
+    minSnrDb: 20,
     inner: 'r34',
     modulation: 'qam',
   },

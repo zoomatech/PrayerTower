@@ -104,6 +104,7 @@ export interface Features {
   postLines: boolean;
   checkinAffirmation: boolean;
   whyGifts: boolean;
+  poolMatching: boolean;
   /** The kind cloud on composers: a gentle "Are you sure?" (server modules/kindness). */
   kindCloud: boolean;
   /** Emoji reactions that open to positive meanings, shown as leaves. */
@@ -179,6 +180,7 @@ export interface NotebookSettings {
   tier_upkeep_days: number;
   checkin_affirmation_enabled: boolean;
   why_gifts_enabled: boolean;
+  pool_matching_enabled: boolean;
   kind_cloud_enabled: boolean;
   meaning_reactions_enabled: boolean;
   promise_page_enabled: boolean;
@@ -337,6 +339,8 @@ export interface TokenPool {
   isMine: boolean;
   open: boolean;
   balance: number;
+  /** A matching pledge, while matching is switched on. */
+  match: { ratio: number; cap: number; matched: number } | null;
   /** Only when listed for a request: why the member can't draw, or null. */
   blockedReason?: string | null;
 }
@@ -723,7 +727,25 @@ export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_min
 export type AiTurn = { role: 'user' | 'assistant'; content: string };
 export type CircleRole = 'harmed' | 'caused' | 'unsure';
 export type CircleRequest = { id: string; userId: string; displayName: string; role: CircleRole; summary: string; status: 'open' | 'closed'; createdAt: string };
-export type AiSettings = { chat_daily_limit: number; facilitator_enabled: boolean; facilitator_daily_limit: number };
+export type AiSettings = {
+  chat_daily_limit: number;
+  facilitator_enabled: boolean;
+  facilitator_daily_limit: number;
+  auto_pray_enabled: boolean;
+  auto_pray_per_day: number;
+  auto_pray_daily_limit: number;
+  auto_pray_days: number;
+};
+
+/** Auto-Pray: AI prayers under a request, counted apart from prayers by people. */
+export type AiPrayers = {
+  enabled: boolean;
+  optedIn: boolean;
+  until: string | null;
+  count: number;
+  prayers: { id: string; body: string; createdAt: string }[];
+  isMine?: boolean;
+};
 export type MyAwards = { enabled: false; awards: [] } | { enabled: true; prize: { tokens: number; priestly: number; note: string }; publicHall: boolean; awards: Award[] };
 export type AwardHall =
   | { enabled: false; years: [] }
@@ -986,7 +1008,7 @@ export const api = {
     updateLiveSettings: (patch: { enabled?: boolean; jitsiUrl?: string; maxMinutes?: number }) =>
       request<{ settings: LiveSettings }>('PATCH', '/admin/live-settings', patch),
     aiSettings: () => get<{ settings: AiSettings; aiConnected: boolean }>('/admin/ai-settings'),
-    updateAiSettings: (patch: { chatDailyLimit?: number; facilitatorEnabled?: boolean; facilitatorDailyLimit?: number }) =>
+    updateAiSettings: (patch: { chatDailyLimit?: number; facilitatorEnabled?: boolean; facilitatorDailyLimit?: number; autoPrayEnabled?: boolean; autoPrayPerDay?: number; autoPrayDailyLimit?: number; autoPrayDays?: number }) =>
       request<{ settings: AiSettings; aiConnected: boolean }>('PATCH', '/admin/ai-settings', patch),
     futureSettings: () => get<{ settings: { ai_chat_enabled: boolean; ai_chat_warning: string } }>('/admin/future-settings'),
     updateFutureSettings: (patch: { aiChatEnabled?: boolean; aiChatWarning?: string }) =>
@@ -1141,7 +1163,7 @@ export const api = {
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; whyGiftsEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1163,9 +1185,11 @@ export const api = {
     }),
   tokenPools: (postId?: string) => get<{ pools: TokenPool[] }>(postId ? `/token-pools?postId=${postId}` : '/token-pools'),
   myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
-  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number }) =>
+  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number }) =>
     post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
-  fundTokenPool: (id: string, amount: number) => post(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
+  aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),
+  setAutoPray: (postId: string, on: boolean) => request<AiPrayers>('PUT', `/posts/${postId}/auto-pray`, { on }),
+  fundTokenPool: (id: string, amount: number) => post<{ matched: number; poolBalance: number; balance: number }>(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
   closeTokenPool: (id: string) => post(`/token-pools/${id}/close`, {}),
   drawFromPool: (id: string, postId: string) => post<{ amount: number; reach: number }>(`/token-pools/${id}/draw`, { postId }),
   scheduleSpend: (postId: string, input: { amount: number; runAt: string; repeatWeeks: number }) =>

@@ -838,13 +838,20 @@ function AiSection() {
   const [s, setS] = useState<AiSettings | null>(null);
   const [chat, setChat] = useState<{ ai_chat_enabled: boolean; ai_chat_warning: string } | null>(null);
   const [connected, setConnected] = useState(false);
-  const [draft, setDraft] = useState({ warning: '', chatLimit: '', facLimit: '' });
+  const [draft, setDraft] = useState({ warning: '', chatLimit: '', facLimit: '', apPerDay: '', apLimit: '', apDays: '' });
   const [note, setNote] = useState<string | null>(null);
   const fail = (e: unknown) => setNote((e as Error).message);
   const show = (x: AiSettings, c: { ai_chat_enabled: boolean; ai_chat_warning: string }) => {
     setS(x);
     setChat(c);
-    setDraft({ warning: c.ai_chat_warning, chatLimit: String(x.chat_daily_limit), facLimit: String(x.facilitator_daily_limit) });
+    setDraft({
+      warning: c.ai_chat_warning,
+      chatLimit: String(x.chat_daily_limit),
+      facLimit: String(x.facilitator_daily_limit),
+      apPerDay: String(x.auto_pray_per_day),
+      apLimit: String(x.auto_pray_daily_limit),
+      apDays: String(x.auto_pray_days),
+    });
   };
   useFocusEffect(
     useCallback(() => {
@@ -856,13 +863,17 @@ function AiSection() {
         .catch(fail);
     }, []),
   );
-  const save = async (patch: { chatEnabled?: boolean; facilitatorEnabled?: boolean } = {}) => {
+  const save = async (patch: { chatEnabled?: boolean; facilitatorEnabled?: boolean; autoPrayEnabled?: boolean } = {}) => {
     try {
       const f = await api.admin.updateFutureSettings({ aiChatEnabled: patch.chatEnabled, aiChatWarning: draft.warning || undefined });
       const a = await api.admin.updateAiSettings({
         facilitatorEnabled: patch.facilitatorEnabled,
         chatDailyLimit: toInt(draft.chatLimit) ?? undefined,
         facilitatorDailyLimit: toInt(draft.facLimit) ?? undefined,
+        autoPrayEnabled: patch.autoPrayEnabled,
+        autoPrayPerDay: toInt(draft.apPerDay) ?? undefined,
+        autoPrayDailyLimit: toInt(draft.apLimit) ?? undefined,
+        autoPrayDays: toInt(draft.apDays) ?? undefined,
       });
       show(a.settings, f.settings);
       setNote(t('admin.saved.ai'));
@@ -880,6 +891,10 @@ function AiSection() {
       <Field label={t('admin.field.aiChatLimit')} keyboardType="number-pad" value={draft.chatLimit} onChangeText={(chatLimit) => setDraft((d) => ({ ...d, chatLimit }))} />
       <Toggle label={t('admin.toggle.aiFacilitator')} hint={t('admin.toggle.aiFacilitatorHint')} value={s.facilitator_enabled} onChange={(v) => save({ facilitatorEnabled: v })} />
       <Field label={t('admin.field.aiFacLimit')} keyboardType="number-pad" value={draft.facLimit} onChangeText={(facLimit) => setDraft((d) => ({ ...d, facLimit }))} />
+      <Toggle label={t('admin.toggle.autoPray')} hint={t('admin.toggle.autoPrayHint')} value={s.auto_pray_enabled} onChange={(v) => save({ autoPrayEnabled: v })} />
+      <Field label={t('admin.field.autoPrayPerDay')} keyboardType="number-pad" value={draft.apPerDay} onChangeText={(apPerDay) => setDraft((d) => ({ ...d, apPerDay }))} />
+      <Field label={t('admin.field.autoPrayLimit')} keyboardType="number-pad" value={draft.apLimit} onChangeText={(apLimit) => setDraft((d) => ({ ...d, apLimit }))} />
+      <Field label={t('admin.field.autoPrayDays')} keyboardType="number-pad" value={draft.apDays} onChangeText={(apDays) => setDraft((d) => ({ ...d, apDays }))} />
       <Button label={t('admin.btn.saveAi')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
@@ -1268,6 +1283,7 @@ function NotebookSettingsSection() {
       <Field label={t('admin.field.tierUpkeepDays')} keyboardType="number-pad" value={upkeepDays} onChangeText={setUpkeepDays} />
       <Toggle label={t('admin.toggle.checkinAffirmation')} hint={t('admin.toggle.checkinAffirmationHint')} value={s.checkin_affirmation_enabled} onChange={(v) => save({ checkinAffirmationEnabled: v })} />
       <Toggle label={t('admin.toggle.whyGifts')} hint={t('admin.toggle.whyGiftsHint')} value={s.why_gifts_enabled} onChange={(v) => save({ whyGiftsEnabled: v })} />
+      <Toggle label={t('admin.toggle.poolMatching')} hint={t('admin.toggle.poolMatchingHint')} value={s.pool_matching_enabled} onChange={(v) => save({ poolMatchingEnabled: v })} />
       <Toggle label={t('admin.toggle.kindCloud')} hint={t('admin.toggle.kindCloudHint')} value={s.kind_cloud_enabled} onChange={(v) => save({ kindCloudEnabled: v })} />
       <Toggle label={t('admin.toggle.meaningReactions')} hint={t('admin.toggle.meaningReactionsHint')} value={s.meaning_reactions_enabled} onChange={(v) => save({ meaningReactionsEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />

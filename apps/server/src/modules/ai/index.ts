@@ -18,10 +18,15 @@ export interface AiSettings {
   chat_daily_limit: number;
   facilitator_enabled: boolean;
   facilitator_daily_limit: number;
+  auto_pray_enabled: boolean;
+  auto_pray_per_day: number;
+  auto_pray_daily_limit: number;
+  auto_pray_days: number;
 }
 
 export async function settings(q: Queryable): Promise<AiSettings> {
-  const { rows } = await q.query<AiSettings>('select chat_daily_limit, facilitator_enabled, facilitator_daily_limit from public.ai_settings');
+  const { rows } = await q.query<AiSettings>(`select chat_daily_limit, facilitator_enabled, facilitator_daily_limit, auto_pray_enabled, auto_pray_per_day, auto_pray_daily_limit, auto_pray_days
+       from public.ai_settings`);
   return rows[0]!;
 }
 
@@ -29,13 +34,19 @@ export const SettingsPatch = z.object({
   chatDailyLimit: z.number().int().min(1).max(500).optional(),
   facilitatorEnabled: z.boolean().optional(),
   facilitatorDailyLimit: z.number().int().min(1).max(500).optional(),
+  autoPrayEnabled: z.boolean().optional(),
+  autoPrayPerDay: z.number().int().min(1).max(4).optional(),
+  autoPrayDailyLimit: z.number().int().min(1).max(10000).optional(),
+  autoPrayDays: z.number().int().min(1).max(365).optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
   await q.query(
     `update public.ai_settings set chat_daily_limit = coalesce($1, chat_daily_limit),
-       facilitator_enabled = coalesce($2, facilitator_enabled), facilitator_daily_limit = coalesce($3, facilitator_daily_limit)`,
-    [p.chatDailyLimit ?? null, p.facilitatorEnabled ?? null, p.facilitatorDailyLimit ?? null],
+       facilitator_enabled = coalesce($2, facilitator_enabled), facilitator_daily_limit = coalesce($3, facilitator_daily_limit),
+       auto_pray_enabled = coalesce($4, auto_pray_enabled), auto_pray_per_day = coalesce($5, auto_pray_per_day),
+       auto_pray_daily_limit = coalesce($6, auto_pray_daily_limit), auto_pray_days = coalesce($7, auto_pray_days)`,
+    [p.chatDailyLimit ?? null, p.facilitatorEnabled ?? null, p.facilitatorDailyLimit ?? null, p.autoPrayEnabled ?? null, p.autoPrayPerDay ?? null, p.autoPrayDailyLimit ?? null, p.autoPrayDays ?? null],
   );
   return settings(q);
 }

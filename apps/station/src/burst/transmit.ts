@@ -9,6 +9,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Fldigi } from '../fldigi.js';
 import { buildBurst, listen, type Burst } from './burst.js';
+import { reportFrom, writeReport } from './auto.js';
 import { encodeTextFrame } from './text-frame.js';
 import { toWav } from './wav.js';
 import type { BurstPreset } from './presets.js';
@@ -93,13 +94,21 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
   };
 }
 
-export function simulateTransmitter(dir: string, log: (m: string) => void): BurstTransmitter {
+/**
+ * Simulate mode: write the burst to a WAV file and decode it back. With
+ * `snrDb`, white noise at that SNR (in 2.5 kHz) is added first; with
+ * `reportFile`, the simulated receiver writes its channel report there, as a
+ * real receiver would for BURST_PRESET=auto.
+ */
+export function simulateTransmitter(dir: string, log: (m: string) => void, opts: { snrDb?: number; reportFile?: string } = {}): BurstTransmitter {
   return {
     mode: 'simulate',
     async send(batches, preset, callSign) {
       const burst = buildBurst(batches, preset, callSign);
       const wav = writeWav(dir, burst);
-      const heard = listen(burst.audio);
+      const heard = listen(opts.snrDb === undefined ? burst.audio : addNoise(burst.audio, opts.snrDb));
+      const report = reportFrom(heard);
+      if (opts.reportFile && report) await writeReport(opts.reportFile, report);
       const count = heard.reduce((n, h) => n + h.prayers.length, 0);
       log(`[simulate] ${wav}: ${burst.frames} frame(s), ${burst.bytes} bytes, ${burst.seconds.toFixed(2)} s on air (${preset.name}); a receiver decodes ${count} prayer(s)`);
       for (const h of heard) for (const p of h.prayers) log(`[simulate]   de ${h.callSign}: ${p}`);
@@ -107,6 +116,22 @@ export function simulateTransmitter(dir: string, log: (m: string) => void): Burs
     },
     async stop() {},
   };
+}
+
+/** White noise at snrDb relative to the audio's power, measured in 2.5 kHz of the 24 kHz band (seeded, so runs repeat). */
+function addNoise(audio: Float32Array, snrDb: number): Float32Array {
+  let e = 0;
+  let n = 0;
+  for (const v of audio) {
+    if (v !== 0) {
+      e += v * v;
+      n++;
+    }
+  }
+  const sigma = (Math.sqrt(e / Math.max(1, n)) / 10 ** (snrDb / 20)) * Math.sqrt(24_000 / 2_500);
+  let x = 12345;
+  const rand = () => ((x = (Math.imul(x, 1664525) + 1013904223) >>> 0) + 0.5) / 2 ** 32;
+  return Float32Array.from(audio, (v) => v + sigma * Math.sqrt(-2 * Math.log(rand())) * Math.cos(2 * Math.PI * rand()));
 }
 
 export function fldigiTransmitter(fldigi: Fldigi, txTimeoutMs: number): BurstTransmitter {
