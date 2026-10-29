@@ -303,6 +303,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     leaf: '{{label}}, {{count}}',
     mine: 'yours',
     added: 'Added %{emoji} %{word}',
+    holdHint: 'Press and hold to choose an emoji meaning',
     failed: 'That didn’t go through. Please try again.',
   },
   quick: {
@@ -2061,7 +2062,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     adminClosings: 'Kind closings',
     adminClosingsHint: 'Gentle closing lines to end a conversation kindly.',
     adminMeaningRow: 'Meanings in the icon row',
-    adminMeaningRowHint: 'Puts the emoji meanings in every card’s single icon row, in every feed skin. Tap adds the first meaning, press and hold opens up to five, hovering shows the words. Needs Emoji meanings on.',
+    adminMeaningRowHint: 'Every card keeps its one row of action icons, in every feed skin. Praying, well wishes, encourage and commit carry their emoji’s meanings: hovering shows them, pressing and holding opens up to five to choose from. Needs Emoji meanings on.',
     adminCounts: 'Counting patterns',
     adminCountsHint: 'Anonymous weekly totals of greeting → reply → follow-up and of emoji used as replies, from members who choose to share. No words, no names.',
     countsTitle: 'Conversation patterns (last %{weeks} weeks)',
