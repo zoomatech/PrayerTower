@@ -60,7 +60,7 @@ export async function markRead(q: Queryable, userId: string, planId: string) {
 
 // Staff -------------------------------------------------------------------------------
 
-async function requireStaff(q: Queryable, userId: string) {
+export async function requireStaff(q: Queryable, userId: string) {
   if (!(await settings(q)).on) throw forbidden('Reading plans are off');
   if (!(await hasRole(q, userId, 'admin', 'pastor'))) throw forbidden('Admins and pastors only');
   if (await communities.isSecular(q, userId)) throw forbidden('Reading plans are not offered in this community');

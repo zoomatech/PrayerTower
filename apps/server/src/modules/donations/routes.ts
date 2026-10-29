@@ -61,6 +61,8 @@ export function donationRoutes(app: FastifyInstance, db: Db, stripe: donations.S
   app.get('/staff/radio-allocation-requests', async (req) => ({ requests: await donations.pendingRequests(db, requireUser(req)) }));
   app.post<{ Params: { id: string } }>('/staff/radio-allocation-requests/:id/decide', async (req) => {
     const staffId = requireUser(req);
+    // The role first, so a member learns nothing from the body check.
+    await donations.requireStaff(db, staffId);
     return withTx(db, (tx) => donations.decide(tx, staffId, req.params.id, donations.Decision.parse(req.body)));
   });
 
