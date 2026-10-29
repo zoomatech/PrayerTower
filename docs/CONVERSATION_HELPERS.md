@@ -133,6 +133,25 @@ Admin → Conversation helpers → **Who can reply** (migration 20261029019500).
 
 Code: `modules/reply-choice`, `components/reply-choice.tsx`.
 
+## Comments at block breaks (off)
+
+Admin → Conversation helpers → **Comments at block breaks** (migration 20261029103000).
+From notebook Page 13: "a thread can incur comments at any 200-word block break."
+
+- On a request's own page, a post longer than 200 words is shown in parts of about 200
+  words. Each part ends at a paragraph break, or else a sentence end, within the last
+  quarter before the mark (`postParts` in packages/shared).
+- After each part: **Comment on this part**, and how many comments that part already has.
+- The comment box then says "Commenting on part 2 of 3", with a link to comment on the
+  whole post instead.
+- The comments stay together at the end, as Steve leans toward, each marked "On part 2".
+- Only a new top-level comment can be about one part. Replies and updates belong to the
+  whole thread.
+- While the switch is off, the post shows whole and a part sent by an older app is ignored.
+
+Code: `posts.addComment` (part check), `components/post-parts.tsx`. Tests:
+`test/part-comments.test.ts`, `post-parts.test.tsx`, e2e `25-part-comments.spec.ts`.
+
 ## Everything shipped on 2026-10-29 (all off by default)
 
 | Feature | Where to switch it on | Doc |
