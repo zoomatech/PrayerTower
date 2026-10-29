@@ -37,6 +37,7 @@ struct PostDetailView: View {
                 if card.crisis || support { Section { CrisisBox() } }
                 if let harm { Section { HarmBox(note: harm) } }
                 if card.isMine && prayable { Section { ownerTools(card) } }
+                if card.isMine, model.features["followupNudge"] { FollowupSection(postId: card.id) { Task { await load() } } }
                 if prayable, let prayers { Section { prayedList(prayers) } }
                 Section(w("post.comments")) { commentList }
                 Section { composer(card) }

@@ -37,6 +37,7 @@ Each one reads the same admin switch as the Expo app and shows nothing while it 
 | Three good things on Me: up to three a week, a reminder day, share as praise or to a circle | `gratitudeCard` (`circleUpdates` for circles) | `Gratitude`, `GratitudeSection` |
 | Kind words practice on Me: a made-up moment each week, three replies, and how each might land; nothing leaves the phone | `empathyPractice` | `KindWords`, `KindWordsSection` |
 | Encourager on Me: ask for a welcoming volunteer or volunteer, end a match with one tap, and the one-time "How is it going?" | `encourager`, `encouragerCheckin` | `EncouragerState`, `EncouragerSection` |
+| "Share how it's going?" on the author's own post, once, with "Prefer not to say" | `followupNudge` | `FollowupAnswer`, `FollowupSection` |
 
 Commit to Pray and Gift Tokens keep their icons in the row, and for now say they are coming soon (phases 2 and 4). Open Circle wording comes from the same words as `neutral.ts`, and a test checks the kind cloud has no religious words there.
 
