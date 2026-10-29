@@ -24,6 +24,7 @@ struct PostDetailView: View {
     @State private var committing: Card?
     @State private var encouraging: Card?
     @State private var gifting: Card?
+    @State private var sharing: Card?
     @State private var deleteArmed = false
     @State private var busy = false
     @State private var notice: String?
@@ -43,6 +44,8 @@ struct PostDetailView: View {
                 if card.isMine { Section { LiveFollowView(card: card) } }
                 if prayable, let prayers { Section { prayedList(prayers) } }
                 if prayable { Section { PowerPrayerSection(card: card) } }
+                if prayable { GuestShareSection(card: card) }
+                ShareChoiceSection(card: card)
                 Section(w("post.comments")) { commentList }
                 Section { composer(card) }
                 Section { reportButton(w("actions.reportPost")) { reporting = ("post", card.id) } }
@@ -77,6 +80,7 @@ struct PostDetailView: View {
         }
         .sheet(item: $committing) { card in CommitSheet(card: card) { notice = $0 } }
         .sheet(item: $gifting) { card in GiftSheet(card: card) { notice = $0 } }
+        .sheet(item: $sharing) { card in ShareSheet(card: card) { notice = $0 } }
         .sheet(item: $encouraging) { card in
             EncourageSheet(card: card) { note in
                 Task {
@@ -162,6 +166,12 @@ struct PostDetailView: View {
 
     // MARK: Comments
 
+    /// The comment's words plus a link that opens this request at the comment.
+    private func commentShare(_ c: PrayerTowerKit.Comment) -> String {
+        let url = model.shareURL("/post/\(postId)", query: ["comment": c.id])
+        return w("post.shareComment", ["body": c.body, "name": c.author.displayName, "url": url])
+    }
+
     @ViewBuilder private var commentList: some View {
         if comments.isEmpty {
             Text(w("post.noComments")).foregroundStyle(.secondary)
@@ -173,6 +183,10 @@ struct PostDetailView: View {
                 Text(c.body)
                 HStack(spacing: 16) {
                     Button(w("post.reply")) { replyTo = c; asUpdate = false }
+                    // With sharing by consent on, only the person who wrote a comment can share it.
+                    if !model.features["shareConsent"] || c.isMine == true {
+                        ShareLink(w("post.share"), item: commentShare(c))
+                    }
                     if c.isMine == true {
                         Button(w("post.deleteShort"), role: .destructive) { Task { await deleteComment(c) } }
                     } else {
@@ -294,7 +308,9 @@ struct PostDetailView: View {
             switch action {
             case .prayingNow: _ = try await api.prayingNow(postId: card.id)
             case .wellWishes: _ = try await api.react(postId: card.id, kind: "well_wishes")
-            case .share: _ = try await api.react(postId: card.id, kind: "share")
+            case .share:
+                sharing = card
+                return
             case .commit:
                 committing = card
                 return

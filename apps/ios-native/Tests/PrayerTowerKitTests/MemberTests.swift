@@ -82,3 +82,24 @@ import Testing
         #expect(PrayNow.postId(from: try #require(URL(string: "opencircle:///post/p9"))) == "p9")
     }
 }
+
+@Suite struct ShareTests {
+    @Test func linksUseTheSiteOrTheAppScheme() {
+        #expect(ShareLinks.url("/post/p1", query: ["comment": "c1"], base: "https://prayertower.app/") == "https://prayertower.app/post/p1?comment=c1")
+        #expect(ShareLinks.url("/post/p1", base: nil) == "prayertower:///post/p1")
+        #expect(ShareLinks.url("/pray/t", base: "", scheme: "opencircle") == "opencircle:///pray/t")
+    }
+
+    @Test func baseFallsBackToAnHttpsApi() {
+        #expect(ShareLinks.base(link: "", api: URL(string: "https://api.example")!) == "https://api.example")
+        #expect(ShareLinks.base(link: nil, api: URL(string: "http://127.0.0.1")!) == nil)
+        #expect(ShareLinks.base(link: "https://site", api: URL(string: "http://127.0.0.1")!) == "https://site")
+    }
+
+    @Test func shareStateDecodes() throws {
+        let json = #"{"mine":true,"level":"link","canShare":true,"cardAllowed":false,"words":false,"path":"/post/p1"}"#
+        let s = try JSONDecoder().decode(ShareState.self, from: Data(json.utf8))
+        #expect(s.level == "link")
+        #expect(!s.cardAllowed)
+    }
+}

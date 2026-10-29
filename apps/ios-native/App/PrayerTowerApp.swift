@@ -31,6 +31,10 @@ final class AppModel {
     var features = Features(values: [:])
     /// Which app this build is: Prayer Tower, or the separately branded, non-religious Open Circle.
     let edition = Edition(Bundle.main.infoDictionary)
+    /// A link people send outside the app (on the site when there is one, else the app's scheme).
+    func shareURL(_ path: String, query: [String: String] = [:]) -> String {
+        ShareLinks.url(path, query: query, base: ShareLinks.base(link: Bundle.main.infoDictionary?["PTLinkURL"] as? String, api: store.api.baseURL), scheme: edition.scheme)
+    }
     var wording: Wording = Edition(Bundle.main.infoDictionary) == .openCircle ? .neutral : .faith {
         didSet { words = Words(wording) }
     }

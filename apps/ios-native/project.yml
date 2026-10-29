@@ -39,6 +39,8 @@ targets:
         PTSupabaseURL: $(PT_SUPABASE_URL)
         PTSupabaseKey: $(PT_SUPABASE_KEY)
         PTApiURL: $(PT_API_URL)
+        # The site shared links point to (opens the app when installed); blank uses PT_API_URL.
+        PTLinkURL: $(PT_LINK_URL)
         # Shown with the rules and at sign-up; blank hides the link.
         PTTermsURL: $(PT_TERMS_URL)
         PTPrivacyURL: $(PT_PRIVACY_URL)
@@ -90,6 +92,8 @@ targets:
         PTSupabaseURL: $(PT_SUPABASE_URL)
         PTSupabaseKey: $(PT_SUPABASE_KEY)
         PTApiURL: $(PT_API_URL)
+        # The site shared links point to (opens the app when installed); blank uses PT_API_URL.
+        PTLinkURL: $(PT_LINK_URL)
         PTTermsURL: $(PT_TERMS_URL)
         PTPrivacyURL: $(PT_PRIVACY_URL)
         PTSupportEmail: $(PT_SUPPORT_EMAIL)

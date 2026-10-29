@@ -14,6 +14,7 @@ struct FeedView: View {
     @State private var opened: String?
     @State private var committing: Card?
     @State private var gifting: Card?
+    @State private var sharing: Card?
     @State private var notice: String?
     @State private var error: String?
     /// Set while showing the feed saved on the device, because the server can't be reached.
@@ -64,6 +65,12 @@ struct FeedView: View {
             .sheet(item: $gifting) { card in
                 GiftSheet(card: card) { message in
                     done[card.id, default: []].insert(.giftTokens)
+                    notice = message
+                }
+            }
+            .sheet(item: $sharing) { card in
+                ShareSheet(card: card) { message in
+                    done[card.id, default: []].insert(.share)
                     notice = message
                 }
             }
@@ -119,7 +126,7 @@ struct FeedView: View {
             }
         case .wellWishes: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "well_wishes") } }
         case .encouragement: encouraging = card
-        case .share: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "share") } }
+        case .share: sharing = card
         case .commit: committing = card
         case .giftTokens: gifting = card
         }
