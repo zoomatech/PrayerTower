@@ -19,16 +19,18 @@ struct NoticesView: View {
             if let error { Text(error).foregroundStyle(.red) }
             ForEach(items ?? []) { n in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(n.title).bold()
-                    if !n.body.isEmpty { Text(n.body) }
-                    Text(when(n.createdAt)).font(.caption).foregroundStyle(.secondary)
+                    // The words open the post, as one button VoiceOver reads in order.
+                    if let id = n.postId {
+                        Button { opened = Opened(postId: id, draft: nil) } label: { words(n).contentShape(.rect) }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(.isLink)
+                    } else {
+                        words(n).accessibilityElement(children: .combine)
+                    }
                     if model.features["pathBack"], let item = n.postAgainItem {
                         Button(w("pathBack.again")) { Task { await postAgain(item) } }.buttonStyle(.bordered)
                     }
                 }
-                .contentShape(.rect)
-                .onTapGesture { if let id = n.postId { opened = Opened(postId: id, draft: nil) } }
-                .accessibilityAddTraits(n.postId == nil ? [] : .isLink)
                 .listRowBackground(n.readAt == nil ? Color.accentColor.opacity(0.08) : nil)
             }
         }
@@ -56,6 +58,15 @@ struct NoticesView: View {
     }
 
     /// The author's own words open again: a post in the composer, a comment in its post's box.
+    private func words(_ n: AppNotice) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(n.title).bold()
+            if !n.body.isEmpty { Text(n.body) }
+            Text(when(n.createdAt)).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func postAgain(_ item: String) async {
         do {
             let words = try await model.store.api.removedWords(item)

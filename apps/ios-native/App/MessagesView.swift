@@ -191,7 +191,7 @@ struct ConversationScreen: View {
                         if reported.contains(m.id) {
                             Text(w("conversation.reported")).font(.caption2)
                         } else {
-                            Button(w("post.report")) { reporting = m }.font(.caption2).buttonStyle(.borderless)
+                            Button { reporting = m } label: { Text(w("post.report")).tapTarget() }.font(.caption2).buttonStyle(.borderless)
                         }
                     }
                 }
@@ -319,7 +319,7 @@ struct InviteSheet: View {
                         HStack {
                             Text(p.displayName.isEmpty ? w("conversation.member") : p.displayName)
                             Spacer()
-                            if picked.contains(p.id) { Image(systemName: "checkmark") }
+                            if picked.contains(p.id) { Image(systemName: "checkmark").accessibilityHidden(true) }
                         }
                     }
                     .accessibilityAddTraits(picked.contains(p.id) ? .isSelected : [])
