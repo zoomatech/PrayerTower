@@ -15,6 +15,9 @@
 //   sim [preset]                send 30 generated prayers through a simulated radio path at
 //                               falling noise levels; print air time and the lowest SNR that
 //                               decodes every prayer (the table in docs/RADIO_BURST.md; slow)
+//   stress [preset]             the share of 30 prayers decoded under noise, fading, clock
+//                               drift and clipping from 0 to 30 dB (docs/RADIO_BURST.md,
+//                               "Robustness"; slow)
 //
 // A live receiver can record with e.g. `arecord -f S16_LE -r 48000 -c 1 -d 30 rx.wav`.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -27,6 +30,7 @@ import { fromWav, resample, toWav } from './wav.js';
 import { SAMPLE_RATE } from './ofdm.js';
 import { samplePrayers } from './sample.js';
 import { simMarkdown, simTable } from './sim.js';
+import { stressMarkdown, stressTable } from './stress.js';
 import { diagnose, report as diagnosisReport } from './diagnose.js';
 import { demodulate as demodulatePackets } from '../packet/afsk.js';
 import { parseStatus } from '../packet/message.js';
@@ -110,8 +114,11 @@ async function main() {
     case 'sim':
       out(simMarkdown(simTable(samplePrayers(30), [1, 2, 3], arg ? [presetByName(arg)] : PRESETS), 30));
       break;
+    case 'stress':
+      out(stressMarkdown(stressTable(samplePrayers(30), arg ? [presetByName(arg)] : PRESETS)));
+      break;
     default:
-      out('usage: cli.js decode <file.wav> [report.json] | diagnose <file.wav> [--json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset] | sim [preset]');
+      out('usage: cli.js decode <file.wav> [report.json] | diagnose <file.wav> [--json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset] | sim [preset] | stress [preset]');
       process.exitCode = cmd ? 1 : 0;
   }
 }

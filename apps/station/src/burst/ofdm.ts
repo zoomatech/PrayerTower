@@ -293,6 +293,9 @@ function demodDiff(
   let [pr, pi] = bins(x, at + shift, first, c);
   const values: number[] = [];
   const err = new Float64Array(c);
+  // Each decision's signal strength (|current x previous|), to mark faded symbols weak below.
+  const marginsFrom = margins?.length ?? 0;
+  const amps: number[] = [];
   const kMean = first + (c - 1) / 2;
   let kVar = 0;
   for (let k = 0; k < c; k++) kVar += (first + k - kMean) ** 2;
@@ -336,6 +339,7 @@ function demodDiff(
       errMean += err[k]! / c;
       // How far inside its decision region the phase landed: 1 dead centre, 0 on the edge.
       margins?.push(1 - Math.min(1, Math.abs(err[k]!) / (step / 2)));
+      if (margins) amps.push(Math.hypot(dr, di));
       if (soft) {
         // Max-log soft bits: for each bit of the Gray label, how much better the
         // phase change matches the closest step with that bit 0 than the closest
@@ -368,6 +372,13 @@ function demodDiff(
     track.bias += 0.3 * errMean;
     pr = cr;
     pi = ci;
+  }
+  if (margins && amps.length) {
+    // In a fade the phase is mostly noise, yet it can land near a decision point by chance and
+    // look solid. Scale each margin by its strength against the frame's median, so a block the
+    // Reed-Solomon code can't fix outright erases the faded bytes first (frame.ts).
+    const median = [...amps].sort((a, b) => a - b)[amps.length >> 1]! || 1;
+    for (let i = 0; i < amps.length; i++) margins[marginsFrom + i]! *= Math.min(1, amps[i]! / median);
   }
   return values;
 }

@@ -56,6 +56,8 @@ targets:
         PTPrivacyURL: $(PT_PRIVACY_URL)
         PTSupportEmail: $(PT_SUPPORT_EMAIL)
         PTEdition: prayer-tower
+        # Only the system's HTTPS: no export-compliance question on each TestFlight build.
+        ITSAppUsesNonExemptEncryption: false
     entitlements:
       path: App/PrayerTowerNative.entitlements
       properties:
@@ -63,6 +65,8 @@ targets:
         com.apple.developer.associated-domains: ["webcredentials:$(PT_PASSKEY_DOMAIN)"]
         # Shared with the widget extension (PrayNow.appGroup in PrayerTowerKit).
         com.apple.security.application-groups: [group.com.zoomatech.prayertower.native]
+        # Live Activity updates come by push (pushType: .token). Export switches it to production.
+        aps-environment: development
     settings:
       base:
         # A separate bundle id from the Expo pilot (com.zoomatech.prayertower) until the native app replaces it.
@@ -111,11 +115,13 @@ targets:
         PTPrivacyURL: $(PT_PRIVACY_URL)
         PTSupportEmail: $(PT_SUPPORT_EMAIL)
         PTEdition: open-circle
+        ITSAppUsesNonExemptEncryption: false
     entitlements:
       path: OpenCircle/OpenCircleNative.entitlements
       properties:
         com.apple.developer.associated-domains: ["webcredentials:$(PT_PASSKEY_DOMAIN)"]
         com.apple.security.application-groups: [group.com.zoomatech.opencircle.native]
+        aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.opencircle.native
@@ -195,6 +201,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: Crosspost/SafariWebExtensionHandler.swift
+      - path: Crosspost/PrivacyInfo.xcprivacy
+        buildPhase: resources
       - path: Crosspost/prayertower/manifest.json
         buildPhase: resources
       - path: Crosspost/prayertower/icons
@@ -228,6 +236,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: Crosspost/SafariWebExtensionHandler.swift
+      - path: Crosspost/PrivacyInfo.xcprivacy
+        buildPhase: resources
       - path: Crosspost/opencircle/manifest.json
         buildPhase: resources
       - path: Crosspost/opencircle/icons
