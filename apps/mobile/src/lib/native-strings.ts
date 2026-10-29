@@ -8,6 +8,7 @@ import {
   CARE_KIND_LABELS,
   EVENT_KIND_LABELS,
   FREQUENCY_LABELS,
+  MODERATION_RULES,
   POST_TYPE_LABELS,
   PRAYER_KIND_LABELS,
   PRAYER_REALM_LABELS,
@@ -44,6 +45,7 @@ export function nativeStrings() {
       whyHere: WHY_HERE_LABELS,
       eventKind: EVENT_KIND_LABELS,
       careKind: CARE_KIND_LABELS,
+      moderationRule: MODERATION_RULES,
     },
   };
   const english = merge(labels, en as Tree);

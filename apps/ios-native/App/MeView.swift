@@ -38,6 +38,7 @@ struct MeView: View {
                     }
                 }
                 ConversationPrefsSection()
+                StaffSection()
                 if let error { Section { Text(error).foregroundStyle(.red) } }
                 Section {
                     NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
