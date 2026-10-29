@@ -13,7 +13,9 @@ import { useLocale } from '@/lib/i18n';
 import { breakpoints, colors, radius, space, type } from '@/lib/theme';
 
 export default function SkinGallery() {
-  const { t } = useLocale();
+  const { t, n } = useLocale();
+  // Built-in skin names are app wording (Open Circle has its own); a member's skin keeps the name they gave it.
+  const nameOf = (s: { name: string; maker?: unknown }) => (s.maker ? s.name : n(s.name));
   const { width } = useWindowDimensions();
   const [skins, setSkins] = useState<GallerySkin[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function SkinGallery() {
               <SkinPreview layout={s.layout} tokens={s.tokens} height={columns > 1 ? 180 : 140} />
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{s.name}</Text>
+                  <Text style={styles.name}>{nameOf(s)}</Text>
                   <Text style={type.small}>
                     {s.maker ? t('gallery.by', { name: s.maker.name }) : t('gallery.builtIn')}
                     {s.season ? ` · ${t(`gallery.season.${s.season}`)}` : ''}
@@ -55,7 +57,7 @@ export default function SkinGallery() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected: s.liked }}
-                  accessibilityLabel={t(s.liked ? 'gallery.unlike' : 'gallery.like', { name: s.name, count: s.likes })}
+                  accessibilityLabel={t(s.liked ? 'gallery.unlike' : 'gallery.like', { name: nameOf(s), count: s.likes })}
                   onPress={() => run(api.likeSkin(s.slug, !s.liked))}
                   style={[styles.like, s.liked && styles.liked]}>
                   <Text>{s.liked ? '♥' : '♡'}</Text>

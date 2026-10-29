@@ -60,4 +60,16 @@ describe('church partners', () => {
     await as(pastor).delete('/me/church');
     expect((await as(pastor).get('/me/church')).json().church.status).toBe('declined');
   });
+
+  it('is not offered to Open Circle members', async () => {
+    const admin = await createUser('Admin Abe');
+    await grantRole(db, admin, 'admin', null);
+    await as(admin).patch('/admin/communities/open-circle', { status: 'active' });
+    const member = await createUser('Neighbor Nia');
+    expect((await as(member).post('/me/community', { slug: 'open-circle' })).statusCode).toBeLessThan(300);
+    const res = await as(member).post('/me/church', application);
+    expect(res.statusCode).toBe(403);
+    expect(res.json().message).not.toMatch(/church/i);
+    await db.query(`update public.communities set status = 'hidden' where slug = 'open-circle'`);
+  });
 });

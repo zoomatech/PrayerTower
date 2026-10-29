@@ -8,7 +8,7 @@ module.exports = defineConfig([
   expoConfig,
   {
     // Build-time config files run in Node.
-    files: ['*.config.js', 'babel.config.js', 'workbox-config.js', 'plugins/**/*.js', 'store/**/*.js'],
+    files: ['*.config.js', 'babel.config.js', 'workbox-config.js', 'web-edition.js', 'plugins/**/*.js', 'store/**/*.js'],
     languageOptions: { globals: globals.node },
   },
   {
