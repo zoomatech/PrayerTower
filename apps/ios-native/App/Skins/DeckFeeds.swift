@@ -39,9 +39,9 @@ struct SwipeFeed<Row: View>: View {
                         )
                         .accessibilityAction(named: words.pray) { confirming = card }
                         .accessibilityAction(named: words.next) { next() }
-                    HStack {
+                    AdaptiveStack {
                         Button("‹ \(words.next)") { next() }.buttonStyle(.bordered)
-                        Spacer()
+                        Spacer(minLength: 0)
                         Button("\(words.pray) ›") { confirming = card }.buttonStyle(.borderedProminent)
                     }
                     Text("\(deck.index + 1) of \(cards.count)").font(.caption).foregroundStyle(.secondary)

@@ -193,16 +193,14 @@ struct NotificationsView: View {
                 if items?.isEmpty == true { Text(w("notices.empty")).foregroundStyle(.secondary) }
                 ForEach(items ?? []) { n in
                     VStack(alignment: .leading, spacing: 6) {
-                        Button { route = n.route } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(n.title).font(n.read_at == nil ? .body.bold() : .body)
-                                Text(n.body)
-                                Text(shortDateTime(n.created_at)).font(.footnote).foregroundStyle(.secondary)
-                            }
+                        // A notice with nowhere to go is plain text, not a dimmed button VoiceOver reads as unavailable.
+                        if let r = n.route {
+                            Button { route = r } label: { noticeText(n).contentShape(.rect) }
+                                .buttonStyle(.plain)
+                        } else {
+                            noticeText(n).accessibilityElement(children: .combine)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(n.route == nil)
-                        HStack {
+                        AdaptiveStack {
                             if let item = n.appealItem { Button(w("notices.appeal")) { appealing = Appealing(id: item, held: false) } }
                             if let item = n.pathBackItem { Button(w("pathBack.again")) { Task { await postAgain(item) } } }
                             if let item = n.explainItem { Button(w("notices.explain")) { appealing = Appealing(id: item, held: true) } }
@@ -221,6 +219,15 @@ struct NotificationsView: View {
             .refreshable { await load() }
             .task { await load() }
         }
+    }
+
+    private func noticeText(_ n: AppNotification) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(n.title).font(n.read_at == nil ? .body.bold() : .body)
+            Text(n.body)
+            Text(shortDateTime(n.created_at)).font(.footnote).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func load() async {

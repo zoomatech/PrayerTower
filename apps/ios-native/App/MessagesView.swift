@@ -86,6 +86,7 @@ struct MessagesView: View {
 struct ConversationScreen: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var still
     let id: String
     @State private var view: ConversationView?
     @State private var text = ""
@@ -119,7 +120,7 @@ struct ConversationScreen: View {
                     if !c.isRequest { Section { tools(c) } }
                 }
             }
-            .onChange(of: view?.messages.last?.id) { _, last in if let last { withAnimation { proxy.scrollTo(last, anchor: .bottom) } } }
+            .onChange(of: view?.messages.last?.id) { _, last in if let last { withAnimation(still ? nil : .default) { proxy.scrollTo(last, anchor: .bottom) } } }
         }
         .navigationTitle(view?.conversation.title ?? "")
         .navigationBarTitleDisplayMode(.inline)
@@ -191,7 +192,7 @@ struct ConversationScreen: View {
                         if reported.contains(m.id) {
                             Text(w("conversation.reported")).font(.caption2)
                         } else {
-                            Button(w("post.report")) { reporting = m }.font(.caption2).buttonStyle(.borderless)
+                            Button { reporting = m } label: { Text(w("post.report")).tapTarget() }.font(.caption2).buttonStyle(.borderless)
                         }
                     }
                 }
@@ -319,7 +320,7 @@ struct InviteSheet: View {
                         HStack {
                             Text(p.displayName.isEmpty ? w("conversation.member") : p.displayName)
                             Spacer()
-                            if picked.contains(p.id) { Image(systemName: "checkmark") }
+                            if picked.contains(p.id) { Image(systemName: "checkmark").accessibilityHidden(true) }
                         }
                     }
                     .accessibilityAddTraits(picked.contains(p.id) ? .isSelected : [])

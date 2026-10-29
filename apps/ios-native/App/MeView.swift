@@ -13,6 +13,7 @@ struct MeView: View {
     @State private var exportFile: ExportFile?
     @State private var exporting = false
     @State private var error: String?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var w: Words { model.words }
 
@@ -115,7 +116,9 @@ struct MeView: View {
             Text(countsError).foregroundStyle(.red)
             Button(w("common.tryAgain")) { Task { await loadCounts() } }
         }
-        HStack(alignment: .top) {
+        // Four across, or one under another at the accessibility text sizes so nothing shrinks.
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(alignment: .top))
+        layout {
             stat(tier?.tier.map { w.server($0.label) } ?? "—", w(p.anonymousByDefault == true ? "profile.tierPrivate" : "profile.tier"))
             stat("\(tier?.prayers ?? 0)", w("profile.prayers"))
             stat("\(tokens?.balance ?? 0)", w("profile.tokens"))
@@ -146,11 +149,12 @@ struct MeView: View {
     }
 
     private func stat(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value).font(.title3.bold()).lineLimit(2).minimumScaleFactor(0.6)
-            Text(label).font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        let big = typeSize.isAccessibilitySize
+        return VStack(alignment: big ? .leading : .center, spacing: 2) {
+            Text(value).font(.title3.bold()).lineLimit(big ? nil : 2).minimumScaleFactor(big ? 1 : 0.6)
+            Text(label).font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(big ? .leading : .center)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: big ? .leading : .center)
         .accessibilityElement(children: .combine)
     }
 
