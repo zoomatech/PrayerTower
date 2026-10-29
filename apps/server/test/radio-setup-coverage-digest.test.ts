@@ -84,7 +84,7 @@ describe('station setup wizard', () => {
     const done = await app.inject({ method: 'POST', url: `/station/setup-test/${t.id}/result`, headers: stationHeaders, payload: { ok: true, callSign: CALL, peakDbfs: -11 } });
     expect(done.statusCode).toBe(200);
     const view = (await as(admin).get('/admin/radio-setup')).json();
-    expect(view.tests[0]).toMatchObject({ id: t.id, status: 'sent', peak_dbfs: -11, call_sign: CALL });
+    expect(view.tests.find((x: { id: string }) => x.id === t.id)).toMatchObject({ id: t.id, status: 'sent', peak_dbfs: -11, call_sign: CALL });
   });
 
   it('sends a test burst that a listener node decodes: heard, with its signal and level, and no prayer receipts', async () => {
@@ -110,7 +110,7 @@ describe('station setup wizard', () => {
     await app.inject({ method: 'GET', url: `/station/setup-test?callSign=${CALL}`, headers: stationHeaders });
     await app.inject({ method: 'POST', url: `/station/setup-test/${bad.id}/result`, headers: stationHeaders, payload: { ok: false, callSign: CALL, error: 'PTT did not key' } });
     const view = (await as(admin).get('/admin/radio-setup')).json();
-    expect(view.tests[0]).toMatchObject({ id: bad.id, status: 'failed', error: 'PTT did not key' });
+    expect(view.tests.find((x: { id: string }) => x.id === bad.id)).toMatchObject({ id: bad.id, status: 'failed', error: 'PTT did not key' });
     // A tone can't be "confirmed heard".
     expect((await as(admin).post(`/admin/radio-setup/tests/${bad.id}/confirm`)).statusCode).toBe(404);
   });
