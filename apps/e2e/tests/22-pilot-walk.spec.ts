@@ -10,8 +10,8 @@ const SCREENS = [
   '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/notification-settings', '/feedback', '/rules',
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/give', '/why-gifts', '/scheduled',
-  '/prayer-minute', '/prayer-chain', '/skin-idea', '/squire-board', '/prayer-list', '/reading-plan', '/church', '/two-step',
-  '/account-security', '/ai-chat', '/listen', '/announcements', '/churches', '/onboarding', '/remembered', '/waitlist', '/invites',
+  '/prayer-minute', '/prayer-chain', '/skin-idea', '/skin-gallery', '/squire-board', '/prayer-list', '/reading-plan', '/church', '/two-step',
+  '/account-security', '/ai-chat', '/listen', '/listen-on-air', '/announcements', '/churches', '/onboarding', '/remembered', '/waitlist', '/invites',
   '/tour', '/delete-account',
   '/meaning-words', '/kindness-research',
 ];

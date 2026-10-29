@@ -53,10 +53,10 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   // With the kind cloud on, the answer also carries `cloud`: the word rules' verdict
   // (modules/kindness), raised to a nudge when the AI would flag the text.
   app.post('/moderation/precheck', async (req) => {
-    requireUser(req);
+    const userId = requireUser(req);
     const { text, context } = z.object({ text: z.string().max(10_000), context: z.enum(['lament', 'lamentReply']).optional() }).parse(req.body);
     // The harmful-prayer check (free, no AI): a gentle word and any hotlines, only when it applies (docs/HARMFUL_PRAYERS.md).
-    const harmWord = await harm.precheck(db, text).catch(() => null);
+    const harmWord = await harm.precheck(db, text, userId).catch(() => null);
     const harmPart = harmWord ? { harm: harmWord } : {};
     const kind = await kindness.enabled(db);
     const rules = kind && text.trim() ? kindness.assessIn(text, context) : null;

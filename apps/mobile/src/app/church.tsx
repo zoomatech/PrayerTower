@@ -15,7 +15,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 const EMPTY: Required<ChurchApplicationInput> = { name: '', denomination: '', pastorTitle: '', city: '', region: '', country: '', website: '', phone: '', about: '' };
 
 export default function ChurchScreen() {
-  const { t } = useLocale();
+  const { t, wording } = useLocale();
   const { refreshProfile } = useAuth();
   const [church, setChurch] = useState<Church | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -70,6 +70,17 @@ export default function ChurchScreen() {
   const set = (key: keyof typeof EMPTY) => (v: string) => setForm((f) => ({ ...f, [key]: v }));
   const ready = form.name.trim().length >= 2 && form.city.trim() && form.country.trim().length >= 2;
 
+  // A Bible plan and church partners are for faith communities; Open Circle never sees them, even from a link.
+  if (wording === 'neutral') {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
+          <Text style={type.body}>{t('ai.chatUnavailable')}</Text>
+        </ScrollView>
+      </Screen>
+    );
+  }
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

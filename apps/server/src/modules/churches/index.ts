@@ -3,8 +3,9 @@
 // named posts. Declining sends the admin's note; revoking removes the role.
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
-import { badRequest, conflict, notFound } from '../../errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { grantRole, revokeRole } from '../accounts/index.js';
+import * as communities from '../communities/index.js';
 import * as notifications from '../notifications/index.js';
 
 const optional = (max: number) =>
@@ -78,6 +79,8 @@ export async function mine(q: Queryable, userId: string) {
 }
 
 export async function apply(q: Queryable, userId: string, input: z.infer<typeof Application>) {
+  // Church partners are for faith communities, as reading plans are.
+  if (await communities.isSecular(q, userId)) throw forbidden('This is not offered in this community');
   try {
     const { rows } = await q.query<ChurchRow>(
       `insert into public.churches (applicant_id, name, denomination, pastor_title, city, region, country, website, phone, about)
