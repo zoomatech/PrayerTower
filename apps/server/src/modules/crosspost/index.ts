@@ -61,7 +61,7 @@ interface SettingsRow {
   extension_key_hint: string | null;
 }
 
-async function settingsOf(q: Queryable, userId: string): Promise<SettingsRow> {
+export async function settingsOf(q: Queryable, userId: string): Promise<SettingsRow> {
   const { rows } = await q.query<SettingsRow>('select post_type, paused, extension_key_hint from public.crosspost_settings where user_id = $1', [userId]);
   return rows[0] ?? { post_type: null, paused: false, extension_key_hint: null };
 }
