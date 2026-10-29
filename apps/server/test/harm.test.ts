@@ -143,3 +143,24 @@ describe('harmful prayers', () => {
     await as(admin).patch('/admin/harm-settings', { flood_per_day: 5 });
   });
 });
+
+describe('reading through disguises', () => {
+  it('is off by default; on, a disguised threat is held and coded self-harm gets crisis support', async () => {
+    expect(harmDefaults.read_disguises).toBe(false);
+    await harm.updateSettings(db, { enabled: true, read_disguises: false });
+    const m = await createUser('Masked');
+    const quiet = (await post(m, "I'm going to k1ll him.")).json().post;
+    expect(await status(quiet.id)).toEqual({ moderation_status: 'visible', harm_category: null });
+    expect((await post(m, 'I want to unalive myself.')).json().post.crisis).toBe(false);
+
+    expect((await as(admin).patch('/admin/harm-settings', { read_disguises: true })).json().settings.read_disguises).toBe(true);
+    const held = (await post(m, "I'm going to 🔪 him for this.")).json().post;
+    expect(await status(held.id)).toEqual({ moderation_status: 'hidden_pending_review', harm_category: 'threat' });
+    const crisis = (await post(m, 'Honestly thinking about sewer slide tonight.')).json().post;
+    expect(crisis.crisis).toBe(true);
+    const items = (await as(moderator).get(`/moderation/queue?targetId=${crisis.id}`)).json().items;
+    expect(items.some((i: { source: string }) => i.source === 'crisis')).toBe(true);
+    const { rows } = await db.query<{ rules: string[] }>('select rules from public.harm_events where target_id = $1', [held.id]);
+    expect(rows[0]!.rules.some((r) => r.endsWith(':masked'))).toBe(true);
+  });
+});

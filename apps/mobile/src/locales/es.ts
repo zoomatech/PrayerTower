@@ -1774,6 +1774,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   harm: en.harm,
   modCare: en.modCare,
   oncall: en.oncall,
+  safetyDash: en.safetyDash,
+  safetyCenter: en.safetyCenter,
   enums: {
     moderationRule: {
       harm: 'Ora por el bien, nunca por el mal',
