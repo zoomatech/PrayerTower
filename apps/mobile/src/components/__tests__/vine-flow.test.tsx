@@ -3,6 +3,7 @@ import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
 
 import { leafBox, vineGeometry } from '@/components/vine-flow';
 import { vineTokens } from '@/layouts/vine';
+import { colors } from '@/lib/theme';
 
 describe('Drawn vine', () => {
   it('runs the stalk down the edge on a phone and the middle on a wide lane', () => {
@@ -16,10 +17,10 @@ describe('Drawn vine', () => {
     expect(vineGeometry(880, 'right', 0).leafLeft).toBeGreaterThan(wide.stalkX);
   });
 
-  it('tints the box toward the leaf only while dark text stays at 4.5:1', () => {
+  it('tints the box toward the leaf only while dark, muted and link text stay at 4.5:1', () => {
     for (const leaf of ['#8CC152', '#D9B648', '#2E4A1F']) {
       const look = vineTokens({ tokens: { leaf, leafSoft: '#EEF7E3' } } as never);
-      expect(contrastRatio(leafBox(look), COMMENT_TEXT)).toBeGreaterThanOrEqual(4.5);
+      for (const text of [COMMENT_TEXT, colors.textMuted, colors.primary]) expect(contrastRatio(leafBox(look), text)).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

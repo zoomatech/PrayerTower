@@ -20,14 +20,16 @@ test.describe.serial('ask, pray, commit and message', () => {
     await signIn(page, 'ethel');
     const c = card(page, text);
     await c.scrollIntoViewIfNeeded();
-    await c.getByText('Praying Now', { exact: true }).click();
+    await c.getByRole('button', { name: 'Praying Now', exact: true }).click();
     await page.getByRole('button', { name: "I'm praying now" }).click();
     await expect(page.getByText('They will know someone is praying for them')).toBeVisible();
     await page.getByRole('button', { name: 'Close' }).click();
 
-    await c.getByText('Commit to Pray', { exact: true }).click();
+    await c.getByRole('button', { name: 'Commit to Pray', exact: true }).click();
     await page.getByRole('button', { name: 'Make this commitment' }).click();
     await page.getByRole('button', { name: 'Close' }).click();
+    // The actions are one row of icons; the name (here "Committed") shows on hover.
+    await c.getByRole('button', { name: 'Commit to Pray', exact: true }).hover();
     await expect(c.getByText('Committed', { exact: true })).toBeVisible();
 
     await page.getByText('My Promises').click();

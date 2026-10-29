@@ -394,7 +394,7 @@ const en = {
     branchEmpty: 'Your branch is bare for now. Share a request and it will grow here.',
     branchLink: 'See your branch',
     moreComments: { one: '1 more comment on this request', other: '%{count} more comments on this request' },
-    openComment: 'Comment from %{name}. Opens the request.',
+    openComment: 'Opens the request and its comments.',
   },
   profile: {
     community: 'Community',

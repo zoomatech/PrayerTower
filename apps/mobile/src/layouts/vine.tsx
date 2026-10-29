@@ -294,7 +294,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
             <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={1} seed={hashId(item.comment.id)}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('vine.openComment', { name: item.comment.author.displayName })}
+                accessibilityHint={t('vine.openComment')}
                 onPress={() => router.push(`/post/${item.postId}?comment=${item.comment.id}`)}>
                 <LeafFrame side={item.side} look={tokens} depth={1}>
                   <Text style={styles.commentName}>{item.comment.author.displayName}</Text>

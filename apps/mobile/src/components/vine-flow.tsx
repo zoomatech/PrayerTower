@@ -57,13 +57,14 @@ function mix(a: string, b: string, t: number) {
 
 /**
  * The box inside a leaf: the soft color, tinted toward the leaf so it reads as part
- * of it, but never so far that dark text drops under 4.5:1 (WCAG AA).
+ * of it, but never so far that the card's text (dark, muted grey or the link color)
+ * drops under 4.5:1 (WCAG AA).
  */
 export function leafBox(look: VineLook) {
   if (look.vineStyle === 'neon') return '#F4EEFF';
   for (const t of [0.45, 0.35, 0.25, 0.15]) {
     const c = mix(look.leafSoft, look.leaf, t);
-    if (HEX.test(c) && contrastRatio(c, COMMENT_TEXT) >= 4.5) return c;
+    if (HEX.test(c) && [COMMENT_TEXT, colors.textMuted, colors.primary].every((text) => contrastRatio(c, text) >= 4.5)) return c;
   }
   return look.leafSoft;
 }

@@ -213,7 +213,10 @@ function ActionIcon({ icon: glyph, label: tip, name, active, onPress }: { icon: 
         delayLongPress={350}
         hitSlop={4}
         style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
-        <Text style={styles.actionIcon}>{glyph}</Text>
+        {/* The icon is decoration; the button's name is the action's name. */}
+        <Text style={styles.actionIcon} aria-hidden>
+          {glyph}
+        </Text>
       </Pressable>
     </View>
   );

@@ -30,9 +30,9 @@ export async function as(browser: Browser, who: Demo) {
 }
 const test_baseURL = () => process.env.E2E_WEB_URL ?? 'http://127.0.0.1:8081';
 
-/** The feed card holding this text (the innermost block with both the text and the action row). */
+/** The feed card holding this text (the innermost block with both the text and the row of action icons). */
 export function card(page: Page, text: string) {
-  return page.locator('div').filter({ hasText: text }).filter({ has: page.getByText('Praying Now', { exact: true }) }).last();
+  return page.locator('div').filter({ hasText: text }).filter({ has: page.getByRole('button', { name: 'Praying Now', exact: true }) }).last();
 }
 
 /** The post's id, waiting up to 10 s: the app shows a new post before the API has saved it. */
