@@ -371,3 +371,20 @@ Evidence: the fresh-start effect, where temporal landmarks raise goal starts (Da
 Riis 2014), in research/Personal_Growth_Research.md §4 ("fresh-start invitations … on the
 person's chosen milestones, such as a birthday or a church season"). Code: `modules/fresh-days`,
 `components/fresh-days.tsx`.
+
+## Circle updates (off)
+
+Admin → Growth practices → **Circle updates** (migration 20261029190300). This needs prayer circles
+to be on.
+
+- On their own post in a circle, the person who shared can choose **Share how it's going**. They
+  write a few words, mark **It was answered**, or both. The kind cloud reads the words first.
+- Everyone in the circle sees the update on the post.
+- Only the people who prayed get a quiet in-app note, never a push. The note uses wording that
+  suits Open Circle too.
+- A "Three good things" card can be shared to one of the member's circles, one tap per circle.
+  Sharing is always their choice.
+
+Evidence: closing the loop with follow-ups, and sharing gratitude with an option to share one to
+the circle (research/Personal_Growth_Research.md §1–2). Code: `modules/prayer-circles` (`update`),
+`app/circles/[id].tsx`, `components/gratitude-card.tsx`.

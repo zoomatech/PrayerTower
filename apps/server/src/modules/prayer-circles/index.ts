@@ -21,6 +21,7 @@ export const NewCircle = z.object({ name: z.string().trim().min(1).max(60), abou
 export const NewCirclePost = z.object({ body: z.string().trim().min(1).max(2000) });
 export const NewCircleReply = z.object({ body: z.string().trim().min(1).max(1000) });
 export const Welcome = z.object({ text: z.string().trim().max(400) });
+export const Update = z.object({ text: z.string().trim().max(600), answered: z.boolean().default(false) });
 export const Join = z.object({ code: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{8}$/) });
 
 async function requireOn(q: Queryable) {
@@ -90,8 +91,8 @@ export async function get(q: Queryable, userId: string, circleId: string) {
     [circleId],
   );
   const blocked = `not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = x.user_id)`;
-  const { rows: posts } = await q.query<{ id: string; user_id: string; name: string | null; body: string; created_at: Date; prayed: number; prayed_by_me: boolean }>(
-    `select x.id, x.user_id, pr.display_name as name, x.body, x.created_at,
+  const { rows: posts } = await q.query<{ id: string; user_id: string; name: string | null; body: string; created_at: Date; prayed: number; prayed_by_me: boolean; update_text: string | null; update_at: Date | null; answered: boolean }>(
+    `select x.id, x.user_id, pr.display_name as name, x.body, x.created_at, x.update_text, x.update_at, x.answered,
             (select count(*)::int from public.circle_prayed cp where cp.circle_post_id = x.id) as prayed,
             exists (select 1 from public.circle_prayed cp where cp.circle_post_id = x.id and cp.user_id = $2) as prayed_by_me
        from public.circle_posts x join public.profiles pr on pr.id = x.user_id
@@ -112,6 +113,7 @@ export async function get(q: Queryable, userId: string, circleId: string) {
     invite = rows[0] ? { code: rows[0].code, expiresAt: rows[0].expires_at.toISOString() } : null;
   }
   const welcome = await welcomeFor(q, userId, c);
+  const updates = (await settings(q)).circle_updates_enabled;
   return {
     circle: { id: c.id, name: c.name, about: c.about, isOwner, ownerId: c.owner_id, full: members.length >= MAX_MEMBERS },
     ...(welcome ? { welcome } : {}),
@@ -125,6 +127,7 @@ export async function get(q: Queryable, userId: string, circleId: string) {
       prayedByMe: p.prayed_by_me,
       // Only the person who asked sees how many prayed.
       ...(p.user_id === userId ? { prayed: p.prayed } : {}),
+      ...(updates && (p.update_text || p.answered) ? { update: { text: p.update_text, answered: p.answered, at: (p.update_at ?? p.created_at).toISOString() } } : {}),
       replies: replies
         .filter((r) => r.circle_post_id === p.id)
         .map((r) => ({ id: r.id, author: { id: r.user_id, displayName: r.name }, body: r.body, createdAt: r.created_at.toISOString() })),
@@ -234,6 +237,32 @@ export async function pray(q: Queryable, userId: string, postId: string) {
   await postOf(q, userId, postId);
   await q.query('insert into public.circle_prayed (circle_post_id, user_id) values ($1, $2) on conflict do nothing', [postId, userId]);
   return { prayed: true };
+}
+
+/** Circle updates (off): the author shares how it's going, or that it was answered. Those who prayed hear quietly. */
+export async function update(q: Queryable, userId: string, postId: string, input: z.infer<typeof Update>) {
+  await requireOn(q);
+  if (!(await settings(q)).circle_updates_enabled) throw badRequest('Circle updates are off');
+  const p = await postOf(q, userId, postId);
+  if (p.user_id !== userId) throw forbidden('Only the person who shared this can update it');
+  if (!input.text && !input.answered) throw badRequest('Write a few words, or mark it answered');
+  await q.query("update public.circle_posts set update_text = nullif($2, ''), update_at = now(), answered = $3 where id = $1", [postId, input.text, input.answered]);
+  const { rows: prayed } = await q.query<{ user_id: string }>(
+    'select cp.user_id from public.circle_prayed cp join public.prayer_circle_members m on m.user_id = cp.user_id and m.circle_id = $2 where cp.circle_post_id = $1 and cp.user_id <> $3',
+    [postId, p.circle_id, userId],
+  );
+  const who = (await getProfile(q, userId))?.display_name || 'Someone';
+  for (const o of prayed) {
+    await notifications.notify(q, o.user_id, {
+      kind: 'circle_post',
+      title: p.name,
+      body: input.answered ? `${who} shared good news about what they asked for.` : `${who} shared how it's going.`,
+      data: { screen: 'circle', circleId: p.circle_id },
+      dedupeKey: `circle_update:${postId}:${input.answered ? 'answered' : new Date().toISOString().slice(0, 10)}`,
+      quiet: true,
+    });
+  }
+  return { ok: true };
 }
 
 /** The author or the circle's starter takes a post down: a person decides, never the app. */
