@@ -9,6 +9,7 @@ import { CrisisSupport } from '@/components/crisis';
 import { GuestShare } from '@/components/guest-share';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
+import { KindCloud } from '@/components/kind-cloud';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -23,7 +24,7 @@ export default function PostScreen() {
   const { celebrate, overlay } = useCelebration();
   const { profile, roles } = useAuth();
   const { t } = useLocale();
-  const { materialMatch } = useFeatures();
+  const { materialMatch, kindCloud } = useFeatures();
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -79,7 +80,8 @@ export default function PostScreen() {
     setBusy(true);
     setError(null);
     try {
-      if (!confirmed && (await api.precheck(text.trim())).warn) {
+      // With the kind cloud on, the cloud speaks while typing and nothing waits here.
+      if (!confirmed && !kindCloud && (await api.precheck(text.trim())).warn) {
         setWarnedFor({ text, isUpdate });
         return;
       }
@@ -411,6 +413,7 @@ export default function PostScreen() {
                 </Text>
               ) : null}
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
+              <KindCloud text={text} />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>
                 <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />

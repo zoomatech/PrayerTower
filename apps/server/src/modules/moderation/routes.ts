@@ -6,6 +6,7 @@ import { withTx } from '../../db.js';
 import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as activity from '../activity/index.js';
+import * as kindness from '../kindness/index.js';
 import * as moderation from './index.js';
 
 export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderation.Classifier | null = null) {
@@ -48,15 +49,24 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
 
   // Warn before posting: if the AI would flag this text, the app shows the rules first (Instagram-style nudge).
   // Never blocks; any error or a missing classifier means no warning.
+  // With the kind cloud on, the answer also carries `cloud`: the word rules' verdict
+  // (modules/kindness), raised to a nudge when the AI would flag the text.
   app.post('/moderation/precheck', async (req) => {
     requireUser(req);
     const { text } = z.object({ text: z.string().max(10_000) }).parse(req.body);
-    if (!classify || !text.trim()) return { warn: false };
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
-    const result = await Promise.race([classify(text).catch(() => null), timeout]);
-    const flagged = result?.flagged ? Object.entries(result.categories).filter(([, v]) => v).map(([k]) => k) : [];
-    // Self-harm is met with support, not a warning.
-    return { warn: flagged.some((c) => !c.startsWith('self-harm')) };
+    const kind = await kindness.enabled(db);
+    const rules = kind && text.trim() ? kindness.assess(text) : null;
+    let warn = false;
+    if (classify && text.trim()) {
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+      const result = await Promise.race([classify(text).catch(() => null), timeout]);
+      const flagged = result?.flagged ? Object.entries(result.categories).filter(([, v]) => v).map(([k]) => k) : [];
+      // Self-harm is met with support, not a warning.
+      warn = flagged.some((c) => !c.startsWith('self-harm'));
+    }
+    if (!rules) return { warn };
+    const cloud: kindness.Verdict = rules.level === 'ok' && warn ? { level: 'nudge', reason: 'aimed' } : rules;
+    return { warn, cloud };
   });
 
   // Members appeal a removal of their own content; suspended members can still do this.

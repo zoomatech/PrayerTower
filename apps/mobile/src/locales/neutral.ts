@@ -157,6 +157,9 @@ export const keys: Tree = named({
     thankEveryone: 'Thank everyone who supported you',
     shareComment: '“%{body}” (%{name}, on an Open Circle request) %{url}',
   },
+  kindCloud: {
+    prayer: 'Take a breath. Kind words travel far.',
+  },
   promises: {
     week: 'Your week of kindness',
     affirmation: 'By checking in, you are saying you truly kept this promise. We take you at your word.',

@@ -5,11 +5,13 @@ import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { api, type TokenPool } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
 import { parseLocal, REPEAT_OPTIONS, WHEN_OPTIONS } from '@/lib/schedule';
 import { colors, maxContentWidth, radius, space, type } from '@/lib/theme';
 
+import { KindCloud } from './kind-cloud';
 import { Button, Chip, ErrorText, Field, RulesWarning } from './ui';
 
 type ReportTarget = { type: 'post' | 'comment'; id: string };
@@ -24,6 +26,7 @@ type Sheet = {
 const REPORT_REASONS = ['Harmful or abusive', 'Spam or selling', 'Not a prayer or praise', 'Someone may be in danger', 'Something else'];
 
 export function useCardActions(onChanged: () => void) {
+  const { kindCloud } = useFeatures();
   const { t, label } = useLocale();
   const freq = (f: Frequency) => label('frequency', f, FREQUENCY_LABELS[f]);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -143,6 +146,7 @@ export function useCardActions(onChanged: () => void) {
         <Text style={type.small}>
           {text.length}/{ENCOURAGEMENT_MAX_CHARS}
         </Text>
+        <KindCloud text={text} />
         {warnedFor === text ? (
           <RulesWarning busy={busy} onPostAnyway={() => run(() => api.encourage(sheet.card.id, text.trim()), t('actions.encourageDone'))} />
         ) : null}
@@ -151,7 +155,7 @@ export function useCardActions(onChanged: () => void) {
           busy={busy}
           disabled={!text.trim()}
           onPress={async () => {
-            if ((await api.precheck(text.trim())).warn) return setWarnedFor(text);
+            if (!kindCloud && (await api.precheck(text.trim())).warn) return setWarnedFor(text);
             run(() => api.encourage(sheet.card.id, text.trim()), t('actions.encourageDone'));
           }}
         />

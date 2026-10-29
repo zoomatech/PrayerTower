@@ -13,6 +13,7 @@ jest.mock('@/lib/api', () => ({
     conversations: jest.fn(),
     conversation: jest.fn(),
     markConversationRead: jest.fn(async () => ({})),
+    features: jest.fn(async () => ({ features: {} })),
     precheck: jest.fn(async () => ({ warn: false })),
     sendMessage: jest.fn(async () => ({ message: { id: 'm2', createdAt: '', crisis: false } })),
     acceptConversation: jest.fn(async () => ({})),
