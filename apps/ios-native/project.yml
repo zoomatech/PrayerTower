@@ -38,6 +38,7 @@ targets:
         UILaunchScreen: {}
         # iPad: every orientation, so it can run side by side with other apps (Split View).
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this phone.
         # Widget and Live Activity taps open prayertower:///post/<id>.
         CFBundleURLTypes:
           - CFBundleURLName: com.zoomatech.prayertower.native
@@ -103,6 +104,7 @@ targets:
         UILaunchScreen: {}
         # iPad: every orientation, so it can run side by side with other apps (Split View).
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this phone.
         CFBundleURLTypes:
           - CFBundleURLName: com.zoomatech.opencircle.native
             CFBundleURLSchemes: [opencircle]
@@ -302,6 +304,7 @@ targets:
       properties:
         CFBundleDisplayName: Prayer Tower
         LSApplicationCategoryType: public.app-category.lifestyle
+        NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this Mac.
         CFBundleURLTypes:
           - CFBundleURLName: com.zoomatech.prayertower.mac
             CFBundleURLSchemes: [prayertower]
@@ -319,6 +322,7 @@ targets:
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
+        com.apple.security.device.audio-input: true
         # Saving exports (your data, reports) where you choose.
         com.apple.security.files.user-selected.read-write: true
         com.apple.developer.associated-domains: ["webcredentials:$(PT_PASSKEY_DOMAIN)"]
@@ -351,6 +355,7 @@ targets:
       properties:
         CFBundleDisplayName: Prayer Tower Console
         LSApplicationCategoryType: public.app-category.utilities
+        NSMicrophoneUsageDescription: Listener mode decodes Prayer Tower radio bursts from the microphone or a receiver's audio input. The sound stays on this Mac.
         PTSupabaseURL: $(PT_SUPABASE_URL)
         PTSupabaseKey: $(PT_SUPABASE_KEY)
         PTApiURL: $(PT_API_URL)
@@ -359,6 +364,8 @@ targets:
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
+        # Listener mode (Shared/ListenView.swift) reads an audio input.
+        com.apple.security.device.audio-input: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.console

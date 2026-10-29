@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import vm from 'node:vm';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { appBundle, APP_OUTPUT, bundle, OUTPUT } from '../scripts/build-listen.js';
+import { appBundle, APP_OUTPUT, bundle, NATIVE_PRIMERS, nativePrimers, OUTPUT } from '../scripts/build-listen.js';
 import { autoChooser, DEFAULT_AUTO_PRESETS, parseCandidates, pickPreset, readReport } from '../src/burst/auto.js';
 import { buildBurst, listen, planFrames } from '../src/burst/burst.js';
 import { cmCompress, cmDecompress } from '../src/burst/cm.js';
@@ -371,6 +371,7 @@ describe('browser listening page', () => {
   it('the committed decoder bundles are up to date (npm run build:listen -w @prayer-tower/station)', async () => {
     expect(readFileSync(OUTPUT, 'utf8')).toBe(await bundle());
     expect(readFileSync(APP_OUTPUT, 'utf8')).toBe(await appBundle());
+    expect(readFileSync(NATIVE_PRIMERS, 'utf8')).toBe(nativePrimers());
   });
 
   it('fingerprints prayers exactly as SHA-256 does, for receipts', () => {
