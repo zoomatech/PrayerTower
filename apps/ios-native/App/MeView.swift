@@ -61,6 +61,8 @@ struct MeView: View {
                     NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
                     NavigationLink(w("profile.scheduled")) { ScheduledGiftsView() }
                     if model.features["library"] { NavigationLink(w("library.title")) { LibraryView() } }
+                    if model.features["libraryParallels"] { NavigationLink(w("library.parallels")) { ParallelsView() } }
+                    if model.features["libraryPlans"] { NavigationLink(w("library.plans")) { ReadingPlansView() } }
                 }
                 if model.me?.roles.contains("admin") == true {
                     Section { NavigationLink(w("starter.title")) { AdminKindnessView() } }

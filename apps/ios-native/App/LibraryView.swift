@@ -144,6 +144,18 @@ struct LibraryAdminSection: View {
                             Text(w("library.adminDailyHint")).font(.caption).foregroundStyle(.secondary)
                         }
                     }
+                    Toggle(isOn: Binding(get: { on.parallelsEnabled == true }, set: { save(LibrarySettings(parallelsEnabled: $0)) })) {
+                        VStack(alignment: .leading) {
+                            Text(w("library.adminParallels"))
+                            Text(w("library.adminParallelsHint")).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Toggle(isOn: Binding(get: { on.plansEnabled == true }, set: { save(LibrarySettings(plansEnabled: $0)) })) {
+                        VStack(alignment: .leading) {
+                            Text(w("library.adminPlans"))
+                            Text(w("library.adminPlansHint")).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                 }
             } else if error == nil {
                 ProgressView()
@@ -200,7 +212,7 @@ struct DailyPassageCard: View {
 }
 
 /// A passage on its way into a new post.
-private struct SharedPassage: Identifiable {
+struct SharedPassage: Identifiable {
     let id = UUID()
     let post: NewPost
 }

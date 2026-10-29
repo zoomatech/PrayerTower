@@ -49,15 +49,19 @@ public struct LibraryDaily: Decodable, Sendable, Equatable {
     public let passage: LibraryHit?
 }
 
-/// Admin: text search and its two extras, sharing and the daily card. Nil fields are left as they are.
+/// Admin: text search and its extras: sharing, the daily card, parallels and reading plans. Nil fields are left as they are.
 public struct LibrarySettings: Codable, Sendable, Equatable {
     public var enabled: Bool?
     public var shareEnabled: Bool?
     public var dailyEnabled: Bool?
-    public init(enabled: Bool? = nil, shareEnabled: Bool? = nil, dailyEnabled: Bool? = nil) {
+    public var parallelsEnabled: Bool?
+    public var plansEnabled: Bool?
+    public init(enabled: Bool? = nil, shareEnabled: Bool? = nil, dailyEnabled: Bool? = nil, parallelsEnabled: Bool? = nil, plansEnabled: Bool? = nil) {
         self.enabled = enabled
         self.shareEnabled = shareEnabled
         self.dailyEnabled = dailyEnabled
+        self.parallelsEnabled = parallelsEnabled
+        self.plansEnabled = plansEnabled
     }
 }
 

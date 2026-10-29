@@ -11,6 +11,7 @@ const SCREENS: Record<string, string> = {
   encourager: '/profile',
   partner: '/profile',
   'prayer-list': '/prayer-list',
+  'reading-plans': '/reading-plans',
   crosspost: '/crosspost',
   'account-security': '/account-security',
   circle: '/circles',
