@@ -3,6 +3,7 @@ import { grantRole } from '../src/modules/accounts/index.js';
 import * as ceaseless from '../src/modules/radio/ceaseless.js';
 import * as operatorConsole from '../src/modules/radio/console.js';
 import * as radio from '../src/modules/radio/index.js';
+import * as receipts from '../src/modules/radio/receipts.js';
 import * as tokens from '../src/modules/tokens/index.js';
 import { app, as, createUser, db, newRequest, STATION_KEY } from './helpers.js';
 
@@ -72,6 +73,15 @@ describe('prayer without ceasing', () => {
     const batch = (await claim()).json().radioPrayers as { id: string; text: string }[];
     expect(batch.find((b) => b.id === id)?.text).toBe('Please pray for the river town after the flood.');
     await db.query(`update public.radio_prayers set status = 'transmitted', transmitted_at = $2 where id = $1`, [id, later(0)]);
+    // Its author isn't told each time it goes out again.
+    await radio.updateStationSettings(db, { radio_receipts_enabled: true });
+    try {
+      await receipts.onAir(db, id);
+    } finally {
+      await radio.updateStationSettings(db, { radio_receipts_enabled: stationDefaults.radio_receipts_enabled });
+    }
+    const notes = (await as(member).get('/me/notifications')).json().notifications as { kind: string; data: { radioPrayerId?: string } }[];
+    expect(notes.filter((n) => n.data.radioPrayerId === id)).toEqual([]);
     // Too soon after the last transmission.
     expect(await ceaseless.queueDue(db, later(10))).toBeNull();
     // A request never re-sent goes before one sent before.
