@@ -30,6 +30,8 @@ export interface BurstPreset {
   inner?: InnerCode;
   /** 'qam': coherent Gray-coded QAM with pilot carriers (qam.ts) instead of differential PSK. Needs an inner code. */
   modulation?: 'qam';
+  /** 'coded': the frame header goes through the rate-1/2 code too (HF presets; ofdm.ts). */
+  header?: 'coded';
 }
 
 const base = { sampleRate: 48_000, fftSize: 1024, guard: 128 } as const;
@@ -163,6 +165,50 @@ export const PRESETS: readonly BurstPreset[] = [
     minSnrDb: 20,
     inner: 'r34',
     modulation: 'qam',
+  },
+  // HF (shortwave) SSB: carriers inside a 300-2700 Hz filter, DPSK (no channel
+  // estimate to lose in a fade), the rate-1/2 or 2/3 code with soft decoding
+  // and a coded header (header: 'coded'), so multipath notches and the edge of
+  // the SSB filter cost scattered soft bits. minSnrDb here is for the CCIR 520
+  // "moderate" fading channel (hf-channel.ts), not a steady one.
+  {
+    ...base,
+    id: 12,
+    name: 'hf-robust',
+    description: 'HF SSB, weak or fading paths: DBPSK with a rate-1/2 code and a coded header. 46 carriers 469-2578 Hz, ~0.9 kbit/s of data.',
+    firstBin: 10,
+    lastBin: 55,
+    bitsPerSymbol: 1,
+    parity: 16,
+    minSnrDb: 8,
+    inner: 'r12',
+    header: 'coded',
+  },
+  {
+    ...base,
+    id: 13,
+    name: 'hf-standard',
+    description: 'HF SSB, fair paths: DQPSK with a rate-1/2 code and a coded header. 46 carriers 469-2578 Hz, ~1.8 kbit/s of data.',
+    firstBin: 10,
+    lastBin: 55,
+    bitsPerSymbol: 2,
+    parity: 16,
+    minSnrDb: 12,
+    inner: 'r12',
+    header: 'coded',
+  },
+  {
+    ...base,
+    id: 14,
+    name: 'hf-fast',
+    description: 'HF SSB, good paths: DQPSK with a rate-2/3 code and a coded header. 46 carriers 469-2578 Hz, ~2.4 kbit/s of data.',
+    firstBin: 10,
+    lastBin: 55,
+    bitsPerSymbol: 2,
+    parity: 16,
+    minSnrDb: 15,
+    inner: 'r23',
+    header: 'coded',
   },
 ];
 

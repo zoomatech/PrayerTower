@@ -27,7 +27,8 @@
     "release": "node scripts/release/release.mjs release",
     "lint": "eslint . && npm run lint -w @prayer-tower/mobile",
     "knip": "knip",
-    "coverage": "npm run coverage -w @prayer-tower/server"
+    "coverage": "npm run coverage -w @prayer-tower/server",
+    "skin:add": "npm run skin:add -w @prayer-tower/server --"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

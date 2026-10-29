@@ -37,9 +37,9 @@ function unpack(batch: Uint8Array): string[] | null {
   return text ? text.split('\n') : [];
 }
 
-/** Decode every frame in audio recorded at `rate` samples a second. */
-export function decodeAudio(samples: Float32Array, rate: number): HeardFrame[] {
-  return demodulate(resample(samples, rate, SAMPLE_RATE)).map((f) => ({
+/** Decode every frame in audio recorded at `rate` samples a second. searchHz: allow an HF (SSB) receiver tuned up to this far off. */
+export function decodeAudio(samples: Float32Array, rate: number, searchHz = 0): HeardFrame[] {
+  return demodulate(resample(samples, rate, SAMPLE_RATE), 0.4, searchHz).map((f) => ({
     callSign: f.callSign,
     preset: f.preset,
     snrDb: f.snrDb,
@@ -59,3 +59,5 @@ export function channelReport(frames: readonly HeardFrame[], now = new Date()): 
 }
 
 export { SAMPLE_RATE };
+/** Receipt fingerprint of a decoded prayer, as the station reports it ("Receipts" in docs/RADIO_BURST.md). */
+export { fingerprint } from './sha256.js';

@@ -8,6 +8,9 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Fldigi } from '../fldigi.js';
+import { keyRig, type Rig } from '../rig.js';
+import { withId, type StationId } from '../station-id.js';
+import { hfChannel, HF_CHANNELS } from './hf-channel.js';
 import { buildBurst, listen, type Burst } from './burst.js';
 import { reportFrom, writeReport } from './auto.js';
 import { encodeTextFrame } from './text-frame.js';
@@ -65,23 +68,35 @@ export interface AudioOptions {
   /** Keys and unkeys the transmitter, e.g. "rigctl -m 2 T 1" / "rigctl -m 2 T 0". Empty for VOX. */
   pttOnCommand: string;
   pttOffCommand: string;
+  /** RIG_CONTROL=rigctld: key through rigctld and read PTT back, instead of the commands. */
+  rig?: Rig;
   /** Wait after keying before audio starts, for the radio to reach full power. */
   pttDelayMs: number;
   /** Where burst WAVs are written (kept as the station's log of what was sent). */
   dir: string;
   txTimeoutMs: number;
+  /** STATION_ID=cw: the call sign in Morse code at the end of the key-up when one is due (station-id.ts). */
+  stationId?: StationId;
 }
 
 export function audioTransmitter(o: AudioOptions): BurstTransmitter {
   const unkey = async () => {
-    if (o.pttOffCommand) await run(o.pttOffCommand, null, 10_000);
+    if (o.rig) await keyRig(o.rig, false);
+    else if (o.pttOffCommand) await run(o.pttOffCommand, null, 10_000);
   };
   return {
     mode: 'audio',
     async send(batches, preset, callSign) {
-      const burst = buildBurst(batches, preset, callSign);
+      const built = buildBurst(batches, preset, callSign);
+      const burst = { ...built, audio: withId(built.audio, o.stationId, built.sampleRate) };
+      burst.seconds = burst.audio.length / burst.sampleRate;
       const wav = writeWav(o.dir, burst);
-      if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000);
+      if (o.rig) await keyRig(o.rig, true).catch(async (err) => {
+        // A half-keyed radio must not stay on the air.
+        await o.rig!.setPtt(false).catch(() => undefined);
+        throw err;
+      });
+      else if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000);
       try {
         if (o.pttDelayMs) await new Promise((r) => setTimeout(r, o.pttDelayMs));
         await run(o.playCommand, wav, Math.min(o.txTimeoutMs, burst.seconds * 1000 + 30_000));
@@ -98,15 +113,27 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
  * Simulate mode: write the burst to a WAV file and decode it back. With
  * `snrDb`, white noise at that SNR (in 2.5 kHz) is added first; with
  * `reportFile`, the simulated receiver writes its channel report there, as a
- * real receiver would for BURST_PRESET=auto.
+ * real receiver would for BURST_PRESET=auto. With `hf`, the audio goes through
+ * a simulated HF SSB path instead (hf-channel.ts: CCIR 520 fading, a
+ * receiver 20 Hz off, at snrDb or 15 dB) and the receiver searches 50 Hz.
  */
-export function simulateTransmitter(dir: string, log: (m: string) => void, opts: { snrDb?: number; reportFile?: string } = {}): BurstTransmitter {
+export function simulateTransmitter(
+  dir: string,
+  log: (m: string) => void,
+  opts: { snrDb?: number; reportFile?: string; hf?: keyof typeof HF_CHANNELS; stationId?: StationId } = {},
+): BurstTransmitter {
+  let seed = 1;
   return {
     mode: 'simulate',
     async send(batches, preset, callSign) {
-      const burst = buildBurst(batches, preset, callSign);
+      const built = buildBurst(batches, preset, callSign);
+      const burst = { ...built, audio: withId(built.audio, opts.stationId, built.sampleRate) };
+      burst.seconds = burst.audio.length / burst.sampleRate;
+      if (burst.audio.length > built.audio.length) log(`[simulate] station ID (CW) after the burst: de ${callSign}`);
       const wav = writeWav(dir, burst);
-      const heard = listen(opts.snrDb === undefined ? burst.audio : addNoise(burst.audio, opts.snrDb));
+      const heard = opts.hf
+        ? listen(hfChannel(burst.audio, { ...HF_CHANNELS[opts.hf], snrDb: opts.snrDb ?? 15, offsetHz: 20, lowHz: 300, highHz: 2700, seed: seed++ }), 50)
+        : listen(opts.snrDb === undefined ? burst.audio : addNoise(burst.audio, opts.snrDb));
       const report = reportFrom(heard);
       if (opts.reportFile && report) await writeReport(opts.reportFile, report);
       const count = heard.reduce((n, h) => n + h.prayers.length, 0);
@@ -134,13 +161,14 @@ function addNoise(audio: Float32Array, snrDb: number): Float32Array {
   return Float32Array.from(audio, (v) => v + sigma * Math.sqrt(-2 * Math.log(rand())) * Math.cos(2 * Math.PI * rand()));
 }
 
-export function fldigiTransmitter(fldigi: Fldigi, txTimeoutMs: number): BurstTransmitter {
+export function fldigiTransmitter(fldigi: Fldigi, txTimeoutMs: number, stationId?: StationId): BurstTransmitter {
   return {
     mode: 'fldigi',
     async send(batches, _preset, callSign) {
       const started = Date.now();
-      // One key-up: every frame on its own line, then ^r returns to receive.
-      await fldigi.transmit(batches.map((b) => encodeTextFrame(b, callSign)).join('\n'), txTimeoutMs);
+      // One key-up: every frame on its own line (and "de CALL" when an ID is due), then ^r returns to receive.
+      const id = stationId?.takeText();
+      await fldigi.transmit([...batches.map((b) => encodeTextFrame(b, callSign)), ...(id ? [id] : [])].join('\n'), txTimeoutMs);
       return { frames: batches.length, seconds: (Date.now() - started) / 1000, bytes: batches.reduce((n, b) => n + b.length, 0), decoded: null };
     },
     stop: () => fldigi.rxOnly(),

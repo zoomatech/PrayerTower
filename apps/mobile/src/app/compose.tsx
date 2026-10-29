@@ -21,6 +21,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { KindCloud } from '@/components/kind-cloud';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -40,10 +41,10 @@ export default function Compose() {
   // Only the kinds of post the member's community has turned on (discussion, news and blog are off by default).
   const types = POST_TYPES.filter((p) => (community ? community.enabledPostTypes.includes(p) : isPrayable(p)));
   const { t, label } = useLocale();
-  // The thanksgiving card opens the composer as a praise post.
-  const params = useLocalSearchParams<{ type?: string }>();
+  // The thanksgiving card opens the composer as a praise post; the gratitude card also passes its words.
+  const params = useLocalSearchParams<{ type?: string; body?: string }>();
   const [postType, setPostType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(typeof params.body === 'string' ? params.body.slice(0, 5000) : '');
   const [urgency, setUrgency] = useState(0);
   const [kind, setKind] = useState<PrayerKind | undefined>();
   const [realm, setRealm] = useState<PrayerRealm | undefined>();
@@ -151,6 +152,7 @@ export default function Compose() {
           autoFocus
           accessibilityLabel={t('compose.bodyLabel')}
         />
+        <KindCloud text={body} />
         <Text style={[type.small, words > MAX_POST_WORDS && { color: colors.danger }]}>
           {t('compose.words', { count: words, max: MAX_POST_WORDS })}
         </Text>

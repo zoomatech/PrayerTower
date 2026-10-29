@@ -57,7 +57,9 @@ afterEach(() => {
 jest.mock('expo-audio', () => {
   const recorder = { uri: 'file:///take.m4a', currentTime: 12, prepareToRecordAsync: jest.fn(async () => undefined), record: jest.fn(), stop: jest.fn(async () => undefined) };
   const player = { play: jest.fn(), pause: jest.fn(), seekTo: jest.fn() };
+  const stream = { start: jest.fn(async () => undefined), stop: jest.fn(), isStreaming: false };
   return {
+    useAudioStream: jest.fn(() => ({ stream, isStreaming: false })),
     RecordingPresets: { HIGH_QUALITY: {} },
     requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true })),
     setAudioModeAsync: jest.fn(async () => undefined),

@@ -21,7 +21,7 @@ test('iPad portrait: side column on the feed, split view in Messages', async ({ 
 test('wide window: two columns of cards', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 1024 });
   await signIn(page, 'carol');
-  const actions = page.getByText('Praying Now', { exact: true }).filter({ visible: true });
+  const actions = page.getByRole('button', { name: 'Praying Now', exact: true }).filter({ visible: true });
   await expect(actions.nth(1)).toBeVisible();
   const [a, b] = [await actions.nth(0).boundingBox(), await actions.nth(1).boundingBox()];
   // Side by side: the second card starts to the right, near the same height.

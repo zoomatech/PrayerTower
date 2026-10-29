@@ -23,13 +23,16 @@ import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
 import * as growth from './modules/growth/index.js';
+import * as practices from './modules/practices/index.js';
 import { writeDueTask as autoPrayTask } from './modules/ai/auto-pray.js';
 import { createConverser, type Converse } from './modules/ai/provider.js';
+import { sendDueRemindersTask as prayerListRemindersTask } from './modules/prayer-list/index.js';
 
 export function buildTaskList(db: Queryable, config: Config, overrides: { classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
   const mail: growth.MailContext = {
     mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
     siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
+    openCircleName: config.OPEN_CIRCLE_NAME,
   };
   return {
     growth_guest_answered: growth.guestAnsweredTask(db, mail),
@@ -37,10 +40,13 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
     growth_chain_send: growth.chainSendTask(db, mail),
     growth_prayer_minute: growth.minuteDueTask(db),
     growth_purge: growth.purgeTask(db),
+    practices_followup: practices.followupDueTask(db),
+    practices_gratitude: practices.gratitudeDueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
     moderation_scan: scanTask(db, overrides.classify ?? createClassifier(config, overrides.fetch)),
     commitments_send_due_reminders: sendDueRemindersTask(),
+    prayer_list_send_due_reminders: prayerListRemindersTask(),
     commitments_weekly_review: weeklyReviewTask(db),
     tiers_weekly_resupply: weeklyResupplyTask(db),
     radio_transmit: transmitTask(db, overrides.transmit),
@@ -73,6 +79,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
 // daily and weekly ones after 10 (about 2 hours). Failures show in Admin → Background jobs.
 export const crontab = [
   '* * * * * commitments_send_due_reminders ?max=3&fill=10m&jobKey=commitments_send_due_reminders',
+  // My prayer list reminders (only while switched on).
+  '*/5 * * * * prayer_list_send_due_reminders ?max=3&fill=1h&jobKey=prayer_list_send_due_reminders',
   // Scheduled token gifts (Friday evening, game start).
   '* * * * * schedules_run_due ?max=3&fill=10m&jobKey=schedules_run_due',
   // Event reminders, shortly before each event starts.
@@ -111,4 +119,8 @@ export const crontab = [
   '* * * * * growth_prayer_minute ?max=1&jobKey=growth_prayer_minute',
   // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
   '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',
+  // Daily 17:00: one "share how it's going?" per request, some days after it was prayed for (only while switched on).
+  '0 17 * * * practices_followup ?max=10&fill=1d&jobKey=practices_followup',
+  // Hourly: the gratitude card invitation at 6 pm on each member's chosen day (only while switched on).
+  '0 * * * * practices_gratitude ?max=3&jobKey=practices_gratitude',
 ].join('\n');

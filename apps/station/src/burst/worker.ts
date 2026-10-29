@@ -5,6 +5,7 @@
 import { foldAscii, passesFilter } from '../text.js';
 import { reportWithRetry, REPORT_RETRY_MS, TransmitError, type BurstLog, type ClaimedPrayer, type StationApi } from '../worker.js';
 import { planFrames } from './burst.js';
+import { fingerprint } from './sha256.js';
 import type { BurstPreset } from './presets.js';
 import type { BurstTransmitter, SentBurst } from './transmit.js';
 
@@ -18,6 +19,8 @@ export interface BurstConfig {
   /** Longest single frame on the air; a bigger batch becomes several frames in the same key-up. */
   maxFrameSeconds: number;
   blocklist: readonly string[];
+  /** RIG_FREQ_HZ or STATION_FREQ_HZ, reported with each prayer for the operator log. */
+  frequencyHz?: number;
 }
 
 export type BurstOutcome = { kind: 'idle' } | { kind: 'sent'; sent: number; rejected: number; frames: number; seconds: number } | { kind: 'rejected'; rejected: number };
@@ -67,11 +70,17 @@ export async function runBurstOnce(
     await logBurst({ frames: batches.length, bytes: batches.reduce((n, b) => n + b.length, 0), seconds: 0, decoded: null, ok: false, error: message });
     throw new TransmitError(message);
   }
-  for (const p of ok) await reportWithRetry(api, p.id, { ok: true, callSign: cfg.callSign, pieces: sent.frames }, retryMs);
+  for (const p of ok) {
+    const result = { ok: true, callSign: cfg.callSign, pieces: sent.frames, preset: preset.name, sentHash: sentHash(foldAscii(p.text)), frequencyHz: cfg.frequencyHz };
+    await reportWithRetry(api, p.id, result, retryMs);
+  }
   await logBurst({ ...sent, seconds: Math.round(sent.seconds * 100) / 100, ok: true });
   log(`[burst] ${ok.length} prayer(s) sent in ${sent.frames} frame(s), ${sent.seconds.toFixed(2)} s, ${preset.name}`);
   return { kind: 'sent', sent: ok.length, rejected, frames: sent.frames, seconds: sent.seconds };
 }
+
+/** What a listener sends back to say it heard a prayer (docs/RADIO_BURST.md, "Receipts"): never the words. */
+export const sentHash = fingerprint;
 
 async function claimOneByOne(api: StationApi, max: number): Promise<ClaimedPrayer[]> {
   const out: ClaimedPrayer[] = [];

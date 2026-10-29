@@ -54,6 +54,8 @@ function RootStack() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
+          {/* Listener mode: shows "Listening isn't turned on" unless an admin turned it on. */}
+          <Stack.Screen name="listen-on-air" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && needsCode}>
           <Stack.Screen name="two-step" />
@@ -79,6 +81,9 @@ function RootStack() {
           <Stack.Screen name="legal" />
           <Stack.Screen name="podcasts" />
           <Stack.Screen name="why-gifts" />
+          <Stack.Screen name="squire-board" />
+          <Stack.Screen name="prayer-list" />
+          <Stack.Screen name="reading-plan" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="survey/[id]" />
@@ -90,13 +95,18 @@ function RootStack() {
           <Stack.Screen name="pools" />
           <Stack.Screen name="scheduled" />
           <Stack.Screen name="prayer-chain" />
+          <Stack.Screen name="remembered" />
+          <Stack.Screen name="mend/[id]" />
+          <Stack.Screen name="meaning-words" />
           <Stack.Screen name="prayer-minute" />
           <Stack.Screen name="skin-idea" />
+          <Stack.Screen name="skin-gallery" />
           <Stack.Screen name="token-store" />
           <Stack.Screen name="give" />
           <Stack.Screen name="radio-requests" />
           <Stack.Screen name="macro-needs" />
           <Stack.Screen name="prayer-cast" />
+          <Stack.Screen name="listen" />
           <Stack.Screen name="highlights" />
           <Stack.Screen name="awards" />
           <Stack.Screen name="branch" />

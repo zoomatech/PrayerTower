@@ -7,8 +7,13 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 
 import { CrisisSupport } from '@/components/crisis';
+import { KindCloud } from '@/components/kind-cloud';
+import { GroupGift } from '@/components/group-gift';
+import { ReplyHelpers, useTalkCount } from '@/components/reply-helpers';
 import { Button, Chip, ErrorText, Field, RulesWarning } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
+import { chainOf } from '@/lib/talk';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -19,7 +24,10 @@ const POLL_MS = 5000;
  * blocking calls it instead of going back.
  */
 export function ConversationPane({ id, onClose }: { id: string; onClose?: () => void }) {
+  const { kindCloud } = useFeatures();
+  const count = useTalkCount();
   const { t } = useLocale();
+  const features = useFeatures();
   const [view, setView] = useState<ConversationView | null>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -58,13 +66,17 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
     setBusy(true);
     setError(null);
     try {
-      if (!confirmed && (await api.precheck(body)).warn) {
+      // With the kind cloud on, the cloud speaks while typing and nothing waits here.
+      if (!confirmed && !kindCloud && (await api.precheck(body)).warn) {
         setWarned(true);
         return;
       }
       setWarned(false);
       const r = await api.sendMessage(id, body);
       if (r.message.crisis) setSupport(true);
+      const before = view?.messages ?? [];
+      const chain = chainOf(before.at(-2)?.body, before.at(-1)?.body, body);
+      count(chain && { kind: 'chain', moves: chain });
       setText('');
       await load();
       scroll.current?.scrollToEnd({ animated: true });
@@ -126,6 +138,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
               {c.members.length + 1} {c.members.length === 0 ? 'member' : 'members'} · {c.isPublic ? 'open to all' : 'invite only'}
             </Text>
           ) : null}
+          {c.kind === 'group' && !c.isRequest && features.groupGifts ? <GroupGift target="group" id={id} /> : null}
           {c.post ? (
             <Pressable onPress={() => router.push(`/post/${c.post!.id}`)} style={styles.post} accessibilityRole="link">
               <Text style={type.small}>{t('conversation.about')}</Text>
@@ -200,6 +213,13 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
             }}
             maxLength={MESSAGE_MAX_CHARS}
             multiline
+          />
+          <KindCloud text={text} />
+          <ReplyHelpers
+            lastFromOther={[...(view?.messages ?? [])].reverse().find((m) => !m.mine)?.body ?? null}
+            empty={!view?.messages.length}
+            text={text}
+            onPick={setText}
           />
           {warned ? <RulesWarning onPostAnyway={() => send(true)} busy={busy} /> : null}
           <Button testID="message-send" label={t('actions.send')} onPress={() => send()} busy={busy} disabled={!text.trim()} />

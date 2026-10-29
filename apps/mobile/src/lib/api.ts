@@ -43,9 +43,49 @@ import type {
 import { env } from './env';
 import { enqueue, flushQueue, isOffline, markOnline, OfflineError, readCached, saveCached } from './offline';
 import { supabase } from './supabase';
+import type { Move, Pack } from './talk';
 
 
 /** Switches for the notebook ideas built in Batch 7. */
+/** The kind cloud's verdict on a draft: ok, a gentle nudge, or a firmer ask (threats, a stream of swearing). Never a refusal. */
+export interface KindVerdict {
+  level: 'ok' | 'nudge' | 'strong';
+  reason?: 'threat' | 'foul' | 'aimed' | 'shouting';
+}
+
+/** A gentle redirect for a request that wishes harm (thread "Prepare for harmful prayer requests"), shown in the kind cloud. */
+export interface HarmNote {
+  category: string;
+  action?: string;
+  title?: string;
+  message: string;
+  resources?: { name?: string; label?: string; phone?: string; url?: string }[];
+}
+
+export interface Precheck {
+  warn: boolean;
+  cloud?: KindVerdict;
+  harm?: HarmNote | null;
+}
+
+/** Emoji meanings: an emoji and its up-to-five positive meanings (first = what a tap adds). */
+export interface MeaningEmoji {
+  key: string;
+  emoji: string;
+  meanings: { key: string; label: string; neutralLabel: string }[];
+}
+
+/** A chosen meaning on a post, shown as a leaf. */
+export interface MeaningLeaf {
+  emoji: string;
+  icon: string;
+  meaning: string;
+  label: string;
+  neutralLabel: string;
+  count: number;
+  mine: boolean;
+}
+
 export interface Features {
   worldwideCount: boolean;
   thanksCard: boolean;
@@ -66,6 +106,18 @@ export interface Features {
   checkinAffirmation: boolean;
   whyGifts: boolean;
   poolMatching: boolean;
+  /** The kind cloud on composers: a gentle "Are you sure?" (server modules/kindness). */
+  kindCloud: boolean;
+  /** Emoji reactions that open to positive meanings, shown as leaves. */
+  meaningReactions: boolean;
+  lamps: boolean;
+  poolLedger: boolean;
+  circleGoals: boolean;
+  supportLinks: boolean;
+  squireBoard: boolean;
+  groupGifts: boolean;
+  prayerList: boolean;
+  readingPlan: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -76,6 +128,30 @@ export interface Features {
   prayerChain: boolean;
   prayedForWidget: boolean;
   prayerMinute: boolean;
+  /** Sharing outside the app only with the author's consent (docs/GROWTH.md). */
+  shareConsent: boolean;
+  /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
+  followupNudge: boolean;
+  gratitudeCard: boolean;
+  gentleRhythm: boolean;
+  /** A welcoming volunteer for a newcomer's first days, and the "Answered & remembered" look-back. */
+  encourager: boolean;
+  remembered: boolean;
+  /** Gentle repair (docs/GENTLE_REPAIR.md): first-comment welcome card, "ask kindly" notes, Mend. */
+  welcomeCard: boolean;
+  askKindly: boolean;
+  mend: boolean;
+  liftUp: boolean;
+  gratitudeCount: boolean;
+  believe: boolean;
+  /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
+  replySuggestions: boolean;
+  meaningPrefs: boolean;
+  troubleNudge: boolean;
+  greetingPacks: boolean;
+  ownWords: boolean;
+  kindClosings: boolean;
+  talkCounts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -86,6 +162,7 @@ export interface Features {
   /** Deepest reply level while the tree is on (0 = top-level comments only). */
   commentTreeMaxDepth: number;
   themeProposals: boolean;
+  skinGallery: boolean;
   /** Longest video a member can attach, in seconds. */
   videoMaxSeconds: number;
 }
@@ -97,6 +174,22 @@ export interface SkinSettings {
   comment_tree_max_depth: number;
   proposals_enabled: boolean;
   video_max_seconds: number;
+  seasonal_enabled: boolean;
+  seasonal_auto: boolean;
+  gallery_enabled: boolean;
+}
+
+/** One skin in Me → Skin gallery. */
+export interface GallerySkin {
+  slug: string;
+  name: string;
+  layout: string;
+  season: string | null;
+  tokens: Record<string, unknown>;
+  maker: { id: string; name: string } | null;
+  likes: number;
+  liked: boolean;
+  inUse: boolean;
 }
 
 export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
@@ -116,6 +209,88 @@ export interface ThemeProposal {
   from?: { id: string; name: string };
 }
 
+export interface PracticeSettings {
+  followup_enabled: boolean;
+  followup_days: number;
+  gratitude_enabled: boolean;
+  gentle_rhythm_enabled: boolean;
+  encourager_enabled: boolean;
+  encourager_days: number;
+  newcomer_days: number;
+  remembered_enabled: boolean;
+  welcome_card_enabled: boolean;
+  welcome_text: string | null;
+  ask_kindly_enabled: boolean;
+  mend_enabled: boolean;
+  lift_up_enabled: boolean;
+  gratitude_count_enabled: boolean;
+  believe_enabled: boolean;
+}
+export interface ConversationSettings {
+  reply_suggestions_enabled: boolean;
+  meaning_prefs_enabled: boolean;
+  trouble_nudge_enabled: boolean;
+  greeting_packs_enabled: boolean;
+  own_words_enabled: boolean;
+  kind_closings_enabled: boolean;
+  talk_counts_enabled: boolean;
+}
+export interface ConversationPrefs {
+  replySuggestions: boolean;
+  troubleNudge: boolean;
+  kindClosings: boolean;
+  greetingPack: Pack | null;
+  shareCounts: boolean;
+}
+/** Move labels only: never words, never who. */
+export type TalkCount = { kind: 'chain'; moves: [Move, Move | 'other', Move | 'other'] } | { kind: 'emoji'; emoji: string; meaning: string; toMove: Move | 'other' };
+export interface TalkCountSummary {
+  weeks: number;
+  minShown: number;
+  chains: { moves: string[]; n: number }[];
+  otherChains: number;
+  emoji: { emoji: string; meaning: string; toMove: string; n: number }[];
+  otherEmoji: number;
+}
+export interface MeaningPref {
+  emoji: string;
+  defaultMeaning: string | null;
+  hidden: string[];
+}
+export type KindAskReason = 'dismissive' | 'grief' | 'unkind' | 'other';
+export type MendStatus = 'invited' | 'review' | 'returned' | 'delivered' | 'accepted' | 'closed' | 'withdrawn';
+export interface Sorry {
+  whatIDid: string;
+  onMe: string;
+  nextTime: string;
+}
+export interface Mend {
+  id: string;
+  role: 'author' | 'hurt' | 'moderator';
+  status: MendStatus;
+  comment: { postId: string; body: string };
+  author: { displayName: string } | null;
+  sorry: Sorry | null;
+  canRevise: boolean;
+  moderatorNote: string | null;
+}
+export interface EncouragerMatch {
+  id: string;
+  role: 'newcomer' | 'encourager';
+  other: { id: string; displayName: string };
+  endsAt: string;
+}
+export type EncouragerState = { enabled: false } | { enabled: true; volunteer: boolean; canAsk: boolean; matches: EncouragerMatch[]; matched?: boolean };
+export interface RememberedItem {
+  id: string;
+  body: string;
+  testimony: string | null;
+  answeredAt: string;
+}
+export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
+export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[]; weeks?: number | null };
+export type LiftUp = { enabled: false } | { enabled: true; weekStart: string; body: string };
+
 export interface GrowthSettings {
   guest_prayer_enabled: boolean;
   prayer_chain_enabled: boolean;
@@ -123,6 +298,19 @@ export interface GrowthSettings {
   prayed_for_widget_enabled: boolean;
   prayer_minute_enabled: boolean;
   guest_email_days: number;
+  share_consent_enabled: boolean;
+}
+/** Who may share a post outside the app, chosen by its author. */
+export type ShareLevel = 'private' | 'link' | 'card';
+export interface ShareState {
+  mine: boolean;
+  level: ShareLevel;
+  canShare: boolean;
+  cardAllowed: boolean;
+  /** True on a share card: the message may carry the post's words. */
+  words: boolean;
+  /** /post/<id> (members-only app link) or /card/<token> (public card, on the site host). */
+  path: string;
 }
 export interface GuestLink {
   token: string;
@@ -174,6 +362,20 @@ export interface NotebookSettings {
   checkin_affirmation_enabled: boolean;
   why_gifts_enabled: boolean;
   pool_matching_enabled: boolean;
+  kind_cloud_enabled: boolean;
+  meaning_reactions_enabled: boolean;
+  lamps_enabled: boolean;
+  lamps_per_week: number;
+  pool_ledger_enabled: boolean;
+  circle_goals_enabled: boolean;
+  giving_ask_enabled: boolean;
+  giving_ask_after_days: number;
+  support_links_enabled: boolean;
+  squire_board_enabled: boolean;
+  squire_board_days: number;
+  group_gifts_enabled: boolean;
+  prayer_list_enabled: boolean;
+  reading_plan_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -293,6 +495,66 @@ export interface AdminRadioSettings {
   radio_batch_max: number;
   /** The public /listen page that decodes bursts from a phone's microphone. */
   listen_page_enabled: boolean;
+  radio_receipts_enabled: boolean;
+  on_air_page_enabled: boolean;
+}
+
+/** A station health alert in Admin → Radio (server radio/health.ts). */
+export interface StationAlert {
+  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'queue_empty';
+  level: 'problem' | 'info';
+  detail: string;
+  callSign: string | null;
+  since: string | null;
+}
+export interface RadioWindow {
+  days: number[];
+  start: string;
+  end: string;
+}
+
+export interface RadioSchedule {
+  enabled: boolean;
+  timeZone: string;
+  windows: RadioWindow[];
+  quietStart: string | null;
+  quietEnd: string | null;
+}
+
+export interface StationHealth {
+  enabled: boolean;
+  health: {
+    stations: { callSign: string; lastHeartbeat: string | null; silent: boolean; checks: { name: string; ok: boolean; detail: string }[]; bursts24h: number; failed24h: number; prayers24h: number; lastBurstAt: string | null; lastError: string | null }[];
+    queue: { queued: number; sending: number; oldestMinutes: number | null };
+    snr: { callSign: string; preset: string; reports: number; avgDb: number; minDb: number; lastAt: string }[];
+    failures: { at: string; callSign: string | null; kind: 'burst' | 'prayer'; error: string }[];
+  } | null;
+  acks: { enabled: boolean; timeoutMinutes: number; maxRetries: number; heard: number; waiting: number; unheard: number; retried: number };
+}
+
+export interface StationAlerts {
+  enabled: boolean;
+  overdueMinutes: number;
+  alerts: StationAlert[];
+}
+
+/** A receive-only listener node (server radio/nodes.ts). */
+export interface RadioNode {
+  id: string;
+  name: string;
+  role: 'listener' | 'station';
+  enabled: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+}
+export interface RadioNodes {
+  enabled: boolean;
+  /** Several stations share the queue, each with its own key. */
+  multiStation: boolean;
+  /** Prayers each station holds now and sent in the last 24 hours; node null is the main station. */
+  stations: { node: string | null; sending: number; sent: number }[];
+  nodes: RadioNode[];
+  reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -333,7 +595,7 @@ export interface TokenPool {
   open: boolean;
   balance: number;
   /** A matching pledge, while matching is switched on. */
-  match: { ratio: number; cap: number; matched: number } | null;
+  match: { mode: 'ratio' | 'quadratic'; ratio: number; cap: number; matched: number } | null;
   /** Only when listed for a request: why the member can't draw, or null. */
   blockedReason?: string | null;
 }
@@ -748,6 +1010,48 @@ export type AiSettings = {
   auto_pray_days: number;
 };
 
+/** Circle goals: "N people pray for this by <date>". */
+export type CircleGoal =
+  | { enabled: false }
+  | { enabled: true; canSet: boolean; goal: { target: number; endsAt: string; prayed: number; met: boolean; ended: boolean } | null };
+
+/** Lamp awards: thanks with a note, recognition only. */
+export type SquireBoard =
+  | { enabled: false }
+  | {
+      enabled: true;
+      days: number;
+      onBoard: boolean;
+      canJoin: boolean;
+      entries: { rank: number; personId: string; name: string; prayers: number; peoplePrayedFor: number; you: boolean }[];
+    };
+
+export type PrayerListItem = { id: string; name: string; note: string; remind: 'off' | 'daily' | 'weekly'; nextReminderAt: string | null; lastPrayedAt: string | null; prayedCount: number };
+export type PrayerList = { enabled: false } | { enabled: true; items: PrayerListItem[] };
+
+export type ReadingPlanToday =
+  | { enabled: false }
+  | {
+      enabled: true;
+      plan: {
+        id: string;
+        title: string;
+        day: number;
+        days: number;
+        conversationId: string | null;
+        reading: { reference: string; url: string; read: boolean; readers: number } | null;
+      } | null;
+    };
+export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
+
+export type Lamps = {
+  enabled: boolean;
+  count: number;
+  lamps: { id: string; note: string; createdAt: string; giverId: string; giverName: string }[];
+  canGive: boolean;
+  leftThisWeek: number;
+};
+
 /** Auto-Pray: AI prayers under a request, counted apart from prayers by people. */
 export type AiPrayers = {
   enabled: boolean;
@@ -919,6 +1223,10 @@ export const api = {
   across: () => get<{ card: Card | null }>('/across'),
   quickReact: (postId: string, kind: 'candle' | 'standing', on: boolean) =>
     request<{ candles: number; standing: number; mine: ('candle' | 'standing')[] }>(on ? 'PUT' : 'DELETE', `/posts/${postId}/quick-reactions/${kind}`),
+  reactionMeanings: () => get<{ emoji: MeaningEmoji[] }>('/reaction-meanings'),
+  meanings: (postId: string) => get<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`),
+  chooseMeaning: (postId: string, emoji: string, meaning: string) => put<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`, { emoji, meaning }),
+  removeMeaning: (postId: string, emoji: string) => request<{ leaves: MeaningLeaf[] }>('DELETE', `/posts/${postId}/meanings/${emoji}`),
   declineAward: (id: string) => post<{ declined: true }>(`/me/awards/${id}/decline`),
   communities: () => get<{ mine: Community | null; choices: Community[] }>('/communities'),
   chooseCommunity: (slug: string) => post<{ community: Community }>('/me/community', { slug }),
@@ -979,6 +1287,8 @@ export const api = {
   proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>
     post<{ proposal: ThemeProposal }>('/me/theme-proposals', input),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
+  skinGallery: () => get<{ skins: GallerySkin[] }>('/skins/gallery'),
+  likeSkin: (slug: string, on: boolean) => request<{ skins: GallerySkin[] }>(on ? 'PUT' : 'DELETE', `/skins/${encodeURIComponent(slug)}/like`),
   mediaUploadUrl: (contentType: string) =>
     post<{ path: string; token: string; signedUrl: string }>('/media/upload-url', { contentType }),
   person: (id: string) => get<{ person: Person; posts: Card[] }>(`/people/${id}`),
@@ -1000,7 +1310,7 @@ export const api = {
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
-  precheck: (text: string) => post<{ warn: boolean }>('/moderation/precheck', { text }).catch(() => ({ warn: false })),
+  precheck: (text: string) => post<Precheck>('/moderation/precheck', { text }).catch((): Precheck => ({ warn: false })),
   appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
   appeals: () => get<{ appeals: Appeal[] }>('/moderation/appeals'),
   decideAppeal: (id: string, action: 'uphold' | 'overturn', note?: string) =>
@@ -1116,7 +1426,25 @@ export const api = {
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean }>) =>
+    radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
+    radioHealth: () => get<StationHealth>('/admin/radio-health'),
+    radioSchedule: () => get<{ schedule: RadioSchedule; onAirNow: boolean }>('/admin/radio-schedule'),
+    updateRadioSchedule: (patch: Partial<RadioSchedule>) => request<{ schedule: RadioSchedule; onAirNow: boolean }>('PATCH', '/admin/radio-schedule', patch),
+    operatorLog: () => get<{ enabled: boolean }>('/admin/operator-log'),
+    setOperatorLog: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/operator-log', { enabled }),
+    operatorLogCsv: () => getText('/admin/operator-log?format=csv'),
+    radioFollowups: () => get<{ thanksgiving: boolean; prayingToo: boolean }>('/admin/radio-followups'),
+    setRadioFollowups: (patch: { thanksgiving?: boolean; prayingToo?: boolean }) => request<{ thanksgiving: boolean; prayingToo: boolean }>('PATCH', '/admin/radio-followups', patch),
+    listenerMode: () => get<{ enabled: boolean; active: boolean }>('/admin/listener-mode'),
+    setListenerMode: (enabled: boolean) => request<{ enabled: boolean; active: boolean }>('PATCH', '/admin/listener-mode', { enabled }),
+    updateRadioHealth: (patch: { enabled?: boolean; acks?: Partial<{ enabled: boolean; timeoutMinutes: number; maxRetries: number }> }) => request<StationHealth>('PATCH', '/admin/radio-health', patch),
+    radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
+    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
+    addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
+    updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
+    removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
+    updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
@@ -1171,15 +1499,22 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
+    talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean }>) =>
+      request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
+    practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean }>) =>
+      request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
-    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number }>) =>
+    updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
       request<{ settings: SkinSettings }>('PATCH', '/admin/skin-settings', patch),
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
-    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
+    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1200,9 +1535,35 @@ export const api = {
       idempotencyKey: `power-${postId}-${Date.now()}`,
     }),
   tokenPools: (postId?: string) => get<{ pools: TokenPool[] }>(postId ? `/token-pools?postId=${postId}` : '/token-pools'),
+  poolLedger: () =>
+    get<
+      | { enabled: false }
+      | { enabled: true; given: number; givers: number; matched: number; reachedRequests: number; reachedLast30Days: number; requestsHelped: number; returned: number; openPools: number }
+    >('/token-pools/ledger'),
   myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
-  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number }) =>
+  createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number; matchMode?: 'ratio' | 'quadratic' }) =>
     post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
+  circleGoal: (postId: string) => get<CircleGoal>(`/posts/${postId}/circle-goal`),
+  setCircleGoal: (postId: string, target: number, days: number) => request<CircleGoal>('PUT', `/posts/${postId}/circle-goal`, { target, days }),
+  removeCircleGoal: (postId: string) => request<CircleGoal>('DELETE', `/posts/${postId}/circle-goal`),
+  squireBoard: () => get<SquireBoard>('/squire-board'),
+  setSquireBoard: (on: boolean) => request<SquireBoard>('PUT', '/me/squire-board', { public: on }),
+  groupGiftInfo: (target: 'group' | 'event', id: string) => get<{ enabled: false } | { enabled: true; recipients: number }>(`/${target}s/${id}/gift`),
+  giveToGroup: (target: 'group' | 'event', id: string, amount: number) =>
+    post<{ recipients: number; each: number; given: number; balance: number }>(`/${target}s/${id}/gift`, { amount, idempotencyKey: `${target}-gift-${id}-${Date.now()}` }),
+  prayerList: () => get<PrayerList>('/me/prayer-list'),
+  addToPrayerList: (input: { name: string; note?: string; remind: 'off' | 'daily' | 'weekly'; hour: number; tzOffsetMinutes: number }) => post<PrayerList>('/me/prayer-list', input),
+  editPrayerListItem: (id: string, input: Partial<{ name: string; note: string; remind: 'off' | 'daily' | 'weekly'; hour: number; tzOffsetMinutes: number }>) =>
+    request<PrayerList>('PATCH', `/me/prayer-list/${id}`, input),
+  removePrayerListItem: (id: string) => request<PrayerList>('DELETE', `/me/prayer-list/${id}`),
+  prayedForListItem: (id: string) => post<PrayerList>(`/me/prayer-list/${id}/prayed`, {}),
+  readingPlan: () => get<ReadingPlanToday>('/reading-plan'),
+  markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),
+  staffReadingPlans: () => get<{ plans: StaffReadingPlan[] }>('/staff/reading-plans'),
+  createReadingPlan: (input: { title: string; startsOn: string; references: string[]; conversationId?: string | null }) => post<{ id: string }>('/staff/reading-plans', input),
+  archiveReadingPlan: (planId: string) => post<{ archived: true }>(`/staff/reading-plans/${planId}/archive`, {}),
+  lamps: (personId: string) => get<Lamps>(`/people/${personId}/lamps`),
+  giveLamp: (personId: string, note: string) => post<{ id: string }>(`/people/${personId}/lamps`, { note }),
   aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),
   setAutoPray: (postId: string, on: boolean) => request<AiPrayers>('PUT', `/posts/${postId}/auto-pray`, { on }),
   fundTokenPool: (id: string, amount: number) => post<{ matched: number; poolBalance: number; balance: number }>(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
@@ -1218,6 +1579,11 @@ export const api = {
   endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
+  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/radio/listen'),
+  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/listen/config'),
+  listenPraying: (report: { callSign: string; hashes: string[] }) => post<{ matched: number }>('/listen/praying', report),
+  /** "On the air" receipts: fingerprints of prayers heard on the Listen screen, never the words. */
+  listenHeard: (report: { callSign: string; preset: string; snrDb: number; hashes: string[] }) => post<{ matched: number }>('/listen/heard', report),
   highlights: () => get<Highlights>('/highlights'),
   conversations: () => get<{ conversations: ConversationSummary[] }>('/me/conversations'),
   conversation: (id: string, before?: string) => get<ConversationView>(`/conversations/${id}${before ? `?before=${before}` : ''}`),
@@ -1297,6 +1663,8 @@ export const api = {
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
   revokeGuestLink: (postId: string) => request<{ revoked: true }>('DELETE', `/posts/${postId}/guest-link`),
+  shareState: (postId: string) => get<{ share: ShareState | null }>(`/posts/${postId}/share`),
+  setShareLevel: (postId: string, level: ShareLevel) => request<{ share: ShareState }>('PUT', `/posts/${postId}/share`, { level }),
   prayerChain: () => get<{ people: ChainPerson[] }>('/me/prayer-chain'),
   addToPrayerChain: (email: string) => post<{ id: string }>('/me/prayer-chain', { email }),
   removeFromPrayerChain: (id: string) => request<{ removed: true }>('DELETE', `/me/prayer-chain/${id}`),
@@ -1310,6 +1678,8 @@ export const api = {
   worldwide: () => get<{ stats: WorldwideStats }>('/stats/worldwide'),
   thanksCard: () => get<{ card: { show: boolean; answeredYouPrayedFor: number } }>('/me/thanks-card'),
   dismissThanksCard: () => post<{ dismissed: true }>('/me/thanks-card/dismiss'),
+  givingAsk: () => get<{ show: boolean }>('/me/giving-ask'),
+  seenGivingAsk: () => post<{ ok: true }>('/me/giving-ask/seen'),
   eventInputs: (id: string) => get<{ canSeeAll: boolean; inputs: EventInput[] }>(`/events/${id}/inputs`),
   addEventInput: (id: string, body: string) => post<{ input: { id: string; crisis: boolean } }>(`/events/${id}/inputs`, { body }),
   removeEventInput: (id: string, inputId: string) => request<{ removed: true }>('DELETE', `/events/${id}/inputs/${inputId}`),
@@ -1317,6 +1687,35 @@ export const api = {
   myWitnessStories: () => get<{ stories: { id: string; body: string; status: 'awaiting_consent' | 'approved' | 'declined'; createdAt: string }[] }>('/me/witness-stories'),
   decideWitnessStory: (id: string, approve: boolean) => post<{ ok: true }>(`/me/witness-stories/${id}/decision`, { approve }),
   draftWitnessStory: (caseId: string, body: string) => post<{ id: string }>(`/witness/cases/${caseId}/story`, { body }),
+  followup: (postId: string) => get<{ enabled: boolean; pending: boolean }>(`/posts/${postId}/followup`),
+  answerFollowup: (postId: string, answer: FollowupAnswer, body?: string) =>
+    post<{ answer: FollowupAnswer; crisis: boolean }>(`/posts/${postId}/followup`, body ? { answer, body } : { answer }),
+  gratitude: (tz: string) => get<Gratitude>(`/me/gratitude?tz=${encodeURIComponent(tz)}`),
+  setGratitudeDay: (weekday: number | null, timeZone: string) => put<Gratitude>('/me/gratitude/day', { weekday, timeZone }),
+  saveGratitude: (items: string[], timeZone: string) => put<Gratitude>('/me/gratitude', { items, timeZone }),
+  liftUp: (tz: string) => get<LiftUp>(`/me/lift-up?tz=${encodeURIComponent(tz)}`),
+  saveLiftUp: (body: string, timeZone: string) => put<LiftUp>('/me/lift-up', { body, timeZone }),
+  encourager: () => get<EncouragerState>('/me/encourager'),
+  setVolunteer: (on: boolean, agree?: boolean) => put<EncouragerState>('/me/encourager/volunteer', { on, ...(agree ? { agree } : {}) }),
+  askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
+  endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
+  remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
+  hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
+  conversationPrefs: () => get<{ prefs: ConversationPrefs }>('/me/conversation-prefs'),
+  talkCount: (c: TalkCount) => request<{ counted: boolean }>('POST', '/talk-counts', c),
+  updateConversationPrefs: (patch: Partial<ConversationPrefs>) => request<{ prefs: ConversationPrefs }>('PATCH', '/me/conversation-prefs', patch),
+  meaningWords: () => get<{ emoji: MeaningEmoji[]; prefs: MeaningPref[] }>('/me/meaning-words'),
+  setMeaningWords: (pref: MeaningPref) => put<{ prefs: MeaningPref[] }>('/me/meaning-words', pref),
+  welcomeCard: () => get<{ show: boolean; text: string | null }>('/me/welcome-card'),
+  dismissWelcome: () => post<{ show: boolean; text: string | null }>('/me/welcome-card/dismiss'),
+  askKindly: (commentId: string, reason: KindAskReason) => post<{ sent: boolean }>(`/comments/${commentId}/ask-kindly`, { reason }),
+  inviteMend: (commentId: string) => post<{ mend: Mend }>(`/comments/${commentId}/mend`),
+  mend: (id: string) => get<{ mend: Mend }>(`/mends/${id}`),
+  writeSorry: (id: string, sorry: Sorry) => put<{ mend: Mend }>(`/mends/${id}/sorry`, sorry),
+  acceptMend: (id: string) => post<{ mend: Mend }>(`/mends/${id}/accept`),
+  closeMend: (id: string) => post<{ mend: Mend }>(`/mends/${id}/close`),
+  mendQueue: () => get<{ mends: Mend[] }>('/moderation/mends'),
+  reviewMend: (id: string, approve: boolean, note?: string) => post<{ status: MendStatus }>(`/moderation/mends/${id}`, note ? { approve, note } : { approve }),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),

@@ -1,0 +1,23 @@
+{
+  "slug": "my-new-skin",
+  "name": "My New Skin",
+  "layout": "vine",
+  "for": "all",
+  "description": "One line on the look, for the migration's comment.",
+  "animations": { "enter": "grow", "answered": "bloom", "idleBird": false },
+  "tokens": {
+    "backdrop": "#F6FBF1",
+    "stem": "#4F8A2E",
+    "stemWidth": 6,
+    "stemDouble": false,
+    "stemGlow": false,
+    "branch": "#6B8E23",
+    "leaf": "#8CC152",
+    "leafSoft": "#EEF7E3",
+    "tendril": "#2E6B1F",
+    "leafShape": "round",
+    "scenery": "",
+    "leafEvery": 4,
+    "tipText": "You have reached the top. Come back later to see it grow."
+  }
+}

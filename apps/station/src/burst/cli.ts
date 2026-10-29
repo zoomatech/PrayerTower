@@ -1,11 +1,16 @@
 // Burst tools for operators and listeners (node dist/src/burst/cli.js ...):
 //
 //   decode <file.wav> [report.json]  print every prayer decoded from a recording; with a
-//                               report file, also write the measured SNR for BURST_PRESET=auto
+//                               report file, also write the measured SNR for BURST_PRESET=auto.
+//                               From an HF (SSB) receiver, set BURST_SEARCH_HZ=50 to allow
+//                               for tuning up to 50 Hz off (slower)
 //   decode-text <file.txt>      the same for fldigi text frames (BURST_MODE=fldigi)
 //   encode <out.wav> [preset]   make a burst from prayers on stdin, one per line
 //   presets                     list the modem presets and their speeds
 //   bench [preset]              how many sample prayers fit in how many seconds
+//   sim [preset]                send 30 generated prayers through a simulated radio path at
+//                               falling noise levels; print air time and the lowest SNR that
+//                               decodes every prayer (the table in docs/RADIO_BURST.md; slow)
 //
 // A live receiver can record with e.g. `arecord -f S16_LE -r 48000 -c 1 -d 30 rx.wav`.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -17,6 +22,7 @@ import { decodeTextFrames } from './text-frame.js';
 import { fromWav, resample, toWav } from './wav.js';
 import { SAMPLE_RATE } from './ofdm.js';
 import { samplePrayers } from './sample.js';
+import { simMarkdown, simTable } from './sim.js';
 
 const [cmd, arg, arg2] = process.argv.slice(2);
 
@@ -29,7 +35,7 @@ switch (cmd) {
   case 'decode': {
     if (!arg) throw new Error('usage: decode <file.wav> [report.json]');
     const wav = fromWav(readFileSync(arg));
-    const heard = listen(resample(wav.samples, wav.sampleRate, SAMPLE_RATE));
+    const heard = listen(resample(wav.samples, wav.sampleRate, SAMPLE_RATE), Number(process.env.BURST_SEARCH_HZ ?? 0) || 0);
     if (!heard.length) out('No burst frames decoded.');
     for (const h of heard) {
       out(`-- de ${h.callSign} (${h.preset}, ${h.snrDb.toFixed(1)} dB SNR${h.corrected ? ', errors corrected' : ''}), ${h.prayers.length} prayer(s)`);
@@ -77,7 +83,10 @@ switch (cmd) {
     }
     break;
   }
+  case 'sim':
+    out(simMarkdown(simTable(samplePrayers(30), [1, 2, 3], arg ? [presetByName(arg)] : PRESETS), 30));
+    break;
   default:
-    out('usage: cli.js decode <file.wav> [report.json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset]');
+    out('usage: cli.js decode <file.wav> [report.json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset] | sim [preset]');
     process.exitCode = cmd ? 1 : 0;
 }

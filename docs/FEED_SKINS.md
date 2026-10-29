@@ -13,6 +13,7 @@ Everything here is **off** until an admin turns it on in **Admin → Feed skins*
 | Leaves shown on a branch before the blur | 5 | Past this, the other leaves fade into a blur ("12 more leaves on this branch") until tapped. |
 | Levels of comments | 3 | Comment, reply, reply to that. At the third level there is no Reply link, and the server refuses a deeper reply, so a back-and-forth chain can't grow. Side branches at the third level are fine. |
 | Members can make their own skins | off | Me → Make your own feed skin (the theme maker). The maker can use their skin at once; everyone else sees it only after an admin approves it in Admin → Feed skins. |
+| Skin gallery | off | Me → Skin gallery: every skin the member can use, with a small preview, who made it, likes, and "Use this skin". Needs the skins switch on too. |
 | Longest video, in seconds | 7 | The composer leaves out longer clips. The server refuses a clip longer than the cap. |
 
 ## The skins
@@ -34,6 +35,21 @@ Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `ba
 
 Open Circle gets the same skins. They carry no religious words, and the vine's Open Circle wording still replaces `birdText` and `tipText`.
 
+## Seasonal skins
+
+Admin → Feed skins → **Seasonal skins** (off) offers each season's skin in Feed style only during its season. **Use the season's skin for members who haven't chosen one** (off) dresses members on the community's usual feed by date; anyone who picked a style keeps it, and a seasonal pick falls back to the usual feed when its season ends.
+
+| Season | Dates | Faith communities | Open Circle |
+|---|---|---|---|
+| Advent | Fourth Sunday before Christmas to 24 December | Advent Wreath (evergreen stem, purple leaves) | |
+| Christmas | 25 December to 5 January | Christmas Star (gold glow on night blue, star leaves) | |
+| Lent | Ash Wednesday (Easter − 46 days) to Holy Saturday | Lenten Desert (sand, violet leaves) | |
+| Easter | Easter Sunday to the day before Pentecost (Easter + 49) | Easter Lily (cream, gold flowers) | |
+| Pentecost | Pentecost Sunday and its week | Pentecost Flame (glowing flame on deep red) | |
+| Winter / spring / summer / autumn | December–February, March–May, June–August, September–November | | Winter Frost, Spring Bloom, Summer Sun, Autumn Leaves |
+
+Church dates follow the Western calendar ([United Methodist glossary](https://admin.umc.org/content/glossary-calendar-christian), [Columban Missionaries](https://www.columban.org.au/media-and-publications/articles/features/2015/liturgical-seasons-explained)); Easter is computed with the anonymous Gregorian algorithm (`easterSunday()` in `packages/shared`). Open Circle uses the northern-hemisphere weather seasons. Every seasonal skin passes the contrast checks below. New ones can be added from a skin file with a `season` (docs/CLAUDE_DESIGN_SKINS.md).
+
 ## Prayer Tower (climb layout)
 
 `apps/mobile/src/layouts/tower.tsx`. Phones and tablets. One request per floor between two stone pillars; the climber climbs one floor each time the member swipes to the next request, with Climb up and Climb down buttons for anyone who prefers tapping. A long request scrolls inside its floor, and the swipe only climbs once the floor is read to its edge.
@@ -48,9 +64,33 @@ Open Circle gets the same skins. They carry no religious words, and the vine's O
 
 **Frame rate.** Measured in the web build on an iPhone SE screen with the CPU slowed 4× (Chrome's low-end mobile setting, [Chrome DevTools](https://developer.chrome.com/docs/devtools/settings/throttling), [DebugBear](https://www.debugbear.com/blog/cpu-throttling-in-chrome-devtools-and-lighthouse)). Every skin held about 60 fps standing still and while scrolling, with at most 2 slow frames (worst 117 ms) over 25 quick scrolls; the busiest were Neon Circuit, Neon Cinderella and Blossom Garden. This is a stand-in: the native app draws animations on the UI thread (`useNativeDriver`), so a real older iPhone should do as well or better. Confirm on a device during the pilot. Raw numbers: `build/screenshots/skins/all/frame-rate.json` in project files, next to a screenshot of every skin on the older-iPhone and iPad profiles.
 
+## Emoji word leaves
+
+The emoji meanings under a post (docs/EMOJI_MEANINGS.md, its own switch) take the member's feed skin: leaf colors on vine skins, a flower before the word on Blossom Garden, a star on Neon Cinderella, stone tablets outlined in mortar on the Prayer Tower, and a neon outline on Neon Circuit. Plain layouts (column, swipe, flip, wall) keep the plain chip. Your own word keeps the skin's colors with a heavier outline. Code: `wordLeafTokens()` in `apps/mobile/src/components/meaning-reactions.tsx`. Screenshots: `build/screenshots/skins/word-leaves/` in project files.
+
+## The drawn vine (Steve, 2026-10-29)
+
+Steve: "FAR more spaced out and actual artistic curved vines connecting, and the comments are HOUSED inside a leaf." "Top to bottom, present to past." "Comments spread outward and downward toward the next last post." "THE LINES CONNECTING ARE PRIMARILY VERTICAL", like the fairy-tale beanstalk. The inner box "much smaller than the containing leaf", greener, with "an actual leaf shape seen through it"; the box may cross the leaf's edge so the leaf stays natural.
+
+Every vine skin draws the plant as a transparent picture (`react-native-svg`, `apps/mobile/src/components/vine-flow.tsx`):
+
+- One tall stalk runs top to bottom. On a phone it runs down the left edge with the leaves to its right. On a lane at least 760 pt wide (iPad, Mac) it runs down the middle with leaves on both sides. Each post hangs off it on a short curved stem.
+- Each post sits on a whole drawn leaf (pointed base and tip, midrib, veins), in a smaller box tinted toward the leaf color. The tint stops before dark text would drop under 4.5:1.
+- The feed reads newest first. Under each post, its newest comments (up to 3) hang on smaller leaves that step a little further from the stalk. "N more comments" opens the post. The server sends these only while comments as leaves is on (`Card.leafComments`), and leaves out anyone the viewer blocked.
+- Tag colors (Pinned, Answered, Your branch, Your tendril) keep 4.5:1 against what is under them.
+- Token `vineStyle`:
+  - `beanstalk` (Beanstalk): two thick strands that twist round each other, with curling tendrils.
+  - `ink` (Golden Wood): a pen-and-ink drawing, with dark outlines (`ink` color) on the trunk, leaves and boxes, and flat colors.
+  - `neon` (Neon Cinderella): no plant at all. It draws straight glowing rods with right-angle joins and cut-corner frames. Each tube has a faint wide bloom, a brighter halo and a thin white core. The castle, coach and slipper drawings stay.
+- Neon Circuit's wire and screens use the same tube look: a white core with the color blooming round it.
+
+## One row of action icons (Steve, 2026-10-29)
+
+Every design shows the six actions (Praying Now, Commit to Pray, Encourage, Well Wishes, Share, Gift Tokens) as one row of icons (`components/post-card.tsx`). Each icon's name shows in a tip on mouse hover (web, iPad pointer, Mac) or a long press, and is its accessibility label for VoiceOver. A committed request shows its Commit icon highlighted, and the tip says "Committed". Touch targets are 44 pt.
+
 ## Comment trees
 
-`apps/mobile/src/components/comment-tree.tsx`. Each comment is a leaf with a twig to its branch, colored from the member's vine skin (or the plain vine's colors). New leaves grow in with a short spring, and tapping the blur shuffles the hidden leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it. The comment pieces follow the skin: stone tablets and smaller sub-tablets on the tower, stars on Neon Cinderella, flowers on Blossom Garden.
+`apps/mobile/src/components/comment-tree.tsx`. On a vine skin the comments on a request read top to bottom, present to past: the newest comment is the top leaf, each comment sits inside a pointed leaf on the same drawn vine, alternating sides, and replies hang below their comment on the same side on smaller leaves (to the third level). The older comments past the first few fade into the blur until tapped. New leaves grow in with a short spring, and tapping the blur brings the older leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it. Stars mark the leaves on Neon Cinderella and flowers on Blossom Garden. On the tower, comments stay stone tablets and smaller sub-tablets.
 
 ## Theme maker (members make their own skins)
 
@@ -58,7 +98,13 @@ Me → Make your own feed skin (`apps/mobile/src/app/skin-idea.tsx`). A member n
 
 Saving creates a private skin owned by the member (`feed_themes.owner_id`); it shows at once in their own Feed style. Everyone else sees it only after an admin approves it in Admin → Feed skins, which offers it in the member's community (still behind the skins switch). Declining leaves it private. The server accepts only known token names and values (hex colors, set ranges, listed shapes), so a skin can't inject anything else. Up to 3 can wait for review at once. Skins and ideas are in the member's data export and are deleted with the account.
 
+## Skin gallery
+
+Me → Skin gallery (`apps/mobile/src/app/skin-gallery.tsx`, `GET /skins/gallery`). It lists the skins offered in the member's community, plus their own private skins, with the same small preview the theme maker uses (`components/skin-preview.tsx`). Seasonal skins show only while their season is on. Members can like a skin (♥, one like per member, table `theme_likes`) and the list sorts by likes, then name. "Use this skin" sets it as their Feed style. The grid is 1 column on a phone, 2 on an iPad and 3 on a wide Mac window. Likes are in the member's data export and are deleted with the account.
+
 ## Using Claude Design for new skins
+
+Step-by-step guide, prompt and skin file: [CLAUDE_DESIGN_SKINS.md](CLAUDE_DESIGN_SKINS.md).
 
 Claude Design is Anthropic's tool for making designs and prototypes by chatting with Claude ([Get started with Claude Design](https://support.claude.com/en/articles/14604416-get-started-with-claude-design)). What the official pages say, checked 2026-10-29:
 
@@ -92,6 +138,8 @@ At 10 pilot members, one clip each a week, seen by the other 9: about 43 clips (
 `videoMaxDuration` limits recording length; Expo's page doesn't say it trims clips picked from the library, so the composer checks each clip's `duration` and the server checks the `durationMs` the app sends. A clip from an old app build without `durationMs` still goes through.
 
 ## Notes for the legal department
+
+- Beanstalk and Golden Wood are our own drawings in a general fairy-tale and pen-and-ink style. They copy no Disney or Tolkien artwork, and app text uses no Tolkien names.
 
 The skins use our own names (Golden Wood, Moonlit Gate). Middle-earth Enterprises holds many Tolkien trademarks ([Justia listing](https://trademarks.justia.com/owners/middle-earth-enterprises-llc-5365969)), so Tolkien's place names stay out of the app and store text until legal checks them. The skins are only inspired by golden woods and moonlit stone gates.
 

@@ -20,9 +20,14 @@ import { AiLinks } from '@/components/ai-links';
 import { AwardCard } from '@/components/award-card';
 import { LiveHostLink } from '@/components/live-now';
 import { CommunityPicker } from '@/components/community-picker';
+import { ConversationPrefsCard } from '@/components/conversation-prefs-card';
+import { EncouragerCard } from '@/components/encourager-card';
+import { LiftUpCard } from '@/components/lift-up-card';
+import { GratitudeCard } from '@/components/gratitude-card';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
+import { SupportLinkField } from '@/components/support-link';
 import { TownField } from '@/components/town-field';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -135,7 +140,14 @@ export default function Profile() {
         <Text style={type.small}>{t('profile.tokensNote')}</Text>
 
         {stats?.enabled ? (
-          <View style={styles.prayerLife} accessibilityLabel={t('stats.summary', { days: stats.daysPrayed, people: stats.peoplePrayedFor, streak: stats.currentStreak })}>
+          <View
+            style={styles.prayerLife}
+            accessibilityLabel={
+              // Gentle rhythm: days this month (which only adds) instead of days in a row.
+              features.gentleRhythm
+                ? t('practices.rhythmSummary', { days: stats.daysPrayed, month: stats.monthDays, people: stats.peoplePrayedFor })
+                : t('stats.summary', { days: stats.daysPrayed, people: stats.peoplePrayedFor, streak: stats.currentStreak })
+            }>
             <Text style={type.heading}>{t('stats.title')}</Text>
             <View style={styles.stats}>
               <View style={styles.stat}>
@@ -147,8 +159,8 @@ export default function Profile() {
                 <Text style={type.small}>{t('stats.people')}</Text>
               </View>
               <View style={styles.stat}>
-                <Text style={styles.statValue}>{stats.currentStreak}</Text>
-                <Text style={type.small}>{t('stats.streak')}</Text>
+                <Text style={styles.statValue}>{features.gentleRhythm ? stats.monthDays : stats.currentStreak}</Text>
+                <Text style={type.small}>{features.gentleRhythm ? t('practices.rhythmMonth') : t('stats.streak')}</Text>
               </View>
             </View>
             <View style={styles.week} accessible={false}>
@@ -156,16 +168,30 @@ export default function Profile() {
                 <View key={d.date} style={[styles.dot, d.prayed && styles.dotOn]} />
               ))}
             </View>
+            {features.gentleRhythm && stats.welcomeBack ? <Text style={type.body}>{t('practices.welcomeBack')}</Text> : null}
+            {features.gentleRhythm && stats.freshStart ? (
+              <Text style={type.body}>{stats.freshStart === 'month' ? t('practices.freshMonth') : t('practices.freshWeek')}</Text>
+            ) : null}
             <Text style={type.small}>
-              {stats.currentStreak > 1 ? t('stats.streakNote', { count: stats.currentStreak }) : t('stats.gentle')} {t('stats.private')}
+              {features.gentleRhythm
+                ? t('practices.rhythmNote')
+                : stats.currentStreak > 1
+                  ? t('stats.streakNote', { count: stats.currentStreak })
+                  : t('stats.gentle')}{' '}
+              {t('stats.private')}
             </Text>
           </View>
         ) : null}
+        <GratitudeCard />
+        <LiftUpCard />
+        <EncouragerCard />
+        <ConversationPrefsCard />
         <AwardCard />
         <PrayedForYou />
         <View style={styles.chips}>
           {poolsOn ? <Button small variant="secondary" label={t('profile.pools')} onPress={() => router.push('/pools')} /> : null}
           <Button small variant="secondary" label={t('vine.branchLink')} onPress={() => router.push('/branch')} />
+          {features.remembered ? <Button small variant="secondary" label={t('practices.lookBack')} onPress={() => router.push('/remembered')} /> : null}
           <AiLinks />
           <LiveHostLink />
           <Button small variant="secondary" label={t('profile.scheduled')} onPress={() => router.push('/scheduled')} />
@@ -175,6 +201,9 @@ export default function Profile() {
           {features.whyGifts ? <Button small variant="secondary" label={t('whyGifts.link')} onPress={() => router.push('/why-gifts')} /> : null}
           {features.podcasts && podcastsOn ? <Button small variant="secondary" label={t('podcasts.title')} onPress={() => router.push('/podcasts')} /> : null}
           {features.prayerChain ? <Button small variant="secondary" label={t('growth.chainOpen')} onPress={() => router.push('/prayer-chain')} /> : null}
+          {features.prayerList ? <Button small variant="secondary" label={t('prayerList.title')} onPress={() => router.push('/prayer-list')} /> : null}
+          {features.readingPlan && wording === 'faith' ? <Button small variant="secondary" label={t('readingPlan.title')} onPress={() => router.push('/reading-plan')} /> : null}
+          {features.squireBoard ? <Button small variant="secondary" label={t('squire.open')} onPress={() => router.push('/squire-board')} /> : null}
           {features.prayerMinute ? <Button small variant="secondary" label={t('growth.minuteOpen')} onPress={() => router.push('/prayer-minute')} /> : null}
         </View>
 
@@ -198,6 +227,7 @@ export default function Profile() {
             </View>
           </View>
         ) : null}
+        {features.skinGallery ? <Button small variant="secondary" label={t('gallery.open')} onPress={() => router.push('/skin-gallery')} /> : null}
         {features.themeProposals ? <Button small variant="secondary" label={t('skinIdea.open')} onPress={() => router.push('/skin-idea')} /> : null}
 
         <View style={{ gap: space.sm }}>
@@ -249,6 +279,7 @@ export default function Profile() {
           <Toggle label={t('across.toggle')} hint={t('across.toggleHint')} value={!!profile.open_to_other_communities} onChange={(v) => update({ openToOtherCommunities: v })} />
         ) : null}
         {features.memberTown ? <TownField town={profile.town} onSave={(town) => update({ town })} /> : null}
+        {features.supportLinks ? <SupportLinkField url={profile.support_url} onSave={(supportUrl) => update({ supportUrl })} /> : null}
         <CommunityPicker />
         <LanguagePicker />
         <Button variant="ghost" label={t('profile.rules')} onPress={() => router.push('/rules')} />

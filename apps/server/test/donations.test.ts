@@ -160,6 +160,33 @@ describe('giving', () => {
     await Promise.all([hooked.close(), off.close()]);
   });
 
+  it('tells the giver, the member given to, and a member whose radio request was decided, in Open Circle words there', async () => {
+    await donations.updateSettings(db, { enabled: true, provider: 'zeffy', donateUrl: 'https://www.zeffy.com/en-US/donation-form/example', priestlyPerDollar: 2, regularPerDollar: 10, allocationRequestsEnabled: true });
+    const [giver, friend, asker] = [await createUser('Notice Nina'), await createUser('Notice Ned'), await createUser('Notice Asa')];
+    const c = await db.connect();
+    const notices = async (userId: string) =>
+      (await c.query<{ kind: string; title: string; body: string }>('select kind, title, body from public.notifications where user_id = $1 order by created_at', [userId])).rows;
+    try {
+      await c.query('begin');
+      await c.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
+      await c.query('delete from public.community_memberships where user_id = $1', [friend]);
+      await c.query(`insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`, [friend]);
+      await donations.record(c, admin, { amountCents: 500, donorId: giver, target: { kind: 'member', userId: friend }, showDonor: false, via: 'zeffy' });
+      expect(await notices(giver)).toEqual([expect.objectContaining({ kind: 'gift_received', title: 'Thank you for your gift', body: expect.stringContaining('$5 came through. You earned 50 tokens') })]);
+      const [toFriend] = await notices(friend);
+      expect(toFriend).toMatchObject({ kind: 'gift_to_you', title: 'Someone gave you Lighthouse tokens' });
+      expect(`${toFriend!.title} ${toFriend!.body}`).not.toMatch(/pray|priestly/i);
+
+      const ask = await donations.requestAllocation(c, asker, { count: 2, note: '' });
+      expect((await notices(admin)).at(-1)).toMatchObject({ kind: 'radio_request', body: 'Notice Asa asked for 2 more. Open Me → Radio prayer requests to answer.' });
+      await donations.decide(c, admin, ask.id, { grant: 0 });
+      expect(await notices(asker)).toEqual([expect.objectContaining({ kind: 'radio_request_decided', body: "Staff couldn't grant more this time." })]);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+
   it('marks a bank transfer that never cleared as failed, not refunded', async () => {
     const giver = await createUser('Failed Fay');
     const { rows } = await db.query<{ id: string }>(

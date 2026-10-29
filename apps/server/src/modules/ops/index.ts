@@ -6,6 +6,7 @@ import type { Task } from 'graphile-worker';
 import type { Queryable } from '../../db.js';
 import { notify } from '../notifications/index.js';
 import { stationSettings } from '../radio/index.js';
+import * as radioHealth from '../radio/health.js';
 
 /** Defaults; change here. A job "overdue" should have started that long ago. */
 export const LIMITS = {
@@ -135,6 +136,15 @@ const TEXT: Record<Exclude<Problem, 'jobs_failed'>, string> = {
   station_silent: 'The radio station has stopped checking in while prayers wait to be sent.',
 };
 
+const STATION_TEXT: Record<radioHealth.AlertKind, string> = {
+  no_audio_device: 'it has no sound card to play bursts through.',
+  ptt_failed: 'the radio did not key (PTT).',
+  burst_failed: 'its last burst failed.',
+  burst_overdue: 'prayers are waiting longer than they should.',
+  station_silent: 'it stopped reporting.',
+  queue_empty: 'nothing is waiting.',
+};
+
 /**
  * Every 5 minutes (worker): alert admins in the app, at most once an hour per
  * problem, and drop old error rows. Failed jobs already alert through
@@ -145,15 +155,19 @@ export async function check(q: Queryable, now = new Date()) {
   const s = await status(q, now);
   await q.query(`delete from public.server_errors where at < $1::timestamptz - make_interval(days => $2)`, [now, LIMITS.keepErrorsDays]);
   const alerts = s.problems.filter((p): p is keyof typeof TEXT => p in TEXT);
-  if (!alerts.length) return { status: s, alerted: [] as Problem[] };
+  // Station health alerts (when that switch is on) ride along: the station's problems, not the empty-queue note.
+  const station = (await radioHealth.alerts(q, now)).alerts.filter((a) => a.level === 'problem' && a.kind !== 'station_silent');
+  if (!alerts.length && !station.length) return { status: s, alerted: [] as Problem[], station: [] as radioHealth.AlertKind[] };
   const hour = now.toISOString().slice(0, 13);
-  const body = `${alerts.map((p) => TEXT[p]).join(' ')} Open Admin → Operations.`;
+  const stationText = station.length ? ` Radio station: ${station.map((a) => STATION_TEXT[a.kind]).join(' ')} Open Admin → Radio.` : '';
+  const body = `${alerts.map((p) => TEXT[p]).join(' ')}${alerts.length ? ' Open Admin → Operations.' : ''}${stationText}`.trim();
+  const kinds = [...alerts, ...station.map((a) => a.kind)];
   const { rows: admins } = await q.query<{ user_id: string }>(`select distinct user_id from public.user_roles where role = 'admin'`);
   for (const a of admins) {
     // ops_alert is in no notification category, so admins can't turn it off.
-    await notify(q, a.user_id, { kind: 'ops_alert', title: 'Prayer Tower needs attention', body, data: { problems: alerts }, dedupeKey: `ops_alert:${hour}:${alerts.join(',')}` });
+    await notify(q, a.user_id, { kind: 'ops_alert', title: 'Prayer Tower needs attention', body, data: { problems: kinds }, dedupeKey: `ops_alert:${hour}:${kinds.join(',')}` });
   }
-  return { status: s, alerted: alerts };
+  return { status: s, alerted: alerts, station: station.map((a) => a.kind) };
 }
 
 export function heartbeatTask(q: Queryable): Task {
@@ -165,6 +179,6 @@ export function heartbeatTask(q: Queryable): Task {
 export function checkTask(q: Queryable): Task {
   return async (_payload, helpers) => {
     const r = await check(q);
-    if (r.alerted.length) helpers.logger.warn(`ops check: ${r.alerted.join(', ')}`);
+    if (r.alerted.length || r.station.length) helpers.logger.warn(`ops check: ${[...r.alerted, ...r.station].join(', ')}`);
   };
 }

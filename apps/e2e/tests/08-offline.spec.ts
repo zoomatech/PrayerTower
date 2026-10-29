@@ -24,7 +24,7 @@ test('offline prayers and posts wait, then send when back online', async ({ page
   await page.getByRole('tab', { name: 'Prayers', exact: true }).click();
   await expect(page.getByText(/You're offline\. Showing prayers saved/).filter({ visible: true })).toBeVisible();
   const c = card(page, request);
-  await c.getByText('Praying Now', { exact: true }).click();
+  await c.getByRole('button', { name: 'Praying Now', exact: true }).click();
   await page.getByRole('button', { name: "I'm praying now" }).click();
   await expect(page.getByText("this will be sent as soon as you're back online")).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();

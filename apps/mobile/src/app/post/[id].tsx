@@ -1,16 +1,24 @@
-import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type TokenSummary } from '@prayer-tower/shared';
+import { ENCOURAGEMENT_MAX_CHARS, isPrayable, MESSAGE_MAX_CHARS, type Card, type Comment, type FeedTheme, type TokenSummary } from '@prayer-tower/shared';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
+import { BelieveCard } from '@/components/believe-card';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
 import { GuestShare } from '@/components/guest-share';
+import { ShareChoice } from '@/components/outside-share';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
+import { KindCloud } from '@/components/kind-cloud';
+import { FollowupCard } from '@/components/followup-card';
+import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
+import { ReplyHelpers } from '@/components/reply-helpers';
+import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
+import { CircleGoal } from '@/components/circle-goal';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -18,26 +26,33 @@ import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { shareLink } from '@/lib/links';
-import { colors, space, type } from '@/lib/theme';
+import { breakpoints, colors, space, type } from '@/lib/theme';
 import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
 
 export default function PostScreen() {
-  const { id, celebrate: celebrateParam, comment: sharedCommentId } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string }>();
+  const { id, celebrate: celebrateParam, comment: sharedCommentId, believe: believeParam } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string; believe?: string }>();
   const { celebrate, overlay } = useCelebration();
   const { profile, roles } = useAuth();
   const { t } = useLocale();
   const features = useFeatures();
-  const { materialMatch } = features;
-  // The comment tree takes its colors from the member's feed style (vine skins), else the vine's own.
-  const [treeTokens, setTreeTokens] = useState(() => vineTokens(null));
+  // On a very wide window the comment vine gets a roomier lane, like the feed's skins.
+  const roomy = useWindowDimensions().width >= breakpoints.twoColumnFeed && features.commentTree;
+  // The Believe moment: 'mine' right after marking answered, 'theirs' when a pray-er opens the good news.
+  const [believe, setBelieve] = useState<'mine' | 'theirs' | null>(believeParam ? 'theirs' : null);
+  const { materialMatch, kindCloud } = features;
+  // The comment tree and the emoji word leaves take their look from the member's feed skin.
+  // The tree falls back to the vine's own colors; the word leaves stay plain chips without a skin.
+  const [skin, setSkin] = useState<FeedTheme | null>(null);
   useEffect(() => {
-    if (!features.commentTree) return;
+    if (!features.commentTree && !features.meaningReactions) return;
     api
       .feedThemes()
-      .then((r) => setTreeTokens(r.theme?.layout === 'tower' ? tabletTokens(r.theme) : vineTokens(r.theme?.layout === 'vine' ? r.theme : null)))
+      .then((r) => setSkin(r.theme ?? null))
       .catch(() => undefined);
-  }, [features.commentTree]);
+  }, [features.commentTree, features.meaningReactions]);
+  const treeTokens = useMemo(() => (skin?.layout === 'tower' ? tabletTokens(skin) : vineTokens(skin?.layout === 'vine' ? skin : null)), [skin]);
+  const leafTokens = useMemo(() => wordLeafTokens(skin), [skin]);
   const [card, setCard] = useState<Card | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
@@ -93,7 +108,8 @@ export default function PostScreen() {
     setBusy(true);
     setError(null);
     try {
-      if (!confirmed && (await api.precheck(text.trim())).warn) {
+      // With the kind cloud on, the cloud speaks while typing and nothing waits here.
+      if (!confirmed && !kindCloud && (await api.precheck(text.trim())).warn) {
         setWarnedFor({ text, isUpdate });
         return;
       }
@@ -149,6 +165,7 @@ export default function PostScreen() {
       if (r.crisis) setSupport(true);
       setTestimony(null);
       celebrate();
+      if (features.believe) setBelieve('mine');
     } catch (e) {
       setError((e as Error).message);
     }
@@ -183,18 +200,21 @@ export default function PostScreen() {
             {t('post.reply')}
           </Text>
         ) : null}
-        <Text
-          style={styles.reply}
-          onPress={() =>
-            // Shareable comments: the words plus a link that opens this request at the comment.
-            Share.share({
-              message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
-            }).catch(() => undefined)
-          }
-          accessibilityRole="button"
-        >
-          {t('post.share')}
-        </Text>
+        {/* With sharing by consent on, only the person who wrote a comment can share it. */}
+        {!features.shareConsent || c.isMine ? (
+          <Text
+            style={styles.reply}
+            onPress={() =>
+              // Shareable comments: the words plus a link that opens this request at the comment.
+              Share.share({
+                message: t('post.shareComment', { body: c.body, name: c.author.displayName, url: shareLink(`/post/${id}`, { comment: c.id }) }),
+              }).catch(() => undefined)
+            }
+            accessibilityRole="button"
+          >
+            {t('post.share')}
+          </Text>
+        ) : null}
         {card && !c.isMine && c.author.id !== profile?.id ? (
           <Text style={styles.report} onPress={() => openReport(card, { type: 'comment', id: c.id })}>
             {t('post.report')}
@@ -219,14 +239,31 @@ export default function PostScreen() {
           </Text>
         ) : null}
       </View>
+      {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
   );
 
   return (
-    <Screen>
+    <Screen style={roomy ? styles.roomy : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {card ? <PostCard card={card} onAction={onAction} expanded /> : null}
+        {card && believe && features.believe && card.state === 'answered' && (believe === 'mine') === card.isMine ? (
+          <BelieveCard
+            mine={believe === 'mine'}
+            onShare={
+              card.testimony
+                ? undefined
+                : () => {
+                    setBelieve(null);
+                    setTestimony('');
+                  }
+            }
+            onClose={() => setBelieve(null)}
+          />
+        ) : null}
+        {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
+        {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
@@ -328,8 +365,10 @@ export default function PostScreen() {
         ) : null}
 
         {card && prayable ? <GuestShare card={card} /> : null}
+        {card ? <ShareChoice card={card} /> : null}
 
         {card && prayable && spokenOn ? <SpokenPrayers postId={id} /> : null}
+        {card && prayable ? <CircleGoal postId={id} /> : null}
         {card && prayable ? <AiPrayers postId={id} /> : null}
 
         {!prayable || !radioOn ? null : radioSent ? (
@@ -445,7 +484,16 @@ export default function PostScreen() {
                   {t('post.replyingTo', { name: replyTo.author.displayName })}
                 </Text>
               ) : null}
+              <WelcomeCard />
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
+              <KindCloud text={text} />
+              <ReplyHelpers
+                // Answer the comment being replied to, or else the request itself.
+                lastFromOther={(replyTo && !replyTo.isMine ? replyTo.body : null) ?? (card.isMine ? null : card.body)}
+                empty={false}
+                text={text}
+                onPick={setText}
+              />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>
                 <Button small label={t('post.comment')} onPress={() => send(false)} busy={busy} disabled={!text.trim()} />
@@ -463,6 +511,7 @@ export default function PostScreen() {
 
 const styles = StyleSheet.create({
   noteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  roomy: { maxWidth: 880 },
   content: { padding: space.lg, gap: space.lg, paddingBottom: 80 },
   section: { gap: space.sm },
   comment: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, gap: 2 },

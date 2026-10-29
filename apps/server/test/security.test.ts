@@ -85,6 +85,16 @@ describe('endpoint auth', () => {
       'GET /open-circle/promise',
       // The radio listening page (404 while switched off; decoding happens in the browser).
       'GET /listen',
+      // A listener's receipt: prayer fingerprints only, rate limited (404 while switched off).
+      'POST /listen/heard',
+      // Listener mode: whether the sign-in screen offers listening (two switches, nothing else).
+      'GET /listen/config',
+      // A listener's "I'm praying too": fingerprints only, an anonymous count (404 while switched off).
+      'POST /listen/praying',
+      // Prayers on the air: counts only (404 while switched off).
+      'GET /on-the-air',
+      'GET /open-circle/on-the-air',
+      'GET /open-circle/listen',
       // Why we run on gifts, not ads: the web page and the same words for the app (404 while switched off).
       'GET /why-donations',
       'GET /open-circle/why-donations',
@@ -102,6 +112,8 @@ describe('endpoint auth', () => {
       'POST /circle/:token',
       'GET /chain/:token',
       'POST /chain/:token',
+      // Sharing with consent: the share card the author chose (a 404 otherwise).
+      'GET /card/:token',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

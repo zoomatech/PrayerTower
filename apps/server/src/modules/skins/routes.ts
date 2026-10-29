@@ -25,6 +25,11 @@ export function skinRoutes(app: FastifyInstance, db: Db) {
     return { proposal };
   });
 
+  // Skin gallery.
+  app.get('/skins/gallery', async (req) => ({ skins: await skins.gallery(db, requireUser(req)) }));
+  app.put<{ Params: { slug: string } }>('/skins/:slug/like', async (req) => ({ skins: await skins.like(db, requireUser(req), req.params.slug, true) }));
+  app.delete<{ Params: { slug: string } }>('/skins/:slug/like', async (req) => ({ skins: await skins.like(db, requireUser(req), req.params.slug, false) }));
+
   // Admin → Feed skins.
   app.get('/admin/skin-settings', async (req) => {
     await requireAdmin(req);

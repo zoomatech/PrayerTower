@@ -10,6 +10,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
+import * as notifications from '../notifications/index.js';
 import * as tokens from '../tokens/index.js';
 
 export interface DonationSettings {
@@ -158,6 +159,8 @@ async function insert(
  * Mark a gift paid, once: the target gets Priestly tokens (a pool gets regular
  * tokens, which is what pools hold) and the giver gets regular tokens.
  */
+const usd = (cents: number) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
+
 export async function markPaid(q: Queryable, donationId: string) {
   const { rows } = await q.query<{ donor_id: string | null; amount_cents: number; target_kind: string; target_user_id: string | null; target_pool_id: string | null }>(
     `update public.donations set status = 'paid', paid_at = now() where id = $1 and status = 'pending'
@@ -177,6 +180,23 @@ export async function markPaid(q: Queryable, donationId: string) {
   if (d.donor_id && regular > 0) {
     const t = await tokens.earn(q, d.donor_id, regular, `${key}:giver`, 'Thank you for giving');
     await q.query('update public.donations set giver_transfer_id = $2 where id = $1', [donationId, t.id]);
+  }
+  // Gifts that clear later (a bank transfer, a Zeffy or hand-entered gift) are announced here.
+  if (d.donor_id) {
+    await notifications.notify(q, d.donor_id, {
+      kind: 'gift_received',
+      title: 'Thank you for your gift',
+      body: regular > 0 ? `Your gift of ${usd(d.amount_cents)} came through. You earned ${regular} tokens to spend or give away.` : `Your gift of ${usd(d.amount_cents)} came through.`,
+      data: { screen: 'give' },
+    });
+  }
+  if (d.target_kind === 'member' && priestly > 0 && d.target_user_id !== d.donor_id) {
+    await notifications.notify(q, d.target_user_id!, {
+      kind: 'gift_to_you',
+      title: 'Someone gave you Priestly tokens',
+      body: `A gift gave you ${priestly} Priestly ${priestly === 1 ? 'token' : 'tokens'}. Spend them on radio prayers or give them to someone.`,
+      data: { screen: 'give' },
+    });
   }
   return true;
 }
@@ -397,6 +417,20 @@ export async function requestAllocation(q: Queryable, userId: string, input: z.i
       'insert into public.radio_allocation_requests (user_id, count, note) values ($1, $2, $3) returning id',
       [userId, input.count, input.note],
     );
+    // Tell the staff who can answer it, so it doesn't wait unseen.
+    const { rows: staff } = await q.query<{ user_id: string; name: string }>(
+      `select distinct r.user_id, (select coalesce(nullif(display_name, ''), 'A member') from public.profiles where id = $1) as name
+         from public.user_roles r where r.role = any(array['admin', 'moderator', 'pastor_counselor']::public.app_role[]) and r.user_id <> $1`,
+      [userId],
+    );
+    for (const r of staff) {
+      await notifications.notify(q, r.user_id, {
+        kind: 'radio_request',
+        title: 'Someone asked for more radio prayers',
+        body: `${r.name} asked for ${input.count} more. Open Me → Radio prayer requests to answer.`,
+        data: { screen: 'radio-requests' },
+      });
+    }
     return { id: rows[0]!.id };
   } catch (err) {
     if ((err as { code?: string }).code === '23505') throw conflict('You already have a request waiting');
@@ -430,6 +464,12 @@ export async function decide(q: Queryable, staffId: string, requestId: string, i
     [requestId, input.grant, input.grant > 0 ? 'granted' : 'declined', staffId],
   );
   if (!rows[0]) throw notFound('Request');
+  await notifications.notify(q, rows[0].user_id, {
+    kind: 'radio_request_decided',
+    title: input.grant > 0 ? `You have ${input.grant} more free radio ${input.grant === 1 ? 'prayer' : 'prayers'}` : 'Your request for more radio prayers',
+    body: input.grant > 0 ? 'Staff granted your request. They are paid from the shared fund.' : 'Staff couldn\'t grant more this time.',
+    data: { screen: 'give' },
+  });
   if (input.grant > 0) {
     await q.query(
       `insert into public.radio_allowances (user_id, remaining) values ($1, $2)

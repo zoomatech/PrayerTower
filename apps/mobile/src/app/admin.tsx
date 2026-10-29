@@ -4,7 +4,7 @@
 // roles. The server checks the admin role on every call.
 import { COMMUNITY_FEATURES, POST_TYPE_LABELS, POST_TYPES, type Role } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { HarmSettingsSection, ModerationDashboardSection, ModeratorCareSection } from '@/components/harm-admin';
@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type StationHealth, type RadioSchedule, type RadioNodes } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -309,6 +309,8 @@ function Admin() {
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
         <GrowthSettingsSection />
+        <PracticeSettingsSection />
+        <ConversationSettingsSection />
         <SkinSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
@@ -349,6 +351,13 @@ function Admin() {
               ))}
             </View>
             {radio.radio_batch_max > 1 ? <Text style={type.small}>{t('admin.radioBurstHint')}</Text> : null}
+            {radio.radio_transmitter === 'station' ? <StationAlertsSection /> : null}
+            {radio.radio_transmitter === 'station' ? <StationHealthSection /> : null}
+            {radio.radio_transmitter === 'station' ? <RadioScheduleSection /> : null}
+            {radio.radio_transmitter === 'station' ? <OperatorLogSection /> : null}
+            {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
+            {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
+            {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
             {radio.radio_batch_max > 1 ? <RecentBursts /> : null}
             {radio.radio_batch_max > 1 ? (
               <>
@@ -359,6 +368,16 @@ function Admin() {
                 <Text style={type.small}>{t('admin.listenPageHint')}</Text>
               </>
             ) : null}
+            <View style={styles.row}>
+              <Chip label={t('admin.receiptsOff')} selected={!radio.radio_receipts_enabled} onPress={() => saveRadio({ receipts: false })} />
+              <Chip label={t('admin.receiptsOn')} selected={radio.radio_receipts_enabled} onPress={() => saveRadio({ receipts: true })} />
+            </View>
+            <Text style={type.small}>{t('admin.receiptsHint')}</Text>
+            <View style={styles.row}>
+              <Chip label={t('admin.onAirOff')} selected={!radio.on_air_page_enabled} onPress={() => saveRadio({ onAirPage: false })} />
+              <Chip label={t('admin.onAirOn')} selected={radio.on_air_page_enabled} onPress={() => saveRadio({ onAirPage: true })} />
+            </View>
+            <Text style={type.small}>{t('admin.onAirHint')}</Text>
             <Text style={type.small}>
               {t('admin.amplify', { count: radio.radio_amplify_repeats })}
             </Text>
@@ -519,6 +538,365 @@ function DeletionRequestsSection() {
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+/**
+ * Radio nodes: receive-only listener nodes and extra stations sharing the queue,
+ * each with its own key (shown once). Both off by default.
+ */
+function RadioNodesSection({ burst }: { burst: boolean }) {
+  const t = useT();
+  const [data, setData] = useState<RadioNodes | null>(null);
+  const [name, setName] = useState('');
+  const [newKey, setNewKey] = useState<{ name: string; key: string } | null>(null);
+  const load = useCallback(() => {
+    api.admin.radioNodes().then(setData).catch(() => undefined);
+  }, []);
+  useFocusEffect(load);
+  if (!data) return null;
+  const add = async (role: 'listener' | 'station') => {
+    if (!name.trim()) return;
+    const made = await api.admin.addRadioNode(name.trim(), role).catch(() => null);
+    if (made) {
+      setNewKey({ name: made.node.name, key: made.key });
+      setName('');
+      load();
+    }
+  };
+  const save = (patch: { enabled?: boolean; multiStation?: boolean }) => api.admin.setRadioNodesEnabled(patch).then(load).catch(() => undefined);
+  const shown = data.nodes.filter((n) => (n.role === 'listener' ? data.enabled : data.multiStation));
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.multiStationOff')} selected={!data.multiStation} onPress={() => save({ multiStation: false })} />
+        <Chip label={t('admin.multiStationOn')} selected={data.multiStation} onPress={() => save({ multiStation: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.multiStationHint')}</Text>
+      {data.multiStation
+        ? data.stations.map((s) => (
+            <Text key={s.node ?? 'main'} style={type.small}>
+              {t('admin.stationCount', { name: s.node ?? t('admin.mainStation'), sending: s.sending, sent: s.sent })}
+            </Text>
+          ))
+        : null}
+      {burst ? (
+        <>
+          <View style={styles.row}>
+            <Chip label={t('admin.listenersOff')} selected={!data.enabled} onPress={() => save({ enabled: false })} />
+            <Chip label={t('admin.listenersOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
+          </View>
+          <Text style={type.small}>{t('admin.listenersHint')}</Text>
+        </>
+      ) : null}
+      {shown.map((n) => (
+        <View key={n.id} style={styles.row}>
+          <Text style={type.small}>
+            {t(n.role === 'station' ? 'admin.stationNodeLine' : 'admin.listenerLine', { name: n.name, seen: n.last_seen_at ? new Date(n.last_seen_at).toLocaleString() : t('admin.listenerNever') })}
+          </Text>
+          <Chip label={n.enabled ? t('admin.listenerOn') : t('admin.listenerOff')} selected={n.enabled} onPress={() => api.admin.updateRadioNode(n.id, { enabled: !n.enabled }).then(load)} />
+          <Button small variant="ghost" label={t('admin.listenerRemove')} onPress={() => api.admin.removeRadioNode(n.id).then(load)} />
+        </View>
+      ))}
+      {data.enabled
+        ? data.reports.map((r) => (
+            <Text key={r.node} style={type.small}>
+              {t('admin.listenerHeard', { name: r.node, callSign: r.call_sign, snr: r.snr_db, preset: r.preset, when: new Date(r.heard_at).toLocaleString() })}
+            </Text>
+          ))
+        : null}
+      {data.enabled || data.multiStation ? (
+        <>
+          <Field label={t('admin.listenerName')} value={name} onChangeText={setName} />
+          <View style={styles.row}>
+            {data.enabled ? <Button variant="secondary" label={t('admin.listenerAdd')} onPress={() => add('listener')} /> : null}
+            {data.multiStation ? <Button variant="secondary" label={t('admin.stationAdd')} onPress={() => add('station')} /> : null}
+          </View>
+          {newKey ? (
+            <Text selectable style={type.small}>
+              {t('admin.listenerKey', { name: newKey.name, key: newKey.key })}
+            </Text>
+          ) : null}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** Station health alerts: no sound card, PTT failed, a failed or overdue burst, a silent station, an empty queue. Off by default. */
+function StationAlertsSection() {
+  const t = useT();
+  const [data, setData] = useState<StationAlerts | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioAlerts().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const save = (patch: Parameters<typeof api.admin.updateRadioAlerts>[0]) => api.admin.updateRadioAlerts(patch).then(setData).catch(() => undefined);
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.stationAlertsOff')} selected={!data.enabled} onPress={() => save({ enabled: false })} />
+        <Chip label={t('admin.stationAlertsOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.stationAlertsHint')}</Text>
+      {data.enabled ? (
+        <>
+          <Text style={type.small}>{t('admin.stationOverdue')}</Text>
+          <View style={styles.row}>
+            {[15, 30, 60, 120].map((n) => (
+              <Chip key={n} label={t('admin.stationMinutes', { count: n })} selected={data.overdueMinutes === n} onPress={() => save({ overdueMinutes: n })} />
+            ))}
+          </View>
+          {data.alerts.length ? (
+            data.alerts.map((a, i) => (
+              <Text key={`${a.kind}-${i}`} style={[type.small, a.level === 'problem' ? { color: colors.danger } : null]}>
+                {t(`admin.stationAlert.${a.kind}`)}
+                {a.callSign ? ` (${a.callSign})` : ''}
+                {a.detail && a.kind !== 'queue_empty' ? ` ${a.detail}` : ''}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.stationAlertsNone')}</Text>
+          )}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Transmission windows and quiet hours (radio/schedule.ts), off by default. */
+function RadioScheduleSection() {
+  const t = useT();
+  const [data, setData] = useState<{ schedule: RadioSchedule; onAirNow: boolean } | null>(null);
+  const [draft, setDraft] = useState<RadioSchedule | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = (d: { schedule: RadioSchedule; onAirNow: boolean }) => {
+    setData(d);
+    setDraft(d.schedule);
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioSchedule().then(load).catch(() => undefined);
+    }, []),
+  );
+  if (!data || !draft) return null;
+  const save = (patch: Partial<RadioSchedule>) => {
+    setError(null);
+    api.admin.updateRadioSchedule(patch).then(load).catch((e: Error) => setError(e.message));
+  };
+  // Sun ... Sat (4 January 2026 was a Sunday).
+  const days = [0, 1, 2, 3, 4, 5, 6].map((d) => new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 0, 4 + d))));
+  const setWindow = (i: number, w: Partial<RadioSchedule['windows'][number]>) => setDraft({ ...draft, windows: draft.windows.map((x, j) => (j === i ? { ...x, ...w } : x)) });
+  const valid = draft.windows.every((w) => w.days.length && HHMM.test(w.start) && HHMM.test(w.end)) && [draft.quietStart, draft.quietEnd].every((v) => !v || HHMM.test(v));
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.scheduleOff')} selected={!data.schedule.enabled} onPress={() => save({ enabled: false })} />
+        <Chip label={t('admin.scheduleOn')} selected={data.schedule.enabled} onPress={() => save({ enabled: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.scheduleHint')}</Text>
+      {data.schedule.enabled ? (
+        <>
+          <Text style={[type.small, data.onAirNow ? null : { color: colors.danger }]}>{t(`admin.scheduleNow.${data.onAirNow ? 'on' : 'off'}`)}</Text>
+          <Field label={t('admin.scheduleTz')} value={draft.timeZone} autoCapitalize="none" onChangeText={(v) => setDraft({ ...draft, timeZone: v })} />
+          <Text style={type.small}>{t('admin.scheduleQuiet')}</Text>
+          <View style={styles.row}>
+            <Field label={t('admin.scheduleQuietStart')} value={draft.quietStart ?? ''} placeholder="22:00" onChangeText={(v) => setDraft({ ...draft, quietStart: v.trim() || null })} />
+            <Field label={t('admin.scheduleQuietEnd')} value={draft.quietEnd ?? ''} placeholder="06:00" onChangeText={(v) => setDraft({ ...draft, quietEnd: v.trim() || null })} />
+          </View>
+          <Text style={type.small}>{t('admin.scheduleWindows')}</Text>
+          {draft.windows.map((w, i) => (
+            <View key={i}>
+              <View style={styles.row}>
+                {days.map((d, day) => (
+                  <Chip key={d} label={d} selected={w.days.includes(day)} onPress={() => setWindow(i, { days: w.days.includes(day) ? w.days.filter((x) => x !== day) : [...w.days, day].sort() })} />
+                ))}
+              </View>
+              <View style={styles.row}>
+                <Field label={t('admin.scheduleStart')} value={w.start} placeholder="18:00" onChangeText={(v) => setWindow(i, { start: v.trim() })} />
+                <Field label={t('admin.scheduleEnd')} value={w.end} placeholder="21:00" onChangeText={(v) => setWindow(i, { end: v.trim() })} />
+                <Button small variant="ghost" label={t('admin.scheduleRemove')} onPress={() => setDraft({ ...draft, windows: draft.windows.filter((_, j) => j !== i) })} />
+              </View>
+            </View>
+          ))}
+          <View style={styles.row}>
+            <Button small variant="ghost" label={t('admin.scheduleAdd')} onPress={() => setDraft({ ...draft, windows: [...draft.windows, { days: [1, 2, 3, 4, 5], start: '18:00', end: '21:00' }] })} />
+            <Button small label={t('admin.scheduleSave')} disabled={!valid} onPress={() => save({ timeZone: draft.timeZone.trim(), quietStart: draft.quietStart, quietEnd: draft.quietEnd, windows: draft.windows })} />
+          </View>
+          <ErrorText error={error} />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** The operator log as CSV (radio/oplog.ts), off by default. */
+function OperatorLogSection() {
+  const t = useT();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.operatorLog().then((r) => setEnabled(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (enabled === null) return null;
+  const set = (on: boolean) => api.admin.setOperatorLog(on).then((r) => setEnabled(r.enabled)).catch(() => undefined);
+  const download = () => {
+    setError(null);
+    api.admin
+      .operatorLogCsv()
+      .then((csv) => saveText('prayer-tower-operator-log.csv', csv, 'text/csv', 'public.comma-separated-values-text'))
+      .catch((e: Error) => setError(e.message));
+  };
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.operatorLogOff')} selected={!enabled} onPress={() => set(false)} />
+        <Chip label={t('admin.operatorLogOn')} selected={enabled} onPress={() => set(true)} />
+      </View>
+      <Text style={type.small}>{t('admin.operatorLogHint')}</Text>
+      {enabled ? <Button small label={t('admin.operatorLogDownload')} onPress={download} /> : null}
+      <ErrorText error={error} />
+    </View>
+  );
+}
+
+/** Thanksgiving bursts for answered requests, and listeners' "I'm praying too" (both off by default). */
+function RadioFollowupsSection() {
+  const t = useT();
+  const [data, setData] = useState<{ thanksgiving: boolean; prayingToo: boolean } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioFollowups().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const set = (patch: { thanksgiving?: boolean; prayingToo?: boolean }) => api.admin.setRadioFollowups(patch).then(setData).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.thanksgivingBurst')} hint={t('admin.thanksgivingBurstHint')} value={data.thanksgiving} onChange={(v) => set({ thanksgiving: v })} />
+      <Toggle label={t('admin.prayingTooSwitch')} hint={t('admin.prayingTooSwitchHint')} value={data.prayingToo} onChange={(v) => set({ prayingToo: v })} />
+    </View>
+  );
+}
+
+/** Listener mode: the Listen screen from the sign-in screen, with no account. */
+function ListenerModeSection() {
+  const t = useT();
+  const [data, setData] = useState<{ enabled: boolean; active: boolean } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.listenerMode().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const set = (on: boolean) => api.admin.setListenerMode(on).then(setData).catch(() => undefined);
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.listenerModeOff')} selected={!data.enabled} onPress={() => set(false)} />
+        <Chip label={t('admin.listenerModeOn')} selected={data.enabled} onPress={() => set(true)} />
+      </View>
+      <Text style={type.small}>{t('admin.listenerModeHint')}</Text>
+      {data.enabled && !data.active ? <Text style={[type.small, { color: colors.danger }]}>{t('admin.listenerModeInactive')}</Text> : null}
+    </View>
+  );
+}
+
+/** Station health page and listener acknowledgements (radio/health.ts, radio/acks.ts); both off by default. */
+function StationHealthSection() {
+  const t = useT();
+  const [data, setData] = useState<StationHealth | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioHealth().then(setData).catch(() => undefined);
+    }, []),
+  );
+  if (!data) return null;
+  const save = (patch: Parameters<typeof api.admin.updateRadioHealth>[0]) => api.admin.updateRadioHealth(patch).then(setData).catch(() => undefined);
+  const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : t('admin.healthNever'));
+  const h = data.health;
+  const a = data.acks;
+  return (
+    <View>
+      <View style={styles.row}>
+        <Chip label={t('admin.healthOff')} selected={!data.enabled} onPress={() => save({ enabled: false })} />
+        <Chip label={t('admin.healthOn')} selected={data.enabled} onPress={() => save({ enabled: true })} />
+      </View>
+      <Text style={type.small}>{t('admin.healthHint')}</Text>
+      {h ? (
+        <>
+          {h.stations.map((s) => (
+            <View key={s.callSign}>
+              <Text style={[type.small, s.silent ? { color: colors.danger } : null]}>
+                {s.silent
+                  ? t('admin.healthSilent', { callSign: s.callSign, when: when(s.lastHeartbeat) })
+                  : t('admin.healthStation', { callSign: s.callSign, when: when(s.lastHeartbeat), bursts: s.bursts24h, prayers: s.prayers24h, failed: s.failed24h })}
+              </Text>
+              {s.checks
+                .filter((c) => !c.ok)
+                .map((c) => (
+                  <Text key={c.name} style={[type.small, { color: colors.danger }]}>
+                    {t('admin.healthCheck', { name: c.name, detail: c.detail })}
+                  </Text>
+                ))}
+              {s.lastError ? <Text style={[type.small, { color: colors.danger }]}>{t('admin.healthLastError', { error: s.lastError })}</Text> : null}
+            </View>
+          ))}
+          <Text style={type.small}>
+            {t('admin.healthQueue', { queued: h.queue.queued, sending: h.queue.sending })}
+            {h.queue.oldestMinutes !== null ? ` ${t('admin.healthOldest', { minutes: h.queue.oldestMinutes })}` : ''}
+          </Text>
+          <Text style={type.small}>{t('admin.healthSnrTitle')}</Text>
+          {h.snr.length ? (
+            h.snr.map((r) => (
+              <Text key={`${r.callSign}-${r.preset}`} style={type.small}>
+                {t('admin.healthSnr', { callSign: r.callSign, preset: r.preset, avg: r.avgDb, min: r.minDb, reports: r.reports })}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.healthSnrNone')}</Text>
+          )}
+          <Text style={type.small}>{t('admin.healthFailuresTitle')}</Text>
+          {h.failures.length ? (
+            h.failures.map((f, i) => (
+              <Text key={`${f.at}-${i}`} style={[type.small, { color: colors.danger }]}>
+                {t(`admin.healthFailure.${f.kind}`, { when: when(f.at), callSign: f.callSign ?? '', error: f.error })}
+              </Text>
+            ))
+          ) : (
+            <Text style={type.small}>{t('admin.healthFailuresNone')}</Text>
+          )}
+        </>
+      ) : null}
+      <View style={styles.row}>
+        <Chip label={t('admin.acksOff')} selected={!a.enabled} onPress={() => save({ acks: { enabled: false } })} />
+        <Chip label={t('admin.acksOn')} selected={a.enabled} onPress={() => save({ acks: { enabled: true } })} />
+      </View>
+      <Text style={type.small}>{t('admin.acksHint')}</Text>
+      {a.enabled ? (
+        <>
+          <Text style={type.small}>{t('admin.acksTimeout')}</Text>
+          <View style={styles.row}>
+            {[5, 10, 30, 60].map((n) => (
+              <Chip key={n} label={t('admin.stationMinutes', { count: n })} selected={a.timeoutMinutes === n} onPress={() => save({ acks: { timeoutMinutes: n } })} />
+            ))}
+          </View>
+          <Text style={type.small}>{t('admin.acksRetries')}</Text>
+          <View style={styles.row}>
+            {[0, 1, 2, 3].map((n) => (
+              <Chip key={n} label={String(n)} selected={a.maxRetries === n} onPress={() => save({ acks: { maxRetries: n } })} />
+            ))}
+          </View>
+          <Text style={type.small}>{t('admin.acksStats', { heard: a.heard, waiting: a.waiting, unheard: a.unheard, retried: a.retried })}</Text>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -712,7 +1090,7 @@ function SecuritySection() {
 }
 
 /** Giving instead of ads: the switch, how people give, and gifts that came in. Off by default. */
-function GivingSection() {
+export function GivingSection() {
   const t = useT();
   const [s, setS] = useState<AdminDonationSettings | null>(null);
   const [keys, setKeys] = useState({ stripe: false, webhook: false, zeffy: false, zeffyWebhook: false });
@@ -721,6 +1099,9 @@ function GivingSection() {
   const [draft, setDraft] = useState({ url: '', paypal: '', monthly: '', max: '', amount: '', reference: '' });
   const [via, setVia] = useState<'manual' | 'zeffy' | 'paypal'>('manual');
   const [poolId, setPoolId] = useState<string | null>(null);
+  // A gift for one member, and who gave it (so they get their thank-you tokens).
+  const [forMember, setForMember] = useState<AdminPerson | null>(null);
+  const [donor, setDonor] = useState<AdminPerson | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const fail = (e: unknown) => setNote((e as Error).message);
   const show = (x: AdminDonationSettings) => {
@@ -754,8 +1135,14 @@ function GivingSection() {
     const cents = Math.round(Number(draft.amount.replace(/[$,]/g, '')) * 100);
     if (!(cents > 0)) return;
     api.admin
-      .recordGift({ amountCents: cents, reference: draft.reference.trim(), via, target: poolId ? { kind: 'pool', poolId } : { kind: 'everyone' } })
-      .then(() => (setDraft((d) => ({ ...d, amount: '', reference: '' })), setNote(t('admin.giftRecorded')), loadGifts()))
+      .recordGift({
+        amountCents: cents,
+        reference: draft.reference.trim(),
+        via,
+        donorId: donor?.id ?? null,
+        target: forMember ? { kind: 'member', userId: forMember.id } : poolId ? { kind: 'pool', poolId } : { kind: 'everyone' },
+      })
+      .then(() => (setDraft((d) => ({ ...d, amount: '', reference: '' })), setDonor(null), setForMember(null), setNote(t('admin.giftRecorded')), loadGifts()))
       .catch(fail);
   };
   const syncZeffy = () =>
@@ -809,11 +1196,13 @@ function GivingSection() {
         ))}
       </View>
       <View style={styles.row}>
-        <Chip label={t('give.everyone')} selected={!poolId} onPress={() => setPoolId(null)} />
+        <Chip label={t('give.everyone')} selected={!poolId && !forMember} onPress={() => (setPoolId(null), setForMember(null))} />
         {pools.map((p) => (
-          <Chip key={p.id} label={p.name} selected={poolId === p.id} onPress={() => setPoolId(p.id)} />
+          <Chip key={p.id} label={p.name} selected={!forMember && poolId === p.id} onPress={() => (setForMember(null), setPoolId(p.id))} />
         ))}
       </View>
+      <PersonPicker label={t('admin.giftFor')} person={forMember} onPick={setForMember} />
+      <PersonPicker label={t('admin.giftFrom')} person={donor} onPick={setDonor} />
       <Field label={t('admin.field.giftAmount')} keyboardType="decimal-pad" value={draft.amount} onChangeText={(amount) => setDraft((d) => ({ ...d, amount }))} />
       <Field label={t('admin.field.giftReference')} value={draft.reference} onChangeText={(reference) => setDraft((d) => ({ ...d, reference }))} />
       <Button small variant="secondary" label={t('admin.btn.recordGift')} onPress={record} disabled={!(Number(draft.amount.replace(/[$,]/g, '')) > 0)} />
@@ -840,6 +1229,25 @@ function GivingSection() {
         </View>
       ))}
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Find one member by name or email (Admin → Giving: who a gift is for, and who gave it). */
+function PersonPicker({ label, person, onPick }: { label: string; person: AdminPerson | null; onPick: (p: AdminPerson | null) => void }) {
+  const t = useT();
+  const [query, setQuery] = useState('');
+  const [found, setFound] = useState<AdminPerson[]>([]);
+  if (person) return <Chip label={`${label}: ${person.display_name}`} selected onPress={() => onPick(null)} />;
+  return (
+    <View style={{ gap: space.sm }}>
+      <Field label={label} value={query} onChangeText={setQuery} autoCapitalize="none" />
+      <Button small variant="ghost" label={t('admin.btn.find')} disabled={!query.trim()} onPress={() => api.admin.people(query.trim()).then((r) => setFound(r.people.slice(0, 8)), () => setFound([]))} />
+      <View style={styles.row}>
+        {found.map((p) => (
+          <Chip key={p.id} label={p.email ? `${p.display_name} (${p.email})` : p.display_name} selected={false} onPress={() => (setFound([]), setQuery(''), onPick(p))} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -1255,6 +1663,9 @@ function SkinSettingsSection() {
       <Text style={type.heading}>{t('skins.title')}</Text>
       <Text style={type.small}>{t('skins.intro')}</Text>
       <Toggle label={t('skins.skins')} hint={t('skins.skinsHint')} value={s.skins_enabled} onChange={(v) => save({ skinsEnabled: v })} />
+      <Toggle label={t('skins.gallery')} hint={t('skins.galleryHint')} value={s.gallery_enabled} onChange={(v) => save({ galleryEnabled: v })} />
+      <Toggle label={t('skins.seasonal')} hint={t('skins.seasonalHint')} value={s.seasonal_enabled} onChange={(v) => save({ seasonalEnabled: v })} />
+      {s.seasonal_enabled ? <Toggle label={t('skins.seasonalAuto')} hint={t('skins.seasonalAutoHint')} value={s.seasonal_auto} onChange={(v) => save({ seasonalAuto: v })} /> : null}
       <Toggle label={t('skins.tree')} hint={t('skins.treeHint')} value={s.comment_tree_enabled} onChange={(v) => save({ commentTreeEnabled: v })} />
       <Field label={t('skins.leaves')} keyboardType="number-pad" value={draft.leaves} onChangeText={(leaves) => setDraft((d) => ({ ...d, leaves }))} />
       <Field label={t('skins.levels')} keyboardType="number-pad" value={draft.depth} onChangeText={(depth) => setDraft((d) => ({ ...d, depth }))} />
@@ -1267,7 +1678,7 @@ function SkinSettingsSection() {
       {pending.map((i) => (
         <View key={i.id} style={styles.section}>
           <Text style={type.body}>
-            {i.name} · {i.layout === 'wall' ? t('skinIdea.wall') : t('skinIdea.vine')} · {i.from?.name}
+            {i.name} · {t(`skinIdea.layout.${i.layout}`)} · {i.from?.name}
           </Text>
           <Text style={type.small}>{i.description}</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
@@ -1319,7 +1730,133 @@ function GrowthSettingsSection() {
       <Field label={t('growth.adminChainMax')} keyboardType="number-pad" value={max} onChangeText={setMax} />
       <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
       <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
+      <Toggle label={t('growth.adminShare')} hint={t('growth.adminShareHint')} value={s.share_consent_enabled} onChange={(v) => save({ shareConsentEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Counting patterns: weekly totals of move labels; rows under the minimum are folded together. */
+function TalkCountsView() {
+  const t = useT();
+  const [c, setC] = useState<TalkCountSummary | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.admin.talkCounts().then((r) => setC(r.counts), (e) => setNote((e as Error).message));
+  }, []);
+  if (!c) return note ? <Text style={type.small}>{note}</Text> : null;
+  const move = (m: string) => t(`talk.move.${m}`);
+  return (
+    <View testID="talk-counts" style={{ gap: space.xs }}>
+      <Text style={type.body}>{t('talk.countsTitle', { weeks: c.weeks })}</Text>
+      {!c.chains.length && !c.emoji.length && !c.otherChains && !c.otherEmoji ? <Text style={type.small}>{t('talk.countsEmpty')}</Text> : null}
+      {c.chains.length || c.otherChains ? <Text style={type.small}>{t('talk.countsChains')}</Text> : null}
+      {c.chains.map((r) => (
+        <Text key={r.moves.join('-')} style={type.small}>
+          {r.moves.map(move).join(' → ')}: {r.n}
+        </Text>
+      ))}
+      {c.otherChains ? <Text style={type.small}>{t('talk.countsFolded', { min: c.minShown, n: c.otherChains })}</Text> : null}
+      {c.emoji.length || c.otherEmoji ? <Text style={type.small}>{t('talk.countsEmoji')}</Text> : null}
+      {c.emoji.map((r) => (
+        <Text key={`${r.emoji}-${r.meaning}-${r.toMove}`} style={type.small}>
+          {t('talk.countsEmojiRow', { emoji: r.emoji, meaning: r.meaning, move: move(r.toMove), n: r.n })}
+        </Text>
+      ))}
+      {c.otherEmoji ? <Text style={type.small}>{t('talk.countsFolded', { min: c.minShown, n: c.otherEmoji })}</Text> : null}
+    </View>
+  );
+}
+
+/** Conversation helpers (docs/CONVERSATION_HELPERS.md): each off until switched on; members still choose on Me. */
+function ConversationSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<ConversationSettings | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.conversationSettings().then((r) => setS(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateConversationSettings>[0]) =>
+    api.admin
+      .updateConversationSettings(patch)
+      .then((r) => {
+        setS(r.settings);
+        resetFeatures();
+        setNote(t('talk.adminSave'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('talk.adminTitle')}</Text>
+      <Text style={type.small}>{t('talk.adminIntro')}</Text>
+      <Toggle label={t('talk.adminSuggestions')} hint={t('talk.adminSuggestionsHint')} value={s.reply_suggestions_enabled} onChange={(v) => save({ replySuggestionsEnabled: v })} />
+      <Toggle label={t('talk.adminMeaning')} hint={t('talk.adminMeaningHint')} value={s.meaning_prefs_enabled} onChange={(v) => save({ meaningPrefsEnabled: v })} />
+      <Toggle label={t('talk.adminCare')} hint={t('talk.adminCareHint')} value={s.trouble_nudge_enabled} onChange={(v) => save({ troubleNudgeEnabled: v })} />
+      <Toggle label={t('talk.adminPacks')} hint={t('talk.adminPacksHint')} value={s.greeting_packs_enabled} onChange={(v) => save({ greetingPacksEnabled: v })} />
+      <Toggle label={t('talk.adminOwnWords')} hint={t('talk.adminOwnWordsHint')} value={s.own_words_enabled} onChange={(v) => save({ ownWordsEnabled: v })} />
+      <Toggle label={t('talk.adminClosings')} hint={t('talk.adminClosingsHint')} value={s.kind_closings_enabled} onChange={(v) => save({ kindClosingsEnabled: v })} />
+      <Toggle label={t('talk.adminCounts')} hint={t('talk.adminCountsHint')} value={s.talk_counts_enabled} onChange={(v) => save({ talkCountsEnabled: v })} />
+      {s.talk_counts_enabled ? <TalkCountsView /> : null}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Growth practices (docs/GROWTH_PRACTICES.md): kind habits with nothing to lose, each off until switched on. */
+function PracticeSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<PracticeSettings | null>(null);
+  const [days, setDays] = useState('');
+  const [encDays, setEncDays] = useState('');
+  const [newDays, setNewDays] = useState('');
+  const [welcome, setWelcome] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: PracticeSettings) => {
+    setS(x);
+    setDays(String(x.followup_days));
+    setEncDays(String(x.encourager_days));
+    setNewDays(String(x.newcomer_days));
+    setWelcome(x.welcome_text ?? '');
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
+    api.admin
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, encouragerDays: toInt(encDays) ?? undefined, newcomerDays: toInt(newDays) ?? undefined, welcomeText: welcome, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('practices.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('practices.adminTitle')}</Text>
+      <Text style={type.small}>{t('practices.adminIntro')}</Text>
+      <Toggle label={t('practices.adminFollowup')} hint={t('practices.adminFollowupHint')} value={s.followup_enabled} onChange={(v) => save({ followupEnabled: v })} />
+      <Field label={t('practices.adminFollowupDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
+      <Toggle label={t('practices.adminGratitude')} hint={t('practices.adminGratitudeHint')} value={s.gratitude_enabled} onChange={(v) => save({ gratitudeEnabled: v })} />
+      <Toggle label={t('practices.adminRhythm')} hint={t('practices.adminRhythmHint')} value={s.gentle_rhythm_enabled} onChange={(v) => save({ gentleRhythmEnabled: v })} />
+      <Toggle label={t('practices.adminEncourager')} hint={t('practices.adminEncouragerHint')} value={s.encourager_enabled} onChange={(v) => save({ encouragerEnabled: v })} />
+      <Field label={t('practices.adminEncouragerDays')} keyboardType="number-pad" value={encDays} onChangeText={setEncDays} />
+      <Field label={t('practices.adminNewcomerDays')} keyboardType="number-pad" value={newDays} onChangeText={setNewDays} />
+      <Toggle label={t('practices.adminLiftUp')} hint={t('practices.adminLiftUpHint')} value={s.lift_up_enabled} onChange={(v) => save({ liftUpEnabled: v })} />
+      <Toggle label={t('practices.adminGratitudeCount')} hint={t('practices.adminGratitudeCountHint')} value={s.gratitude_count_enabled} onChange={(v) => save({ gratitudeCountEnabled: v })} />
+      <Toggle label={t('practices.adminBelieve')} hint={t('practices.adminBelieveHint')} value={s.believe_enabled} onChange={(v) => save({ believeEnabled: v })} />
+      <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
+      <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
+      <Field label={t('repair.adminWelcomeText')} value={welcome} onChangeText={setWelcome} multiline maxLength={600} />
+      <Toggle label={t('repair.adminAskKindly')} hint={t('repair.adminAskKindlyHint')} value={s.ask_kindly_enabled} onChange={(v) => save({ askKindlyEnabled: v })} />
+      <Toggle label={t('repair.adminMend')} hint={t('repair.adminMendHint')} value={s.mend_enabled} onChange={(v) => save({ mendEnabled: v })} />
+      <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
@@ -1376,6 +1913,17 @@ function NotebookSettingsSection() {
       <Toggle label={t('admin.toggle.checkinAffirmation')} hint={t('admin.toggle.checkinAffirmationHint')} value={s.checkin_affirmation_enabled} onChange={(v) => save({ checkinAffirmationEnabled: v })} />
       <Toggle label={t('admin.toggle.whyGifts')} hint={t('admin.toggle.whyGiftsHint')} value={s.why_gifts_enabled} onChange={(v) => save({ whyGiftsEnabled: v })} />
       <Toggle label={t('admin.toggle.poolMatching')} hint={t('admin.toggle.poolMatchingHint')} value={s.pool_matching_enabled} onChange={(v) => save({ poolMatchingEnabled: v })} />
+      <Toggle label={t('admin.toggle.kindCloud')} hint={t('admin.toggle.kindCloudHint')} value={s.kind_cloud_enabled} onChange={(v) => save({ kindCloudEnabled: v })} />
+      <Toggle label={t('admin.toggle.meaningReactions')} hint={t('admin.toggle.meaningReactionsHint')} value={s.meaning_reactions_enabled} onChange={(v) => save({ meaningReactionsEnabled: v })} />
+      <Toggle label={t('admin.toggle.lamps')} hint={t('admin.toggle.lampsHint')} value={s.lamps_enabled} onChange={(v) => save({ lampsEnabled: v })} />
+      <Toggle label={t('admin.toggle.poolLedger')} hint={t('admin.toggle.poolLedgerHint')} value={s.pool_ledger_enabled} onChange={(v) => save({ poolLedgerEnabled: v })} />
+      <Toggle label={t('admin.toggle.circleGoals')} hint={t('admin.toggle.circleGoalsHint')} value={s.circle_goals_enabled} onChange={(v) => save({ circleGoalsEnabled: v })} />
+      <Toggle label={t('admin.toggle.givingAsk')} hint={t('admin.toggle.givingAskHint')} value={s.giving_ask_enabled} onChange={(v) => save({ givingAskEnabled: v })} />
+      <Toggle label={t('admin.toggle.supportLinks')} hint={t('admin.toggle.supportLinksHint')} value={s.support_links_enabled} onChange={(v) => save({ supportLinksEnabled: v })} />
+      <Toggle label={t('admin.toggle.squireBoard')} hint={t('admin.toggle.squireBoardHint')} value={s.squire_board_enabled} onChange={(v) => save({ squireBoardEnabled: v })} />
+      <Toggle label={t('admin.toggle.groupGifts')} hint={t('admin.toggle.groupGiftsHint')} value={s.group_gifts_enabled} onChange={(v) => save({ groupGiftsEnabled: v })} />
+      <Toggle label={t('admin.toggle.prayerList')} hint={t('admin.toggle.prayerListHint')} value={s.prayer_list_enabled} onChange={(v) => save({ prayerListEnabled: v })} />
+      <Toggle label={t('admin.toggle.readingPlan')} hint={t('admin.toggle.readingPlanHint')} value={s.reading_plan_enabled} onChange={(v) => save({ readingPlanEnabled: v })} />
       <Toggle label={t('admin.toggle.promisePage')} hint={t('admin.toggle.promisePageHint')} value={s.promise_page_enabled} onChange={(v) => save({ promisePageEnabled: v })} />
       <Toggle label={t('admin.toggle.podcasts')} hint={t('admin.toggle.podcastsHint')} value={s.podcasts_enabled} onChange={(v) => save({ podcastsEnabled: v })} />
       <Button label={t('admin.btn.saveNotebook')} onPress={() => save()} />

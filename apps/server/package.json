@@ -13,9 +13,12 @@
     "seed:demo": "tsx src/scripts/seed-demo.ts",
     "review-account": "tsx src/scripts/review-account.ts",
     "push-test": "tsx src/scripts/push-test.ts",
+    "mail-test": "tsx src/scripts/mail-test.ts",
+    "check-config": "tsx src/scripts/check-config.ts",
     "query-audit": "tsx src/scripts/query-audit.ts",
     "load-test": "tsx src/scripts/load-test.ts",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "skin:add": "tsx src/scripts/skin-add.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

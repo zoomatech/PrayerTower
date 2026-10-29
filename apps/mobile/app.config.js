@@ -40,7 +40,7 @@ function openCircle(config) {
     if (plugin === 'expo-splash-screen') return [plugin, { ...opts, backgroundColor: TEAL, image: image('open-circle-splash-icon.png', opts.image) }];
     if (plugin === 'expo-notifications') return [plugin, { ...opts, color: TEAL }];
     if (plugin === 'expo-image-picker') return [plugin, { ...opts, photosPermission: `Allow ${name} to add your photos and videos to your posts.` }];
-    if (plugin === 'expo-audio') return [plugin, { ...opts, microphonePermission: 'Allow $(PRODUCT_NAME) to record the voice notes you choose to send.' }];
+    if (plugin === 'expo-audio') return [plugin, { ...opts, microphonePermission: 'Allow $(PRODUCT_NAME) to record the voice notes you choose to send, and to hear radio bursts when you tap Start listening.' }];
     if (plugin === 'expo-widgets' || plugin === 'react-native-android-widget') {
       const widgets = opts.widgets.map((w) => ({ ...w, displayName: w.displayName && 'Lift Someone Up', label: w.label && 'Lift someone up', description: 'The next request that could use your support.' }));
       return [plugin, { ...opts, widgets: widgets.map((w) => Object.fromEntries(Object.entries(w).filter(([, v]) => v !== undefined))) }];

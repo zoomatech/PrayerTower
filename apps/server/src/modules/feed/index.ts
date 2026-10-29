@@ -8,6 +8,7 @@ import { notFound } from '../../errors.js';
 import { communityIds, getProfile } from '../accounts/index.js';
 import * as macroNeeds from '../macro-needs/index.js';
 import * as posts from '../posts/index.js';
+import * as skins from '../skins/index.js';
 
 export interface Candidate {
   id: string;
@@ -132,63 +133,72 @@ export interface FeedTheme {
 }
 
 /** The viewer's chosen theme in their primary community, else that community's default. */
-export async function theme(q: Queryable, viewerId: string): Promise<FeedTheme | null> {
+export async function theme(q: Queryable, viewerId: string, now = new Date()): Promise<FeedTheme | null> {
+  // The member's own choice while it can show; else this season's skin when an admin has
+  // "use the season's skin" on and the member never chose one; else the community default.
   const { rows } = await q.query<FeedTheme>(
     `select t.slug, t.name, t.layout, t.card_templates as "cardTemplates", t.animations, t.tokens
        from public.community_memberships m
-       join public.feed_themes t on t.id = coalesce(
-         m.feed_theme_id,
-         (select theme_id from public.community_feed_themes d where d.community_id = m.community_id and d.is_default))
-      where m.user_id = $1 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
-      order by m.is_primary desc
+       join lateral (
+         select t.*, 0 as rank from public.feed_themes t where t.id = m.feed_theme_id
+         union all
+         select t.*, 1 from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
+          where d.community_id = m.community_id and m.feed_theme_id is null and t.season is not null
+            and (select seasonal_auto from public.skin_settings)
+         union all
+         select t.*, 2 from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
+          where d.community_id = m.community_id and d.is_default
+       ) t on ${skins.themeVisible('$2')}
+      where m.user_id = $1
+      order by m.is_primary desc, t.rank
       limit 1`,
-    [viewerId],
+    [viewerId, skins.seasonsNow(now)],
   );
   return rows[0] ?? null;
 }
 
 /** Feed styles offered in the member's primary community, and which one they use. */
-export async function themeChoices(q: Queryable, viewerId: string) {
-  const { rows } = await q.query<{ slug: string; name: string; layout: string; status: string; is_default: boolean; chosen: boolean }>(
-    `select t.slug, t.name, t.layout, t.status, d.is_default, (m.feed_theme_id = t.id) as chosen
+export async function themeChoices(q: Queryable, viewerId: string, now = new Date()) {
+  const { rows } = await q.query<{ slug: string; name: string; layout: string; status: string; is_default: boolean; chosen: boolean; season: string | null }>(
+    `select t.slug, t.name, t.layout, t.status, d.is_default, (m.feed_theme_id = t.id) as chosen, t.season
        from public.community_memberships m
        join public.community_feed_themes d on d.community_id = m.community_id
        join public.feed_themes t on t.id = d.theme_id
-      where m.user_id = $1 and m.is_primary and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+      where m.user_id = $1 and m.is_primary and ${skins.themeVisible('$2')}
      union
      -- Skins the member made themselves (theme maker), before or after an admin shares them.
-     select t.slug, t.name, t.layout, t.status, false as is_default, (m.feed_theme_id = t.id) as chosen
+     select t.slug, t.name, t.layout, t.status, false as is_default, (m.feed_theme_id = t.id) as chosen, t.season
        from public.community_memberships m
        join public.feed_themes t on t.owner_id = m.user_id
-      where m.user_id = $1 and m.is_primary and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+      where m.user_id = $1 and m.is_primary and ${skins.themeVisible('$2')}
         and not exists (select 1 from public.community_feed_themes d where d.community_id = m.community_id and d.theme_id = t.id)
-      order by is_default desc, name`,
-    [viewerId],
+      order by is_default desc, season nulls last, name`,
+    [viewerId, skins.seasonsNow(now)],
   );
   const current = rows.find((r) => r.chosen) ?? rows.find((r) => r.is_default);
   // The full current theme too, so screens outside the feed (comment trees) can use its colors.
-  return { themes: rows.map(({ chosen: _c, ...t }) => t), current: current?.slug ?? null, theme: await theme(q, viewerId) };
+  return { themes: rows.map(({ chosen: _c, ...t }) => t), current: current?.slug ?? null, theme: await theme(q, viewerId, now) };
 }
 
 /** Choose a feed style offered in the primary community; null returns to the community default. */
-export async function chooseTheme(q: Queryable, viewerId: string, slug: string | null) {
+export async function chooseTheme(q: Queryable, viewerId: string, slug: string | null, now = new Date()) {
   const { rowCount } = await q.query(
     `update public.community_memberships m
         set feed_theme_id = case when $2::text is null then null else (
           select t.id from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
-           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+           where d.community_id = m.community_id and t.slug = $2 and ${skins.themeVisible('$3')}
           union all
-          select t.id from public.feed_themes t where t.owner_id = $1 and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))
+          select t.id from public.feed_themes t where t.owner_id = $1 and t.slug = $2 and ${skins.themeVisible('$3')}
           limit 1) end
       where m.user_id = $1 and m.is_primary
         and ($2::text is null or exists (
           select 1 from public.community_feed_themes d join public.feed_themes t on t.id = d.theme_id
-           where d.community_id = m.community_id and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings)))
-        or exists (select 1 from public.feed_themes t where t.owner_id = $1 and t.slug = $2 and t.status <> 'retired' and (not t.gated or (select skins_enabled from public.skin_settings))))`,
-    [viewerId, slug],
+           where d.community_id = m.community_id and t.slug = $2 and ${skins.themeVisible('$3')})
+        or exists (select 1 from public.feed_themes t where t.owner_id = $1 and t.slug = $2 and ${skins.themeVisible('$3')}))`,
+    [viewerId, slug, skins.seasonsNow(now)],
   );
   if (!rowCount) throw notFound('Feed style');
-  return themeChoices(q, viewerId);
+  return themeChoices(q, viewerId, now);
 }
 
 export const FEED_FILTERS = ['all', 'testimonies'] as const;

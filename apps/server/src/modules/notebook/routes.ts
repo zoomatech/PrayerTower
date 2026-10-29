@@ -10,6 +10,11 @@ export function notebookRoutes(app: FastifyInstance, db: Db) {
 
   app.get('/stats/worldwide', async (req) => ({ stats: await notebook.worldwide(db, requireUser(req)) }));
 
+  app.get('/me/giving-ask', async (req) => notebook.givingAsk(db, requireUser(req)));
+  app.post('/me/giving-ask/seen', async (req) => {
+    await notebook.seenGivingAsk(db, requireUser(req));
+    return { ok: true };
+  });
   app.get('/me/thanks-card', async (req) => ({ card: await notebook.thanksCard(db, requireUser(req)) }));
   app.post('/me/thanks-card/dismiss', async (req) => {
     await notebook.dismissThanksCard(db, requireUser(req));

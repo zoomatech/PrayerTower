@@ -39,6 +39,13 @@ export function growthRoutes(app: FastifyInstance, db: Db) {
   // 3. Prayed-for widget.
   app.get('/me/prayed-for', async (req) => ({ prayedFor: await growth.prayedForToday(db, requireUser(req)) }));
 
+  // 5. Sharing with consent.
+  app.get<Id>('/posts/:id/share', async (req) => ({ share: await growth.shareState(db, requireUser(req), req.params.id) }));
+  app.put<Id>('/posts/:id/share', async (req) => {
+    const { level } = growth.ShareChoice.parse(req.body);
+    return { share: await growth.setShareLevel(db, requireUser(req), req.params.id, level) };
+  });
+
   // 4. Prayer minute.
   app.get('/me/prayer-minute', async (req) => ({ minute: await growth.myMinute(db, requireUser(req)) }));
   app.put('/me/prayer-minute', async (req) => ({ minute: await growth.setMinute(db, requireUser(req), growth.Minute.parse(req.body)) }));
@@ -79,7 +86,7 @@ function prayPage(opts: site.SiteOptions, token: string, v: growth.GuestView, do
   } else if (done) {
     action = `<h2>${s ? 'Thank you for thinking of them.' : 'Thank you for praying.'}</h2>
 <p>${who === 'Someone' ? 'They' : who} will see that ${s ? 'someone sent support' : 'someone prayed'} from this link.</p>
-<p>${s ? 'Open Circle' : 'Prayer Tower'} is a small, ad-free, invite-only community. If you'd like to join, ask ${who === 'Someone' ? 'the person who shared this link' : who} for an invite.</p>`;
+<p>${s ? esc(opts.openCircle?.name ?? 'Open Circle') : 'Prayer Tower'} is a small, ad-free, invite-only community. If you'd like to join, ask ${who === 'Someone' ? 'the person who shared this link' : who} for an invite.</p>`;
   } else {
     action = `${error ? `<p class="notice">${esc(error)}</p>` : ''}
 <form method="post" action="${esc(base)}">
@@ -93,6 +100,24 @@ function prayPage(opts: site.SiteOptions, token: string, v: growth.GuestView, do
   }
   const title = s ? `${who} could use some support` : `${who} asked for prayer`;
   return site.layout(title, `<h1>${title}</h1>${quote}${count}${crisis}${action}`, '', 'en', brandFor(opts, s));
+}
+
+/** The share card: the words the author chose to share, with a first name unless anonymous. */
+function cardPage(opts: site.SiteOptions, c: growth.CardView) {
+  const s = c.secular;
+  const who = c.name ? esc(c.name) : 'Someone';
+  const request = c.postType === 'prayer_request';
+  const title = request ? (s ? `${who} could use some support` : `${who} asked for prayer`) : s ? `${who} shared this` : `${who} shared this with the church`;
+  const quote = `<blockquote>${esc(c.body).replace(/\n/g, '<br>')}</blockquote>`;
+  const answered = c.answered
+    ? `<p class="notice">${s ? 'Good news: this worked out!' : 'Good news: this prayer was answered!'}</p>${c.testimony ? `<blockquote>${esc(c.testimony)}</blockquote>` : ''}`
+    : '';
+  const action = c.guestPath
+    ? `<p><a class="button" href="${esc(c.guestPath)}">${s ? "🤝 Let them know you're thinking of them" : '🙏 Let them know you prayed'}</a></p>`
+    : '';
+  const brandName = s ? esc(opts.openCircle?.name ?? 'Open Circle') : 'Prayer Tower';
+  const about = `<p style="font-size:14px">${who === 'Someone' ? 'The person who posted this' : who} chose to let it be shared outside ${brandName}, a small, ad-free, invite-only community.</p>`;
+  return site.layout(title, `<h1>${title}</h1>${quote}${answered}${action}${about}`, '', 'en', brandFor(opts, s));
 }
 
 function chainPage(opts: site.SiteOptions, token: string, e: NonNullable<Awaited<ReturnType<typeof growth.chainEntry>>>) {
@@ -144,6 +169,13 @@ export function growthPublicRoutes(app: FastifyInstance, db: Db, opts: site.Site
     app.get<{ Params: { token: string } }>(`${prefix}/:token`, show);
     app.post<{ Params: { token: string } }>(`${prefix}/:token`, pray);
   }
+
+  // The share card (sharing with consent): read-only, a 404 unless the author chose a card.
+  app.get<{ Params: { token: string } }>('/card/:token', async (req, reply) => {
+    const c = await growth.cardView(db, req.params.token);
+    if (!c) return reply.code(404).type(HTML).send(gone());
+    return reply.type(HTML).header('cache-control', 'no-store').header('x-robots-tag', 'noindex').send(cardPage(opts, c));
+  });
 
   app.get<{ Params: { token: string } }>('/chain/:token', async (req, reply) => {
     const e = await growth.chainEntry(db, req.params.token);

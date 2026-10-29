@@ -38,6 +38,7 @@ const es: Record<string, Template> = {
     body: `${s(p.who, 'Alguien')} orará ${ES_FREQUENCY[s(p.frequency)] ?? ''}.`,
   }),
   commitment_reminder: (p) => ({ title: 'Hora de orar', body: `Prometiste orar: "${s(p.excerpt)}"` }),
+  prayer_list_reminder: (p) => ({ title: 'Your prayer list', body: `Did you remember to pray for ${s(p.name)} today?` }),
   power_prayer: (p) => ({ title: '¿Orarías por esta petición?', body: s(p.body) }),
   moderation_removed: (p) => {
     const noun = ES_NOUN[s(p.target)] ?? 'publicación';
@@ -124,6 +125,7 @@ const neutral: Record<string, Template> = {
   pray_request: (p) => ({ title: `${s(p.who, 'Someone')} would like your support on this`, body: s(p.body) }),
   commitment_made: (p) => ({ title: `${s(p.who, 'Someone')} promised to support you`, body: `${s(p.who, 'Someone')} will check in ${FREQUENCY[s(p.frequency)] ?? 'regularly'}.` }),
   commitment_reminder: (p) => ({ title: 'Time to check in', body: `You promised to keep someone in mind: "${s(p.excerpt)}"` }),
+  prayer_list_reminder: (p) => ({ title: 'People you keep in mind', body: `Did you remember to think of ${s(p.name)} today?` }),
   power_prayer: (p) => ({ title: 'Will you send support to this request?', body: s(p.body) }),
   answered: (p) => ({ title: 'Good news on a request you supported', body: `${s(p.who, 'Someone')} says things worked out. Thank you for being there.` }),
   testimony: (p) => ({ title: 'Good news on a request you supported', body: `${s(p.who, 'Someone')} shared what happened: "${s(p.excerpt)}"` }),

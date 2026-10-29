@@ -7,6 +7,9 @@
 # Usage, from a clone of the repository:
 #   sudo apps/station/install/install.sh             # install or update
 #   sudo apps/station/install/install.sh --fldigi    # also install fldigi from apt
+#   sudo apps/station/install/install.sh --hamlib    # also install Hamlib rigctld (rig control)
+#   sudo apps/station/install/install.sh --listener  # also install the receive-only listener node
+#   sudo apps/station/install/install.sh --listener-only  # a listener node only: the station service stays off
 #   sudo apps/station/install/install.sh --uninstall # remove (keeps the settings file)
 set -euo pipefail
 
@@ -16,6 +19,8 @@ app=/opt/prayer-tower-station
 env_file=/etc/prayer-tower-station.env
 user=prayer-station
 units=(prayer-tower-station.service prayer-tower-station-health.service prayer-tower-station-health.timer)
+rig_env=/etc/prayer-tower-rigctld.env
+listener_env=/etc/prayer-tower-listener.env
 
 log() { printf '\n==> %s\n' "$*"; }
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
@@ -25,23 +30,42 @@ command -v systemctl >/dev/null || die "this needs systemd (Raspberry Pi OS, Deb
 
 if [ "${1:-}" = "--uninstall" ]; then
   log "Removing the station service"
-  systemctl disable --now "${units[@]}" 2>/dev/null || true
-  for u in "${units[@]}"; do rm -f "/etc/systemd/system/$u"; done
+  systemctl disable --now "${units[@]}" prayer-tower-rigctld.service prayer-tower-listener.service 2>/dev/null || true
+  for u in "${units[@]}" prayer-tower-rigctld.service prayer-tower-listener.service; do rm -f "/etc/systemd/system/$u"; done
   rm -f /etc/systemd/journald.conf.d/prayer-station.conf
   systemctl daemon-reload
   rm -rf "$app"
-  echo "Removed. $env_file and the $user user were kept; delete them by hand if you want."
+  echo "Removed. $env_file, $rig_env, $listener_env and the $user user were kept; delete them by hand if you want."
   exit 0
 fi
 
 with_fldigi=0
-[ "${1:-}" = "--fldigi" ] && with_fldigi=1
+with_hamlib=0
+with_listener=0
+listener_only=0
+for arg in "$@"; do
+  case "$arg" in
+    --fldigi) with_fldigi=1 ;;
+    --hamlib) with_hamlib=1 ;;
+    --listener) with_listener=1 ;;
+    --listener-only) with_listener=1; listener_only=1 ;;
+    *) die "unknown option $arg" ;;
+  esac
+done
 
 log "Installing packages"
 apt-get update -qq
 apt-get install -y -qq curl ca-certificates
 if [ "$with_fldigi" = 1 ]; then
   apt-get install -y -qq fldigi
+fi
+if [ "$with_listener" = 1 ]; then
+  # arecord, for recording from the receiver's sound card.
+  apt-get install -y -qq alsa-utils
+fi
+if [ "$with_hamlib" = 1 ]; then
+  # rigctld and rigctl (https://hamlib.github.io/)
+  apt-get install -y -qq libhamlib-utils
 fi
 
 # Node.js 22 from NodeSource (https://github.com/nodesource/distributions);
@@ -92,10 +116,40 @@ install -d /etc/systemd/journald.conf.d
 install -m 0644 "$here/journald-prayer-station.conf" /etc/systemd/journald.conf.d/prayer-station.conf
 systemctl daemon-reload
 systemctl restart systemd-journald
-systemctl enable prayer-tower-station.service prayer-tower-station-health.timer
-systemctl start prayer-tower-station-health.timer
+if [ "$listener_only" = 1 ]; then
+  systemctl disable --now prayer-tower-station.service prayer-tower-station-health.timer 2>/dev/null || true
+else
+  systemctl enable prayer-tower-station.service prayer-tower-station-health.timer
+  systemctl start prayer-tower-station-health.timer
+fi
 
-if [ "$fresh_env" = 1 ] || grep -q '^STATION_API_KEY=$' "$env_file"; then
+if [ "$with_listener" = 1 ]; then
+  log "Installing the listener node"
+  [ -f "$listener_env" ] || install -m 0640 -o root -g "$user" "$here/listener.env.example" "$listener_env"
+  install -m 0644 "$here/prayer-tower-listener.service" /etc/systemd/system/prayer-tower-listener.service
+  systemctl daemon-reload
+  systemctl enable prayer-tower-listener.service
+  if grep -q '^NODE_KEY=$' "$listener_env"; then
+    echo "Fill in $listener_env (NODE_KEY from Admin → Radio → Listener nodes), then: sudo systemctl start prayer-tower-listener"
+  else
+    systemctl restart prayer-tower-listener.service
+  fi
+fi
+
+if [ "$with_hamlib" = 1 ]; then
+  log "Installing rigctld (rig control)"
+  [ -f "$rig_env" ] || install -m 0640 -o root -g "$user" "$here/rigctld.env.example" "$rig_env"
+  install -m 0644 "$here/prayer-tower-rigctld.service" /etc/systemd/system/prayer-tower-rigctld.service
+  systemctl daemon-reload
+  systemctl enable --now prayer-tower-rigctld.service
+  systemctl restart prayer-tower-rigctld.service
+  grep -q '^RIG_MODEL=1$' "$rig_env" && echo "rigctld runs Hamlib's dummy radio (RIG_MODEL=1, a placeholder). Set your radio in $rig_env." || true
+  grep -q '^RIG_CONTROL=rigctld' "$env_file" || echo "Turn rig control on with RIG_CONTROL=rigctld in $env_file." || true
+fi
+
+if [ "$listener_only" = 1 ]; then
+  log "Listener node installed (the station service is off)"
+elif [ "$fresh_env" = 1 ] || grep -q '^STATION_API_KEY=$' "$env_file"; then
   cat <<MSG
 
 Installed. Before starting the worker, fill in $env_file:

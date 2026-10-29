@@ -4,6 +4,8 @@ The ad-free, non-religious edition (docs/OPEN_CIRCLE.md), built from the same co
 
 > Drafted 2026-10-28 for Steve to edit. **"Open Circle" is a placeholder name.** When Steve picks the real one, change it here, in `EXPO_PUBLIC_OPEN_CIRCLE_NAME` for the build, in `OPEN_CIRCLE_NAME` on the server, and in Admin → Communities. Field limits: app name and subtitle 30 characters, Promotional Text 170, Description 4,000, Keywords 100 bytes ([Apple](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)). Nothing here uses a religious word, and "Ted Lasso" never appears (it is Apple TV's trademark).
 
+`EXPO_PUBLIC_EDITION=open-circle eas metadata:push` uploads the fields below (apps/mobile/store.config.js). Keep each in its code block under the same label; the app's tests check Apple's limits and that no religious word appears.
+
 ## App information
 
 **App name** (11/30)

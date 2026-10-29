@@ -99,7 +99,9 @@ async function chatOffered(q: Queryable, userId: string) {
 
 export async function chatInfo(q: Queryable, userId: string) {
   const f = await futureSettings(q);
-  return { enabled: await chatOffered(q, userId), warning: f.ai_chat_warning };
+  const enabled = await chatOffered(q, userId);
+  // Off, or an Open Circle member: the God role-play's warning isn't shown either.
+  return { enabled, warning: enabled ? f.ai_chat_warning : null };
 }
 
 export const ChatInput = z.object({ message: z.string().trim().min(1).max(2000), history: History });

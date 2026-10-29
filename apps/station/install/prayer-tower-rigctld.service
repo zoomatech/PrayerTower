@@ -1,0 +1,29 @@
+# Hamlib rigctld for the Prayer Tower station: lets the worker set the radio's
+# frequency, mode and PTT over CAT (RIG_CONTROL=rigctld). Installed by
+# install.sh --hamlib; settings in /etc/prayer-tower-rigctld.env.
+# See docs/STATION_OPERATOR_GUIDE.md, "Rig control".
+[Unit]
+Description=Hamlib rigctld for the Prayer Tower station
+Before=prayer-tower-station.service
+After=dev-ttyUSB0.device
+
+[Service]
+Type=simple
+User=prayer-station
+Group=prayer-station
+# The radio's USB serial port belongs to the dialout group.
+SupplementaryGroups=dialout
+EnvironmentFile=/etc/prayer-tower-rigctld.env
+# Listens on this machine only. RIG_DEVICE and RIG_SPEED are left out when empty.
+ExecStart=/bin/sh -c 'exec /usr/bin/rigctld -m "$$RIG_MODEL" -T 127.0.0.1 -t "$${RIG_PORT:-4532}" $${RIG_DEVICE:+-r "$$RIG_DEVICE"} $${RIG_SPEED:+-s "$$RIG_SPEED"} $$RIG_EXTRA_ARGS'
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

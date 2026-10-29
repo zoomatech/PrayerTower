@@ -47,10 +47,10 @@ export async function writeReport(file: string, report: ChannelReport): Promise<
   await writeFile(file, `${JSON.stringify(report, null, 2)}\n`);
 }
 
-/** Read a report from a file path or an http(s) URL; null when missing, unreadable or malformed. */
-export async function readReport(source: string, fetchFn: typeof fetch = fetch): Promise<ChannelReport | null> {
+/** Read a report from a file path or an http(s) URL; null when missing, unreadable or malformed (a 204 from the server included). */
+export async function readReport(source: string, fetchFn: typeof fetch = fetch, headers: Record<string, string> = {}): Promise<ChannelReport | null> {
   try {
-    const text = /^https?:\/\//.test(source) ? await (await fetchFn(source, { signal: AbortSignal.timeout(5000) })).text() : await readFile(source, 'utf8');
+    const text = /^https?:\/\//.test(source) ? await (await fetchFn(source, { headers, signal: AbortSignal.timeout(5000) })).text() : await readFile(source, 'utf8');
     const r = JSON.parse(text) as Partial<ChannelReport>;
     if (typeof r.snrDb !== 'number' || !Number.isFinite(r.snrDb) || typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) return null;
     return { snrDb: r.snrDb, at: r.at, callSign: String(r.callSign ?? ''), preset: String(r.preset ?? '') };
@@ -66,6 +66,8 @@ export interface AutoConfig {
   marginDb: number;
   /** Reports older than this are ignored. */
   maxAgeMs: number;
+  /** Sent with a URL report, e.g. the station key for Prayer Tower's GET /station/channel. */
+  headers?: Record<string, string>;
 }
 
 export function parseCandidates(list: string): BurstPreset[] {
@@ -79,7 +81,7 @@ export function parseCandidates(list: string): BurstPreset[] {
 /** A chooser for the burst loop: reads the report, picks, and says why. */
 export function autoChooser(cfg: AutoConfig, log: (m: string) => void, now: () => number = Date.now, fetchFn?: typeof fetch) {
   return async (): Promise<BurstPreset> => {
-    const r = await readReport(cfg.report, fetchFn);
+    const r = await readReport(cfg.report, fetchFn, cfg.headers);
     const fresh = r && now() - Date.parse(r.at) <= cfg.maxAgeMs ? r : null;
     const p = pickPreset(fresh?.snrDb ?? null, cfg.candidates, cfg.marginDb);
     log(fresh ? `[auto] receiver measured ${fresh.snrDb} dB at ${fresh.at}: ${p.name}` : `[auto] no fresh channel report: ${p.name}`);

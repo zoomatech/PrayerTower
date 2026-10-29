@@ -6,6 +6,41 @@ and the first tests, from no radio at all up to a real burst on the air. The
 station software is already installed ([RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md));
 the format and every setting are in [RADIO_BURST.md](RADIO_BURST.md).
 
+## One-command install
+
+On a Pi that is already running Raspberry Pi OS:
+
+```
+curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/get-station.sh | sudo bash -s -- --hamlib
+```
+
+This fetches the code to `/opt/prayer-tower-src` and runs `install.sh`. That
+installs Node.js 22, the station service, the health check and, with
+`--hamlib`, rigctld set to the dummy radio. Add `--fldigi` for fldigi. Run the
+same command again to update; your settings files are kept. If the repository
+is private, add `--repo https://<token>@github.com/zoomatech/PrayerTower.git`.
+The token is not kept on disk.
+
+**A Pi that sets itself up on first boot.** This needs Raspberry Pi OS Trixie,
+from November 2025 or later.
+
+1. Write it to the SD card with Raspberry Pi Imager. The card's boot partition
+   then holds a `user-data` file, which cloud-init reads on first boot.
+2. Replace that file with
+   [`apps/station/install/pi/user-data`](../apps/station/install/pi/user-data).
+   First change the password (`change-me-now` is a placeholder) and the time
+   zone.
+3. Put the card in the Pi and power it on. It creates the `station` user,
+   then runs the one-command install, logging to
+   `/var/log/prayer-tower-install.log`.
+4. Sign in over SSH (`ssh station@prayer-station.local`). Fill in
+   `/etc/prayer-tower-station.env` and `/etc/prayer-tower-rigctld.env`, then
+   start the station:
+
+   ```
+   sudo systemctl start prayer-tower-station
+   ```
+
 ## What you need
 
 - An FM transceiver. A mobile with a 6-pin mini-DIN **data port** is best,
@@ -75,6 +110,263 @@ Use the card name `aplay -l` showed. The station service may open the sound
 card (and nothing else in `/dev`) and runs in the `audio` group. Turn off hardware flow control on that
 serial port in any other program that opens it, or it may key the radio.
 
+## Rig control (frequency, mode and PTT through Hamlib)
+
+Off by default. With it on, the station sets the radio's frequency and mode
+when it starts and keys PTT through Hamlib's `rigctld`. After keying, it reads
+PTT back, so a radio that ignored the command is caught before any audio
+plays: the station unkeys and stops, the same as any other transmit failure.
+
+1. Install rigctld as a service:
+
+   ```
+   sudo apps/station/install/install.sh --hamlib
+   ```
+
+   This installs `libhamlib-utils` and `prayer-tower-rigctld.service`, which
+   listens on this machine only (127.0.0.1:4532). It also creates
+   `/etc/prayer-tower-rigctld.env`.
+2. In `/etc/prayer-tower-rigctld.env`, replace the placeholder radio. `RIG_MODEL=1` is Hamlib's dummy radio, so everything can be
+   tried with no radio connected. Find your radio's number with `rigctl -l`,
+   then set `RIG_DEVICE` (the CAT port, best as
+   `/dev/serial/by-id/...`) and `RIG_SPEED` (the CAT baud rate from the
+   radio's menu). For a PTT-only interface such as a Digirig keyed by RTS,
+   keep `RIG_MODEL=1` and set `RIG_EXTRA_ARGS=-p /dev/ttyUSB0 -P RTS`.
+3. In `/etc/prayer-tower-station.env`:
+
+   ```
+   RIG_CONTROL=rigctld
+   RIG_FREQ_HZ=145050000
+   RIG_MODE=FM
+   ```
+
+   On HF use `RIG_MODE=PKTUSB` (the radio's DATA mode) with
+   `RIG_PASSBAND_HZ=3000`. Leave `RIG_FREQ_HZ` or `RIG_MODE` out to keep
+   whatever the radio is set to. With rig control on, the
+   `BURST_PTT_ON_CMD` and `BURST_PTT_OFF_CMD` lines are not used.
+4. Restart both services, then check them:
+
+   ```
+   sudo systemctl restart prayer-tower-rigctld prayer-tower-station
+   rigctl -m 2 f            # the frequency, read through rigctld
+   sudo -u prayer-station node /opt/prayer-tower-station/dist/src/health.js
+   ```
+
+   The health check adds a `rig` line. It fails if rigctld is not answering,
+   or if the radio is transmitting between bursts (a stuck PTT).
+
+## Station on a Mac
+
+The station also runs on a Mac (Steve's, for example), as background jobs for the
+signed-in user. No sudo is needed. In Terminal:
+
+```
+curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/mac/install-mac.sh | bash -s -- --hamlib
+```
+
+Or, from a clone of the repository, run `bash apps/station/install/mac/install-mac.sh --hamlib`.
+
+- **What it needs:** Node.js 22. If the Mac doesn't have it, the installer uses Homebrew's
+  `node@22`. `--hamlib` adds Hamlib (rigctld) from Homebrew, and `--listener` adds
+  sox (for recording). With no Homebrew and no Node.js 22, it says what to install.
+- **Settings:** the same files as on a Pi, in `~/Library/Application Support/PrayerTower/config/`
+  (`station.env`, `rigctld.env`, `listener.env`). Fill in `station.env`, then
+  run the installer again to start the station. Rig control works the same way
+  (`RIG_CONTROL=rigctld`). The radio's CAT port is a `/dev/cu.usbserial-…` name;
+  list them with `ls /dev/cu.*`.
+- **Sound:** bursts play with `afplay`, which is built into macOS, through the default
+  output. Choose the USB interface in System Settings > Sound > Output, and
+  turn alert sounds down so they don't go out over the air.
+- **Jobs:** one launchd agent for each job (`com.zoomatech.prayertower.station`,
+  `.rigctld`, `.listener`). They start at login and restart after a crash. After a
+  failed transmission the station stays stopped until someone checks the radio, then:
+  `launchctl kickstart gui/$(id -u)/com.zoomatech.prayertower.station`.
+- **Logs and checks:**
+  - Logs: `tail -f ~/Library/Logs/PrayerTower/station.log`.
+  - Health check: `bash ~/Library/Application\ Support/PrayerTower/station/run.sh health`.
+- **Listener on a Mac:** `--listener` records with sox's `rec` from the default
+  input. macOS asks for microphone permission the first time. If it blocks the
+  background job, run `bash ~/Library/Application\ Support/PrayerTower/station/run.sh listener` in
+  Terminal and allow Terminal to use the microphone.
+- **Keep it awake:** in System Settings > Battery (or Energy), stop the Mac
+  from sleeping while the station is on duty.
+- **Update or remove:** run the same installer again to update. `--uninstall` removes
+  the jobs and keeps your settings.
+
+## Listener nodes (receive only, real data for the auto preset)
+
+A listener node is a Raspberry Pi with a receiver (a scanner, an old handheld or
+an SDR) plugged into its sound card. It never transmits. It records all the time,
+decodes the station's bursts, and sends Prayer Tower only what it measured: the
+call sign, the preset and the SNR. It also sends the fingerprints of the prayers
+it decoded, never their words. Those fingerprints acknowledge the prayers (see
+[Listener acknowledgements](#listener-acknowledgements)) and, with receipts on,
+tell senders a listener heard them. It checks in about once a minute even when it
+hears nothing. A station on `BURST_PRESET=auto` then picks the
+fastest preset that the weakest listener can still decode. Off by default.
+
+1. In Admin → Radio (burst mode), turn on **Listener nodes**, type a name
+   (e.g. "Hilltop Pi") and tap **Add listener node**. Copy the key. It is
+   shown only once, and the server keeps only its hash.
+2. On the listener Pi:
+
+   ```
+   curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/get-station.sh | sudo bash -s -- --listener-only
+   sudo nano /etc/prayer-tower-listener.env     # PRAYER_TOWER_API_URL, NODE_KEY
+   sudo systemctl start prayer-tower-listener
+   journalctl -u prayer-tower-listener -f        # "[listener] heard N0CALL: 1 frame(s), 24.5 dB, fm-standard"
+   ```
+
+   Set the receiver's sound card in `LISTEN_RECORD_CMD` (the card name from
+   `arecord -l`). From an HF (SSB) receiver, also set `LISTEN_SEARCH_HZ=50`.
+   For a Pi that sets itself up on first boot, change `--hamlib` to
+   `--listener-only` in `pi/user-data`.
+3. On the station, in `/etc/prayer-tower-station.env`:
+
+   ```
+   BURST_PRESET=auto
+   BURST_AUTO_REPORT=server
+   ```
+
+   Before each burst the station asks Prayer Tower (`GET /station/channel`).
+   The answer is each enabled listener's latest report from the last 30
+   minutes, and the weakest of them. With no fresh report, the station uses
+   the most robust preset in `BURST_AUTO_PRESETS`.
+
+Admin → Radio lists each node, when it last reported and what it last heard.
+Turning a node off stops its key working and its reports counting. A node on the
+same machine as the station can also write `LISTEN_REPORT_FILE`, which the
+station reads as a plain `BURST_AUTO_REPORT` file.
+
+## Several stations (one shared queue)
+
+Off by default. Several stations, for example one on FM and one on HF, or the
+Pi and Steve's Mac, can share one queue without sending any prayer twice:
+
+- When a station claims prayers, the server locks those rows and skips any that
+  another station has locked (`for update skip locked`). Two stations asking at the same moment
+  get different prayers.
+- Each claim records which station holds it, and only that station can report it sent or failed.
+- A claim with no report for 15 minutes goes back to the queue. If the
+  late station reports after another one has claimed it, that report is
+  refused.
+
+To add a station:
+
+1. In Admin → Radio, choose **Several stations**, type a name, and tap **Add station**.
+   Copy the key. It is shown only once.
+2. On the new station, put that key in `STATION_API_KEY` (in
+   `/etc/prayer-tower-station.env`, or `station.env` on a Mac). Give the station
+   its own control operator's `CALL_SIGN`. Everything else is set up as for the
+   first station.
+3. Admin → Radio shows each station's last check-in, what it is sending now and
+   what it sent in the last 24 hours. Turning a station off stops its key at once.
+   The main station's key (the server's `STATION_API_KEY`) always works.
+
+Health alerts and the burst log already list each station by its call sign.
+
+## Health alerts in Admin → Radio
+
+Off by default. In Admin → Radio (station mode), turn on **Station alerts**.
+About once a minute the station reports its own checks, and the server adds
+what it can see. Problems also reach admins as an in-app alert, at most once
+an hour.
+
+| Alert | What it means | Comes from |
+| --- | --- | --- |
+| No sound card | ALSA lists no sound card (`/proc/asound/cards`), so bursts can't play. Check the USB interface. | The station (BURST_MODE=audio) |
+| The radio did not key (PTT) | rigctld is not answering, the radio ignored PTT, or it is stuck transmitting. A failed burst whose error names PTT counts too. | The station (RIG_CONTROL=rigctld) and the burst log |
+| The last burst failed | Any other transmit error. The station has stopped itself until someone checks it. | The burst log |
+| A burst is overdue | A prayer has waited longer than the chosen limit (15, 30, 60 or 120 minutes; 30 by default). | The queue |
+| The station stopped reporting | No report for 10 minutes. | The station |
+| Nothing is waiting | The queue is empty. This is information, not a problem. | The queue |
+
+## Health page in Admin → Radio
+
+Off by default. In Admin → Radio (station mode), turn on **Health page**. It shows:
+
+- Each station by call sign: its last check-in (about once a minute), any check
+  that is failing (sound card, PTT), and the last 24 hours of bursts, prayers and
+  failures. A station with no check-in for 10 minutes is shown in red as stopped.
+- The queue: how many prayers are waiting, how many are being sent, and how long the oldest has waited.
+- The signal listeners measured on each preset in the last 24 hours: the average,
+  the lowest and the number of reports. This helps when you choose a preset, or
+  set `BURST_AUTO_PRESETS`.
+- The last 10 failures in the last 24 hours, failed bursts and failed prayers, with their errors.
+
+## Listener acknowledgements
+
+Off by default. When **Listener acknowledgements** is on, a prayer counts as
+heard on the air only once a listener decodes it. That listener can be a
+listener node, the /listen page or the app's Listen screen. The listener sends
+back the prayer's fingerprint, never its words.
+
+- If no listener hears a prayer within the chosen time (5, 10, 30 or 60
+  minutes; 10 by default), it goes back in the queue and the station sends it
+  again, up to the chosen number of times (0 to 3; 2 by default). After the last
+  try it stays sent, and is counted as not heard.
+- Prayers are sent again only while an enabled listener node has checked in
+  within the last 5 minutes. With no listener running, nothing could have heard
+  the prayer, so nothing is sent again.
+- Admin → Radio shows the last 24 hours: how many were heard, how many are
+  waiting for a listener, how many were not heard after every try, and how many
+  were sent again.
+- The sender's "on the air" receipt goes out once, the first time. The "a
+  listener heard it" receipt goes out when it is first decoded, and only while
+  receipts are on.
+
+Put at least one listener node where it hears the station the way your
+listeners do. A listener right next to the station hears everything, so it
+proves nothing about reach.
+
+## Transmission windows and quiet hours
+
+Off by default. In Admin → Radio, turn on **Transmission windows**, set the time
+zone (a name such as `America/Chicago`), and add windows: the days and the
+hours the station may send, for example Monday to Friday 18:00 to 21:00. A
+window whose end is earlier than its start runs past midnight, and belongs to the
+day it starts on. With no windows the station may send at any time outside the
+quiet hours. Quiet hours (for example 22:00 to 06:00) always win.
+
+Outside the windows, the station asks for prayers as usual and gets none. The
+prayers wait in the queue and go out in the next window. Admin → Radio shows
+whether the station may send now. The "burst overdue" alert is not raised while
+the station is off the air on purpose.
+
+## Station ID
+
+Off by default. Every burst frame already carries the call sign in digital form.
+With `STATION_ID=cw` in the station's settings, the station also sends its call
+sign in Morse code (`DE K1ABC`, 20 words a minute, an 800 Hz tone) at the end of
+a key-up. It does this on the first key-up, and then whenever
+`STATION_ID_MINUTES` (10) have passed since the last ID. `STATION_ID_WPM` and
+`STATION_ID_TONE_HZ` change the speed and the tone. In `BURST_MODE=fldigi`, the
+ID is a `de K1ABC` line at the end of the key-up. The PSK31 mode already ends
+every piece with `de K1ABC`. In simulate mode, the log shows when an ID would
+have gone out.
+
+## Operator log
+
+Off by default. In Admin → Radio, turn on **Operator log**, then tap
+**Download operator log**. You get a spreadsheet (CSV) of every prayer the
+station sent, or tried to send, in the last 30 days. It has these columns:
+
+| Column | What it holds |
+| --- | --- |
+| `time_utc` | When it went out (UTC), or when it was handed to the station, for a failure |
+| `call_sign` | The call sign the station reported |
+| `station` | `main`, or the name of an extra station |
+| `frequency_hz` | `RIG_FREQ_HZ`, or `STATION_FREQ_HZ` when the radio is tuned by hand |
+| `preset` | The burst preset, or `psk31` |
+| `repeats` | How many times it was sent (Amplify) |
+| `status` / `error` | `transmitted` or `failed`, with the reason |
+| `heard` | Whether a listener decoded it |
+| `contents` | The exact text the station was given |
+
+For another date range, an admin can call
+`GET /admin/operator-log?format=csv&from=2026-10-01&to=2026-11-01`. The station
+also keeps every burst as a WAV file in `BURST_DIR`.
+
 ## 4. Which preset
 
 Start slow and speed up once the path is proven. `node /opt/prayer-tower-station/dist/src/burst/cli.js presets`
@@ -90,6 +382,17 @@ The QAM presets (`fm-qam16`, `fm-qam64`, `dataport-qam64`) are the fastest
 for a given signal, but only with the compressor off and the level steady.
 Once a receiver can send back channel reports, `BURST_PRESET=auto` picks for
 you ([RADIO_BURST.md](RADIO_BURST.md), "Auto preset").
+
+## HF (shortwave) instead of FM
+
+The same station can send on HF single sideband with the `hf-` presets ([RADIO_BURST.md](RADIO_BURST.md), "HF presets").
+
+- **Radio mode.** Use upper sideband in the radio's DATA mode (USB-D, DATA-U, PKT-U). On many radios that mode turns the speech compressor off and takes audio from the data input. If yours doesn't, turn the compressor off yourself.
+- **Filter.** Use the widest SSB filter (2.7-3.0 kHz). The presets sit in 469-2578 Hz.
+- **Level.** Raise the transmit audio until ALC just starts to move, then back off to no ALC. Overdrive smears every carrier.
+- **Presets.** Start with `hf-robust`. Move to `hf-standard` once bursts decode every time, and to `hf-fast` only on good paths. For auto choice set `BURST_PRESET=auto` and `BURST_AUTO_PRESETS=hf-robust,hf-standard,hf-fast`, with `BURST_AUTO_MARGIN_DB=6`.
+- **Receiving.** Decode with `BURST_SEARCH_HZ=50 node /opt/prayer-tower-station/dist/src/burst/cli.js decode rx.wav`, or tick "Shortwave (SSB) radio" on `/listen`. That allows for a receiver tuned up to 50 Hz off.
+- **Try it with no radio.** `BURST_MODE=simulate` with `BURST_SIM_HF=moderate` sends every burst through a simulated fading HF path.
 
 ## 5. First tests, in order
 
@@ -133,4 +436,15 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - Data port 1200 vs 9600, APRS off, AGC off, receive level about -11 dBFS, low power and heat: [SEAPAC 2025, "VARA FM setup"](https://seapac.org/workshop-presentations_files/2025/SEAPAC%202025%20VARA%20FM%20SETUP%20(3).pdf)
 - Digirig PTT by RTS, flow control off, keeping system sounds off the interface: [Digirig, "Getting started with Digirig Mobile"](https://digirig.net/?p=5478)
 - `rigctl`/`rigctld` options and `T` (set_ptt): [hamlib rigctl manual](https://hamlib.sourceforge.net/snapshots/man1/rigctl.1.html)
+- rigctld port 4532, the Extended Response Protocol (`+` prefix, `RPRT 0`), `F`/`M`/`T` and the mode names: [rigctld(1)](https://man.archlinux.org/man/rigctld.1.en)
+- Model 1 is the Hamlib dummy radio, model 2 is NET rigctl: [hamlib-utilities(7)](https://www.mankier.com/7/hamlib-utilities)
+- cloud-init on Raspberry Pi OS Trixie (`user-data` on the boot partition, from the 24 November 2025 image): [Raspberry Pi, "Cloud-init on Raspberry Pi OS"](https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/)
+- cloud-init `users` (`plain_text_passwd`, `lock_passwd`) and `packages`: [cloud-init docs](https://docs.cloud-init.io/en/latest/reference/yaml_examples/user_groups.html), [modules](https://docs.cloud-init.io/en/latest/reference/modules.html)
+- `arecord` raw capture options (`-t raw -f S16_LE -r 48000 -c 1`, `-D`): [arecord(1)](https://man.archlinux.org/man/arecord.1.en)
+- PostgreSQL row locks, `FOR UPDATE SKIP LOCKED` for queue consumers: [PostgreSQL docs, SELECT, The Locking Clause](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
+- launchd agent keys (`RunAtLoad`, `KeepAlive` with `SuccessfulExit`, `ThrottleInterval`, `StandardOutPath`): [launchd.plist(5)](https://leancrew.com/all-this/man/man5/launchd.plist.html)
+- Homebrew formulae: [hamlib](https://formulae.brew.sh/formula/hamlib), [node@22](https://formulae.brew.sh/formula/node@22), [sox](https://formulae.brew.sh/formula/sox) (provides `rec`)
+- sox raw output to stdout (`-` as the file name, `-t raw -b 16 -e signed-integer`): [sox(1)](https://man.archlinux.org/man/sox.1.en)
+- `libhamlib-utils` package in Debian trixie: [Debian manpages](https://dyn.manpages.debian.org/trixie/libhamlib-utils/rigctl.1.en.html)
+- HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)
