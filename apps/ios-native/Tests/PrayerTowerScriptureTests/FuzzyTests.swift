@@ -63,7 +63,8 @@ struct VowelEmbedder: SentenceEmbedder {
         #expect(await fuzzy.search("eee").isEmpty)
         await fuzzy.prepare(library)
         #expect(await fuzzy.state == .ready)
-        #expect(await fuzzy.search("eee", count: 2).map(\.reference) == ["Test 3:1", "Test 4:1"])
+        // "eeef" counts as three e's, the same as "eee", so it comes first; "eeee" next.
+        #expect(await fuzzy.search("eee", count: 2).map(\.reference) == ["Test 4:1", "Test 3:1"])
         // A second search object reads the kept index instead of embedding again.
         #expect(FuzzyIndex.load(from: folder, embedder: "vowels")?.groups.count == rows.count)
     }
