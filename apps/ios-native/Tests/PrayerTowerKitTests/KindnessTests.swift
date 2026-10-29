@@ -158,3 +158,19 @@ extension APIClientTests {
         #expect(try await client().feed().posts.first?.actions == ["praying_now", "commit", "well_wishes"])
     }
 }
+
+@Suite struct KindWordsTests {
+    @Test func keepsOneMomentAllWeekAndHasWordsForEach() {
+        // 2026-10-26 is a Monday; through Sunday the moment stays, and the next Monday moves on.
+        let monday = Date(timeIntervalSince1970: 1_792_972_800)
+        let sunday = monday.addingTimeInterval(6 * 86_400 + 3_600)
+        #expect(KindWords.moment(for: monday) == KindWords.moment(for: sunday))
+        #expect(KindWords.moment(for: monday.addingTimeInterval(7 * 86_400)) == (KindWords.moment(for: monday) + 1) % 6)
+        let w = Words(.neutral)
+        for week in 0..<6 {
+            let k = KindWords.keys(for: monday.addingTimeInterval(Double(week) * 7 * 86_400))
+            #expect(w(k.situation) != k.situation)
+            for r in k.replies { #expect(w(r.reply) != r.reply && w(r.note) != r.note) }
+        }
+    }
+}

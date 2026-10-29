@@ -24,6 +24,9 @@ struct MeView: View {
                     Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
                 }
                 PrayerLifeSection()
+                GratitudeSection()
+                KindWordsSection()
+                EncouragerSection()
                 FeedStyleSection()
                 if model.features["skinGallery"] || model.features["themeProposals"] {
                     Section {
@@ -54,6 +57,9 @@ struct MeView: View {
                 Section {
                     NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
                     NavigationLink(w("profile.scheduled")) { ScheduledGiftsView() }
+                }
+                if model.me?.roles.contains("admin") == true {
+                    Section { NavigationLink(w("starter.title")) { AdminKindnessView() } }
                 }
                 Section {
                     if model.features["remembered"] { NavigationLink(w("practices.lookBack")) { RememberedView() } }

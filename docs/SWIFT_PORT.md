@@ -35,6 +35,13 @@ Each one reads the same admin switch as the Expo app and shows nothing while it 
 | Circle welcome and circle updates ("How it's going", answered) | `circleWelcome`, `circleUpdates` (both need circles) | `CirclePost.Update` |
 | Fresh-start days on Me: up to three dates, and today's fresh start | `freshDays` | `FreshDayRules`, `FreshDay` |
 | "Your prayer life" on Me, with gentle rhythm, weeks of prayer, welcome back, fresh starts and the weekly intention (1 to 6 days, or no aim) | `gentleRhythm`, `gentleStreak`, `weeklyIntention` | `PrayerStats`, `PrayerLifeSection` |
+| Three good things on Me: up to three a week, a reminder day, share as praise or to a circle | `gratitudeCard` (`circleUpdates` for circles) | `Gratitude`, `GratitudeSection` |
+| Kind words practice on Me: a made-up moment each week, three replies, and how each might land; nothing leaves the phone | `empathyPractice` | `KindWords`, `KindWordsSection` |
+| Encourager on Me: ask for a welcoming volunteer or volunteer, end a match with one tap, and the one-time "How is it going?" | `encourager`, `encouragerCheckin` | `EncouragerState`, `EncouragerSection` |
+| "Share how it's going?" on the author's own post, once, with "Prefer not to say" | `followupNudge` | `FollowupAnswer`, `FollowupSection` |
+| Who can reply: the author picks everyone, people who prayed, or no comments; others see a gentle note instead of the box | `replyChoice` | `ReplyChoiceState` |
+| Answered marks: a gold "Answered" mark on the card, and links between a request and its answered-prayer story | `answeredStories` for the links | `Card.isAnswered`, `StoryLink` |
+| Admin → Kindness (admins only): the kindness starter set in one tap, and the weekly kindness weather from totals | `kindness_weather_enabled` for the weather | `KindnessStarter`, `WeatherWeek`, `AdminKindnessView` |
 
 Commit to Pray and Gift Tokens keep their icons in the row, and for now say they are coming soon (phases 2 and 4). Open Circle wording comes from the same words as `neutral.ts`, and a test checks the kind cloud has no religious words there.
 
