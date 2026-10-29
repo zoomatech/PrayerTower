@@ -809,3 +809,4 @@ export function signalCode(fingerprint: string): string | null {
   }
   return `${out.slice(0, 4)}-${out.slice(4, 8)}-${out.slice(8)}`;
 }
+export { neutralText, RELIGIOUS_WORDS } from './neutral-text';
