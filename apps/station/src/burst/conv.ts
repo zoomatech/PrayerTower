@@ -23,9 +23,9 @@ for (let s = 0; s < STATES; s++) {
 }
 const next = (s: number, b: number) => ((b << 6) | s) >> 1;
 
-export type InnerCode = 'r12' | 'r23';
-/** Which of each pair of coded bits are sent: rate 2/3 drops every second G2 bit. */
-const PUNCTURE: Record<InnerCode, number[]> = { r12: [1, 1], r23: [1, 1, 1, 0] };
+export type InnerCode = 'r12' | 'r23' | 'r34';
+/** Which of each pair of coded bits are sent: rate 2/3 drops every second G2 bit; rate 3/4 sends G1 G2, G2, G1 of each three input bits. */
+const PUNCTURE: Record<InnerCode, number[]> = { r12: [1, 1], r23: [1, 1, 1, 0], r34: [1, 1, 0, 1, 1, 0] };
 
 /** Coded (sent) bit count for a payload of `bytes` bytes, including the 6-bit tail. */
 export function codedBits(bytes: number, code: InnerCode): number {

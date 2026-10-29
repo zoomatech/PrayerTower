@@ -14,7 +14,7 @@ jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn(async () => ({}
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), canGoBack: () => true, back: jest.fn() }, useFocusEffect: (f: () => void) => require('react').useEffect(f, [f]) }));
 jest.mock('@/lib/api', () => ({ api: { whyGifts: jest.fn(), givingInfo: jest.fn() } }));
 
-const giving = (enabled: boolean) => jest.mocked(api.givingInfo).mockResolvedValue({ enabled, provider: enabled ? 'stripe' : 'none', url: null, minCents: 100, maxCents: 100000, everyoneMonthly: 0, allocationRequests: false });
+const giving = (enabled: boolean) => jest.mocked(api.givingInfo).mockResolvedValue({ enabled, provider: enabled ? 'stripe' : 'none', url: null, paypalUrl: null, minCents: 100, maxCents: 100000, everyoneMonthly: 0, allocationRequests: false });
 
 const copy = (over: Partial<Copy> = {}): Copy => ({
   title: 'How we pay for it: gifts, not ads',

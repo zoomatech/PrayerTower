@@ -18,6 +18,8 @@ export default function PersonScreen() {
   const [person, setPerson] = useState<Person | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // "Give to …" shows while card giving (Stripe) is on; a Zeffy form can't name a member.
+  const [givingOn, setGivingOn] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +34,9 @@ export default function PersonScreen() {
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    api.givingInfo().then((g) => setGivingOn(g.enabled && g.provider === 'stripe'), () => undefined);
+  }, []);
 
   const { onAction, sheets } = useCardActions(load);
 
@@ -105,6 +110,13 @@ export default function PersonScreen() {
             ) : (
               <Button variant="secondary" label={t('person.message')} onPress={() => setMessageOpen(true)} />
             )}
+            {givingOn ? (
+              <Button
+                variant="secondary"
+                label={t('give.toPerson', { name: person.displayName })}
+                onPress={() => router.push({ pathname: '/give', params: { to: id, name: person.displayName } })}
+              />
+            ) : null}
             <Text style={styles.block} onPress={toggleBlock} accessibilityRole="button">
               {blocked ? t('person.unblock', { name: person.displayName }) : t('person.block', { name: person.displayName })}
             </Text>

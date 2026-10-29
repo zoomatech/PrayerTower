@@ -16,6 +16,10 @@ export interface DonationSettings {
   enabled: boolean;
   provider: 'none' | 'stripe' | 'zeffy';
   donate_url: string | null;
+  /** PayPal's Donate link: a second way to give, beside Stripe or Zeffy. */
+  paypal_url: string | null;
+  /** How Zeffy's API gives amounts; cents unless the first synced gifts show dollars. */
+  zeffy_amount_unit: 'cents' | 'dollars';
   min_cents: number;
   max_cents: number;
   priestly_per_dollar: number;
@@ -33,7 +37,7 @@ export interface StripeKeys {
 
 export async function settings(q: Queryable): Promise<DonationSettings> {
   const { rows } = await q.query<DonationSettings>(
-    `select enabled, provider, donate_url, min_cents, max_cents, priestly_per_dollar, regular_per_dollar,
+    `select enabled, provider, donate_url, paypal_url, zeffy_amount_unit, min_cents, max_cents, priestly_per_dollar, regular_per_dollar,
             everyone_monthly, allocation_requests_enabled, allocation_max_per_request from public.donation_settings`,
   );
   return rows[0]!;
@@ -44,6 +48,8 @@ export const SettingsPatch = z
     enabled: z.boolean(),
     provider: z.enum(['none', 'stripe', 'zeffy']),
     donateUrl: z.url().startsWith('https://').nullable(),
+    paypalUrl: z.url().startsWith('https://').nullable(),
+    zeffyAmountUnit: z.enum(['cents', 'dollars']),
     minCents: z.number().int().min(50).max(1_000_000),
     maxCents: z.number().int().min(50).max(100_000_000),
     priestlyPerDollar: z.number().int().min(0).max(1000),
@@ -63,11 +69,13 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
         priestly_per_dollar = coalesce($7, priestly_per_dollar), regular_per_dollar = coalesce($8, regular_per_dollar),
         everyone_monthly = coalesce($9, everyone_monthly),
         allocation_requests_enabled = coalesce($10, allocation_requests_enabled),
-        allocation_max_per_request = coalesce($11, allocation_max_per_request)`,
+        allocation_max_per_request = coalesce($11, allocation_max_per_request),
+        paypal_url = case when $12::boolean then $13 else paypal_url end,
+        zeffy_amount_unit = coalesce($14, zeffy_amount_unit)`,
     [
       p.enabled ?? null, p.provider ?? null, p.donateUrl !== undefined, p.donateUrl ?? null, p.minCents ?? null, p.maxCents ?? null,
       p.priestlyPerDollar ?? null, p.regularPerDollar ?? null, p.everyoneMonthly ?? null, p.allocationRequestsEnabled ?? null,
-      p.allocationMaxPerRequest ?? null,
+      p.allocationMaxPerRequest ?? null, p.paypalUrl !== undefined, p.paypalUrl ?? null, p.zeffyAmountUnit ?? null,
     ],
   );
   return settings(q);
@@ -77,10 +85,12 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
 export async function info(q: Queryable, stripe: StripeKeys | null) {
   const s = await settings(q);
   const ready = s.enabled && ((s.provider === 'zeffy' && !!s.donate_url) || (s.provider === 'stripe' && !!stripe));
+  const paypalUrl = s.enabled ? s.paypal_url : null;
   return {
-    enabled: ready,
+    enabled: ready || !!paypalUrl,
     provider: ready ? s.provider : 'none',
     url: ready && s.provider === 'zeffy' ? s.donate_url : null,
+    paypalUrl,
     minCents: s.min_cents,
     maxCents: s.max_cents,
     everyoneMonthly: s.enabled ? s.everyone_monthly : 0,
@@ -131,7 +141,7 @@ async function checkTarget(q: Queryable, target: z.infer<typeof Target>) {
 
 async function insert(
   q: Queryable,
-  d: { donorId: string | null; amountCents: number; provider: 'stripe' | 'zeffy' | 'manual'; providerRef: string | null; target: z.infer<typeof Target>; showDonor: boolean; recordedBy: string | null },
+  d: { donorId: string | null; amountCents: number; provider: 'stripe' | 'zeffy' | 'paypal' | 'manual'; providerRef: string | null; target: z.infer<typeof Target>; showDonor: boolean; recordedBy: string | null },
 ) {
   const { rows } = await q.query<{ id: string }>(
     `insert into public.donations (donor_id, amount_cents, provider, provider_ref, target_kind, target_user_id, target_pool_id, show_donor, recorded_by)
@@ -164,7 +174,36 @@ export async function markPaid(q: Queryable, donationId: string) {
   if (d.target_kind === 'pool' && regular > 0) await tokens.creditPool(q, d.target_pool_id!, regular, `${key}:pool`, 'Gift to pool');
   if (d.target_kind === 'member' && priestly > 0) await tokens.creditPurchase(q, d.target_user_id!, priestly, `${key}:member`, 'priestly');
   if (d.target_kind === 'everyone' && priestly > 0) await tokens.creditFund(q, priestly, `${key}:fund`, 'Gift to everyone');
-  if (d.donor_id && regular > 0) await tokens.earn(q, d.donor_id, regular, `${key}:giver`, 'Thank you for giving');
+  if (d.donor_id && regular > 0) {
+    const t = await tokens.earn(q, d.donor_id, regular, `${key}:giver`, 'Thank you for giving');
+    await q.query('update public.donations set giver_transfer_id = $2 where id = $1', [donationId, t.id]);
+  }
+  return true;
+}
+
+/**
+ * A paid gift was refunded (Stripe's charge.refunded, or an admin). It is marked refunded and
+ * the giver's thank-you tokens are taken back while they still have them. What the gift
+ * already gave to everyone, a member or a pool stays given.
+ */
+export async function refund(q: Queryable, donationId: string, byUserId: string | null) {
+  const { rows } = await q.query<{ donor_id: string | null; giver_transfer_id: string | null }>(
+    `update public.donations set status = 'refunded', refunded_at = now() where id = $1 and status = 'paid' returning donor_id, giver_transfer_id`,
+    [donationId],
+  );
+  const d = rows[0];
+  if (!d) return false;
+  if (d.donor_id && d.giver_transfer_id) {
+    // A savepoint, so tokens already spent don't abort the caller's transaction.
+    await q.query('savepoint donation_refund');
+    try {
+      await tokens.clawback(q, d.giver_transfer_id, byUserId ?? d.donor_id, 'Gift refunded');
+      await q.query('release savepoint donation_refund');
+    } catch (err) {
+      await q.query('rollback to savepoint donation_refund');
+      if ((err as AppError).code !== 'insufficient_tokens') throw err;
+    }
+  }
   return true;
 }
 
@@ -174,14 +213,19 @@ export const ManualDonation = z.object({
   target: Target.default({ kind: 'everyone' }),
   showDonor: z.boolean().default(false),
   reference: z.string().trim().max(120).optional(),
+  /** How it came in: cash or a check, a Zeffy form, or PayPal. The reference (a receipt or transaction ID) can be recorded once. */
+  via: z.enum(['manual', 'zeffy', 'paypal']).default('manual'),
 });
 
 /** An admin records a gift that came in another way (cash, check, a Zeffy form). */
 export async function record(q: Queryable, adminId: string, input: z.infer<typeof ManualDonation>) {
   await checkTarget(q, input.target);
   const id = await insert(q, {
-    donorId: input.donorId, amountCents: input.amountCents, provider: 'manual', providerRef: input.reference ?? null,
+    donorId: input.donorId, amountCents: input.amountCents, provider: input.via, providerRef: input.reference || null,
     target: input.target, showDonor: input.showDonor, recordedBy: adminId,
+  }).catch((err: { code?: string }) => {
+    if (err.code === '23505') throw conflict('This gift was already recorded');
+    throw err;
   });
   await markPaid(q, id);
   return { id };
@@ -253,15 +297,26 @@ export function verifyStripeSignature(raw: string, header: string | undefined, s
 }
 
 /** A Stripe event: a paid Checkout (card at once, bank transfer when it clears) marks its gift paid. */
-export async function stripeEvent(q: Queryable, event: { type?: string; data?: { object?: { id?: string; payment_status?: string; metadata?: { donation_id?: string } } } }) {
-  const session = event.data?.object;
-  const id = session?.metadata?.donation_id;
+type StripeObject = { id?: string; payment_status?: string; payment_intent?: string | null; refunded?: boolean; metadata?: { donation_id?: string } };
+
+export async function stripeEvent(q: Queryable, event: { type?: string; data?: { object?: StripeObject } }) {
+  const obj = event.data?.object;
+  // A full refund from the Stripe Dashboard: the charge names the payment, not our gift.
+  if (event.type === 'charge.refunded') {
+    if (!obj?.refunded || !obj.payment_intent) return false;
+    const { rows } = await q.query<{ id: string }>(`select id from public.donations where provider = 'stripe' and provider_payment = $1`, [obj.payment_intent]);
+    return rows[0] ? refund(q, rows[0].id, null) : false;
+  }
+  const id = obj?.metadata?.donation_id;
   if (!id) return false;
+  if (obj?.payment_intent) {
+    await q.query('update public.donations set provider_payment = $2 where id = $1 and provider_payment is null', [id, obj.payment_intent]);
+  }
   const paid =
-    (event.type === 'checkout.session.completed' && session?.payment_status === 'paid') || event.type === 'checkout.session.async_payment_succeeded';
+    (event.type === 'checkout.session.completed' && obj?.payment_status === 'paid') || event.type === 'checkout.session.async_payment_succeeded';
   if (paid) return markPaid(q, id);
   if (event.type === 'checkout.session.async_payment_failed' || event.type === 'checkout.session.expired') {
-    await q.query(`update public.donations set status = 'refunded' where id = $1 and status = 'pending'`, [id]);
+    await q.query(`update public.donations set status = 'failed' where id = $1 and status = 'pending'`, [id]);
   }
   return false;
 }

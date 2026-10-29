@@ -51,6 +51,7 @@ const app = buildApp({
   rateLimitPerMinute: config.RATE_LIMIT_PER_MINUTE,
   clientIpHeader: config.CLIENT_IP_HEADER ?? null,
   stripe: config.STRIPE_SECRET_KEY ? { secretKey: config.STRIPE_SECRET_KEY, webhookSecret: config.STRIPE_WEBHOOK_SECRET ?? null } : null,
+  zeffy: config.ZEFFY_API_KEY ? { apiKey: config.ZEFFY_API_KEY, webhookToken: config.ZEFFY_WEBHOOK_TOKEN ?? null } : null,
   metricsToken: config.METRICS_TOKEN ?? null,
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,
