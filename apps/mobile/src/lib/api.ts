@@ -610,6 +610,80 @@ export interface RadioNodes {
   reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
 }
 
+/** Admin → Radio → Setup wizard (server radio/setup.ts). */
+export interface RadioSetupChoice {
+  rig?: string;
+  model?: number;
+  port?: string;
+  speed?: number;
+  band?: 'fm' | 'hf';
+  frequencyHz?: number;
+}
+export interface RadioSetupTest {
+  id: string;
+  kind: 'tone' | 'burst';
+  status: 'requested' | 'sending' | 'sent' | 'heard' | 'failed';
+  seconds: number;
+  code: string;
+  call_sign: string | null;
+  preset: string | null;
+  peak_dbfs: number | null;
+  heard_by: string | null;
+  heard_snr_db: number | null;
+  heard_peak_dbfs: number | null;
+  error: string | null;
+  created_at: string;
+  sent_at: string | null;
+  heard_at: string | null;
+  /** The receiver's level: quiet (under -30 dBFS), good, or hot (clipping). */
+  advice?: 'quiet' | 'good' | 'hot' | null;
+}
+export interface RadioSetup {
+  enabled: boolean;
+  choice: RadioSetupChoice;
+  rigs: { id: string; label: string; model: number | null }[];
+  env: { rigctld: string[]; station: string[] };
+  checks: { call_sign: string; checks: { name: string; ok: boolean; detail: string }[]; reported_at: string }[];
+  tests: RadioSetupTest[];
+}
+
+/** Admin → Radio → Coverage map (server radio/coverage.ts). Locations are rounded to about a city. */
+export interface CoveragePoint {
+  id: string;
+  name: string;
+  place: string | null;
+  lat: number;
+  lon: number;
+  snrDb: number | null;
+  reports: number;
+  lastHeardAt: string | null;
+  lastSeenAt: string | null;
+  quality: 'strong' | 'fair' | 'weak' | 'none';
+}
+export interface RadioCoverage {
+  enabled: boolean;
+  tileUrl: string;
+  station: { lat: number; lon: number } | null;
+  points: CoveragePoint[];
+  unplaced: { id: string; name: string }[];
+}
+
+/** Admin → Radio → Weekly radio digest (server radio/digest.ts). */
+export interface RadioDigestWeek {
+  week_start: string;
+  aired: number;
+  heard: number;
+  answered: number;
+  thanksgiving: number;
+  praying_too: number;
+  failed: number;
+}
+export interface RadioDigest {
+  enabled: boolean;
+  email: boolean;
+  weeks: RadioDigestWeek[];
+}
+
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
 export interface StationBurst {
   id: string;
@@ -1505,6 +1579,15 @@ export const api = {
     setListenerMode: (enabled: boolean) => request<{ enabled: boolean; active: boolean }>('PATCH', '/admin/listener-mode', { enabled }),
     updateRadioHealth: (patch: { enabled?: boolean; acks?: Partial<{ enabled: boolean; timeoutMinutes: number; maxRetries: number }> }) => request<StationHealth>('PATCH', '/admin/radio-health', patch),
     radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
+    radioSetup: () => get<RadioSetup>('/admin/radio-setup'),
+    updateRadioSetup: (patch: { enabled?: boolean; choice?: RadioSetupChoice }) => request<RadioSetup>('PATCH', '/admin/radio-setup', patch),
+    requestSetupTest: (kind: RadioSetupTest['kind'], seconds?: number) => request<{ test: RadioSetupTest }>('POST', '/admin/radio-setup/tests', { kind, ...(seconds ? { seconds } : {}) }),
+    confirmSetupTest: (id: string) => request<{ test: RadioSetupTest }>('POST', `/admin/radio-setup/tests/${id}/confirm`),
+    radioCoverage: () => get<RadioCoverage>('/admin/radio-coverage'),
+    updateRadioCoverage: (patch: { enabled?: boolean; tileUrl?: string; station?: { lat: number; lon: number } | null }) => request<RadioCoverage>('PATCH', '/admin/radio-coverage', patch),
+    placeRadioNode: (id: string, location: { lat: number; lon: number; place?: string } | null) => request<RadioCoverage>('PUT', `/admin/radio-nodes/${id}/location`, { location }),
+    radioDigest: () => get<RadioDigest>('/admin/radio-digest'),
+    updateRadioDigest: (patch: { enabled?: boolean; email?: boolean }) => request<RadioDigest>('PATCH', '/admin/radio-digest', patch),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),

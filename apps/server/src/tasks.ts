@@ -16,6 +16,7 @@ import { createMailer, type Mailer } from './modules/digest/mailer.js';
 import { weeklySponsorReportTask } from './modules/admin/sponsor-report.js';
 import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
+import { weeklyTask as radioDigestTask } from './modules/radio/digest.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
 import { weeklyReportTask as harmWeeklyReportTask } from './modules/moderator-care/index.js';
 import { oncallCheckTask } from './modules/moderator-care/oncall.js';
@@ -63,6 +64,7 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { classi
       12,
       config.SPONSOR_REPORT_LANG,
     ),
+    radio_digest_weekly: radioDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     token_ledger_check: ledgerCheckTask(db),
     harm_weekly_report: harmWeeklyReportTask(db),
     oncall_check: oncallCheckTask(db),
@@ -99,6 +101,8 @@ export const crontab = [
   '0 19 * * 0 digest_weekly ?max=10&fill=6h',
   // Monday 08:00: pilot report to SPONSOR_REPORT_TO.
   '0 8 * * 1 sponsor_report_weekly ?max=10&fill=1d',
+  // Monday 07:00: last week's radio prayer digest, emailed to admins when that is on (only while switched on).
+  '0 7 * * 1 radio_digest_weekly ?max=10&fill=1d&jobKey=radio_digest_weekly',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
   '30 3 * * * retention_purge ?max=10&fill=1d&jobKey=retention_purge',
   // Monday 07:00: last week's harmful-prayer report to admins (only while the switch is on).

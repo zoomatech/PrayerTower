@@ -12,6 +12,9 @@
 //  - 'ink'       a pen-and-ink drawing: dark outlines on trunk and leaves, flat colors.
 //  - 'neon'      not a plant at all: straight glowing rods with hard right-angle joins
 //                and cut-corner frames, the way neon tubes glow (Neon Cinderella).
+//  - 'floral'    a climbing rose (Blossom Garden): a slender stem twined with a
+//                tendril, small thorns, blossoms and buds along it, and each post in
+//                a frame with a scalloped petal edge and a drawn rose at its top.
 //  - 'gate'      fine lines of silver light on a night sky (Moonlit Gate): a thin
 //                line of light runs down from the gate drawn at the top of the feed,
 //                and each post sits in a little arched doorway of light.
@@ -19,14 +22,15 @@
 // On a phone the stalk runs down the left edge and the leaves hang to its right;
 // on a wide lane (iPad, Mac) it runs down the middle with leaves on both sides.
 import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
-import { useState, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Easing, StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space } from '@/lib/theme';
 
 export type VineSide = 'left' | 'right';
-export type VineStyle = '' | 'beanstalk' | 'ink' | 'neon' | 'gate';
+export type VineStyle = '' | 'beanstalk' | 'ink' | 'neon' | 'gate' | 'floral';
 
 /** Styles drawn in light on a dark sky rather than as a plant. */
 export const isLit = (style: VineStyle) => style === 'neon' || style === 'gate';
@@ -124,6 +128,56 @@ export function doorway(w: number, h: number, inset: number, arch: number) {
   return `M ${l} ${h - inset} L ${l} ${spring} C ${l} ${top + arch * 0.35}, ${w * 0.3} ${top}, ${w / 2} ${top} C ${w * 0.7} ${top}, ${r} ${top + arch * 0.35}, ${r} ${spring} L ${r} ${h - inset} Z`;
 }
 
+/** A five-petal blossom centered on (x, y), petals of length r. */
+export function blossomPetals(x: number, y: number, r: number, turn = 0) {
+  return Array.from({ length: 5 }, (_, i) => {
+    const a = turn + (i * 2 * Math.PI) / 5 - Math.PI / 2;
+    const tx = x + r * Math.cos(a);
+    const ty = y + r * Math.sin(a);
+    const w = r * 0.62;
+    const nx = -Math.sin(a) * w;
+    const ny = Math.cos(a) * w;
+    return `M ${x} ${y} C ${(x + nx + (tx - x) * 0.3).toFixed(1)} ${(y + ny + (ty - y) * 0.3).toFixed(1)}, ${(tx + nx * 0.6).toFixed(1)} ${(ty + ny * 0.6).toFixed(1)}, ${tx.toFixed(1)} ${ty.toFixed(1)} C ${(tx - nx * 0.6).toFixed(1)} ${(ty - ny * 0.6).toFixed(1)}, ${(x - nx + (tx - x) * 0.3).toFixed(1)} ${(y - ny + (ty - y) * 0.3).toFixed(1)}, ${x} ${y} Z`;
+  }).join(' ');
+}
+
+/** A rose seen from above: a ring of outer petals and a tight spiral at the heart. */
+function Rose({ x, y, r, petal, heart }: { x: number; y: number; r: number; petal: string; heart: string }) {
+  const spiral: string[] = [];
+  for (let t = 0; t <= 4 * Math.PI; t += 0.35) {
+    const rr = r * 0.12 + (r * 0.5 * t) / (4 * Math.PI);
+    spiral.push(`${(x + rr * Math.cos(t)).toFixed(1)} ${(y + rr * Math.sin(t)).toFixed(1)}`);
+  }
+  return (
+    <>
+      <Path d={`M ${x - r * 0.9} ${y + r * 0.4} q ${-r * 0.9} ${-r * 0.1}, ${-r * 1.4} ${r * 0.6} q ${r * 0.8} ${r * 0.3}, ${r * 1.4} ${-r * 0.6} z M ${x + r * 0.9} ${y + r * 0.4} q ${r * 0.9} ${-r * 0.1}, ${r * 1.4} ${r * 0.6} q ${-r * 0.8} ${r * 0.3}, ${-r * 1.4} ${-r * 0.6} z`} fill="#7FA36A" stroke="#557A44" strokeWidth={0.8} />
+      <Path d={blossomPetals(x, y, r, 0.3)} fill={petal} stroke={mix(petal, '#000000', 0.25)} strokeWidth={0.8} />
+      <Path d={blossomPetals(x, y, r * 0.7, 0.9)} fill={mix(petal, heart, 0.35)} stroke={mix(petal, '#000000', 0.3)} strokeWidth={0.6} />
+      <Path d={`M ${spiral.join(' L ')}`} stroke={heart} strokeWidth={1.4} fill="none" strokeLinecap="round" />
+    </>
+  );
+}
+
+/** A rounded frame whose edge is a chain of petal scallops. */
+function scallops(w: number, h: number, inset: number, size: number) {
+  const pts: string[] = [];
+  const nx = Math.max(3, Math.round((w - inset * 2) / size));
+  const ny = Math.max(2, Math.round((h - inset * 2) / size));
+  const sx = (w - inset * 2) / nx;
+  const sy = (h - inset * 2) / ny;
+  const l = inset;
+  const t = inset;
+  const r = w - inset;
+  const b = h - inset;
+  let d = `M ${l} ${t}`;
+  for (let i = 0; i < nx; i++) d += ` Q ${l + sx * (i + 0.5)} ${t - sy * 0.45 - 2}, ${l + sx * (i + 1)} ${t}`;
+  for (let i = 0; i < ny; i++) d += ` Q ${r + sx * 0.45 + 2} ${t + sy * (i + 0.5)}, ${r} ${t + sy * (i + 1)}`;
+  for (let i = nx - 1; i >= 0; i--) d += ` Q ${l + sx * (i + 0.5)} ${b + sy * 0.45 + 2}, ${l + sx * i} ${b}`;
+  for (let i = ny - 1; i >= 0; i--) d += ` Q ${l - sx * 0.45 - 2} ${t + sy * (i + 0.5)}, ${l} ${t + sy * i}`;
+  pts.push(d + ' Z');
+  return pts.join(' ');
+}
+
 /** A small leaf on the stalk itself. */
 function sprig(x: number, y: number, dir: 1 | -1) {
   const d = dir;
@@ -150,12 +204,38 @@ export function Rod({ d, color, width = 2.5, fine = false }: { d: string; color:
  * stem out to its leaf. `side` says which side of a centered stalk the leaf hangs
  * on; 'center' is a verse, a scene or a "more" link that sits over the stalk.
  */
+/** A spark of current running down a neon rod, again and again (Neon Cinderella). */
+function Spark({ x, h, color, seed }: { x: number; h: number; color: string; seed: number }) {
+  const run = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay((seed % 5) * 450),
+        Animated.timing(run, { toValue: 1, duration: 1500, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+        Animated.timing(run, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.delay(2200),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [run, seed]);
+  const y = run.interpolate({ inputRange: [0, 1], outputRange: [-24, h] });
+  return (
+    <>
+      {/* A fading tail, then the white-hot head with the tube's color blooming round it. */}
+      <Animated.View pointerEvents="none" style={[styles.sparkTail, { left: x - 2, backgroundColor: color, transform: [{ translateY: y }] }]} />
+      <Animated.View pointerEvents="none" style={[styles.spark, { left: x - 4, shadowColor: color, transform: [{ translateY: Animated.add(y, 18) }] }]} />
+    </>
+  );
+}
+
 export function VineRow({
   side,
   look,
   gap = VINE_GAP,
   depth = 0,
   seed = 0,
+  grow = false,
   testID,
   children,
 }: {
@@ -166,10 +246,18 @@ export function VineRow({
   gap?: number;
   depth?: number;
   seed?: number;
+  /** A new post just arrived: the stalk grows down into this row. */
+  grow?: boolean;
   testID?: string;
   children: ReactNode;
 }) {
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const reduced = useReducedMotion();
+  const reveal = useRef(new Animated.Value(grow && !reduced ? 0 : 1)).current;
+  useEffect(() => {
+    if (!grow || reduced) return reveal.setValue(1);
+    Animated.timing(reveal, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [grow, reduced, reveal]);
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     if (Math.abs(width - size.w) > 1 || Math.abs(height - size.h) > 1) setSize({ w: width, h: height });
@@ -181,6 +269,7 @@ export function VineRow({
   const out: 1 | -1 = g.centered ? (leafSide === 'left' ? 1 : -1) : 1; // tendrils curl away from the leaf
   const neon = look.vineStyle === 'neon';
   const gate = look.vineStyle === 'gate';
+  const floral = look.vineStyle === 'floral';
   const sw = look.stemWidth;
   const sway = neon || gate ? 0 : (seed % 2 === 0 ? 1 : -1) * Math.min(8, sw + 3);
   // The stem from the stalk out to the leaf's base, at the top middle of the leaf.
@@ -200,7 +289,30 @@ export function VineRow({
 
   let stalk: ReactNode = null;
   if (w && h) {
-    if (gate) {
+    if (floral) {
+      // A climbing rose: the stem, a tendril twining round it, thorns, and blossoms and buds along it.
+      const path = stalkPath(sx, h, sway);
+      const twine = strand(sx, h, Math.max(4, sw + 2), seed);
+      const blooms = [0.28, 0.7].filter((t) => h * t > 30 && h > 120);
+      stalk = (
+        <>
+          <Path d={twine} stroke={look.tendril} strokeOpacity={0.7} strokeWidth={1.2} fill="none" />
+          <Path d={path} stroke={look.stem} strokeWidth={sw} fill="none" strokeLinecap="round" />
+          {stem ? <Path d={stem} stroke={look.stem} strokeWidth={stemW} fill="none" strokeLinecap="round" /> : null}
+          {[0.15, 0.45, 0.6, 0.88].map((t) => (
+            <Path key={t} d={`M ${sx} ${h * t} l ${-out * 5} -3 l ${out * 1} 4 z`} fill={look.stem} />
+          ))}
+          {h > 120 ? <Path d={sprig(sx, h * 0.84, (-out) as 1 | -1)} fill={mix(look.stem, '#FFFFFF', 0.25)} stroke={look.stem} strokeWidth={0.8} /> : null}
+          {blooms.map((t, i) => (
+            <Path key={t} d={blossomPetals(sx + (i % 2 ? out : -out) * 9, h * t, 8, seed)} fill={look.leaf} stroke={mix(look.leaf, '#000000', 0.25)} strokeWidth={0.7} />
+          ))}
+          {blooms.map((t, i) => (
+            <Circle key={`c${t}`} cx={sx + (i % 2 ? out : -out) * 9} cy={h * t} r={2.2} fill="#E8B84A" />
+          ))}
+          {h > 200 ? <Path d={`M ${sx} ${h * 0.52} q ${-out * 10} -4, ${-out * 12} -14 q ${out * 6} 2, ${out * 12} 14 z`} fill={mix(look.leaf, '#000000', 0.12)} /> : null}
+        </>
+      );
+    } else if (gate) {
       // A thread of light straight down, with a few small stars caught on it.
       stalk = (
         <>
@@ -255,10 +367,14 @@ export function VineRow({
   return (
     <View style={[styles.row, { paddingTop: gap }]} onLayout={onLayout} testID={testID}>
       {stalk ? (
-        <Svg style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {stalk}
-        </Svg>
+        // The drawing is uncovered from the top down, so a new row's stalk grows into place.
+        <Animated.View style={[styles.reveal, { width: w, height: reveal.interpolate({ inputRange: [0, 1], outputRange: [0, h] }) }]} pointerEvents="none">
+          <Svg width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            {stalk}
+          </Svg>
+        </Animated.View>
       ) : null}
+      {neon && h && !reduced ? <Spark x={sx} h={h} color={look.stem} seed={seed} /> : null}
       <View style={placed}>{children}</View>
     </View>
   );
@@ -291,6 +407,7 @@ export function LeafFrame({
   const { w, h } = size;
   const neon = look.vineStyle === 'neon';
   const gate = look.vineStyle === 'gate';
+  const floral = look.vineStyle === 'floral';
   const arch = Math.min(72, Math.max(30, w * 0.22));
   const ink = look.vineStyle === 'ink' ? look.ink || '#3A2E1F' : '';
   const pad = LEAF_PAD[Math.min(depth, 2) as 0 | 1 | 2];
@@ -312,6 +429,8 @@ export function LeafFrame({
         styles.leaf,
         gate
           ? { paddingTop: arch * 0.7 + 14, paddingBottom: 16, paddingHorizontal: 16 }
+          : floral
+          ? { paddingTop: depth ? 26 : 40, paddingBottom: depth ? 14 : 18, paddingHorizontal: depth ? 14 : 18 }
           : { paddingVertical: neon ? 14 : pad, paddingHorizontal: neon ? 14 : Math.max(10, w * 0.08) },
       ]}
       onLayout={(e) => {
@@ -320,7 +439,23 @@ export function LeafFrame({
       }}>
       {w ? (
         <Svg style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {gate ? (
+          {floral ? (
+            <>
+              <Path d={scallops(w, h, depth ? 7 : 9, depth ? 18 : 24)} fill={mix(look.leafSoft, look.leaf, 0.35)} stroke={mix(look.leaf, '#000000', 0.2)} strokeWidth={1.2} />
+              <Path d={scallops(w, h, depth ? 12 : 15, depth ? 18 : 24)} fill="none" stroke={look.leaf} strokeOpacity={0.6} strokeWidth={0.8} />
+              {depth ? (
+                <>
+                  <Path d={blossomPetals(w / 2, 9, 9)} fill={look.leaf} stroke={mix(look.leaf, '#000000', 0.25)} strokeWidth={0.7} />
+                  <Circle cx={w / 2} cy={9} r={2.6} fill="#E8B84A" />
+                </>
+              ) : (
+                <>
+                  <Rose x={w / 2} y={16} r={15} petal={look.leaf} heart={mix(look.leaf, '#7A1E3A', 0.55)} />
+                  <Path d={`${blossomPetals(16, h - 14, 8)} ${blossomPetals(w - 16, h - 14, 8, 0.6)}`} fill={mix(look.leaf, '#FFFFFF', 0.3)} stroke={mix(look.leaf, '#000000', 0.25)} strokeWidth={0.6} />
+                </>
+              )}
+            </>
+          ) : gate ? (
             <>
               {/* The doorway opens on the night sky, also where the page around it is light (a post's comments). */}
               <Path d={doorway(w, h, 2, arch)} fill={look.backdrop || '#0B1324'} fillOpacity={0.92} />
@@ -364,7 +499,10 @@ export function leafCardSurface(look: VineLook): ViewStyle {
 }
 
 const styles = StyleSheet.create({
-  row: { position: 'relative' },
+  row: { position: 'relative', overflow: 'visible' },
+  reveal: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
+  spark: { position: 'absolute', top: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFFFFF', shadowOpacity: 1, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
+  sparkTail: { position: 'absolute', top: 0, width: 4, height: 22, borderRadius: 2, opacity: 0.45 },
   leaf: { position: 'relative' },
   inner: { padding: space.sm, borderRadius: radius.md },
   mark: { position: 'absolute', top: -10, alignSelf: 'center', zIndex: 1 },

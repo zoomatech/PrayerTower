@@ -192,6 +192,7 @@ export const keys: Tree = named({
     shareComment: '“%{body}” (%{name}, on an Open Circle request) %{url}',
   },
   talk: {
+    adminMeaningRowHint: 'Every card keeps its one row of action icons, in every feed skin. Thinking of you, well wishes, encourage and promise carry their emoji’s meanings: hovering shows them, pressing and holding opens up to five to choose from. Needs Emoji meanings on.',
     suggestTrouble: "I'm here for you.",
     careAsk: 'Want to talk about it?',
     closing1: "I'll be thinking of you. Talk soon.",
