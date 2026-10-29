@@ -1,13 +1,9 @@
 import PrayerTowerKit
-import PrayerTowerScripture
 import SwiftUI
 
 /// Scripture and ancient writings search, as the Expo app's library.tsx. Off unless an admin
 /// turns it on; the server decides which collections this member's community offers.
-/// Where the Bible is offered, two more searches run on the phone, ported from Winstons Syndicate
-/// (PrayerTowerScripture): "Who did what" (relationship search) and "A story I remember" (fuzzy search).
 struct LibraryView: View {
-    enum Mode: Hashable { case words, who, story }
     @Environment(AppModel.self) private var model
     @State private var overview: LibraryOverview?
     @State private var collection: String?
@@ -18,13 +14,7 @@ struct LibraryView: View {
     @State private var source = ""
     @State private var busy = false
     @State private var error: String?
-    @State private var mode = Mode.words
-    @State private var scope = VerseSearchScope.automatic
-    @State private var verseHits: [VerseSearchHit]?
-    @State private var stories: [FuzzyMatch]?
-    @State private var preparing: (done: Int, of: Int)?
     private var w: Words { model.words }
-    private var bibleOffered: Bool { overview?.collections.contains { $0.id == Library.bible } ?? false }
 
     var body: some View {
         List {
@@ -33,24 +23,8 @@ struct LibraryView: View {
                 if !overview.enabled {
                     Text(w("library.closed"))
                 } else {
-                    if bibleOffered {
-                        Picker("", selection: $mode) {
-                            Text(w("library.modeWords")).tag(Mode.words)
-                            Text(w("library.modeWho")).tag(Mode.who)
-                            Text(w("library.modeStory")).tag(Mode.story)
-                        }
-                        .pickerStyle(.segmented)
-                        .onChange(of: mode) { verseHits = nil; stories = nil; error = nil }
-                    }
                     Section {
-                        if mode == .who {
-                            Text(w("library.whoHint")).font(.footnote).foregroundStyle(.secondary)
-                            Picker(w("library.whoScope"), selection: $scope) {
-                                ForEach(VerseSearchScope.allCases, id: \.self) { Text($0.title).tag($0) }
-                            }
-                        }
-                        if mode == .story { Text(w("library.storyHint")).font(.footnote).foregroundStyle(.secondary) }
-                        if mode == .words, overview.collections.count > 1 {
+                        if overview.collections.count > 1 {
                             Picker(w("library.title"), selection: Binding(get: { collection ?? "" }, set: { choose($0) })) {
                                 ForEach(overview.collections) { Text($0.title).tag($0.id) }
                             }
@@ -58,44 +32,17 @@ struct LibraryView: View {
                         }
                         TextField(w("library.placeholder"), text: $words)
                             .submitLabel(.search)
-                            .onSubmit { go() }
+                            .onSubmit { run(0, words) }
                             .onChange(of: words) { _, v in if v.count > 200 { words = String(v.prefix(200)) } }
                             .accessibilityLabel(w("library.words"))
-                        Button(w("library.search")) { go() }
+                        Button(w("library.search")) { run(0, words) }
                             .disabled(words.trimmingCharacters(in: .whitespaces).isEmpty || busy)
-                        if let preparing {
-                            ProgressView(w("library.preparing", ["done": String(preparing.done), "total": String(preparing.of)]),
-                                         value: Double(preparing.done), total: Double(max(preparing.of, 1)))
-                        }
                     }
                 }
             } else if error == nil {
                 ProgressView()
             }
-            if mode == .who, let verseHits {
-                Section {
-                    ForEach(Array(verseHits.prefix(100).enumerated()), id: \.offset) { _, h in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(h.verse.id).font(.headline)
-                            Text(h.verse.text).textSelection(.enabled)
-                            Text(h.explanation).font(.caption).foregroundStyle(.secondary)
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                } header: { Text(verseHits.isEmpty ? w("library.none") : w("library.results", count: verseHits.count)) }
-            }
-            if mode == .story, let stories {
-                Section {
-                    ForEach(stories, id: \.reference) { m in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(m.reference).font(.headline)
-                            Text(m.group.text).textSelection(.enabled)
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                } header: { Text(stories.isEmpty ? w("library.none") : w("library.results", count: stories.count)) }
-            }
-            if mode == .words, let hits {
+            if let hits {
                 Section {
                     ForEach(Array(hits.enumerated()), id: \.offset) { _, h in passage(h) }
                     if hits.count < total {
@@ -133,51 +80,6 @@ struct LibraryView: View {
             if o.enabled, !(o.collections.contains { $0.id == collection }) { collection = o.collections.first?.id }
         } catch {
             self.error = error.localizedDescription
-        }
-    }
-
-    private func go() {
-        switch mode {
-        case .words: run(0, words)
-        case .who: who()
-        case .story: story()
-        }
-    }
-
-    /// "Who did what", on the phone: the phrase read into subject, action and object.
-    private func who() {
-        let phrase = words.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let query = try? RelationQuery.parse(phrase) else { error = w("library.whoParseError"); return }
-        let chosen = scope
-        busy = true
-        error = nil
-        Task {
-            defer { busy = false }
-            do {
-                verseHits = try await Task.detached { try VerseLibrary.loadBundled().search(query, scope: chosen) }.value
-            } catch {
-                self.error = error.localizedDescription
-            }
-        }
-    }
-
-    /// "A story I remember", on the phone: nearest six-verse passages by meaning.
-    private func story() {
-        let phrase = words.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !phrase.isEmpty else { return }
-        busy = true
-        error = nil
-        Task {
-            defer { busy = false; preparing = nil }
-            do {
-                stories = try await LibraryScripture.shared.search(phrase) { state in
-                    Task { @MainActor in
-                        if case let .preparing(done, of) = state { preparing = (done, of) } else { preparing = nil }
-                    }
-                }
-            } catch {
-                self.error = error.localizedDescription
-            }
         }
     }
 
@@ -241,28 +143,6 @@ struct LibraryAdminSection: View {
             } catch {
                 self.error = error.localizedDescription
             }
-        }
-    }
-}
-
-/// The phone's one fuzzy search, its index kept in Caches.
-enum LibraryScripture {
-    struct Unavailable: LocalizedError { var errorDescription: String? { "Fuzzy search needs Apple's English sentence embedding." } }
-
-    static let shared = Holder()
-
-    actor Holder {
-        private var fuzzy: FuzzyScripture?
-
-        func search(_ phrase: String, report: @escaping @Sendable (FuzzyScripture.State) -> Void) async throws -> [FuzzyMatch] {
-            if fuzzy == nil {
-                guard let embedder = AppleSentenceEmbedder() else { throw Unavailable() }
-                let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-                fuzzy = FuzzyScripture(embedder: embedder, folder: caches.appendingPathComponent("scripture-fuzzy"))
-            }
-            await fuzzy!.prepare(try VerseLibrary.loadBundled(), report: report)
-            if case let .failed(reason) = await fuzzy!.state { throw NSError(domain: "Library", code: 1, userInfo: [NSLocalizedDescriptionKey: reason]) }
-            return await fuzzy!.search(phrase)
         }
     }
 }

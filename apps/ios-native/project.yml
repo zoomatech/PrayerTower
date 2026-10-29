@@ -27,7 +27,6 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
-          - PrayerTowerScripture
       # The Pray now widget and the Praying for you Live Activity, embedded in the app.
       - target: PrayerTowerWidgets
       # Cross-posting in Safari (apps/extension), embedded in the app as a Safari web extension.
@@ -92,7 +91,6 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
-          - PrayerTowerScripture
       - target: OpenCircleWidgets
       - target: OpenCircleCrosspost
     info:

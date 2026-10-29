@@ -6,7 +6,7 @@ Ported from Winstons Syndicate (Steve, 2026-10-29: "the bible search feature FRO
 
 Me → **Search the texts**. Type words; passages come back best first. Faith communities choose the **King James Bible**, **Ancient writings** or **Oldest texts**; Open Circle gets the last two only (the server refuses the Bible there).
 
-The native Swift app adds two Bible searches on the phone (`apps/ios-native/Sources/PrayerTowerScripture`): **Who did what** (Winstons Syndicate's relationship search, "David slew Goliath", Apple NaturalLanguage) and **A story I remember** (its six-verse fuzzy search, with Apple's built-in sentence embedding in place of the ONNX EmbeddingGemma download).
+Winstons Syndicate's scripture package (relationship search, "David slew Goliath", and fuzzy remembered-story search) is still being built there. It will come to Prayer Tower later as an **Ask the Bible** feature (Steve, 2026-10-29), so it is not ported here.
 
 ## How the search works
 
@@ -17,7 +17,7 @@ The native Swift app adds two Bible searches on the phone (`apps/ios-native/Sour
 - Synonyms from the public-domain Moby Thesaurus count for 0.8 of the word (`rod` = `staff`), except for very common words.
 - Rarer words weigh more (log of total passages over passages holding the word). Ranking: every word present, then every word or a synonym, then weight, then words in the order typed, then the verse's own weight. Neighbouring hits are collapsed to one.
 
-The relationship and fuzzy searches need Apple frameworks, so they live in the native app only (above), not on the server or in the Expo app.
+The relationship and fuzzy searches stay in Winstons Syndicate until Ask the Bible (above).
 
 ## Texts and rights
 
