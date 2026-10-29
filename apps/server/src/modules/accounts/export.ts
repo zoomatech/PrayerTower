@@ -18,6 +18,7 @@ const SECTIONS: Record<string, Section> = {
   gratitudeDay: { table: 'gratitude_prefs', where: 'user_id = $1' },
   gratitude: { table: 'gratitude_entries', where: 'user_id = $1' },
   liftUp: { table: 'lift_up_entries', where: 'user_id = $1' },
+  partnerCheckins: { table: 'partner_checkins', where: 'from_id = $1' },
   encourager: { table: 'encourager_volunteers', where: 'user_id = $1' },
   encouragerMatches: { table: 'encourager_matches', where: 'newcomer_id = $1 or encourager_id = $1' },
   rememberedHidden: { table: 'remembered_hidden', where: 'user_id = $1' },

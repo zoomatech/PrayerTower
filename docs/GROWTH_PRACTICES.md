@@ -44,3 +44,12 @@ Each nudge has its own switch in **Admin → Growth practices**, and all are off
   - It fades in unless Reduce Motion is on, and screen readers read it as one message.
   - Open Circle gets neutral wording.
 - Code: `practices/index.ts` (`liftUp`, `saveLiftUp`, `gratitudeWeeks`), `posts/routes.ts` (`answeredData`), `components/lift-up-card.tsx`, `components/believe-card.tsx`, and `app/post/[id].tsx`. Tests: `apps/server/test/believe-nudges.test.ts` and `apps/mobile/src/__tests__/believe-nudges.test.tsx`.
+
+## Encouragement partners (migration 20261029017600)
+
+- **Switch:** `partners_enabled` in Admin → Growth practices, off by default. `partner_days` (default 30, range 7–90) sets how long a pairing lasts.
+- **Joining:** a member agrees to be kind, to keep what their partner shares private, and to report anything unsafe, then taps **Find me a partner** on Me. They're paired with whoever in their community has waited longest (`partner_pool`). Pairs never cross a block, and the same two people are never paired twice. If no one is waiting, the member waits on the list.
+- **Check-ins:** each partner checks in at most once a day with "good", "okay" or "hard day" and an optional short note (`partner_checkins`), and the other partner gets a notice. A hard day adds "A kind word would mean a lot." Nothing counts check-ins or mentions a missed day.
+- **Leaving:** either partner taps **Leave** at any time. No reason is asked, the other partner isn't notified, and they only see that it ended. A pairing also ends on its own after `partner_days`.
+- **Account data:** data export includes the member's own check-ins. Account deletion removes them and ends any open pairing.
+- **Code and tests:** code in `apps/server/src/modules/partners/` and `components/partner-card.tsx`. Tests in `apps/server/test/partners.test.ts` and `apps/mobile/src/__tests__/partners.test.tsx`.

@@ -142,6 +142,7 @@ export interface Features {
   liftUp: boolean;
   gratitudeCount: boolean;
   believe: boolean;
+  partners: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -208,6 +209,8 @@ export interface PracticeSettings {
   lift_up_enabled: boolean;
   gratitude_count_enabled: boolean;
   believe_enabled: boolean;
+  partners_enabled: boolean;
+  partner_days: number;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -272,6 +275,17 @@ export interface RememberedItem {
 }
 export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
 export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[]; weeks?: number | null };
+export type PartnerState =
+  | { enabled: false }
+  | {
+      enabled: true;
+      days: number;
+      status: 'none' | 'waiting' | 'paired';
+      partner: { id: string; displayName: string } | null;
+      endsAt: string | null;
+      canCheckIn: boolean;
+      checkins: { id: string; mine: boolean; mood: 'good' | 'okay' | 'hard'; note: string | null; at: string }[];
+    };
 export type LiftUp = { enabled: false } | { enabled: true; weekStart: string; body: string };
 
 export interface GrowthSettings {
@@ -1418,7 +1432,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
@@ -1601,6 +1615,10 @@ export const api = {
   saveGratitude: (items: string[], timeZone: string) => put<Gratitude>('/me/gratitude', { items, timeZone }),
   liftUp: (tz: string) => get<LiftUp>(`/me/lift-up?tz=${encodeURIComponent(tz)}`),
   saveLiftUp: (body: string, timeZone: string) => put<LiftUp>('/me/lift-up', { body, timeZone }),
+  partner: () => get<PartnerState>('/me/partner'),
+  joinPartners: () => post<PartnerState>('/me/partner/join', { agree: true }),
+  leavePartners: () => post<PartnerState>('/me/partner/leave'),
+  partnerCheckIn: (mood: 'good' | 'okay' | 'hard', note?: string) => post<PartnerState>('/me/partner/check-in', { mood, ...(note ? { note } : {}) }),
   encourager: () => get<EncouragerState>('/me/encourager'),
   setVolunteer: (on: boolean, agree?: boolean) => put<EncouragerState>('/me/encourager/volunteer', { on, ...(agree ? { agree } : {}) }),
   askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
