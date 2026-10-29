@@ -13,7 +13,7 @@ const SCREENS = [
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account', '/squire-board', '/prayer-list',
   '/why-gifts', '/give', '/account-security', '/two-step', '/ai-chat', '/announcements', '/churches', '/listen', '/onboarding',
-  '/prayer-chain', '/prayer-minute', '/remembered', '/scheduled', '/skin-idea', '/waitlist', '/reading-plan', '/invites',
+  '/prayer-chain', '/prayer-minute', '/remembered', '/scheduled', '/skin-idea', '/waitlist', '/reading-plan', '/invites', '/meaning-words',
 ];
 const shots = process.env.OPEN_CIRCLE_SHOTS;
 
@@ -30,7 +30,9 @@ async function signInFresh(page: Page) {
 /** Lines with religious words in the screen's own text, leaving out what members wrote (demo content is marked [Demo]).
  * The community chooser on Me may name the default community, Prayer Tower. */
 async function words(page: Page, written: string[]) {
-  let text = await page.locator('body').innerText();
+  // Screen readers read the labels too, so they count as screen text.
+  const labels = await page.locator('[aria-label]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''));
+  let text = [await page.locator('body').innerText(), ...labels].join('\n');
   for (const w of written) text = text.split(w).join('');
   return [...new Set(text.split('\n').filter((line) => !line.includes('[Demo]') && line.trim() !== 'Prayer Tower' && line.match(RELIGIOUS)).map((line) => line.trim().slice(0, 120)))];
 }
