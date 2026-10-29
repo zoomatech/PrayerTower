@@ -10,6 +10,7 @@
 // The frame goes out under the relay's own call sign (its identification),
 // with the original station and hop count inside (relay-frame.ts).
 import { createHash } from 'node:crypto';
+import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import type { HeardFrame } from './burst/web.js';
 import { presetByName } from './burst/presets.js';
 import type { BurstTransmitter } from './burst/transmit.js';
@@ -24,6 +25,8 @@ export interface RelayConfig {
   maxSecondsPerHour: number;
   /** Wait after hearing a frame before keying, so the channel is clear. */
   delayMs: number;
+  /** Where the last hour's air time and relayed batches are kept, so a restart doesn't reset the budget or the duplicate check. */
+  stateFile?: string;
 }
 
 /** A batch relayed in the last this-long is never relayed again (loop protection). */
@@ -55,6 +58,24 @@ export class Relay {
   ) {
     if (!cfg.from.length) throw new Error('RELAY_FROM must list the station call signs to relay');
     if (cfg.maxHops < 1 || cfg.maxHops > MAX_HOPS) throw new Error(`RELAY_MAX_HOPS must be 1-${MAX_HOPS}`);
+    if (!cfg.stateFile) return;
+    try {
+      const kept = JSON.parse(readFileSync(cfg.stateFile, 'utf8')) as { airtime?: unknown; seen?: unknown };
+      if (Array.isArray(kept.airtime)) this.airtime = kept.airtime.filter((a) => typeof a?.at === 'number' && typeof a?.seconds === 'number');
+      if (Array.isArray(kept.seen)) for (const e of kept.seen) if (Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'number') this.seen.set(e[0], e[1]);
+    } catch {
+      // Nothing kept yet, or unreadable: start fresh.
+    }
+  }
+
+  private save() {
+    if (!this.cfg.stateFile) return;
+    try {
+      writeFileSync(`${this.cfg.stateFile}.tmp`, JSON.stringify({ airtime: this.airtime, seen: [...this.seen] }));
+      renameSync(`${this.cfg.stateFile}.tmp`, this.cfg.stateFile);
+    } catch {
+      // Not fatal: the budget still holds until a restart.
+    }
   }
 
   /** Decide on one decoded frame, and re-send it if every check passes. */
@@ -96,9 +117,11 @@ export class Relay {
     const used = this.airtime.reduce((n, a) => n + a.seconds, 0);
     if (used >= this.cfg.maxSecondsPerHour) return { relayed: false, reason: 'budget' };
     this.seen.set(key, now);
+    this.save();
     await this.sleep(this.cfg.delayMs);
     const sent = await this.tx.send([wrapRelay(inner, origin, hops + 1)], presetByName(frame.preset), own);
     this.airtime.push({ at: this.now(), seconds: sent.seconds });
+    this.save();
     return { relayed: true, seconds: sent.seconds };
   }
 }

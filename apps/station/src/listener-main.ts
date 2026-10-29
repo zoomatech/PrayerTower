@@ -9,7 +9,7 @@
 //   RELAY (off; on: re-send decoded bursts, docs/RADIO_BURST.md "Store-and-forward relay"): RELAY_CALL_SIGN, RELAY_FROM,
 //   RELAY_MAX_HOPS (1), RELAY_MAX_SECONDS_PER_HOUR (120), RELAY_DELAY_MS (1000), RELAY_MODE (simulate | audio),
 //   RELAY_PLAY_CMD, RELAY_PTT_ON_CMD, RELAY_PTT_OFF_CMD, RELAY_PTT_DELAY_MS (300)
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { audioTransmitter, simulateTransmitter } from './burst/transmit.js';
 import { Relay, relayConfig } from './relay.js';
@@ -46,6 +46,7 @@ const relayCfg = relayConfig(process.env);
 let relay: Relay | null = null;
 if (relayCfg) {
   const dir = path.join(stateDir ?? '.', 'relay');
+  mkdirSync(dir, { recursive: true });
   const mode = process.env.RELAY_MODE ?? 'simulate';
   if (mode !== 'simulate' && mode !== 'audio') throw new Error('RELAY_MODE must be simulate or audio');
   const tx =
@@ -59,7 +60,8 @@ if (relayCfg) {
           txTimeoutMs: 120_000,
         })
       : simulateTransmitter(dir, (m) => console.log(`[relay] ${m}`));
-  relay = new Relay(relayCfg, tx);
+  // The air-time budget and duplicate check survive a restart.
+  relay = new Relay({ ...relayCfg, stateFile: path.join(dir, 'relay-state.json') }, tx);
   console.log(`[relay] on (${mode}) as ${relayCfg.callSign}, relaying ${relayCfg.from.join(', ')}, up to ${relayCfg.maxHops} hop(s)`);
 }
 
