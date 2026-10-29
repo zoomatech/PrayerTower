@@ -17,6 +17,7 @@ import { GivingAsk, ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
 import { AcrossCard } from "@/components/across-card";
 import { Announcements } from "@/components/announcements";
+import { KindnessIntro } from "@/components/kindness-intro";
 import { LiveNow } from "@/components/live-now";
 import { SurveyPrompts } from "@/components/survey-prompts";
 import { OfflineBanner } from "@/components/offline-banner";
@@ -150,6 +151,7 @@ export default function Feed() {
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
       <OfflineBanner savedAt={savedAt} />
       <Announcements />
+      <KindnessIntro />
       <LiveNow />
       <SurveyPrompts />
       <Pressable

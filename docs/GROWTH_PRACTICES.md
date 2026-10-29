@@ -101,3 +101,30 @@ of Consulting and Clinical Psychology* 54(4), listed at
 https://www2.psych.ubc.ca/~dlehman/darrinpubs.htm; a 2023 condolence study found the
 same, https://www.psypost.org/condolences-study-reveals-what-not-to-say-when-consoling-the-bereaved/).
 Code: `posts.is_lament`, `posts.lament_radio`, `kindness.assessIn`, `components/lament-controls.tsx`.
+
+## Answered-prayer stories (off)
+
+Admin → Growth practices → **Answered-prayer stories** (migration 20261029018200). On
+their own prayer request, the person who asked sees **Share how God answered** (Open
+Circle: **Share how it turned out**). They write a short story (up to 2,000 characters,
+with the kind cloud as usual) and it becomes a testimony post of its own:
+
+- the request is marked answered if it wasn't already (the usual answered steps run:
+  guest notes and the radio thank-you);
+- the story card shows "Answers: “…”" with a short preview linking back to the request,
+  and the request card shows **Read how it turned out**;
+- everyone who prayed gets one note (deduplicated per request);
+- each request can have one story, and it keeps the request's anonymous and sensitive
+  settings.
+
+Code: `posts.answers_post_id`, `POST /posts/:id/answered-story`, `app/post/[id].tsx`.
+
+## Kindness tools intro (off)
+
+Admin → Growth practices → **Kindness tools intro** (migration 20261029018300). At the top
+of the feed, up to three short cards, one at a time, explain the kind cloud ("a gentle
+cloud, never a wall"), emoji meanings (press and hold an action icon) and lament posts.
+Only tools that are switched on get a card, and the wording follows the edition. Each
+member sees it once on each device, until they tap **Got it** or **Skip**.
+
+Code: `components/kindness-intro.tsx`.

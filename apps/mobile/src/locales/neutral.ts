@@ -20,6 +20,9 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  kindIntro: {
+    meaningsBody: 'Press and hold Thinking of You, Well Wishes, Encourage or Promise to Check In to pick the words behind it, like “Holding you close.” A tap still does the action.',
+  },
   answeredStory: {
     open: 'Share how it turned out',
     hint: 'A short story that links back to this request. Everyone who lifted you up gets a note.',
