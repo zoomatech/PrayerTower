@@ -30,6 +30,8 @@ final class AppModel {
     var words = Words(.faith)
     /// The signed-in member, their community and roles (`/me`).
     var me: Me?
+    /// The member's choices for the conversation helpers, loaded only while a helper is switched on.
+    var talkPrefs: ConversationPrefs?
     /// Emoji meanings for the action row, loaded only while both meaning switches are on.
     var tree: [MeaningEmoji] = []
 
@@ -57,6 +59,7 @@ final class AppModel {
         features = await f ?? Features(values: [:])
         self.me = await me
         wording = Wording(self.me?.community)
+        talkPrefs = Talk.anyOn(features) ? ((try? await store.api.conversationPrefs()) ?? ConversationPrefs()) : nil
         tree = features["meaningReactions"] && features["meaningIconRow"] ? ((try? await store.api.reactionMeanings()) ?? []) : []
     }
 }

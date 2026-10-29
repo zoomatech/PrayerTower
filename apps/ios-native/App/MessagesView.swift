@@ -205,6 +205,7 @@ struct ConversationScreen: View {
             .lineLimit(1...8)
             .onChange(of: text) { _, new in if new.count > Messages.maxChars { text = String(new.prefix(Messages.maxChars)) } }
         KindCloudView(text: text)
+        ReplyHelpersView(lastFromOther: view?.messages.last(where: { !$0.mine })?.body, empty: view?.messages.isEmpty ?? true, text: $text)
         Button(w("actions.send")) { Task { await send() } }
             .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
@@ -252,8 +253,14 @@ struct ConversationScreen: View {
         busy = true
         defer { busy = false }
         do {
+            let before = view?.messages ?? []
             let r = try await model.store.api.sendMessage(id, body: text)
             if r.message.crisis { support = true }
+            // Counting patterns: move labels only, and only when the switch is on and the member shares.
+            if model.features["talkCounts"], model.talkPrefs?.shareCounts == true, before.count >= 2,
+               let chain = Talk.chain(before[before.count - 2].body, before[before.count - 1].body, text) {
+                _ = try? await model.store.api.talkCount(chain: chain)
+            }
             if r.coolDown == true { coolDown = true }
             text = ""
             error = nil
