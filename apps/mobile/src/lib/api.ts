@@ -749,6 +749,8 @@ export interface RadioSchedule {
 
 export interface RadioConsole {
   paused: boolean;
+  /** The station's problems right now (server radio/health.ts), shown first. */
+  problems: StationAlert[];
   windowOverrideUntil: string | null;
   onAirNow: boolean;
   schedule: RadioSchedule & { inWindow: boolean };

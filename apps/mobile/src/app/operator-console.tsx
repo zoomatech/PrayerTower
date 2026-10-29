@@ -91,6 +91,19 @@ function OperatorConsole() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={type.title}>{t('operatorConsole.title')}</Text>
 
+        {data.problems.length ? (
+          <View style={[styles.card, styles.offAir]} testID="console-problems">
+            <Text style={type.heading}>{t('operatorConsole.problems')}</Text>
+            {data.problems.map((p) => (
+              <Text key={`${p.kind}:${p.callSign ?? ''}`} style={type.body}>
+                {t(`admin.stationAlert.${p.kind}`)}
+                {p.callSign ? ` (${p.callSign})` : ''} {p.detail}
+              </Text>
+            ))}
+            <Text style={type.small}>{t('operatorConsole.problemsHint')}</Text>
+          </View>
+        ) : null}
+
         <View style={[styles.card, data.onAirNow ? styles.onAir : styles.offAir]} accessibilityRole="summary">
           <Text style={type.heading}>{data.onAirNow ? t('operatorConsole.mayTransmit') : t('operatorConsole.mayNotTransmit')}</Text>
           <Text style={type.body}>{status}</Text>

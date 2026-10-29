@@ -1263,6 +1263,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     feedbackKind: {"bug": "Error", "idea": "Idea", "other": "Comentario"},
   },
   operatorConsole: {
+    problems: "Problems right now",
+    problemsHint: "Each one is also an operator alert while those are on. The control operator quick start says what to try first.",
     title: "Operator console",
     off: "The operator console is off. An admin can turn it on in Admin → Radio.",
     mayTransmit: "The station may transmit now",
