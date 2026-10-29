@@ -4,6 +4,15 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Go-live prep: email checks, App Store listing push, settings check, Open Circle sender ([#113](https://github.com/zoomatech/PrayerTower/pull/113))
+- Station: run on macOS, and several stations sharing one queue (off by default) ([#119](https://github.com/zoomatech/PrayerTower/pull/119))
+- Contributor recognition and re-mined ideas: lamps, matching, ledger, circle goals, giving ask, support links, Squire board, group gifts, prayer list (all off) ([#103](https://github.com/zoomatech/PrayerTower/pull/103))
+- Gentle repair: welcome card, "ask kindly" notes, moderator-checked Mend sorry (all off by default) ([#118](https://github.com/zoomatech/PrayerTower/pull/118))
+- Radio: receive-only listener nodes that report SNR for the auto preset ([#117](https://github.com/zoomatech/PrayerTower/pull/117))
+- Encourager for newcomers and the Answered & remembered look-back, both off by default ([#115](https://github.com/zoomatech/PrayerTower/pull/115))
+- Seasonal feed skins by date, and a Claude Design handoff for new skins ([#110](https://github.com/zoomatech/PrayerTower/pull/110))
+- Station: Hamlib rig control, health alerts in Admin → Radio, one-command Pi install ([#114](https://github.com/zoomatech/PrayerTower/pull/114))
+- Radio: HF (shortwave SSB) burst presets, tested on simulated fading HF paths ([#112](https://github.com/zoomatech/PrayerTower/pull/112))
 - Admin → Giving: record a gift for one member, and who gave it ([#111](https://github.com/zoomatech/PrayerTower/pull/111))
 - Growth practices: follow-ups, weekly gratitude card, gentle rhythm, all off by default ([#109](https://github.com/zoomatech/PrayerTower/pull/109))
 - Radio: Listen screen in the app and a public "Prayers on the air" page, both off by default ([#108](https://github.com/zoomatech/PrayerTower/pull/108))
