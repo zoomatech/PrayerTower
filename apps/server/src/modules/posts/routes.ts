@@ -17,6 +17,7 @@ import * as calm from '../calm-threads/index.js';
 import * as replyChoice from '../reply-choice/index.js';
 import * as checkBack from '../check-back/index.js';
 import * as coolDown from '../cool-down/index.js';
+import * as kindNorms from '../kind-norms/index.js';
 import * as radioThanks from '../radio/thanksgiving.js';
 import * as ceaseless from '../radio/ceaseless.js';
 import * as trail from '../radio/trail.js';
@@ -110,22 +111,27 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.get<{ Params: { id: string } }>('/posts/:id/comments', async (req) => {
     const viewerId = requireUser(req);
     if (!(await posts.getViewable(db, viewerId, req.params.id))) throw notFound('Post');
-    return { comments: await posts.listComments(db, req.params.id, viewerId) };
+    return { comments: await kindNorms.arrange(db, req.params.id, viewerId, await posts.listComments(db, req.params.id, viewerId)) };
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/comments', async (req, reply) => {
     const userId = requireUser(req);
     const input = posts.NewComment.parse(req.body);
-    const { comment, coolDown: cool } = await withTx(db, async (tx) => {
+    const { comment, coolDown: cool, resting } = await withTx(db, async (tx) => {
       await replyChoice.check(tx, userId, req.params.id);
       await calm.checkSlow(tx, userId, req.params.id);
+      await kindNorms.checkResting(tx, userId, req.params.id);
       const comment = await posts.addComment(tx, userId, req.params.id, input);
       if (!comment.harm) await calm.noteComment(tx, userId, req.params.id, input.body);
       if (input.isUpdate && !comment.harm) await checkBack.noteUpdate(tx, userId, req.params.id);
-      return { comment, coolDown: await coolDown.noteComment(tx, userId, req.params.id, input.parentId, input.body) };
+      return {
+        comment,
+        coolDown: await coolDown.noteComment(tx, userId, req.params.id, input.parentId, input.body),
+        resting: await kindNorms.noteReply(tx, req.params.id, input.body),
+      };
     });
     reply.code(201);
-    return cool ? { comment, coolDown: true } : { comment };
+    return { comment, ...(cool && { coolDown: true }), ...(resting && { resting: true }) };
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/reactions', async (req, reply) => {

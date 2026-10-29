@@ -14,7 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings } from '@/lib/api';
 import { errorText } from '@/lib/error-report';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
@@ -206,6 +206,7 @@ function Admin() {
         <DeletionRequestsSection />
         <FeedbackSection />
         <PilotToolsSection />
+        <KindNormsSection />
         <PrayerWarriorsSection />
 
         <View style={styles.section}>
@@ -2718,6 +2719,67 @@ function PrayerWarriorsSection() {
 }
 
 /** Pilot tools (docs/PILOT_TOOLS.md): "Tell Steve", the weekly feedback summary and the error log, each off until switched on here. */
+// Kind norms (docs/KIND_NORMS.md): small nudges toward kindness, each off until turned on.
+function KindNormsSection() {
+  const t = useT();
+  const [s, setS] = useState<KindNormsSettings | null>(null);
+  const [words, setWords] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: KindNormsSettings) => {
+    setS(x);
+    setWords(x.promise_text ?? '');
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.kindNorms().then((r) => show(r.settings)).catch((e) => setNote(errorText(e)));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateKindNorms>[0]) =>
+    api.admin
+      .updateKindNorms(patch)
+      .then((r) => {
+        show(r.settings);
+        setNote(t('pilotTools.saved'));
+      })
+      .catch((e) => setNote(errorText(e)));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('kindNorms.admin.title')}</Text>
+      <Text style={type.small}>{t('kindNorms.admin.intro')}</Text>
+      <Toggle label={t('kindNorms.admin.promise')} hint={t('kindNorms.admin.promiseHint')} value={s.promise_enabled} onChange={(v) => save({ promise: v })} />
+      {s.promise_enabled ? (
+        <>
+          <Field label={t('kindNorms.admin.promiseText')} value={words} onChangeText={setWords} maxLength={400} multiline />
+          <Button small variant="secondary" label={t('kindNorms.admin.save')} disabled={words.trim() === (s.promise_text ?? '')} onPress={() => save({ promiseText: words.trim() })} />
+        </>
+      ) : null}
+      <Toggle
+        label={t('kindNorms.admin.reminder')}
+        hint={t('kindNorms.admin.reminderHint', { count: s.reply_reminder_count })}
+        value={s.reply_reminder_enabled}
+        onChange={(v) => save({ replyReminder: v })}
+      />
+      {s.reply_reminder_enabled ? (
+        <View style={styles.row} role="group" aria-label={t('kindNorms.admin.reminderCount')}>
+          {[1, 3, 5, 10].map((n) => (
+            <Chip key={n} label={String(n)} selected={s.reply_reminder_count === n} onPress={() => save({ replyReminderCount: n })} />
+          ))}
+        </View>
+      ) : null}
+      <Toggle
+        label={t('kindNorms.admin.resting')}
+        hint={t('kindNorms.admin.restingHint', { heated: s.resting_heated, window: s.resting_window_minutes, minutes: s.resting_minutes, gap: s.resting_gap_minutes })}
+        value={s.resting_enabled}
+        onChange={(v) => save({ resting: v })}
+      />
+      <Toggle label={t('kindNorms.admin.appreciation')} hint={t('kindNorms.admin.appreciationHint')} value={s.appreciation_enabled} onChange={(v) => save({ appreciation: v })} />
+      <Toggle label={t('kindNorms.admin.offerSorry')} hint={t('kindNorms.admin.offerSorryHint')} value={s.offer_sorry_enabled} onChange={(v) => save({ offerSorry: v })} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 function PilotToolsSection() {
   const t = useT();
   const [s, setS] = useState<PilotToolsSettings | null>(null);

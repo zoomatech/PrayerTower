@@ -195,6 +195,9 @@ export interface Comment {
   depth?: number;
   /** The part of a long post this comment is about (comments at block breaks), from 0. */
   part?: number | null;
+  /** With "This helped" on (Admin → Kind norms): whether the viewer tapped it, and whether different kinds of members did. */
+  helped?: boolean;
+  widelyAppreciated?: boolean;
 }
 
 /** Long-press reactions: "Light a candle" and "Standing with you". */

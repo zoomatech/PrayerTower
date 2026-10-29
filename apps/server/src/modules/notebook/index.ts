@@ -25,6 +25,7 @@ import * as moderationTools from '../moderation/tools.js';
 import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
+import * as kindNorms from '../kind-norms/index.js';
 import * as safety from '../safety/index.js';
 import * as signalQueue from '../radio/signal-queue.js';
 import * as trail from '../radio/trail.js';
@@ -268,6 +269,8 @@ export async function features(q: Queryable) {
     heardTrail: await trail.enabled(q),
     /** My signal queue and signal codes on the Listen screen (radio/signal-queue.ts). */
     signalQueue: await signalQueue.enabled(q),
+    /** Kind norms: the kindness promise, the first-replies reminder, resting threads, "This helped" (modules/kind-norms, Admin → Kind norms). */
+    ...(await kindNorms.features(q)),
   };
 }
 

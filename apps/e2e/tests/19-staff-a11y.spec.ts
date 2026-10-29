@@ -33,6 +33,12 @@ test('staff screens have no WCAG A/AA violations, with every switch on', async (
       await page.goto(path);
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(500);
+      if (path === '/moderation') {
+        // With goldfish memory on, each queued item says how often its author was removed lately.
+        const { rows: q } = await db.query<{ n: number }>("select count(*)::int as n from public.moderation_items where status = 'pending'");
+        if (q[0]!.n > 0 && !(await page.getByTestId('goldfish-line').first().waitFor({ state: 'visible', timeout: 10_000 }).then(() => true, () => false)))
+          found.push('/moderation: goldfish-line is missing');
+      }
       const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
       for (const v of violations) found.push(`${path}: ${v.id} (${v.impact}) ${v.help} → ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`);
     }

@@ -47,3 +47,14 @@ it('invites a fresh start on the day', async () => {
   await renderApp(<FreshDayLine day={{ label: 'my birthday' }} />);
   expect(screen.getByTestId('fresh-day')).toHaveTextContent('Today is my birthday. A fresh start: want to pick one small intention?');
 });
+
+it('names the day on each Remove button and says why Save is not ready', async () => {
+  on(true);
+  jest.mocked(api.freshDays).mockResolvedValue({ days: [bday] });
+  await renderApp(<FreshDaysCard />);
+  expect(await screen.findByRole('button', { name: 'Remove My birthday' })).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Month (1 to 12)'), '13');
+  await fireEvent.changeText(screen.getByLabelText('Day'), '2');
+  expect(screen.getByTestId('fresh-days-check')).toHaveTextContent(/Check the month and day/);
+  expect(screen.getByRole('button', { name: 'Save this day' })).toBeDisabled();
+});

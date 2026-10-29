@@ -62,7 +62,7 @@ export function FreshDaysCard() {
           <Text style={[type.body, styles.grow]}>
             {x.label} · {when(x)}
           </Text>
-          <Button small variant="ghost" label={t('freshDays.remove')} onPress={() => run(() => api.removeFreshDay(x.id))} />
+          <Button small variant="ghost" label={t('freshDays.remove')} a11yLabel={t('freshDays.removeOne', { label: x.label })} onPress={() => run(() => api.removeFreshDay(x.id))} />
         </View>
       ))}
       {days.length < MAX_FRESH_DAYS ? (
@@ -76,6 +76,11 @@ export function FreshDaysCard() {
               <Field label={t('freshDays.day')} keyboardType="number-pad" value={day} onChangeText={setDay} maxLength={2} />
             </View>
           </View>
+          {month && day && !valid ? (
+            <Text style={type.small} aria-live="polite" testID="fresh-days-check">
+              {t('freshDays.check')}
+            </Text>
+          ) : null}
           <Button
             small
             variant="secondary"
