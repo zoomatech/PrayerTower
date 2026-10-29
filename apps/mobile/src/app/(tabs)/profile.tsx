@@ -28,6 +28,7 @@ import { MeaningProposals } from '@/components/meaning-proposals';
 import { PartnerCard } from '@/components/partner-card';
 import { DailyReminderCard } from '@/components/daily-reminder-card';
 import { GratitudeCard } from '@/components/gratitude-card';
+import { KindWordsCard } from '@/components/kind-words-card';
 import { KindMilestones } from '@/components/kind-milestones';
 import { QuietCountsCard } from '@/components/comment-kindness';
 import { LanguagePicker } from '@/components/language-picker';
@@ -202,6 +203,7 @@ export default function Profile() {
           </View>
         ) : null}
         <GratitudeCard />
+        <KindWordsCard />
         <DailyReminderCard />
         <KindMilestones />
         <QuietCountsCard />
