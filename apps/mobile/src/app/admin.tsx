@@ -14,7 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
 import { resetFeatures, useFeatures } from '@/lib/features';
@@ -2129,6 +2129,31 @@ function KindnessWeather() {
   );
 }
 
+/** Community health: what matters each week, never time spent. Quiet weeks are folded. */
+export function CommunityHealth() {
+  const t = useT();
+  const [weeks, setWeeks] = useState<HealthWeek[] | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.admin.communityHealth().then((r) => setWeeks(r.weeks), (e) => setNote((e as Error).message));
+  }, []);
+  if (!weeks) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View testID="community-health" style={{ gap: space.xs }}>
+      <Text style={type.body} role="heading">
+        {t('health.title')}
+      </Text>
+      <Text style={type.small}>{t('health.intro')}</Text>
+      {weeks.map((w) => (
+        <Text key={w.weekStart} style={type.small}>
+          {t('weather.week', { date: w.weekStart })}:{' '}
+          {w.requests === null ? t('health.quiet') : t('health.numbers', { requests: w.requests, held: w.held ?? 0, answered: w.answered ?? 0, returning: w.returning ?? 0 })}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 /** Counting patterns: weekly totals of move labels; rows under the minimum are folded together. */
 function TalkCountsView() {
   const t = useT();
@@ -2273,6 +2298,9 @@ function PracticeSettingsSection() {
       <Toggle label={t('kindWords.adminTitle')} hint={t('kindWords.adminHint')} value={s.empathy_practice_enabled} onChange={(v) => save({ empathyPracticeEnabled: v })} />
       <Toggle label={t('weather.adminTitle')} hint={t('weather.adminHint')} value={s.kindness_weather_enabled} onChange={(v) => save({ kindnessWeatherEnabled: v })} />
       {s.kindness_weather_enabled ? <KindnessWeather /> : null}
+      <Toggle label={t('health.adminTitle')} hint={t('health.adminHint')} value={s.community_health_enabled} onChange={(v) => save({ communityHealthEnabled: v })} />
+      {s.community_health_enabled ? <CommunityHealth /> : null}
+      <Toggle label={t('intention.adminTitle')} hint={t('intention.adminHint')} value={s.weekly_intention_enabled} onChange={(v) => save({ weeklyIntentionEnabled: v })} />
       <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />

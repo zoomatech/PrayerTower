@@ -672,6 +672,8 @@ export interface PrayerStats {
   weeksPrayed: number;
   /** Weeks in a row, one rest week allowed between; null under 2, so a run is never shown as lost. */
   weekRun: number | null;
+  /** Weekly intention (Admin → Growth practices, off): only while the switch is on. */
+  intention?: { days: number | null; week: { date: string; prayed: boolean }[]; shown: number; met: boolean };
 }
 
 /**

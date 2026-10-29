@@ -29,6 +29,7 @@ import { PartnerCard } from '@/components/partner-card';
 import { DailyReminderCard } from '@/components/daily-reminder-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { KindWordsCard } from '@/components/kind-words-card';
+import { WeeklyIntention } from '@/components/weekly-intention';
 import { KindMilestones } from '@/components/kind-milestones';
 import { QuietCountsCard } from '@/components/comment-kindness';
 import { LanguagePicker } from '@/components/language-picker';
@@ -184,6 +185,7 @@ export default function Profile() {
                 <View key={d.date} style={[styles.dot, d.prayed && styles.dotOn]} />
               ))}
             </View>
+            {stats.intention ? <WeeklyIntention intention={stats.intention} onChange={setStats} /> : null}
             {features.gentleRhythm && stats.welcomeBack ? <Text style={type.body}>{t('practices.welcomeBack')}</Text> : null}
             {features.gentleRhythm && stats.freshStart ? (
               <Text style={type.body}>{stats.freshStart === 'month' ? t('practices.freshMonth') : t('practices.freshWeek')}</Text>

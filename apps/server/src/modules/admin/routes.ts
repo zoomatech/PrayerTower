@@ -642,6 +642,13 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return kindnessWeather.report(db, weeks);
   });
 
+  // Community health: requests that felt held, answers, members who came back; folded when quiet.
+  app.get('/admin/community-health', async (req) => {
+    await requireAdmin(req);
+    const { weeks } = z.object({ weeks: z.coerce.number().int().min(4).max(52).default(12) }).parse(req.query);
+    return kindnessWeather.health(db, weeks);
+  });
+
   // Growth ideas (docs/GROWTH.md): each off until switched on here.
   app.get('/admin/growth-settings', async (req) => {
     await requireAdmin(req);

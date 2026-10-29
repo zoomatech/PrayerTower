@@ -41,6 +41,14 @@ export const keys: Tree = named({
   pathBack: {
     adminHint: 'When a moderator removes a post or comment, the notice says the author may post it again with changes, and only the author can open their own words to edit. Never offered for posts wishing harm, flooding or automated accounts.',
   },
+  intention: {
+    title: 'How many days this week would you like to check in?',
+    adminHint: 'On Me, a member may choose to check in 1 to 6 days a week, so rest is built in. Dots fill in for the days they showed up and never empty; a week that falls short is never mentioned.',
+  },
+  health: {
+    intro: 'What matters each week, from totals only: requests that felt held (someone sent support or replied within two days), requests answered, and members who came back. Never time spent in the app.',
+    adminHint: 'A weekly view for admins of requests that felt held, requests answered and members who came back, built only from totals. Weeks with fewer than five requests show no numbers.',
+  },
   replyChoice: {
     supporters: 'People who sent support',
     none: 'No comments, just support',
