@@ -106,7 +106,7 @@ public enum AppRoute: Hashable, Sendable {
 
     /// From an app link: prayertower:///post/<id>, prayertower:///conversation/<id>, …
     public init?(url: URL) {
-        guard url.scheme == "prayertower" else { return nil }
+        guard Edition.schemes.contains(url.scheme ?? "") else { return nil }
         let parts = (url.host().map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" }
         guard parts.count == 2, !parts[1].isEmpty else { return nil }
         switch parts[0] {

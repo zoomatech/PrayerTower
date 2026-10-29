@@ -72,7 +72,7 @@ The native feed reads the member's skin from `GET /feed` (`theme`) and draws it 
 
 ## Sample data, snapshots and performance
 
-- **Sample data** (`Demo.swift`): debug builds launched with `-PTDemo` run signed in on made-up posts, comments, notices, messages, promises and circles, with no server; `-PTDemoPosts 1000` makes the feed 1,000 posts long. A Linux test decodes every answer with the real models.
+- **Sample data** (`SampleServer`, from the UI walks): launched with `-PTSampleData` the app runs signed in on made-up data with no server; it now also answers Me's counts, prayer life and circles, and `-PTSamplePosts 1000` makes the feed 1,000 varied posts long, 50 a page. A Linux test decodes every answer with the real models.
 - **Snapshots** (`SnapshotTests/`, swift-snapshot-testing): every main screen in light and dark mode at the largest accessibility text size. A new image is recorded on its first run.
 - **Performance** (`UITests/PerformanceTests.swift`): launch time, and scrolling hitches, CPU and memory while scrolling the 1,000-post feed, with XCTest metrics.
 - **Photos** are cached in memory and on disk by storage path (`ImageCache`), because their signed URLs change on every load.

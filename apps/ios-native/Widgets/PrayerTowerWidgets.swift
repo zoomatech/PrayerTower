@@ -26,13 +26,13 @@ struct PrayNowEntry: TimelineEntry {
 }
 
 struct PrayNowProvider: TimelineProvider {
-    func placeholder(in context: Context) -> PrayNowEntry { PrayNowEntry(date: .now, snapshot: .placeholder(.faith)) }
+    func placeholder(in context: Context) -> PrayNowEntry { PrayNowEntry(date: .now, snapshot: .placeholder(Edition.current == .openCircle ? .neutral : .faith)) }
     func getSnapshot(in context: Context, completion: @escaping (PrayNowEntry) -> Void) { completion(entry()) }
     // The app reloads the timeline whenever it has new content, so one entry is enough.
     func getTimeline(in context: Context, completion: @escaping (Timeline<PrayNowEntry>) -> Void) {
         completion(Timeline(entries: [entry()], policy: .never))
     }
-    private func entry() -> PrayNowEntry { PrayNowEntry(date: .now, snapshot: PrayNow.load() ?? .placeholder(.faith)) }
+    private func entry() -> PrayNowEntry { PrayNowEntry(date: .now, snapshot: PrayNow.load() ?? .placeholder(Edition.current == .openCircle ? .neutral : .faith)) }
 }
 
 struct PrayNowView: View {
@@ -58,8 +58,9 @@ struct PrayNowView: View {
 struct PrayNowWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "PrayNow", provider: PrayNowProvider()) { PrayNowView(s: $0.snapshot) }
-            .configurationDisplayName("Pray Now")
-            .description("The next prayer request to pray for.")
+            // Open Circle uses neutral words on the home screen too.
+            .configurationDisplayName(Edition.current == .openCircle ? "Lift Someone Up" : "Pray Now")
+            .description(Edition.current == .openCircle ? "The next request for support." : "The next prayer request to pray for.")
             .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -80,7 +81,7 @@ struct PrayedForLiveActivity: Widget {
             .padding()
             .activityBackgroundTint(cream)
             .environment(\.colorScheme, .light)
-            .widgetURL(URL(string: "prayertower:///post/\(context.attributes.postId)"))
+            .widgetURL(URL(string: "\(Edition.current.scheme):///post/\(context.attributes.postId)"))
         } dynamicIsland: { context in
             let p = props(context.state)
             return DynamicIsland {
@@ -94,7 +95,7 @@ struct PrayedForLiveActivity: Widget {
             } minimal: {
                 Text("💛")
             }
-            .widgetURL(URL(string: "prayertower:///post/\(context.attributes.postId)"))
+            .widgetURL(URL(string: "\(Edition.current.scheme):///post/\(context.attributes.postId)"))
         }
     }
 

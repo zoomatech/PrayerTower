@@ -5,7 +5,7 @@ import SwiftUI
 import XCTest
 @testable import PrayerTowerNative
 
-/// Every main screen on the sample data (`Demo`), in light and dark mode at the largest
+/// Every main screen on the sample data (`SampleServer`), in light and dark mode at the largest
 /// accessibility text size, so clipped or overlapping text shows up in review. New images are
 /// recorded on the first run (the test fails once, saying so); after that any change fails until
 /// it is looked at and recorded again. Run headless: xcodebuild test -only-testing:PrayerTowerNativeSnapshotTests.
@@ -17,7 +17,7 @@ final class ScreenSnapshotTests: XCTestCase {
 
     func testSignIn() { snap(SignInView()) }
     func testFeed() { snap(FeedView()) }
-    func testPostDetail() { snap(NavigationStack { PostDetailView(postId: "demo-2") }) }
+    func testPostDetail() { snap(NavigationStack { PostDetailView(postId: "sample-p1") }) }
     func testPromises() { snap(CommitmentsView()) }
     func testMessages() { snap(MessagesView()) }
     func testNotices() { snap(NotificationsView()) }
@@ -26,7 +26,7 @@ final class ScreenSnapshotTests: XCTestCase {
     func testCompose() { snap(ComposeView()) }
 
     private func snap(_ view: some View, file: StaticString = #filePath, testName: String = #function, line: UInt = #line) {
-        let model = AppModel(store: SessionStore(demoPosts: 24))
+        let model = AppModel(store: .sampleData(posts: nil))
         let ready = expectation(description: "sample data loaded")
         Task {
             await model.start()

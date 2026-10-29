@@ -1,20 +1,20 @@
 import XCTest
 
 /// Launch time and scrolling a 1,000-post feed, measured with XCTest metrics on the sample data
-/// (-PTDemo, no server). The numbers appear in the test report; run headless with
+/// (-PTSampleData, no server). The numbers appear in the test report; run headless with
 /// xcodebuild test -only-testing:PrayerTowerNativeUITests/PerformanceTests.
 final class PerformanceTests: XCTestCase {
     @MainActor func testLaunchTime() {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             let app = XCUIApplication()
-            app.launchArguments = ["-PTDemo"]
+            app.launchArguments = ["-PTSampleData"]
             app.launch()
         }
     }
 
     @MainActor func testScrollingAThousandPostFeed() {
         let app = XCUIApplication()
-        app.launchArguments = ["-PTDemo", "-PTDemoPosts", "1000"]
+        app.launchArguments = ["-PTSampleData", "-PTSamplePosts", "1000"]
         app.launch()
         let feed = app.collectionViews.firstMatch
         XCTAssertTrue(feed.waitForExistence(timeout: 15))

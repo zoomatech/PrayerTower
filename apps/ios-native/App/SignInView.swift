@@ -151,7 +151,7 @@ struct SignInView: View {
         await run {
             if mode == .signIn {
                 model.state = try await model.store.signIn(email: email, password: password)
-            } else if let state = try await model.store.signUp(email: email, password: password, name: name, invite: invite, openCircle: model.wording == .neutral) {
+            } else if let state = try await model.store.signUp(email: email, password: password, name: name, invite: invite, openCircle: model.edition == .openCircle || model.wording == .neutral) {
                 model.state = state
             } else {
                 notice = w("signIn.checkEmail")
