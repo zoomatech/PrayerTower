@@ -2,10 +2,10 @@
 // one, compress them together, send them in one key-up, report each one.
 // A transmit error unkeys, reports every prayer in the batch as failed and
 // stops the worker, the same as the one-prayer PSK31 loop.
-import { createHash } from 'node:crypto';
 import { foldAscii, passesFilter } from '../text.js';
 import { reportWithRetry, REPORT_RETRY_MS, TransmitError, type BurstLog, type ClaimedPrayer, type StationApi } from '../worker.js';
 import { planFrames } from './burst.js';
+import { fingerprint } from './sha256.js';
 import type { BurstPreset } from './presets.js';
 import type { BurstTransmitter, SentBurst } from './transmit.js';
 
@@ -78,9 +78,7 @@ export async function runBurstOnce(
 }
 
 /** What a listener sends back to say it heard a prayer (docs/RADIO_BURST.md, "Receipts"): never the words. */
-export function sentHash(text: string): string {
-  return createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 32);
-}
+export const sentHash = fingerprint;
 
 async function claimOneByOne(api: StationApi, max: number): Promise<ClaimedPrayer[]> {
   const out: ClaimedPrayer[] = [];

@@ -104,7 +104,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to record the spoken prayers and voice notes you choose to send.",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to record the spoken prayers and voice notes you choose to send, and to hear radio prayer bursts when you tap Start listening.",
           "recordAudioAndroid": false
         }
       ],

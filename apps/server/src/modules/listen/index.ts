@@ -67,17 +67,13 @@ const BODY = `
     }
   }
 
-  // "On the air" receipts: the first 32 hex digits of SHA-256 of each prayer's text, as the station reported it.
+  // "On the air" receipts: each prayer's fingerprint (PTDecoder.fingerprint), never its words.
   async function tell(f) {
-    if (!RECEIPTS || !$('tell').checked || !(window.crypto && crypto.subtle)) return 0;
+    if (!RECEIPTS || !$('tell').checked) return 0;
     try {
-      const hashes = [];
-      for (const p of new Set(f.prayers)) {
-        const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)));
-        hashes.push(Array.from(d.subarray(0, 16), (b) => b.toString(16).padStart(2, '0')).join(''));
-      }
+      const hashes = [...new Set(f.prayers)].slice(0, 500).map(PTDecoder.fingerprint);
       const r = await fetch('/listen/heard', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes: hashes.slice(0, 500) }) });
+        body: JSON.stringify({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes }) });
       return r.ok ? (await r.json()).matched : 0;
     } catch { return 0; }
   }
