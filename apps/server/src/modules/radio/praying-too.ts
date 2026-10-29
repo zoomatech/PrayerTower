@@ -30,7 +30,7 @@ export async function prayingToo(q: Queryable, report: z.infer<typeof PrayingRep
   const { rows } = await q.query<{ id: string; post_id: string; poster_id: string; first: boolean }>(
     `update public.radio_prayers r set listener_praying = r.listener_praying + 1
        from public.posts p
-      where p.id = r.post_id and r.sent_hash = any($1::text[]) and r.status = 'transmitted' and r.kind = 'prayer'
+      where p.id = r.post_id and r.sent_hash = any($1::text[]) and r.status = 'transmitted' and r.kind in ('prayer', 'auto')
         and upper(r.call_sign) = upper($2) and r.transmitted_at > now() - make_interval(days => $3)
       returning r.id, r.post_id, p.user_id as poster_id, r.listener_praying = 1 as first`,
     [[...new Set(report.hashes)], report.callSign, WINDOW_DAYS],

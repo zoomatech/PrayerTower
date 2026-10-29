@@ -49,6 +49,7 @@ import * as sky from '../radio/sky.js';
 import * as ceaseless from '../radio/ceaseless.js';
 import * as trail from '../radio/trail.js';
 import * as signalQueue from '../radio/signal-queue.js';
+import * as fairAir from '../radio/fair-air.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -305,6 +306,14 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.patch('/admin/radio-beacon', async (req) => {
     await requireAdmin(req);
     return beacon.update(db, beacon.BeaconSettings.parse(req.body));
+  });
+  app.get('/admin/radio-fair-air', async (req) => {
+    await requireAdmin(req);
+    return fairAir.settings(db);
+  });
+  app.patch('/admin/radio-fair-air', async (req) => {
+    await requireAdmin(req);
+    return fairAir.update(db, fairAir.FairAirSettings.parse(req.body));
   });
   app.get('/admin/signal-queue', async (req) => {
     await requireAdmin(req);

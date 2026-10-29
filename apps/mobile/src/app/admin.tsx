@@ -383,6 +383,7 @@ function Admin() {
             <ScheduledRadioToggle />
             <HeardTrailToggle />
             <SignalQueueToggle />
+            <FairAirSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioNodesSection burst={radio.radio_batch_max > 1} /> : null}
@@ -780,6 +781,30 @@ function RadioScheduleSection() {
           <ErrorText error={error} />
         </>
       ) : null}
+    </View>
+  );
+}
+
+/** Fair air (radio/fair-air.ts): every request on the air once, and a daily cap per member. Both off by default. */
+function FairAirSection() {
+  const t = useT();
+  const [s, setS] = useState<{ everyRequest: boolean; dailyCap: number | null } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.radioFairAir().then(setS).catch(() => undefined);
+    }, []),
+  );
+  if (!s) return null;
+  const save = (patch: { everyRequest?: boolean; dailyCap?: number | null }) => api.admin.setRadioFairAir(patch).then(setS).catch(() => undefined);
+  return (
+    <View>
+      <Toggle label={t('admin.everyRequest')} hint={t('admin.everyRequestHint')} value={s.everyRequest} onChange={(v) => save({ everyRequest: v })} />
+      <Text style={type.small}>{t('admin.dailyCap')}</Text>
+      <View style={styles.row}>
+        {[null, 3, 10, 30].map((c) => (
+          <Chip key={String(c)} label={c === null ? t('admin.dailyCapNone') : String(c)} selected={s.dailyCap === c} onPress={() => save({ dailyCap: c })} />
+        ))}
+      </View>
     </View>
   );
 }
