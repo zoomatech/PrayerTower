@@ -27,14 +27,15 @@ struct ToolsSection: View {
 
     var body: some View {
         let f = model.features
+        let shows = { (feature: String) in model.me?.community?.shows(feature) ?? true }
         Section {
             if f["prayerList"] { NavigationLink(w("prayerList.title")) { PrayerListView() } }
             if f["prayerMinute"] { NavigationLink(w("growth.minuteOpen")) { PrayerMinuteView() } }
             if f["prayerChain"] { NavigationLink(w("growth.chainOpen")) { PrayerChainView() } }
-            if f["pools"] { NavigationLink(w("profile.pools")) { PoolsView() } }
+            if shows("pools") { NavigationLink(w("profile.pools")) { PoolsView() } }
             if giving?.enabled == true { NavigationLink(w("give.open")) { GiveView() } }
             if f["whyGifts"] { NavigationLink(w("whyGifts.link")) { WhyGiftsView() } }
-            if f["radio"] { NavigationLink(w("profile.prayerCast")) { PrayerCastView() } }
+            if shows("radio") { NavigationLink(w("profile.prayerCast")) { PrayerCastView() } }
             if Staff.isModerator(model.me?.roles ?? []) { NavigationLink(w("profile.macroNeeds")) { MacroNeedsView() } }
         }
         .task { giving = try? await model.store.api.givingInfo() }
@@ -551,7 +552,7 @@ struct GiveView: View {
             await run($error) {
                 info = try await model.store.api.givingInfo()
                 gifts = try await model.store.api.myGifts()
-                if model.features["pools"] { pools = (try? await model.store.api.openTokenPools()) ?? [] }
+                if model.me?.community?.shows("pools") ?? true { pools = (try? await model.store.api.openTokenPools()) ?? [] }
             }
         }
     }
