@@ -23,7 +23,11 @@ createServer((req, res) => {
     if (req.url === '/--/api/v2/push/send') {
       if (mode === 'busy') return reply(503, { errors: [{ code: 'SERVICE_UNAVAILABLE' }] });
       const messages = (Array.isArray(body) ? body : [body]) as { to: string; title: string; body: string; collapseId?: string }[];
-      for (const m of messages) console.log(`push → ${oneLine(m.to)}: ${oneLine(m.title)} — ${oneLine(m.body)}${m.collapseId ? ` (collapseId ${oneLine(m.collapseId)})` : ''}`);
+      for (const m of messages) {
+        // Line breaks out, so a request can't write fake lines into this log.
+        const line = `push → ${m.to}: ${m.title} — ${m.body}${m.collapseId ? ` (collapseId ${m.collapseId})` : ''}`.replace(/\n|\r/g, ' ');
+        console.log(line);
+      }
       return reply(200, {
         data: messages.map(() => (mode === 'dead' ? { status: 'error', message: 'not registered', details: { error: 'DeviceNotRegistered' } } : { status: 'ok', id: `fake-${next++}` })),
       });
@@ -36,8 +40,3 @@ createServer((req, res) => {
     reply(404, { errors: [{ code: 'NOT_FOUND' }] });
   });
 }).listen(port, '127.0.0.1', () => console.log(`fake Expo on http://127.0.0.1:${port} (${mode})`));
-
-/** Line breaks out, so a request can't write fake lines into this log. */
-function oneLine(v: unknown) {
-  return String(v ?? '').replace(/[\r\n\u2028\u2029]+/g, ' ');
-}
