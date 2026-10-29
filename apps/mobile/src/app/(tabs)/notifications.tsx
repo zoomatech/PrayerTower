@@ -51,7 +51,7 @@ export default function Notifications() {
           const careRequestId = typeof n.data.careRequestId === 'string' ? n.data.careRequestId : null;
           const storyId = typeof n.data.storyId === 'string' ? n.data.storyId : null;
           const mendId = typeof n.data.mendId === 'string' ? n.data.mendId : null;
-          const target = mendId ? `/mend/${mendId}` : storyId ? '/help-stories' : careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}` : n.data.screen === 'prayer-minute' ? '/prayer-minute' : n.data.screen === 'give' ? '/give' : n.data.screen === 'radio-requests' ? '/radio-requests' : n.data.screen === 'gratitude' || n.data.screen === 'encourager' ? '/profile' : null;
+          const target = mendId ? `/mend/${mendId}` : storyId ? '/help-stories' : careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}` : n.data.screen === 'prayer-minute' ? '/prayer-minute' : n.data.screen === 'give' ? '/give' : n.data.screen === 'radio-requests' ? '/radio-requests' : n.data.screen === 'gratitude' || n.data.screen === 'encourager' ? '/profile' : n.data.screen === 'prayer-list' ? '/prayer-list' : typeof n.data.personId === 'string' ? `/people/${n.data.personId}` : null;
           return (
             <Pressable
               key={n.id}

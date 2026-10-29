@@ -9,6 +9,18 @@ import { badRequest, conflict, notFound } from '../../errors.js';
 export const WHY_HERE = ['pray_for_others', 'prayer_for_myself', 'pray_without_ceasing', 'extend_reach'] as const;
 export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness';
 
+/** Sites a member may link for outside support: money stays outside the community. */
+export const SUPPORT_HOSTS = ['ko-fi.com', 'patreon.com', 'buymeacoffee.com', 'paypal.me', 'www.paypal.me', 'liberapay.com', 'github.com', 'zeffy.com', 'www.zeffy.com', 'opencollective.com'];
+
+export function supportUrlAllowed(url: string) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && !u.username && !u.password && SUPPORT_HOSTS.includes(u.hostname.toLowerCase()) && u.pathname.length > 1;
+  } catch {
+    return false;
+  }
+}
+
 export const ProfileUpdate = z
   .object({
     displayName: z.string().trim().min(1).max(80),
@@ -34,6 +46,8 @@ export const ProfileUpdate = z
     showPrayerStats: z.boolean(),
     /** Optional town ("Carol in Albuquerque"); shown only within the member's community, while switched on. */
     town: z.string().trim().min(1).max(60).nullable(),
+    /** Optional outside support page (Ko-fi, Patreon and the like), while switched on. */
+    supportUrl: z.url().max(200).refine(supportUrlAllowed, `Use a page on ${SUPPORT_HOSTS.join(', ')}`).nullable(),
     /** Praying across lines: see, and be seen by, one member of another faith community a day (while switched on). */
     openToOtherCommunities: z.boolean(),
     notificationPrefs: z.object({
@@ -70,6 +84,7 @@ const columns: Record<string, string> = {
   showPrayerStats: 'show_prayer_stats',
   notificationPrefs: 'notification_prefs',
   town: 'town',
+  supportUrl: 'support_url',
   openToOtherCommunities: 'open_to_other_communities',
 };
 
@@ -102,6 +117,8 @@ export interface Profile {
   digest_enabled: boolean;
   show_prayer_stats: boolean;
   town: string | null;
+  support_url: string | null;
+  squire_public: boolean;
   open_to_other_communities: boolean;
   digest_sent_week: string | null;
   notification_prefs: NotificationPrefs;
@@ -412,7 +429,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
             trauma_content_opt_out = default, anonymous_by_default = default, updates_in_first_comment = default,
             prompts_enabled = default, prompt_min_hours = default, prompt_tone = default, locale = default,
             digest_enabled = default, digest_sent_week = default, notification_prefs = default,
-            show_prayer_stats = default, town = null, open_to_other_communities = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
+            show_prayer_stats = default, town = null, support_url = null, squire_public = default, open_to_other_communities = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
       where id = $1`,
     [userId],
   );

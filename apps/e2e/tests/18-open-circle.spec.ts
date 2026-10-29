@@ -11,7 +11,8 @@ const RELIGIOUS = /\b(pray\w*|god|lord|jesus|church\w*|amen|blessed|scripture|pr
 const SCREENS = [
   '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/tour', '/notification-settings', '/feedback', '/rules',
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
-  '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account',
+  '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/delete-account', '/squire-board', '/prayer-list',
+  '/why-gifts', '/give',
 ];
 const shots = process.env.OPEN_CIRCLE_SHOTS;
 
