@@ -424,6 +424,18 @@ One screen for the control operator: Me → **Operator console**. It is off unti
 
 The screen refreshes every 15 seconds. Holds and overrides are recorded in Admin → Audit log. Turning the console off lifts any hold or override, so nothing stays held by a screen no one can open.
 
+### On a Mac: Prayer Tower Console
+
+On a Mac, the control operator uses the native **Prayer Tower Console** app instead of the web console (`apps/ios-native/Console`, scheme `PrayerTowerConsole`). It signs in with the same account and shows the same parts, plus **Station health** for admins, all following the same switches. Its keying controls follow these safety rules:
+
+- **Hold** is always one click and never asks first. It is also in the **Station** menu and the menu bar item, with **⌘.**.
+- **Resume** and **Send for 15 / 30 / 60 min** ask first, since they let the station key the radio.
+- While the radio did not key or may be stuck transmitting (the "radio did not key" problem), Resume and Send for are not offered. Hold, then fix the PTT as in the [quick start](CONTROL_OPERATOR_QUICK_START.md).
+- Send for is not offered while held, since a hold outranks it.
+- The console also warns when no station has reported in, when a station is due to identify, and when the dish target holds transmissions (an override does not lift that hold).
+
+The menu bar item shows whether the station may transmit, held, or has a problem, with the queue and a Hold button. ⌘R refreshes.
+
 ## Operator alerts
 
 Off until an admin turns on **Operator alerts** in Admin → Radio (under the operator console switch). Every 2 minutes the server checks the same problems as the [health alerts](#health-alerts-in-admin--radio): no sound card, the radio did not key, the last burst failed, prayers overdue, a station that stopped reporting. When one starts, every radio operator and admin gets a notice (a push, unless they turned pushes off or are in quiet hours). It is sent once while the problem lasts. When it clears, they get a quiet in-app "Back to normal" note. Information-only alerts (an empty queue, a quiet listener node) are never sent. This works whether or not the health alerts card is on.
