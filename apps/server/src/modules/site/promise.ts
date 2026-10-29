@@ -18,7 +18,7 @@ const POINTS = (name: string, faith: boolean) => [
 ];
 
 /** Why it runs on gifts instead of ads (Steve 2026-10-28). Copy also in docs/copy/DONATIONS_NOT_ADS.md. */
-const WHY_GIFTS = (name: string, faith: boolean) => [
+export const WHY_GIFTS = (name: string, faith: boolean) => [
   [
     'Ads would make you the product.',
     `An app paid for by ads earns more the longer it holds your attention, so it is built to keep you scrolling and stirred up. We want you to ${faith ? 'pray' : 'show up for someone'}, then get on with your day.`,
