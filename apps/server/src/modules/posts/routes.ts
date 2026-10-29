@@ -236,6 +236,8 @@ export const AnsweredStory = z.object({ body: z.string().trim().min(1).max(2000)
 
 export async function postAnsweredStory(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, body: string) {
   if (!(await practiceSettings(tx)).answered_stories_enabled) throw badRequest('Answered stories are switched off');
+  // Locked, so two stories sent at once can't both pass the one-story check below.
+  await tx.query('select 1 from public.posts where id = $1 for update', [postId]);
   const request = await posts.get(tx, postId);
   if (!request || request.moderation_status !== 'visible') throw notFound('Post');
   if (request.user_id !== userId) throw forbidden('Only the person who posted the request can share how it turned out');
