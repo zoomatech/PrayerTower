@@ -15,6 +15,7 @@ import * as care from '../care/index.js';
 import { churchAdminRoutes } from '../churches/routes.js';
 import * as commitments from '../commitments/index.js';
 import * as commonFund from '../common-fund/index.js';
+import * as sponsors from '../sponsors/index.js';
 import * as materialMatch from '../material-match/index.js';
 import * as deletion from '../deletion-page/index.js';
 import * as events from '../events/index.js';
@@ -769,6 +770,24 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.post<{ Params: { id: string } }>('/admin/common-fund/entries/:id/void', async (req) => {
     const adminId = await requireAdmin(req);
     return { entry: await withTx(db, (tx) => commonFund.voidEntry(tx, adminId, z.uuid().parse(req.params.id))) };
+  });
+
+  // Sponsor recognition (off by default): who sponsored what, for the public /sponsors page.
+  app.get('/admin/sponsors', async (req) => {
+    await requireAdmin(req);
+    return { settings: await sponsors.settings(db), sponsors: await sponsors.list(db) };
+  });
+  app.patch('/admin/sponsors/settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await sponsors.updateSettings(db, sponsors.SettingsPatch.parse(req.body)) };
+  });
+  app.post('/admin/sponsors', async (req, reply) => {
+    const adminId = await requireAdmin(req);
+    return reply.code(201).send({ sponsor: await sponsors.create(db, adminId, sponsors.NewSponsor.parse(req.body)) });
+  });
+  app.patch<{ Params: { id: string } }>('/admin/sponsors/:id', async (req) => {
+    await requireAdmin(req);
+    return { sponsor: await sponsors.setHidden(db, z.uuid().parse(req.params.id), sponsors.SponsorPatch.parse(req.body).hidden) };
   });
 
   // LIVE AMPLIFIER (off by default): add licensed operators by call sign, and see what was read on the air.

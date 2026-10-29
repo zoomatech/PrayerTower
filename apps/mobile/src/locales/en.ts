@@ -3213,6 +3213,23 @@ const en = {
       appreciationHint: 'Members can mark a comment that helped. Comments appreciated by many different kinds of members (other communities, towns, new and long-time members) come first, not the ones with the most taps.',
     },
   },
+  sponsors: {
+    adminTitle: 'Sponsors',
+    adminIntro: 'Thank the people and groups who sponsor the launch, the Common Prayer Fund, the Witness team, a token pool or a community. The public page at /sponsors names them with your thank-you: no logos, no links and no products, because the ad ban covers sponsors too.',
+    pageToggle: 'Publish the sponsor page',
+    name: 'Sponsor name',
+    thanks: 'Thank-you note (optional, no web addresses)',
+    kind: {launch: 'Launch', fund: 'Common Prayer Fund', witness: 'Witness team', pool: 'Token pool', community: 'Community', other: 'Other'},
+    pool: 'Which pool',
+    community: 'Which community',
+    add: 'Add sponsor',
+    added: 'Sponsor added.',
+    saved: 'Saved.',
+    hide: 'Hide',
+    show: 'Show again',
+    hidden: 'Hidden',
+    none: 'No sponsors yet.',
+  },
 };
 
 export default en;

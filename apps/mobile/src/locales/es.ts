@@ -171,6 +171,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     remove: "Remove goal",
   },
   givingSplit: en.givingSplit,
+  sponsors: en.sponsors,
   pushDelivery: en.pushDelivery,
   reminders: en.reminders,
   modTools: en.modTools,
