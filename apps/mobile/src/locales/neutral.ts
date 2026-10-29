@@ -20,6 +20,18 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  crosspost: {
+    extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
+  },
+  kindMilestones: {
+    peopleFirst: 'You lifted someone up for the first time.',
+    peopleMany: 'You’ve lifted up %{level} people.',
+    requestsFirst: 'You supported your first request.',
+    requestsMany: 'You’ve supported %{level} requests.',
+    checkinsFirst: 'You kept your first promise to check in.',
+    checkinsMany: 'You’ve kept %{level} promises to check in.',
+    adminHint: 'Members see private markers on Me (first time lifting someone up, then 10, 25, 50 and up for people supported, encouragements, promises kept and kind words). Only the member sees them: no leaderboard, no comparison, nothing to lose, and good news is never counted.',
+  },
   checkBack: {
     hint: 'Want a gentle reminder to share how it’s going? When you post an update, everyone who supported you gets a quiet heads-up, never a buzz.',
     due: 'We’ll check back with you on %{date}. Post an update any time, and everyone who supported you gets a quiet heads-up.',

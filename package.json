@@ -18,7 +18,7 @@
     "dev:mobile": "npm run start -w @prayer-tower/mobile",
     "grant-role": "npm run grant-role -w @prayer-tower/server --",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm test -w @prayer-tower/server && npm test -w @prayer-tower/station",
+    "test": "npm test -w @prayer-tower/server && npm test -w @prayer-tower/station && npm test -w @prayer-tower/extension",
     "station": "npm run dev -w @prayer-tower/station",
     "seed:demo": "npm run seed:demo -w @prayer-tower/server --",
     "test:e2e": "npm test -w @prayer-tower/e2e",

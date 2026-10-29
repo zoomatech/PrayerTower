@@ -41,7 +41,7 @@ const HARM_WISH = [
 ];
 
 const CURSE = [
-  new RegExp(`(?<!\\b(?:break|breaking|broke|lift|lifting|remove|removing|from|of) (?:the |this |a |every )?)\\b(?:i |we )?(?:curse|hex|jinx|cast a spell on|put a curse on|place a curse on|damn)\\s+${OTHER}`, 'i'),
+  new RegExp(`(?<!\\b(?:break|breaking|broke|lift|lifting|remove|removing|from|of) (?:the |this |a |every )?)(?<!\\b(?:who|that) )\\b(?:i |we )?(?:curse|hex|jinx|cast a spell on|put a curse on|place a curse on|damn)\\s+${OTHER}`, 'i'),
   new RegExp(`\\b(?:may|let) ${OTHER} be (?:cursed|damned)\\b`, 'i'),
   /\b(?:a )?curse (?:on|upon) (?:him|her|them|you|his|her|their)\b/i,
 ];
@@ -75,6 +75,8 @@ const REAL = /\b(?:die[ds]?|dead|death|lost|loss|cancer|hospital|help|please|pra
 
 export interface Verdict {
   categories: Category[];
+  /** Which word rules matched, as "<category>:<index>" (for the weekly tuning report). */
+  rules: string[];
   swears: number;
   /** Nothing but swearing: the only text refused automatically. */
   junk: boolean;
@@ -85,18 +87,25 @@ export function check(text: string, extraHateWords: string[] = []): Verdict {
   const t = text.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/[\u2018\u2019]/g, "'");
   const words = t.split(/[^\p{L}\p{N}'*]+/u).filter(Boolean);
   const swears = words.filter((w) => SWEAR.test(w.replace(/^'+|'+$/g, ''))).length;
-  const has = (list: RegExp[]) => list.some((r) => r.test(t));
+  const rules: string[] = [];
+  const has = (name: Category, list: RegExp[]) => {
+    list.forEach((r, i) => r.test(t) && rules.push(`${name}:${i}`));
+    return rules.some((r) => r.startsWith(`${name}:`));
+  };
   const lower = t.toLowerCase();
   const cats: Category[] = [];
-  if (has(THREAT)) cats.push('threat');
-  if (has(HATE) || extraHateWords.some((w) => w.trim() && new RegExp(`\\b${escape(w.trim().toLowerCase())}\\b`, 'i').test(lower))) cats.push('hate');
-  if (has(HARM_WISH)) cats.push('harm_wish');
-  if (has(CURSE)) cats.push('curse');
-  if (has(REVENGE) && !REVENGE_RELEASED.test(t)) cats.push('revenge');
-  if (has(ABUSE)) cats.push('abuse_disclosure');
+  if (has('threat', THREAT)) cats.push('threat');
+  const extra = extraHateWords.some((w) => w.trim() && new RegExp(`\\b${escape(w.trim().toLowerCase())}\\b`, 'i').test(lower));
+  if (extra) rules.push('hate:admin_words');
+  if (has('hate', HATE) || extra) cats.push('hate');
+  if (has('harm_wish', HARM_WISH)) cats.push('harm_wish');
+  if (has('curse', CURSE)) cats.push('curse');
+  if (!REVENGE_RELEASED.test(t) && has('revenge', REVENGE)) cats.push('revenge');
+  if (has('abuse_disclosure', ABUSE)) cats.push('abuse_disclosure');
   const others = words.length - swears;
   const junk = swears >= 3 && others < 3 && !REAL.test(t) && cats.length === 0;
-  return { categories: cats, swears, junk };
+  if (swears >= 3) rules.push('foul:count');
+  return { categories: cats, rules, swears, junk };
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -115,6 +124,8 @@ export interface HarmSettings {
   foul_junk_filter: boolean;
   flood_per_day: number;
   extra_hate_words: string[];
+  /** A member whose post was held can explain it to the moderator. */
+  explain_held: boolean;
 }
 const COLUMNS = [
   'enabled',
@@ -128,6 +139,7 @@ const COLUMNS = [
   'foul_junk_filter',
   'flood_per_day',
   'extra_hate_words',
+  'explain_held',
 ] as const satisfies readonly (keyof HarmSettings)[];
 
 export async function settings(q: Queryable): Promise<HarmSettings> {
@@ -149,6 +161,7 @@ export const SettingsPatch = z
     foul_junk_filter: z.boolean(),
     flood_per_day: z.number().int().min(1).max(1000),
     extra_hate_words: z.array(z.string().trim().min(2).max(60)).max(500),
+    explain_held: z.boolean(),
   })
   .partial();
 
@@ -170,11 +183,12 @@ export interface Decision {
   category: Category;
   categories: Category[];
   action: Action;
+  rules?: string[];
 }
 
 /** The action for a verdict under the admin's settings, or null when nothing applies. */
 export function decide(v: Verdict, s: HarmSettings): Decision | null {
-  if (v.junk && s.foul_junk_filter) return { category: 'foul', categories: ['foul'], action: 'filter' };
+  if (v.junk && s.foul_junk_filter) return { category: 'foul', categories: ['foul'], action: 'filter', rules: v.rules };
   const cats = [...v.categories];
   if (v.swears >= s.foul_hold_at) cats.push('foul');
   const actionFor = (c: Category): Action =>
@@ -188,7 +202,7 @@ export function decide(v: Verdict, s: HarmSettings): Decision | null {
   let best: Decision | null = null;
   for (const c of ORDER.filter((c) => cats.includes(c))) {
     const action = actionFor(c);
-    if (action !== 'allow' && (!best || RANK[action] > RANK[best.action])) best = { category: c, categories: cats, action };
+    if (action !== 'allow' && (!best || RANK[action] > RANK[best.action])) best = { category: c, categories: cats, action, rules: v.rules };
   }
   return best;
 }
@@ -339,12 +353,13 @@ export async function apply(q: Queryable, userId: string, target: Target, id: st
   );
   const flooding = today[0]!.n >= s.flood_per_day;
   const action = flooding ? 'bundled' : d.action;
-  await q.query(`insert into public.harm_events (user_id, target_type, target_id, category, action) values ($1, $2, $3, $4, $5)`, [
+  await q.query(`insert into public.harm_events (user_id, target_type, target_id, category, action, rules) values ($1, $2, $3, $4, $5, $6)`, [
     userId,
     target,
     id,
     d.category,
     action,
+    d.rules ?? [],
   ]);
   const table = { post: 'posts', comment: 'comments', message: 'messages' }[target];
   // Abuse disclosures are never hidden, not even in a flood: nobody describing their trauma is held back.
@@ -352,12 +367,24 @@ export async function apply(q: Queryable, userId: string, target: Target, id: st
   // One queue item per account per day once it floods; one per item before that.
   if (!flooding || today[0]!.bundled === 0) {
     const { rows } = await q.query<{ community_id: string }>(`select community_id from public.${table} where id = $1`, [id]);
-    await q.query(
+    const { rows: item } = await q.query<{ id: string }>(
       `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, reason, ai_categories, auto_hidden)
        values ($1, $2, $3, $4, 'harm', $5, $6, $7)
-       on conflict (target_type, target_id) where source = 'harm' do nothing`,
+       on conflict (target_type, target_id) where source = 'harm' do nothing returning id`,
       [target, id, userId, rows[0]!.community_id, flooding ? FLOOD_REASON : HARM_REASON[d.category], { harm: d.categories }, d.action === 'hold' || (flooding && d.action !== 'support')],
     );
+    // A held post (not a flood): the member is told it waits for a person, and can explain it.
+    if (item[0] && d.action === 'hold' && !flooding) {
+      await notifications.notify(q, userId, {
+        kind: 'held_for_review',
+        title: `Your ${target === 'post' ? 'request' : target} is waiting for a moderator`,
+        body: s.explain_held
+          ? 'A person will read it before others see it. If you want, tell them what is going on.'
+          : 'A person will read it before others see it.',
+        data: { itemId: item[0].id, explainable: s.explain_held },
+        dedupeKey: `held_for_review:${item[0].id}`,
+      });
+    }
   }
   const secular = await communities.isSecular(q, userId);
   const g = guidance(d, secular);

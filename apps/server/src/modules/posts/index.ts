@@ -321,9 +321,11 @@ export async function setModerationStatus(q: Queryable, target: moderation.Targe
 }
 
 /** Show content again that was hidden pending review; content already removed stays removed. */
+/** Shows content a flag hid until a person decided. True when it was hidden and is now back up. */
 export async function unhide(q: Queryable, target: moderation.Target, id: string) {
   const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events', spoken_prayer: 'spoken_prayers' }[target];
-  await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
+  const { rowCount } = await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
+  return !!rowCount;
 }
 
 /** The author and text of any moderatable item. */
@@ -658,6 +660,12 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   }
   // One query, not one per card: parallel per-card queries took every pool connection (load test 2026-10-28).
   const reachByPost = await tokens.reachOfMany(q, postIds);
+  // Posts copied from the author's Facebook or Threads ("From Facebook").
+  const { rows: copies } = await q.query<{ post_id: string; source: 'facebook' | 'threads' }>(
+    'select post_id, source from public.crosspost_imports where post_id = any($1::uuid[])',
+    [postIds],
+  );
+  const copiedFrom = new Map(copies.map((c) => [c.post_id, c.source]));
 
   // The viewer's own active commitment on each post (vine tendrils, "Committed" state).
   const { rows: mine } = await q.query<{ post_id: string; id: string; frequency: string }>(
@@ -740,6 +748,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         counts: r.counts,
         reach: reachByPost.get(id) ?? 0,
         topComment: top ? presentComment(top, viewerId) : null,
+        crosspostedFrom: copiedFrom.get(id) ?? null,
         ...(leavesByPost.size ? { leafComments: (leavesByPost.get(id) ?? []).map((c) => presentComment(c, viewerId)) } : {}),
         createdAt: r.created_at,
       },

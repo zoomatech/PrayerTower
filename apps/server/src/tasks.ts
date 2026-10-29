@@ -1,6 +1,6 @@
 import type { TaskList } from 'graphile-worker';
 import type { Config } from './config.js';
-import type { Queryable } from './db.js';
+import type { Db } from './db.js';
 import { sendDueRemindersTask, weeklyReviewTask } from './modules/commitments/index.js';
 import { scanTask as activityScanTask } from './modules/activity/index.js';
 import { remindTask } from './modules/events/index.js';
@@ -18,10 +18,14 @@ import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 import { weeklyTask as radioDigestTask } from './modules/radio/digest.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
+import { weeklyReportTask as harmWeeklyReportTask } from './modules/moderator-care/index.js';
+import { oncallCheckTask } from './modules/moderator-care/oncall.js';
 import { publishDueTask as seedPrayersTask } from './modules/seed-prayers/index.js';
 import { failureCheckTask } from './modules/jobs/index.js';
 import { checkTask as opsCheckTask, heartbeatTask } from './modules/ops/index.js';
 import { expireTask as legalHoldsExpireTask } from './modules/legal/index.js';
+import type { MediaStore } from './modules/crosspost/index.js';
+import { checkAccountTask, crosspostOptions, importThreadsTask, pollTask as crosspostPollTask } from './modules/crosspost/meta.js';
 import * as growth from './modules/growth/index.js';
 import { createSms, type SmsSend } from './modules/growth/sms.js';
 import { createApns, type ApnsSend } from './modules/live-activity/apns.js';
@@ -44,7 +48,7 @@ function smsFrom(config: Config): SmsSend | null {
   return createSms({ accountSid: config.TWILIO_ACCOUNT_SID, authToken: config.TWILIO_AUTH_TOKEN, from: config.TWILIO_FROM });
 }
 
-export function buildTaskList(db: Queryable, config: Config, overrides: { apns?: ApnsSend | null; sms?: SmsSend | null; classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null } = {}): TaskList {
+export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSend | null; sms?: SmsSend | null; classify?: Classifier; fetch?: typeof fetch; transmit?: Transmitter; mailer?: Mailer | null; removeMedia?: ((paths: string[]) => Promise<void>) | null; converse?: Converse | null; storeMedia?: MediaStore | null } = {}): TaskList {
   const mail: growth.MailContext = {
     mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
     siteUrl: config.PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? null,
@@ -83,6 +87,8 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { apns?:
     ),
     radio_digest_weekly: radioDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     token_ledger_check: ledgerCheckTask(db),
+    harm_weekly_report: harmWeeklyReportTask(db),
+    oncall_check: oncallCheckTask(db),
     jobs_failure_check: failureCheckTask(db),
     ops_heartbeat: heartbeatTask(db),
     ops_check: opsCheckTask(db),
@@ -90,6 +96,9 @@ export function buildTaskList(db: Queryable, config: Config, overrides: { apns?:
     auto_pray_write: autoPrayTask(db, overrides.converse !== undefined ? overrides.converse : createConverser(config, overrides.fetch)),
     legal_holds_expire: legalHoldsExpireTask(db),
     retention_purge: purgeTask(db, periodsFrom(config), overrides.removeMedia ?? null),
+    crosspost_poll: crosspostPollTask(db),
+    crosspost_check_account: checkAccountTask(db, crosspostOptions(config), overrides.storeMedia ?? null, overrides.fetch),
+    crosspost_import_threads: importThreadsTask(db, crosspostOptions(config), overrides.storeMedia ?? null, overrides.fetch),
   };
 }
 
@@ -120,6 +129,10 @@ export const crontab = [
   '0 7 * * 1 radio_digest_weekly ?max=10&fill=1d&jobKey=radio_digest_weekly',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).
   '30 3 * * * retention_purge ?max=10&fill=1d&jobKey=retention_purge',
+  // Monday 07:00: last week's harmful-prayer report to admins (only while the switch is on).
+  '0 7 * * 1 harm_weekly_report ?max=10&fill=1d&jobKey=harm_weekly_report',
+  // Every 5 minutes: held posts waiting too long remind whoever is on call, then an admin (only while the rota is on).
+  '*/5 * * * * oncall_check ?max=3&fill=15m&jobKey=oncall_check',
   // Daily 04:15: re-derive every token balance from the ledger; alerts admins on any mismatch.
   '15 4 * * * token_ledger_check ?max=10&fill=1d&jobKey=token_ledger_check',
   // Every 10 minutes: alert admins about jobs that ran out of tries or keep failing.
@@ -139,6 +152,8 @@ export const crontab = [
   '* * * * * live_activity_refresh ?max=1&jobKey=live_activity_refresh',
   // Daily 03:20: erase guest emails past their time and stale prayer-minute and prayer-chain rows.
   '20 3 * * * growth_purge ?max=10&fill=1d&jobKey=growth_purge',
+  // Every 5 minutes: check connected Facebook and Threads accounts for new posts (only while cross-posting is on).
+  '*/5 * * * * crosspost_poll ?max=3&jobKey=crosspost_poll',
   // Daily 17:00: one "share how it's going?" per request, some days after it was prayed for (only while switched on).
   '0 17 * * * practices_followup ?max=10&fill=1d&jobKey=practices_followup',
   // Hourly: the gratitude card invitation at 6 pm on each member's chosen day (only while switched on).

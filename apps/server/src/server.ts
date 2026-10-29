@@ -10,6 +10,7 @@ import { createPool } from './db.js';
 import { bootstrapAdmins } from './modules/accounts/index.js';
 import { createMailer } from './modules/digest/mailer.js';
 import { createClassifier } from './modules/moderation/providers.js';
+import { crosspostOptions } from './modules/crosspost/meta.js';
 import { defaultLegalDir } from './modules/site/index.js';
 
 loadDotEnv();
@@ -56,6 +57,7 @@ const app = buildApp({
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,
   appleVerifier: appleVerifier(config),
+  crosspost: crosspostOptions(config),
   apiDocs: { restricted: process.env.NODE_ENV === 'production', password: config.API_DOCS_PASSWORD ?? null, version: serverVersion() },
   deletionPage: { supabaseUrl: config.SUPABASE_URL, publishableKey: config.SUPABASE_PUBLISHABLE_KEY ?? null, supportEmail: config.SUPPORT_EMAIL ?? null },
   site: {

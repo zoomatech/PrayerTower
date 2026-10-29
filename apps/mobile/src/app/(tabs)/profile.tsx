@@ -27,6 +27,7 @@ import { HighlightsLink } from '@/components/kindness-highlights';
 import { MeaningProposals } from '@/components/meaning-proposals';
 import { PartnerCard } from '@/components/partner-card';
 import { GratitudeCard } from '@/components/gratitude-card';
+import { KindMilestones } from '@/components/kind-milestones';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { PrayedForYou } from '@/components/notebook';
@@ -49,6 +50,7 @@ export default function Profile() {
   const poolsOn = useFeature('pools');
   const radioOn = useFeature('radio');
   const podcastsOn = useFeature('podcasts');
+  const crosspostOn = useFeature('crosspost');
   const [tier, setTier] = useState<TierStatus | null>(null);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -188,6 +190,7 @@ export default function Profile() {
           </View>
         ) : null}
         <GratitudeCard />
+        <KindMilestones />
         <LiftUpCard />
         <HighlightsLink />
         <MeaningProposals />
@@ -214,6 +217,7 @@ export default function Profile() {
           {features.readingPlan && wording === 'faith' ? <Button small variant="secondary" label={t('readingPlan.title')} onPress={() => router.push('/reading-plan')} /> : null}
           {features.squireBoard ? <Button small variant="secondary" label={t('squire.open')} onPress={() => router.push('/squire-board')} /> : null}
           {features.prayerMinute ? <Button small variant="secondary" label={t('growth.minuteOpen')} onPress={() => router.push('/prayer-minute')} /> : null}
+          {features.crosspost && crosspostOn ? <Button small variant="secondary" label={t('crosspost.link')} onPress={() => router.push('/crosspost')} /> : null}
         </View>
 
         {feedStyles && feedStyles.themes.length > 1 ? (
