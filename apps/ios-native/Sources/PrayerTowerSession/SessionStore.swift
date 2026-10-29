@@ -20,7 +20,8 @@ public final class SessionStore: Sendable {
         let auth = AuthClient(
             url: supabaseURL.appendingPathComponent("auth/v1"),
             headers: ["apikey": publishableKey],
-            localStorage: storage
+            localStorage: storage,
+            logger: nil
         )
         self.auth = auth
         self.api = APIClient(baseURL: apiURL) { try? await auth.session.accessToken }
