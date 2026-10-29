@@ -87,6 +87,45 @@ async function quadraticTarget(q: Queryable, pool: PoolRow) {
   return Math.min(pool.match_cap, Math.floor(roots * roots - total));
 }
 
+/**
+ * The public pool ledger for the member's community, in aggregate: what members put
+ * into pools, what reached requests, what was matched and what went back. Names no one.
+ */
+export async function ledger(q: Queryable, userId: string) {
+  await requireFeature(q, userId, 'pools');
+  const { rows: on } = await q.query<{ on: boolean }>('select pool_ledger_enabled as on from public.notebook_settings');
+  if (!on[0]?.on) return { enabled: false as const };
+  const { rows } = await q.query<{ given: number; givers: number; drawn: number; returned: number; matched: number; requests: number; open: number; days30: number }>(
+    `with pools as (select id, owner_id, matched, closed_at from public.token_pools where community_id = public.member_community_id($1)),
+          accts as (select a.id from public.token_accounts a where a.kind = 'pool' and a.pool_id in (select id from pools)),
+          moves as (select t.kind, t.amount, t.created_at, t.debit_account_id, t.credit_account_id from public.token_transfers t
+                     where t.credit_account_id in (select id from accts) or t.debit_account_id in (select id from accts))
+     select coalesce(sum(amount) filter (where kind in ('pool_fund', 'purchase') and credit_account_id in (select id from accts)), 0)::int as given,
+            (select count(distinct a.user_id)::int from public.token_transfers t join public.token_accounts a on a.id = t.debit_account_id
+              where t.kind = 'pool_fund' and t.credit_account_id in (select id from accts)) as givers,
+            coalesce(sum(amount) filter (where kind = 'pool_draw'), 0)::int as drawn,
+            coalesce(sum(amount) filter (where kind = 'pool_return'), 0)::int as returned,
+            (select coalesce(sum(matched), 0)::int from pools) as matched,
+            (select count(distinct post_id)::int from public.token_pool_draws where pool_id in (select id from pools)) as requests,
+            (select count(*)::int from pools where closed_at is null) as open,
+            coalesce(sum(amount) filter (where kind = 'pool_draw' and created_at > now() - interval '30 days'), 0)::int as days30
+       from moves`,
+    [userId],
+  );
+  const r = rows[0]!;
+  return {
+    enabled: true as const,
+    given: r.given,
+    givers: r.givers,
+    matched: r.matched,
+    reachedRequests: r.drawn,
+    reachedLast30Days: r.days30,
+    requestsHelped: r.requests,
+    returned: r.returned,
+    openPools: r.open,
+  };
+}
+
 async function matchingOn(q: Queryable) {
   const { rows } = await q.query<{ on: boolean }>('select pool_matching_enabled as on from public.notebook_settings');
   return rows[0]?.on === true;

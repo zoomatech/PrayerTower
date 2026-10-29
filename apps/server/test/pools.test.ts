@@ -149,4 +149,23 @@ describe('donated token pools', () => {
       await db.query('update public.notebook_settings set pool_matching_enabled = false');
     }
   });
+
+  it('shows the community pool ledger in aggregate, only while switched on', async () => {
+    const member = await createUser('Ledger Reader');
+    expect((await as(member).get('/token-pools/ledger')).json()).toEqual({ enabled: false });
+    try {
+      await db.query('update public.notebook_settings set pool_ledger_enabled = true');
+      const before = (await as(member).get('/token-pools/ledger')).json();
+      expect(before).toMatchObject({ enabled: true });
+      const donor = await withTokens('Ledger Donor', 30);
+      await as(donor).post('/token-pools', { name: 'Families', amount: 10, idempotencyKey: 'led1' });
+      const after = (await as(member).get('/token-pools/ledger')).json();
+      expect(after.given - before.given).toBe(10);
+      expect(after.openPools - before.openPools).toBe(1);
+      expect(JSON.stringify(after)).not.toContain('Ledger Donor');
+    } finally {
+      await db.query('update public.notebook_settings set pool_ledger_enabled = false');
+    }
+  });
 });
+

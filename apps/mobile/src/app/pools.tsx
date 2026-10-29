@@ -32,6 +32,7 @@ export default function PoolsScreen() {
   const pledging = poolMatching && (manyHands || Number(matchRatio) > 0);
   const [matchCap, setMatchCap] = useState('');
   const [thanks, setThanks] = useState<string | null>(null);
+  const [ledger, setLedger] = useState<Awaited<ReturnType<typeof api.poolLedger>> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -39,6 +40,8 @@ export default function PoolsScreen() {
       setMine(m.pools);
       setOpen(o.pools.filter((p) => !p.isMine));
       setBalance(t.balance);
+      // Optional extra: a failure here never blocks the pools.
+      Promise.resolve().then(() => api.poolLedger()).then(setLedger, () => setLedger(null));
       setLoaded(true);
       setError(null);
     } catch (e) {
@@ -92,6 +95,15 @@ export default function PoolsScreen() {
         {/* Nothing below until the pools and the balance have loaded, so a slow or failed load never shows "You have 0 tokens". */}
         {loaded ? (
           <>
+            {ledger?.enabled ? (
+              <View style={styles.card}>
+                <Text style={type.heading}>{t('pools.ledgerTitle')}</Text>
+                <Text style={type.small}>{t('pools.ledgerGiven', { count: ledger.given, givers: ledger.givers })}</Text>
+                {ledger.matched > 0 ? <Text style={type.small}>{t('pools.ledgerMatched', { count: ledger.matched })}</Text> : null}
+                <Text style={type.small}>{t('pools.ledgerReached', { count: ledger.reachedRequests, requests: ledger.requestsHelped, recent: ledger.reachedLast30Days })}</Text>
+                {ledger.returned > 0 ? <Text style={type.small}>{t('pools.ledgerReturned', { count: ledger.returned })}</Text> : null}
+              </View>
+            ) : null}
             <View style={styles.card}>
               <Text style={type.heading}>{t('pools.start')}</Text>
               <Text style={type.small}>{t('pools.youHave', { count: balance })}</Text>

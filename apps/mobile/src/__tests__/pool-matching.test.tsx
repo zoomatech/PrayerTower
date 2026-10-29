@@ -9,7 +9,7 @@ import { resetFeatures } from '@/lib/features';
 
 jest.mock('expo-router', () => ({ router: { canGoBack: () => true, back: jest.fn(), replace: jest.fn() } }));
 jest.mock('@/lib/api', () => ({
-  api: { features: jest.fn(), myTokenPools: jest.fn(), tokenPools: jest.fn(), tokens: jest.fn(), createTokenPool: jest.fn(), fundTokenPool: jest.fn() },
+  api: { features: jest.fn(), myTokenPools: jest.fn(), tokenPools: jest.fn(), tokens: jest.fn(), createTokenPool: jest.fn(), fundTokenPool: jest.fn(), poolLedger: jest.fn() },
 }));
 
 const pool = (over: Partial<TokenPool> = {}): TokenPool => ({
@@ -21,6 +21,7 @@ const on = (poolMatching: boolean) => jest.mocked(api.features).mockResolvedValu
 
 beforeEach(() => {
   resetFeatures();
+  jest.mocked(api.poolLedger).mockResolvedValue({ enabled: false });
   jest.mocked(api.myTokenPools).mockResolvedValue({ pools: [] });
   jest.mocked(api.tokens).mockResolvedValue({ balance: 20 } as Awaited<ReturnType<typeof api.tokens>>);
 });
@@ -77,5 +78,18 @@ describe('Matching by how many give', () => {
     await fireEvent.changeText(screen.getByLabelText("Most you'll match in all"), '100');
     await fireEvent.press(screen.getByRole('button', { name: 'Start pool' }));
     expect(api.createTokenPool).toHaveBeenCalledWith(expect.objectContaining({ matchMode: 'quadratic', matchCap: 100 }));
+  });
+});
+
+describe('Pool ledger', () => {
+  it('shows the totals while switched on', async () => {
+    on(false);
+    jest.mocked(api.tokenPools).mockResolvedValue({ pools: [] });
+    jest.mocked(api.poolLedger).mockResolvedValue({ enabled: true, given: 120, givers: 9, matched: 40, reachedRequests: 85, reachedLast30Days: 30, requestsHelped: 17, returned: 0, openPools: 3 });
+    await renderApp(<Pools />);
+    expect(await screen.findByText('Where pool tokens went')).toBeTruthy();
+    expect(screen.getByText('120 tokens put in by 9 members')).toBeTruthy();
+    expect(screen.getByText('85 tokens reached 17 requests (30 in the last 30 days)')).toBeTruthy();
+    expect(screen.queryByText(/returned when pools closed/)).toBeNull();
   });
 });
