@@ -1,0 +1,36 @@
+# Prayer Tower listener node: a receive-only Pi that decodes the station's bursts
+# and reports the signal it measured (docs/STATION_OPERATOR_GUIDE.md, "Listener nodes").
+# Installed by install.sh --listener; settings in /etc/prayer-tower-listener.env.
+[Unit]
+Description=Prayer Tower listener node (receive only)
+Wants=network-online.target
+After=network-online.target sound.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=prayer-station
+Group=prayer-station
+EnvironmentFile=/etc/prayer-tower-listener.env
+ExecStart=/usr/bin/node /opt/prayer-tower-station/dist/src/listener-main.js
+WorkingDirectory=/opt/prayer-tower-station
+StateDirectory=prayer-tower-listener
+Restart=on-failure
+RestartSec=30
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+# Records from ALSA's /dev/snd, and opens no other device.
+DevicePolicy=closed
+DeviceAllow=char-alsa rw
+SupplementaryGroups=audio
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

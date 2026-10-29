@@ -134,6 +134,10 @@ export interface Features {
   /** A welcoming volunteer for a newcomer's first days, and the "Answered & remembered" look-back. */
   encourager: boolean;
   remembered: boolean;
+  /** Gentle repair (docs/GENTLE_REPAIR.md): first-comment welcome card, "ask kindly" notes, Mend. */
+  welcomeCard: boolean;
+  askKindly: boolean;
+  mend: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -185,6 +189,27 @@ export interface PracticeSettings {
   encourager_days: number;
   newcomer_days: number;
   remembered_enabled: boolean;
+  welcome_card_enabled: boolean;
+  welcome_text: string | null;
+  ask_kindly_enabled: boolean;
+  mend_enabled: boolean;
+}
+export type KindAskReason = 'dismissive' | 'grief' | 'unkind' | 'other';
+export type MendStatus = 'invited' | 'review' | 'returned' | 'delivered' | 'accepted' | 'closed' | 'withdrawn';
+export interface Sorry {
+  whatIDid: string;
+  onMe: string;
+  nextTime: string;
+}
+export interface Mend {
+  id: string;
+  role: 'author' | 'hurt' | 'moderator';
+  status: MendStatus;
+  comment: { postId: string; body: string };
+  author: { displayName: string } | null;
+  sorry: Sorry | null;
+  canRevise: boolean;
+  moderatorNote: string | null;
 }
 export interface EncouragerMatch {
   id: string;
@@ -409,6 +434,21 @@ export interface StationAlerts {
   enabled: boolean;
   overdueMinutes: number;
   alerts: StationAlert[];
+}
+
+/** A receive-only listener node (server radio/nodes.ts). */
+export interface RadioNode {
+  id: string;
+  name: string;
+  role: 'listener' | 'station';
+  enabled: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+}
+export interface RadioNodes {
+  enabled: boolean;
+  nodes: RadioNode[];
+  reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -1261,6 +1301,11 @@ export const api = {
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
     radioBursts: () => get<{ bursts: StationBurst[] }>('/admin/radio-bursts'),
     radioAlerts: () => get<StationAlerts>('/admin/radio-alerts'),
+    radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
+    setRadioNodesEnabled: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-nodes', { enabled }),
+    addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
+    updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
+    removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
     updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
     updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
@@ -1318,7 +1363,7 @@ export const api = {
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
@@ -1505,6 +1550,16 @@ export const api = {
   endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
   remembered: () => get<{ enabled: boolean; items: RememberedItem[] }>('/me/remembered'),
   hideRemembered: (postId: string) => post<{ enabled: boolean; items: RememberedItem[] }>(`/me/remembered/${postId}/hide`),
+  welcomeCard: () => get<{ show: boolean; text: string | null }>('/me/welcome-card'),
+  dismissWelcome: () => post<{ show: boolean; text: string | null }>('/me/welcome-card/dismiss'),
+  askKindly: (commentId: string, reason: KindAskReason) => post<{ sent: boolean }>(`/comments/${commentId}/ask-kindly`, { reason }),
+  inviteMend: (commentId: string) => post<{ mend: Mend }>(`/comments/${commentId}/mend`),
+  mend: (id: string) => get<{ mend: Mend }>(`/mends/${id}`),
+  writeSorry: (id: string, sorry: Sorry) => put<{ mend: Mend }>(`/mends/${id}/sorry`, sorry),
+  acceptMend: (id: string) => post<{ mend: Mend }>(`/mends/${id}/accept`),
+  closeMend: (id: string) => post<{ mend: Mend }>(`/mends/${id}/close`),
+  mendQueue: () => get<{ mends: Mend[] }>('/moderation/mends'),
+  reviewMend: (id: string, approve: boolean, note?: string) => post<{ status: MendStatus }>(`/moderation/mends/${id}`, note ? { approve, note } : { approve }),
   prayerStats: (tz: string) => get<{ stats: PrayerStats }>(`/me/prayer-stats?tz=${encodeURIComponent(tz)}`),
   myChurch: () => get<{ church: Church | null }>('/me/church'),
   applyChurch: (input: ChurchApplicationInput) => post<{ church: Church }>('/me/church', input),

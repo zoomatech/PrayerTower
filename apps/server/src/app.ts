@@ -28,6 +28,7 @@ import { surveyRoutes } from './modules/surveys/routes.js';
 import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
 import { practiceRoutes } from './modules/practices/routes.js';
+import { repairRoutes } from './modules/repair/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
@@ -49,7 +50,7 @@ import { macroNeedRoutes } from './modules/macro-needs/routes.js';
 import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
-import { stationRoutes } from './modules/radio/station-routes.js';
+import { nodeRoutes, stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
@@ -194,6 +195,13 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     stationRoutes(station, db, stationKey);
   });
 
+  // Listener nodes (radio/nodes.ts): their own keys, limited per IP address.
+  app.register(async (node) => {
+    markScope(node, catalog, 'station');
+    if (rateLimitPerMinute > 0) await node.register(rateLimit, { keyGenerator: (req) => req.clientIp, max: 30, timeWindow: '1 minute' });
+    nodeRoutes(node, db);
+  });
+
   // The API description, for developers (staff-only in production).
   if (apiDocs) {
     app.register(async (open) => {
@@ -301,6 +309,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     quickReactionRoutes(authed, db);
     meaningReactionRoutes(authed, db);
     practiceRoutes(authed, db);
+    repairRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);

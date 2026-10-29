@@ -5,10 +5,11 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
-import { AppError } from '../../errors.js';
+import { AppError, notFound } from '../../errors.js';
 import * as ops from '../ops/index.js';
 import * as health from './health.js';
 import * as radio from './index.js';
+import * as nodes from './nodes.js';
 
 export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string | null) {
   const requireStation = async (req: FastifyRequest) => {
@@ -52,10 +53,30 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
     return { ok: true };
   });
 
+  // BURST_PRESET=auto: the weakest fresh listener report of this call sign (nodes.ts); 204 when none.
+  app.get<{ Querystring: { callSign?: string } }>('/station/channel', async (req, reply) => {
+    await requireStation(req);
+    const { callSign } = z.object({ callSign: z.string().trim().min(3).max(20) }).parse(req.query);
+    const report = (await nodes.enabled(db)) ? await nodes.channelFor(db, callSign) : null;
+    if (!report) return reply.code(204).send();
+    return report;
+  });
+
   app.post<{ Params: { id: string } }>('/station/radio-prayers/:id/result', async (req) => {
     await requireStation(req);
     const result = radio.StationResult.parse(req.body);
     await withTx(db, (tx) => radio.reportResult(tx, req.params.id, result));
+    return { ok: true };
+  });
+}
+
+/** Listener nodes' reports (own keys, x-node-key), registered with a per-address rate limit in app.ts. */
+export function nodeRoutes(app: FastifyInstance, db: Db) {
+  // A listener node heard the station: what it measured (never the prayers' words).
+  app.post('/node/channel-report', async (req) => {
+    const node = await nodes.authenticate(db, req.headers['x-node-key'] as string | undefined, 'listener');
+    if (!(await nodes.enabled(db))) throw notFound('Listener reports');
+    await nodes.recordReport(db, node.id, nodes.ChannelReportInput.parse(req.body));
     return { ok: true };
   });
 }

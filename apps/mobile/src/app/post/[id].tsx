@@ -13,6 +13,7 @@ import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
 import { KindCloud } from '@/components/kind-cloud';
 import { FollowupCard } from '@/components/followup-card';
+import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
 import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions';
 import { CircleGoal } from '@/components/circle-goal';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
@@ -227,6 +228,7 @@ export default function PostScreen() {
           </Text>
         ) : null}
       </View>
+      {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
   );
 
@@ -456,6 +458,7 @@ export default function PostScreen() {
                   {t('post.replyingTo', { name: replyTo.author.displayName })}
                 </Text>
               ) : null}
+              <WelcomeCard />
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
               <KindCloud text={text} />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}

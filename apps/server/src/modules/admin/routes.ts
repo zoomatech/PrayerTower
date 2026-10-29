@@ -31,6 +31,7 @@ import * as prayerActions from '../prayer-actions/index.js';
 import * as prompts from '../prompts/index.js';
 import * as radio from '../radio/index.js';
 import * as radioHealth from '../radio/health.js';
+import * as radioNodes from '../radio/nodes.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -181,6 +182,39 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     const input = z.object({ enabled: z.boolean().optional(), overdueMinutes: z.number().int().min(1).max(1440).optional() }).parse(req.body);
     await radioHealth.updateSettings(db, input);
     return radioHealth.alerts(db);
+  });
+
+  // Listener nodes (radio/nodes.ts): their keys, switch and latest reports.
+  app.get('/admin/radio-nodes', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await radioNodes.enabled(db), nodes: await radioNodes.list(db), reports: await radioNodes.latestReports(db) };
+  });
+
+  app.patch('/admin/radio-nodes', async (req) => {
+    await requireAdmin(req);
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+    await radioNodes.setEnabled(db, enabled);
+    return { enabled };
+  });
+
+  // The key is in this answer only; the server keeps its hash.
+  app.post('/admin/radio-nodes', async (req, reply) => {
+    await requireAdmin(req);
+    const { name, role } = z.object({ name: z.string().trim().min(1).max(60), role: z.enum(['listener', 'station']).default('listener') }).parse(req.body);
+    return reply.code(201).send(await radioNodes.create(db, name, role));
+  });
+
+  app.patch<{ Params: { id: string } }>('/admin/radio-nodes/:id', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    return { node: await radioNodes.update(db, id, z.object({ enabled: z.boolean().optional() }).parse(req.body)) };
+  });
+
+  app.delete<{ Params: { id: string } }>('/admin/radio-nodes/:id', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    await radioNodes.remove(db, id);
+    return { ok: true };
   });
 
   app.get('/admin/radio-bursts', async (req) => {

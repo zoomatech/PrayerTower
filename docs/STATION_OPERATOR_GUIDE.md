@@ -155,6 +155,48 @@ plays: the station unkeys and stops, the same as any other transmit failure.
    The health check adds a `rig` line. It fails if rigctld is not answering,
    or if the radio is transmitting between bursts (a stuck PTT).
 
+## Listener nodes (receive only, real data for the auto preset)
+
+A listener node is a Raspberry Pi with a receiver (a scanner, an old handheld or
+an SDR) plugged into its sound card. It never transmits. It records all the time,
+decodes the station's bursts, and sends Prayer Tower only what it measured: the
+call sign, the preset and the SNR. With receipts on, it also sends the prayers'
+fingerprints, never their words. A station on `BURST_PRESET=auto` then picks the
+fastest preset that the weakest listener can still decode. Off by default.
+
+1. In Admin → Radio (burst mode), turn on **Listener nodes**, type a name
+   (e.g. "Hilltop Pi") and tap **Add listener node**. Copy the key. It is
+   shown only once, and the server keeps only its hash.
+2. On the listener Pi:
+
+   ```
+   curl -fsSL https://raw.githubusercontent.com/zoomatech/PrayerTower/main/apps/station/install/get-station.sh | sudo bash -s -- --listener-only
+   sudo nano /etc/prayer-tower-listener.env     # PRAYER_TOWER_API_URL, NODE_KEY
+   sudo systemctl start prayer-tower-listener
+   journalctl -u prayer-tower-listener -f        # "[listener] heard N0CALL: 1 frame(s), 24.5 dB, fm-standard"
+   ```
+
+   Set the receiver's sound card in `LISTEN_RECORD_CMD` (the card name from
+   `arecord -l`). From an HF (SSB) receiver, also set `LISTEN_SEARCH_HZ=50`.
+   For a Pi that sets itself up on first boot, change `--hamlib` to
+   `--listener-only` in `pi/user-data`.
+3. On the station, in `/etc/prayer-tower-station.env`:
+
+   ```
+   BURST_PRESET=auto
+   BURST_AUTO_REPORT=server
+   ```
+
+   Before each burst the station asks Prayer Tower (`GET /station/channel`).
+   The answer is each enabled listener's latest report from the last 30
+   minutes, and the weakest of them. With no fresh report, the station uses
+   the most robust preset in `BURST_AUTO_PRESETS`.
+
+Admin → Radio lists each node, when it last reported and what it last heard.
+Turning a node off stops its key working and its reports counting. A node on the
+same machine as the station can also write `LISTEN_REPORT_FILE`, which the
+station reads as a plain `BURST_AUTO_REPORT` file.
+
 ## Health alerts in Admin → Radio
 
 Off by default. In Admin → Radio (station mode), turn on **Station alerts**.
@@ -244,6 +286,7 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - Model 1 is the Hamlib dummy radio, model 2 is NET rigctl: [hamlib-utilities(7)](https://www.mankier.com/7/hamlib-utilities)
 - cloud-init on Raspberry Pi OS Trixie (`user-data` on the boot partition, from the 24 November 2025 image): [Raspberry Pi, "Cloud-init on Raspberry Pi OS"](https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/)
 - cloud-init `users` (`plain_text_passwd`, `lock_passwd`) and `packages`: [cloud-init docs](https://docs.cloud-init.io/en/latest/reference/yaml_examples/user_groups.html), [modules](https://docs.cloud-init.io/en/latest/reference/modules.html)
+- `arecord` raw capture options (`-t raw -f S16_LE -r 48000 -c 1`, `-D`): [arecord(1)](https://man.archlinux.org/man/arecord.1.en)
 - `libhamlib-utils` package in Debian trixie: [Debian manpages](https://dyn.manpages.debian.org/trixie/libhamlib-utils/rigctl.1.en.html)
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)
