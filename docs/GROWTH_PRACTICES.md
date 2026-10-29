@@ -274,3 +274,34 @@ weeks.
   comments shows "Too quiet to say" and no numbers.
 
 Code: `modules/kindness-weather`, the Admin → Growth practices panel.
+
+## Circle welcome (off)
+
+Admin → Growth practices → **Circle welcome** (migration 20261029019300). It needs prayer
+circles to be on.
+
+- The person who started a circle writes a short welcome, up to 400 characters, which sets
+  out the circle's norms. If they leave it empty, the app's default words are used: "Here we
+  lift each other up. Disagree gently, assume the best, and if something stings, be a
+  goldfish."
+- Someone who hasn't yet posted or replied in the circle sees the welcome above the composer
+  until they tap **Got it**.
+- When someone shares in the circle for the first time, the starter gets one quiet heads-up:
+  "… shared in your circle for the first time. A hello goes a long way."
+
+Evidence: research/Conflict_Repair_and_Newcomer_Kindness.md, suggestion 1. Code:
+`modules/prayer-circles` (`setWelcome`, `welcomeSeen`), `app/circles/[id].tsx`.
+
+## A path back after a removal (off)
+
+Admin → Growth practices → **A path back after a removal** (migration 20261029019400).
+
+- When a moderator removes a post or comment, the removal notice adds one line: "You’re
+  welcome to post it again with changes".
+- The notice offers **Post again with changes**. For a post, the button opens the author's
+  own words in the composer. For a comment, it opens them in the comment box on that request.
+- Only the author can read their removed words this way (`GET /me/removed/:itemId`).
+- It is never offered for prayers for harm, for flooding or for automated accounts.
+
+Evidence: research/Conflict_Repair_and_Newcomer_Kindness.md, suggestion 5. Code:
+`modules/path-back`, the Notices tab.

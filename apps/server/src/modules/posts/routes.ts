@@ -14,6 +14,7 @@ import { MEDIA_BUCKET, signMedia } from './media.js';
 import * as growth from '../growth/index.js';
 import { settings as practiceSettings } from '../practices/index.js';
 import * as calm from '../calm-threads/index.js';
+import * as replyChoice from '../reply-choice/index.js';
 import * as checkBack from '../check-back/index.js';
 import * as coolDown from '../cool-down/index.js';
 import * as radioThanks from '../radio/thanksgiving.js';
@@ -108,6 +109,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const userId = requireUser(req);
     const input = posts.NewComment.parse(req.body);
     const { comment, coolDown: cool } = await withTx(db, async (tx) => {
+      await replyChoice.check(tx, userId, req.params.id);
       await calm.checkSlow(tx, userId, req.params.id);
       const comment = await posts.addComment(tx, userId, req.params.id, input);
       if (!comment.harm) await calm.noteComment(tx, userId, req.params.id, input.body);

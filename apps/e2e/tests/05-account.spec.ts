@@ -18,10 +18,10 @@ test('a member deletes their account and can no longer sign in', async ({ page }
   await page.getByText('Delete my account').first().click();
   await page.getByPlaceholder('DELETE').fill('DELETE');
   await page.getByRole('button', { name: 'Delete my account' }).click();
-  await expect(page.getByRole('button', { name: /^sign in$/i }).last()).toBeVisible();
+  await expect(page.getByRole('button', { name: /sign in/i }).last()).toBeVisible();
 
   await page.locator('input').nth(0).fill('james@demo.prayertower.local');
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
-  await page.getByRole('button', { name: /^sign in$/i }).last().click();
+  await page.getByTestId('sign-in-submit').click();
   await expect(page.getByText(/invalid/i).first()).toBeVisible();
 });

@@ -53,7 +53,7 @@ test('a member resets a forgotten password with the emailed code, then changes i
   await expect(page.getByText('Forgot your password?')).toBeVisible({ timeout: 20_000 });
   await page.locator('input').nth(0).fill(EMAIL);
   await page.locator('input[type=password]').fill(TEMP);
-  await page.getByRole('button', { name: /^sign in$/i }).last().click();
+  await page.getByTestId('sign-in-submit').click();
   await signedIn(page);
   await page.getByText('Me', { exact: true }).click();
   await page.getByText('Password and email').click();

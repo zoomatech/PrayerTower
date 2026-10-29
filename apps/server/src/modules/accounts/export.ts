@@ -39,6 +39,7 @@ const SECTIONS: Record<string, Section> = {
   circlePosts: { table: 'circle_posts', where: 'user_id = $1' },
   circleReplies: { table: 'circle_replies', where: 'user_id = $1' },
   circlePrayed: { table: 'circle_prayed', where: 'user_id = $1' },
+  circleWelcomeSeen: { table: 'circle_welcome_seen', where: 'user_id = $1' },
   rememberedHidden: { table: 'remembered_hidden', where: 'user_id = $1' },
   kindAsksSent: { table: 'kind_asks', where: 'sender_id = $1' },
   mendsWritten: { table: 'mends', where: 'author_id = $1', omit: ['hurt_id'] },

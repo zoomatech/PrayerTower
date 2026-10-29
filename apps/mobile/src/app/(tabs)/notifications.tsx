@@ -37,6 +37,18 @@ export default function Notifications() {
     }, [load]),
   );
 
+  // A path back after a removal: the author's own words open in the composer to change and share again.
+  const postAgain = (itemId: string) =>
+    api.removedWords(itemId).then(
+      (w) =>
+        router.push(
+          w.target === 'post'
+            ? `/compose?body=${encodeURIComponent(w.body)}${w.postType === 'praise' ? '&type=praise' : ''}`
+            : `/post/${w.postId}?draft=${encodeURIComponent(w.body)}`,
+        ),
+      (e) => setError((e as Error).message),
+    );
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
@@ -63,6 +75,9 @@ export default function Notifications() {
               <Text style={type.small}>{new Date(n.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</Text>
               {n.kind === 'moderation_notice' && typeof n.data.itemId === 'string' ? (
                 <Button small variant="secondary" label={t('notices.appeal')} onPress={() => router.push(`/appeal/${n.data.itemId}`)} />
+              ) : null}
+              {n.kind === 'moderation_notice' && n.data.pathBack === true && typeof n.data.itemId === 'string' ? (
+                <Button small variant="secondary" label={t('pathBack.again')} onPress={() => postAgain(n.data.itemId as string)} />
               ) : null}
               {n.kind === 'held_for_review' && n.data.explainable === true && typeof n.data.itemId === 'string' ? (
                 <Button small variant="secondary" label={t('notices.explain')} onPress={() => router.push(`/appeal/${n.data.itemId}?held=1`)} />

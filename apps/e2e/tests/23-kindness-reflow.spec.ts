@@ -37,7 +37,12 @@ test('kindness screens reflow at 320 px and with wider text spacing, switches on
       "select id from public.posts where post_type = 'prayer_request' and moderation_status = 'visible' and state <> 'answered' and user_id = $1 order by created_at desc limit 1",
       [ethel[0]!.id],
     );
-    const paths = ['/', '/profile', '/kindness-research', '/meaning-words', '/highlights', ...[...other, ...own].map((p) => `/post/${p.id}`)];
+    // A prayer circle with a post and a reply, so its feed has something to lay out.
+    const { rows: circle } = await db.query<{ id: string }>("insert into public.prayer_circles (name, about, owner_id) values ('Reflow circle', 'We pray for each other.', $1) returning id", [ethel[0]!.id]);
+    await db.query('insert into public.prayer_circle_members (circle_id, user_id) values ($1, $2)', [circle[0]!.id, ethel[0]!.id]);
+    const { rows: cp } = await db.query<{ id: string }>("insert into public.circle_posts (circle_id, user_id, body) values ($1, $2, 'Please pray for my sister, who starts a new job on Monday.') returning id", [circle[0]!.id, ethel[0]!.id]);
+    await db.query("insert into public.circle_replies (circle_post_id, user_id, body) values ($1, $2, 'Holding her in my heart.')", [cp[0]!.id, ethel[0]!.id]);
+    const paths = ['/', '/profile', '/kindness-research', '/meaning-words', '/highlights', '/circles', `/circles/${circle[0]!.id}`, ...[...other, ...own].map((p) => `/post/${p.id}`)];
     for (const spacing of [false, true]) {
       for (const path of paths) {
         const here = `${path}${spacing ? ' (text spacing)' : ''}`;

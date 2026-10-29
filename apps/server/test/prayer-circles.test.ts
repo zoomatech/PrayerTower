@@ -5,10 +5,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { as, createUser, db } from './helpers.js';
 
 const on = (v: boolean) => db.query('update public.practice_settings set prayer_circles_enabled = $1', [v]);
+const welcome = (v: boolean) => db.query('update public.practice_settings set circle_welcome_enabled = $1', [v]);
 
 beforeAll(() => on(false));
 afterAll(async () => {
   await on(false);
+  await welcome(false);
   await db.end();
 });
 
@@ -81,5 +83,37 @@ describe('Prayer circles', () => {
     const r = (await as(joined[0]!).get(`/circles/${id}`)).json();
     expect(r.circle.isOwner).toBe(true);
     expect(r.members).toHaveLength(10);
+  });
+
+  it('welcomes a first-time poster and nudges the starter to say hello', async () => {
+    await on(true);
+    await welcome(true);
+    const [owner, newbie] = [await createUser('Welcome Owner'), await createUser('Welcome Newbie')];
+    const id = (await as(owner).post('/circles', { name: 'Kind words' })).json().id as string;
+    expect((await as(newbie).put(`/circles/${id}/welcome`, { text: 'x' })).statusCode).toBe(404);
+    expect((await as(owner).put(`/circles/${id}/welcome`, { text: 'Here we lift each other up. Be a goldfish.' })).json()).toEqual({ welcome: 'Here we lift each other up. Be a goldfish.' });
+    const { code } = (await as(owner).post(`/circles/${id}/invite`)).json();
+    await as(newbie).post('/circles/join', { code });
+    expect((await as(newbie).get(`/circles/${id}`)).json().welcome).toEqual({ text: 'Here we lift each other up. Be a goldfish.', show: true });
+    expect((await as(owner).get(`/circles/${id}`)).json().welcome.show).toBe(false);
+    await as(newbie).post(`/circles/${id}/posts`, { body: 'Hello all, glad to be here.' });
+    await as(newbie).post(`/circles/${id}/posts`, { body: 'A second one.' });
+    const { rows } = await db.query<{ body: string }>("select body from public.notifications where user_id = $1 and kind = 'circle_post' and body like '%first time%'", [owner]);
+    expect(rows).toEqual([{ body: 'Welcome Newbie shared in your circle for the first time. A hello goes a long way.' }]);
+    expect((await as(newbie).get(`/circles/${id}`)).json().welcome.show).toBe(false);
+    await welcome(false);
+    expect((await as(newbie).get(`/circles/${id}`)).json().welcome).toBeUndefined();
+  });
+
+  it('lets a member dismiss the welcome before posting', async () => {
+    await on(true);
+    await welcome(true);
+    const [owner, quiet] = [await createUser('Seen Owner'), await createUser('Seen Quiet')];
+    const id = (await as(owner).post('/circles', { name: 'Quiet one' })).json().id as string;
+    const { code } = (await as(owner).post(`/circles/${id}/invite`)).json();
+    await as(quiet).post('/circles/join', { code });
+    expect((await as(quiet).get(`/circles/${id}`)).json().welcome).toEqual({ text: null, show: true });
+    await as(quiet).post(`/circles/${id}/welcome/seen`);
+    expect((await as(quiet).get(`/circles/${id}`)).json().welcome.show).toBe(false);
   });
 });
