@@ -1352,6 +1352,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     updated: "Updated %{time}",
     notOperator: "This console is for admins and radio operators.",
     signOut: "Sign out",
+    demo: "Sample data. Nothing here is real, and nothing reaches a radio.",
+    useDemo: "Look around with sample data",
+    leaveDemo: "Leave sample data",
   },
   feedbackTriage: {
     title: 'Comentarios',

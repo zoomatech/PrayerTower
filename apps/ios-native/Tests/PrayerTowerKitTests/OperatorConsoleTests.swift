@@ -83,6 +83,32 @@ private let now = Keying.date("2026-10-29T18:01:00Z")!
     }
 }
 
+@Suite struct ConsoleDemoTests {
+    @Test func sampleDataNeedsNoServerAndIsMarkedSample() {
+        let d = ConsoleDemo(now: now)
+        #expect(d.console.onAirNow && d.console.queue.next.count == 3)
+        #expect(d.console.queue.next.allSatisfy { $0.text.hasPrefix("Sample") })
+        #expect(d.health.health?.stations.first?.callSign == "N0CALL")
+        #expect(Keying(d.console, now: now).notes.isEmpty)
+    }
+
+    @Test func holdResumeAndSendForWorkOnTheSample() {
+        var d = ConsoleDemo(now: now)
+        d.apply(paused: true, now: now)
+        #expect(Keying(d.console, now: now).state == .held && !d.console.onAirNow)
+        d.apply(paused: false, now: now)
+        d.apply(windowOverrideMinutes: 30, now: now)
+        #expect(Keying.minutes(until: d.console.windowOverrideUntil!, now: now) == 30)
+        #expect(Keying(d.console, now: now).state == .override)
+        d.apply(windowOverrideMinutes: 0, now: now)
+        #expect(d.console.windowOverrideUntil == nil && d.console.onAirNow)
+    }
+
+    @Test func demoWordsAreThere() {
+        for k in ["macConsole.demo", "macConsole.useDemo", "macConsole.leaveDemo"] { #expect(Words(.faith)(k) != k, "\(k)") }
+    }
+}
+
 extension APIClientTests {
     @Test func holdsAndSendsForAWhileThroughTheConsole() async throws {
         StubProtocol.answer = (404, #"{"error":{"code":"not_found","message":"Operator console not found"}}"#)

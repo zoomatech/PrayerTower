@@ -18,6 +18,9 @@ struct ConsoleView: View {
     var body: some View {
         let w = model.words
         Form {
+            if model.demo != nil {
+                Section { Label(w("macConsole.demo"), systemImage: "info.circle") }
+            }
             if model.notOperator {
                 Section { Text(w("macConsole.notOperator")) }
             } else if model.off {

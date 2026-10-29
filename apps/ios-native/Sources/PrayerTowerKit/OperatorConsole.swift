@@ -107,10 +107,10 @@ public struct RadioConsole: Codable, Sendable, Equatable {
         public var id: String { node }
     }
 
-    public let paused: Bool
+    public var paused: Bool
     public let problems: [StationAlert]
-    public let windowOverrideUntil: String?
-    public let onAirNow: Bool
+    public var windowOverrideUntil: String?
+    public var onAirNow: Bool
     public let schedule: Schedule
     public let queue: Queue
     public let stations: [Station]
@@ -241,9 +241,70 @@ public struct Keying: Sendable, Equatable {
         return f.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
     }
 
+    public static func isoString(_ date: Date) -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.string(from: date)
+    }
+
     /// Minutes from now until an ISO time, rounded as the Expo console does (negative when past).
     public static func minutes(until iso: String, now: Date = .now) -> Int? {
         date(iso).map { Int(($0.timeIntervalSince(now) / 60).rounded()) }
+    }
+}
+
+/// Demo mode for the Mac console: sample data, and Hold, Resume and Send for working locally,
+/// so the console can be tried with no server and no account. Nothing reaches a radio.
+public struct ConsoleDemo: Sendable, Equatable {
+    public private(set) var console: RadioConsole
+    public let health: StationHealth
+
+    public init(now: Date = .now) {
+        let iso = { (minutes: Double) in Keying.isoString(now.addingTimeInterval(minutes * 60)) }
+        console = RadioConsole(
+            paused: false,
+            problems: [],
+            windowOverrideUntil: nil,
+            onAirNow: true,
+            schedule: .init(enabled: true, timeZone: TimeZone.current.identifier, inWindow: true),
+            queue: .init(queued: 3, sending: 0, oldestMinutes: 12, next: [
+                .init(id: "demo-1", text: "Sample: for my mother's surgery on Friday", urgency: 2, repeats: 1, waitingMinutes: 12),
+                .init(id: "demo-2", text: "Sample: a new job after the layoffs", urgency: 1, repeats: 3, waitingMinutes: 7),
+                .init(id: "demo-3", text: "Sample: peace for our town", urgency: 0, repeats: 1, waitingMinutes: 2),
+            ]),
+            stations: [.init(callSign: "N0CALL", lastHeartbeat: iso(-1), lastIdAt: iso(-4), everyMinutes: 10, nextIdAt: iso(6))],
+            log: [
+                .init(at: iso(-4), callSign: "N0CALL", station: "main", preset: "fm-standard", status: "transmitted", heard: true, error: nil,
+                      text: "Sample: healing for a friend's knee"),
+                .init(at: iso(-30), callSign: "N0CALL", station: "main", preset: "fm-standard", status: "failed", heard: false, error: "Sample: PTT timed out",
+                      text: "Sample: safe travel this weekend"),
+            ],
+            beacon: .init(enabled: true, minutes: 60, recent: [
+                .init(id: "demo-b1", sentAt: iso(-20), status: "sent", callSign: "N0CALL", preset: "fm-standard",
+                      heard: [.init(by: "Hilltop", snrDb: 14.2), .init(by: "Church roof", snrDb: 6.8)]),
+            ]),
+            sky: SkyNow(target: "moon", name: nil, az: 132.4, el: 28.7, aboveMinimum: true, minElevation: 10, holdBelow: true,
+                        next: .init(at: iso(310), rising: false)),
+            ceaseless: .init(enabled: true, gapMinutes: 20, inRotation: 5, sentLastDay: 9),
+            relays: [.init(node: "Hilltop", reportedAt: iso(-2), callSign: "N0CALL-2", relayedLastHour: 4, secondsLastHour: 12.5, budgetSeconds: 120,
+                           skipped: ["duplicate": 3])]
+        )
+        health = StationHealth(enabled: true, health: .init(
+            stations: [.init(callSign: "N0CALL", lastHeartbeat: iso(-1), silent: false, checks: [.init(name: "audio_device", ok: true, detail: "Sample sound card")],
+                             bursts24h: 18, failed24h: 1, prayers24h: 42, lastBurstAt: iso(-4), lastError: nil)],
+            queue: .init(queued: 3, sending: 0, oldestMinutes: 12),
+            listeners: [.init(name: "Hilltop", lastHeartbeat: iso(-2), silent: false)],
+            lastHeard: [.init(node: "Hilltop", callSign: "N0CALL", preset: "fm-standard", snrDb: 14.2, at: iso(-4))],
+            snr: [.init(callSign: "N0CALL", preset: "fm-standard", reports: 12, avgDb: 13.1, minDb: 6.8, lastAt: iso(-4))],
+            failures: [.init(at: iso(-30), callSign: "N0CALL", kind: "burst", error: "Sample: PTT timed out")]
+        ))
+    }
+
+    /// The same overrides as PATCH /radio/console, applied to the sample.
+    public mutating func apply(paused: Bool? = nil, windowOverrideMinutes: Int? = nil, now: Date = .now) {
+        if let paused { console.paused = paused }
+        if let m = windowOverrideMinutes { console.windowOverrideUntil = m > 0 ? Keying.isoString(now.addingTimeInterval(Double(m) * 60)) : nil }
+        console.onAirNow = !console.paused && (console.windowOverrideUntil != nil || console.schedule.inWindow)
     }
 }
 

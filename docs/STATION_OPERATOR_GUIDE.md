@@ -436,6 +436,8 @@ On a Mac, the control operator uses the native **Prayer Tower Console** app inst
 
 The menu bar item shows whether the station may transmit, held, or has a problem, with the queue and a Hold button. ⌘R refreshes.
 
+With no server settings in `Config.xcconfig`, the app opens with **sample data** and no sign-in. Hold, Resume and Send for change only the sample, and nothing reaches a radio. The sign-in screen also has **Look around with sample data**.
+
 ## Operator alerts
 
 Off until an admin turns on **Operator alerts** in Admin → Radio (under the operator console switch). Every 2 minutes the server checks the same problems as the [health alerts](#health-alerts-in-admin--radio): no sound card, the radio did not key, the last burst failed, prayers overdue, a station that stopped reporting. When one starts, every radio operator and admin gets a notice (a push, unless they turned pushes off or are in quiet hours). It is sent once while the problem lasts. When it clears, they get a quiet in-app "Back to normal" note. Information-only alerts (an empty queue, a quiet listener node) are never sent. This works whether or not the health alerts card is on.

@@ -54,9 +54,18 @@ final class ConsoleModel {
     var busy = false
     var error: String?
     var updatedAt: Date?
+    /// Sample data with no server or account (ConsoleDemo): on by itself when the app has no
+    /// server settings, or chosen on the sign-in screen. Holds and overrides change only the sample.
+    var demo: ConsoleDemo?
     private var refresher: Task<Void, Never>?
 
     init(store: SessionStore) { self.store = store }
+
+    /// True when Config.xcconfig still has the example values, so there is no server to sign in to.
+    static var unconfigured: Bool {
+        let key = Bundle.main.infoDictionary?["PTSupabaseKey"] as? String ?? ""
+        return key.isEmpty || key.contains("REPLACE_ME") || key.hasPrefix("$(")
+    }
 
     static func makeStore() -> SessionStore {
         let info = Bundle.main.infoDictionary ?? [:]
@@ -86,6 +95,11 @@ final class ConsoleModel {
     }
 
     func start() async {
+        if ConsoleModel.unconfigured {
+            startDemo()
+            starting = false
+            return
+        }
         state = await store.current()
         starting = false
         signedInChanged()
@@ -107,7 +121,24 @@ final class ConsoleModel {
         }
     }
 
+    func startDemo() {
+        refresher?.cancel()
+        demo = ConsoleDemo()
+        console = demo?.console
+        health = demo?.health
+        off = false
+        notOperator = false
+        error = nil
+        updatedAt = .now
+        state = .signedIn
+    }
+
     func load() async {
+        if let demo {
+            console = demo.console
+            updatedAt = .now
+            return
+        }
         do {
             console = try await store.api.radioConsole()
             off = false
@@ -128,10 +159,20 @@ final class ConsoleModel {
     }
 
     /// Hold never asks and is offered whenever the station isn't already held.
-    func hold() async { await change { try await $0.updateRadioConsole(paused: true) } }
-    func resume() async { await change { try await $0.updateRadioConsole(paused: false) } }
-    func sendFor(_ minutes: Int) async { await change { try await $0.updateRadioConsole(windowOverrideMinutes: minutes) } }
-    func endOverride() async { await change { try await $0.updateRadioConsole(windowOverrideMinutes: 0) } }
+    func hold() async { await change(paused: true) }
+    func resume() async { await change(paused: false) }
+    func sendFor(_ minutes: Int) async { await change(windowOverrideMinutes: minutes) }
+    func endOverride() async { await change(windowOverrideMinutes: 0) }
+
+    private func change(paused: Bool? = nil, windowOverrideMinutes: Int? = nil) async {
+        if demo != nil {
+            demo?.apply(paused: paused, windowOverrideMinutes: windowOverrideMinutes)
+            console = demo?.console
+            updatedAt = .now
+            return
+        }
+        await change { try await $0.updateRadioConsole(paused: paused, windowOverrideMinutes: windowOverrideMinutes) }
+    }
 
     private func change(_ step: (APIClient) async throws -> RadioConsole) async {
         busy = true
@@ -146,6 +187,14 @@ final class ConsoleModel {
     }
 
     func signOut() async {
+        if demo != nil {
+            demo = nil
+            console = nil
+            health = nil
+            state = ConsoleModel.unconfigured ? .signedIn : .signedOut
+            if ConsoleModel.unconfigured { startDemo() }
+            return
+        }
         await store.signOut()
         state = .signedOut
         signedInChanged()
@@ -182,8 +231,8 @@ struct StationCommands: Commands {
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(model.state != .signedIn)
             Divider()
-            Button(model.words("macConsole.signOut")) { Task { await model.signOut() } }
-                .disabled(model.state == .signedOut)
+            Button(model.words(model.demo != nil ? "macConsole.leaveDemo" : "macConsole.signOut")) { Task { await model.signOut() } }
+                .disabled(model.state == .signedOut || (model.demo != nil && ConsoleModel.unconfigured))
         }
     }
 }

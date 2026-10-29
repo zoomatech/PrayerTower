@@ -24,6 +24,8 @@ struct ConsoleSignInView: View {
             Button(busy ? "Signing in…" : "Sign in") { Task { await signIn() } }
                 .keyboardShortcut(.defaultAction)
                 .disabled(busy || !email.contains("@") || password.count < 6)
+            // No account needed to look around.
+            Button(model.words("macConsole.useDemo")) { model.startDemo() }
         }
         .formStyle(.grouped)
         .frame(maxWidth: 420)
