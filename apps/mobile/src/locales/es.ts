@@ -174,6 +174,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   pushDelivery: en.pushDelivery,
   reminders: en.reminders,
   modTools: en.modTools,
+  backupCodes: en.backupCodes,
+  passkeys: en.passkeys,
   offline: en.offline,
   supportLink: {
     label: "Your support page (optional)",

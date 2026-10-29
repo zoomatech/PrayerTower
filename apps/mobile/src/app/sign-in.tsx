@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 
+import { PasskeySignIn } from '@/components/passkeys';
 import { LanguagePicker } from '@/components/language-picker';
 import { LegalLinks } from '@/components/legal-links';
 import { Button, ErrorText, Field, Screen } from '@/components/ui';
@@ -40,8 +41,10 @@ export default function SignIn() {
 
   // Listener mode (Admin → Radio): anyone near a radio can listen without an account.
   const [canListen, setCanListen] = useState(false);
+  // Passkeys (Admin → Sign-in security, off; web only).
+  const [passkeys, setPasskeys] = useState(false);
   useEffect(() => {
-    api.signupConfig().then((c) => setInviteOnly(c.inviteOnly), () => undefined);
+    api.signupConfig().then((c) => (setInviteOnly(c.inviteOnly), setPasskeys(c.passkeys === true)), () => undefined);
     api.listenConfig().then((c) => setCanListen(c.enabled), () => undefined);
   }, []);
 
@@ -144,6 +147,7 @@ export default function SignIn() {
           />
           {mode === 'sign-up' && inviteOnly ? <Text style={type.small}>{t('signIn.inviteHint')}</Text> : null}
           {mode === 'sign-up' ? <LegalLinks prefix={t('signIn.legalPrefix')} /> : null}
+          {mode === 'sign-in' ? <PasskeySignIn on={passkeys} onError={setError} /> : null}
           {mode === 'sign-in' ? <Button variant="ghost" testID="forgot-password" label={t('signIn.forgot')} onPress={() => switchMode('forgot')} /> : null}
           <Button
             variant="ghost"

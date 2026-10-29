@@ -92,10 +92,10 @@ describe('invite codes', () => {
   it('opens sign-up for everyone when an admin turns invite-only off', async () => {
     const admin = await createUser('Switch Admin');
     await grantRole(db, admin, 'admin', null);
-    expect((await app.inject({ method: 'GET', url: '/signup-config' })).json()).toEqual({ inviteOnly: true });
+    expect((await app.inject({ method: 'GET', url: '/signup-config' })).json()).toMatchObject({ inviteOnly: true });
     try {
       expect((await as(admin).patch('/admin/invite-settings', { inviteOnly: false })).json()).toEqual({ inviteOnly: false });
-      expect((await app.inject({ method: 'GET', url: '/signup-config' })).json()).toEqual({ inviteOnly: false });
+      expect((await app.inject({ method: 'GET', url: '/signup-config' })).json()).toMatchObject({ inviteOnly: false });
       expect(await hook({})).toEqual({});
     } finally {
       await db.query('update public.invite_settings set invite_only = true');

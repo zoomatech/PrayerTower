@@ -14,10 +14,10 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type ReminderSettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type ReminderSettings, type SecuritySettings } from '@/lib/api';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
-import { resetFeatures } from '@/lib/features';
+import { resetFeatures, useFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -35,6 +35,9 @@ const toInt = (s: string) => (s.trim() === '' ? null : Number.parseInt(s, 10));
 
 function Admin() {
   const { t, language } = useLocale();
+  const features = useFeatures();
+  // A member who lost their phone and backup codes: the first tap asks, the second turns two-step sign-in off.
+  const [resetAsk, setResetAsk] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [days, setDays] = useState(7);
@@ -492,6 +495,21 @@ function Admin() {
                   <Chip key={r} label={t(`admin.role.${r}`)} selected={p.roles.includes(r)} onPress={() => toggleRole(p, r)} />
                 ))}
               </View>
+              {features.twoStep || features.backupCodes ? (
+                <Button
+                  small
+                  variant="ghost"
+                  label={resetAsk === p.id ? t('backupCodes.adminResetSure') : t('backupCodes.adminReset')}
+                  onPress={() =>
+                    resetAsk === p.id
+                      ? run(async () => {
+                          await api.admin.resetTwoStep(p.id);
+                          setResetAsk(null);
+                        }, t('backupCodes.adminResetDone', { name: p.display_name }))
+                      : setResetAsk(p.id)
+                  }
+                />
+              ) : null}
             </View>
           ))}
         </View>
@@ -1083,23 +1101,25 @@ function LiveSection() {
 /** Two-step sign-in with an authenticator app. Off by default; members who turned it on keep it. */
 function SecuritySection() {
   const t = useT();
-  const [on, setOn] = useState<boolean | null>(null);
+  const [s, setS] = useState<SecuritySettings | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      api.admin.securitySettings().then((r) => setOn(r.settings.two_step_enabled), (e) => setNote((e as Error).message));
+      api.admin.securitySettings().then((r) => setS(r.settings), (e) => setNote((e as Error).message));
     }, []),
   );
-  const save = (v: boolean) =>
+  const save = (patch: { twoStepEnabled?: boolean; backupCodesEnabled?: boolean; passkeysEnabled?: boolean }) =>
     api.admin
-      .updateSecuritySettings({ twoStepEnabled: v })
-      .then((r) => (setOn(r.settings.two_step_enabled), resetFeatures(), setNote(t('admin.saved.security'))))
+      .updateSecuritySettings(patch)
+      .then((r) => (setS(r.settings), resetFeatures(), setNote(t('admin.saved.security'))))
       .catch((e) => setNote((e as Error).message));
-  if (on === null) return note ? <Text style={type.small}>{note}</Text> : null;
+  if (s === null) return note ? <Text style={type.small}>{note}</Text> : null;
   return (
     <View style={styles.section}>
       <Text style={type.heading}>{t('admin.security')}</Text>
-      <Toggle label={t('admin.toggle.twoStep')} hint={t('admin.toggle.twoStepHint')} value={on} onChange={save} />
+      <Toggle label={t('admin.toggle.twoStep')} hint={t('admin.toggle.twoStepHint')} value={s.two_step_enabled} onChange={(v) => save({ twoStepEnabled: v })} />
+      <Toggle label={t('backupCodes.adminToggle')} hint={t('backupCodes.adminHint')} value={s.backup_codes_enabled} onChange={(v) => save({ backupCodesEnabled: v })} />
+      <Toggle label={t('passkeys.adminToggle')} hint={t('passkeys.adminHint')} value={s.passkeys_enabled} onChange={(v) => save({ passkeysEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );

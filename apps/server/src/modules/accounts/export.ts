@@ -139,6 +139,9 @@ export const NOT_EXPORTED = [
   'surveys',
   'talk_count_quota',
   'token_ledger_checks',
+  // Hashes of two-step backup codes and wrong guesses: of no use to the member, and safer kept in.
+  'two_step_backup_attempts',
+  'two_step_backup_codes',
   'welcome_dismissed',
   'witness_cases',
   'witness_notes',

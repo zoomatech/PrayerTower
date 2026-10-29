@@ -204,6 +204,9 @@ export interface Features {
   typePrompts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
+  /** Ten one-time backup codes for a lost phone, and passkey sign-in (web). */
+  backupCodes: boolean;
+  passkeys: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -1289,6 +1292,12 @@ export interface ModerationSearch {
   before?: string;
 }
 
+export interface SecuritySettings {
+  two_step_enabled: boolean;
+  backup_codes_enabled: boolean;
+  passkeys_enabled: boolean;
+}
+
 export interface ReminderSettings {
   daily_reminder_enabled: boolean;
   gentle_streak_enabled: boolean;
@@ -1410,7 +1419,11 @@ export interface AdminGift extends MyGift {
 
 export const api = {
   /** Public: whether sign-up needs an invite code. */
-  signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
+  signupConfig: () => get<{ inviteOnly: boolean; passkeys?: boolean; backupCodes?: boolean }>('/signup-config'),
+  backupCodes: () => get<{ enabled: false } | { enabled: true; remaining: number; createdAt: string | null }>('/me/two-step/backup-codes'),
+  makeBackupCodes: () => post<{ codes: string[] }>('/me/two-step/backup-codes', {}),
+  /** From a password-only sign-in: spends a backup code and turns two-step sign-in off. */
+  useBackupCode: (code: string) => post<{ ok: true }>('/me/two-step/recover', { code }),
   announcements: () => get<{ announcements: Announcement[] }>('/announcements'),
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   surveys: () => get<{ surveys: Survey[] }>('/surveys'),
@@ -1718,8 +1731,10 @@ export const api = {
     recordGift: (gift: { amountCents: number; reference: string; via: 'manual' | 'zeffy' | 'paypal'; donorId?: string | null; target?: GiftTarget }) =>
       post('/admin/donations', { ...gift, reference: gift.reference || undefined }),
     syncZeffy: () => post<{ recorded: number; refunded: number; skipped: number }>('/admin/donations/zeffy-sync'),
-    securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
-    updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),
+    securitySettings: () => get<{ settings: SecuritySettings }>('/admin/security-settings'),
+    updateSecuritySettings: (patch: { twoStepEnabled?: boolean; backupCodesEnabled?: boolean; passkeysEnabled?: boolean }) =>
+      request<{ settings: SecuritySettings }>('PATCH', '/admin/security-settings', patch),
+    resetTwoStep: (userId: string) => post<{ ok: true }>(`/admin/people/${userId}/two-step-reset`, {}),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
       patch: Partial<{
