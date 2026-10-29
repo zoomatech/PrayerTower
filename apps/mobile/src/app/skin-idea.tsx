@@ -18,6 +18,8 @@ const HEX = /^#[0-9A-Fa-f]{6}$/;
 const LAYOUTS: MakerLayout[] = ['vine', 'wall', 'tower', 'circuit'];
 const SHAPES = ['round', 'pointed', 'flower', 'star', 'tablet'] as const;
 const WIDTHS = [3, 5, 9] as const;
+/** How the vine is drawn (components/vine-flow.tsx); '' is the plain swaying stalk. */
+const STYLES = ['', 'beanstalk', 'ink', 'floral', 'gate', 'neon'] as const;
 
 /** Which colors each layout uses, with a starting value. */
 const COLOR_FIELDS: Record<MakerLayout, { key: string; start: string }[]> = {
@@ -52,6 +54,7 @@ export default function ThemeMaker() {
     () => Object.fromEntries(LAYOUTS.map((l) => [l, Object.fromEntries(COLOR_FIELDS[l].map((f) => [f.key, f.start]))])) as Record<MakerLayout, Record<string, string>>,
   );
   const [shape, setShape] = useState<(typeof SHAPES)[number]>('round');
+  const [drawing, setDrawing] = useState<(typeof STYLES)[number]>('');
   const [width, setWidth] = useState<number>(5);
   const [double, setDouble] = useState(false);
   const [glowing, setGlowing] = useState(false);
@@ -76,10 +79,10 @@ export default function ThemeMaker() {
   const commentsReadable = !colorsOk || !c.leafSoft || layout !== 'vine' || contrastRatio(c.leafSoft, COMMENT_TEXT) >= 4.5;
   const tokens = useMemo(() => {
     const out: Record<string, string | number | boolean> = Object.fromEntries(fields.map((f) => [f.key, c[f.key]!]));
-    if (layout === 'vine') Object.assign(out, { branch: c.stem!, tendril: c.stem!, leafShape: shape, stemWidth: width, stemDouble: double, stemGlow: glowing, scenery: fairytale ? 'fairytale' : '' });
+    if (layout === 'vine') Object.assign(out, { branch: c.stem!, tendril: c.stem!, leafShape: shape, stemWidth: width, stemDouble: double, stemGlow: glowing, scenery: fairytale ? 'fairytale' : '', vineStyle: drawing });
     if (layout === 'circuit') out.tilt = 10;
     return out;
-  }, [fields, c, layout, shape, width, double, glowing, fairytale]);
+  }, [fields, c, layout, shape, width, double, glowing, fairytale, drawing]);
 
   const submit = async () => {
     setBusy(true);
@@ -131,6 +134,12 @@ export default function ThemeMaker() {
 
         {layout === 'vine' ? (
           <>
+            <Text style={type.heading}>{t('skinIdea.styleHeading')}</Text>
+            <View style={styles.row}>
+              {STYLES.map((st) => (
+                <Chip key={st || 'plain'} radio label={t(`skinIdea.style.${st || 'plain'}`)} selected={drawing === st} onPress={() => setDrawing(st)} />
+              ))}
+            </View>
             <Text style={type.heading}>{t('skinIdea.shapeHeading')}</Text>
             <View style={styles.row}>
               {SHAPES.map((sh) => (
