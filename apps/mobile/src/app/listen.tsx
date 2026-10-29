@@ -8,6 +8,7 @@
 import { signalCode } from '@prayer-tower/shared';
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioStream, type AudioStreamBuffer } from 'expo-audio';
 import { router } from 'expo-router';
+import * as Speech from 'expo-speech';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -30,7 +31,7 @@ export default function ListenScreen() {
   const { session } = useAuth();
   const features = useFeatures();
   const [saved, setSaved] = useState<HeardPrayer[]>([]);
-  const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean; prayingToo?: boolean } | null>(null);
+  const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean } | null>(null);
   const [praying, setPraying] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
@@ -38,6 +39,13 @@ export default function ListenScreen() {
   const [meter, setMeter] = useState(0);
   const [tell, setTell] = useState(true);
   const [hf, setHf] = useState(false);
+  // Read decoded prayers aloud with the device's own speech (offered while the admin's switch is on).
+  const [aloud, setAloud] = useState(false);
+  const aloudRef = useRef(false);
+  useEffect(() => {
+    aloudRef.current = aloud && !!config?.readAloud;
+    if (!aloudRef.current) void Speech.stop();
+  }, [aloud, config?.readAloud]);
   const listener = useRef<BurstListener | null>(null);
   const tellRef = useRef(tell);
   useEffect(() => {
@@ -90,6 +98,8 @@ export default function ListenScreen() {
       fresh.forEach((f) => void report(f));
       const prayers = fresh.flatMap((f) => (f.prayers ?? []).map((text) => ({ text, callSign: f.callSign, at: f.at.toISOString(), hash: prayerHash(text) })));
       if (prayers.length) void addHeard(prayers).then(setSaved);
+      // An amplified prayer comes several times in one burst; it is read once.
+      if (aloudRef.current) [...new Set(prayers.map((p) => p.text))].forEach((text) => Speech.speak(text, { language: 'en-US' }));
     }, hf ? DECODE_EVERY_MS * 2 : DECODE_EVERY_MS);
     return () => clearInterval(timer);
   }, [listening, report, hf]);
@@ -110,8 +120,14 @@ export default function ListenScreen() {
     setMeter(0);
     void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
   }, [stream]);
-  // Stop the microphone when leaving the screen.
-  useEffect(() => () => void (stream.isStreaming && stream.stop()), [stream]);
+  // Stop the microphone and any reading when leaving the screen.
+  useEffect(
+    () => () => {
+      if (stream.isStreaming) stream.stop();
+      void Speech.stop();
+    },
+    [stream],
+  );
 
   return (
     <Screen>
@@ -138,6 +154,7 @@ export default function ListenScreen() {
             </View>
             <Toggle label={t('listen.hf')} hint={t('listen.hfHint')} value={hf} onChange={setHf} />
             {config.receipts ? <Toggle label={t('listen.tell')} hint={t('listen.tellHint')} value={tell} onChange={setTell} /> : null}
+            {config.readAloud ? <Toggle label={t('readAloud.toggle')} hint={t('readAloud.hint')} value={aloud} onChange={setAloud} /> : null}
             {heard.map((f) => (
               <View key={f.key} style={styles.card}>
                 <Text style={type.heading}>{t('listen.from', { callSign: f.callSign, time: f.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' }) })}</Text>

@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { RadioPrefsSection } from '@/components/radio-summary';
 import { Button, Chip, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -55,6 +56,7 @@ export default function NotificationSettings() {
           />
         ))}
         <Text style={type.small}>{t('notifySettings.safety')}</Text>
+        <RadioPrefsSection />
 
         <Toggle label={t('notifySettings.quiet')} hint={t('notifySettings.quietHint')} value={!!quiet} onChange={(v) => setQuiet(v ? {} : null)} />
         {quiet ? (

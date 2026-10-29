@@ -17,7 +17,7 @@ export async function enabled(q: Queryable): Promise<boolean> {
 }
 
 /** "2:05 PM UTC", in the member's quiet-hours time zone when they set one. */
-async function timeFor(q: Queryable, userId: string, at: Date): Promise<string> {
+export async function timeFor(q: Queryable, userId: string, at: Date): Promise<string> {
   const { rows } = await q.query<{ tz: string | null }>(`select notification_prefs -> 'quietHours' ->> 'timeZone' as tz from public.profiles where id = $1`, [userId]);
   const format = (timeZone: string) => new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(at);
   try {
