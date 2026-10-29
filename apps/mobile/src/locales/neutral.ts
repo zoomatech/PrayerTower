@@ -20,6 +20,32 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  crosspost: {
+    extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
+  },
+  kindMilestones: {
+    peopleFirst: 'You lifted someone up for the first time.',
+    peopleMany: 'You’ve lifted up %{level} people.',
+    requestsFirst: 'You supported your first request.',
+    requestsMany: 'You’ve supported %{level} requests.',
+    checkinsFirst: 'You kept your first promise to check in.',
+    checkinsMany: 'You’ve kept %{level} promises to check in.',
+    adminHint: 'Members see private markers on Me (first time lifting someone up, then 10, 25, 50 and up for people supported, encouragements, promises kept and kind words). Only the member sees them: no leaderboard, no comparison, nothing to lose, and good news is never counted.',
+  },
+  checkBack: {
+    hint: 'Want a gentle reminder to share how it’s going? When you post an update, everyone who supported you gets a quiet heads-up, never a buzz.',
+    due: 'We’ll check back with you on %{date}. Post an update any time, and everyone who supported you gets a quiet heads-up.',
+    adminHint: 'The person who asked can pick a gentle reminder (3 days, a week or 2 weeks) to share how it’s going. When they post an update, everyone who supported them gets one quiet in-app heads-up a day, with no push and none of the update’s words.',
+  },
+  kindIntro: {
+    meaningsBody: 'Press and hold Thinking of You, Well Wishes, Encourage or Promise to Check In to pick the words behind it, like “Holding you close.” A tap still does the action.',
+  },
+  answeredStory: {
+    open: 'Share how it turned out',
+    hint: 'A short story that links back to this request. Everyone who lifted you up gets a note.',
+    adminTitle: 'Good-news stories',
+    adminHint: 'The person who asked can post a short follow-up that links to their request. Everyone who supported them gets a note, and both posts link to each other.',
+  },
   common: { praiseGod: 'Wonderful news!' },
   tabs: { prayers: 'Support' },
   menu: { newRequest: 'New Request', tour: 'How Open Circle Works' },
@@ -48,6 +74,13 @@ export const keys: Tree = named({
     shareMessage: 'You are invited to Open Circle. Your invite code is %{code}. Open %{url} in the app, or enter the code when you create your account.',
   },
   growth: {
+    adminSms: 'Support circle by text message',
+    adminSmsHint: "Members can add mobile numbers to their support circle. Each number gets one text asking to join, and requests only after saying yes. Needs the email support circle on, and the server's text message provider (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM), which charges per text.",
+    adminLive: 'Thinking of you now, on the Lock Screen',
+    adminLiveHint: "iPhone only. A member can put their own open request on their Lock Screen for up to 8 hours; it updates as people send support, with first names and a count. Updates need the server's Apple push key (APNS_KEY_ID, APNS_PRIVATE_KEY).",
+    liveHint: 'For the next 8 hours, your Lock Screen shows how many people sent support, with first names. Never the words of your request.',
+    liveHeading: 'Thinking of you',
+    liveWaiting: 'Waiting for the first kind word',
     adminGuest: 'Support from a link, no account needed',
     adminGuestHint: 'Members can make a web link for their own request. Anyone with it can tap "Thinking of you" without an account, and can leave an email to hear once if it turns out well. Guests never earn tokens.',
     adminChain: 'Email support circle',
@@ -118,6 +151,9 @@ export const keys: Tree = named({
     firmHint: 'For example: "Remember, you promised to be there for Billy."',
   },
   profile: {
+    // Hidden for Open Circle (the church page is faith-only); plain words in case a screen shows them.
+    churchApply: 'Lead a local group? Add it',
+    myChurch: 'My group',
     prayers: 'Times supported',
     priestly: 'Lighthouse',
     nextTier: '%{count} more to become a %{tier}.',
@@ -192,7 +228,14 @@ export const keys: Tree = named({
     shareComment: '“%{body}” (%{name}, on an Open Circle request) %{url}',
   },
   talk: {
+    adminMeaningRowHint: 'Every card keeps its one row of action icons, in every feed skin. Thinking of you, well wishes, encourage and promise carry their emoji’s meanings: hovering shows them, pressing and holding opens up to five to choose from. Needs Emoji meanings on.',
     suggestTrouble: "I'm here for you.",
+    pairs: {
+      prayer_request: 'Thinking of you right now. You are not alone in this.',
+      praise: 'That’s wonderful! Thank you for telling us.',
+      open_prayer: 'Joining you in this.',
+    },
+    adminTypePromptsHint: 'Members who turned on reply suggestions get one reply that pairs with the kind of post they’re answering: a request gets “thinking of you”, good news gets gladness, a lament gets presence with no advice. A tap only fills the box.',
     careAsk: 'Want to talk about it?',
     closing1: "I'll be thinking of you. Talk soon.",
     closing2: 'Thank you for sharing this with me. Take care.',
@@ -265,7 +308,7 @@ export const keys: Tree = named({
     },
   },
   deleteAccount: {
-    list: '• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and support history\n• your tokens',
+    list: '• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and support history\n• your tokens\n• everything else tied to your account',
   },
   feedback: { intro: 'Tell us what broke, what confused you, or what you wish Open Circle did. The pilot team reads every note.' },
   highlights: {
@@ -276,6 +319,17 @@ export const keys: Tree = named({
     window: 'Support for others in the last %{count} days.',
     anonymous: 'Anonymous helper',
   },
+  reminders: {
+    intro: "A gentle nudge at a time you choose. It's skipped on days you've already supported someone.",
+    weeks: 'Weeks of kindness',
+    weeksSummary: 'You have supported people on %{days} days, %{people} people in all, in %{weeks} different weeks.',
+    weekRun: '%{count} weeks of kindness in a row, with room to rest.',
+    weeksNote: 'Every week you support someone adds to this, and it never goes down.',
+    adminDailyHint: 'Skipped on a day they already supported someone. After the number of unused reminders below, it quietly drops to once a week until they do again.',
+    adminWeeks: 'Weeks of kindness instead of days in a row',
+    adminWeeksHint: 'Me shows the weeks they supported someone, a total that only grows, and "weeks in a row" that allows a rest week and is only shown from 2 up.',
+  },
+  offline: { saved: 'Showing posts saved %{when}.' },
   conversation: { invited: 'You were invited to this group. Join to talk and cheer each other on.' },
   groups: { intro: 'Talk and cheer each other on about a need, a place, or a topic.', namePlaceholder: 'Morning walking group', topicPlaceholder: 'We meet up at 7am' },
   events: { intro: 'Get together on a video call or meet in person.', titlePlaceholder: 'Wednesday night meetup', placePlaceholder: 'Community Center, 12 Main St' },

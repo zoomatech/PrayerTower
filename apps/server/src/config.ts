@@ -32,6 +32,18 @@ const Env = z.object({
   PLAY_STORE_URL: z.url().optional(),
   /** Shared-link verification (/.well-known): Apple Developer Team ID; unset = no apple-app-site-association. */
   APPLE_TEAM_ID: z.string().regex(/^[A-Z0-9]{10}$/).optional(),
+  /**
+   * Apple push key for the "Praying for you now" Live Activity (docs/GROWTH.md): the key ID,
+   * and the .p8 file's contents (newlines may be written as \n). Unset = no Live Activity updates.
+   * Uses APPLE_TEAM_ID. APNS_PRODUCTION=false sends to Apple's sandbox (development builds).
+   */
+  APNS_KEY_ID: z.string().regex(/^[A-Z0-9]{10}$/).optional(),
+  APNS_PRIVATE_KEY: z.string().optional(),
+  APNS_PRODUCTION: z.stringbool().default(true),
+  /** Text messages for the prayer chain (docs/GROWTH.md): Twilio account SID, auth token, and a sending number or Messaging Service SID. Unset = no texts. */
+  TWILIO_ACCOUNT_SID: z.string().regex(/^AC[0-9a-fA-F]{32}$/).optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM: z.string().regex(/^(\+[1-9][0-9]{6,14}|MG[0-9a-fA-F]{32})$/).optional(),
   /** Bundle IDs (iOS) and package names (Android) that open shared links: the store app and the staging build. */
   APP_LINK_APP_IDS: z.string().default('com.zoomatech.prayertower,com.zoomatech.prayertower.staging'),
   /** Comma-separated SHA-256 signing-certificate fingerprints for Android App Links; unset = no assetlinks.json. */
@@ -57,6 +69,11 @@ const Env = z.object({
   MODERATION_CLAUDE_MODEL: z.string().default('claude-opus-5-5'),
   /** Claude model for the "not God" conversation and the circle facilitator (both off until an admin turns them on). */
   AI_CHAT_MODEL: z.string().default('claude-opus-5-5'),
+  /** Jitsi as a Service (8x8) for live rooms, the paid option in docs/LIVE_VIDEO.md. All three unset = not used. */
+  JAAS_APP_ID: z.string().regex(/^vpaas-magic-cookie-[0-9a-f]+$/).optional(),
+  JAAS_API_KEY_ID: z.string().min(10).optional(),
+  /** PEM private key for that API key; \n in one line is read as a line break. */
+  JAAS_PRIVATE_KEY: z.string().optional(),
   /** Shared secret for the radio station worker (header x-station-key). Unset = no station. */
   STATION_API_KEY: z.string().min(24).optional(),
   /** In-app token purchase (App Store). Off until purchases_enabled is on AND the Apple root certificate is set. */
@@ -68,6 +85,8 @@ const Env = z.object({
   APPLE_ROOT_CA_PATHS: z.string().default(''),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   PUSH_ENABLED: z.enum(['0', '1']).default('1'),
+  /** Expo's push service; point it at a stand-in to test pushes without real devices. */
+  EXPO_PUSH_BASE_URL: z.string().url().default('https://exp.host'),
   /** Comma-separated origins allowed to call the API from a browser. Unset = any (development only). */
   CORS_ORIGINS: z.string().default(''),
   /** API requests allowed per signed-in member per minute; 0 turns the limit off. */
@@ -98,6 +117,21 @@ const Env = z.object({
   // Language of the sponsor email for addresses that aren't members (members get their app language).
   SPONSOR_REPORT_LANG: z.enum(['en', 'es']).default('en'),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
+  // Cross-posting from Facebook and Threads (docs/CROSSPOST.md). The browser extension needs none of these;
+  // "Connect Threads" / "Connect Facebook" need their app's ID and secret, the public URL and the token key.
+  /** The server's public https address, for the sign-in return link, e.g. https://api.prayertower.app. */
+  CROSSPOST_PUBLIC_URL: z.url({ protocol: /^https$/ }).optional(),
+  /** Encrypts stored Facebook and Threads tokens (any random text, 32+ characters). */
+  CROSSPOST_TOKEN_KEY: z.string().min(32).optional(),
+  /** Threads app ID and secret (Meta App Dashboard → the Threads use case → Settings). */
+  THREADS_APP_ID: z.string().optional(),
+  THREADS_APP_SECRET: z.string().optional(),
+  /** The Verify Token typed into the Threads webhook settings. Unset = no webhook (polling only). */
+  THREADS_WEBHOOK_VERIFY_TOKEN: z.string().min(16).optional(),
+  /** Facebook app ID and secret (Meta App Dashboard → App settings → Basic). */
+  FACEBOOK_APP_ID: z.string().optional(),
+  FACEBOOK_APP_SECRET: z.string().optional(),
+  FACEBOOK_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default('v26.0'),
   /** Days after a moderator removes content before its text and photos are erased (0 = never). */
   RETENTION_REMOVED_DAYS: z.coerce.number().int().min(0).default(90),
   /** Days notifications are kept (0 = forever). */

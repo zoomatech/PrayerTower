@@ -3,8 +3,8 @@
 //   FLDIGI_URL (default http://127.0.0.1:7362/RPC2), MODEM (BPSK31), POLL_SECONDS (10),
 //   TX_TIMEOUT_SECONDS (180), MAX_PIECE_CHARS (500), BLOCKLIST_FILE (one word per line, added to the default list)
 // Burst mode (docs/RADIO_BURST.md), off unless BURST_MODE is set:
-//   BURST_MODE (off | audio | fldigi | simulate), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
-//   BURST_MAX_FRAME_SECONDS (20), BURST_PLAY_CMD ("aplay -q {wav}"; "afplay {wav}" on macOS), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
+//   BURST_MODE (off | audio | fldigi | simulate | packet: IDs and counts as 1200-baud APRS packets, PACKET_PATH), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
+//   BURST_MAX_FRAME_SECONDS (20), BURST_CODEC_V2 (off; on also tries codec 4), BURST_PLAY_CMD ("aplay -q {wav}"; "afplay {wav}" on macOS), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
 //   BURST_PTT_DELAY_MS (300), BURST_DIR (bursts/ under the state directory), BURST_FLDIGI_MODEM (8PSK1000F)
 // BURST_PRESET=auto picks a preset before each burst from a receiver's channel report:
 //   BURST_AUTO_REPORT (file or URL; BURST_DIR/channel.json; "server" reads listener nodes' reports
@@ -32,7 +32,10 @@ import { audioTransmitter, fldigiTransmitter, simulateTransmitter, type BurstTra
 import { runBurstOnce } from './burst/worker.js';
 import { RIG_MODES, rigctldClient, tuneRig, type Rig } from './rig.js';
 import { StationId } from './station-id.js';
+import { runSetupTestOnce } from './setup-test.js';
+import { runPacketOnce } from './packet/worker.js';
 import { stationChecks } from './status.js';
+import { checkApiUrl } from './secure-url.js';
 
 const env = (name: string, fallback?: string) => {
   const v = process.env[name] || fallback;
@@ -65,9 +68,11 @@ const cfg = {
 };
 const pollMs = int('POLL_SECONDS', '10', 1, 3600) * 1000;
 const burstMode = env('BURST_MODE', 'off');
-if (!['off', 'audio', 'fldigi', 'simulate'].includes(burstMode)) throw new Error('BURST_MODE must be off, audio, fldigi or simulate');
+if (!['off', 'audio', 'fldigi', 'simulate', 'packet'].includes(burstMode)) throw new Error('BURST_MODE must be off, audio, fldigi, simulate or packet');
+// Packet fallback: plays through the sound card like audio mode (packet/worker.ts).
+const packetMode = burstMode === 'packet';
 const usesFldigi = burstMode === 'off' || burstMode === 'fldigi';
-const api = httpApi(env('PRAYER_TOWER_API_URL'), env('STATION_API_KEY'));
+const api = httpApi(checkApiUrl(env('PRAYER_TOWER_API_URL')), env('STATION_API_KEY'));
 const fldigi = fldigiClient(env('FLDIGI_URL', 'http://127.0.0.1:7362/RPC2'));
 const stateDir = process.env.STATE_DIRECTORY?.split(':')[0];
 const rigControl = env('RIG_CONTROL', 'off');
@@ -143,11 +148,16 @@ if (burstMode !== 'off') {
         : undefined,
       maxPrayers: int('BURST_MAX_PRAYERS', '50', 1, 500),
       maxFrameSeconds: int('BURST_MAX_FRAME_SECONDS', '20', 1, 120),
+      codecV2: process.env.BURST_CODEC_V2 === 'on',
       blocklist: cfg.blocklist,
       frequencyHz: cfg.frequencyHz,
     },
   };
 }
+// PACKET_PATH: digipeaters to ask, e.g. WIDE1-1; empty (the default) asks none.
+const packetPath = (process.env.PACKET_PATH ?? '').split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
+if (packetPath.some((p) => !/^[A-Z0-9]{1,6}(-\d{1,2})?$/.test(p))) throw new Error('PACKET_PATH must be digipeater aliases like WIDE1-1, separated by commas');
+if (packetMode && !/^[A-Z0-9]{1,6}(-\d{1,2})?$/.test(callSign)) throw new Error(`BURST_MODE=packet needs a call sign AX.25 can carry (up to 6 letters and digits, optional -SSID), not "${callSign}"`);
 const beat = () => {
   if (heartbeat) {
     try {
@@ -165,7 +175,9 @@ const reportStatus = async () => {
   if (Date.now() - lastStatus < STATUS_EVERY_MS) return;
   lastStatus = Date.now();
   try {
-    const checks = await stationChecks({ audio: burstMode === 'audio', rig });
+    const checks: { name: string; ok: boolean; detail: string }[] = await stationChecks({ audio: burstMode === 'audio' || packetMode, rig });
+    // The operator console's ID timer (STATION_ID=cw).
+    if (stationId) checks.push({ name: 'station_id', ok: true, detail: stationId.statusDetail() });
     await api.reportStatus?.({ callSign, checks });
   } catch (err) {
     console.error(`[station] could not report status: ${(err as Error).message}`);
@@ -181,11 +193,26 @@ else if (usesFldigi) await fldigi.setModem(cfg.modem);
 console.log(
   `[station] ${callSign} ready, ${burst ? `burst ${burstMode} ${burst.cfg.choosePreset ? 'auto preset' : burst.cfg.preset.name}, up to ${burst.cfg.maxPrayers} prayers a burst` : cfg.modem}, polling every ${pollMs / 1000}s`,
 );
+// The setup wizard's tests (setup-test.ts), checked before each claim; burst mode only.
+const setupTests = async () => {
+  if (!burst || !api.setupTest || !api.setupResult) return;
+  try {
+    await runSetupTestOnce({ setupTest: api.setupTest, setupResult: api.setupResult }, burst.tx, burst.cfg);
+  } catch (err) {
+    console.error(`[station] setup test: ${(err as Error).message}`);
+  }
+};
+
 while (!stopping) {
   beat();
   await reportStatus();
+  await setupTests();
   try {
-    const idle = burst ? (await runBurstOnce(api, burst.tx, burst.cfg)).kind === 'idle' : (await runOnce(api, fldigi, cfg)) === 'idle';
+    const idle = packetMode && burst
+      ? (await runPacketOnce(api, burst.tx, { callSign, maxPrayers: burst.cfg.maxPrayers, blocklist: cfg.blocklist, path: packetPath, frequencyHz: cfg.frequencyHz })).kind === 'idle'
+      : burst
+        ? (await runBurstOnce(api, burst.tx, burst.cfg)).kind === 'idle'
+        : (await runOnce(api, fldigi, cfg)) === 'idle';
     if (idle) await new Promise((r) => setTimeout(r, pollMs));
   } catch (err) {
     if (err instanceof TransmitError) {

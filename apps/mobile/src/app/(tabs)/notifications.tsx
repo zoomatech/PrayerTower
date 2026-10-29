@@ -51,7 +51,7 @@ export default function Notifications() {
           const careRequestId = typeof n.data.careRequestId === 'string' ? n.data.careRequestId : null;
           const storyId = typeof n.data.storyId === 'string' ? n.data.storyId : null;
           const mendId = typeof n.data.mendId === 'string' ? n.data.mendId : null;
-          const target = mendId ? `/mend/${mendId}` : storyId ? '/help-stories' : careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}${n.data.believe ? '?believe=1' : ''}` : n.data.screen === 'highlights' ? '/highlights' : n.data.screen === 'prayer-minute' ? '/prayer-minute' : n.data.screen === 'give' ? '/give' : n.data.screen === 'radio-requests' ? '/radio-requests' : n.data.screen === 'gratitude' || n.data.screen === 'encourager' || n.data.screen === 'partner' ? '/profile' : n.data.screen === 'prayer-list' ? '/prayer-list' : typeof n.data.personId === 'string' ? `/people/${n.data.personId}` : null;
+          const target = mendId ? `/mend/${mendId}` : storyId ? '/help-stories' : careRequestId ? '/care' : conversationId ? `/conversation/${conversationId}` : eventId ? `/event/${eventId}` : postId ? `/post/${postId}${n.data.believe ? '?believe=1' : ''}` : n.data.screen === 'highlights' ? '/highlights' : n.data.screen === 'prayer-minute' ? '/prayer-minute' : n.data.screen === 'give' ? '/give' : n.data.screen === 'radio-requests' ? '/radio-requests' : n.data.screen === 'gratitude' || n.data.screen === 'encourager' || n.data.screen === 'partner' ? '/profile' : n.data.screen === 'prayer-list' ? '/prayer-list' : n.data.screen === 'crosspost' ? '/crosspost' : typeof n.data.personId === 'string' ? `/people/${n.data.personId}` : null;
           return (
             <Pressable
               key={n.id}
@@ -63,6 +63,9 @@ export default function Notifications() {
               <Text style={type.small}>{new Date(n.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</Text>
               {n.kind === 'moderation_notice' && typeof n.data.itemId === 'string' ? (
                 <Button small variant="secondary" label={t('notices.appeal')} onPress={() => router.push(`/appeal/${n.data.itemId}`)} />
+              ) : null}
+              {n.kind === 'held_for_review' && n.data.explainable === true && typeof n.data.itemId === 'string' ? (
+                <Button small variant="secondary" label={t('notices.explain')} onPress={() => router.push(`/appeal/${n.data.itemId}?held=1`)} />
               ) : null}
             </Pressable>
           );

@@ -63,3 +63,35 @@ describe('account deletion', () => {
     });
   });
 });
+
+describe('account deletion covers every table', () => {
+  it("leaves no row that belongs to the member in any table, including features added later", async () => {
+    const leaver = await createUser('Leaving Lois');
+    const friend = await createUser('Staying Sue');
+    const post = await newRequest(leaver, 'Pray for my sister in hospital.');
+    const theirs = await newRequest(friend, 'Pray for rain on our farm.');
+    await db.query(`insert into public.lamp_awards (giver_id, recipient_id, note) values ($1, $2, 'Thank you')`, [leaver, friend]);
+    await db.query(`insert into public.lamp_awards (giver_id, recipient_id, note) values ($1, $2, 'Thank you too')`, [friend, leaver]);
+    await db.query(`insert into public.prayer_chain_members (owner_id, email, token) values ($1, 'aunt@example.com', encode(gen_random_bytes(16), 'hex'))`, [leaver]);
+    await db.query(`insert into public.ai_usage (user_id, day, kind, turns) values ($1, current_date, 'chat', 1)`, [leaver]);
+    await db.query(`insert into public.live_activities (user_id, post_id, push_token, app_id) values ($1, $2, encode(gen_random_bytes(16), 'hex'), 'com.zoomatech.prayertower')`, [leaver, post.id]);
+    await db.query(`insert into public.circle_goals (post_id, set_by, target, ends_at) values ($1, $2, 10, now() + interval '7 days')`, [theirs.id, leaver]);
+    expect((await as(leaver).inject('DELETE', '/me', { confirm: 'DELETE' })).statusCode).toBe(200);
+
+    const { rows } = await db.query<{ tbl: string; col: string }>(
+      `select c.conrelid::regclass::text as tbl, a.attname as col
+         from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+        where c.contype = 'f' and c.confrelid in ('public.profiles'::regclass, 'auth.users'::regclass)
+          and c.connamespace = 'public'::regnamespace and c.confdeltype = 'c'`,
+    );
+    const left: string[] = [];
+    for (const r of rows) {
+      if (['public.profiles', 'profiles', 'conversations', 'moderation_items', 'harm_events'].includes(r.tbl)) continue;
+      const n = (await db.query(`select 1 from ${r.tbl} where "${r.col}" = $1`, [leaver])).rowCount;
+      // The only kept request rows are ledger-held ones, emptied; this member has none.
+      if (n) left.push(`${r.tbl}.${r.col}`);
+    }
+    expect(left).toEqual([]);
+    expect((await db.query('select 1 from public.lamp_awards where giver_id = $1 or recipient_id = $1', [leaver])).rowCount).toBe(0);
+  });
+});

@@ -71,6 +71,7 @@ export interface PostRow {
   all_support_welcome: boolean;
   is_lament: boolean;
   lament_radio: boolean;
+  answers_post_id: string | null;
   crisis: boolean;
   /** Set by the harmful-prayer check (modules/harm) until a moderator clears it. */
   harm_category: string | null;
@@ -132,7 +133,7 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     ]);
   }
   await moderation.queueScan(q, 'post', post.id);
-  if (safety.mentionsCrisis(input.body)) {
+  if (safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body))) {
     await moderation.flagCrisis(q, 'post', post.id);
     post.crisis = true;
   }
@@ -244,7 +245,7 @@ export async function setTestimony(q: Queryable, userId: string, postId: string,
   const harmDecision = await harm.screen(q, userId, 'post', input.body);
   await q.query(`update public.posts set testimony = $2, testimony_at = coalesce(testimony_at, now()) where id = $1`, [postId, input.body]);
   await moderation.queueScan(q, 'post', postId);
-  const crisis = safety.mentionsCrisis(input.body);
+  const crisis = safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body));
   if (crisis) await moderation.flagCrisis(q, 'post', postId);
   await harm.apply(q, userId, 'post', postId, harmDecision);
   return { post, first: post.testimony === null, crisis };
@@ -320,9 +321,11 @@ export async function setModerationStatus(q: Queryable, target: moderation.Targe
 }
 
 /** Show content again that was hidden pending review; content already removed stays removed. */
+/** Shows content a flag hid until a person decided. True when it was hidden and is now back up. */
 export async function unhide(q: Queryable, target: moderation.Target, id: string) {
   const table = { post: 'posts', comment: 'comments', reaction: 'reactions', message: 'messages', event: 'events', spoken_prayer: 'spoken_prayers' }[target];
-  await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
+  const { rowCount } = await q.query(`update public.${table} set moderation_status = 'visible' where id = $1 and moderation_status = 'hidden_pending_review'`, [id]);
+  return !!rowCount;
 }
 
 /** The author and text of any moderatable item. */
@@ -367,7 +370,7 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
     [postId, userId, input.parentId ?? null, input.body, input.isUpdate, isAnonymous],
   );
   await moderation.queueScan(q, 'comment', rows[0]!.id);
-  const crisis = safety.mentionsCrisis(input.body);
+  const crisis = safety.mentionsCrisis(input.body) || (await harm.codedCrisis(q, input.body));
   if (crisis) await moderation.flagCrisis(q, 'comment', rows[0]!.id);
   const harmGuidance = await harm.apply(q, userId, 'comment', rows[0]!.id, harmDecision);
   return { ...rows[0]!, crisis, harm: harmGuidance };
@@ -406,10 +409,11 @@ function presentComment(c: CommentRow, viewerId: string | null) {
 
 /** Comments in thread order: each reply follows its parent, with its depth for indenting. */
 export async function listComments(q: Queryable, postId: string, viewerId: string | null) {
-  // Comments from anyone the viewer blocked are left out.
+  // Comments from anyone the viewer blocked or muted are left out.
   const { rows } = await q.query<CommentRow>(
     `${commentSelect} where c.post_id = $1 and c.moderation_status = 'visible'
        and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)
+       and not exists (select 1 from public.user_mutes mu where mu.user_id = $2 and mu.muted_id = c.user_id)
      order by c.id`,
     [postId, viewerId],
   );
@@ -579,7 +583,15 @@ export interface CardCounts {
 export async function cards(q: Queryable, postIds: string[], viewerId: string | null) {
   if (postIds.length === 0) return [];
   const { rows } = await q.query<
-    PostRow & { display_name: string; handle: string | null; private_tier: boolean; counts: CardCounts; media: { kind: string; storagePath: string }[] }
+    PostRow & {
+      display_name: string;
+      handle: string | null;
+      private_tier: boolean;
+      counts: CardCounts;
+      media: { kind: string; storagePath: string }[];
+      answers: { id: string; preview: string } | null;
+      story_id: string | null;
+    }
   >(
     `select po.*, pr.display_name, pr.handle, pr.anonymous_by_default as private_tier,
             json_build_object(
@@ -594,7 +606,11 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
               'standing', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'standing')
             ) as counts,
             coalesce((select json_agg(json_build_object('kind', m.kind, 'storagePath', m.storage_path) order by m.position)
-                        from public.post_media m where m.post_id = po.id), '[]') as media
+                        from public.post_media m where m.post_id = po.id), '[]') as media,
+            -- "Prayer answered" stories: the request a story answers, and a request's story.
+            (select json_build_object('id', o.id, 'preview', left(o.body, 120)) from public.posts o
+              where o.id = po.answers_post_id and o.moderation_status = 'visible') as answers,
+            (select s.id from public.posts s where s.answers_post_id = po.id and s.moderation_status = 'visible') as story_id
        from public.posts po join public.profiles pr on pr.id = po.user_id
       where po.id = any($1::uuid[])`,
     [postIds],
@@ -645,6 +661,12 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   }
   // One query, not one per card: parallel per-card queries took every pool connection (load test 2026-10-28).
   const reachByPost = await tokens.reachOfMany(q, postIds);
+  // Posts copied from the author's Facebook or Threads ("From Facebook").
+  const { rows: copies } = await q.query<{ post_id: string; source: 'facebook' | 'threads' }>(
+    'select post_id, source from public.crosspost_imports where post_id = any($1::uuid[])',
+    [postIds],
+  );
+  const copiedFrom = new Map(copies.map((c) => [c.post_id, c.source]));
 
   // The viewer's own active commitment on each post (vine tendrils, "Committed" state).
   const { rows: mine } = await q.query<{ post_id: string; id: string; frequency: string }>(
@@ -720,11 +742,14 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         allSupportWelcome: r.all_support_welcome,
         lament: r.is_lament,
         lamentRadio: r.lament_radio,
+        answers: r.answers,
+        storyId: r.story_id,
         crisis: r.crisis,
         media: r.media,
         counts: r.counts,
         reach: reachByPost.get(id) ?? 0,
         topComment: top ? presentComment(top, viewerId) : null,
+        crosspostedFrom: copiedFrom.get(id) ?? null,
         ...(leavesByPost.size ? { leafComments: (leavesByPost.get(id) ?? []).map((c) => presentComment(c, viewerId)) } : {}),
         createdAt: r.created_at,
       },

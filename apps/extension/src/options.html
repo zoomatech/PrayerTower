@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prayer Tower Cross-posting</title>
+    <style>
+      body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; min-width: 320px; max-width: 520px; color: #1f2937; line-height: 1.45; }
+      h1 { font-size: 18px; margin: 0 0 8px; }
+      label { display: block; font-weight: 600; margin-top: 12px; }
+      input[type='url'], input[type='password'] { width: 100%; box-sizing: border-box; padding: 8px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 8px; }
+      .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+      button { padding: 8px 14px; border-radius: 8px; border: 0; background: #1d4ed8; color: #fff; font-size: 14px; cursor: pointer; }
+      .note { font-size: 13px; color: #4b5563; }
+      .ok { color: #047857; }
+      .bad { color: #b45309; }
+      ul { padding-left: 18px; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>Prayer Tower Cross-posting</h1>
+    <p class="note">When you click Post on Facebook or Threads, the same words, photos and videos go to your own Prayer Tower (or Open Circle) account. Get your key in the app: Me → Copy my Facebook posts.</p>
+    <label for="server">Server address (shown in the app)</label>
+    <input id="server" type="url" placeholder="https://api.example.org" autocomplete="off" />
+    <label for="key">Your extension key</label>
+    <input id="key" type="password" placeholder="ptx_…" autocomplete="off" />
+    <div class="row"><input id="enabled" type="checkbox" /><label for="enabled" style="margin: 0; font-weight: 400">Copy my posts</label></div>
+    <div class="row"><button id="save">Save</button><span id="status" class="note" role="status"></span></div>
+    <h2 style="font-size: 15px; margin-top: 20px">Recent</h2>
+    <ul id="recent"></ul>
+    <script src="options.js"></script>
+  </body>
+</html>

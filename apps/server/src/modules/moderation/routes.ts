@@ -7,8 +7,10 @@ import { forbidden } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as activity from '../activity/index.js';
 import * as harm from '../harm/index.js';
+import * as care from '../moderator-care/index.js';
 import * as kindness from '../kindness/index.js';
 import * as moderation from './index.js';
+import * as tools from './tools.js';
 
 export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderation.Classifier | null = null) {
   const requireModerator = async (req: FastifyRequest) => {
@@ -24,9 +26,22 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   });
 
   app.get('/moderation/queue', async (req) => {
-    await requireModerator(req);
+    const moderatorId = await requireModerator(req);
     const { targetId } = z.object({ targetId: z.uuid().optional() }).parse(req.query);
-    return { items: await moderation.pending(db, 100, targetId) };
+    return { items: await moderation.pending(db, 100, targetId, (await care.settings(db)).enabled ? moderatorId : undefined) };
+  });
+
+  // Moderation tools (Admin → Moderation tools, off): search waiting reports and past decisions.
+  app.get('/moderation/search', async (req) => {
+    await requireModerator(req);
+    await tools.requireOn(db);
+    return { items: await tools.search(db, tools.Search.parse(req.query)) };
+  });
+
+  // Moderation tools: one decision for several waiting reports (never someone who may be in danger).
+  app.post('/moderation/items/bulk', async (req) => {
+    const moderatorId = await requireModerator(req);
+    return tools.bulk(db, moderatorId, tools.Bulk.parse(req.body));
   });
 
   // Prayer taps that look automated: flags only, a moderator decides.
@@ -53,10 +68,10 @@ export function moderationRoutes(app: FastifyInstance, db: Db, classify: moderat
   // With the kind cloud on, the answer also carries `cloud`: the word rules' verdict
   // (modules/kindness), raised to a nudge when the AI would flag the text.
   app.post('/moderation/precheck', async (req) => {
-    requireUser(req);
+    const userId = requireUser(req);
     const { text, context } = z.object({ text: z.string().max(10_000), context: z.enum(['lament', 'lamentReply']).optional() }).parse(req.body);
     // The harmful-prayer check (free, no AI): a gentle word and any hotlines, only when it applies (docs/HARMFUL_PRAYERS.md).
-    const harmWord = await harm.precheck(db, text).catch(() => null);
+    const harmWord = await harm.precheck(db, text, userId).catch(() => null);
     const harmPart = harmWord ? { harm: harmWord } : {};
     const kind = await kindness.enabled(db);
     const rules = kind && text.trim() ? kindness.assessIn(text, context) : null;

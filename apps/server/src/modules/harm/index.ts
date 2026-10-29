@@ -9,7 +9,10 @@
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { AppError } from '../../errors.js';
+import * as communities from '../communities/index.js';
 import * as notifications from '../notifications/index.js';
+import { mentionsCrisis } from '../safety/index.js';
+import { unmask } from './unmask.js';
 
 export const CATEGORIES = ['threat', 'hate', 'harm_wish', 'curse', 'revenge', 'abuse_disclosure', 'foul'] as const;
 export type Category = (typeof CATEGORIES)[number];
@@ -30,9 +33,9 @@ const THREAT = [
 ];
 
 const DEATH_OR_HARM =
-  '(?:die|dies|dead|death|drop dead|suffer|suffers|gets? cancer|burn in hell|rot in hell|rot|go to hell|be destroyed|perish|get hurt|be hurt|have an accident|crash|be struck|lose everything|be punished|be killed)';
+  '(?:die|dies|dead|death|drop dead|suffer|suffers|gets? cancer|burn in hell|rot in hell|rot|go to hell|be destroyed|perish|gets? hurt|be hurt|have an accident|crash|be struck|lose everything|be punished|be killed)';
 const HARM_WISH = [
-  new RegExp(`\\b(?:pray(?:ing)?|hope|hoping|wish|wishing|want|asking (?:god|the lord|jesus)|ask (?:god|the lord|jesus))\\b(?: (?:that|for))? ${OTHER}\\b(?![^.!?]{0,30}\\b(?:not|\\w+n't|never|no longer|stop|as|because|since|who|while|before|when|if)\\b)[^.!?]{0,30}?\\b${DEATH_OR_HARM}\\b(?![^.!?]{0,20}\\b(?:peacefully|in peace|without pain|comfortabl\\w*|at home|surrounded)\\b)`, 'i'),
+  new RegExp(`\\b(?:pray(?:ing)?|hope|hoping|wish|wishing|want|asking (?:god|the lord|jesus)|ask (?:god|the lord|jesus))\\b(?: (?:that|for))? ${OTHER}\\b(?![^.!?]{0,30}\\b(?:not|\\w+n't|(?:do|does|did|wo|ca|is|was|would|should|could)nt|never|no longer|stop|as|because|since|who|while|before|when|if)\\b)[^.!?]{0,30}?\\b${DEATH_OR_HARM}\\b(?![^.!?]{0,20}\\b(?:peacefully|in peace|without pain|comfortabl\\w*|at home|surrounded)\\b)`, 'i'),
   new RegExp(`\\b(?:god|lord|jesus|father|heaven),? (?:please )?(?:strike|smite|punish|destroy|kill|curse|damn|crush)\\s+${OTHER}`, 'i'),
   new RegExp(`(?<!(?:n't|not|never) )\\b(?:may|let) (?:god |the lord |heaven )?(?:strike|smite|punish|destroy|kill|curse|damn|crush)\\s+${OTHER}`, 'i'),
   new RegExp(`(?<!(?:n't|not|never) )\\b(?:may|let) ${OTHER} (?:die|suffer|rot|burn|perish|be destroyed)\\b`, 'i'),
@@ -40,7 +43,7 @@ const HARM_WISH = [
 ];
 
 const CURSE = [
-  new RegExp(`(?<!\\b(?:break|breaking|broke|lift|lifting|remove|removing|from|of) (?:the |this |a |every )?)\\b(?:i |we )?(?:curse|hex|jinx|cast a spell on|put a curse on|place a curse on|damn)\\s+${OTHER}`, 'i'),
+  new RegExp(`(?<!\\b(?:break|breaking|broke|lift|lifting|remove|removing|from|of) (?:the |this |a |every )?)(?<!\\b(?:who|that) )\\b(?:i |we )?(?:curse|hex|jinx|cast a spell on|put a curse on|place a curse on|damn)\\s+${OTHER}`, 'i'),
   new RegExp(`\\b(?:may|let) ${OTHER} be (?:cursed|damned)\\b`, 'i'),
   /\b(?:a )?curse (?:on|upon) (?:him|her|them|you|his|her|their)\b/i,
 ];
@@ -74,28 +77,44 @@ const REAL = /\b(?:die[ds]?|dead|death|lost|loss|cancer|hospital|help|please|pra
 
 export interface Verdict {
   categories: Category[];
+  /** Which word rules matched, as "<category>:<index>" (for the weekly tuning report). */
+  rules: string[];
   swears: number;
   /** Nothing but swearing: the only text refused automatically. */
   junk: boolean;
 }
 
 /** Sorts text into categories. Pure, so the app's precheck and the tests can use it. */
-export function check(text: string, extraHateWords: string[] = []): Verdict {
+export function check(text: string, extraHateWords: string[] = [], unmasked = false): Verdict {
   const t = text.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/[\u2018\u2019]/g, "'");
   const words = t.split(/[^\p{L}\p{N}'*]+/u).filter(Boolean);
   const swears = words.filter((w) => SWEAR.test(w.replace(/^'+|'+$/g, ''))).length;
-  const has = (list: RegExp[]) => list.some((r) => r.test(t));
-  const lower = t.toLowerCase();
+  const rules: string[] = [];
+  // The same patterns also run on the text with disguises taken off (k1ll, unalive, 🔪);
+  // those matches are marked ":masked" in the weekly report.
+  const plain = unmasked ? unmask(text) : null;
+  const disguised = plain !== null && plain !== t.toLowerCase().replace(/\s+/g, ' ').trim();
+  const has = (name: Category, list: RegExp[]) => {
+    list.forEach((r, i) => {
+      if (r.test(t)) rules.push(`${name}:${i}`);
+      else if (disguised && r.test(plain)) rules.push(`${name}:${i}:masked`);
+    });
+    return rules.some((r) => r.startsWith(`${name}:`));
+  };
+  const lower = disguised ? `${t.toLowerCase()}\n${plain}` : t.toLowerCase();
   const cats: Category[] = [];
-  if (has(THREAT)) cats.push('threat');
-  if (has(HATE) || extraHateWords.some((w) => w.trim() && new RegExp(`\\b${escape(w.trim().toLowerCase())}\\b`, 'i').test(lower))) cats.push('hate');
-  if (has(HARM_WISH)) cats.push('harm_wish');
-  if (has(CURSE)) cats.push('curse');
-  if (has(REVENGE) && !REVENGE_RELEASED.test(t)) cats.push('revenge');
-  if (has(ABUSE)) cats.push('abuse_disclosure');
+  if (has('threat', THREAT)) cats.push('threat');
+  const extra = extraHateWords.some((w) => w.trim() && new RegExp(`\\b${escape(w.trim().toLowerCase())}\\b`, 'i').test(lower));
+  if (extra) rules.push('hate:admin_words');
+  if (has('hate', HATE) || extra) cats.push('hate');
+  if (has('harm_wish', HARM_WISH)) cats.push('harm_wish');
+  if (has('curse', CURSE)) cats.push('curse');
+  if (!REVENGE_RELEASED.test(t) && !(disguised && REVENGE_RELEASED.test(plain)) && has('revenge', REVENGE)) cats.push('revenge');
+  if (has('abuse_disclosure', ABUSE)) cats.push('abuse_disclosure');
   const others = words.length - swears;
   const junk = swears >= 3 && others < 3 && !REAL.test(t) && cats.length === 0;
-  return { categories: cats, swears, junk };
+  if (swears >= 3) rules.push('foul:count');
+  return { categories: cats, rules, swears, junk };
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -114,6 +133,10 @@ export interface HarmSettings {
   foul_junk_filter: boolean;
   flood_per_day: number;
   extra_hate_words: string[];
+  /** A member whose post was held can explain it to the moderator. */
+  explain_held: boolean;
+  /** Also read through disguises: k1ll, unalive, 🔪 (unmask.ts). Matches go to a person, never refused. */
+  read_disguises: boolean;
 }
 const COLUMNS = [
   'enabled',
@@ -127,6 +150,8 @@ const COLUMNS = [
   'foul_junk_filter',
   'flood_per_day',
   'extra_hate_words',
+  'explain_held',
+  'read_disguises',
 ] as const satisfies readonly (keyof HarmSettings)[];
 
 export async function settings(q: Queryable): Promise<HarmSettings> {
@@ -148,6 +173,8 @@ export const SettingsPatch = z
     foul_junk_filter: z.boolean(),
     flood_per_day: z.number().int().min(1).max(1000),
     extra_hate_words: z.array(z.string().trim().min(2).max(60)).max(500),
+    explain_held: z.boolean(),
+    read_disguises: z.boolean(),
   })
   .partial();
 
@@ -169,11 +196,12 @@ export interface Decision {
   category: Category;
   categories: Category[];
   action: Action;
+  rules?: string[];
 }
 
 /** The action for a verdict under the admin's settings, or null when nothing applies. */
 export function decide(v: Verdict, s: HarmSettings): Decision | null {
-  if (v.junk && s.foul_junk_filter) return { category: 'foul', categories: ['foul'], action: 'filter' };
+  if (v.junk && s.foul_junk_filter) return { category: 'foul', categories: ['foul'], action: 'filter', rules: v.rules };
   const cats = [...v.categories];
   if (v.swears >= s.foul_hold_at) cats.push('foul');
   const actionFor = (c: Category): Action =>
@@ -187,7 +215,7 @@ export function decide(v: Verdict, s: HarmSettings): Decision | null {
   let best: Decision | null = null;
   for (const c of ORDER.filter((c) => cats.includes(c))) {
     const action = actionFor(c);
-    if (action !== 'allow' && (!best || RANK[action] > RANK[best.action])) best = { category: c, categories: cats, action };
+    if (action !== 'allow' && (!best || RANK[action] > RANK[best.action])) best = { category: c, categories: cats, action, rules: v.rules };
   }
   return best;
 }
@@ -216,8 +244,40 @@ export interface Guidance {
   resources: Resource[];
 }
 
-/** A gentle word for the member: a redirect, never a lecture. */
-export function guidance(d: Decision): Guidance {
+// Open Circle (and any community with neutral wording): the same gentle words, without the religious ones.
+const NEUTRAL: Record<Category, { title: string; message: string }> = {
+  threat: {
+    title: 'That sounds like a lot of anger',
+    message: 'Anger is honest. If you are thinking of hurting someone, please talk to someone you trust first. You could ask for support with the anger, and for safety and fairness.',
+  },
+  hate: {
+    title: 'Speak up for people, not against them',
+    message: 'Every group here is made of people someone loves. Try saying what happened, and what would help.',
+  },
+  harm_wish: {
+    title: 'Ask for fairness, not for harm',
+    message: 'It is fine to be honest about someone who hurt you. Try asking for fairness, safety, and healing for what they did to you.',
+  },
+  curse: {
+    title: 'Wish for good, never for harm',
+    message: 'You can pour out your hurt here. Try asking for things to be made right, and for your own safety and healing.',
+  },
+  revenge: {
+    title: 'Ask for fairness, not revenge',
+    message: 'Revenge rarely heals what happened. Try asking for fairness and for your own healing.',
+  },
+  abuse_disclosure: {
+    title: 'You are not alone',
+    message: 'Thank you for trusting us with this. What happened to you is not your fault. If you are in danger, call 911. These lines are free, confidential and open all day and night.',
+  },
+  foul: {
+    title: 'Tell us what is going on',
+    message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to support you.',
+  },
+};
+
+/** A gentle word for the member: a redirect, never a lecture. `secular` gives Open Circle's wording. */
+export function guidance(d: Decision, secular = false): Guidance {
   const abuse = d.categories.includes('abuse_disclosure');
   const resources = abuse ? ABUSE_RESOURCES : [];
   const held = d.action === 'hold' ? ' A moderator will read it before others see it.' : '';
@@ -251,16 +311,16 @@ export function guidance(d: Decision): Guidance {
       message: 'It sounds like something hurts badly. Say a little about what happened, so people know how to pray for you.',
     },
   };
-  const t = text[abuse && d.category !== 'threat' && d.category !== 'hate' ? 'abuse_disclosure' : d.category];
+  const t = (secular ? NEUTRAL : text)[abuse && d.category !== 'threat' && d.category !== 'hate' ? 'abuse_disclosure' : d.category];
   return { category: d.category, action: d.action, title: t.title, message: t.message + (d.action === 'filter' ? '' : held), resources };
 }
 
 /** For the precheck: the gentle word before posting, or null when the check is off or nothing applies. */
-export async function precheck(q: Queryable, text: string): Promise<Guidance | null> {
+export async function precheck(q: Queryable, text: string, userId?: string): Promise<Guidance | null> {
   const s = await settings(q);
   if (!s.enabled || !text.trim()) return null;
-  const d = decide(check(text, s.extra_hate_words), s);
-  return d ? guidance(d) : null;
+  const d = decide(check(text, s.extra_hate_words, s.read_disguises), s);
+  return d ? guidance(d, userId ? await communities.isSecular(q, userId) : false) : null;
 }
 
 // Before and after saving -------------------------------------------------------------
@@ -269,13 +329,13 @@ export async function precheck(q: Queryable, text: string): Promise<Guidance | n
  * Before saving: refuses only obvious junk (text that is nothing but swearing), and
  * returns the decision to apply once the item is saved. Null when the check is off.
  */
-export async function screen(q: Queryable, _userId: string, _target: Target, text: string): Promise<Decision | null> {
+export async function screen(q: Queryable, userId: string, _target: Target, text: string): Promise<Decision | null> {
   const s = await settings(q);
   if (!s.enabled || !text.trim()) return null;
-  const d = decide(check(text, s.extra_hate_words), s);
+  const d = decide(check(text, s.extra_hate_words, s.read_disguises), s);
   if (!d) return null;
   // Nothing is saved, so the member can simply say more and post again.
-  if (d.action === 'filter') throw new AppError(422, 'filtered', guidance(d).message);
+  if (d.action === 'filter') throw new AppError(422, 'filtered', guidance(d, await communities.isSecular(q, userId)).message);
   return d;
 }
 
@@ -306,12 +366,13 @@ export async function apply(q: Queryable, userId: string, target: Target, id: st
   );
   const flooding = today[0]!.n >= s.flood_per_day;
   const action = flooding ? 'bundled' : d.action;
-  await q.query(`insert into public.harm_events (user_id, target_type, target_id, category, action) values ($1, $2, $3, $4, $5)`, [
+  await q.query(`insert into public.harm_events (user_id, target_type, target_id, category, action, rules) values ($1, $2, $3, $4, $5, $6)`, [
     userId,
     target,
     id,
     d.category,
     action,
+    d.rules ?? [],
   ]);
   const table = { post: 'posts', comment: 'comments', message: 'messages' }[target];
   // Abuse disclosures are never hidden, not even in a flood: nobody describing their trauma is held back.
@@ -319,20 +380,33 @@ export async function apply(q: Queryable, userId: string, target: Target, id: st
   // One queue item per account per day once it floods; one per item before that.
   if (!flooding || today[0]!.bundled === 0) {
     const { rows } = await q.query<{ community_id: string }>(`select community_id from public.${table} where id = $1`, [id]);
-    await q.query(
+    const { rows: item } = await q.query<{ id: string }>(
       `insert into public.moderation_items (target_type, target_id, user_id, community_id, source, reason, ai_categories, auto_hidden)
        values ($1, $2, $3, $4, 'harm', $5, $6, $7)
-       on conflict (target_type, target_id) where source = 'harm' do nothing`,
+       on conflict (target_type, target_id) where source = 'harm' do nothing returning id`,
       [target, id, userId, rows[0]!.community_id, flooding ? FLOOD_REASON : HARM_REASON[d.category], { harm: d.categories }, d.action === 'hold' || (flooding && d.action !== 'support')],
     );
+    // A held post (not a flood): the member is told it waits for a person, and can explain it.
+    if (item[0] && d.action === 'hold' && !flooding) {
+      await notifications.notify(q, userId, {
+        kind: 'held_for_review',
+        title: `Your ${target === 'post' ? 'request' : target} is waiting for a moderator`,
+        body: s.explain_held
+          ? 'A person will read it before others see it. If you want, tell them what is going on.'
+          : 'A person will read it before others see it.',
+        data: { itemId: item[0].id, explainable: s.explain_held },
+        dedupeKey: `held_for_review:${item[0].id}`,
+      });
+    }
   }
-  const g = guidance(d);
+  const secular = await communities.isSecular(q, userId);
+  const g = guidance(d, secular);
   // Someone disclosing abuse hears from us privately, with the hotlines, once a day at most.
   if (d.categories.includes('abuse_disclosure') && s.abuse_action === 'support') {
     await notifications.notify(q, userId, {
       kind: 'support_resources',
       title: 'You are not alone',
-      body: `${guidance({ ...d, category: 'abuse_disclosure', action: 'support' }).message} Domestic violence: 1-800-799-7233 (or text START to 88788). Sexual assault: 800-656-4673. Child abuse: 1-800-422-4453.`,
+      body: `${guidance({ ...d, category: 'abuse_disclosure', action: 'support' }, secular).message} Domestic violence: 1-800-799-7233 (or text START to 88788). Sexual assault: 800-656-4673. Child abuse: 1-800-422-4453.`,
       data: { resources: ABUSE_RESOURCES },
       dedupeKey: `support_resources:${userId}:${new Date().toISOString().slice(0, 10)}`,
     });
@@ -393,4 +467,15 @@ export async function metrics(q: Queryable, since: Date) {
     [since],
   );
   return rows;
+}
+
+/**
+ * Self-harm said in code ("unalive myself", "kms", "sewer slide") that the usual crisis
+ * check misses: true only while disguises are read (read_disguises), so the crisis
+ * support and the moderator's crisis check-in follow as usual.
+ */
+export async function codedCrisis(q: Queryable, text: string): Promise<boolean> {
+  if (!text.trim() || mentionsCrisis(text)) return false;
+  const s = await settings(q);
+  return s.enabled && s.read_disguises && mentionsCrisis(unmask(text));
 }

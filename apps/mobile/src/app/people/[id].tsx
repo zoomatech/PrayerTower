@@ -11,6 +11,7 @@ import { SupportLinkButton } from '@/components/support-link';
 import { PostCard } from '@/components/post-card';
 import { Button, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, space, type } from '@/lib/theme';
 
@@ -62,6 +63,21 @@ export default function PersonScreen() {
       await (blocked ? api.unblock(id) : api.block(id));
       setBlocked(!blocked);
       await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  // Mute (safety center): their posts and comments leave your feed; they are not told.
+  const features = useFeatures();
+  const [muted, setMuted] = useState(false);
+  useEffect(() => {
+    if (features.safetyCenter) api.isMuted(id).then((r) => setMuted(r.muted), () => undefined);
+  }, [features.safetyCenter, id]);
+  const toggleMute = async () => {
+    try {
+      await (muted ? api.unmute(id) : api.mute(id));
+      setMuted(!muted);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -124,6 +140,12 @@ export default function PersonScreen() {
               {blocked ? t('person.unblock', { name: person.displayName }) : t('person.block', { name: person.displayName })}
             </Text>
             {blocked ? <Text style={type.small}>{t('person.blockedNote')}</Text> : null}
+            {features.safetyCenter && !blocked ? (
+              <Text style={styles.block} onPress={toggleMute} accessibilityRole="button">
+                {muted ? t('safetyCenter.unmuteName', { name: person.displayName }) : t('safetyCenter.muteName', { name: person.displayName })}
+              </Text>
+            ) : null}
+            {muted && !blocked ? <Text style={type.small}>{t('safetyCenter.mutedNote')}</Text> : null}
             {!blocked ? <Lamps personId={person.id} name={person.displayName} /> : null}
             {!blocked && person.supportUrl ? <SupportLinkButton url={person.supportUrl} name={person.displayName} /> : null}
           </View>

@@ -6,7 +6,7 @@
   "description": "End-to-end tests: the web build of the app against the local API and Supabase",
   "scripts": {
     "test": "playwright test",
-    "build:web": "cd ../mobile && EXPO_OFFLINE=1 npx expo export --platform web --output-dir ../e2e/.web-dist",
+    "build:web": "cd ../mobile && EXPO_OFFLINE=1 npx expo export --platform web --output-dir ../e2e/.web-dist && node web-edition.js ../e2e/.web-dist",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

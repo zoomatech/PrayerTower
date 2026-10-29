@@ -14,6 +14,8 @@ const DEFAULTS: HarmSettings = {
   foul_junk_filter: true,
   flood_per_day: 5,
   extra_hate_words: [],
+  explain_held: true,
+  read_disguises: false,
 };
 const cats = (t: string) => check(t).categories;
 const action = (t: string) => decide(check(t), DEFAULTS)?.action ?? 'none';
@@ -51,6 +53,27 @@ describe('harmful prayer check', () => {
     'Pray for my enemies, that they find peace.',
     'Your prayers touched me deeply.',
     'Pray for my job interview.',
+    // Grief
+    "My husband died last week. I wish he hadn't suffered so long.",
+    'I hope my mom is not suffering anymore.',
+    'Praying for him, who died yesterday, and for his wife.',
+    'I miss her so much it feels like I could die.',
+    'My father beat cancer twice, and now it is back.',
+    // Illness
+    'I want this cancer to die. Kill the cancer cells, Lord.',
+    "We're going to beat this infection.",
+    'This job is killing me. Pray for rest.',
+    'My boss is going to kill me if I am late again, ha.',
+    'Pray the chemo destroys every tumor.',
+    // Scripture that speaks of violence or enemies
+    'Psalm 3:7: Arise, Lord! Deliver me, my God! Strike all my enemies on the jaw.',
+    'Psalm 139:19: If only you, God, would slay the wicked!',
+    'Psalm 58:6: Break the teeth in their mouths, O God.',
+    'Romans 12:19: Do not take revenge, my dear friends, but leave room for God\'s wrath.',
+    'The wages of sin is death, but the gift of God is eternal life.',
+    'Jesus said, Destroy this temple, and I will raise it again in three days.',
+    'Let God arise, let his enemies be scattered.',
+    'Pray for those who persecute you, and bless those who curse you.',
   ])('leaves alone: %s', (text) => {
     expect(cats(text)).toEqual([]);
   });

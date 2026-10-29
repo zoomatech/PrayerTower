@@ -14,7 +14,7 @@ export const isPrayable = (t: PostType) => !DISCUSSION_TYPES.includes(t);
  * for Open Circle. Hidden features disappear from the app for that community's
  * members, and the server refuses them.
  */
-export const COMMUNITY_FEATURES = ['radio', 'spoken', 'care', 'events', 'groups', 'awards', 'live', 'circles', 'pools', 'highlights', 'surveys', 'podcasts'] as const;
+export const COMMUNITY_FEATURES = ['radio', 'spoken', 'care', 'events', 'groups', 'awards', 'live', 'circles', 'pools', 'highlights', 'surveys', 'podcasts', 'crosspost'] as const;
 export type CommunityFeature = (typeof COMMUNITY_FEATURES)[number];
 
 export const POST_TYPE_LABELS: Record<PostType, string> = {
@@ -230,6 +230,10 @@ export interface Card {
   lament?: boolean;
   /** The author said this lament may go out by radio. */
   lamentRadio?: boolean;
+  /** A "prayer answered" story: the request it tells the ending of. */
+  answers?: { id: string; preview: string } | null;
+  /** A request's "prayer answered" story, once posted. */
+  storyId?: string | null;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
@@ -247,6 +251,8 @@ export interface Card {
   };
   reach: number;
   topComment: Comment | null;
+  /** Copied from the author's own Facebook or Threads post (cross-posting). */
+  crosspostedFrom?: 'facebook' | 'threads' | null;
   /** Newest few comments, newest first, while comments as leaves is on (the drawn vine). */
   leafComments?: Comment[];
   createdAt: string;
@@ -337,7 +343,7 @@ export interface ChurchForReview extends Church {
   applicant: { id: string; displayName: string; handle: string | null; email: string | null };
 }
 
-export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness';
+export type Role = 'admin' | 'moderator' | 'pastor' | 'pastor_counselor' | 'prayer_partner' | 'witness' | 'radio_operator';
 
 export interface ModerationItem {
   id: string;
@@ -348,6 +354,14 @@ export interface ModerationItem {
   status: string;
   content: string | null;
   created_at: string;
+  /** Text a moderator may want blurred (moderator care). */
+  hard?: boolean;
+  handoff_from_name?: string | null;
+  handoff_note?: string | null;
+  /** The member's explanation of their own held post. */
+  author_note?: string | null;
+  /** Hidden until a moderator decides (a held post). */
+  auto_hidden?: boolean;
 }
 
 export interface Appeal {
@@ -616,8 +630,8 @@ export const NOTIFICATION_CATEGORIES = ['prayers', 'promises', 'encouragement', 
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'radio_on_air', 'radio_heard', 'spoken_prayer', 'live_amplifier_read', 'guest_prayer', 'prayer_minute'],
-  promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder'],
-  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'gratitude', 'encourager', 'kind_ask', 'mend_invite', 'mend_delivered', 'mend_returned', 'mend_accepted', 'mend_closed', 'partner', 'highlight_ask', 'highlights'],
+  promises: ['commitment_made', 'commitment_reminder', 'prayer_list_reminder', 'daily_reminder'],
+  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award', 'followup', 'followup_update', 'check_back', 'check_back_update', 'gratitude', 'encourager', 'kind_ask', 'mend_invite', 'mend_delivered', 'mend_returned', 'mend_accepted', 'mend_closed', 'partner', 'highlight_ask', 'highlights'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
   tokens: ['mint', 'milestone', 'scheduled_spend', 'radio_not_sent', 'token_purchase_refunded'],
@@ -650,6 +664,10 @@ export interface PrayerStats {
   welcomeBack: boolean;
   /** A Monday or the 1st of the month invites a fresh start. */
   freshStart: 'week' | 'month' | null;
+  /** Weeks of prayer (Admin → Gentle reminders): weeks with a prayer, a total that only grows. */
+  weeksPrayed: number;
+  /** Weeks in a row, one rest week allowed between; null under 2, so a run is never shown as lost. */
+  weekRun: number | null;
 }
 
 /**

@@ -31,6 +31,8 @@ export interface BurstTransmitter {
   send(batches: Uint8Array[], preset: BurstPreset, callSign: string): Promise<SentBurst>;
   /** Unkey now (after an error). */
   stop(): Promise<void>;
+  /** Play raw audio in one key-up (the setup wizard's test tone, setup-test.ts). Absent: this mode can't. */
+  sendAudio?(audio: Float32Array, sampleRate: number): Promise<void>;
 }
 
 /** Run a shell command; {wav} is replaced by the quoted file path. Rejects on a non-zero exit or timeout. */
@@ -56,9 +58,9 @@ export function run(command: string, wav: string | null, timeoutMs: number): Pro
   });
 }
 
-function writeWav(dir: string, burst: Burst): string {
+function writeWav(dir: string, burst: Pick<Burst, 'audio' | 'sampleRate'>, prefix = 'burst'): string {
   mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `burst-${new Date().toISOString().replace(/[:.]/g, '-')}.wav`);
+  const file = path.join(dir, `${prefix}-${new Date().toISOString().replace(/[:.]/g, '-')}.wav`);
   writeFileSync(file, toWav(burst.audio, burst.sampleRate));
   return file;
 }
@@ -84,28 +86,34 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
     if (o.rig) await keyRig(o.rig, false);
     else if (o.pttOffCommand) await run(o.pttOffCommand, null, 10_000);
   };
+  /** Key, play the WAV, unkey (always). */
+  const keyAndPlay = async (wav: string, seconds: number) => {
+    if (o.rig) await keyRig(o.rig, true).catch(async (err) => {
+      // A half-keyed radio must not stay on the air.
+      await o.rig!.setPtt(false).catch(() => undefined);
+      throw err;
+    });
+    else if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000);
+    try {
+      if (o.pttDelayMs) await new Promise((r) => setTimeout(r, o.pttDelayMs));
+      await run(o.playCommand, wav, Math.min(o.txTimeoutMs, seconds * 1000 + 30_000));
+    } finally {
+      await unkey();
+    }
+  };
   return {
     mode: 'audio',
     async send(batches, preset, callSign) {
       const built = buildBurst(batches, preset, callSign);
       const burst = { ...built, audio: withId(built.audio, o.stationId, built.sampleRate) };
       burst.seconds = burst.audio.length / burst.sampleRate;
-      const wav = writeWav(o.dir, burst);
-      if (o.rig) await keyRig(o.rig, true).catch(async (err) => {
-        // A half-keyed radio must not stay on the air.
-        await o.rig!.setPtt(false).catch(() => undefined);
-        throw err;
-      });
-      else if (o.pttOnCommand) await run(o.pttOnCommand, null, 10_000);
-      try {
-        if (o.pttDelayMs) await new Promise((r) => setTimeout(r, o.pttDelayMs));
-        await run(o.playCommand, wav, Math.min(o.txTimeoutMs, burst.seconds * 1000 + 30_000));
-      } finally {
-        await unkey();
-      }
+      await keyAndPlay(writeWav(o.dir, burst), burst.seconds);
       return { frames: burst.frames, seconds: burst.seconds, bytes: burst.bytes, decoded: null };
     },
     stop: unkey,
+    async sendAudio(audio, sampleRate) {
+      await keyAndPlay(writeWav(o.dir, { audio, sampleRate }, 'tone'), audio.length / sampleRate);
+    },
   };
 }
 
@@ -142,6 +150,9 @@ export function simulateTransmitter(
       return { frames: burst.frames, seconds: burst.seconds, bytes: burst.bytes, decoded: count };
     },
     async stop() {},
+    async sendAudio(audio, sampleRate) {
+      log(`[simulate] test tone written to ${writeWav(dir, { audio, sampleRate }, 'tone')} (${(audio.length / sampleRate).toFixed(1)} s); nothing keyed`);
+    },
   };
 }
 

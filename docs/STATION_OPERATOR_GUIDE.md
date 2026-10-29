@@ -6,6 +6,32 @@ and the first tests, from no radio at all up to a real burst on the air. The
 station software is already installed ([RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md));
 the format and every setting are in [RADIO_BURST.md](RADIO_BURST.md).
 
+## Features at a glance
+
+Every feature below is off until an admin turns it on. Admin → Radio holds the
+switches; the station settings go in `/etc/prayer-tower-station.env`.
+
+| Feature | Turn it on | Section |
+| --- | --- | --- |
+| Setup wizard (rig, levels, test burst) | Admin → Radio → Setup wizard | [Setup wizard](#setup-wizard) |
+| Listener nodes (receive-only reports) | Admin → Radio → Listener nodes | [Listener nodes](#listener-nodes-receive-only-real-data-for-the-auto-preset) |
+| Signed listener reports | Admin → Radio → Listener nodes, plus `LISTEN_SIGN=on` | [Security](#security) |
+| Several stations, one queue | Admin → Radio → Several stations | [Several stations](#several-stations-one-shared-queue) |
+| Health alerts | Admin → Radio → Station alerts | [Health alerts](#health-alerts-in-admin--radio) |
+| Health page (heartbeats, last heard) | Admin → Radio → Health page | [Health page](#health-page-in-admin--radio) |
+| Listener acknowledgements | Admin → Radio → Listener acknowledgements | [Listener acknowledgements](#listener-acknowledgements) |
+| Urgent requests first | Admin → Radio → Urgent requests first | [Queue order](#queue-order) |
+| Operator console (queue, window, ID timer, log, hold and send-now) | Admin → Radio → Operator console on, plus the Radio operator role | [Operator console](#operator-console) |
+| Transmission windows | Admin → Radio → Transmission windows | [Transmission windows](#transmission-windows-and-quiet-hours) |
+| Coverage map | Admin → Radio → Coverage map, plus `NODE_LOCATION` | [Coverage map](#coverage-map) |
+| Weekly radio digest | Admin → Radio → Weekly digest | [Weekly radio digest](#weekly-radio-digest) |
+| Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
+| Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
+| Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
+| Store-and-forward relay | `RELAY=on` on a listener node with a transmitter | [RADIO_BURST.md](RADIO_BURST.md#store-and-forward-relay) |
+
+Screenshots of these screens (sample data, 2026-10-29) are in [images/radio/](images/radio/).
+
 ## One-command install
 
 On a Pi that is already running Raspberry Pi OS:
@@ -61,7 +87,7 @@ Set these in the radio's menu (names differ by make; the manual has them):
 | --- | --- | --- |
 | Mic compressor / speech processor ("PROC", "COMP") | **Off** | It squashes loud moments and lifts quiet ones. Burst audio needs its level left alone, and the QAM presets carry data in the level itself. |
 | Data port speed | **1200** for the `fm-` presets, **9600** for the `dataport-` presets | At 1200 the port's audio passes through the usual voice filtering. At 9600 it is flat and wide, which the `dataport-` presets need. |
-| APRS / packet features | Off | They can key the radio or take over the data port. |
+| APRS / packet features | Off | They can key the radio or take over the data port. The [packet fallback](#packet-fallback) makes its own 1200-baud audio, so it needs these off too. |
 | VOX | Off, unless you key by VOX on purpose | The station keys the radio itself (step 3). |
 | Squelch (receiving radio) | Just above the noise, or open | A slow squelch can cut off the start of a burst. The station adds 100 ms of silence before each burst and waits `BURST_PTT_DELAY_MS` (300 ms) after keying. |
 | Power | Low for tests | The radio is keyed for seconds at a time; handhelds have no fan. |
@@ -238,6 +264,8 @@ Turning a node off stops its key working and its reports counting. A node on the
 same machine as the station can also write `LISTEN_REPORT_FILE`, which the
 station reads as a plain `BURST_AUTO_REPORT` file.
 
+![Listener nodes](images/radio/listener-nodes.png)
+
 ## Several stations (one shared queue)
 
 Off by default. Several stations, for example one on FM and one on HF, or the
@@ -279,7 +307,10 @@ an hour.
 | The last burst failed | Any other transmit error. The station has stopped itself until someone checks it. | The burst log |
 | A burst is overdue | A prayer has waited longer than the chosen limit (15, 30, 60 or 120 minutes; 30 by default). | The queue |
 | The station stopped reporting | No report for 10 minutes. | The station |
+| A listener node stopped checking in | An enabled listener node that checked in before has been quiet for 30 minutes (only while listener nodes are on). This is information, not a problem. | The listener nodes |
 | Nothing is waiting | The queue is empty. This is information, not a problem. | The queue |
+
+![Station alerts](images/radio/station-alerts.png)
 
 ## Health page in Admin → Radio
 
@@ -293,6 +324,21 @@ Off by default. In Admin → Radio (station mode), turn on **Health page**. It s
   the lowest and the number of reports. This helps when you choose a preset, or
   set `BURST_AUTO_PRESETS`.
 - The last 10 failures in the last 24 hours, failed bursts and failed prayers, with their errors.
+- Each listener node's last check-in (its heartbeat). A node quiet for 30 minutes is shown in red.
+- The last-heard list: the 15 latest decodes listener nodes reported, with the
+  node, the station's call sign, the preset and the measured SNR.
+
+![Health page](images/radio/health-page.png)
+
+## Queue order
+
+Admin → Radio → "Which prayer goes out next" picks **First in, first out**
+(the default) or **By need** ([RADIO_STATION.md](RADIO_STATION.md#prayers-by-need)).
+**Urgent requests first** (off by default) puts requests marked "Today" or
+"Right now" ahead of everything else, whichever order is chosen. It applies to
+single prayers, bursts and the packet fallback alike.
+
+![Queue order and urgent requests first](images/radio/queue-order.png)
 
 ## Listener acknowledgements
 
@@ -345,6 +391,20 @@ ID is a `de K1ABC` line at the end of the key-up. The PSK31 mode already ends
 every piece with `de K1ABC`. In simulate mode, the log shows when an ID would
 have gone out.
 
+## Operator console
+
+One screen for the control operator: Me → **Operator console**. It is off until an admin picks **Operator console on** in Admin → Radio (shown when the transmitter is the station). Admins can use it, and so can anyone given the **Radio operator** role (Admin → People, or `npm run grant-role -- <email> radio_operator`). Members without the role get a plain "this page is for the team" message.
+
+| Part | What it shows |
+| --- | --- |
+| Status | Whether the station may transmit now, and why not: held, outside the transmission windows, or sending under an override until a given time. |
+| Manual override | **Hold all transmissions**: the station is handed nothing new until **Resume** (a burst already on the air finishes). **Send for 15 / 30 / 60 min**: sends outside the windows and quiet hours, then the windows apply again on their own; **End override** stops it early. |
+| Station ID timer | For each station: when it last identified, how often it must (`STATION_ID_MINUTES`), and when the next ID is due. The station reports this as its `station_id` check. |
+| Queue | How many prayers are waiting and sending, how long the oldest has waited, and the next 10 with their wait, urgency and repeats. |
+| Log | The last 20 transmissions in 24 hours (the same rows as the [operator log](#operator-log)): time, call sign, preset, sent or failed, heard by a listener, and the text. |
+
+The screen refreshes every 15 seconds. Holds and overrides are recorded in Admin → Audit log. Turning the console off lifts any hold or override, so nothing stays held by a screen no one can open.
+
 ## Operator log
 
 Off by default. In Admin → Radio, turn on **Operator log**, then tap
@@ -366,6 +426,128 @@ station sent, or tried to send, in the last 30 days. It has these columns:
 For another date range, an admin can call
 `GET /admin/operator-log?format=csv&from=2026-10-01&to=2026-11-01`. The station
 also keeps every burst as a WAV file in `BURST_DIR`.
+
+## Setup wizard
+
+Off by default. Admin → Radio → **Setup wizard on** walks a new operator
+through the first setup, in four steps. The station must already be running
+in burst mode (`BURST_MODE=audio`, or `simulate` for a dry run); it checks
+for a waiting test before each claim, so a test starts within one poll
+(`POLL_SECONDS`, 10 s).
+
+1. **Pick the radio.** Choose it from the list (or "Another radio" and its
+   Hamlib number from `rigctl -l`), FM or HF, the serial port and the
+   frequency. The wizard writes the lines for
+   `/etc/prayer-tower-rigctld.env` and `/etc/prayer-tower-station.env`; share
+   them to the station computer, then restart both services. The station's
+   own checks (sound card, radio) show under the lines once it checks in.
+   The model numbers come from Hamlib's `riglist.h` (backend × 1000 + number:
+   the IC-7300 is 3073, the FT-991/991A is 1035).
+2. **Set audio levels.** "Play a 10-second test tone" keys the radio and
+   plays a steady 1 kHz tone at the bursts' average level (the same RMS as a
+   burst). On HF, raise the sound card output until the radio reaches the
+   power you want with the ALC meter at zero. On FM, listen on a second radio.
+   `BURST_MODE=fldigi` can't play a tone: use fldigi's TUNE button.
+3. **Send a test burst.** One short frame, "Station test" and a code, no
+   prayers. It goes out on the station's preset (or the auto preset).
+4. **Confirm it decoded.** A listener node that decodes it reports its
+   fingerprint, the same way it reports prayers; the wizard then shows which
+   listener heard it, the signal (SNR) and how loud the audio arrived at the
+   listener, with advice: under -30 dBFS peak is quiet (turn the receiver up),
+   above -1 dBFS is clipping (turn it down). Decoded it on something that
+   doesn't report, such as fldigi or a recording? Tap "I decoded it on
+   another device".
+
+Only one test waits at a time. A test the station doesn't pick up within 5
+minutes fails ("is it running, in burst mode?"), and so does a burst no
+listener reports within 30 minutes. A failed key-up is reported in the
+wizard and unkeys the radio, but doesn't stop the station. Test bursts are
+never counted as prayers and never send receipts. Tests are started by
+the operator, so they go out even outside transmission windows and quiet
+hours.
+
+![Setup wizard](images/radio/setup-wizard.png)
+
+## Coverage map
+
+Off by default. Admin → Radio → **Coverage map on** shows the listener nodes
+on a map, each colored by the signal it hears from the station: the median
+SNR of its reports in the last 24 hours (strong 20 dB and up, fair 10 to 20,
+weak under 10, grey when it heard nothing).
+
+A node opts in by setting `NODE_LOCATION` in `/etc/prayer-tower-listener.env`
+to `lat,lon` or `lat,lon,Place name` (for example
+`39.78,-89.65,Springfield IL`). The node rounds it to 0.1 degree (about
+11 km, roughly a city) before sending it with its heartbeat, and the server
+rounds it again. Leave it empty and the node shares nothing. An admin can
+also place, move or remove any node by hand, and set the station's own
+location, which shows as a star.
+
+The map draws a plain grid unless an admin sets a tile server. With
+`https://tile.openstreetmap.org/{z}/{x}/{y}.png`, the map shows
+"© OpenStreetMap contributors" under it and identifies itself to the tile
+server; it loads only the few tiles one screen needs.
+
+![Coverage map](images/radio/coverage-map.png)
+
+## Weekly radio digest
+
+Off by default. Admin → Radio → **Weekly digest on** shows the last eight
+weeks (Monday to Sunday, UTC): radio prayers aired, how many of those a
+listener heard, and how many requests that went out by radio were marked
+answered that week, plus thanksgiving bursts, "I'm praying too" taps and
+failures. Counts only: no names and no request text.
+
+With **Email it to admins on Mondays** on (and SMTP set up), the
+`radio_digest_weekly` job emails last week's digest to every admin at 07:00
+UTC each Monday, once per week.
+
+![Weekly radio digest](images/radio/weekly-digest.png)
+
+## Security
+
+What protects the station, and the few things an operator decides.
+
+- **Keys stay in files only root and the station user can read.** `install.sh` creates `/etc/prayer-tower-station.env`, `-listener.env` and `-rigctld.env` as mode 0640 (root, group `prayer-station`); the Mac installer makes its copies 0600. The server keeps only a SHA-256 hash of each node key and compares the main station key in constant time. Never paste a key into chat or email: Admin → Radio shows a new node's key once.
+- **The server address must be https.** The station and listener refuse a plain `http://` `PRAYER_TOWER_API_URL` (their keys would cross the network unencrypted), except to this machine (`localhost`, `127.0.0.1`) or with `ALLOW_INSECURE_HTTP=1` for a test server.
+- **rigctld has no password.** Hamlib says so ("No authentication whatsoever; DO NOT leave this TCP port open wide to the Internet"), and its `--password` option is not implemented. Anything that can reach port 4532 can key the transmitter. So the service listens on 127.0.0.1 only (`-T 127.0.0.1`), and systemd also blocks every other address (`IPAddressDeny=any`, `IPAddressAllow=localhost`). Keep the station computer for the station: every program and user on it can reach rigctld. Don't add `-T 0.0.0.0` to `RIG_EXTRA_ARGS`; for remote control use an SSH tunnel.
+- **The station only runs commands the operator set.** `BURST_PLAY_CMD` and the PTT commands come from the env file; the WAV path it fills in is quoted. The station sends rigctld only numbers and modes it has checked (`RIG_MODE` must be one of Hamlib's mode names).
+- **Signed listener reports.** A listener node normally sends its key with each report. With `LISTEN_SIGN=on` it signs each report instead: an HMAC-SHA256, keyed with the SHA-256 of its key, over the time, the route and the body. The key never crosses the network, a report can't be changed on the way, and a captured report can't be sent again: each signature's time must be within 5 minutes and newer than the node's last one. Once every node runs with `LISTEN_SIGN=on`, Admin → Radio → **Require signed listener reports** refuses unsigned ones. A signed report and a key-carrying one prove the same thing, that the sender holds the key, so a node whose key leaks must still be removed in Admin → Radio and given a new one.
+- **Test bursts and receipts reveal no prayers.** Listeners send back fingerprints, never words, and a fingerprint matches only prayers this call sign sent in the last day.
+
+## Packet fallback
+
+For a radio or hookup that can't carry the bursts, the station can send
+standard 1200-baud APRS packets instead: the batch's count and each prayer's
+short ID, never the words. Any APRS radio, TNC or Dire Wolf decodes them, and
+listener nodes report the IDs they hear so the prayers count as heard.
+
+1. Turn on Admin → Radio → **Packet fallback**.
+2. In `/etc/prayer-tower-station.env` set `BURST_MODE=packet`. Leave
+   `PACKET_PATH` empty unless you want digipeaters (for example `WIDE1-1`).
+   `CALL_SIGN` must fit AX.25: up to 6 letters and digits, with an optional `-SSID`.
+3. `sudo systemctl restart prayer-tower-station`. Sound card and PTT are set up as for `BURST_MODE=audio`.
+
+Details and the packet format: [RADIO_BURST.md](RADIO_BURST.md#packet-fallback).
+
+![Packet fallback switch](images/radio/packet-fallback.png)
+
+## Diagnose a weak signal
+
+Record the station at the receiver and replay it offline:
+
+```
+arecord -f S16_LE -r 48000 -c 1 -d 30 rx.wav
+node /opt/prayer-tower-station/dist/src/burst/cli.js diagnose rx.wav
+```
+
+It reports the level, clipping, hum, noise floor, each frame's SNR against
+what its preset needs, and whether an off-tune HF receiver or the packet
+fallback explains the result, then says what to change. The `/listen` page
+shows the same signal check for any recording it opens. Full description:
+[RADIO_BURST.md](RADIO_BURST.md#diagnose-a-weak-signal).
+
+![The listen page after opening a recording: signal check, a packet and a burst](images/radio/listen-page.png)
 
 ## 4. Which preset
 
@@ -435,6 +617,7 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - Deviation target and monitor-radio level method: [Masters Communications, "Setting audio levels"](https://masterscommunications.com/products/radio-adapter/faq/setting-audio-levels.html)
 - Data port 1200 vs 9600, APRS off, AGC off, receive level about -11 dBFS, low power and heat: [SEAPAC 2025, "VARA FM setup"](https://seapac.org/workshop-presentations_files/2025/SEAPAC%202025%20VARA%20FM%20SETUP%20(3).pdf)
 - Digirig PTT by RTS, flow control off, keeping system sounds off the interface: [Digirig, "Getting started with Digirig Mobile"](https://digirig.net/?p=5478)
+- rigctld has no authentication and `-A/--password` is not implemented; the default listening address is 0.0.0.0: [rigctld(1), OPTIONS and SECURITY](https://man.archlinux.org/man/rigctld.1.en)
 - `rigctl`/`rigctld` options and `T` (set_ptt): [hamlib rigctl manual](https://hamlib.sourceforge.net/snapshots/man1/rigctl.1.html)
 - rigctld port 4532, the Extended Response Protocol (`+` prefix, `RPRT 0`), `F`/`M`/`T` and the mode names: [rigctld(1)](https://man.archlinux.org/man/rigctld.1.en)
 - Model 1 is the Hamlib dummy radio, model 2 is NET rigctl: [hamlib-utilities(7)](https://www.mankier.com/7/hamlib-utilities)
@@ -447,4 +630,6 @@ every frame header, and the format is published in [RADIO_BURST.md](RADIO_BURST.
 - sox raw output to stdout (`-` as the file name, `-t raw -b 16 -e signed-integer`): [sox(1)](https://man.archlinux.org/man/sox.1.en)
 - `libhamlib-utils` package in Debian trixie: [Debian manpages](https://dyn.manpages.debian.org/trixie/libhamlib-utils/rigctl.1.en.html)
 - HF DATA mode, 300-2700 Hz passband, compressor off: [AB4OJ, "The DATA Mode in Icom HF Transceivers"](https://www.qsl.net/a/ab4oj/icom/datamode.html)
+- Hamlib model numbers (`RIG_MAKE_MODEL`, `MAX_MODELS_PER_BACKEND` 1000, the radios in the setup wizard): [Hamlib, include/hamlib/riglist.h](https://github.com/Hamlib/Hamlib/blob/master/include/hamlib/riglist.h)
+- OpenStreetMap tiles need attribution, a real User-Agent and conforming caching: [OSMF Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/), summarised in [flutter_map, "Using OpenStreetMap (direct)"](https://docs.fleaflet.dev/tile-servers/using-openstreetmap-direct)
 - Why PSK and other amplitude-varying signals must stay linear (no ALC, no processing): [DXLab, "Setting ALC levels for digital mode operation"](https://dxlabsuite.com/dxlabwiki/SettingDigitalModeALC)

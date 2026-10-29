@@ -5,14 +5,18 @@ import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from '
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
+import { CheckBack } from '@/components/check-back';
 import { CoolDownCard } from '@/components/cool-down-card';
 import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { isLit } from '@/components/vine-flow';
 import { CrisisSupport } from '@/components/crisis';
+import { HarmSupport, takeSupport } from '@/components/harm-support';
 import { GuestShare } from '@/components/guest-share';
+import { LiveFollow } from '@/components/live-follow';
 import { ShareChoice } from '@/components/outside-share';
+import { OfflineBanner } from '@/components/offline-banner';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
@@ -58,6 +62,7 @@ export default function PostScreen() {
   const treeTokens = useMemo(() => (skin?.layout === 'tower' ? tabletTokens(skin) : vineTokens(skin?.layout === 'vine' ? skin : null)), [skin]);
   const leafTokens = useMemo(() => wordLeafTokens(skin), [skin]);
   const [card, setCard] = useState<Card | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
   const [text, setText] = useState('');
@@ -76,8 +81,12 @@ export default function PostScreen() {
   const [thanks, setThanks] = useState('');
   const [thanked, setThanked] = useState<number | null>(null);
   const [support, setSupport] = useState(false);
+  // Hotlines for someone who has just described abuse (from posting it, or a comment).
+  const [harmSupport, setHarmSupport] = useState(() => takeSupport(id));
   // The answered / testimony panel: closed, or open with the draft text.
   const [testimony, setTestimony] = useState<string | null>(null);
+  // The "how it turned out" story panel: closed, or open with the draft text.
+  const [story, setStory] = useState<string | null>(null);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [witnessNote, setWitnessNote] = useState('');
@@ -88,10 +97,14 @@ export default function PostScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [p, c, pr, t, pw] = await Promise.all([api.post(id), api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
+      // Offline, a request saved with the feed still opens; the rest fills in once back online.
+      const p = await api.post(id);
+      setCard(p.post);
+      setSavedAt(p.savedAt ?? null);
+      if (p.savedAt) return;
+      const [c, pr, t, pw] = await Promise.all([api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
       setPower(pw);
       setTokens(t);
-      setCard(p.post);
       setComments(c.comments);
       setPrayers(pr);
     } catch (e) {
@@ -121,6 +134,7 @@ export default function PostScreen() {
       setWarnedFor(null);
       const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
       if (r.comment.crisis) setSupport(true);
+      if (r.comment.harm?.resources?.length) setHarmSupport(r.comment.harm);
       if (r.coolDown) setCoolNudge((n) => n + 1);
       setText('');
       setReplyTo(null);
@@ -176,6 +190,18 @@ export default function PostScreen() {
       setError((e as Error).message);
     }
     load();
+  };
+
+  const shareStory = async () => {
+    try {
+      const r = await api.answeredStory(id, story!.trim());
+      if (r.crisis) setSupport(true);
+      setStory(null);
+      celebrate();
+      router.push(`/post/${r.post.id}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   const saveTestimony = async () => {
@@ -250,6 +276,19 @@ export default function PostScreen() {
     </>
   );
 
+  // Offline: just the saved request, read-only, until it can be loaded again.
+  if (savedAt && card) {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+          <OfflineBanner savedAt={savedAt} onRetry={load} />
+          <PostCard card={card} onAction={onAction} expanded />
+        </ScrollView>
+      </Screen>
+    );
+  }
+
   return (
     <Screen style={roomy ? styles.roomy : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -271,8 +310,10 @@ export default function PostScreen() {
         ) : null}
         {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
+        {card?.isMine && card.postType === 'prayer_request' && card.state !== 'answered' ? <CheckBack postId={card.id} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
+        {harmSupport ? <HarmSupport note={harmSupport} /> : null}
         <ErrorText error={error} onRetry={card ? undefined : load} />
         {!card && !error ? <Loading /> : null}
 
@@ -372,8 +413,32 @@ export default function PostScreen() {
           </View>
         ) : null}
 
+        {features.answeredStories && card?.isMine && card.postType === 'prayer_request' && !card.storyId ? (
+          story !== null ? (
+            <View style={{ gap: space.sm }}>
+              <Text style={type.small}>{t('answeredStory.hint')}</Text>
+              <Field
+                label={t('answeredStory.label')}
+                placeholder={t('answeredStory.placeholder')}
+                value={story}
+                onChangeText={setStory}
+                maxLength={2000}
+                multiline
+              />
+              <KindCloud text={story} />
+              <View style={styles.row}>
+                <Button small label={t('answeredStory.post')} disabled={!story.trim()} onPress={shareStory} />
+                <Button small variant="ghost" label={t('common.cancel')} onPress={() => setStory(null)} />
+              </View>
+            </View>
+          ) : (
+            <Button variant="secondary" label={t('answeredStory.open')} onPress={() => setStory('')} />
+          )
+        ) : null}
+
         {card && prayable ? <GuestShare card={card} /> : null}
         {card ? <ShareChoice card={card} /> : null}
+        {card ? <LiveFollow card={card} /> : null}
 
         {card && prayable && spokenOn ? <SpokenPrayers postId={id} /> : null}
         {card && prayable ? <CircleGoal postId={id} /> : null}
@@ -506,6 +571,8 @@ export default function PostScreen() {
                 empty={false}
                 text={text}
                 onPick={setText}
+                postType={replyTo || card.isMine ? null : card.postType}
+                lament={!replyTo && !card.isMine && features.lament && !!card.lament}
               />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>

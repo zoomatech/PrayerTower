@@ -6,6 +6,7 @@ import { notFound } from '../../errors.js';
 import * as radio from '../radio/index.js';
 import * as prayingToo from '../radio/praying-too.js';
 import * as receipts from '../radio/receipts.js';
+import * as setup from '../radio/setup.js';
 
 /** Listener mode: the app's Listen screen without an account (needs the listening page on too). */
 export async function listenerMode(db: Db) {
@@ -25,9 +26,12 @@ export function listenPublicRoutes(app: FastifyInstance, db: Db) {
 
   // A listener heard these prayers (fingerprints only): tells their senders, while receipts are on.
   app.post('/listen/heard', async (req) => {
-    if (!(await receipts.enabled(db))) throw notFound('Radio receipts');
+    const wizard = await setup.enabled(db);
+    if (!wizard && !(await receipts.enabled(db))) throw notFound('Radio receipts');
     const report = receipts.HeardReport.parse(req.body);
-    return { matched: await withTx(db, (tx) => receipts.heard(tx, report)) };
+    // The setup wizard's test burst (radio/setup.ts) heard on a listening page or phone.
+    const tests = wizard ? await setup.heard(db, report, 'A listening page or phone') : 0;
+    return { matched: (await withTx(db, (tx) => receipts.heard(tx, report))) + tests };
   });
 
   // "I'm praying too" from a listener: fingerprints only, an anonymous count (404 while switched off).

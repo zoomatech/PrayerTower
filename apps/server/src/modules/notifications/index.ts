@@ -5,6 +5,7 @@ import type { Config } from '../../config.js';
 import type { Queryable } from '../../db.js';
 import { enqueue } from '../../jobs.js';
 import { neutralText } from '../communities/neutral-text.js';
+import { sendRecorded, sendUrl, settings as deliverySettings, type PushRow } from './delivery.js';
 import { localize, neutralize, type Params } from './i18n.js';
 
 export interface NewNotification {
@@ -16,6 +17,8 @@ export interface NewNotification {
   dedupeKey?: string;
   /** Template in notifications/i18n.ts, used when the recipient reads another language. */
   t?: { key: string; params?: Params };
+  /** In-app only: no push. */
+  quiet?: boolean;
 }
 
 /** Write the in-app notification and queue its push, in the caller's transaction. */
@@ -44,7 +47,7 @@ export async function notify(q: Queryable, userId: string, n: NewNotification): 
   );
   const id = rows[0]?.id;
   if (!id) return null;
-  await enqueue(q, 'notifications_send_push', { notificationId: id });
+  if (!n.quiet) await enqueue(q, 'notifications_send_push', { notificationId: id });
   return id;
 }
 
@@ -103,8 +106,6 @@ export function wantsPush(prefs: NotificationPrefs | null | undefined, kind: str
   return !category || !prefs?.off?.includes(category);
 }
 
-const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
-
 interface ExpoTicket {
   status: 'ok' | 'error';
   id?: string;
@@ -112,11 +113,11 @@ interface ExpoTicket {
   details?: { error?: string };
 }
 
-export function sendPushTask(q: Queryable, config: Config, fetchImpl: typeof fetch = fetch): Task {
+export function sendPushTask(q: Queryable, config: Config, fetchImpl: typeof fetch = fetch, readDelivery = deliverySettings): Task {
   return async (payload, helpers) => {
     const { notificationId } = payload as { notificationId: string };
-    const { rows } = await q.query<{ title: string; body: string; data: object; token: string; kind: string; prefs: NotificationPrefs; read: boolean }>(
-      `select n.title, n.body, n.data, p.token, n.kind, pr.notification_prefs as prefs, n.read_at is not null as read
+    const { rows } = await q.query<PushRow>(
+      `select n.user_id, n.title, n.body, n.data, p.token, n.kind, pr.notification_prefs as prefs, n.read_at is not null as read
          from public.notifications n
          join public.profiles pr on pr.id = n.user_id
          join public.push_tokens p on p.user_id = n.user_id and p.disabled_at is null
@@ -129,13 +130,18 @@ export function sendPushTask(q: Queryable, config: Config, fetchImpl: typeof fet
     // Quiet hours: send when they end, unless it was read in the app meanwhile. Kinds in no
     // category (crisis flags, moderation notices, ops and job alerts) are never held back.
     const until = notificationCategory(kind) ? quietUntil(prefs) : null;
+    // Admin → Push delivery: recorded per device, retried without repeats, folded and capped.
+    const delivery = await readDelivery(q);
+    if (delivery.push_reliability_enabled) {
+      return sendRecorded(q, config, fetchImpl, notificationId, rows, delivery, { until, held: Boolean((payload as { held?: boolean }).held) }, helpers);
+    }
     if (until) return enqueue(q, 'notifications_send_push', { notificationId, held: true }, { runAt: until, jobKey: `push-held:${notificationId}` });
     if (read && (payload as { held?: boolean }).held) return;
 
     // Expo accepts up to 100 messages per request.
     for (let i = 0; i < rows.length; i += 100) {
       const batch = rows.slice(i, i + 100);
-      const res = await fetchImpl(EXPO_PUSH_URL, {
+      const res = await fetchImpl(sendUrl(config), {
         method: 'POST',
         headers: {
           accept: 'application/json',

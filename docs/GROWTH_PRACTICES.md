@@ -101,3 +101,73 @@ of Consulting and Clinical Psychology* 54(4), listed at
 https://www2.psych.ubc.ca/~dlehman/darrinpubs.htm; a 2023 condolence study found the
 same, https://www.psypost.org/condolences-study-reveals-what-not-to-say-when-consoling-the-bereaved/).
 Code: `posts.is_lament`, `posts.lament_radio`, `kindness.assessIn`, `components/lament-controls.tsx`.
+
+## Answered-prayer stories (off)
+
+Admin → Growth practices → **Answered-prayer stories** (migration 20261029018200). On
+their own prayer request, the person who asked sees **Share how God answered** (Open
+Circle: **Share how it turned out**). They write a short story (up to 2,000 characters,
+with the kind cloud as usual) and it becomes a testimony post of its own:
+
+- the request is marked answered if it wasn't already (the usual answered steps run:
+  guest notes and the radio thank-you);
+- the story card shows "Answers: “…”" with a short preview linking back to the request,
+  and the request card shows **Read how it turned out**;
+- everyone who prayed gets one note (deduplicated per request);
+- each request can have one story, and it keeps the request's anonymous and sensitive
+  settings.
+
+Code: `posts.answers_post_id`, `POST /posts/:id/answered-story`, `app/post/[id].tsx`.
+
+## Kindness tools intro (off)
+
+Admin → Growth practices → **Kindness tools intro** (migration 20261029018300). At the top
+of the feed, up to three short cards, one at a time, explain the kind cloud ("a gentle
+cloud, never a wall"), emoji meanings (press and hold an action icon) and lament posts.
+Only tools that are switched on get a card, and the wording follows the edition. Each
+member sees it once on each device, until they tap **Got it** or **Skip**.
+
+Code: `components/kindness-intro.tsx`.
+
+## Check back (off)
+
+Admin → Growth practices → **Check back** (migration 20261029018500). On their own open
+request, the person who asked sees **Check back with me** and picks **In 3 days**,
+**In a week** or **In 2 weeks**:
+
+- When the day comes, they get one soft reminder ("Checking back, as you asked… No
+  pressure at all"). A request answered by then gets none. They can pick **No reminder**
+  at any time.
+- When they post an update (**Post update**), everyone who prayed gets one quiet in-app
+  heads-up ("Ana shared an update on a request you prayed for"). It never sends a push,
+  carries none of the update's words, and comes at most once a day per request. An
+  update also clears a pending reminder, since it did what the reminder was for.
+
+This sits beside the 21-day follow-up: that one asks once on its own, while check back
+is chosen by the person who asked. Code: `modules/check-back`, `components/check-back.tsx`,
+the `check_back_due` cron (hourly at :30), and `quiet` on `notifications.notify`.
+
+## Quiet milestones (off)
+
+Admin → Growth practices → **Quiet milestones** (migration 20261029018600). On Me, a
+member sees private markers for kindness toward others. Each line shows the highest
+level reached, from the first time and then 10, 25, 50, 100, 250, 500 and 1,000:
+
+- people prayed for (Open Circle: lifted up);
+- requests prayed for;
+- encouragements sent;
+- prayer promises kept (check-ins);
+- kind words left on others' posts.
+
+A milestone reached since the last visit shows **New** once and is then marked seen.
+
+Rules, following the gentle-rhythm practice:
+
+- Only the member sees it. There is no admin view, no leaderboard and no comparison.
+- Counts only grow, so nothing can be lost.
+- Nothing about the member's own posts is counted, and answered prayers are never
+  counted.
+- Nothing is pushed. It is simply there on Me.
+
+Code: `modules/kind-milestones`, `components/kind-milestones.tsx`, table
+`kind_milestones_seen` (included in account deletion and export).

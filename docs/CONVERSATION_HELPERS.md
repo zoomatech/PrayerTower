@@ -38,13 +38,15 @@ The greeting research found **no published counts** of greeting → reply → fo
 ## Meanings in the icon row (off)
 
 Admin → Conversation helpers → **Meanings in the icon row**. Needs **Emoji meanings** on too.
-The emoji join the single icon row on every post card, so every feed skin (vine, tower,
-neon, wall, and the rest) gets them without its own code: all skins draw cards with
-`PostCard`. A tap adds the emoji's first meaning. Press and hold (or the screen reader's
-"choose" action) opens up to five meanings in a sheet at the bottom of the screen, so no
-skin clips it. Hovering with an iPad pointer or a Mac shows the words above the icon.
-Each icon is 44 points, has a spoken label, and reading the chosen meaning is announced.
-The meaning list is fetched once per session, not once per card.
+Every card keeps its one row of action icons in every feed skin (Steve, 2026-10-29: one
+row, meanings on hover or long press). No icons are added. The actions that match an
+emoji carry its meanings: Praying Now 🙏, Well Wishes ❤️, Encourage 🫂 and Commit 💪
+(`ACTION_EMOJI` in `components/meaning-chooser.tsx`). Hovering with an iPad pointer or a
+Mac shows the action's name with the emoji's meanings. Pressing and holding (or the
+screen reader's "choose" action) opens up to five meanings in a sheet at the bottom of
+the screen, so no skin clips it. A plain tap still does the action. Every target stays
+44 points. On the request's own page the full meaning tree with its leaves sits below
+instead. The meaning list is fetched once per session, not once per card.
 
 ## Kindness research page (off)
 
@@ -67,3 +69,27 @@ five meanings at most: when it's full, the admin picks one to retire. A retired 
 keeps its row, so leaves already on posts still show. The member sees each suggestion as
 waiting, added or not added. Routes: `GET/POST /me/meaning-proposals`,
 `GET /admin/meaning-proposals`, `POST /admin/meaning-proposals/:id`.
+
+## Reply prompts by kind of post (off)
+
+Admin → Conversation helpers → **Reply prompts by kind of post** (migration
+20261029018400). A post opens a pair, and the reply is its second half (Schegloff 1968),
+so when a member who turned on reply suggestions answers a post itself (not a comment),
+the one suggestion is the reply that pairs with the post's kind:
+
+| Kind | Faith | Open Circle |
+| --- | --- | --- |
+| Prayer request | Praying for you right now. You are not alone in this. | Thinking of you right now. You are not alone in this. |
+| Praise | Praise God! Thank you for telling us. | That’s wonderful! Thank you for telling us. |
+| Open prayer | Amen. Joining you in this prayer. | Joining you in this. |
+| Testimony | Thank you for sharing how it turned out. This encourages me. | same |
+| Confessional | Thank you for trusting us with this. You are not alone. | same |
+| Discussion | Thanks for raising this. What I keep thinking about is… | same |
+| News | Thanks for passing this on. | same |
+| Blog | Thank you for writing this. What stayed with me was… | same |
+| Lament | I’m here with you. (presence, no advice) | same |
+
+Still one suggestion per move, as Smart Reply does: the pair replaces the guess from
+the post's words. A tap only fills the box, and own-words still applies.
+
+Code: `pairKey` in `lib/talk.ts`, `postType`/`lament` props on `ReplyHelpers`.

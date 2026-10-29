@@ -18,6 +18,8 @@ Nothing is recorded. The server keeps only the room's title, host and start and 
 | Way | What you need | Cost |
 |---|---|---|
 | **Your own Jitsi Meet server** | Set "Video server address" in Admin → Live video, for example `https://meet.example.org`. Each room gets a long random name, so nobody can guess it. | Jitsi Meet is free, open-source software. You pay only for a server. |
+| **Jitsi as a Service (8x8)** | Set `JAAS_APP_ID`, `JAAS_API_KEY_ID` and `JAAS_PRIVATE_KEY` on the server. Used when no own server is set. Each member gets a signed token; the host is moderator. See docs/PRACTICE_MODE.md. | JaaS plan |
+| **Practice room** | Admin → Practice mode → Practice live rooms. Used when neither of the above is set; opens a page that says there is no video yet. | Free |
 | **A pasted link** | Without a server, hosts paste a meeting link from an allowed site. The list is the same one events use (Admin → Events: Zoom, Google Meet, Teams, YouTube, Vimeo, Whereby, Jitsi and others). | That service's own plan |
 
 Setting up a Jitsi server is in Jitsi's [self-hosting guide](https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-quickstart). It needs:

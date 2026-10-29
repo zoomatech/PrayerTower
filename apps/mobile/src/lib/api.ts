@@ -104,6 +104,14 @@ export interface MeaningLeaf {
   mine: boolean;
 }
 
+/** A private kindness milestone: the highest level reached for one kind of kindness. */
+export interface KindMilestone {
+  metric: 'people' | 'requests' | 'encouragements' | 'checkins' | 'words';
+  level: number;
+  count: number;
+  new: boolean;
+}
+
 export interface Features {
   worldwideCount: boolean;
   thanksCard: boolean;
@@ -146,8 +154,23 @@ export interface Features {
   prayerChain: boolean;
   prayedForWidget: boolean;
   prayerMinute: boolean;
+  /** Members can copy their own Facebook and Threads posts here. */
+  crosspost: boolean;
   /** Sharing outside the app only with the author's consent (docs/GROWTH.md). */
   shareConsent: boolean;
+  /** Giving split (docs/GIVING_SPLIT.md): a share of gifts to the member's own support page. */
+  givingSplit: boolean;
+  givingSplitMax: number;
+  /** "Praying for you now" on the Lock Screen (iOS Live Activity, docs/GROWTH.md). */
+  prayedForLive: boolean;
+  /** Mobile numbers on the prayer chain, by text message (docs/GROWTH.md). */
+  prayerChainSms: boolean;
+  /** Gentle reminders (Admin → Gentle reminders): a daily reminder at the member's time, and weeks of prayer. */
+  dailyReminder: boolean;
+  gentleStreak: boolean;
+  /** Moderation tools (Admin → Moderation tools): search, bulk decisions, audit log filters. */
+  moderationTools: boolean;
+  safetyCenter: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -166,6 +189,10 @@ export interface Features {
   kindnessHighlights: boolean;
   coolDown: boolean;
   lament: boolean;
+  answeredStories: boolean;
+  kindnessIntro: boolean;
+  checkBack: boolean;
+  kindMilestones: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -177,8 +204,12 @@ export interface Features {
   meaningIconRow: boolean;
   kindnessResearch: boolean;
   meaningProposals: boolean;
+  typePrompts: boolean;
   /** Members can turn on two-step sign-in with an authenticator app. */
   twoStep: boolean;
+  /** Ten one-time backup codes for a lost phone, and passkey sign-in (web). */
+  backupCodes: boolean;
+  passkeys: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -255,6 +286,10 @@ export interface PracticeSettings {
   highlights_enabled: boolean;
   cool_down_enabled: boolean;
   lament_enabled: boolean;
+  answered_stories_enabled: boolean;
+  kindness_intro_enabled: boolean;
+  check_back_enabled: boolean;
+  kind_milestones_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -267,6 +302,7 @@ export interface ConversationSettings {
   meaning_row_enabled: boolean;
   research_page_enabled: boolean;
   meaning_proposals_enabled: boolean;
+  type_prompts_enabled: boolean;
 }
 export interface ConversationPrefs {
   replySuggestions: boolean;
@@ -352,6 +388,19 @@ export interface GrowthSettings {
   prayer_minute_enabled: boolean;
   guest_email_days: number;
   share_consent_enabled: boolean;
+  prayed_for_live_enabled: boolean;
+  prayer_chain_sms_enabled: boolean;
+}
+export interface GivingSplit {
+  url: string;
+  percent: number;
+  shareCents: number | null;
+}
+export interface MyGivingSplit {
+  enabled: boolean;
+  maxPercent: number;
+  percent: number;
+  supportUrl: string | null;
 }
 /** Who may share a post outside the app, chosen by its author. */
 export type ShareLevel = 'private' | 'link' | 'card';
@@ -373,7 +422,9 @@ export interface GuestLink {
 }
 export interface ChainPerson {
   id: string;
-  email: string;
+  /** One of the two: an email address, or a mobile number (+15055550100) while texts are on. */
+  email: string | null;
+  phone?: string | null;
   status: 'pending' | 'confirmed' | 'left';
   createdAt: string;
 }
@@ -431,6 +482,7 @@ export interface NotebookSettings {
   reading_plan_enabled: boolean;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
+  crosspost_enabled: boolean;
 }
 
 export class ApiError extends Error {
@@ -544,6 +596,7 @@ export interface AdminRadioSettings {
   radio_max_chars: number;
   radio_amplify_repeats: number;
   radio_order: 'oldest' | 'need';
+  radio_urgent_first: boolean;
   /** Most prayers the station may claim at once (burst mode); 1 = one at a time. */
   radio_batch_max: number;
   /** The public /listen page that decodes bursts from a phone's microphone. */
@@ -554,7 +607,7 @@ export interface AdminRadioSettings {
 
 /** A station health alert in Admin → Radio (server radio/health.ts). */
 export interface StationAlert {
-  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'queue_empty';
+  kind: 'no_audio_device' | 'ptt_failed' | 'burst_failed' | 'burst_overdue' | 'station_silent' | 'listener_silent' | 'queue_empty';
   level: 'problem' | 'info';
   detail: string;
   callSign: string | null;
@@ -574,11 +627,28 @@ export interface RadioSchedule {
   quietEnd: string | null;
 }
 
+export interface RadioConsole {
+  paused: boolean;
+  windowOverrideUntil: string | null;
+  onAirNow: boolean;
+  schedule: RadioSchedule & { inWindow: boolean };
+  queue: {
+    queued: number;
+    sending: number;
+    oldestMinutes: number | null;
+    next: { id: string; text: string; urgency: number; repeats: number; waitingMinutes: number }[];
+  };
+  stations: { callSign: string; lastHeartbeat: string; lastIdAt: string | null; everyMinutes: number | null; nextIdAt: string | null }[];
+  log: { at: string; callSign: string; station: string; preset: string; status: string; heard: boolean; error: string | null; text: string }[];
+}
+
 export interface StationHealth {
   enabled: boolean;
   health: {
     stations: { callSign: string; lastHeartbeat: string | null; silent: boolean; checks: { name: string; ok: boolean; detail: string }[]; bursts24h: number; failed24h: number; prayers24h: number; lastBurstAt: string | null; lastError: string | null }[];
     queue: { queued: number; sending: number; oldestMinutes: number | null };
+    listeners: { name: string; lastHeartbeat: string | null; silent: boolean }[];
+    lastHeard: { node: string; callSign: string; preset: string; snrDb: number; at: string }[];
     snr: { callSign: string; preset: string; reports: number; avgDb: number; minDb: number; lastAt: string }[];
     failures: { at: string; callSign: string | null; kind: 'burst' | 'prayer'; error: string }[];
   } | null;
@@ -604,10 +674,86 @@ export interface RadioNodes {
   enabled: boolean;
   /** Several stations share the queue, each with its own key. */
   multiStation: boolean;
+  /** Listener nodes must sign each request (LISTEN_SIGN=on) instead of sending their key. */
+  signaturesRequired: boolean;
   /** Prayers each station holds now and sent in the last 24 hours; node null is the main station. */
   stations: { node: string | null; sending: number; sent: number }[];
   nodes: RadioNode[];
   reports: { node: string; call_sign: string; preset: string; snr_db: number; heard_at: string }[];
+}
+
+/** Admin → Radio → Setup wizard (server radio/setup.ts). */
+export interface RadioSetupChoice {
+  rig?: string;
+  model?: number;
+  port?: string;
+  speed?: number;
+  band?: 'fm' | 'hf';
+  frequencyHz?: number;
+}
+export interface RadioSetupTest {
+  id: string;
+  kind: 'tone' | 'burst';
+  status: 'requested' | 'sending' | 'sent' | 'heard' | 'failed';
+  seconds: number;
+  code: string;
+  call_sign: string | null;
+  preset: string | null;
+  peak_dbfs: number | null;
+  heard_by: string | null;
+  heard_snr_db: number | null;
+  heard_peak_dbfs: number | null;
+  error: string | null;
+  created_at: string;
+  sent_at: string | null;
+  heard_at: string | null;
+  /** The receiver's level: quiet (under -30 dBFS), good, or hot (clipping). */
+  advice?: 'quiet' | 'good' | 'hot' | null;
+}
+export interface RadioSetup {
+  enabled: boolean;
+  choice: RadioSetupChoice;
+  rigs: { id: string; label: string; model: number | null }[];
+  env: { rigctld: string[]; station: string[] };
+  checks: { call_sign: string; checks: { name: string; ok: boolean; detail: string }[]; reported_at: string }[];
+  tests: RadioSetupTest[];
+}
+
+/** Admin → Radio → Coverage map (server radio/coverage.ts). Locations are rounded to about a city. */
+export interface CoveragePoint {
+  id: string;
+  name: string;
+  place: string | null;
+  lat: number;
+  lon: number;
+  snrDb: number | null;
+  reports: number;
+  lastHeardAt: string | null;
+  lastSeenAt: string | null;
+  quality: 'strong' | 'fair' | 'weak' | 'none';
+}
+export interface RadioCoverage {
+  enabled: boolean;
+  tileUrl: string;
+  station: { lat: number; lon: number } | null;
+  points: CoveragePoint[];
+  unplaced: { id: string; name: string }[];
+}
+
+/** Admin → Radio → Weekly radio digest (server radio/digest.ts). */
+export interface RadioDigestWeek {
+  week_start: string;
+  aired: number;
+  heard: number;
+  answered: number;
+  thanksgiving: number;
+  praying_too: number;
+  failed: number;
+}
+export interface RadioDigest {
+  enabled: boolean;
+  email: boolean;
+  weeks: RadioDigestWeek[];
 }
 
 /** One burst the station sent (burst mode), newest first in Admin → Radio. */
@@ -1031,6 +1177,45 @@ export type HarmSettings = {
   foul_junk_filter: boolean;
   flood_per_day: number;
   extra_hate_words: string[];
+  explain_held: boolean;
+  read_disguises: boolean;
+};
+export type ModeratorCare = {
+  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; safety_dashboard_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
+  colleagues: { id: string; display_name: string }[];
+};
+export type ModerationDashboard = {
+  days: number;
+  queue: { source: string; pending: number; oldest_minutes: number | null }[];
+  speed: { source: string; decided: number; median_minutes: number | null; p90_minutes: number | null }[];
+  falseAlarms: { category: string; decided: number; dismissed: number; rate: number | null }[];
+  floods: { floods: number; accounts: number; items: number };
+  handoffs: number;
+};
+export type SafetyDashboard = {
+  days: number;
+  maxWaitMinutes: number;
+  held: { source: string; held: number; oldest_minutes: number | null; over_limit: number }[];
+  response: { decided: number; median_minutes: number | null; p90_minutes: number | null; within_limit: number };
+  alerts: { reminded: number; escalated: number };
+  restores: { moderator: string | null; restores: number }[];
+  appeals: { overturned: number; upheld: number };
+  rota: { enabled: boolean; timezone: string; shifts: number; gaps: { weekday: number; start_minute: number; end_minute: number }[] };
+};
+export type HarmReport = {
+  id: string;
+  week_start: string;
+  report: { flagged: number; bundled: number; rules: { rule: string; flagged: number; dismissed: number; removed: number; falseAlarmRate: number | null; tooLoose: boolean }[] };
+};
+export type OncallSettings = { enabled: boolean; max_wait_minutes: number; remind_at_percent: number; timezone: string; escalate_to: string | null };
+export type OncallShift = { id: string; user_id: string; display_name: string; weekday: number; start_minute: number; end_minute: number };
+export type OncallStatus = {
+  settings: OncallSettings;
+  onCall: { user_id: string; display_name: string; end_minute: number }[];
+  waiting: number;
+  oldest_minutes: number | null;
+  over: number;
+  notes: { id: string; author_name: string | null; body: string; created_at: string }[];
 };
 export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
 export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
@@ -1125,6 +1310,65 @@ export type SpokenPrayerStatus =
   | { enabled: true; mine: true; invited: boolean; offerTokens: number; maxSeconds: number; maxOfferTokens: number; received: SpokenPrayer[] }
   | { enabled: true; mine: false; invited: boolean; offerTokens: number; maxSeconds: number; sent: boolean; prayed: boolean };
 
+/** A waiting or decided report found by a moderation search. */
+export interface ModerationSearchItem extends ModerationItem {
+  author_name: string | null;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  rule: ModerationRule | null;
+}
+
+export interface ModerationSearch {
+  q?: string;
+  status?: 'pending' | 'decided';
+  source?: ModerationItem['source'];
+  before?: string;
+}
+
+export interface SecuritySettings {
+  two_step_enabled: boolean;
+  backup_codes_enabled: boolean;
+  passkeys_enabled: boolean;
+}
+
+/** Admin → Practice mode: try the paid services before their keys are set (docs/PRACTICE_MODE.md). */
+export interface PracticeModeSettings {
+  ai: boolean;
+  live: boolean;
+  purchases: boolean;
+}
+
+/** What is really connected; a practice switch does nothing once its real service is. */
+export interface PracticeConnected {
+  ai: boolean;
+  jaas: boolean;
+  videoServer: boolean;
+  appStore: boolean;
+  practicePurchasesAllowed: boolean;
+}
+
+export interface ReminderSettings {
+  daily_reminder_enabled: boolean;
+  gentle_streak_enabled: boolean;
+  quiet_after: number;
+}
+
+/** The member's own daily reminder: a time and days in their time zone. */
+export interface DailyReminder {
+  hour: number;
+  minute: number;
+  /** 0 = Sunday … 6 = Saturday. */
+  days: number[];
+  timeZone: string;
+  nextAt: string;
+}
+
+/** Admin → Push delivery: the switch, its limits, and the last 24 hours by outcome. */
+export interface PushDelivery {
+  settings: { push_reliability_enabled: boolean; collapse_minutes: number; max_per_hour: number };
+  health: { byStatus: Partial<Record<'sent' | 'ok' | 'error' | 'retry' | 'held' | 'folded' | 'capped', number>>; errors: { error: string; n: number }[]; devicesTurnedOff: number };
+}
+
 /** A community members belong to; "neutral" wording (Open Circle) has no religious words. */
 export interface Community {
   slug: string;
@@ -1165,8 +1409,23 @@ export interface TokenPurchase {
   currency: 'regular' | 'priestly';
   status: 'credited' | 'refunded';
   purchased_at: string | null;
+  /** A practice purchase (Admin → Practice mode): no money moved. */
+  practice?: boolean;
 }
 
+/** Cross-posting: the member's own Facebook and Threads posts copied here. */
+export type CrosspostSource = 'facebook' | 'threads';
+export interface CrosspostStatus {
+  enabled: boolean;
+  /** Which Connect buttons work on this server. */
+  connectable: Record<CrosspostSource, boolean>;
+  accounts: { provider: CrosspostSource; username: string | null; status: 'active' | 'expired'; connectedAt: string; lastCheckedAt: string | null }[];
+  postType: PostType | null;
+  postTypes: PostType[];
+  paused: boolean;
+  extensionKeyHint: string | null;
+  recent: { source: CrosspostSource; via: 'extension' | 'account'; status: 'posted' | 'skipped'; reason: string | null; postId: string | null; permalink: string | null; createdAt: string }[];
+}
 /** Giving (off until an admin turns it on and sets up Stripe or a Zeffy link). */
 export interface GivingInfo {
   enabled: boolean;
@@ -1224,11 +1483,23 @@ export interface AdminGift extends MyGift {
 
 export const api = {
   /** Public: whether sign-up needs an invite code. */
-  signupConfig: () => get<{ inviteOnly: boolean }>('/signup-config'),
+  signupConfig: () => get<{ inviteOnly: boolean; passkeys?: boolean; backupCodes?: boolean }>('/signup-config'),
+  backupCodes: () => get<{ enabled: false } | { enabled: true; remaining: number; createdAt: string | null }>('/me/two-step/backup-codes'),
+  makeBackupCodes: () => post<{ codes: string[] }>('/me/two-step/backup-codes', {}),
+  /** From a password-only sign-in: spends a backup code and turns two-step sign-in off. */
+  useBackupCode: (code: string) => post<{ ok: true }>('/me/two-step/recover', { code }),
   announcements: () => get<{ announcements: Announcement[] }>('/announcements'),
   dismissAnnouncement: (id: string) => post<{ dismissed: true }>(`/announcements/${id}/dismiss`),
   surveys: () => get<{ surveys: Survey[] }>('/surveys'),
   podcasts: () => get<{ shows: PodcastShow[] }>('/podcasts'),
+  crosspost: {
+    status: () => get<CrosspostStatus>('/crosspost'),
+    update: (patch: { postType?: PostType | null; paused?: boolean }) => request<CrosspostStatus>('PATCH', '/crosspost/settings', patch),
+    newKey: () => post<{ key: string }>('/crosspost/extension-key'),
+    revokeKey: () => request<{ revoked: true }>('DELETE', '/crosspost/extension-key'),
+    connect: (provider: CrosspostSource) => post<{ url: string }>(`/crosspost/${provider}/connect`),
+    disconnect: (provider: CrosspostSource) => request<{ disconnected: true }>('DELETE', `/crosspost/${provider}`),
+  },
   whyGifts: (wording: 'faith' | 'neutral') => get<WhyGifts>(`/why-gifts?wording=${wording}`),
   answerSurvey: (id: string, answers: SurveyAnswer[]) => post<{ ok: true }>(`/surveys/${id}/responses`, { answers }),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
@@ -1271,6 +1542,9 @@ export const api = {
     post<{ id: string }>('/feedback', input),
   deleteAccount: () => request<{ deleted: true }>('DELETE', '/me', { confirm: 'DELETE' }),
   updateMe: (patch: Record<string, unknown>) => request<{ profile: Profile }>('PATCH', '/me', patch),
+  dailyReminder: () => get<{ enabled: false } | { enabled: true; reminder: DailyReminder | null }>('/me/daily-reminder'),
+  setDailyReminder: (r: { hour: number; minute: number; days: number[]; timeZone: string } | { off: true }) =>
+    put<{ enabled: false } | { enabled: true; reminder: DailyReminder | null }>('/me/daily-reminder', r),
   exportMyData: () => request<{ exportedAt: string } & Record<string, unknown>>('GET', '/me/export'),
   /** Page 0 is saved for offline reading; when offline it comes back with `savedAt`. */
   feed: (page = 0, filter: 'all' | 'testimonies' = 'all'): Promise<FeedPage & { savedAt?: number }> =>
@@ -1279,20 +1553,32 @@ export const api = {
       : page === 0
         ? cachedGet<FeedPage>('feed', '/feed?page=0')
         : get<FeedPage>(`/feed?page=${page}`),
-  post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
-  createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
+  /** Offline, a request saved with the feed still opens (with `savedAt`). */
+  post: async (id: string): Promise<{ post: Card; savedAt?: number }> => {
+    try {
+      return await get<{ post: Card }>(`/posts/${id}`);
+    } catch (e) {
+      if (!isOffline(e)) throw e;
+      const saved = await readCached<FeedPage>('feed');
+      const card = saved?.value.posts.find((p) => p.id === id);
+      if (!saved || !card) throw e;
+      return { post: card, savedAt: saved.savedAt };
+    }
+  },
+  createPost: (input: NewPost) => post<{ post: Card; harm?: HarmNote | null }>('/posts', input),
   /** Text-only posts made offline wait in the queue. */
-  createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card }>('/posts', input, 'Your post'),
+  createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card; harm?: HarmNote | null }>('/posts', input, 'Your post'),
   deletePost: (id: string) => request<{ deleted: true }>('DELETE', `/posts/${id}`),
   deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
   hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
   unhidePost: (id: string) => request<{ hidden: boolean }>('DELETE', `/posts/${id}/hide`),
+  answeredStory: (id: string, body: string) => post<{ post: Card; crisis: boolean }>(`/posts/${id}/answered-story`, { body }),
   markAnswered: (id: string, testimony?: string) => post<{ post: Card; crisis: boolean }>(`/posts/${id}/answered`, testimony ? { testimony } : {}),
   setTestimony: (id: string, body: string) => put<{ post: Card; crisis: boolean }>(`/posts/${id}/testimony`, { body }),
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
-    post<{ comment: { id: string; crisis: boolean }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
+    post<{ comment: { id: string; crisis: boolean; harm?: HarmNote | null }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
   prayingNow: (id: string) => postOrQueue<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`, {}, 'Praying Now'),
@@ -1343,6 +1629,10 @@ export const api = {
   report: (targetType: 'post' | 'comment' | 'message' | 'event' | 'spoken_prayer', targetId: string, reason: string) =>
     post<{ reportId: string }>('/reports', { targetType, targetId, reason }),
   moderationQueue: () => get<{ items: ModerationItem[] }>('/moderation/queue'),
+  moderationSearch: (s: ModerationSearch) =>
+    get<{ items: ModerationSearchItem[] }>(`/moderation/search?${new URLSearchParams(Object.entries(s).filter(([, v]) => v) as [string, string][])}`),
+  bulkDecide: (input: { ids: string[]; action: 'dismiss' | 'remove'; rule?: ModerationRule; note?: string }) =>
+    post<{ decided: string[]; skipped: { id: string; reason: string }[] }>('/moderation/items/bulk', input),
   escalate: (itemId: string, note: string) => post<unknown>(`/moderation/items/${itemId}/escalate`, { note }),
   decide: (itemId: string, decision: { action: 'dismiss' | 'remove'; suspendDays?: number; note?: string; rule?: ModerationRule }) =>
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
@@ -1354,6 +1644,8 @@ export const api = {
   decideAppeal: (id: string, action: 'uphold' | 'overturn', note?: string) =>
     post<{ ok: boolean }>(`/moderation/appeals/${id}/decision`, { action, note: note || undefined }),
   registerPushToken: (token: string, platform: string) => post('/me/push-tokens', { token, platform }),
+  radioConsole: () => get<RadioConsole>('/radio/console'),
+  updateRadioConsole: (patch: { paused?: boolean; windowOverrideMinutes?: number }) => request<RadioConsole>('PATCH', '/radio/console', patch),
   admin: {
     communities: () => get<{ communities: Community[] }>('/admin/communities'),
     awardSettings: () => get<{ settings: AwardSettings }>('/admin/award-settings'),
@@ -1459,7 +1751,7 @@ export const api = {
     emailInvite: (code: string, input: { email: string; language?: 'en' | 'es'; message?: string }) =>
       post<{ sent: boolean; language: 'en' | 'es' }>(`/admin/invites/${encodeURIComponent(code)}/email`, input),
     setInviteOnly: (inviteOnly: boolean) => request<{ inviteOnly: boolean }>('PATCH', '/admin/invite-settings', { inviteOnly }),
-    auditLog: (q: { before?: string; limit?: number } = {}) =>
+    auditLog: (q: { before?: string; limit?: number; action?: string; q?: string; since?: string } = {}) =>
       get<{ entries: AuditEntry[] }>(`/admin/audit-log?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))}`),
     pilotHtml: (weeks: number, lang: 'en' | 'es') => getText(`/admin/pilot-report?weeks=${weeks}&format=html&lang=${lang}`),
     radioSettings: () => get<{ settings: AdminRadioSettings }>('/admin/radio-settings'),
@@ -1468,6 +1760,8 @@ export const api = {
     radioHealth: () => get<StationHealth>('/admin/radio-health'),
     radioSchedule: () => get<{ schedule: RadioSchedule; onAirNow: boolean }>('/admin/radio-schedule'),
     updateRadioSchedule: (patch: Partial<RadioSchedule>) => request<{ schedule: RadioSchedule; onAirNow: boolean }>('PATCH', '/admin/radio-schedule', patch),
+    radioConsole: () => get<{ enabled: boolean }>('/admin/radio-console'),
+    setRadioConsole: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-console', { enabled }),
     operatorLog: () => get<{ enabled: boolean }>('/admin/operator-log'),
     setOperatorLog: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/operator-log', { enabled }),
     operatorLogCsv: () => getText('/admin/operator-log?format=csv'),
@@ -1477,12 +1771,23 @@ export const api = {
     setListenerMode: (enabled: boolean) => request<{ enabled: boolean; active: boolean }>('PATCH', '/admin/listener-mode', { enabled }),
     updateRadioHealth: (patch: { enabled?: boolean; acks?: Partial<{ enabled: boolean; timeoutMinutes: number; maxRetries: number }> }) => request<StationHealth>('PATCH', '/admin/radio-health', patch),
     radioNodes: () => get<RadioNodes>('/admin/radio-nodes'),
-    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean }) => request<{ enabled: boolean; multiStation: boolean }>('PATCH', '/admin/radio-nodes', patch),
+    radioSetup: () => get<RadioSetup>('/admin/radio-setup'),
+    updateRadioSetup: (patch: { enabled?: boolean; choice?: RadioSetupChoice }) => request<RadioSetup>('PATCH', '/admin/radio-setup', patch),
+    requestSetupTest: (kind: RadioSetupTest['kind'], seconds?: number) => request<{ test: RadioSetupTest }>('POST', '/admin/radio-setup/tests', { kind, ...(seconds ? { seconds } : {}) }),
+    confirmSetupTest: (id: string) => request<{ test: RadioSetupTest }>('POST', `/admin/radio-setup/tests/${id}/confirm`),
+    radioCoverage: () => get<RadioCoverage>('/admin/radio-coverage'),
+    updateRadioCoverage: (patch: { enabled?: boolean; tileUrl?: string; station?: { lat: number; lon: number } | null }) => request<RadioCoverage>('PATCH', '/admin/radio-coverage', patch),
+    placeRadioNode: (id: string, location: { lat: number; lon: number; place?: string } | null) => request<RadioCoverage>('PUT', `/admin/radio-nodes/${id}/location`, { location }),
+    radioPacket: () => get<{ enabled: boolean }>('/admin/radio-packet'),
+    setRadioPacket: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-packet', { enabled }),
+    radioDigest: () => get<RadioDigest>('/admin/radio-digest'),
+    updateRadioDigest: (patch: { enabled?: boolean; email?: boolean }) => request<RadioDigest>('PATCH', '/admin/radio-digest', patch),
+    setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => request<{ enabled: boolean; multiStation: boolean; signaturesRequired: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
     updateRadioNode: (id: string, patch: { enabled: boolean }) => request<{ node: RadioNode }>('PATCH', `/admin/radio-nodes/${id}`, patch),
     removeRadioNode: (id: string) => request<{ ok: true }>('DELETE', `/admin/radio-nodes/${id}`),
     updateRadioAlerts: (patch: Partial<{ enabled: boolean; overdueMinutes: number }>) => request<StationAlerts>('PATCH', '/admin/radio-alerts', patch),
-    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
+    updateRadioSettings: (patch: Partial<{ transmitter: 'log' | 'station'; stationRequiresFree: boolean; maxChars: number; amplifyRepeats: number; order: 'oldest' | 'need'; urgentFirst: boolean; batchMax: number; listenPage: boolean; receipts: boolean; onAirPage: boolean }>) =>
       request<{ settings: AdminRadioSettings }>('PATCH', '/admin/radio-settings', patch),
     donationSettings: () => get<{ settings: AdminDonationSettings; stripeKeySet: boolean; webhookSecretSet: boolean; zeffyKeySet: boolean; zeffyWebhookSet: boolean }>('/admin/donation-settings'),
     updateDonationSettings: (
@@ -1502,8 +1807,10 @@ export const api = {
     recordGift: (gift: { amountCents: number; reference: string; via: 'manual' | 'zeffy' | 'paypal'; donorId?: string | null; target?: GiftTarget }) =>
       post('/admin/donations', { ...gift, reference: gift.reference || undefined }),
     syncZeffy: () => post<{ recorded: number; refunded: number; skipped: number }>('/admin/donations/zeffy-sync'),
-    securitySettings: () => get<{ settings: { two_step_enabled: boolean } }>('/admin/security-settings'),
-    updateSecuritySettings: (patch: { twoStepEnabled?: boolean }) => request<{ settings: { two_step_enabled: boolean } }>('PATCH', '/admin/security-settings', patch),
+    securitySettings: () => get<{ settings: SecuritySettings }>('/admin/security-settings'),
+    updateSecuritySettings: (patch: { twoStepEnabled?: boolean; backupCodesEnabled?: boolean; passkeysEnabled?: boolean }) =>
+      request<{ settings: SecuritySettings }>('PATCH', '/admin/security-settings', patch),
+    resetTwoStep: (userId: string) => post<{ ok: true }>(`/admin/people/${userId}/two-step-reset`, {}),
     safetySettings: () => get<{ settings: AdminSafetySettings }>('/admin/safety-settings'),
     updateSafetySettings: (
       patch: Partial<{
@@ -1537,6 +1844,20 @@ export const api = {
       request<{ settings: { care_enabled: boolean; confession_enabled: boolean; max_open_per_member: number; confession_retention_days: number } }>('PATCH', '/admin/care-settings', patch),
     notebookSettings: () => get<{ settings: NotebookSettings }>('/admin/notebook-settings'),
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
+    moderationTools: () => get<{ settings: { tools_enabled: boolean; bulk_max: number } }>('/admin/moderation-tools'),
+    updateModerationTools: (patch: { enabled?: boolean; bulkMax?: number }) =>
+      request<{ settings: { tools_enabled: boolean; bulk_max: number } }>('PATCH', '/admin/moderation-tools', patch),
+    practiceMode: () => get<{ settings: PracticeModeSettings; connected: PracticeConnected }>('/admin/practice-mode'),
+    updatePracticeMode: (patch: Partial<PracticeModeSettings>) =>
+      request<{ settings: PracticeModeSettings; connected: PracticeConnected }>('PATCH', '/admin/practice-mode', patch),
+    reminderSettings: () => get<{ settings: ReminderSettings }>('/admin/reminder-settings'),
+    updateReminderSettings: (patch: { dailyReminderEnabled?: boolean; gentleStreakEnabled?: boolean; quietAfter?: number }) =>
+      request<{ settings: ReminderSettings }>('PATCH', '/admin/reminder-settings', patch),
+    pushSettings: () => get<PushDelivery>('/admin/push-settings'),
+    updatePushSettings: (patch: { enabled?: boolean; collapseMinutes?: number; maxPerHour?: number }) => request<PushDelivery>('PATCH', '/admin/push-settings', patch),
+    givingSplitSettings: () => get<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('/admin/giving-split-settings'),
+    updateGivingSplitSettings: (patch: { enabled?: boolean; maxPercent?: number }) =>
+      request<{ settings: { giving_split_enabled: boolean; max_percent: number } }>('PATCH', '/admin/giving-split-settings', patch),
     conversationSettings: () => get<{ settings: ConversationSettings }>('/admin/conversation-settings'),
     talkCounts: () => get<{ counts: TalkCountSummary }>('/admin/talk-counts'),
     meaningProposals: () => get<{ proposals: MeaningProposalQueueItem[] }>('/admin/meaning-proposals'),
@@ -1545,10 +1866,10 @@ export const api = {
     highlightQueue: () => get<{ items: HighlightQueueItem[] }>('/admin/kindness-highlights'),
     pickHighlight: (id: string, pick: boolean, shownText?: string) => post<{ items: HighlightQueueItem[] }>(`/admin/kindness-highlights/${id}`, { pick, ...(shownText ? { shownText } : {}) }),
     sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
-    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean }>) =>
+    updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -1556,9 +1877,9 @@ export const api = {
     themeProposals: () => get<{ proposals: ThemeProposal[] }>('/admin/theme-proposals'),
     approveThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'approved'; themeSlug: string }>(`/admin/theme-proposals/${id}/approve`, note ? { note } : {}),
     declineThemeProposal: (id: string, note?: string) => post<{ id: string; status: 'declined' }>(`/admin/theme-proposals/${id}/decline`, note ? { note } : {}),
-    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean }>) =>
+    updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean; shareConsentEnabled: boolean; prayedForLiveEnabled: boolean; prayerChainSmsEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; crosspostEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; kindCloudEnabled: boolean; meaningReactionsEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number; poolLedgerEnabled: boolean; circleGoalsEnabled: boolean; givingAskEnabled: boolean; givingAskAfterDays: number; supportLinksEnabled: boolean; squireBoardEnabled: boolean; squireBoardDays: number; groupGiftsEnabled: boolean; prayerListEnabled: boolean; readingPlanEnabled: boolean }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1681,6 +2002,19 @@ export const api = {
       '/moderation/activity-flags',
     ),
   decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  moderatorCare: () => get<ModeratorCare>('/moderation/care'),
+  updateModeratorCare: (patch: Partial<ModeratorCare['settings']>) => request<{ settings: ModeratorCare['settings'] }>('PATCH', '/admin/moderator-care-settings', patch),
+  handoff: (itemId: string, toUserId?: string, note?: string) => post<{ ok: boolean }>(`/moderation/items/${itemId}/handoff`, { toUserId, note }),
+  moderationDashboard: (days = 7) => get<{ dashboard: ModerationDashboard; reports: HarmReport[] }>(`/admin/moderation-dashboard?days=${days}`),
+  oncall: () => get<{ status: OncallStatus; shifts?: OncallShift[] }>('/moderation/oncall'),
+  addOncallNote: (body: string) => post<{ id: string }>('/moderation/oncall/notes', { body }),
+  oncallAdmin: () => get<{ settings: OncallSettings; shifts: OncallShift[]; people: { id: string; display_name: string }[] }>('/admin/oncall'),
+  updateOncall: (patch: Partial<OncallSettings>) => request<{ settings: OncallSettings }>('PATCH', '/admin/oncall', patch),
+  addOncallShift: (shift: { userId: string; weekday: number; startMinute: number; endMinute: number }) => post<{ id: string }>('/admin/oncall/shifts', shift),
+  removeOncallShift: (id: string) => request<{ ok: boolean }>('DELETE', `/admin/oncall/shifts/${id}`),
+  safetyCenterSwitch: () => get<{ enabled: boolean }>('/admin/safety-center'),
+  setSafetyCenter: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/safety-center', { enabled }),
+  safetyDashboard: (days = 7) => get<{ dashboard: SafetyDashboard }>(`/admin/safety-dashboard?days=${days}`),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
   harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),
@@ -1689,8 +2023,20 @@ export const api = {
   blocks: () => get<{ blocks: { id: string; displayName: string }[] }>('/me/blocks'),
   block: (userId: string) => put(`/people/${userId}/block`),
   unblock: (userId: string) => request('DELETE', `/people/${userId}/block`),
+  isMuted: (userId: string) => get<{ muted: boolean }>(`/people/${userId}/mute`),
+  mute: (userId: string) => put<{ muted: boolean }>(`/people/${userId}/mute`),
+  unmute: (userId: string) => request<{ muted: boolean }>('DELETE', `/people/${userId}/mute`),
+  safetyCenter: () =>
+    get<{
+      safety: {
+        blocks: { id: string; displayName: string }[];
+        mutes: { id: string; displayName: string }[];
+        hidden: { id: string; excerpt: string }[];
+        reports: { id: string; targetType: string; createdAt: string; reviewed: boolean }[];
+      };
+    }>('/me/safety'),
   tokenStore: () =>
-    get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[] }>('/token-store'),
+    get<{ enabled: boolean; commonFundPercent?: number; products: TokenProduct[]; practice?: boolean }>('/token-store'),
   /** A StoreKit 2 signed transaction; the server checks it with Apple before crediting. */
   buyTokens: (signedTransaction: string) => post<{ purchase: TokenPurchaseResult }>('/token-store/purchases', { platform: 'ios', signedTransaction }),
   tokenPurchases: () => get<{ purchases: TokenPurchase[] }>('/me/token-purchases'),
@@ -1704,14 +2050,23 @@ export const api = {
   askForRadioPrayers: (count: number, note: string) => post('/me/radio-allocation-requests', { count, note }),
   radioRequests: () => get<{ requests: AllocationRequestRow[] }>('/staff/radio-allocation-requests'),
   decideRadioRequest: (id: string, grant: number) => post(`/staff/radio-allocation-requests/${id}/decide`, { grant }),
-  features: () => get<{ features: Features }>('/features'),
+  /** Saved too, so skins and switched-on features stay as they were when offline. */
+  features: () => cachedGet<{ features: Features }>('features', '/features'),
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
   revokeGuestLink: (postId: string) => request<{ revoked: true }>('DELETE', `/posts/${postId}/guest-link`),
+  myGivingSplit: () => get<{ split: MyGivingSplit }>('/me/giving-split'),
+  setGivingSplit: (percent: number) => request<{ split: MyGivingSplit }>('PUT', '/me/giving-split', { percent }),
+  memberGivingSplit: (userId: string, cents?: number) =>
+    get<{ split: GivingSplit | null }>(`/people/${userId}/giving-split${cents ? `?cents=${cents}` : ''}`),
+  postGivingSplit: (postId: string) => get<{ split: GivingSplit | null }>(`/posts/${postId}/giving-split`),
+  startLiveActivity: (body: { postId: string; pushToken: string; appId: string }) =>
+    post<{ id: string; props: { heading: string; line: string; count: number } }>('/me/live-activities', body),
+  endLiveActivity: (pushToken: string) => post<{ ended: true }>('/me/live-activities/end', { pushToken }),
   shareState: (postId: string) => get<{ share: ShareState | null }>(`/posts/${postId}/share`),
   setShareLevel: (postId: string, level: ShareLevel) => request<{ share: ShareState }>('PUT', `/posts/${postId}/share`, { level }),
   prayerChain: () => get<{ people: ChainPerson[] }>('/me/prayer-chain'),
-  addToPrayerChain: (email: string) => post<{ id: string }>('/me/prayer-chain', { email }),
+  addToPrayerChain: (to: { email: string } | { phone: string }) => post<{ id: string }>('/me/prayer-chain', to),
   removeFromPrayerChain: (id: string) => request<{ removed: true }>('DELETE', `/me/prayer-chain/${id}`),
   sendToPrayerChain: (postId: string) => post<{ recipients: number; path: string }>(`/posts/${postId}/prayer-chain`),
   prayedFor: () => get<{ prayedFor: PrayedFor }>('/me/prayed-for'),
@@ -1732,6 +2087,10 @@ export const api = {
   myWitnessStories: () => get<{ stories: { id: string; body: string; status: 'awaiting_consent' | 'approved' | 'declined'; createdAt: string }[] }>('/me/witness-stories'),
   decideWitnessStory: (id: string, approve: boolean) => post<{ ok: true }>(`/me/witness-stories/${id}/decision`, { approve }),
   draftWitnessStory: (caseId: string, body: string) => post<{ id: string }>(`/witness/cases/${caseId}/story`, { body }),
+  kindMilestones: () => get<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones'),
+  kindMilestonesSeen: () => post<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones/seen'),
+  checkBack: (postId: string) => get<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`),
+  setCheckBack: (postId: string, days: 3 | 7 | 14 | null) => put<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`, { days }),
   followup: (postId: string) => get<{ enabled: boolean; pending: boolean }>(`/posts/${postId}/followup`),
   answerFollowup: (postId: string, answer: FollowupAnswer, body?: string) =>
     post<{ answer: FollowupAnswer; crisis: boolean }>(`/posts/${postId}/followup`, body ? { answer, body } : { answer }),

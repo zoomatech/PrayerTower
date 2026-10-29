@@ -46,3 +46,22 @@ The token ledger check (`token_ledger_audit`) found no problems afterwards.
 
 - **Fake accounts** are mostly kept out by invite-only sign-up (INVITES.md). Automated-tap flags (Admin → Moderation) catch metronome-like tapping. Moderators can claw back tokens earned by a bot.
 - **The defaults are guesses for a 10-person pilot.** A busy prayer leader may need more than 10 requests an hour. Raise the limit in Admin → New members, or make the person a moderator.
+
+## Harmful prayer requests (2026-10-29)
+
+With the harmful-prayer check on (HARMFUL_PRAYERS.md). `apps/server/test/harm.test.ts`, `harm-check.test.ts` and `moderator-care.test.ts` run these in CI; `apps/e2e/tests/22-harmful-prayers.spec.ts` runs the main path in the app.
+
+| # | Attack or risk (scripted) | Result |
+|---|---|---|
+| 11 | A threat ("I'm going to kill him…") | Held out of sight for a moderator; never refused; can't be sent by radio |
+| 12 | A prayer for someone's death, a curse, revenge | Stays up, goes to the queue, kept off radio and amplifiers until a moderator dismisses the flag; then it may go out |
+| 13 | Hate against a group, or an admin-added word | Held for a moderator |
+| 14 | A post of nothing but swear words | Refused (422) with "say a little about what happened"; the only automatic refusal |
+| 15 | Swearing out of grief ("God, why the f— did you take my baby?") | Posted normally |
+| 16 | An abuse disclosure | Never hidden; hotlines in the app and in a private notice; a moderator is asked to check in |
+| 17 | A troll posts 5 death-wishes in a row (flood limit 2) | 2 reviewed one by one; the other 3 held and bundled into **one** queue item; one tap removes all of them |
+| 18 | Invisible characters to dodge the check ("d​ies") | Still caught |
+| 19 | A stranger tries to "explain" someone else's held post | 404 |
+| 20 | The author explains twice | Second refused (409) |
+
+**False alarms we test do not happen** (each posts normally): grief ("I wish he hadn't suffered", "I hope she dies peacefully", "pray for him, who died yesterday"), illness ("kill the cancer cells", "pray the tumor dies", "this job is killing me", "beat this cancer"), and Scripture that speaks of enemies or death (Psalm 3:7, 58:6, 139:19, Romans 12:19, Romans 6:23, John 2:19, Psalm 68:1, Luke 6:28 "bless those who curse you"), plus "break the generational curse" and "Vengeance is mine, says the Lord". The full list is in `harm-check.test.ts`.

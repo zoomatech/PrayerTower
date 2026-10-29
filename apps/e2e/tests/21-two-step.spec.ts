@@ -55,7 +55,7 @@ test('a member turns on two-step sign-in, signs in with a code, and turns it off
   await expect(page.getByText('Enter your code')).toBeVisible();
   await page.getByTestId('two-step-code').fill(await freshCode(secret, firstStep));
   await page.getByTestId('two-step-submit').click();
-  await expect(page.getByText('Prayers').first()).toBeVisible();
+  await expect(page.getByText('Prayers', { exact: true }).first()).toBeVisible();
 
   await page.getByText('Me', { exact: true }).click();
   await page.getByText('Password and email').click();

@@ -5,8 +5,9 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { staffOnly } from '@/components/staff-only';
-import { Button, Empty, ErrorText, Screen } from '@/components/ui';
+import { Button, Chip, Empty, ErrorText, Field, Screen } from '@/components/ui';
 import { api, type AuditEntry } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -19,10 +20,23 @@ function AuditLog() {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [more, setMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Moderation tools (off): words, moderation only, last 7 days.
+  const { moderationTools } = useFeatures();
+  const [words, setWords] = useState('');
+  const [onlyModeration, setOnlyModeration] = useState(false);
+  const [week, setWeek] = useState(false);
+  const filters = moderationTools
+    ? {
+        q: words.trim() || undefined,
+        action: onlyModeration ? ' /moderation/' : undefined,
+        since: week ? new Date(Date.now() - 7 * 86_400_000).toISOString() : undefined,
+      }
+    : {};
+  const filterKey = JSON.stringify([filters.action, filters.since ? 'week' : '']);
 
-  const load = useCallback(async (before?: string) => {
+  const load = useCallback(async (before?: string, applied: typeof filters = {}) => {
     try {
-      const page = (await api.admin.auditLog({ before, limit: PAGE })).entries;
+      const page = (await api.admin.auditLog({ before, limit: PAGE, ...applied })).entries;
       setEntries((prev) => (before ? [...prev, ...page] : page));
       setMore(page.length === PAGE);
     } catch (e) {
@@ -32,8 +46,10 @@ function AuditLog() {
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      load(undefined, filters);
+      // Re-run when a chip changes; typed words wait for Search.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [load, filterKey, moderationTools]),
   );
 
   const when = (iso: string) => new Date(iso).toLocaleString(language === 'es' ? 'es' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
@@ -53,6 +69,22 @@ function AuditLog() {
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/admin'))} />
         <Text style={type.title}>{t('auditLog.title')}</Text>
         <Text style={type.body}>{t('auditLog.intro')}</Text>
+        {moderationTools ? (
+          <View style={styles.filters}>
+            <Field
+              label={t('auditLog.filterSearch')}
+              placeholder={t('auditLog.filterHint')}
+              value={words}
+              onChangeText={setWords}
+              onSubmitEditing={() => load(undefined, filters)}
+            />
+            <View style={styles.row}>
+              <Chip label={t('auditLog.filterModeration')} selected={onlyModeration} onPress={() => setOnlyModeration((v) => !v)} />
+              <Chip label={t('auditLog.filterWeek')} selected={week} onPress={() => setWeek((v) => !v)} />
+              <Button small variant="secondary" label={t('auditLog.filterApply')} onPress={() => load(undefined, filters)} />
+            </View>
+          </View>
+        ) : null}
         <ErrorText error={error} />
         {entries.length === 0 && !error ? <Empty text={t('auditLog.empty')} /> : null}
         {entries.map((e) => (
@@ -65,7 +97,7 @@ function AuditLog() {
             {details(e) ? <Text style={styles.details}>{details(e)}</Text> : null}
           </View>
         ))}
-        {more ? <Button variant="secondary" label={t('auditLog.more')} onPress={() => load(entries.at(-1)?.created_at)} /> : null}
+        {more ? <Button variant="secondary" label={t('auditLog.more')} onPress={() => load(entries.at(-1)?.created_at, filters)} /> : null}
       </ScrollView>
     </Screen>
   );
@@ -76,6 +108,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.md, gap: 4 },
   action: { ...type.body, fontWeight: '700' },
   details: { ...type.small, color: colors.textMuted },
+  filters: { gap: space.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, alignItems: 'center' },
 });
 
 export default staffOnly(AuditLog, ['admin']);

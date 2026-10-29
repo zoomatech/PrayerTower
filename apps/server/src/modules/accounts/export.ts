@@ -3,6 +3,7 @@
 // fraud flags, witness notes) and other people's identities in staff fields
 // are left out. Photo and video files stay in Storage; their paths are listed.
 import type { Queryable } from '../../db.js';
+import { isSecular } from '../communities/index.js';
 
 type Section = { table: string; where: string; omit?: string[] };
 
@@ -15,6 +16,8 @@ const SECTIONS: Record<string, Section> = {
   quickReactions: { table: 'quick_reactions', where: 'user_id = $1' },
   meaningReactions: { table: 'meaning_reactions', where: 'user_id = $1' },
   followups: { table: 'request_followups', where: 'user_id = $1' },
+  checkBacks: { table: 'check_backs', where: 'user_id = $1' },
+  kindMilestonesSeen: { table: 'kind_milestones_seen', where: 'user_id = $1' },
   gratitudeDay: { table: 'gratitude_prefs', where: 'user_id = $1' },
   gratitude: { table: 'gratitude_entries', where: 'user_id = $1' },
   liftUp: { table: 'lift_up_entries', where: 'user_id = $1' },
@@ -34,6 +37,10 @@ const SECTIONS: Record<string, Section> = {
   hiddenPosts: { table: 'hidden_posts', where: 'user_id = $1' },
   commitments: { table: 'commitments', where: 'user_id = $1' },
   prayerList: { table: 'prayer_list_items', where: 'user_id = $1' },
+  // Cross-posting: never the stored Meta token or the extension key's hash.
+  crosspostSettings: { table: 'crosspost_settings', where: 'user_id = $1', omit: ['extension_key_hash'] },
+  crosspostAccounts: { table: 'crosspost_accounts', where: 'user_id = $1', omit: ['access_token'] },
+  crosspostImports: { table: 'crosspost_imports', where: 'user_id = $1' },
   readings: { table: 'reading_plan_reads', where: 'user_id = $1' },
   prayers: { table: 'prayer_events', where: 'user_id = $1' },
   prompts: { table: 'prayer_prompts', where: 'user_id = $1' },
@@ -57,6 +64,7 @@ const SECTIONS: Record<string, Section> = {
   skinLikes: { table: 'theme_likes', where: 'user_id = $1' },
   following: { table: 'follows', where: 'user_id = $1' },
   blocked: { table: 'user_blocks', where: 'user_id = $1' },
+  muted: { table: 'user_mutes', where: 'user_id = $1' },
   notifications: { table: 'notifications', where: 'user_id = $1', omit: ['dedupe_key'] },
   milestones: { table: 'milestone_awards', where: 'user_id = $1' },
   tokenAccounts: { table: 'token_accounts', where: 'user_id = $1' },
@@ -76,7 +84,76 @@ const SECTIONS: Record<string, Section> = {
   appeals: { table: 'moderation_appeals', where: 'user_id = $1', omit: ['decided_by'] },
   adFines: { table: 'ad_fines', where: 'user_id = $1', omit: ['decided_by'] },
   devices: { table: 'push_tokens', where: 'user_id = $1', omit: ['token'] },
+  lockScreenFollows: { table: 'live_activities', where: 'user_id = $1', omit: ['push_token'] },
+  outsideShares: { table: 'share_consents', where: 'post_id in (select id from public.posts where user_id = $1)', omit: ['token'] },
+  guestLinks: { table: 'guest_links', where: 'created_by = $1', omit: ['token'] },
+  prayerChain: { table: 'prayer_chain_members', where: 'owner_id = $1', omit: ['token'] },
+  prayerChainSends: { table: 'prayer_chain_sends', where: 'owner_id = $1' },
+  prayerMinutes: { table: 'prayer_minutes', where: 'user_id = $1' },
+  prayerMinutePresence: { table: 'prayer_minute_presence', where: 'user_id = $1' },
+  lampsGiven: { table: 'lamp_awards', where: 'giver_id = $1' },
+  lampsReceived: { table: 'lamp_awards', where: 'recipient_id = $1', omit: ['giver_id'] },
+  circleGoals: { table: 'circle_goals', where: 'set_by = $1' },
+  conversationsStarted: { table: 'conversations', where: 'created_by = $1' },
+  liveRooms: { table: 'live_rooms', where: 'host_id = $1' },
+  liveAmplifier: { table: 'live_amplifier_operators', where: 'user_id = $1', omit: ['verified_by'] },
+  skinsMade: { table: 'feed_themes', where: 'owner_id = $1' },
+  inviteUsed: { table: 'invite_redemptions', where: 'user_id = $1' },
+  donations: { table: 'donations', where: 'donor_id = $1', omit: ['recorded_by'] },
+  tokenPurchases: { table: 'token_purchases', where: 'user_id = $1' },
+  materialHelp: { table: 'material_help_matches', where: 'user_id = $1', omit: ['fulfilled_by'] },
+  powerPrayerFor: { table: 'power_prayer_recipients', where: 'user_id = $1' },
+  radioRequests: { table: 'radio_allocation_requests', where: 'user_id = $1', omit: ['decided_by'] },
+  radioAllowance: { table: 'radio_allowances', where: 'user_id = $1' },
+  spokenPrayerInvites: { table: 'spoken_prayer_invites', where: 'user_id = $1' },
+  surveysAnswered: { table: 'survey_respondents', where: 'user_id = $1' },
+  surveyResponses: { table: 'survey_responses', where: 'user_id = $1' },
+  reportsMade: { table: 'moderation_items', where: 'reporter_id = $1', omit: ['user_id', 'decided_by', 'ai_categories', 'source'] },
+  assistantUse: { table: 'ai_usage', where: 'user_id = $1' },
+  announcementsDismissed: { table: 'announcement_dismissals', where: 'user_id = $1' },
+  dailyReminder: { table: 'daily_reminders', where: 'user_id = $1' },
+  partnerPool: { table: 'partner_pool', where: 'user_id = $1' },
+  partnerships: { table: 'partnerships', where: 'a_id = $1 or b_id = $1' },
 };
+
+// Tables that point at a member but are left out of the download on purpose:
+// staff records, safety signals, and bookkeeping with nothing the member wrote.
+// test/export.test.ts fails when a new table points at profiles and is in
+// neither list.
+export const NOT_EXPORTED = [
+  'account_deletion_requests',
+  'activity_flags',
+  'announcements',
+  'common_fund_entries',
+  'crosspost_oauth_states',
+  'evidence_holds',
+  'harm_events',
+  'invite_codes',
+  'legal_case_notes',
+  'legal_cases',
+  'macro_needs',
+  'oncall_notes',
+  'oncall_settings',
+  'oncall_shifts',
+  'podcast_shows',
+  'push_deliveries',
+  'radio_setup_tests',
+  'reading_plans',
+  'seed_prayer_settings',
+  'seed_prayers',
+  'staff_audit_log',
+  'surveys',
+  'talk_count_quota',
+  'token_ledger_checks',
+  // Hashes of two-step backup codes and wrong guesses: of no use to the member, and safer kept in.
+  'two_step_backup_attempts',
+  'two_step_backup_codes',
+  'welcome_dismissed',
+  'witness_cases',
+  'witness_notes',
+];
+
+export const EXPORTED_TABLES = [...new Set(Object.values(SECTIONS).map((s) => s.table))];
 
 export async function exportData(q: Queryable, userId: string) {
   const { rows: profile } = await q.query('select * from public.profiles where id = $1', [userId]);
@@ -93,11 +170,59 @@ export async function exportData(q: Queryable, userId: string) {
     );
     data[key] = rows.map((r) => r.row);
   }
-  return {
+  const out = {
     exportedAt: new Date().toISOString(),
-    format: 'prayer-tower-export/1',
+    format: 'member-data/1',
     account: { email: auth[0]?.email ?? null, createdAt: auth[0]?.created_at ?? null },
     profile: profile[0] ?? null,
     ...data,
   };
+  // Open Circle: the file's own names (sections and fields) use plain words too.
+  // What the member wrote stays exactly as written.
+  return (await isSecular(q, userId)) ? (neutralKeys(out) as typeof out) : out;
+}
+
+// Longest first, so "prayerWarrior" is handled before "prayer". Case follows the
+// original: "prayer" → "support", "Prayer" → "Support", "PRAYER" → "SUPPORT".
+const PLAIN: [RegExp, string][] = [
+  [/prayer[_ ]?warrior/gi, 'kindness_champion'],
+  [/prayed/gi, 'supported'],
+  [/praying/gi, 'supporting'],
+  [/prayers|prayer|pray/gi, 'support'],
+  [/priestly/gi, 'lighthouse'],
+  [/churches|church/gi, 'group'],
+  [/pastor/gi, 'leader'],
+  [/sermon/gi, 'talk'],
+  [/scripture|bible/gi, 'reading'],
+  [/blessings|blessing/gi, 'kindness'],
+  [/faith/gi, 'belief'],
+];
+const sameCase = (found: string, word: string) =>
+  found === found.toUpperCase() ? word.toUpperCase() : found[0] === found[0]!.toUpperCase() ? word[0]!.toUpperCase() + word.slice(1) : word;
+/** A key in plain words, keeping camelCase or snake_case. */
+export function plainKey(key: string) {
+  let k = key;
+  for (const [re, word] of PLAIN) {
+    k = k.replace(re, (found) => {
+      // kindness_champion inside a camelCase key becomes kindnessChampion.
+      const w = /_/.test(key) || !word.includes('_') ? word : word.replace(/_(.)/g, (_, c: string) => c.toUpperCase());
+      return sameCase(found, w);
+    });
+  }
+  return k;
+}
+
+function neutralKeys(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(neutralKeys);
+  if (!v || typeof v !== 'object' || v instanceof Date) return v;
+  const out: Record<string, unknown> = {};
+  const entries = Object.entries(v);
+  const taken = new Set(entries.map(([k]) => k));
+  for (const [k, x] of entries) {
+    const plain = plainKey(k);
+    // Never let a renamed key overwrite another one: keep the original name then.
+    const name = plain !== k && (taken.has(plain) || plain in out) ? k : plain;
+    out[name] = neutralKeys(x);
+  }
+  return out;
 }

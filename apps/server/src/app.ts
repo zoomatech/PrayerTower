@@ -14,6 +14,7 @@ import { commitmentRoutes } from './modules/commitments/routes.js';
 import { feedRoutes } from './modules/feed/routes.js';
 import type { Classifier } from './modules/moderation/index.js';
 import { harmRoutes } from './modules/harm/routes.js';
+import { safetyCenterRoutes } from './modules/safety-center/routes.js';
 import { moderationRoutes } from './modules/moderation/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { postRoutes } from './modules/posts/routes.js';
@@ -28,6 +29,8 @@ import { surveyRoutes } from './modules/surveys/routes.js';
 import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
 import { practiceRoutes } from './modules/practices/routes.js';
+import { checkBackRoutes } from './modules/check-back/routes.js';
+import { kindMilestoneRoutes } from './modules/kind-milestones/routes.js';
 import { repairRoutes } from './modules/repair/routes.js';
 import { conversationHelperRoutes } from './modules/conversation-helpers/routes.js';
 import { partnerRoutes } from './modules/partners/routes.js';
@@ -35,6 +38,10 @@ import { kindnessHighlightRoutes } from './modules/kindness-highlights/routes.js
 import { coolDownRoutes } from './modules/cool-down/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
+import { storageMediaStore } from './modules/crosspost/index.js';
+import type { CrosspostOptions } from './modules/crosspost/meta.js';
+import { crosspostPublicRoutes, crosspostRoutes } from './modules/crosspost/routes.js';
+import { MEDIA_BUCKET } from './modules/posts/media.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { aiRoutes } from './modules/ai/routes.js';
 import { lampRoutes } from './modules/lamps/routes.js';
@@ -45,7 +52,9 @@ import { prayerListRoutes } from './modules/prayer-list/routes.js';
 import { readingPlanRoutes } from './modules/reading-plan/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
-import { liveRoutes } from './modules/live/routes.js';
+import { liveRoutes, practiceRoomRoutes } from './modules/live/routes.js';
+import type { JaasKeys } from './modules/live/jaas.js';
+import { practiceModeRoutes } from './modules/practice-mode/routes.js';
 import type { Converse } from './modules/ai/provider.js';
 import { highlightRoutes } from './modules/highlights/routes.js';
 import { eventRoutes } from './modules/events/routes.js';
@@ -58,6 +67,9 @@ import { nodeRoutes, stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
+import { givingSplitRoutes } from './modules/giving-split/routes.js';
+import { reminderRoutes } from './modules/reminders/routes.js';
+import { liveActivityRoutes } from './modules/live-activity/routes.js';
 import { growthPublicRoutes, growthRoutes } from './modules/growth/routes.js';
 import { skinRoutes } from './modules/skins/routes.js';
 import { securityRoutes } from './modules/security/routes.js';
@@ -118,6 +130,12 @@ export interface AppDeps {
   apiDocs?: { restricted: boolean; password: string | null; version: string } | null;
   /** Checks App Store signed transactions (token purchase); null = purchases can't be verified. */
   appleVerifier?: AppleVerifier | null;
+  /** Cross-posting from Facebook and Threads: Meta app keys for "Connect"; null = extension only. */
+  crosspost?: CrosspostOptions | null;
+  /** Practice token purchases may be switched on (Admin → Practice mode); false when the App Store is set to production. */
+  practicePurchases?: boolean;
+  /** Jitsi as a Service keys for live rooms (JAAS_*); null = not set. */
+  jaas?: JaasKeys | null;
   /** Called for every route as it's added (the security test lists them this way). */
   onRoute?: (route: { method: string; url: string }) => void;
 }
@@ -129,7 +147,7 @@ export function logSafeError(err: Error) {
   return { type: err.name, message: err.message, stack: err.stack ?? '', code, constraint, table };
 }
 
-export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null }: AppDeps) {
+export function buildApp({ db, verifyToken, storage = null, logger = false, corsOrigins = [], classify = null, converse = null, stationKey = null, rateLimitPerMinute = 0, clientIpHeader = null, stripe = null, zeffy = null, onRoute, deletionPage = null, site = null, metricsToken = null, apiDocs = null, mailer = null, webAppUrl = null, appleVerifier = null, crosspost = null, practicePurchases = false, jaas = null }: AppDeps) {
   // Logs carry method, route, status and timing; never bodies or sign-in tokens.
   const app = Fastify({
     logger: logger
@@ -262,6 +280,19 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     podcastPublicRoutes(open, db);
     donationPublicRoutes(open, db, stripe, zeffy);
     storeNotificationRoutes(open, db, appleVerifier);
+    practiceRoomRoutes(open);
+  });
+
+  // Cross-posting: the browser extension (its own key), the Meta sign-in return and the Threads webhook.
+  app.register(async (open) => {
+    if (rateLimitPerMinute > 0) await open.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+    const images = storage
+      ? storageMediaStore(async (path, bytes, contentType) => {
+          const { error } = await storage.storage.from(MEDIA_BUCKET).upload(path, bytes, { contentType });
+          if (error) throw new AppError(502, 'storage_error', error.message);
+        })
+      : null;
+    crosspostPublicRoutes(open, db, crosspost, images);
   });
 
   // Everything else requires a signed-in member.
@@ -299,9 +330,12 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
     growthRoutes(authed, db);
+    givingSplitRoutes(authed, db);
+    reminderRoutes(authed, db);
+    liveActivityRoutes(authed, db);
     skinRoutes(authed, db);
     securityRoutes(authed, db);
-    futureRoutes(authed, db, appleVerifier);
+    futureRoutes(authed, db, appleVerifier, practicePurchases);
     aiRoutes(authed, db, converse);
     lampRoutes(authed, db);
     circleGoalRoutes(authed, db);
@@ -309,12 +343,15 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     groupGiftRoutes(authed, db);
     prayerListRoutes(authed, db);
     readingPlanRoutes(authed, db);
-    liveRoutes(authed, db);
+    liveRoutes(authed, db, jaas);
+    practiceModeRoutes(authed, db, { converse, jaas: !!jaas, appStore: !!appleVerifier, practicePurchases });
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
     quickReactionRoutes(authed, db);
     meaningReactionRoutes(authed, db);
     practiceRoutes(authed, db);
+    checkBackRoutes(authed, db);
+    kindMilestoneRoutes(authed, db);
     repairRoutes(authed, db);
     conversationHelperRoutes(authed, db);
     partnerRoutes(authed, db);
@@ -324,12 +361,14 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
+    crosspostRoutes(authed, db, crosspost);
     donationRoutes(authed, db, stripe, webAppUrl, zeffy);
     spokenPrayerRoutes(authed, db, storage);
     awardRoutes(authed, db);
     notificationRoutes(authed, db);
     moderationRoutes(authed, db, classify);
     harmRoutes(authed, db);
+    safetyCenterRoutes(authed, db);
     promptRoutes(authed, db);
     tierRoutes(authed, db);
     feedbackRoutes(authed, db);

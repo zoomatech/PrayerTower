@@ -22,7 +22,7 @@ import { CardMedia } from './media';
 import { SparkleWords } from './sparkle-words';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
-import { MeaningIcons } from './meaning-icon-row';
+import { useMeaningChooser, type MeaningChooser } from './meaning-chooser';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
@@ -55,6 +55,12 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
+  // Emoji meanings ride on the same row of action icons; on the request's own page the full tree sits below instead.
+  const chooser: MeaningChooser = useMeaningChooser(card.id, card.body, !startExpanded);
+  const meaningsFor = (action: string) => {
+    const e = chooser.forAction(action);
+    return e ? { words: chooser.words(e), open: () => chooser.open(e), action: t('meanings.choose', { emoji: e.emoji }), hint: t('meanings.holdHint') } : null;
+  };
   const surface = useContext(CardSurface);
   const lines = features.postLines;
   const answered = card.state === 'answered';
@@ -105,7 +111,18 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           </Text>
         ) : null}
         {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+        {card.crosspostedFrom ? <Text style={styles.tags}>{t('card.from', { name: card.crosspostedFrom === 'threads' ? 'Threads' : 'Facebook' })}</Text> : null}
         {card.lament && features.lament ? <Text style={styles.tags}>🕯️ {t('lament.tag')}</Text> : null}
+        {features.answeredStories && card.answers ? (
+          <Text style={styles.storyLink} onPress={() => router.push(`/post/${card.answers!.id}`)} accessibilityRole="link">
+            🌅 {t('answeredStory.answers', { preview: card.answers.preview })}
+          </Text>
+        ) : null}
+        {features.answeredStories && card.storyId ? (
+          <Text style={styles.storyLink} onPress={() => router.push(`/post/${card.storyId}`)} accessibilityRole="link">
+            🌅 {t('answeredStory.read')}
+          </Text>
+        ) : null}
         {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
         <Pressable
@@ -167,13 +184,12 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
                 name={label('action', action, ACTION_LABELS[action])}
                 active={active}
                 onPress={() => onAction(card, action)}
+                meanings={meaningsFor(action)}
               />
             );
           })}
-          {/* Emoji meanings join the same row in every skin (off unless switched on). On the
-              request's own page the full meaning tree with its leaves sits below instead. */}
-          {startExpanded ? null : <MeaningIcons postId={card.id} postBody={card.body} />}
         </View>
+        {chooser.sheet}
 
         {card.topComment ? (
           <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
@@ -192,26 +208,52 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
   );
 });
 
-/** One action as an icon. Its name is its accessibility label and shows in a tip on hover (web, iPad pointer, Mac) or a long press. */
-function ActionIcon({ icon: glyph, label: tip, name, active, onPress }: { icon: string; label: string; name: string; active: boolean; onPress: () => void }) {
+/**
+ * One action as an icon. Its name is its accessibility label and shows in a tip on hover (web, iPad pointer, Mac) or a long press.
+ * With emoji meanings on, the tip also shows the matching emoji's meanings, and a long press opens them to choose from.
+ */
+function ActionIcon({
+  icon: glyph,
+  label: tip,
+  name,
+  active,
+  onPress,
+  meanings,
+}: {
+  icon: string;
+  label: string;
+  name: string;
+  active: boolean;
+  onPress: () => void;
+  meanings?: { words: string; open: () => void; action: string; hint: string } | null;
+}) {
   const [shown, setShown] = useState(false);
   return (
     <View style={styles.actionCell}>
       {shown ? (
         <View style={styles.tip} pointerEvents="none">
-          <Text style={styles.tipText} numberOfLines={2}>
+          <Text style={styles.tipText} numberOfLines={meanings ? 4 : 2}>
             {tip}
           </Text>
+          {meanings ? (
+            <Text style={styles.tipText} numberOfLines={4}>
+              {meanings.words}
+            </Text>
+          ) : null}
         </View>
       ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={name}
         accessibilityState={{ selected: active }}
+        accessibilityHint={meanings?.hint}
+        accessibilityActions={meanings ? [{ name: 'longpress', label: meanings.action }] : undefined}
+        onAccessibilityAction={meanings ? () => meanings.open() : undefined}
         onPress={onPress}
         onHoverIn={() => setShown(true)}
         onHoverOut={() => setShown(false)}
         onLongPress={() => {
+          if (meanings) return meanings.open();
           setShown(true);
           setTimeout(() => setShown(false), 1800);
         }}
@@ -244,6 +286,7 @@ const styles = StyleSheet.create({
   testimonyLabel: { color: colors.goldText, fontWeight: '700', fontSize: 13 },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   tags: { ...type.small, marginTop: -space.sm },
+  storyLink: { ...type.small, color: colors.primary, textDecorationLine: 'underline', minHeight: 44, paddingVertical: space.xs },
   pastor: { color: colors.primary, fontWeight: '600', fontSize: 13, marginTop: -space.sm },
   backdrop: { borderRadius: radius.md, minHeight: 160, padding: space.xl, justifyContent: 'center' },
   backdropText: { fontSize: 22, lineHeight: 30, fontWeight: '600', textAlign: 'center' },
@@ -255,9 +298,8 @@ const styles = StyleSheet.create({
   bodyLine: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.md, marginLeft: 4 },
   more: { color: colors.primary, fontWeight: '600' },
   counts: type.small,
-  // Wraps rather than squeezing when the emoji meanings join the row: every target stays 44 points.
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: space.xs },
-  actionCell: { flex: 1, minWidth: 44, alignItems: 'center', position: 'relative' },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', gap: space.xs },
+  actionCell: { flex: 1, alignItems: 'center', position: 'relative' },
   // 44 pt touch targets (Apple HIG).
   action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.background },
   actionActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },

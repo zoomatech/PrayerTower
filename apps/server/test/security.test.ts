@@ -66,6 +66,8 @@ describe('endpoint auth', () => {
       'POST /donations/zeffy-webhook', // checks its own ?token=
       // App Store Server Notifications: Apple's signature on the payload is the check.
       'POST /store/apple/notifications',
+      // A practice live room's page: fixed text, no data; the room name is long and random.
+      'GET /live/practice/:name',
       // The same public pages in Spanish.
       'GET /es',
       'GET /es/',
@@ -112,6 +114,9 @@ describe('endpoint auth', () => {
       'POST /circle/:token',
       'GET /chain/:token',
       'POST /chain/:token',
+      // Cross-posting: the Meta sign-in return (one-time state) and the Threads webhook check (verify token).
+      'GET /crosspost/:provider/callback',
+      'GET /crosspost/threads/webhook',
       // Sharing with consent: the share card the author chose (a 404 otherwise).
       'GET /card/:token',
     ]);

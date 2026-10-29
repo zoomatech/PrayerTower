@@ -27,6 +27,8 @@ interface AuthState {
   linkError: string | null;
   /** Signed in with a password, but two-step sign-in is on: the app asks for the code before anything else. */
   needsCode: boolean;
+  /** After a backup code turned two-step sign-in off: refresh the session and open the app. */
+  codeDone: () => Promise<void>;
 }
 
 /** True when this session still needs the code from the member's authenticator app (aal1 → aal2). */
@@ -86,11 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session) await signedIn();
       setLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
       // Called from inside Supabase's lock, so the next step runs after it returns.
-      if (next) setTimeout(() => void signedIn(), 0);
-      else {
+      // The first event repeats the saved session that getSession above already loaded,
+      // and an hourly token refresh changes nothing on the profile: skip both (one /me at start, not two).
+      if (next) {
+        if (event !== 'INITIAL_SESSION' && event !== 'TOKEN_REFRESHED') setTimeout(() => void signedIn(), 0);
+      } else {
         setNeedsCode(false);
         setProfile(null);
         setRoles([]);
@@ -119,6 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [url]);
 
+  const codeDone = useCallback(async () => {
+    // The refreshed session no longer lists the removed factor, so the code isn't needed.
+    await supabase.auth.refreshSession();
+    const need = await codeStillNeeded().catch(() => false);
+    setNeedsCode(need);
+    if (!need) await refreshProfile();
+  }, [refreshProfile]);
+
   const signOut = useCallback(async () => {
     setRecovering(false);
     await supabase.auth.signOut();
@@ -127,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, profile, roles, community, loading, profileError, refreshProfile, signOut, recovering, setRecovering, linkError, needsCode }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ session, profile, roles, community, loading, profileError, refreshProfile, signOut, recovering, setRecovering, linkError, needsCode, codeDone }}>{children}</AuthContext.Provider>
   );
 }
 

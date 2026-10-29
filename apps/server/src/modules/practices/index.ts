@@ -44,12 +44,16 @@ export interface PracticeSettings {
   highlights_enabled: boolean;
   cool_down_enabled: boolean;
   lament_enabled: boolean;
+  answered_stories_enabled: boolean;
+  kindness_intro_enabled: boolean;
+  check_back_enabled: boolean;
+  kind_milestones_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<PracticeSettings> {
   const { rows } = await q.query<PracticeSettings>(`select followup_enabled, followup_days, gratitude_enabled, gentle_rhythm_enabled, encourager_enabled, encourager_days, newcomer_days, remembered_enabled,
             welcome_card_enabled, welcome_text, ask_kindly_enabled, mend_enabled, lift_up_enabled, gratitude_count_enabled, believe_enabled,
-            partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled
+            partners_enabled, partner_days, highlights_enabled, cool_down_enabled, lament_enabled, answered_stories_enabled, kindness_intro_enabled, check_back_enabled, kind_milestones_enabled
        from public.practice_settings`);
   return rows[0]!;
 }
@@ -76,6 +80,10 @@ export const SettingsPatch = z.object({
   highlightsEnabled: z.boolean().optional(),
   coolDownEnabled: z.boolean().optional(),
   lamentEnabled: z.boolean().optional(),
+  answeredStoriesEnabled: z.boolean().optional(),
+  kindnessIntroEnabled: z.boolean().optional(),
+  checkBackEnabled: z.boolean().optional(),
+  kindMilestonesEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -92,7 +100,9 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        believe_enabled = coalesce($15, believe_enabled),
        partners_enabled = coalesce($16, partners_enabled), partner_days = coalesce($17, partner_days),
        highlights_enabled = coalesce($18, highlights_enabled), cool_down_enabled = coalesce($19, cool_down_enabled),
-       lament_enabled = coalesce($20, lament_enabled)`,
+       lament_enabled = coalesce($20, lament_enabled), answered_stories_enabled = coalesce($21, answered_stories_enabled),
+       kindness_intro_enabled = coalesce($22, kindness_intro_enabled), check_back_enabled = coalesce($23, check_back_enabled),
+       kind_milestones_enabled = coalesce($24, kind_milestones_enabled)`,
     [
       p.followupEnabled ?? null,
       p.followupDays ?? null,
@@ -114,6 +124,10 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.highlightsEnabled ?? null,
       p.coolDownEnabled ?? null,
       p.lamentEnabled ?? null,
+      p.answeredStoriesEnabled ?? null,
+      p.kindnessIntroEnabled ?? null,
+      p.checkBackEnabled ?? null,
+      p.kindMilestonesEnabled ?? null,
     ],
   );
   return settings(q);
@@ -137,6 +151,10 @@ export async function features(q: Queryable) {
     kindnessHighlights: s.highlights_enabled,
     coolDown: s.cool_down_enabled,
     lament: s.lament_enabled,
+    answeredStories: s.answered_stories_enabled,
+    kindnessIntro: s.kindness_intro_enabled,
+    checkBack: s.check_back_enabled,
+    kindMilestones: s.kind_milestones_enabled,
   };
 }
 

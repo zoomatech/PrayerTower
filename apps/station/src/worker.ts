@@ -3,6 +3,7 @@
 // Any transmit error disables transmit (rx_only) and stops the worker, as the
 // build paper requires; a person restarts it after checking the station.
 import type { Fldigi } from './fldigi.js';
+import type { SetupApi } from './setup-test.js';
 import { foldAscii, passesFilter, splitPieces } from './text.js';
 
 export interface ClaimedPrayer {
@@ -27,12 +28,15 @@ export interface BurstLog {
 export interface StationApi {
   claim(): Promise<ClaimedPrayer | null>;
   /** Up to `max` prayers at once (burst mode); empty when none are waiting. */
-  claimBatch?(max: number): Promise<ClaimedPrayer[]>;
+  claimBatch?(max: number, mode?: 'packet'): Promise<ClaimedPrayer[]>;
   report(id: string, result: { ok: boolean; callSign: string; pieces?: number; error?: string; preset?: string; sentHash?: string; frequencyHz?: number }): Promise<void>;
   /** Log a burst for Admin → Radio (burst mode). Best effort: a failure here never stops the station. */
   reportBurst?(burst: BurstLog): Promise<void>;
   /** The station's own checks for Admin → Radio health alerts (status.ts). Best effort, like reportBurst. */
   reportStatus?(status: { callSign: string; checks: { name: string; ok: boolean; detail: string }[] }): Promise<void>;
+  /** The setup wizard's next test tone or burst (setup-test.ts), and its result. */
+  setupTest?: SetupApi['setupTest'];
+  setupResult?: SetupApi['setupResult'];
 }
 
 export interface StationConfig {
@@ -114,8 +118,8 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
       if (!res.ok) throw new Error(`claim failed (${res.status}): ${json.message ?? ''}`);
       return json.radioPrayer ?? null;
     },
-    async claimBatch(max) {
-      const res = await post('/station/claim-batch', { max });
+    async claimBatch(max, mode) {
+      const res = await post('/station/claim-batch', mode ? { max, mode } : { max });
       if (res.status === 204) return [];
       // An older server without burst claims: take one prayer at a time instead.
       if (res.status === 404) {
@@ -138,6 +142,18 @@ export function httpApi(baseUrl: string, stationKey: string, fetchImpl: typeof f
     async reportBurst(burst) {
       const res = await post('/station/bursts', burst);
       if (!res.ok) throw new Error(`burst log failed (${res.status})`);
+    },
+    async setupTest(callSign) {
+      const res = await fetchImpl(`${baseUrl.replace(/\/$/, '')}/station/setup-test?callSign=${encodeURIComponent(callSign)}`, { headers: { 'x-station-key': stationKey } });
+      // 204: nothing waiting or the wizard is off; 404: an older server without it.
+      if (res.status === 204 || res.status === 404) return null;
+      const json = (await res.json().catch(() => ({}))) as { test?: Awaited<ReturnType<SetupApi['setupTest']>>; message?: string };
+      if (!res.ok) throw new Error(`setup test failed (${res.status}): ${json.message ?? ''}`);
+      return json.test ?? null;
+    },
+    async setupResult(id, result) {
+      const res = await post(`/station/setup-test/${id}/result`, result);
+      if (!res.ok) throw new Error(`setup test report failed (${res.status})`);
     },
     async reportStatus(status) {
       const res = await post('/station/status', status);

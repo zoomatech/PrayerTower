@@ -21,6 +21,9 @@ import * as events from '../events/index.js';
 import * as feedback from '../feedback/index.js';
 import * as future from '../future/index.js';
 import * as notebook from '../notebook/index.js';
+import * as pushDelivery from '../notifications/delivery.js';
+import * as reminders from '../reminders/index.js';
+import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
 import * as practices from '../practices/index.js';
 import * as talkCounts from '../conversation-helpers/counts.js';
@@ -38,10 +41,15 @@ import * as radioHealth from '../radio/health.js';
 import * as radioNodes from '../radio/nodes.js';
 import * as radioAcks from '../radio/acks.js';
 import * as radioSchedule from '../radio/schedule.js';
+import * as operatorConsole from '../radio/console.js';
 import * as operatorLog from '../radio/oplog.js';
 import { listenerMode, setListenerMode } from '../listen/routes.js';
 import * as radioThanks from '../radio/thanksgiving.js';
 import * as prayingToo from '../radio/praying-too.js';
+import * as radioSetup from '../radio/setup.js';
+import * as coverage from '../radio/coverage.js';
+import * as radioDigest from '../radio/digest.js';
+import * as radioPacket from '../radio/packet.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -50,6 +58,7 @@ import * as seedPrayers from '../seed-prayers/index.js';
 import * as tiers from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
 import * as audit from '../audit/index.js';
+import * as moderationTools from '../moderation/tools.js';
 import * as report from './report.js';
 import * as sponsorReport from './sponsor-report.js';
 import * as warriors from './warriors.js';
@@ -57,7 +66,7 @@ import * as ledgerCheck from '../tokens/ledger-check.js';
 import * as jobs from '../jobs/index.js';
 import * as ops from '../ops/index.js';
 
-const ROLES = ['admin', 'moderator', 'pastor', 'pastor_counselor', 'prayer_partner', 'witness'] as const;
+const ROLES = ['admin', 'moderator', 'pastor', 'pastor_counselor', 'prayer_partner', 'witness', 'radio_operator'] as const;
 
 export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null = null) {
   const requireAdmin = async (req: FastifyRequest) => {
@@ -200,6 +209,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return {
       enabled: await radioNodes.enabled(db),
       multiStation: await radioNodes.multiStation(db),
+      signaturesRequired: await radioNodes.signaturesRequired(db),
       nodes: await radioNodes.list(db),
       reports: await radioNodes.latestReports(db),
       stations: await radioNodes.stationCounts(db),
@@ -208,10 +218,13 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
 
   app.patch('/admin/radio-nodes', async (req) => {
     await requireAdmin(req);
-    const { enabled, multiStation } = z.object({ enabled: z.boolean().optional(), multiStation: z.boolean().optional() }).parse(req.body);
+    const { enabled, multiStation, signaturesRequired } = z
+      .object({ enabled: z.boolean().optional(), multiStation: z.boolean().optional(), signaturesRequired: z.boolean().optional() })
+      .parse(req.body);
     if (enabled !== undefined) await radioNodes.setEnabled(db, enabled);
     if (multiStation !== undefined) await radioNodes.setMultiStation(db, multiStation);
-    return { enabled: await radioNodes.enabled(db), multiStation: await radioNodes.multiStation(db) };
+    if (signaturesRequired !== undefined) await radioNodes.setSignaturesRequired(db, signaturesRequired);
+    return { enabled: await radioNodes.enabled(db), multiStation: await radioNodes.multiStation(db), signaturesRequired: await radioNodes.signaturesRequired(db) };
   });
 
   // The key is in this answer only; the server keeps its hash.
@@ -254,6 +267,35 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   });
 
   // Transmission windows and quiet hours (radio/schedule.ts).
+  // Operator console (radio/console.ts): admins turn it on; admins and radio operators use it.
+  const requireOperator = async (req: FastifyRequest) => {
+    const userId = requireUser(req);
+    if (!(await accounts.hasRole(db, userId, 'admin', 'radio_operator'))) throw forbidden('Radio operators only');
+    return userId;
+  };
+  app.get('/admin/radio-console', async (req) => {
+    await requireAdmin(req);
+    return { enabled: (await operatorConsole.settings(db)).enabled };
+  });
+  app.patch('/admin/radio-console', async (req) => {
+    await requireAdmin(req);
+    await operatorConsole.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: (await operatorConsole.settings(db)).enabled };
+  });
+  app.get('/radio/console', async (req) => {
+    await requireOperator(req);
+    const view = await operatorConsole.view(db);
+    if (!view) throw notFound('Operator console');
+    return view;
+  });
+  app.patch('/radio/console', async (req) => {
+    await requireOperator(req);
+    const input = operatorConsole.Override.parse(req.body);
+    if (!(await operatorConsole.settings(db)).enabled) throw notFound('Operator console');
+    await operatorConsole.override(db, input);
+    return (await operatorConsole.view(db))!;
+  });
+
   app.get('/admin/radio-schedule', async (req) => {
     await requireAdmin(req);
     const schedule = await radioSchedule.get(db);
@@ -316,6 +358,80 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return { thanksgiving: await radioThanks.enabled(db), prayingToo: await prayingToo.enabled(db) };
   });
 
+  // Station setup wizard (radio/setup.ts): the rig choice and its settings lines, the station's checks, test tones and bursts.
+  app.get('/admin/radio-setup', async (req) => {
+    await requireAdmin(req);
+    return radioSetup.overview(db);
+  });
+
+  app.patch('/admin/radio-setup', async (req) => {
+    await requireAdmin(req);
+    const input = z.object({ enabled: z.boolean().optional(), choice: radioSetup.SetupChoice.optional() }).parse(req.body);
+    if (input.enabled !== undefined) await radioSetup.setEnabled(db, input.enabled);
+    if (input.choice) await radioSetup.setChoice(db, input.choice);
+    return radioSetup.overview(db);
+  });
+
+  app.post('/admin/radio-setup/tests', async (req, reply) => {
+    const userId = await requireAdmin(req);
+    if (!(await radioSetup.enabled(db))) throw notFound('Setup wizard');
+    const { kind, seconds } = z.object({ kind: z.enum(['tone', 'burst']), seconds: z.number().int().min(3).max(30).default(10) }).parse(req.body);
+    return reply.code(201).send({ test: await radioSetup.request(db, kind, userId, seconds) });
+  });
+
+  app.post<{ Params: { id: string } }>('/admin/radio-setup/tests/:id/confirm', async (req) => {
+    await requireAdmin(req);
+    if (!(await radioSetup.enabled(db))) throw notFound('Setup wizard');
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    return { test: await radioSetup.confirm(db, id) };
+  });
+
+  // Coverage map (radio/coverage.ts): placed listener nodes with the signal each hears.
+  app.get('/admin/radio-coverage', async (req) => {
+    await requireAdmin(req);
+    return coverage.map(db);
+  });
+
+  app.patch('/admin/radio-coverage', async (req) => {
+    await requireAdmin(req);
+    await coverage.updateSettings(db, coverage.SettingsPatch.parse(req.body));
+    return coverage.map(db);
+  });
+
+  app.put<{ Params: { id: string } }>('/admin/radio-nodes/:id/location', async (req) => {
+    await requireAdmin(req);
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    const { location } = z.object({ location: coverage.Location.nullable() }).parse(req.body);
+    await coverage.place(db, id, location);
+    return coverage.map(db);
+  });
+
+  // Packet fallback (radio/packet.ts): short IDs and counts over 1200-baud APRS packets.
+  app.get('/admin/radio-packet', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await radioPacket.enabled(db) };
+  });
+
+  app.patch('/admin/radio-packet', async (req) => {
+    await requireAdmin(req);
+    const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+    await radioPacket.setEnabled(db, enabled);
+    return { enabled };
+  });
+
+  // Weekly radio prayer digest (radio/digest.ts).
+  app.get('/admin/radio-digest', async (req) => {
+    await requireAdmin(req);
+    const s = await radioDigest.settings(db);
+    return { ...s, weeks: s.enabled ? await radioDigest.weeks(db) : [] };
+  });
+
+  app.patch('/admin/radio-digest', async (req) => {
+    await requireAdmin(req);
+    const s = await radioDigest.updateSettings(db, z.object({ enabled: z.boolean().optional(), email: z.boolean().optional() }).parse(req.body));
+    return { ...s, weeks: s.enabled ? await radioDigest.weeks(db) : [] };
+  });
+
   app.get('/admin/radio-bursts', async (req) => {
     await requireAdmin(req);
     return { bursts: await radio.recentBursts(db) };
@@ -330,6 +446,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
         maxChars: z.number().int().min(50).max(2800).optional(),
         amplifyRepeats: z.number().int().min(2).max(1000).optional(),
         order: z.enum(['oldest', 'need']).optional(),
+        urgentFirst: z.boolean().optional(),
         batchMax: z.number().int().min(1).max(500).optional(),
         listenPage: z.boolean().optional(),
         receipts: z.boolean().optional(),
@@ -339,6 +456,7 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     return {
       settings: await radio.updateStationSettings(db, {
         radio_order: input.order,
+        radio_urgent_first: input.urgentFirst,
         radio_batch_max: input.batchMax,
         listen_page_enabled: input.listenPage,
         radio_receipts_enabled: input.receipts,
@@ -424,6 +542,30 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
   app.get('/admin/conversation-settings', async (req) => {
     await requireAdmin(req);
     return { settings: await conversationHelpers.settings(db) };
+  });
+  app.get('/admin/reminder-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await reminders.settings(db) };
+  });
+  app.patch('/admin/reminder-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await reminders.updateSettings(db, reminders.SettingsPatch.parse(req.body)) };
+  });
+  app.get('/admin/push-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await pushDelivery.settings(db), health: await pushDelivery.health(db) };
+  });
+  app.patch('/admin/push-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await pushDelivery.updateSettings(db, pushDelivery.SettingsPatch.parse(req.body)), health: await pushDelivery.health(db) };
+  });
+  app.get('/admin/giving-split-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await givingSplit.settings(db) };
+  });
+  app.patch('/admin/giving-split-settings', async (req) => {
+    await requireAdmin(req);
+    return { settings: await givingSplit.updateSettings(db, givingSplit.SettingsPatch.parse(req.body)) };
   });
   app.patch('/admin/conversation-settings', async (req) => {
     await requireAdmin(req);
@@ -746,12 +888,33 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     };
   });
 
+  // Moderation tools: search, bulk decisions and audit log filters (docs/MODERATION_TOOLS.md).
+  app.get('/admin/moderation-tools', async (req) => {
+    await requireAdmin(req);
+    return { settings: await moderationTools.settings(db) };
+  });
+
+  app.patch('/admin/moderation-tools', async (req) => {
+    await requireAdmin(req);
+    return { settings: await moderationTools.updateSettings(db, moderationTools.SettingsPatch.parse(req.body)) };
+  });
+
   // Staff audit log, newest first; ?before= pages back, ?actorId= / ?targetId= filter.
   app.get('/admin/audit-log', async (req) => {
     await requireAdmin(req);
     const query = z
-      .object({ actorId: z.uuid().optional(), targetId: z.uuid().optional(), before: z.iso.datetime({ offset: true }).optional(), limit: z.coerce.number().int().min(1).max(200).default(50) })
+      .object({
+        actorId: z.uuid().optional(),
+        targetId: z.uuid().optional(),
+        before: z.iso.datetime({ offset: true }).optional(),
+        limit: z.coerce.number().int().min(1).max(200).default(50),
+        // Moderation tools (off): filter by action, words, and a start time.
+        action: z.string().trim().min(1).max(100).optional(),
+        q: z.string().trim().min(1).max(200).optional(),
+        since: z.iso.datetime({ offset: true }).optional(),
+      })
       .parse(req.query);
+    if (query.action || query.q || query.since) await moderationTools.requireOn(db);
     return { entries: await audit.list(db, query) };
   });
 

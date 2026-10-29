@@ -110,6 +110,21 @@ describe('harmful prayers', () => {
     expect((await as(await createUser('Writer2')).post('/moderation/precheck', { text: 'Pray for rain.' })).json().harm).toBeUndefined();
   });
 
+  it('gives Open Circle members the gentle word without religious wording', async () => {
+    await as(admin).patch('/admin/communities/open-circle', { status: 'active' });
+    const member = await createUser('Neighbor');
+    expect((await as(member).post('/me/community', { slug: 'open-circle' })).statusCode).toBeLessThan(300);
+    const religious = /\b(pray\w*|god|lord|psalms?|romans|scripture|vengeance)\b/i;
+    for (const text of ['Help me get revenge on my brother.', 'I hope my boss dies.', 'Curse my neighbor.']) {
+      const harmWord = (await as(member).post('/moderation/precheck', { text })).json().harm;
+      expect(harmWord, text).toBeDefined();
+      expect(`${harmWord.title} ${harmWord.message}`).not.toMatch(religious);
+    }
+    const res = await post(member, 'I hope my boss dies.');
+    expect(`${res.json().harm.title} ${res.json().harm.message}`).not.toMatch(religious);
+    await db.query(`update public.communities set status = 'hidden' where slug = 'open-circle'`);
+  });
+
   it('bundles a flood from one account into one queue item, decided at once', async () => {
     await as(admin).patch('/admin/harm-settings', { flood_per_day: 2 });
     const troll = await createUser('Troll');
@@ -126,5 +141,26 @@ describe('harmful prayers', () => {
     expect((await status(ids[4]!)).moderation_status).toBe('removed');
     expect((await status(ids[0]!)).moderation_status).toBe('visible');
     await as(admin).patch('/admin/harm-settings', { flood_per_day: 5 });
+  });
+});
+
+describe('reading through disguises', () => {
+  it('is off by default; on, a disguised threat is held and coded self-harm gets crisis support', async () => {
+    expect(harmDefaults.read_disguises).toBe(false);
+    await harm.updateSettings(db, { enabled: true, read_disguises: false });
+    const m = await createUser('Masked');
+    const quiet = (await post(m, "I'm going to k1ll him.")).json().post;
+    expect(await status(quiet.id)).toEqual({ moderation_status: 'visible', harm_category: null });
+    expect((await post(m, 'I want to unalive myself.')).json().post.crisis).toBe(false);
+
+    expect((await as(admin).patch('/admin/harm-settings', { read_disguises: true })).json().settings.read_disguises).toBe(true);
+    const held = (await post(m, "I'm going to 🔪 him for this.")).json().post;
+    expect(await status(held.id)).toEqual({ moderation_status: 'hidden_pending_review', harm_category: 'threat' });
+    const crisis = (await post(m, 'Honestly thinking about sewer slide tonight.')).json().post;
+    expect(crisis.crisis).toBe(true);
+    const items = (await as(moderator).get(`/moderation/queue?targetId=${crisis.id}`)).json().items;
+    expect(items.some((i: { source: string }) => i.source === 'crisis')).toBe(true);
+    const { rows } = await db.query<{ rules: string[] }>('select rules from public.harm_events where target_id = $1', [held.id]);
+    expect(rows[0]!.rules.some((r) => r.endsWith(':masked'))).toBe(true);
   });
 });

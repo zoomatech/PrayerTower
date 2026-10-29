@@ -33,6 +33,8 @@ Each category's action is an admin setting: `hold`, `review` or `allow` (abuse: 
 
 Before posting, `POST /moderation/precheck` returns `harm: { category, action, title, message, resources[] }` (or `null`). The gentle "Are you sure?" cloud (thread "Research UI that encourages kind interaction") shows the message and any hotline links. The same object comes back from `POST /posts`, comments and messages. The words redirect, never lecture. For example, for a prayer for harm: "The Psalms are honest about enemies, and they leave vengeance to God. Try asking for justice, protection, and healing for what they did to you."
 
+Open Circle members (and any community with neutral wording) get the same redirects without religious words: no God, Psalms or Bible verses. For example: "It is fine to be honest about someone who hurt you. Try asking for fairness, safety, and healing for what they did to you." The hotlines are the same.
+
 Abuse hotlines (US), from the CDC's [Get Help Right Now](https://www.cdc.gov/howrightnow/get-help) page: 911 if in danger; National Domestic Violence Hotline 1-800-799-7233 or text START to 88788 (also on [MNADV](https://www.mnadv.org/get-help/24-hour-national-hotline/)); RAINN 800-656-4673; Childhelp 1-800-422-4453.
 
 ## Floods
@@ -81,3 +83,60 @@ The queue shows the reason: "Possible threat: a person should read this", "Praye
 - `apps/server/src/modules/harm/` (the check, the actions, floods, routes)
 - Migrations `20261029013000_harm_enum.sql`, `20261029013100_harmful_prayers.sql`
 - Tests: `apps/server/test/harm-check.test.ts` (the patterns) and `apps/server/test/harm.test.ts` (end to end)
+
+## Moderator care (off by default)
+
+**Admin → Moderator care** (`PATCH /admin/moderator-care-settings`). Research on moderator wellbeing recommends optional "content soothing" such as blurring, break prompts triggered by exposure time or severity, and an easy way to get a second opinion so nobody decides a hard case alone ([Wellbeing-Centered UX: Supporting Content Moderators, 2025](https://arxiv.org/pdf/2509.07187); [Zevo Health: moderator wellbeing](https://www.zevohealth.com/blog/7-tips-for-managing-content-moderator-wellbeing/), which also recommends 2–5 minute micro-breaks).
+
+- **Blur until tapped** (`blur_hard`, on): threats, hate, harm, crisis and auto-hidden items show "Hard to read … Tap to read it".
+- **A break offer** after `break_after_minutes` (20) in the queue or `break_after_hard_items` (10) hard items read. The moderator chooses "Take a break" (`break_minutes`, 5; the queue steps aside with a countdown and can be ended early) or "Keep going". It is an offer, never a lock: crisis alerts still reach the other moderators.
+- **Hand off** any item to a named moderator or to "anyone else", with a note. It leaves your queue and goes to the top of theirs (after crisis items); they get a notice without the content.
+
+## Explaining a held post
+
+When a post is held, its author gets a notice ("Your request is waiting for a moderator") with **Explain it**. Their explanation (once, up to 1,000 characters) is shown with the item, and items with an explanation sort ahead of other held items. Admins can turn this off (`explain_held`). The moderator's keep or remove decision then works as usual, and a removal can still be appealed. Floods don't get the notice.
+
+## Moderation dashboard and weekly report (off by default)
+
+Both switches are in **Admin → Moderator care**.
+
+- **Dashboard** (`dashboard_enabled`, `GET /admin/moderation-dashboard?days=7`): what is waiting now and the oldest wait, by source; how fast items were decided (median and slowest tenth); the harmful-prayer false-alarm rate per category (flags a moderator kept, out of those decided); floods (how many, from how many accounts, items held) and handoffs.
+- **Weekly report** (`weekly_report_enabled`, Monday 07:00 UTC, job `harm_weekly_report`): for each word rule (`harm_events.rules`, such as `curse:0` or `hate:admin_words`), how often it flagged last week and how moderators decided. A rule with at least 3 decisions that moderators kept half the time or more is marked **worth loosening**. Admins get a notice; reports are kept in `harm_weekly_reports`. It holds counts only, never member text. Floods are left out, because they say more about one account than about the words.
+
+## Open Circle (secular edition)
+
+The check, the holds, the review queue and the flood bundling work the same on Open Circle. The redirects members read use secular wording: "Ask for justice and safety", not "leave the rest to God", and no Scripture. Notices and error messages also pass through the usual neutral-wording filter. `apps/server/test/harm-open-circle.test.ts` checks that nothing an Open Circle member reads from it has a religious word.
+
+## On-call rota (off by default)
+
+**Admin → On-call rota** (`PATCH /admin/oncall`, shifts at `POST /admin/oncall/shifts`). Moderation guidance treats threats as high priority and asks for a person to look quickly ([IFTAS: Violent threat](https://about.iftas.org/library/violent-threat/)), so a held post should never sit unseen.
+
+- **Shifts:** weekly, per moderator, in the rota's time zone (default America/New_York). The moderation screen shows who is on call now.
+- **The limit** (`max_wait_minutes`, 60): a held, harmful-prayer or crisis item still waiting at `remind_at_percent` (50%) of the limit reminds whoever is on call (every moderator if nobody is). Past the limit, it goes to the person named in **When the wait passes, tell**, or to every admin. Each item is reminded and escalated once. The notices give counts and minutes, never the post's words. The check runs every 5 minutes (job `oncall_check`).
+- **Notes for the next shift** sit at the top of the moderation screen (`POST /moderation/oncall/notes`).
+- Code: `apps/server/src/modules/moderator-care/oncall.ts`, migration `20261029080200_oncall_rota.sql`, test `apps/server/test/oncall.test.ts`.
+
+## Hotlines after posting
+
+When someone posts or comments about abuse, their request opens with the hotlines above it ("You are not alone" and the numbers), as well as the private notice. Nothing is hidden or blocked. Self-harm keeps the existing crisis box with 988 (STAFF_HANDBOOK.md).
+
+## One-tap restore (off by default)
+
+**Admin → Moderator care → One-tap restore for held posts** (`restore_enabled`). Held items show **Restore** instead of Keep. One tap puts the post back up, logs a `restore` in `moderation_actions` (with the moderator) besides the decision in the staff audit log (Admin → Audit log), and tells the author "Your request is back up". Removed posts still come back only through an appeal.
+
+## Regression
+
+`apps/server/test/moderation-regression.test.ts` turns every moderation switch on at once (harmful prayers, moderator care, dashboard, weekly report, restore, on-call rota, the kind cloud) and runs the whole path in both editions: false alarms, a held threat through handoff, explanation, reminders, escalation and restore; abuse and crisis posts; junk and floods; the dashboard and rota. It found two bugs, both fixed: the threat redirect used religious words on Open Circle, and handing an item to a moderator failed on teams of more than 100.
+
+## Disguised words (off by default)
+
+**Admin → Harmful prayers → Read through disguised words** (`read_disguises`). People dodge word filters with number and symbol swaps (k1ll, d!e), split or stretched letters (k.i.l.l, k i l l, diiies), misspellings (kil, ded, revenj), coded words ("unalive", "six feet under", "sewer slide", "kms") and emoji (🔪 🔫 💀 ⚰️ 🔥). With the switch on, the check also reads the text with those disguises taken off (`apps/server/src/modules/harm/unmask.ts`) and runs the same patterns on it. The research on filter evasion ("algospeak") describes exactly these tricks ([Steen et al., 2023, "You can (not) say what you want"](https://dl.acm.org/doi/10.1145/3543873.3587355); [Washington Post, 2022: "Algospeak"](https://www.washingtonpost.com/technology/2022/04/08/algospeak-tiktok-le-dollar-bean/)).
+
+- A disguised match is handled like a plain one: held or reviewed by a **person**. Nothing is ever refused because of a disguise.
+- Coded self-harm ("unalive myself", "sewer slide", "kms") gets the usual crisis support and crisis check-in.
+- The weekly report marks rules that matched only through a disguise with `:masked`.
+- `apps/server/test/harm-adversarial.test.ts` lists every disguise caught, and ordinary prayers that must stay untouched ("Our worship night was 🔥", "7 years sober", "I dye my hair for chemo week", "u guys are the best").
+
+## Safety dashboard (off by default)
+
+**Admin → Moderator care → Safety dashboard in Admin** (`safety_dashboard_enabled`, `GET /admin/safety-dashboard?days=7`): held posts now by source with the oldest wait and how many are past the on-call limit; how fast held posts were decided (median, slowest tenth, how many within the limit); on-call reminders and escalations; restores by moderator and appeal outcomes; and the stretches of each weekday with nobody on call. Counts and staff names only, never member text.

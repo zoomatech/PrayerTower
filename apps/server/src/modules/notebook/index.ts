@@ -10,17 +10,22 @@
 //   * the post anatomy lines from Mockups 1 and 2 (20261029009200);
 //   * tier upkeep, Notes Page 3 (20261029009300; the rule itself is in tiers/);
 //   * the kind cloud (20261029015600; the rules are in kindness/);
-//   * emoji meanings (20261029015700; meaning-reactions/).
+//   * emoji meanings (20261029015700; meaning-reactions/);
+//   * podcasts (20261029004900) and cross-posting from Facebook and Threads (20261029007000).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import * as events from '../events/index.js';
+import * as givingSplit from '../giving-split/index.js';
 import * as growth from '../growth/index.js';
+import * as reminders from '../reminders/index.js';
+import * as moderationTools from '../moderation/tools.js';
 import * as practices from '../practices/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
 import * as safety from '../safety/index.js';
+import * as safetyCenter from '../safety-center/index.js';
 import * as skins from '../skins/index.js';
 
 export interface NotebookSettings {
@@ -61,6 +66,7 @@ export interface NotebookSettings {
   group_gifts_enabled: boolean;
   prayer_list_enabled: boolean;
   reading_plan_enabled: boolean;
+  crosspost_enabled: boolean;
 }
 
 export async function settings(q: Queryable): Promise<NotebookSettings> {
@@ -68,7 +74,7 @@ export async function settings(q: Queryable): Promise<NotebookSettings> {
     `select worldwide_count_enabled, thanks_card_enabled, thanks_card_days, sermon_inputs_enabled, support_label_enabled, witness_stories_enabled,
             pressure_rule_enabled, promise_page_enabled, podcasts_enabled, misleading_rule_enabled, automation_rule_enabled,
             urgency_glow_enabled, reaction_tray_enabled, member_town_enabled, prize_choice_enabled, waitlist_enabled, cross_community_enabled,
-            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, kind_cloud_enabled, meaning_reactions_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled, squire_board_enabled, squire_board_days, group_gifts_enabled, prayer_list_enabled, reading_plan_enabled from public.notebook_settings`,
+            post_lines_enabled, tier_upkeep_enabled, tier_upkeep_days, checkin_affirmation_enabled, why_gifts_enabled, pool_matching_enabled, kind_cloud_enabled, meaning_reactions_enabled, lamps_enabled, lamps_per_week, pool_ledger_enabled, circle_goals_enabled, giving_ask_enabled, giving_ask_after_days, support_links_enabled, squire_board_enabled, squire_board_days, group_gifts_enabled, prayer_list_enabled, reading_plan_enabled, crosspost_enabled from public.notebook_settings`,
   );
   return rows[0]!;
 }
@@ -111,6 +117,7 @@ export const SettingsPatch = z.object({
   groupGiftsEnabled: z.boolean().optional(),
   prayerListEnabled: z.boolean().optional(),
   readingPlanEnabled: z.boolean().optional(),
+  crosspostEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
@@ -140,7 +147,8 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
        squire_board_enabled = coalesce($33, squire_board_enabled), squire_board_days = coalesce($34, squire_board_days),
        group_gifts_enabled = coalesce($35, group_gifts_enabled),
        prayer_list_enabled = coalesce($36, prayer_list_enabled),
-       reading_plan_enabled = coalesce($37, reading_plan_enabled)`,
+       reading_plan_enabled = coalesce($37, reading_plan_enabled),
+       crosspost_enabled = coalesce($38, crosspost_enabled)`,
     [
       p.worldwideCountEnabled ?? null,
       p.thanksCardEnabled ?? null,
@@ -179,6 +187,7 @@ export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPat
       p.groupGiftsEnabled ?? null,
       p.prayerListEnabled ?? null,
       p.readingPlanEnabled ?? null,
+      p.crosspostEnabled ?? null,
     ],
   );
   return settings(q);
@@ -222,18 +231,28 @@ export async function features(q: Queryable) {
     /** Moderators can escalate a report for a law-enforcement review (modules/legal). */
     legalReview: legal[0]?.enabled === true,
     podcasts: s.podcasts_enabled,
+    /** Members can copy their Facebook and Threads posts here (modules/crosspost). */
+    crosspost: s.crosspost_enabled,
     /** Paid radio prayers are matched with equal material help (modules/material-match). */
     materialMatch: match[0]?.enabled === true,
     /** Growth ideas (modules/growth, Admin → Growth). */
     ...(await growth.features(q)),
+    /** Giving split (modules/giving-split, Admin → Giving split). */
+    ...(await givingSplit.features(q)),
     /** Growth practices: follow-ups, gratitude card, gentle rhythm (modules/practices, Admin → Growth practices). */
     ...(await practices.features(q)),
+    /** Daily reminder and weeks of prayer (modules/reminders, Admin → Gentle reminders). */
+    ...(await reminders.features(q)),
+    /** Moderation search, bulk decisions and audit log filters (modules/moderation/tools, Admin → Moderation tools). */
+    ...(await moderationTools.features(q)),
     /** Conversation helpers: reply suggestions, meaning words, care after "how are you", greeting packs, own words, kind closings. */
     ...(await conversationHelpers.features(q)),
     /** Feed skins, comment trees, skin ideas and the video cap (modules/skins, Admin → Feed skins). */
     ...(await skins.features(q)),
     /** Two-step sign-in (modules/security, Admin → Sign-in security). */
     ...(await security.features(q)),
+    /** Member safety center: report, block, mute and hide in one place (modules/safety-center). */
+    ...(await safetyCenter.features(q)),
   };
 }
 

@@ -151,7 +151,8 @@ In `/etc/prayer-tower-station.env` (see `apps/station/install/station.env.exampl
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `BURST_MODE` | `off` | `off` (PSK31, one prayer at a time), `audio`, `fldigi` or `simulate` |
+| `BURST_MODE` | `off` | `off` (PSK31, one prayer at a time), `audio`, `fldigi`, `simulate` or `packet` (below) |
+| `PACKET_PATH` | empty | `packet`: digipeaters to ask, comma-separated, e.g. `WIDE1-1`. Empty asks none |
 | `BURST_PRESET` | `fm-standard` | One of the presets above (`cli.js presets` lists them), or `auto` (below) |
 | `BURST_AUTO_REPORT` | `BURST_DIR/channel.json` | `auto`: the receiver's channel report, a file or an http(s) URL |
 | `BURST_AUTO_PRESETS` | the FM presets except QAM | `auto`: comma-separated presets it may choose from. Add `fm-qam16,fm-qam64` once the audio is known to be flat and unclipped |
@@ -199,6 +200,12 @@ is above 1); while off, `/listen` is a 404.
 - Through a speaker and a microphone, the slower presets (`fm-robust`,
   `fm-robust-fec`, `fm-standard`) work best. The fast and QAM presets want a
   cable from the radio to the computer.
+- It captures the microphone with an AudioWorklet (Web Audio's audio
+  thread), falling back to the older ScriptProcessor where a browser lacks it.
+- It also decodes the packet fallback (below) and shows each packet's count
+  and short IDs.
+- After decoding a recording it shows a **Signal check** (the same report as
+  `cli.js diagnose`, below).
 - It opens codec 0 and codec 3 frames (the station nearly always picks codec
   3). A frame packed with DEFLATE or Brotli says so, and the station CLI
   decodes it from a recording.
@@ -231,6 +238,145 @@ says "I'm thinking of them too".
 
 **Open Circle.** The browser page has Open Circle's wording on Open Circle's
 own domain and at `/open-circle/listen`.
+
+## Packet fallback
+
+For a station whose radio or hookup can't carry the bursts, `BURST_MODE=packet`
+sends standard 1200-baud packet instead: Bell 202 AFSK (mark 1200 Hz, space
+2200 Hz) carrying AX.25 UI frames, the mode every APRS radio and TNC already
+decodes. Packet is slow, so the words never go out. Each packet is an APRS
+status report to the experimental destination `APZPTW` with the batch's count
+and up to six short IDs (the first six hex digits of each prayer's receipt
+fingerprint):
+
+    >PT 12 prayers 1/2: 3fa9c1 07b2de 9c44e0 a1b2c3 d4e5f6 0a0b0c
+
+- Off by default: Admin → Radio → **Packet fallback**. While off, the server
+  refuses packet claims (`409 packet_off`) and `/node/heard-ids` is a 404.
+- The station claims, filters and plays the packets through the sound card as
+  in `audio` mode, keying with the same PTT commands, and logs each batch with
+  preset `aprs-1200`.
+- A listener node decodes packets as well as bursts and reports the IDs it
+  heard (`POST /node/heard-ids`). The server matches each against that call
+  sign's prayers sent in the last 24 hours and marks them heard, as for bursts.
+- The `/listen` page and `node src/cli.js` decode them too. Any APRS decoder
+  (Dire Wolf, a TNC) shows them as status reports.
+- The call sign must fit AX.25: up to 6 letters and digits, optional `-SSID`.
+
+The modem is `apps/station/src/packet/afsk.ts`; the message format is
+`packet/message.ts`. A test round-trips packets at 48 and 44.1 kHz and through
+noise at 3 dB SNR, and checks the FCS against CRC-16/X.25's check value
+(0x906E).
+
+## Compression v2 (codec 4)
+
+Off by default: set `BURST_CODEC_V2=on` in the station's settings **after**
+every listener node, the app and the `/listen` page run a version that reads
+codec 4 (older receivers report the frame's codec as unknown). With it on, the
+station tries codec 4 alongside the others and keeps whichever is smallest, so
+it is never worse.
+
+What changed against codec 3, measured on the same two sets (the 30
+hand-written requests in `test/fixtures/sample-prayers.ts` and 100 generated
+ones from `src/burst/sample.ts`, neither of which is in any primer):
+
+| Step | 30 requests | 100 requests | One request |
+| --- | --- | --- | --- |
+| Codec 3 | 623 bytes | 1,148 | 23 |
+| + two more models (the current word alone; bytes 2-3 back) and an APM stage | 602 | 1,115 | 20 |
+| + mixer weights chosen by the last byte's kind (letter, space, other) | 596 | 1,067 | 22 |
+| + a longer shared phrase primer (`src/burst/primer2.ts`, 50 more requests, updates and Open Circle wordings) | **570** (-8.5%) | **1,073** (-6.5%) | **18** (-22%) |
+| Tried and dropped: replacing 63 common phrases with single bytes before coding | 579 | 915 | 20 |
+
+The phrase substitution only won on the generated set, whose sentences repeat
+from a small template; on hand-written requests it lost, so codec 4 leaves
+phrase knowledge to the primer.
+
+Air time and prayers a second (`BURST_CODEC_V2=on cli.js bench`, 2026-10-29):
+
+| Preset | 30 sample prayers, codec 3 | codec 4 | 100 prayers, codec 3 | codec 4 |
+| --- | --- | --- | --- | --- |
+| `fm-robust` | 3.63s (8.3/s) | 3.22s (9.3/s) | 6.13s (16.3/s) | 5.81s (17.2/s) |
+| `fm-standard` | 1.81s (16.6/s) | 1.69s (17.8/s) | 3.05s (32.7/s) | 2.84s (35.2/s) |
+| `fm-fast` | 1.33s (22.6/s) | 1.25s (23.9/s) | 2.14s (46.7/s) | 2.00s (50.1/s) |
+| `dataport-fast` | 0.80s (37.6/s) | 0.77s (38.8/s) | 1.18s (84.6/s) | 1.11s (90.1/s) |
+| `fm-turbo` | 0.99s (30.3/s) | 0.94s (31.8/s) | 1.52s (65.9/s) | 1.45s (69.2/s) |
+| `fm-robust-fec` | 3.05s (9.8/s) | 2.84s (10.6/s) | 5.29s (18.9/s) | 5.00s (20.0/s) |
+| `hf-robust` | 6.13s (4.9/s) | 5.67s (5.3/s) | 10.78s (9.3/s) | 10.16s (9.8/s) |
+| `hf-standard` | 3.29s (9.1/s) | 3.08s (9.7/s) | 5.62s (17.8/s) | 5.31s (18.8/s) |
+
+Codec 4 needs about 6 MB more memory per encode or decode (the APM table and two more models) and
+a few milliseconds; the browser and app decoders handle it.
+
+## Store-and-forward relay
+
+A listener node with a transmitter can re-send the bursts it decodes, so
+listeners beyond the station's range still hear them. Off unless `RELAY=on` in
+`/etc/prayer-tower-listener.env` (see `apps/station/install/listener.env.example`).
+
+The relay re-sends a frame only when all of these hold (loop protection):
+
+- The frame came from a station listed in `RELAY_FROM`, never from just anyone.
+- It isn't the relay's own transmission heard back (its own call sign).
+- It has passed fewer relays than `RELAY_MAX_HOPS` (default 1, at most 3). A
+  relay never re-sends another relay's copy unless hops allow it.
+- The same batch hasn't been relayed here in the last 10 minutes.
+- The relay can read it (it never re-sends what it can't vouch for).
+- It is within `RELAY_MAX_SECONDS_PER_HOUR` of airtime (default 120).
+
+It waits `RELAY_DELAY_MS` (1 s) for the channel to clear, then sends the frame
+on the same preset under its own call sign (`RELAY_CALL_SIGN`), which is its
+identification. The original station and the hop count travel inside (codec 5,
+below), so receivers show "From N0CALL (relayed by K1RLY)". Listener nodes
+report a relayed prayer as heard from the original station, so receipts and
+acknowledgements work, but they send no channel report for it (the signal is
+the relay's, not the station's). `RELAY_MODE=simulate` (the default) writes
+each relayed burst to the state directory without keying anything; `audio`
+plays it through `RELAY_PLAY_CMD` with `RELAY_PTT_ON_CMD` and `RELAY_PTT_OFF_CMD`.
+
+Receivers older than the relay show a relayed frame as unreadable and keep
+decoding the rest. The code is `apps/station/src/relay.ts` and
+`src/burst/relay-frame.ts`.
+
+## Diagnose a weak signal
+
+When a burst doesn't decode, or decodes only sometimes, record it at the
+receiver and replay the recording through the decoders offline:
+
+```
+arecord -f S16_LE -r 48000 -c 1 -d 30 rx.wav
+node dist/src/burst/cli.js diagnose rx.wav          # or: diagnose rx.wav --json
+```
+
+A 20-prayer `fm-fast` burst with added noise (a test run, 2026-10-29):
+
+```
+Recording: 5.09 s at 48000 Hz
+Level: peak 0 dBFS, average -17 dBFS, 0% clipped, DC offset 0
+Noise floor -29.3 dBFS, loudest parts -9.9 dBFS
+Power: 0.1% below 300 Hz, 94% in 300-3000 Hz, 5.9% above
+Burst frames: 1; packet fallback packets: 0
+  2.1-3.04s de N0CALL, fm-fast, 28.9 dB SNR (needs 16)
+Advice:
+  - Everything decoded with a comfortable margin.
+```
+
+It checks, most likely cause first:
+
+- **Level:** very quiet audio (peak at or below -40 dBFS), clipping (0.1% of
+  samples or more at full scale), and a DC offset.
+- **Hum:** 30% or more of the power below 300 Hz, usually a ground loop.
+- **Noise:** no burst standing 6 dB above the noise floor.
+- **Margin:** each frame's measured SNR against its preset's working level
+  (the speed table). Under 3 dB of margin is flagged, and so are frames that
+  needed error correction.
+- **Tuning:** when nothing decodes, it tries again allowing an HF receiver up
+  to 50 Hz off (`BURST_SEARCH_HZ`, `0` to skip) and says if that was the fix.
+- **Packet fallback:** status packets in a recording with no bursts mean the
+  station is on `BURST_MODE=packet`.
+
+The `/listen` page shows the same report for any recording it opens. The code
+is `apps/station/src/burst/diagnose.ts`.
 
 ## Answered: a thanksgiving burst
 
@@ -380,6 +526,27 @@ arithmetic, so it gives the same bits on every machine. In outline:
 - Before coding, encoder and decoder both run the model over the primer text,
   without output.
 
+### Codec 4: context mixing version 2
+
+The same coder and data layout as codec 3, with these differences (the `v === 2`
+branches in `cm.ts`):
+
+- Nine models: codec 3's seven, plus the current word alone and the two bytes
+  before the last one (a sparse context).
+- Three mixer weight sets per partial byte, picked by the last byte: a letter,
+  a space, or anything else.
+- An APM stage: the mixer's probability, stretched, picks two of 33 buckets in
+  a table indexed by the last byte and the partial byte; the interpolated value
+  r gives the final p = (mixer + 3r) / 4, and both buckets move toward the bit
+  by their share (rate 1/64).
+- Primer: PRIMER_V1, then PRIMER_V2_EXTRA, then DICTIONARY_V1.
+
+### Codec 5: relay envelope
+
+Not a compressor. Byte 1 is the hop count (1-3), byte 2 the origin call sign's
+length n (3-10), then n ASCII bytes of the call sign, then the original batch
+(codec byte first, never another envelope).
+
 ### Waveform
 
 48,000 samples a second. Every symbol is a 1,024-point inverse FFT of the
@@ -484,4 +651,7 @@ receiver choices, not part of the format.
 - Short-string compressors considered (Unishox2, Smaz, Shoco): [Unishox2](https://github.com/siara-cc/Unishox2)
 - Convolutional code (K=7, generators 171/133, punctured rates): [CCSDS 131.0-B-3, TM Synchronization and Channel Coding](https://ecss.nl/wp-content/uploads/2020/04/CCSDS-131.0-B-3_forECSS(Draft-16Oct2019).pdf), [GNU Radio wiki, CC Encoder Definition](https://wiki.gnuradio.org/index.php/CC_Encoder_Definition)
 - Pilot-aided channel estimation in OFDM: [NXP (Freescale) application note AN3059, "Channel Estimation in OFDM Systems"](https://community.freescale.com/docs/en/application-note/AN3059.pdf)
+- Bell 202 AFSK, NRZI, HDLC flags, bit stuffing and FCS: [N1VG, "1200 Baud Packet Radio Details"](https://www.n1vg.net/packet/)
+- AX.25 control and PID values (UI 0x03, no layer 3 0xF0): [Linux include/net/ax25.h](https://www.kernelsources.org/source/xref/linux/include/net/ax25.h)
+- APRS status reports (data type `>`) and the APZxxx experimental destination: [APRS Protocol Reference 1.0.1](https://www.aprs.org/doc/APRS101.PDF)
 - Context mixing and the lpaq family: [Matt Mahoney, Large Text Compression Benchmark](https://mattmahoney.net/dc/text.html)
