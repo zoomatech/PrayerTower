@@ -293,6 +293,13 @@ export const keys: Tree = named({
     inputsHostHint: 'What people would like covered. Only you and staff see these.',
     inputsPlaceholder: 'For example: please talk about how to help the families affected by the flood',
   },
+  prayerList: {
+    title: "People I keep in mind",
+    intro: "People and things you want to remember. Only you see this list.",
+    prayed: "I thought of them",
+    prayedCount: "Times thought of: %{count}",
+    closed: "This list is not open.",
+  },
   squire: {
     title: "Kindness board",
     open: "Kindness board",
