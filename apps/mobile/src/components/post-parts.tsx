@@ -50,6 +50,7 @@ const styles = StyleSheet.create({
   part: { gap: space.xs, borderLeftWidth: 2, borderLeftColor: 'transparent', paddingLeft: space.xs },
   picked: { borderLeftColor: colors.primary },
   row: { flexDirection: 'row', gap: space.md, flexWrap: 'wrap', alignItems: 'center' },
-  link: { color: colors.primary, fontSize: 13, fontWeight: '600', paddingVertical: space.xs },
+  // 44-point target, like the other kindness tools.
+  link: { color: colors.primary, fontSize: 13, fontWeight: '600', minHeight: 44, lineHeight: 44 },
   count: { color: colors.textMuted, fontSize: 13 },
 });
