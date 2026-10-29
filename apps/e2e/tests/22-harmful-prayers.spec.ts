@@ -8,7 +8,9 @@ const status = async (id: string) =>
   (await db.query<{ moderation_status: string; harm_category: string | null }>('select moderation_status, harm_category from public.posts where id = $1', [id])).rows[0];
 
 async function post(page: import('@playwright/test').Page, text: string) {
-  await page.getByText('Type your prayer here').first().click();
+  await page.goto('/');
+  await page.getByText('Type your prayer here').filter({ visible: true }).first().click();
+  await expect(page.getByPlaceholder('Type your prayer here')).toBeVisible();
   await page.getByPlaceholder('Type your prayer here').fill(text);
   await page.getByRole('button', { name: 'Post', exact: true }).click();
   return postIdByText(text);
@@ -17,7 +19,15 @@ async function post(page: import('@playwright/test').Page, text: string) {
 test.describe.serial('harmful prayers', () => {
   const threat = unique("[Demo] I'm going to hurt him for what he did to my sister.");
 
+  // Earlier specs post as Carol too; keep the hourly and new-member caps from refusing these posts.
+  let caps = { posts_per_hour: 10, new_member_limits_enabled: true };
+  test.beforeAll(async () => {
+    caps = (await db.query<typeof caps>('select posts_per_hour, new_member_limits_enabled from public.safety_settings')).rows[0] ?? caps;
+    await db.query('update public.safety_settings set posts_per_hour = 0, new_member_limits_enabled = false');
+  });
+
   test.afterAll(async () => {
+    await db.query('update public.safety_settings set posts_per_hour = $1, new_member_limits_enabled = $2', [caps.posts_per_hour, caps.new_member_limits_enabled]);
     await db.query('update public.harm_settings set enabled = false');
     await db.query('update public.moderator_care_settings set enabled = false');
   });
