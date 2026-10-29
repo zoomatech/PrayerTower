@@ -64,13 +64,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.post<{ Params: { id: string } }>('/posts/:id/answered', async (req) => {
     const userId = requireUser(req);
     const { testimony } = z.object({ testimony: z.string().trim().min(1).max(2000).optional() }).parse(req.body ?? {});
-    const crisis = await withTx(db, async (tx) => {
-      const post = await posts.markAnswered(tx, userId, req.params.id);
-      await growth.queueGuestAnswered(tx, post.id);
-      if (testimony) return shareTestimony(tx, userId, req.params.id, testimony);
-      await tellPrayersAnswered(tx, userId, post);
-      return false;
-    });
+    const crisis = await withTx(db, (tx) => markAnsweredAndTell(tx, userId, req.params.id, testimony));
     return { post: (await posts.cards(db, [req.params.id], userId))[0], crisis };
   });
 
@@ -183,7 +177,15 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   });
 }
 
-/** Save the testimony; the first time, tell everyone who prayed. Returns whether it mentions crisis. */
+/** Mark a request answered and tell the pray-ers once (also used by the follow-up, modules/practices). Returns whether the testimony mentions crisis. */
+export async function markAnsweredAndTell(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, testimony?: string) {
+  const post = await posts.markAnswered(tx, userId, postId);
+  await growth.queueGuestAnswered(tx, post.id);
+  if (testimony) return shareTestimony(tx, userId, postId, testimony);
+  await tellPrayersAnswered(tx, userId, post);
+  return false;
+}
+
 /** Answered without a testimony: the pray-ers still hear the good news once (Notes p8, Ethel 10–11). */
 async function tellPrayersAnswered(tx: Parameters<typeof posts.setTestimony>[0], userId: string, post: Awaited<ReturnType<typeof posts.markAnswered>>) {
   if (post.moderation_status !== 'visible') return;
@@ -200,6 +202,7 @@ async function tellPrayersAnswered(tx: Parameters<typeof posts.setTestimony>[0],
   }
 }
 
+/** Save the testimony; the first time, tell everyone who prayed. Returns whether it mentions crisis. */
 async function shareTestimony(tx: Parameters<typeof posts.setTestimony>[0], userId: string, postId: string, body: string) {
   const r = await posts.setTestimony(tx, userId, postId, { body });
   if (r.first && r.post.moderation_status === 'visible') {

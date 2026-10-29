@@ -4,6 +4,9 @@ Generated from the pull requests merged into main by `npm run changelog`. Do not
 
 ## Unreleased
 
+- Tell staff when a member asks for more radio prayers ([#107](https://github.com/zoomatech/PrayerTower/pull/107))
+- Radio: "on the air" and "heard" receipts, behind an off switch ([#104](https://github.com/zoomatech/PrayerTower/pull/104))
+- Emoji word leaves take the member's feed skin ([#106](https://github.com/zoomatech/PrayerTower/pull/106))
 - Giving notices: thank-you, gift to you, and radio request answers ([#105](https://github.com/zoomatech/PrayerTower/pull/105))
 - Kind cloud and emoji meanings, both off by default ([#92](https://github.com/zoomatech/PrayerTower/pull/92))
 - Open Circle wording on Give and invites; website Give link falls back to PayPal ([#99](https://github.com/zoomatech/PrayerTower/pull/99))

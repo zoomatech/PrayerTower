@@ -12,7 +12,7 @@ import { staffOnly } from '@/components/staff-only';
 import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type PracticeSettings, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts } from '@/lib/api';
 import { resetFeatures } from '@/lib/features';
 import { useLocale, useT, type T } from '@/lib/i18n';
 import { saveText } from '@/lib/save-file';
@@ -309,6 +309,7 @@ function Admin() {
         <CareAndEventSettingsSection />
         <NotebookSettingsSection />
         <GrowthSettingsSection />
+        <PracticeSettingsSection />
         <SkinSettingsSection />
         <CommunitiesSection />
         <SpokenPrayerSection />
@@ -764,7 +765,7 @@ function SecuritySection() {
 }
 
 /** Giving instead of ads: the switch, how people give, and gifts that came in. Off by default. */
-function GivingSection() {
+export function GivingSection() {
   const t = useT();
   const [s, setS] = useState<AdminDonationSettings | null>(null);
   const [keys, setKeys] = useState({ stripe: false, webhook: false, zeffy: false, zeffyWebhook: false });
@@ -773,6 +774,9 @@ function GivingSection() {
   const [draft, setDraft] = useState({ url: '', paypal: '', monthly: '', max: '', amount: '', reference: '' });
   const [via, setVia] = useState<'manual' | 'zeffy' | 'paypal'>('manual');
   const [poolId, setPoolId] = useState<string | null>(null);
+  // A gift for one member, and who gave it (so they get their thank-you tokens).
+  const [forMember, setForMember] = useState<AdminPerson | null>(null);
+  const [donor, setDonor] = useState<AdminPerson | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const fail = (e: unknown) => setNote((e as Error).message);
   const show = (x: AdminDonationSettings) => {
@@ -806,8 +810,14 @@ function GivingSection() {
     const cents = Math.round(Number(draft.amount.replace(/[$,]/g, '')) * 100);
     if (!(cents > 0)) return;
     api.admin
-      .recordGift({ amountCents: cents, reference: draft.reference.trim(), via, target: poolId ? { kind: 'pool', poolId } : { kind: 'everyone' } })
-      .then(() => (setDraft((d) => ({ ...d, amount: '', reference: '' })), setNote(t('admin.giftRecorded')), loadGifts()))
+      .recordGift({
+        amountCents: cents,
+        reference: draft.reference.trim(),
+        via,
+        donorId: donor?.id ?? null,
+        target: forMember ? { kind: 'member', userId: forMember.id } : poolId ? { kind: 'pool', poolId } : { kind: 'everyone' },
+      })
+      .then(() => (setDraft((d) => ({ ...d, amount: '', reference: '' })), setDonor(null), setForMember(null), setNote(t('admin.giftRecorded')), loadGifts()))
       .catch(fail);
   };
   const syncZeffy = () =>
@@ -861,11 +871,13 @@ function GivingSection() {
         ))}
       </View>
       <View style={styles.row}>
-        <Chip label={t('give.everyone')} selected={!poolId} onPress={() => setPoolId(null)} />
+        <Chip label={t('give.everyone')} selected={!poolId && !forMember} onPress={() => (setPoolId(null), setForMember(null))} />
         {pools.map((p) => (
-          <Chip key={p.id} label={p.name} selected={poolId === p.id} onPress={() => setPoolId(p.id)} />
+          <Chip key={p.id} label={p.name} selected={!forMember && poolId === p.id} onPress={() => (setForMember(null), setPoolId(p.id))} />
         ))}
       </View>
+      <PersonPicker label={t('admin.giftFor')} person={forMember} onPick={setForMember} />
+      <PersonPicker label={t('admin.giftFrom')} person={donor} onPick={setDonor} />
       <Field label={t('admin.field.giftAmount')} keyboardType="decimal-pad" value={draft.amount} onChangeText={(amount) => setDraft((d) => ({ ...d, amount }))} />
       <Field label={t('admin.field.giftReference')} value={draft.reference} onChangeText={(reference) => setDraft((d) => ({ ...d, reference }))} />
       <Button small variant="secondary" label={t('admin.btn.recordGift')} onPress={record} disabled={!(Number(draft.amount.replace(/[$,]/g, '')) > 0)} />
@@ -892,6 +904,25 @@ function GivingSection() {
         </View>
       ))}
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Find one member by name or email (Admin → Giving: who a gift is for, and who gave it). */
+function PersonPicker({ label, person, onPick }: { label: string; person: AdminPerson | null; onPick: (p: AdminPerson | null) => void }) {
+  const t = useT();
+  const [query, setQuery] = useState('');
+  const [found, setFound] = useState<AdminPerson[]>([]);
+  if (person) return <Chip label={`${label}: ${person.display_name}`} selected onPress={() => onPick(null)} />;
+  return (
+    <View style={{ gap: space.sm }}>
+      <Field label={label} value={query} onChangeText={setQuery} autoCapitalize="none" />
+      <Button small variant="ghost" label={t('admin.btn.find')} disabled={!query.trim()} onPress={() => api.admin.people(query.trim()).then((r) => setFound(r.people.slice(0, 8)), () => setFound([]))} />
+      <View style={styles.row}>
+        {found.map((p) => (
+          <Chip key={p.id} label={p.email ? `${p.display_name} (${p.email})` : p.display_name} selected={false} onPress={() => (setFound([]), setQuery(''), onPick(p))} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -1372,6 +1403,45 @@ function GrowthSettingsSection() {
       <Toggle label={t('growth.adminWidget')} hint={t('growth.adminWidgetHint')} value={s.prayed_for_widget_enabled} onChange={(v) => save({ prayedForWidgetEnabled: v })} />
       <Toggle label={t('growth.adminMinute')} hint={t('growth.adminMinuteHint')} value={s.prayer_minute_enabled} onChange={(v) => save({ prayerMinuteEnabled: v })} />
       <Button label={t('growth.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Growth practices (docs/GROWTH_PRACTICES.md): kind habits with nothing to lose, each off until switched on. */
+function PracticeSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<PracticeSettings | null>(null);
+  const [days, setDays] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: PracticeSettings) => {
+    setS(x);
+    setDays(String(x.followup_days));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0] = {}) =>
+    api.admin
+      .updatePracticeSettings({ followupDays: toInt(days) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('practices.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('practices.adminTitle')}</Text>
+      <Text style={type.small}>{t('practices.adminIntro')}</Text>
+      <Toggle label={t('practices.adminFollowup')} hint={t('practices.adminFollowupHint')} value={s.followup_enabled} onChange={(v) => save({ followupEnabled: v })} />
+      <Field label={t('practices.adminFollowupDays')} keyboardType="number-pad" value={days} onChangeText={setDays} />
+      <Toggle label={t('practices.adminGratitude')} hint={t('practices.adminGratitudeHint')} value={s.gratitude_enabled} onChange={(v) => save({ gratitudeEnabled: v })} />
+      <Toggle label={t('practices.adminRhythm')} hint={t('practices.adminRhythmHint')} value={s.gentle_rhythm_enabled} onChange={(v) => save({ gentleRhythmEnabled: v })} />
+      <Button label={t('practices.adminSave')} onPress={() => save()} />
       {note ? <Text style={type.small}>{note}</Text> : null}
     </View>
   );
