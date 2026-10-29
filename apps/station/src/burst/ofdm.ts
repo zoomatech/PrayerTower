@@ -3,7 +3,8 @@
 //   sync symbol      known phases on bins 16-63, for timing
 //   header symbols   DBPSK on bins 16-63, referenced to the sync symbol
 //   reference symbol known phases on the preset's carriers
-//   payload symbols  differential PSK on the preset's carriers
+//   payload symbols  differential PSK on the preset's carriers, or coherent
+//                    QAM with pilot carriers on the "-qam" presets (qam.ts)
 //
 // Every symbol is fftSize samples with a cyclic prefix of `guard` samples.
 // Sync and header use bins 16-63 (750-2953 Hz at 48 kHz) whatever the preset,
@@ -11,7 +12,8 @@
 import { fft } from './fft.js';
 import { decodeHeader, decodePayload, encodeHeader, encodePayload, HEADER_BYTES, HEADER_PARITY, payloadLength, type FrameHeader } from './frame.js';
 import { codedBits, convDecode, convEncode, interleaver } from './conv.js';
-import { carriers, PRESETS, symbolSamples, type BurstPreset } from './presets.js';
+import { carriers, payloadCarriers, PRESETS, symbolSamples, type BurstPreset } from './presets.js';
+import { isPilot, pilotPhase, qamPoint, qamSlice, qamSoft } from './qam.js';
 
 const SAMPLE_RATE = 48_000;
 const N = 1024;
@@ -41,14 +43,23 @@ const REF_SEED = 0x50545232; // "PTR2"
 
 /** One OFDM symbol (with cyclic prefix) from carrier phases on bins firstBin.. */
 function symbol(firstBin: number, phases: number[]): Float64Array {
+  return symbolIQ(
+    firstBin,
+    phases.map((ph) => Math.cos(ph)),
+    phases.map((ph) => Math.sin(ph)),
+  );
+}
+
+/** One OFDM symbol from complex carrier values (in-phase, quadrature) on bins firstBin.. */
+function symbolIQ(firstBin: number, vr: number[], vi: number[]): Float64Array {
   const re = new Float64Array(N);
   const im = new Float64Array(N);
-  phases.forEach((ph, i) => {
+  vr.forEach((r, i) => {
     const k = firstBin + i;
-    re[k] = Math.cos(ph);
-    im[k] = Math.sin(ph);
-    re[N - k] = Math.cos(ph);
-    im[N - k] = -Math.sin(ph);
+    re[k] = r;
+    im[k] = vi[i]!;
+    re[N - k] = r;
+    im[N - k] = -vi[i]!;
   });
   fft(re, im, true);
   const out = new Float64Array(N + GUARD);
@@ -145,9 +156,13 @@ function airBits(preset: BurstPreset, payloadBytes: number): number {
   return preset.inner ? codedBits(payloadBytes, preset.inner) : payloadBytes * 8;
 }
 
+/** Payload symbols for a payload of this many bytes. */
+function payloadSymbols(preset: BurstPreset, payloadBytes: number): number {
+  return Math.ceil(airBits(preset, payloadBytes) / (payloadCarriers(preset) * preset.bitsPerSymbol));
+}
+
 export function frameSymbols(preset: BurstPreset, messageLength: number): number {
-  const bits = airBits(preset, payloadLength(messageLength, preset.parity));
-  return 2 + headerSymbols + Math.ceil(bits / (carriers(preset) * preset.bitsPerSymbol));
+  return 2 + headerSymbols + payloadSymbols(preset, payloadLength(messageLength, preset.parity));
 }
 export const frameSeconds = (preset: BurstPreset, messageLength: number) => (frameSymbols(preset, messageLength) * symbolSamples(preset)) / preset.sampleRate;
 
@@ -162,8 +177,23 @@ export function modulate(batch: Uint8Array, preset: BurstPreset, callSign: strin
   const parts: Float64Array[] = [symbol(SYNC_FIRST, sync)];
   for (const ph of diffSymbols(sync, groups(header, 1, SYNC_CARRIERS), 1)) parts.push(symbol(SYNC_FIRST, ph));
   parts.push(symbol(preset.firstBin, ref));
-  const values = preset.inner ? bitGroups(innerEncode(payload, preset), preset.bitsPerSymbol, carriers(preset)) : groups(payload, preset.bitsPerSymbol, carriers(preset));
-  for (const ph of diffSymbols(ref, values, preset.bitsPerSymbol)) parts.push(symbol(preset.firstBin, ph));
+  if (preset.modulation === 'qam') {
+    const c = carriers(preset);
+    const values = bitGroups(innerEncode(payload, preset), preset.bitsPerSymbol, payloadCarriers(preset));
+    for (let s = 1, v = 0; v < values.length; s++) {
+      const vr: number[] = [];
+      const vi: number[] = [];
+      for (let k = 0; k < c; k++) {
+        const [r, i] = isPilot(k, c) ? [Math.cos(pilotPhase(ref, s, k)), Math.sin(pilotPhase(ref, s, k))] : qamPoint(values[v++]!, preset.bitsPerSymbol);
+        vr.push(r);
+        vi.push(i);
+      }
+      parts.push(symbolIQ(preset.firstBin, vr, vi));
+    }
+  } else {
+    const values = preset.inner ? bitGroups(innerEncode(payload, preset), preset.bitsPerSymbol, carriers(preset)) : groups(payload, preset.bitsPerSymbol, carriers(preset));
+    for (const ph of diffSymbols(ref, values, preset.bitsPerSymbol)) parts.push(symbol(preset.firstBin, ph));
+  }
 
   const total = parts.reduce((n, p) => n + p.length, 0);
   const x = new Float64Array(total);
@@ -315,6 +345,130 @@ function demodDiff(
   return values;
 }
 
+/**
+ * Coherent QAM payload (qam.ts). Per symbol: take out the frame's steady phase
+ * slope across carriers (filter delay, measured on the reference symbol) and
+ * any window moves, estimate each carrier's channel from the pilots, decide
+ * the data, refine the estimate from the decided neighbours, then give soft
+ * bits weighted by each carrier's signal-to-noise ratio. The pilots' phase
+ * slope also tracks the sender's clock drift. Appends soft bits to `soft`.
+ */
+function demodQam(x: Float32Array, at: number, preset: BurstPreset, symbols: number, track: Track, soft: number[]): void {
+  const first = preset.firstBin;
+  const c = carriers(preset);
+  const bits = preset.bitsPerSymbol;
+  const ref = knownPhases(REF_SEED, c);
+  const S = N + GUARD;
+  const shiftRef = Math.round(track.off);
+  // Steady phase step per carrier, from the reference symbol (all values known).
+  const [r0, i0] = bins(x, at + shiftRef, first, c);
+  let sr = 0;
+  let si = 0;
+  for (let k = 0; k + 1 < c; k++) {
+    // (Y[k+1] / ref[k+1]) * conj(Y[k] / ref[k])
+    const d = ref[k + 1]! - ref[k]!;
+    const ar = r0[k + 1]! * r0[k]! + i0[k + 1]! * i0[k]!;
+    const ai = i0[k + 1]! * r0[k]! - r0[k + 1]! * i0[k]!;
+    sr += ar * Math.cos(d) + ai * Math.sin(d);
+    si += ai * Math.cos(d) - ar * Math.sin(d);
+  }
+  const alpha = Math.atan2(si, sr);
+  const F = 3;
+  let noise = 0;
+  let lastDelay = 0;
+  const yr = new Float64Array(c);
+  const yi = new Float64Array(c);
+  const xr = new Float64Array(c);
+  const xi = new Float64Array(c);
+  const hr = new Float64Array(c);
+  const hi = new Float64Array(c);
+  const pilots: number[] = [];
+  for (let k = 0; k < c; k++) if (isPilot(k, c)) pilots.push(k);
+  for (let s = 1; s <= symbols; s++) {
+    const shift = Math.round(track.off);
+    const [br, bi] = bins(x, at + s * S + shift, first, c);
+    for (let k = 0; k < c; k++) {
+      const a = -alpha * k;
+      yr[k] = br[k]! * Math.cos(a) - bi[k]! * Math.sin(a);
+      yi[k] = br[k]! * Math.sin(a) + bi[k]! * Math.cos(a);
+    }
+    // Pilots: known values, so Y * conj(X) is the channel there.
+    for (const k of pilots) {
+      const p = pilotPhase(ref, s, k);
+      xr[k] = Math.cos(p);
+      xi[k] = Math.sin(p);
+    }
+    // Remaining slope across the pilots: the window's moves since the
+    // reference, less how far the sender's clock has drifted. Following the
+    // drift keeps it small, well inside what the pilot spacing can measure.
+    let dr = 0;
+    let di = 0;
+    for (let j = 0; j + 1 < pilots.length; j++) {
+      const a = pilots[j]!;
+      const b = pilots[j + 1]!;
+      const pa = [yr[a]! * xr[a]! + yi[a]! * xi[a]!, yi[a]! * xr[a]! - yr[a]! * xi[a]!];
+      const pb = [yr[b]! * xr[b]! + yi[b]! * xi[b]!, yi[b]! * xr[b]! - yr[b]! * xi[b]!];
+      const qr = pb[0]! * pa[0]! + pb[1]! * pa[1]!;
+      const qi = pb[1]! * pa[0]! - pb[0]! * pa[1]!;
+      const ang = Math.atan2(qi, qr) / (b - a);
+      const w = Math.hypot(qr, qi);
+      dr += w * Math.cos(ang);
+      di += w * Math.sin(ang);
+    }
+    // A window moved d samples later turns carrier k by 2*pi*k*d/N; a signal arriving later, the other way.
+    const delay = shift - shiftRef - (Math.atan2(di, dr) * N) / (2 * Math.PI);
+    if (s > 1) track.rate += 0.15 * (delay - lastDelay - track.rate);
+    lastDelay = delay;
+    track.off = shiftRef + delay + track.rate;
+    // First estimate: interpolate the pilots' channel across the data carriers.
+    for (let j = 0; j + 1 < pilots.length; j++) {
+      const a = pilots[j]!;
+      const b = pilots[j + 1]!;
+      const ar = yr[a]! * xr[a]! + yi[a]! * xi[a]!;
+      const ai = yi[a]! * xr[a]! - yr[a]! * xi[a]!;
+      const cr = yr[b]! * xr[b]! + yi[b]! * xi[b]!;
+      const ci = yi[b]! * xr[b]! - yr[b]! * xi[b]!;
+      for (let k = a; k <= b; k++) {
+        const f = (k - a) / (b - a);
+        hr[k] = ar * (1 - f) + cr * f;
+        hi[k] = ai * (1 - f) + ci * f;
+      }
+    }
+    // Decide the data against it, then re-estimate every carrier from its
+    // neighbours (pilots and decided data, leaving itself out).
+    for (let k = 0; k < c; k++) {
+      if (isPilot(k, c)) continue;
+      const g = hr[k]! ** 2 + hi[k]! ** 2 || 1e-12;
+      const zr = (yr[k]! * hr[k]! + yi[k]! * hi[k]!) / g;
+      const zi = (yi[k]! * hr[k]! - yr[k]! * hi[k]!) / g;
+      [xr[k], xi[k]] = qamSlice(zr, zi, bits);
+    }
+    let resid = 0;
+    for (let k = 0; k < c; k++) {
+      let nr = 0;
+      let ni = 0;
+      let e = 0;
+      for (let q = Math.max(0, k - F); q <= Math.min(c - 1, k + F); q++) {
+        if (q === k) continue;
+        nr += yr[q]! * xr[q]! + yi[q]! * xi[q]!;
+        ni += yi[q]! * xr[q]! - yr[q]! * xi[q]!;
+        e += xr[q]! ** 2 + xi[q]! ** 2;
+      }
+      hr[k] = nr / e;
+      hi[k] = ni / e;
+      resid += (yr[k]! - (hr[k]! * xr[k]! - hi[k]! * xi[k]!)) ** 2 + (yi[k]! - (hr[k]! * xi[k]! + hi[k]! * xr[k]!)) ** 2;
+    }
+    noise = s === 1 ? resid / c : 0.8 * noise + (0.2 * resid) / c;
+    for (let k = 0; k < c; k++) {
+      if (isPilot(k, c)) continue;
+      const g = hr[k]! ** 2 + hi[k]! ** 2 || 1e-12;
+      const zr = (yr[k]! * hr[k]! + yi[k]! * hi[k]!) / g;
+      const zi = (yi[k]! * hr[k]! - yr[k]! * hi[k]!) / g;
+      qamSoft(zr, zi, bits, g / (noise || 1e-12), soft);
+    }
+  }
+}
+
 /** Shift every frequency in x by hz (via the analytic signal), as an SSB receiver's tuning knob would. */
 function shiftFrequency(x: Float32Array, hz: number): Float32Array {
   let n = 1;
@@ -405,7 +559,7 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     }
     const c = carriers(preset);
     const plen = payloadLength(header.messageLength, preset.parity);
-    const syms = Math.ceil(airBits(preset, plen) / (c * preset.bitsPerSymbol));
+    const syms = payloadSymbols(preset, plen);
     const refAt = at + (1 + hdrSyms) * S;
     // The recording stops mid-frame (allowing for a sender whose clock runs up to 0.1% fast).
     if (refAt + (syms * S + N) * 0.999 > x.length + BACKOFF) break;
@@ -422,7 +576,9 @@ export function demodulate(x: Float32Array, threshold = 0.4): DecodedFrame[] {
     }
     const margins: number[] = [];
     const soft: number[] | undefined = preset.inner ? [] : undefined;
-    const pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track, margins, soft);
+    let pv: number[] = [];
+    if (preset.modulation === 'qam') demodQam(src, srcAt, preset, syms, track, soft!);
+    else pv = demodDiff(src, srcAt, preset.firstBin, c, syms, preset.bitsPerSymbol, track, margins, soft);
     let result;
     if (preset.inner) {
       // Undo the scatter, then let the Viterbi decoder weigh every soft bit.
