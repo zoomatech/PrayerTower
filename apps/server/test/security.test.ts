@@ -92,6 +92,7 @@ describe('endpoint auth', () => {
       // Prayers on the air: counts only (404 while switched off).
       'GET /on-the-air',
       'GET /open-circle/on-the-air',
+      'GET /open-circle/listen',
       // Why we run on gifts, not ads: the web page and the same words for the app (404 while switched off).
       'GET /why-donations',
       'GET /open-circle/why-donations',
