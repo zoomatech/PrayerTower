@@ -14,7 +14,7 @@ import path from 'node:path';
 import { audioTransmitter, simulateTransmitter } from './burst/transmit.js';
 import { Relay, relayConfig } from './relay.js';
 import { checkApiUrl } from './secure-url.js';
-import { defaultRecordCommand, httpListenerApi, listenOnce, parseLocation, RollingDecoder, startRecorder } from './listener.js';
+import { defaultRecordCommand, httpListenerApi, listenOnce, Outbox, parseLocation, RollingDecoder, startRecorder } from './listener.js';
 
 const need = (name: string) => {
   const v = process.env[name];
@@ -32,6 +32,8 @@ const cfg = {
   searchHz: num('LISTEN_SEARCH_HZ', 0, 0, 200),
   receipts: (process.env.LISTEN_RECEIPTS ?? 'on') !== 'off',
   reportFile: process.env.LISTEN_REPORT_FILE || undefined,
+  // Reports that fail during an internet or server outage are sent when it comes back.
+  outbox: new Outbox(),
 };
 const location = parseLocation(process.env.NODE_LOCATION);
 const everyMs = num('LISTEN_DECODE_SECONDS', 6, 1, 20) * 1000;

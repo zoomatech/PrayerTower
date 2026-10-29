@@ -111,6 +111,68 @@ export function signedHeaders(nodeKey: string, method: string, path: string, bod
   };
 }
 
+/** A report the server answered with an HTTP error. */
+export class ReportError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+/** Worth trying again later: the network or the server failed, or asked us to slow down. Never a refusal (bad key, bad report). */
+export const retryable = (err: unknown) => !(err instanceof ReportError) || err.status >= 500 || err.status === 429;
+
+/**
+ * Reports that could not be delivered (the internet or the server was down), kept
+ * and sent again before the next ones, oldest first. Without it, a prayer this node
+ * heard during an outage would look unheard, and the station would send it again
+ * (radio/acks.ts) and its sender would never be told. Kept for at most 23 hours
+ * (the server takes "heard" reports for 24) and at most 500 reports.
+ */
+export class Outbox {
+  private items: { send: () => Promise<void>; at: number }[] = [];
+  constructor(
+    private readonly max = 500,
+    private readonly maxAgeMs = 23 * 3_600_000,
+  ) {}
+
+  get size() {
+    return this.items.length;
+  }
+
+  /** Send now; keep it for later if it fails for a reason that may pass. */
+  async send(send: () => Promise<void>, log: (m: string) => void, now = Date.now()) {
+    try {
+      await send();
+    } catch (err) {
+      log(`[listener] ${(err as Error).message}`);
+      if (!retryable(err)) return;
+      this.items.push({ send, at: now });
+      if (this.items.length > this.max) this.items.splice(0, this.items.length - this.max);
+    }
+  }
+
+  /** Try the kept reports again, oldest first; stops at the first that still fails. */
+  async flush(log: (m: string) => void, now = Date.now()) {
+    this.items = this.items.filter((i) => now - i.at < this.maxAgeMs);
+    let sent = 0;
+    while (this.items.length) {
+      const item = this.items[0]!;
+      try {
+        await item.send();
+      } catch (err) {
+        if (retryable(err)) break;
+        log(`[listener] ${(err as Error).message}`);
+      }
+      this.items.shift();
+      sent++;
+    }
+    if (sent) log(`[listener] sent ${sent} kept report(s)${this.items.length ? `, ${this.items.length} still waiting` : ''}`);
+  }
+}
+
 /** Prayer Tower's listener endpoints: POST /node/channel-report, /node/heard and /node/heartbeat, with the node key (x-node-key) or, signed, without it. */
 export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch, opts: { sign?: boolean } = {}): ListenerApi {
   const base = baseUrl.replace(/\/$/, '');
@@ -130,21 +192,21 @@ export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typ
     async channelReport(r) {
       const res = await post('/node/channel-report', r);
       // 404: an admin has listener reports switched off.
-      if (!res.ok && res.status !== 404) throw new Error(`channel report failed (${res.status})`);
+      if (!res.ok && res.status !== 404) throw new ReportError(`channel report failed (${res.status})`, res.status);
     },
     async heard(r) {
       const res = await post('/node/heard', r);
       // 404: receipts, acknowledgements and listener reports are all switched off.
-      if (!res.ok && res.status !== 404) throw new Error(`receipt failed (${res.status})`);
+      if (!res.ok && res.status !== 404) throw new ReportError(`receipt failed (${res.status})`, res.status);
     },
     async heardIds(r) {
       const res = await post('/node/heard-ids', r);
       // 404: the packet fallback is switched off.
-      if (!res.ok && res.status !== 404) throw new Error(`packet receipt failed (${res.status})`);
+      if (!res.ok && res.status !== 404) throw new ReportError(`packet receipt failed (${res.status})`, res.status);
     },
     async heartbeat(location, relay) {
       const res = await post('/node/heartbeat', { ...(location ? { location } : {}), ...(relay ? { relay } : {}) });
-      if (!res.ok) throw new Error(`heartbeat failed (${res.status})`);
+      if (!res.ok) throw new ReportError(`heartbeat failed (${res.status})`, res.status);
     },
   };
 }
@@ -173,14 +235,18 @@ export interface ListenerConfig {
   receipts: boolean;
   /** Also write the latest channel report here, for a station on the same machine (BURST_AUTO_REPORT). */
   reportFile?: string;
+  /** Keep reports that fail while the network or server is down, and send them later. */
+  outbox?: Outbox;
 }
 
 /** Decode what arrived and report each new frame. Returns the frames, for the log. Reporting errors are logged, never thrown. */
 export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: ListenerConfig, log: (m: string) => void = console.log): Promise<ListenedFrame[]> {
+  const report = (send: () => Promise<void>) => (cfg.outbox ? cfg.outbox.send(send, log) : send().catch((err: Error) => log(`[listener] ${err.message}`)));
+  await cfg.outbox?.flush(log);
   const frames = dec.decode(cfg.searchHz);
   for (const p of dec.packets) {
     log(`[listener] heard ${p.callSign} by packet: ${p.count} prayer(s), page ${p.page}/${p.pages}`);
-    if (cfg.receipts && p.ids.length && api.heardIds) await api.heardIds({ callSign: p.callSign, ids: p.ids }).catch((err: Error) => log(`[listener] ${err.message}`));
+    if (cfg.receipts && p.ids.length && api.heardIds) await report(() => api.heardIds!({ callSign: p.callSign, ids: p.ids }));
   }
   if (!frames.length) return frames;
   // One channel report per station heard: its weakest frame.
@@ -190,13 +256,13 @@ export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: Lis
   for (const [callSign, fs] of byStation) {
     const r = channelReport(fs)!;
     log(`[listener] heard ${callSign}: ${fs.length} frame(s), ${r.snrDb} dB, ${r.preset}`);
-    await api.channelReport({ callSign, preset: r.preset, snrDb: r.snrDb }).catch((err: Error) => log(`[listener] ${err.message}`));
+    await report(() => api.channelReport({ callSign, preset: r.preset, snrDb: r.snrDb }));
     if (cfg.reportFile) await writeFile(cfg.reportFile, `${JSON.stringify(r, null, 2)}\n`).catch((err: Error) => log(`[listener] ${err.message}`));
   }
   if (cfg.receipts) {
     for (const f of frames) {
       const hashes = [...new Set(f.prayers ?? [])].slice(0, 500).map(fingerprint);
-      if (hashes.length) await api.heard({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes, peakDbfs: f.peakDbfs }).catch((err: Error) => log(`[listener] ${err.message}`));
+      if (hashes.length) await report(() => api.heard({ callSign: f.callSign, preset: f.preset, snrDb: Math.round(f.snrDb * 10) / 10, hashes, peakDbfs: f.peakDbfs }));
     }
   }
   return frames;
