@@ -15,6 +15,8 @@ describe('neutral text for Open Circle members', () => {
     ['Prayer Tower pilot report', 'Open Circle pilot report'],
     ['Pray-ers can write to people they prayed for', 'Supporters can write to people they supported'],
     ['Admins and pastors set a Bible reading plan', 'Admins and mentors set a reading plan'],
+    ['Invites members to post a praise when they haven\'t lately', 'Invites members to post good news when they haven\'t lately'],
+    ['Praise & Thanks · Testimony', 'Good news · Story'],
   ])('%s', (from, to) => {
     expect(neutralText(from)).toBe(to);
     expect(RELIGIOUS_WORDS.test(neutralText(from))).toBe(false);

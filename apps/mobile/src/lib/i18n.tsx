@@ -107,15 +107,18 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [language]);
   const value = useMemo<LocaleState>(() => {
     i18n.locale = locale;
-    const t: T = (key, options) => i18n.t(key, { locale, ...options });
+    const n = (text: string) => (locale === 'en-neutral' ? (neutralLiterals[text] ?? neutralString(text, env.openCircleName)) : text);
+    // A default (a server-made name with no key yet) gets the Open Circle wording too; member text passed in options never does.
+    const t: T = (key, options) =>
+      i18n.t(key, { locale, ...options, ...(typeof options?.defaultValue === 'string' ? { defaultValue: n(options.defaultValue) } : {}) });
     return {
       language,
       choice,
       setChoice,
       t,
-      label: (group, v, english) => (v ? i18n.t(`enums.${group}.${v}`, { locale, defaultValue: english ?? v }) : ''),
+      label: (group, v, english) => (v ? i18n.t(`enums.${group}.${v}`, { locale, defaultValue: n(english ?? v) }) : ''),
       wording: words,
-      n: (text) => (locale === 'en-neutral' ? (neutralLiterals[text] ?? neutralString(text, env.openCircleName)) : text),
+      n,
     };
   }, [language, locale, words, choice, setChoice]);
 

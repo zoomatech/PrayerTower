@@ -34,11 +34,17 @@ const RULES: [RegExp, string, true?][] = [
   [/\bbefore the Lord\b/gi, 'in their thoughts'],
   [/\bGod bless( you)?\b/gi, 'Take care'],
   [/\bBible reading plan\b/g, 'reading plan', true],
+  [/\ba praise\b/gi, 'good news'],
+  [/\bpraise & thanks\b/gi, 'good news'],
+  [/\bpraises\b/gi, 'good news'],
+  [/\bpraise\b/gi, 'good news'],
+  [/\btestimonies\b/gi, 'stories'],
+  [/\btestimony\b/gi, 'story'],
   [/\bscripture leaf\b/gi, 'quote leaf'],
   [/\bscripture\b/gi, 'quotes'],
 ];
 
-export const RELIGIOUS_WORDS = /\b(pray\w*|pray-ers|pastors?|priestly|lord|god|church(es)?|bible|scripture|prayer tower)\b/i;
+export const RELIGIOUS_WORDS = /\b(pray\w*|pray-ers|pastors?|priestly|lord|god|church(es)?|bible|scripture|prais\w*|testimon\w*|prayer tower)\b/i;
 
 /** Keeps the first letter's case of the word it replaces. */
 const matchCase = (found: string, word: string) => (found[0] === found[0]!.toUpperCase() ? word[0]!.toUpperCase() + word.slice(1) : word);

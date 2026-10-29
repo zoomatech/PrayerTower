@@ -35,7 +35,7 @@ const label = (t: T, key: string) =>
 const toInt = (s: string) => (s.trim() === '' ? null : Number.parseInt(s, 10));
 
 function Admin() {
-  const { t, language } = useLocale();
+  const { t, n, language } = useLocale();
   const features = useFeatures();
   // A member who lost their phone and backup codes: the first tap asks, the second turns two-step sign-in off.
   const [resetAsk, setResetAsk] = useState<string | null>(null);
@@ -435,7 +435,7 @@ function Admin() {
             <Text style={type.small}>{t('admin.tiersHint')}</Text>
             {tiers.map((tier) => (
               <View key={tier.tier} style={styles.group}>
-                <Text style={styles.groupTitle}>{tier.label}</Text>
+                <Text style={styles.groupTitle}>{n(tier.label)}</Text>
                 <Field
                   label={t('admin.field.tierMin')}
                   keyboardType="number-pad"
@@ -460,7 +460,7 @@ function Admin() {
           {rules.map((r) => (
             <View key={r.id} style={styles.group}>
               <Toggle
-                label={r.label}
+                label={n(r.label)}
                 hint={`${t(`admin.ruleMetric.${r.metric}`)}: ${r.threshold} → ${t(r.currency === 'priestly' ? 'admin.priestlyTokens' : 'admin.regularTokens', { count: r.amount })} · ${t('admin.given', { count: r.awarded })}`}
                 value={r.enabled}
                 onChange={(enabled) =>
@@ -545,7 +545,7 @@ const METRICS: MilestoneRule['metric'][] = ['prayers_for_others', 'commitment_ch
  * the account's address first to confirm it's them; then delete.
  */
 function DeletionRequestsSection() {
-  const { t, language } = useLocale();
+  const { t, n, language } = useLocale();
   const [requests, setRequests] = useState<Awaited<ReturnType<typeof api.admin.deletionRequests>>['requests']>([]);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1786,6 +1786,7 @@ function MaterialMatchSection() {
 /** Communities (Open Circle, 2026-10-28): a non-default community is hidden until an admin turns it on. */
 function CommunitiesSection() {
   const t = useT();
+  const { n } = useLocale();
   const [list, setList] = useState<Community[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useFocusEffect(
@@ -1834,7 +1835,7 @@ function CommunitiesSection() {
               return (
                 <Chip
                   key={p}
-                  label={POST_TYPE_LABELS[p]}
+                  label={n(POST_TYPE_LABELS[p])}
                   selected={on}
                   onPress={() => change(c, { enabledPostTypes: on ? c.enabledPostTypes.filter((x) => x !== p) : [...c.enabledPostTypes, p] })}
                 />
