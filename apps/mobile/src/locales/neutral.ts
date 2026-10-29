@@ -41,6 +41,25 @@ export const keys: Tree = named({
   pathBack: {
     adminHint: 'When a moderator removes a post or comment, the notice says the author may post it again with changes, and only the author can open their own words to edit. Never offered for posts wishing harm, flooding or automated accounts.',
   },
+  circleUpdates: {
+    answered: 'It worked out',
+    answeredBadge: 'Worked out 🌱',
+    adminHint: 'The person who shared in a circle can add how it’s going or mark that it worked out, and the people who sent support get a quiet in-app note. Three good things can also be shared to one of the member’s circles. Needs circles on.',
+  },
+  freshDays: {
+    advent: 'A new season begins today. Want to pick one small intention?',
+    lent: 'A new season begins today. Want to pick one small intention?',
+    easter: 'A new season begins today. Want to pick one small intention?',
+    adminHint: 'Members may save up to three dates of their own. On that day, Me invites one small intention. Shown only on the day, never pushed.',
+  },
+  intention: {
+    title: 'How many days this week would you like to check in?',
+    adminHint: 'On Me, a member may choose to check in 1 to 6 days a week, so rest is built in. Dots fill in for the days they showed up and never empty; a week that falls short is never mentioned.',
+  },
+  health: {
+    intro: 'What matters each week, from totals only: requests that felt held (someone sent support or replied within two days), requests answered, and members who came back. Never time spent in the app.',
+    adminHint: 'A weekly view for admins of requests that felt held, requests answered and members who came back, built only from totals. Weeks with fewer than five requests show no numbers.',
+  },
   replyChoice: {
     supporters: 'People who sent support',
     none: 'No comments, just support',

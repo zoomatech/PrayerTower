@@ -5,12 +5,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { as, createUser, db } from './helpers.js';
 
 const on = (v: boolean) => db.query('update public.practice_settings set prayer_circles_enabled = $1', [v]);
+const updates = (v: boolean) => db.query('update public.practice_settings set circle_updates_enabled = $1', [v]);
 const welcome = (v: boolean) => db.query('update public.practice_settings set circle_welcome_enabled = $1', [v]);
 
 beforeAll(() => on(false));
 afterAll(async () => {
   await on(false);
   await welcome(false);
+  await updates(false);
   await db.end();
 });
 
@@ -115,5 +117,27 @@ describe('Prayer circles', () => {
     expect((await as(quiet).get(`/circles/${id}`)).json().welcome).toEqual({ text: null, show: true });
     await as(quiet).post(`/circles/${id}/welcome/seen`);
     expect((await as(quiet).get(`/circles/${id}`)).json().welcome.show).toBe(false);
+  });
+
+  it('lets the person who shared say how it is going, and tells those who prayed quietly', async () => {
+    await on(true);
+    await updates(false);
+    const [owner, friend, other] = [await createUser('Update Owner'), await createUser('Update Friend'), await createUser('Update Other')];
+    const id = (await as(owner).post('/circles', { name: 'Updates' })).json().id as string;
+    for (const m of [friend, other]) await as(m).post('/circles/join', { code: (await as(owner).post(`/circles/${id}/invite`)).json().code });
+    const postId = (await as(owner).post(`/circles/${id}/posts`, { body: 'Job interview on Friday.' })).json().id as string;
+    await as(friend).post(`/circle-posts/${postId}/pray`);
+    expect((await as(owner).post(`/circle-posts/${postId}/update`, { text: 'It went well!' })).statusCode).toBe(400);
+    await updates(true);
+    expect((await as(friend).post(`/circle-posts/${postId}/update`, { text: 'Not mine' })).statusCode).toBe(403);
+    expect((await as(owner).post(`/circle-posts/${postId}/update`, { text: '' })).statusCode).toBe(400);
+    expect((await as(owner).post(`/circle-posts/${postId}/update`, { text: 'I got the job!', answered: true })).json()).toEqual({ ok: true });
+    const post = (await as(other).get(`/circles/${id}`)).json().posts.find((p: { id: string }) => p.id === postId);
+    expect(post.update).toMatchObject({ text: 'I got the job!', answered: true });
+    const notes = async (u: string) => (await db.query("select body from public.notifications where user_id = $1 and body like '%good news%'", [u])).rows;
+    expect(await notes(friend)).toEqual([{ body: 'Update Owner shared good news about what they asked for.' }]);
+    expect(await notes(other)).toEqual([]);
+    await updates(false);
+    expect((await as(other).get(`/circles/${id}`)).json().posts.find((p: { id: string }) => p.id === postId).update).toBeUndefined();
   });
 });
