@@ -6,11 +6,13 @@ name: Native screenshots
 on:
   workflow_dispatch:
   pull_request:
-    paths: [scripts/mac-screenshots-native.sh, .github/workflows/native-screenshots.yml]
+    paths: [scripts/mac-screenshots-native.sh, .github/workflows/native-screenshots.yml, apps/ios-native/App/Skins/**]
 
 jobs:
   screenshots:
     runs-on: macos-15
+    permissions:
+      contents: write
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -24,6 +26,24 @@ jobs:
           name: native-screenshots
           path: store-screenshots/native
           if-no-files-found: warn
+      # A run from the Actions tab also keeps the pictures on the native-screenshots branch, so
+      # they can be fetched with git (artifacts need a browser sign-in to download).
+      - name: Keep the pictures on the native-screenshots branch
+        if: ${{ success() && github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          if git fetch -q origin native-screenshots; then
+            git worktree add -q -B native-screenshots "$RUNNER_TEMP/shots" origin/native-screenshots
+          else
+            git worktree add -q --orphan -b native-screenshots "$RUNNER_TEMP/shots"
+          fi
+          find "$RUNNER_TEMP/shots" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R store-screenshots/native/. "$RUNNER_TEMP/shots/"
+          cd "$RUNNER_TEMP/shots"
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "Native store screenshots from ${GITHUB_SHA::7}" || exit 0
+          git push -q origin native-screenshots
       - name: Show what happened
         if: ${{ !cancelled() }}
         run: |

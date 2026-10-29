@@ -23,6 +23,12 @@ public enum SampleServer {
         return arguments[i + 1]
     }
 
+    /// A feed skin to draw the sample feed in, for skin screenshots: `-PTSkin <slug>`.
+    public static func skin(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> String? {
+        guard isOn(arguments), let i = arguments.firstIndex(of: "-PTSkin"), i + 1 < arguments.count else { return nil }
+        return arguments[i + 1]
+    }
+
     /// The tab for a screen name (MainTabs tags), and whether to open the sample request.
     public static func tab(for screen: String?) -> (tab: Int, openPost: Bool) {
         switch screen {

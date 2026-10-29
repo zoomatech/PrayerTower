@@ -30,6 +30,8 @@ import Testing
         #expect(!SampleServer.isOn(["app"]))
         #expect(SampleServer.screen(["app", "-PTSampleData", "-PTScreen", "notices"]) == "notices")
         #expect(SampleServer.screen(["app", "-PTScreen", "notices"]) == nil)
+        #expect(SampleServer.skin(["app", "-PTSampleData", "-PTSkin", "golden-wood"]) == "golden-wood")
+        #expect(SampleServer.skin(["app", "-PTSkin", "golden-wood"]) == nil)
         #expect(SampleServer.tab(for: "post") == (0, true))
         #expect(SampleServer.tab(for: "me").tab == 4)
     }

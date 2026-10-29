@@ -41,6 +41,40 @@ struct LeafVeins: Shape {
     }
 }
 
+/// Fine pen hatching for the pen-and-ink style (Golden Wood): short slanted strokes in bands
+/// down both edges of the leaf, leaving its middle clear for the words box.
+struct PenHatching: Shape {
+    var gap: CGFloat = 5
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let band: CGFloat = r.width * 0.2
+        var y: CGFloat = r.minY
+        while y < r.maxY {
+            p.move(to: CGPoint(x: r.minX, y: y + band * 0.6))
+            p.addLine(to: CGPoint(x: r.minX + band, y: y))
+            p.move(to: CGPoint(x: r.maxX - band, y: y))
+            p.addLine(to: CGPoint(x: r.maxX, y: y + band * 0.6))
+            y += gap
+        }
+        return p
+    }
+}
+
+/// A small spiral curl, drawn with a pen.
+enum PenCurl {
+    static func path(at c: CGPoint, radius: CGFloat) -> Path {
+        var p = Path()
+        var a: CGFloat = 0
+        p.move(to: CGPoint(x: c.x + radius, y: c.y))
+        while a < 4 * .pi {
+            let r: CGFloat = radius * (1 - a / (5 * .pi))
+            p.addLine(to: CGPoint(x: c.x + r * cos(a), y: c.y - r * sin(a)))
+            a += 0.3
+        }
+        return p
+    }
+}
+
 /// A frame with cut corners, like a bent neon tube (Neon Cinderella).
 struct CutCorners: Shape {
     var cut: Double = 12
