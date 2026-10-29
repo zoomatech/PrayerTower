@@ -121,6 +121,8 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
 | Pray now widget | `PrayerTowerWidgets`, `OpenCircleWidgets` | ✅ |
 | Prayed-for Lock Screen Live Activity | `PrayedForLiveActivity` in both widget targets | ✅ |
 | Cross-posting browser extension (Safari on iPhone and iPad) | `PrayerTowerCrosspost`, `OpenCircleCrosspost` app extensions, embedded in each app | ✅ |
+| iPad (native only): sidebar split view, multi-column feed, ⌘1–⌘6 / ⌘N / ⌘R, pointer hover | `MainTabs`, `FeedView` grid, `App/Platform.swift` | ✅ |
+| Mac member app (native only, separate from the operator console) | `PrayerTowerMac` target, same `App/` SwiftUI code | ✅ |
 
 ## Known gaps
 
@@ -131,7 +133,11 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
 
 - Linux: `swift test` in `apps/ios-native` (PrayerTowerKit models, API paths, words, offline queue).
 - Mac, headless only: `scripts/mac-build-native.sh` runs the Kit tests, builds both apps with
-  their widgets and Safari extensions and the Mac console, and runs the UI walks. No windows open.
+  their widgets and Safari extensions, the Mac member app and the Mac console, and runs the UI
+  walks. No windows open.
+- Store screenshots: the "Native screenshots" GitHub workflow runs `scripts/mac-screenshots-native.sh`
+  on GitHub's macOS runner (iPhone Pro Max and iPad Pro 13-inch, sample data) and keeps the pictures
+  as a build artifact, so nothing needs a Simulator on a member's Mac.
 - UI walks (`apps/ios-native/UIWalks`): XCUITest on the Simulator with `-PTSampleData`, which
   signs in a sample member and answers every API call on the device (`SampleServer`), so no
   server or account is needed. They open the feed, a request with its comments, My Promises,
