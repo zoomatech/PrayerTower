@@ -3,9 +3,25 @@ import type { FastifyInstance } from 'fastify';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { notFound } from '../../errors.js';
+import * as radio from '../radio/index.js';
 import * as receipts from '../radio/receipts.js';
 
+/** Listener mode: the app's Listen screen without an account (needs the listening page on too). */
+export async function listenerMode(db: Db) {
+  const { rows } = await db.query<{ on: boolean }>('select listener_mode_enabled as on from public.token_settings');
+  const s = await radio.stationSettings(db);
+  const enabled = rows[0]!.on && s.listen_page_enabled;
+  return { enabled, receipts: enabled && (await receipts.enabled(db)) };
+}
+
+export async function setListenerMode(db: Db, on: boolean) {
+  await db.query('update public.token_settings set listener_mode_enabled = $1', [on]);
+}
+
 export function listenPublicRoutes(app: FastifyInstance, db: Db) {
+  // Signed out: whether the sign-in screen offers "Listen to radio prayers".
+  app.get('/listen/config', async () => listenerMode(db));
+
   // A listener heard these prayers (fingerprints only): tells their senders, while receipts are on.
   app.post('/listen/heard', async (req) => {
     if (!(await receipts.enabled(db))) throw notFound('Radio receipts');

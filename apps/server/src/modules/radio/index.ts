@@ -13,6 +13,7 @@ import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as acks from './acks.js';
 import * as receipts from './receipts.js';
+import * as schedule from './schedule.js';
 import * as tokens from '../tokens/index.js';
 import { requireFeature } from '../communities/index.js';
 
@@ -266,6 +267,8 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
   );
   // Listener acknowledgements: sent prayers nobody heard go back in the queue (acks.ts).
   await acks.requeueUnheard(q);
+  // Transmission windows and quiet hours (schedule.ts): outside them the prayers wait.
+  if (!schedule.onAir(await schedule.get(q))) return null;
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
     const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(
@@ -283,8 +286,9 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
       await failAndRefund(q, r.id, `not sent: ${skip}`);
       continue;
     }
-    await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now(), claimed_by_node = $2 where id = $1`, [r.id, nodeId]);
-    return { id: r.id, text: r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars), repeats: r.repeats };
+    const text = r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars);
+    await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now(), claimed_by_node = $2, sent_text = $3 where id = $1`, [r.id, nodeId, text]);
+    return { id: r.id, text, repeats: r.repeats };
   }
   return null;
 }
@@ -309,6 +313,8 @@ export const StationResult = z.object({
   /** Burst mode: the preset it went out on, and the fingerprint of the exact text sent (receipts.ts). */
   preset: z.string().trim().min(1).max(40).optional(),
   sentHash: z.string().regex(/^[0-9a-f]{32}$/).optional(),
+  /** The frequency it went out on (RIG_FREQ_HZ or STATION_FREQ_HZ), for the operator log. */
+  frequencyHz: z.number().int().positive().max(300_000_000_000).optional(),
 });
 
 export const BurstReport = z.object({
@@ -364,11 +370,11 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
     `update public.radio_prayers r
         set status = $2::public.radio_prayer_status, transmitter = 'station', call_sign = $3, pieces = $4, error = $5,
             transmitted_at = case when $2::public.radio_prayer_status = 'transmitted' then now() end,
-            preset = $6, sent_hash = $7
+            preset = $6, sent_hash = $7, frequency_hz = $9
        from public.posts p
       where r.id = $1 and r.status = 'sending' and p.id = r.post_id and r.claimed_by_node is not distinct from $8
       returning r.id, r.post_id, p.user_id as poster_id, r.user_id as sender_id`,
-    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error'), result.preset ?? null, result.sentHash ?? null, nodeId],
+    [id, result.ok ? 'transmitted' : 'failed', result.callSign, result.pieces ?? null, result.ok ? null : (result.error ?? 'station error'), result.preset ?? null, result.sentHash ?? null, nodeId, result.frequencyHz ?? null],
   );
   const r = rows[0];
   if (!r) throw badRequest('That radio prayer is not being sent');

@@ -87,6 +87,8 @@ describe('endpoint auth', () => {
       'GET /listen',
       // A listener's receipt: prayer fingerprints only, rate limited (404 while switched off).
       'POST /listen/heard',
+      // Listener mode: whether the sign-in screen offers listening (two switches, nothing else).
+      'GET /listen/config',
       // Prayers on the air: counts only (404 while switched off).
       'GET /on-the-air',
       'GET /open-circle/on-the-air',
@@ -107,6 +109,8 @@ describe('endpoint auth', () => {
       'POST /circle/:token',
       'GET /chain/:token',
       'POST /chain/:token',
+      // Sharing with consent: the share card the author chose (a 404 otherwise).
+      'GET /card/:token',
     ]);
     await app.ready();
     expect(routes.length).toBeGreaterThan(100);

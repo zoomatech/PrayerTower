@@ -319,6 +319,54 @@ Put at least one listener node where it hears the station the way your
 listeners do. A listener right next to the station hears everything, so it
 proves nothing about reach.
 
+## Transmission windows and quiet hours
+
+Off by default. In Admin → Radio, turn on **Transmission windows**, set the time
+zone (a name such as `America/Chicago`), and add windows: the days and the
+hours the station may send, for example Monday to Friday 18:00 to 21:00. A
+window whose end is earlier than its start runs past midnight, and belongs to the
+day it starts on. With no windows the station may send at any time outside the
+quiet hours. Quiet hours (for example 22:00 to 06:00) always win.
+
+Outside the windows, the station asks for prayers as usual and gets none. The
+prayers wait in the queue and go out in the next window. Admin → Radio shows
+whether the station may send now. The "burst overdue" alert is not raised while
+the station is off the air on purpose.
+
+## Station ID
+
+Off by default. Every burst frame already carries the call sign in digital form.
+With `STATION_ID=cw` in the station's settings, the station also sends its call
+sign in Morse code (`DE K1ABC`, 20 words a minute, an 800 Hz tone) at the end of
+a key-up. It does this on the first key-up, and then whenever
+`STATION_ID_MINUTES` (10) have passed since the last ID. `STATION_ID_WPM` and
+`STATION_ID_TONE_HZ` change the speed and the tone. In `BURST_MODE=fldigi`, the
+ID is a `de K1ABC` line at the end of the key-up. The PSK31 mode already ends
+every piece with `de K1ABC`. In simulate mode, the log shows when an ID would
+have gone out.
+
+## Operator log
+
+Off by default. In Admin → Radio, turn on **Operator log**, then tap
+**Download operator log**. You get a spreadsheet (CSV) of every prayer the
+station sent, or tried to send, in the last 30 days. It has these columns:
+
+| Column | What it holds |
+| --- | --- |
+| `time_utc` | When it went out (UTC), or when it was handed to the station, for a failure |
+| `call_sign` | The call sign the station reported |
+| `station` | `main`, or the name of an extra station |
+| `frequency_hz` | `RIG_FREQ_HZ`, or `STATION_FREQ_HZ` when the radio is tuned by hand |
+| `preset` | The burst preset, or `psk31` |
+| `repeats` | How many times it was sent (Amplify) |
+| `status` / `error` | `transmitted` or `failed`, with the reason |
+| `heard` | Whether a listener decoded it |
+| `contents` | The exact text the station was given |
+
+For another date range, an admin can call
+`GET /admin/operator-log?format=csv&from=2026-10-01&to=2026-11-01`. The station
+also keeps every burst as a WAV file in `BURST_DIR`.
+
 ## 4. Which preset
 
 Start slow and speed up once the path is proven. `node /opt/prayer-tower-station/dist/src/burst/cli.js presets`

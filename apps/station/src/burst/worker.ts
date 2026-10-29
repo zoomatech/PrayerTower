@@ -19,6 +19,8 @@ export interface BurstConfig {
   /** Longest single frame on the air; a bigger batch becomes several frames in the same key-up. */
   maxFrameSeconds: number;
   blocklist: readonly string[];
+  /** RIG_FREQ_HZ or STATION_FREQ_HZ, reported with each prayer for the operator log. */
+  frequencyHz?: number;
 }
 
 export type BurstOutcome = { kind: 'idle' } | { kind: 'sent'; sent: number; rejected: number; frames: number; seconds: number } | { kind: 'rejected'; rejected: number };
@@ -69,7 +71,7 @@ export async function runBurstOnce(
     throw new TransmitError(message);
   }
   for (const p of ok) {
-    const result = { ok: true, callSign: cfg.callSign, pieces: sent.frames, preset: preset.name, sentHash: sentHash(foldAscii(p.text)) };
+    const result = { ok: true, callSign: cfg.callSign, pieces: sent.frames, preset: preset.name, sentHash: sentHash(foldAscii(p.text)), frequencyHz: cfg.frequencyHz };
     await reportWithRetry(api, p.id, result, retryMs);
   }
   await logBurst({ ...sent, seconds: Math.round(sent.seconds * 100) / 100, ok: true });
