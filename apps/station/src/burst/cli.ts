@@ -4,6 +4,9 @@
 //                               report file, also write the measured SNR for BURST_PRESET=auto.
 //                               From an HF (SSB) receiver, set BURST_SEARCH_HZ=50 to allow
 //                               for tuning up to 50 Hz off (slower)
+//   diagnose <file.wav> [--json]  replay a recording through the decoders and say why it did
+//                               or didn't decode: level, clipping, hum, noise, each frame's SNR
+//                               margin, tuning (docs/RADIO_BURST.md, "Diagnose a weak signal")
 //   decode-text <file.txt>      the same for fldigi text frames (BURST_MODE=fldigi)
 //   encode <out.wav> [preset]   make a burst from prayers on stdin, one per line
 //   presets                     list the modem presets and their speeds
@@ -23,6 +26,7 @@ import { fromWav, resample, toWav } from './wav.js';
 import { SAMPLE_RATE } from './ofdm.js';
 import { samplePrayers } from './sample.js';
 import { simMarkdown, simTable } from './sim.js';
+import { diagnose, report as diagnosisReport } from './diagnose.js';
 import { demodulate as demodulatePackets } from '../packet/afsk.js';
 import { parseStatus } from '../packet/message.js';
 
@@ -50,6 +54,14 @@ switch (cmd) {
       await writeReport(arg2, report);
       out(`Channel report (${report.snrDb} dB) -> ${arg2}`);
     }
+    break;
+  }
+  case 'diagnose': {
+    if (!arg) throw new Error('usage: diagnose <file.wav> [--json]');
+    const wav = fromWav(readFileSync(arg));
+    const d = diagnose(wav.samples, wav.sampleRate, { searchHz: Number(process.env.BURST_SEARCH_HZ ?? 50) || 0 });
+    if (arg2 === '--json') out(JSON.stringify(d, null, 2));
+    else for (const line of diagnosisReport(d)) out(line);
     break;
   }
   case 'decode-text': {
@@ -91,6 +103,6 @@ switch (cmd) {
     out(simMarkdown(simTable(samplePrayers(30), [1, 2, 3], arg ? [presetByName(arg)] : PRESETS), 30));
     break;
   default:
-    out('usage: cli.js decode <file.wav> [report.json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset] | sim [preset]');
+    out('usage: cli.js decode <file.wav> [report.json] | diagnose <file.wav> [--json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset] | sim [preset]');
     process.exitCode = cmd ? 1 : 0;
 }

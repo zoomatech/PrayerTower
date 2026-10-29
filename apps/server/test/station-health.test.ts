@@ -79,11 +79,21 @@ describe('station health page', () => {
     expect(view.health.queue.queued).toBeGreaterThanOrEqual(1);
     expect(view.health.snr).toContainEqual(expect.objectContaining({ callSign: CALL, preset: 'fm-standard', reports: 2, avgDb: 16, minDb: 14 }));
     expect(view.health.failures[0]).toMatchObject({ kind: 'burst', callSign: CALL, error: 'aplay exited 1' });
+    // Listener heartbeats and the last-heard list, newest first.
+    expect(view.health.listeners).toContainEqual(expect.objectContaining({ name: 'Health listener', silent: false }));
+    expect(view.health.lastHeard[0]).toMatchObject({ node: 'Health listener', callSign: CALL, preset: 'fm-standard', snrDb: 18 });
 
     // A station that stopped checking in shows as silent.
     await db.query(`update public.station_status set reported_at = now() - interval '1 hour' where call_sign = $1`, [CALL]);
     const later = (await as(admin).get('/admin/radio-health')).json();
     expect(later.health.stations.find((s: { callSign: string }) => s.callSign === CALL).silent).toBe(true);
+    // So does a listener node, and with alerts on it is listed (as information, not a problem).
+    await db.query(`update public.radio_nodes set last_seen_at = now() - interval '1 hour' where name = 'Health listener'`);
+    expect((await as(admin).get('/admin/radio-health')).json().health.listeners).toContainEqual(expect.objectContaining({ name: 'Health listener', silent: true }));
+    const alertDefaults = await health.settings(db);
+    await health.updateSettings(db, { enabled: true });
+    expect((await health.alerts(db)).alerts).toContainEqual(expect.objectContaining({ kind: 'listener_silent', level: 'info' }));
+    await health.updateSettings(db, { enabled: alertDefaults.station_alerts_enabled });
     await claimAll().then((ps) => Promise.all(ps.map(sent)));
   });
 

@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "Prayer Tower Cross-posting",
+  "short_name": "Prayer Tower",
+  "version": "0.1.0",
+  "description": "When you post on Facebook or Threads, the same post (words, photos and videos) goes to your own Prayer Tower or Open Circle account.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://www.facebook.com/*",
+    "https://web.facebook.com/*",
+    "https://m.facebook.com/*",
+    "https://www.threads.com/*",
+    "https://www.threads.net/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.facebook.com/*",
+        "https://web.facebook.com/*",
+        "https://m.facebook.com/*",
+        "https://www.threads.com/*",
+        "https://www.threads.net/*"
+      ],
+      "js": [
+        "src/capture.js",
+        "src/content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "options_ui": {
+    "page": "src/options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "Prayer Tower Cross-posting",
+    "default_popup": "src/options.html"
+  }
+}

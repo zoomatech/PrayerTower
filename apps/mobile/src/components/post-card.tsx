@@ -111,6 +111,7 @@ export const PostCard = memo(function PostCard({ card, onAction, onHide, expande
           </Text>
         ) : null}
         {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
+        {card.crosspostedFrom ? <Text style={styles.tags}>{t('card.from', { name: card.crosspostedFrom === 'threads' ? 'Threads' : 'Facebook' })}</Text> : null}
         {card.lament && features.lament ? <Text style={styles.tags}>🕯️ {t('lament.tag')}</Text> : null}
         {features.answeredStories && card.answers ? (
           <Text style={styles.storyLink} onPress={() => router.push(`/post/${card.answers!.id}`)} accessibilityRole="link">
