@@ -4,14 +4,14 @@
 // member always edits and sends it themselves. Each needs its Admin switch on and
 // the member's own choice on Me.
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Chip } from '@/components/ui';
 import { api, type ConversationPrefs, type TalkCount } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
+import { announce } from '@/lib/motion';
 import { CLOSING_KEYS, isDownbeat, suggestionKey } from '@/lib/talk';
-import { colors, space, type } from '@/lib/theme';
+import { colors, radius, space, type } from '@/lib/theme';
 
 let cached: Promise<ConversationPrefs> | null = null;
 /** The member's choices, fetched once per session while any helper is switched on; off if they can't load. */
@@ -79,13 +79,17 @@ export function ReplyHelpers({ lastFromOther, empty, text, onPick }: { lastFromO
   const pick = (s: string) => {
     setPicked(s);
     onPick(s);
+    announce(f.ownWords ? `${t('talk.picked')} ${t('talk.ownWords')}` : t('talk.picked'));
   };
   return (
     <View style={styles.wrap} testID="reply-helpers">
       {chips.length ? (
         <View style={styles.row} role="group" aria-label={t('talk.suggested')}>
           {chips.map((c) => (
-            <Chip key={c.label} label={c.label} selected={false} onPress={() => pick(c.label)} />
+            // A suggestion is an action (it fills the box), so it's a button, not a checkbox.
+            <Pressable key={c.label} role="button" accessibilityHint={t('talk.suggestionHint')} hitSlop={6} onPress={() => pick(c.label)} style={styles.chip}>
+              <Text style={styles.chipText}>{c.label}</Text>
+            </Pressable>
           ))}
         </View>
       ) : null}
@@ -103,4 +107,7 @@ const styles = StyleSheet.create({
   wrap: { gap: space.xs },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   own: { color: colors.primary, fontStyle: 'italic' },
+  // Same look as the app's chips; grows with larger text.
+  chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  chipText: { color: colors.text, fontSize: 14 },
 });

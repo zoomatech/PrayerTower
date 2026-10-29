@@ -15,3 +15,11 @@ export function useReducedMotion(): boolean {
   }, []);
   return reduced;
 }
+
+/**
+ * Speak a short message to VoiceOver or TalkBack. iOS has no live regions, so text that
+ * appears on its own (the kind cloud, a suggestion placed in the box) is announced here.
+ */
+export function announce(message: string) {
+  AccessibilityInfo.announceForAccessibility(message);
+}

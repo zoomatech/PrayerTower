@@ -1851,6 +1851,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     closing1: "I'll keep you in my prayers. Talk soon.",
     closing2: 'Thank you for sharing this with me. Peace to you.',
     suggested: 'Suggested reply',
+    suggestionHint: 'Puts these words in your message box. You can edit them before sending.',
+    picked: 'Added to your message box. You can edit it before sending.',
     ownWords: 'Suggested words are a start. Make them yours?',
     closeKindly: 'Close kindly',
     packNote: 'Greeting from %{pack}: %{note}',
