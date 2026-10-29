@@ -35,6 +35,7 @@ import * as prompts from '../prompts/index.js';
 import * as radio from '../radio/index.js';
 import * as radioHealth from '../radio/health.js';
 import * as radioNodes from '../radio/nodes.js';
+import * as radioAcks from '../radio/acks.js';
 import * as reach from '../reach/index.js';
 import * as schedules from '../schedules/index.js';
 import * as messages from '../messages/index.js';
@@ -225,6 +226,25 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
     await radioNodes.remove(db, id);
     return { ok: true };
+  });
+
+  // Station health page (radio/health.ts) and listener acknowledgements (radio/acks.ts); health is null while its switch is off.
+  app.get('/admin/radio-health', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await radioHealth.pageEnabled(db), health: await radioHealth.overview(db), acks: { ...(await radioAcks.settings(db)), ...(await radioAcks.stats(db)) } };
+  });
+
+  app.patch('/admin/radio-health', async (req) => {
+    await requireAdmin(req);
+    const input = z
+      .object({
+        enabled: z.boolean().optional(),
+        acks: z.object({ enabled: z.boolean().optional(), timeoutMinutes: z.number().int().min(1).max(1440).optional(), maxRetries: z.number().int().min(0).max(10).optional() }).optional(),
+      })
+      .parse(req.body);
+    if (input.enabled !== undefined) await radioHealth.setPageEnabled(db, input.enabled);
+    if (input.acks) await radioAcks.updateSettings(db, input.acks);
+    return { enabled: await radioHealth.pageEnabled(db), health: await radioHealth.overview(db), acks: { ...(await radioAcks.settings(db)), ...(await radioAcks.stats(db)) } };
   });
 
   app.get('/admin/radio-bursts', async (req) => {

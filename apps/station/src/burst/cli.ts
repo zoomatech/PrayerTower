@@ -8,6 +8,9 @@
 //   encode <out.wav> [preset]   make a burst from prayers on stdin, one per line
 //   presets                     list the modem presets and their speeds
 //   bench [preset]              how many sample prayers fit in how many seconds
+//   sim [preset]                send 30 generated prayers through a simulated radio path at
+//                               falling noise levels; print air time and the lowest SNR that
+//                               decodes every prayer (the table in docs/RADIO_BURST.md; slow)
 //
 // A live receiver can record with e.g. `arecord -f S16_LE -r 48000 -c 1 -d 30 rx.wav`.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -19,6 +22,7 @@ import { decodeTextFrames } from './text-frame.js';
 import { fromWav, resample, toWav } from './wav.js';
 import { SAMPLE_RATE } from './ofdm.js';
 import { samplePrayers } from './sample.js';
+import { simMarkdown, simTable } from './sim.js';
 
 const [cmd, arg, arg2] = process.argv.slice(2);
 
@@ -79,7 +83,10 @@ switch (cmd) {
     }
     break;
   }
+  case 'sim':
+    out(simMarkdown(simTable(samplePrayers(30), [1, 2, 3], arg ? [presetByName(arg)] : PRESETS), 30));
+    break;
   default:
-    out('usage: cli.js decode <file.wav> [report.json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset]');
+    out('usage: cli.js decode <file.wav> [report.json] | decode-text <file.txt> | encode <out.wav> [preset] | presets | bench [preset] | sim [preset]');
     process.exitCode = cmd ? 1 : 0;
 }

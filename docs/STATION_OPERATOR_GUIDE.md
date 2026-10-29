@@ -198,8 +198,11 @@ Or, from a clone of the repository, run `bash apps/station/install/mac/install-m
 A listener node is a Raspberry Pi with a receiver (a scanner, an old handheld or
 an SDR) plugged into its sound card. It never transmits. It records all the time,
 decodes the station's bursts, and sends Prayer Tower only what it measured: the
-call sign, the preset and the SNR. With receipts on, it also sends the prayers'
-fingerprints, never their words. A station on `BURST_PRESET=auto` then picks the
+call sign, the preset and the SNR. It also sends the fingerprints of the prayers
+it decoded, never their words. Those fingerprints acknowledge the prayers (see
+[Listener acknowledgements](#listener-acknowledgements)) and, with receipts on,
+tell senders a listener heard them. It checks in about once a minute even when it
+hears nothing. A station on `BURST_PRESET=auto` then picks the
 fastest preset that the weakest listener can still decode. Off by default.
 
 1. In Admin → Radio (burst mode), turn on **Listener nodes**, type a name
@@ -277,6 +280,44 @@ an hour.
 | A burst is overdue | A prayer has waited longer than the chosen limit (15, 30, 60 or 120 minutes; 30 by default). | The queue |
 | The station stopped reporting | No report for 10 minutes. | The station |
 | Nothing is waiting | The queue is empty. This is information, not a problem. | The queue |
+
+## Health page in Admin → Radio
+
+Off by default. In Admin → Radio (station mode), turn on **Health page**. It shows:
+
+- Each station by call sign: its last check-in (about once a minute), any check
+  that is failing (sound card, PTT), and the last 24 hours of bursts, prayers and
+  failures. A station with no check-in for 10 minutes is shown in red as stopped.
+- The queue: how many prayers are waiting, how many are being sent, and how long the oldest has waited.
+- The signal listeners measured on each preset in the last 24 hours: the average,
+  the lowest and the number of reports. This helps when you choose a preset, or
+  set `BURST_AUTO_PRESETS`.
+- The last 10 failures in the last 24 hours, failed bursts and failed prayers, with their errors.
+
+## Listener acknowledgements
+
+Off by default. When **Listener acknowledgements** is on, a prayer counts as
+heard on the air only once a listener decodes it. That listener can be a
+listener node, the /listen page or the app's Listen screen. The listener sends
+back the prayer's fingerprint, never its words.
+
+- If no listener hears a prayer within the chosen time (5, 10, 30 or 60
+  minutes; 10 by default), it goes back in the queue and the station sends it
+  again, up to the chosen number of times (0 to 3; 2 by default). After the last
+  try it stays sent, and is counted as not heard.
+- Prayers are sent again only while an enabled listener node has checked in
+  within the last 5 minutes. With no listener running, nothing could have heard
+  the prayer, so nothing is sent again.
+- Admin → Radio shows the last 24 hours: how many were heard, how many are
+  waiting for a listener, how many were not heard after every try, and how many
+  were sent again.
+- The sender's "on the air" receipt goes out once, the first time. The "a
+  listener heard it" receipt goes out when it is first decoded, and only while
+  receipts are on.
+
+Put at least one listener node where it hears the station the way your
+listeners do. A listener right next to the station hears everything, so it
+proves nothing about reach.
 
 ## 4. Which preset
 

@@ -29,6 +29,11 @@ export const keys: Tree = named({
     radioFree: 'Free radio messages left this month: {{count}}',
     radioGranted: 'Extra radio messages granted to you: {{count}}',
   },
+  listen: {
+    intro: 'Hold this phone near a radio tuned to the station. When a burst plays, the messages in it appear here. The sound stays on this phone.',
+    tell: 'Let senders know their message was heard',
+    tellHint: 'Only a fingerprint of each message goes back, never the words.',
+  },
   radioRequests: {
     title: 'Radio message requests',
     sent: 'Radio messages sent in the last 30 days: {{count}}',

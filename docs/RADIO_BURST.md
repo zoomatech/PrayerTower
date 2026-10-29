@@ -69,6 +69,44 @@ A full-quieting FM signal is normally above these numbers, so `fm-fast` or
 better, because later prayers reuse the words of earlier ones: 100 prayers fit
 in about 3.7 s on `fm-standard` and 2.6 s on `fm-fast` in the benchmark.
 
+## Simulated throughput (every preset, several noise levels)
+
+Measured on 2026-10-29 with `npm run burst -w @prayer-tower/station -- sim`
+(`src/burst/sim.ts`). Each preset sends 30 generated requests
+(`src/burst/sample.ts`) in one burst, through a simulated path: the radio's
+audio filter (300-3,400 Hz for FM, 50-7,000 Hz for the data port, 300-2,700 Hz
+for HF SSB) and white noise, then the decoder. The noise is stepped down 1 dB at
+a time from 10 dB above the preset's rated floor. The SNR column is the lowest
+level at which all 30 prayers came through on each of 3 noise seeds. HF presets
+were also run through CCIR Rec. 520 moderate fading (two paths, 1 ms apart, 0.5
+Hz Doppler), stepped down from 25 dB.
+
+| Preset | 30 prayers on air | Prayers per second | Decodes all, steady (SNR in 2.5 kHz) | Decodes all, HF moderate fading |
+| --- | --- | --- | --- | --- |
+| `fm-robust` | 3.34 s | 9.0 | 6 dB |  |
+| `fm-standard` | 1.76 s | 17.1 | 10 dB |  |
+| `fm-fast` | 1.28 s | 23.5 | 15 dB |  |
+| `dataport-fast` | 0.77 s | 38.8 | 17 dB |  |
+| `fm-turbo` | 0.97 s | 31.1 | 21 dB |  |
+| `dataport-turbo` | 0.68 s | 44.2 | 22 dB |  |
+| `fm-robust-fec` | 2.98 s | 10.1 | 5 dB |  |
+| `fm-turbo-fec` | 1.21 s | 24.9 | 15 dB |  |
+| `fm-qam16` | 1.42 s | 21.1 | 11 dB |  |
+| `fm-qam64` | 0.97 s | 31.1 | 17 dB |  |
+| `dataport-qam64` | 0.68 s | 44.2 | 19 dB |  |
+| `hf-robust` | 5.93 s | 5.1 | 2 dB | 7 dB |
+| `hf-standard` | 3.20 s | 9.4 | 4 dB | 11 dB |
+| `hf-fast` | 2.53 s | 11.9 | 6 dB | 14 dB |
+
+"Prayers per second" is 30 divided by the burst's air time, including the
+0.1 s lead-in. Below its threshold a preset loses whole frames, never single
+prayers inside one: each frame's CRC drops it rather than passing on a wrong
+prayer. These numbers come from a simulated channel without the clock drift,
+mic compression or clipping of a real radio, so leave a few dB of margin (the
+auto preset adds 3 dB). `apps/station/test/sim.test.ts` checks every preset at
+2 dB and 12 dB above its rated floor and 10 dB below it, and the HF presets in
+moderate fading, on every CI run.
+
 ## How it fits that much
 
 1. **Batch compression.** The prayers are folded to ASCII, joined with
