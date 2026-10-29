@@ -23,8 +23,8 @@ async function inTx(fn: (c: PoolClient) => Promise<void>) {
   }
 }
 
-const SKINS = ['beanstalk', 'golden-wood', 'moonlit-gate', 'wall', 'prayer-tower'];
-const OPEN_CIRCLE_SKINS = ['beanstalk', 'climbing-tower', 'golden-wood', 'moonlit-gate', 'wall'];
+const SKINS = ['beanstalk', 'golden-wood', 'moonlit-gate', 'wall', 'prayer-tower', 'neon-cinderella', 'neon-circuit', 'blossom-garden'];
+const OPEN_CIRCLE_SKINS = ['beanstalk', 'blossom-garden', 'climbing-tower', 'golden-wood', 'moonlit-gate', 'neon-cinderella', 'neon-circuit', 'wall'];
 
 describe('Feed skins', () => {
   it('are hidden and refused while off, then offered and chosen once on', async () => {
@@ -141,6 +141,26 @@ describe('Video cap', () => {
   });
 });
 
+describe('Theme maker', () => {
+  it('builds a skin from the allowed tokens only', async () => {
+    const member = await createUser('Maker Member');
+    await inTx(async (c) => {
+      await skins.updateSettings(c, { proposalsEnabled: true, skinsEnabled: true });
+      const made = await skins.propose(c, member, {
+        name: 'Night Garden',
+        description: 'Glowing flowers on a dark sky.',
+        layout: 'vine',
+        tokens: { backdrop: '#101020', stem: '#7DF9FF', leaf: '#FF9EE6', leafShape: 'flower', stemGlow: true, stemWidth: 6 },
+      });
+      expect(made.tokens).toMatchObject({ leafShape: 'flower', stemGlow: true, leafEvery: 4 });
+      const circuit = await skins.propose(c, member, { name: 'Green Wire', description: 'Green circuits.', layout: 'circuit', tokens: { wire: '#39FF14', tilt: 6 } });
+      expect((await feed.chooseTheme(c, member, circuit.themeSlug!)).theme).toMatchObject({ layout: 'circuit', tokens: { wire: '#39FF14', tilt: 6 } });
+      await expect(skins.propose(c, member, { name: 'Bad', description: 'x', layout: 'vine', tokens: { onPress: 'alert(1)' } } as never)).rejects.toThrow();
+      await expect(skins.propose(c, member, { name: 'Bad', description: 'x', layout: 'vine', tokens: { stemWidth: 400 } } as never)).rejects.toThrow();
+    });
+  });
+});
+
 describe('Skin ideas from members', () => {
   it('are refused while off; once on, admins approve one into a gated beta skin or decline it', async () => {
     const [member, admin] = [await createUser('Idea Member'), await createUser('Idea Admin')];
@@ -171,7 +191,16 @@ describe('Skin ideas from members', () => {
       await skins.propose(c, member, skins.NewProposal.parse({ ...idea, name: 'Third idea' }));
       await expect(skins.propose(c, member, skins.NewProposal.parse({ ...idea, name: 'Fourth idea' }))).rejects.toThrow(/3 skin ideas/);
 
+      // The maker can use their own skin straight away; nobody else sees it yet.
+      const other = await createUser('Idea Neighbor');
+      expect((await feed.themeChoices(c, member)).themes.map((t) => t.slug)).toContain(p.themeSlug);
+      expect((await feed.themeChoices(c, other)).themes.map((t) => t.slug)).not.toContain(p.themeSlug);
+      await expect(feed.chooseTheme(c, other, p.themeSlug!)).rejects.toThrow();
+      expect((await feed.chooseTheme(c, member, p.themeSlug!)).theme).toMatchObject({ layout: 'vine', tokens: { stem: '#3F7D20', leaf: '#F2C14E', backdrop: '#FFFBEA' } });
+
       const approved = await skins.approve(c, admin, p.id, { note: 'Lovely.' });
+      expect(approved.themeSlug).toBe(p.themeSlug);
+      expect((await feed.themeChoices(c, other)).themes.map((t) => t.slug)).toContain(p.themeSlug);
       expect(approved.themeSlug).toMatch(/^sunflower-field-/);
       const choices = await feed.themeChoices(c, member);
       expect(choices.themes.find((t) => t.slug === approved.themeSlug)).toMatchObject({ status: 'beta', layout: 'vine' });

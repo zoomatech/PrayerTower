@@ -20,6 +20,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
+import { glow, isDark, LeafMark, NeonScene, SCENES, textOn, type SceneKind } from './motifs';
 import { vinePlacement } from './placement';
 
 // The branch color as text: darker, for 4.5:1 contrast on the card (WCAG AA).
@@ -40,10 +41,19 @@ const DEFAULTS = {
   stemWidth: 4,
   /** Two thin parallel lines instead of one stem (Moonlit Gate's silver tracery). */
   stemDouble: false,
-  /** 'tablet' is for comment trees on the Prayer Tower: stone tablets instead of leaves. */
-  leafShape: 'round' as 'round' | 'pointed' | 'tablet',
+  /**
+   * 'flower' (Blossom Garden) and 'star' (Neon Cinderella) draw a mark from
+   * motifs.tsx; 'tablet' is for comment trees on the Prayer Tower.
+   */
+  leafShape: 'round' as LeafShape,
+  /** A neon glow on the stem. */
+  stemGlow: false,
+  /** 'fairytale' puts neon outline drawings between the requests (Neon Cinderella). */
+  scenery: '',
 };
 type VineTokens = typeof DEFAULTS;
+export const LEAF_SHAPES = ['round', 'pointed', 'flower', 'star', 'tablet'] as const;
+export type LeafShape = (typeof LEAF_SHAPES)[number];
 
 /** Theme tokens override the defaults key by key; wrong types are ignored. */
 export function vineTokens(theme: FeedTheme | null): VineTokens {
@@ -51,7 +61,7 @@ export function vineTokens(theme: FeedTheme | null): VineTokens {
   const out = { ...DEFAULTS } as Record<string, unknown>;
   for (const [k, v] of Object.entries(DEFAULTS)) if (typeof t[k] === typeof v) out[k] = t[k];
   out.stemWidth = Math.min(Math.max(Number(out.stemWidth) || DEFAULTS.stemWidth, 2), 14);
-  if (out.leafShape !== 'pointed' && out.leafShape !== 'tablet') out.leafShape = 'round';
+  if (!LEAF_SHAPES.includes(out.leafShape as LeafShape)) out.leafShape = 'round';
   return out as VineTokens;
 }
 
@@ -60,7 +70,7 @@ export function Stem({ tokens }: { tokens: VineTokens }) {
   const w = tokens.stemWidth;
   if (tokens.stemDouble)
     return <View style={[styles.stem, { width: w * 3, marginLeft: -(w * 3) / 2, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderColor: tokens.stem, borderRadius: 0 }]} />;
-  return <View style={[styles.stem, { backgroundColor: tokens.stem, width: w, marginLeft: -w / 2, borderRadius: w / 2 }]} />;
+  return <View style={[styles.stem, { backgroundColor: tokens.stem, width: w, marginLeft: -w / 2, borderRadius: w / 2 }, tokens.stemGlow && glow(tokens.stem, 10)]} />;
 }
 
 const POINTED = { borderTopLeftRadius: 2, borderBottomRightRadius: 2, borderTopRightRadius: 18, borderBottomLeftRadius: 18 };
@@ -89,7 +99,7 @@ interface Leaf {
   translation: string | null;
 }
 
-type Item = { kind: 'fruit'; card: Card } | { kind: 'leaf'; leaf: Leaf; key: string };
+type Item = { kind: 'fruit'; card: Card } | { kind: 'leaf'; leaf: Leaf; key: string } | { kind: 'scene'; scene: SceneKind; key: string };
 
 /** How many tendrils a fruit shows at most; the label carries the real count. */
 const MAX_TENDRILS = 5;
@@ -118,6 +128,11 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
           card.state === 'answered' && { ...styles.bloom, shadowColor: colors.gold, borderColor: colors.goldSoft },
           { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
+        {tokens.leafShape === 'flower' || tokens.leafShape === 'star' ? (
+          <View style={[styles.mark, left ? { right: -14 } : { left: -14 }]}>
+            <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={26} />
+          </View>
+        ) : (
         <View
           style={[
             styles.leaf,
@@ -127,6 +142,7 @@ function Fruit({ card, pinned, tokens, children }: { card: Card; pinned: boolean
             { transform: [{ rotate: `${left ? tilt : -tilt}deg` }] },
           ]}
         />
+        )}
         <View style={[styles.ripeness, { backgroundColor: ripeness[card.state], borderColor: tokens.leafSoft }, left ? { right: -7 } : { left: -7 }]} />
         <View style={styles.tags}>
           {pinned ? <Tr k="feed.pinned" style={styles.pinned} /> : null}
@@ -240,9 +256,14 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         const n = Math.floor(i / tokens.leafEvery);
         out.push({ kind: 'leaf', leaf: leaves[n % leaves.length]!, key: `leaf-${n}` });
       }
+      // Neon Cinderella: a castle, a coach or a slipper after every third request (offset from the verses).
+      if (tokens.scenery === 'fairytale' && i % 3 === 1) {
+        const n = Math.floor(i / 3);
+        out.push({ kind: 'scene', scene: SCENES[n % SCENES.length]!, key: `scene-${n}` });
+      }
     });
     return out;
-  }, [cards, leaves, tokens.leafEvery]);
+  }, [cards, leaves, tokens.leafEvery, tokens.scenery]);
 
   const onScroll = useCallback(() => {
     const now = Date.now();
@@ -262,17 +283,23 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
             <Fruit card={item.card} pinned={item.card.id === pinnedId} tokens={tokens}>
               {renderCard(item.card)}
             </Fruit>
+          ) : item.kind === 'scene' ? (
+            <View style={styles.row}>
+              <Stem tokens={tokens} />
+              <NeonScene kind={item.scene} line={tokens.stem} accent={tokens.leaf} />
+            </View>
           ) : (
             <ScriptureLeaf leaf={item.leaf} tokens={tokens} />
           )
         }
-        ListHeaderComponent={header ?? undefined}
+        // On a dark skin the feed's header sits on a light panel so its text stays readable.
+        ListHeaderComponent={header ? isDark(tokens.backdrop) ? <View style={styles.headerPanel}>{header}</View> : header : undefined}
         ListFooterComponent={
           atEnd && cards.length > 0 ? (
             <View style={styles.tip}>
               <View style={[styles.tipStem, { backgroundColor: tokens.stem, width: tokens.stemWidth }]} />
               <View style={styles.blossom} />
-              <Text style={styles.end}>{wording === 'neutral' ? t('vine.tip') : tokens.tipText}</Text>
+              <Text style={[styles.end, tokens.backdrop ? { color: textOn(tokens.backdrop) } : null]}>{wording === 'neutral' ? t('vine.tip') : tokens.tipText}</Text>
               <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />
             </View>
           ) : undefined
@@ -302,6 +329,8 @@ const styles = StyleSheet.create({
   fruit: { width: '86%', position: 'relative' },
   fruitLeft: { alignSelf: 'flex-start' },
   fruitRight: { alignSelf: 'flex-end' },
+  mark: { position: 'absolute', top: 12, zIndex: 1 },
+  headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm, marginBottom: space.md },
   leaf: { position: 'absolute', top: 18, width: 34, height: 18, borderTopLeftRadius: 18, borderBottomRightRadius: 18 },
   ripeness: { position: 'absolute', top: 42, width: 14, height: 14, borderRadius: radius.pill, borderWidth: 2 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.xs },

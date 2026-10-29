@@ -98,12 +98,16 @@ export interface SkinSettings {
   video_max_seconds: number;
 }
 
+export type MakerLayout = 'vine' | 'wall' | 'tower' | 'circuit';
+
 export interface ThemeProposal {
   id: string;
   name: string;
   description: string;
-  layout: 'vine' | 'wall';
+  layout: MakerLayout;
   colors: { stem?: string; leaf?: string; backdrop?: string };
+  /** The look the member built in the theme maker. */
+  tokens: Record<string, unknown>;
   status: 'pending' | 'approved' | 'declined';
   reviewNote: string | null;
   themeSlug: string | null;
@@ -893,7 +897,7 @@ export const api = {
   myBranch: () => get<{ posts: Card[] }>('/me/branch'),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   myThemeProposals: () => get<{ proposals: ThemeProposal[] }>('/me/theme-proposals'),
-  proposeTheme: (input: { name: string; description: string; layout: 'vine' | 'wall'; colors: { stem: string; leaf: string; backdrop: string } }) =>
+  proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>
     post<{ proposal: ThemeProposal }>('/me/theme-proposals', input),
   chooseFeedTheme: (slug: string | null) => put<FeedThemeChoices>('/me/feed-theme', { slug }),
   mediaUploadUrl: (contentType: string) =>

@@ -12,6 +12,7 @@ import type { Comment } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { LeafMark } from '@/layouts/motifs';
 import type { vineTokens } from '@/layouts/vine';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -102,7 +103,13 @@ function Leaf({ comment, depth, props, tree }: { comment: Comment; depth: number
       <View style={styles.leafRow}>
         {/* The twig from the branch to this leaf, and the leaf itself. */}
         <View style={[styles.twig, { backgroundColor: depth === 0 ? tokens.stem : tokens.branch }]} />
-        <View style={[styles.leafShape, tablet ? styles.tabletMark : pointed ? styles.pointed : styles.round, { backgroundColor: tokens.leaf }]} />
+        {tokens.leafShape === 'flower' || tokens.leafShape === 'star' ? (
+          <View style={styles.markBox}>
+            <LeafMark shape={tokens.leafShape} leaf={tokens.leaf} accent={tokens.tendril} size={depth > 0 ? 14 : 18} />
+          </View>
+        ) : (
+          <View style={[styles.leafShape, tablet ? styles.tabletMark : pointed ? styles.pointed : styles.round, { backgroundColor: tokens.leaf }]} />
+        )}
         <View
           style={[
             styles.body,
@@ -162,6 +169,7 @@ function Branch({ parentId, depth, props, tree }: { parentId: string | null; dep
               key={i}
               style={[
                 styles.ghost,
+                props.tokens.leafShape === 'tablet' && styles.ghostTablet,
                 {
                   opacity: o,
                   backgroundColor: props.tokens.leaf,
@@ -213,6 +221,7 @@ const styles = StyleSheet.create({
     padding: space.sm,
     gap: 2,
   },
+  markBox: { marginTop: 10, marginRight: space.xs, width: 18, alignItems: 'center' },
   // A stone tablet: square corners at the foot, a rounded top, a heavier edge.
   tabletMark: { width: 12, height: 16, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderRadius: 1 },
   tablet: { borderWidth: 2, borderRadius: 4, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
@@ -231,5 +240,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 18,
     borderBottomRightRadius: 18,
   },
+  ghostTablet: { width: 26, height: 30, borderRadius: 3, borderTopLeftRadius: 13, borderTopRightRadius: 13 },
   blurText: { ...type.small, color: colors.text, fontWeight: '700' },
 });

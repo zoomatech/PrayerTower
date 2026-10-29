@@ -6,6 +6,7 @@ import type { Card, CardAction, FeedLayoutKind, FeedTheme } from '@prayer-tower/
 import type { ReactElement } from 'react';
 
 import { CarouselLayout } from './carousel';
+import { CircuitLayout } from './circuit';
 import { ColumnLayout } from './column';
 import { FlipLayout } from './flip';
 import { TowerLayout } from './tower';
@@ -43,6 +44,7 @@ const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   carousel: CarouselLayout,
   wall: WallLayout,
   tower: TowerLayout,
+  circuit: CircuitLayout,
 };
 
 export function layoutFor(theme: FeedTheme | null): FeedLayout {

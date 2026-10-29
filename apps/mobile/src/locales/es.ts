@@ -1358,6 +1358,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   tree: en.tree,
   wall: en.wall,
   tower: en.tower,
+  circuit: en.circuit,
   growth: en.growth,
   card: {
     answered: '✨ Oración contestada',

@@ -1156,7 +1156,7 @@ function SkinSettingsSection() {
           </Text>
           <Text style={type.small}>{i.description}</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
-            {[i.colors.stem, i.colors.leaf, i.colors.backdrop].filter(Boolean).map((c, n) => (
+            {[...new Set([...Object.values(i.colors ?? {}), ...Object.values(i.tokens ?? {})].filter((v): v is string => typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v)))].slice(0, 6).map((c, n) => (
               <View key={n} style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: c }} accessibilityLabel={c} />
             ))}
           </View>

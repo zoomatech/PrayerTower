@@ -8,11 +8,11 @@ Everything here is **off** until an admin turns it on in **Admin → Feed skins*
 
 | Switch | Default | What it does |
 |---|---|---|
-| Show the new feed skins | off | Adds Beanstalk, Golden Wood, Moonlit Gate and Wall to Me → Feed style. Turning it off sends anyone using one back to the plain column. |
+| Show the new feed skins | off | Adds Beanstalk, Golden Wood, Moonlit Gate, Wall, Prayer Tower (Climbing Tower in Open Circle), Neon Cinderella, Neon Circuit and Blossom Garden to Me → Feed style. Turning it off sends anyone using one back to the plain column. |
 | Comments as branches and leaves | off | Comments on a request show as leaves on branches. |
 | Leaves shown on a branch before the blur | 5 | Past this, the other leaves fade into a blur ("12 more leaves on this branch") until tapped. |
 | Levels of comments | 3 | Comment, reply, reply to that. At the third level there is no Reply link, and the server refuses a deeper reply, so a back-and-forth chain can't grow. Side branches at the third level are fine. |
-| Members can suggest skins | off | Me → Suggest a feed skin. Admins approve or decline in Admin → Feed skins. |
+| Members can make their own skins | off | Me → Make your own feed skin (the theme maker). The maker can use their skin at once; everyone else sees it only after an admin approves it in Admin → Feed skins. |
 | Longest video, in seconds | 7 | The composer leaves out longer clips. The server refuses a clip longer than the cap. |
 
 ## The skins
@@ -25,18 +25,30 @@ A skin is a row in `feed_themes`. Its look is in `tokens` (JSON), so a new vine 
 | Golden Wood | vine | Silver-grey trunk, pointed gold leaves, cream backdrop, no bird |
 | Moonlit Gate | vine | Doubled silver line like engraved tracery, pointed pale leaves, cool stone backdrop |
 | Wall | wall | One post per screen on a dark backdrop, hard snap per swipe, like a short-video app |
+| Prayer Tower / Climbing Tower | tower | Stone pillars and a climber avatar 🧗; one request per floor; comments are stone tablets and sub-tablets |
+| Neon Cinderella | vine | Dark night backdrop, glowing pink stem, star-shaped leaves, and neon outline drawings (castle, pumpkin coach, glass slipper) after every third request |
+| Neon Circuit | circuit | Each post glows inside its own screen, tilted left or right; one live wire runs down the edge with a tap into each screen, and gentle bursts of light travel down it |
+| Blossom Garden | vine | Soft pink backdrop, green stem, five-petal flowers instead of leaves; comments bloom as flowers |
 
-Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `backdrop`, `stemWidth` (2–14), `stemDouble`, `leafShape` (`round` or `pointed`), `leafEvery`, `idleBirdSeconds`, `birdText`, `tipText`. Wall tokens: `backdrop`.
+Vine tokens (all optional): `stem`, `leaf`, `leafSoft`, `branch`, `tendril`, `backdrop`, `stemWidth` (2–14), `stemDouble`, `leafShape` (`round`, `pointed`, `flower`, `star`, `tablet`), `stemGlow`, `scenery` (`fairytale` or empty), `leafEvery`, `idleBirdSeconds`, `birdText`, `tipText`. Wall tokens: `backdrop`. Tower tokens: `stone`, `mortar`, `backdrop`, `climber`. Circuit tokens: `backdrop`, `wire`, `burst`, `screen`, `tilt` (0–20 degrees).
 
 Open Circle gets the same skins. They carry no religious words, and the vine's Open Circle wording still replaces `birdText` and `tipText`.
 
+## Prayer Tower (climb layout)
+
+`apps/mobile/src/layouts/tower.tsx`. Phones and tablets. One request per floor between two stone pillars; the climber climbs one floor each time the member swipes to the next request, with Climb up and Climb down buttons for anyone who prefers tapping. A long request scrolls inside its floor, and the swipe only climbs once the floor is read to its edge.
+
+**Scroll direction.** Research on touch screens finds people respond best when the content moves the same way as the finger ("response-effect compatibility", [MetaTOC summary of the Human Factors paper](https://metatoc.com/papers/1356-response-effect-compatibility-defines-the-natural-scrolling-direction); [Penn State study](https://pure.psu.edu/en/publications/stimulus-response-and-response-effect-compatibility-with-touchles/); [SlashGear on the subjectivity of natural scrolling](https://www.slashgear.com/the-subjectivity-of-natural-scrolling-05169915)). So the default is **Swipe down to climb** (pull the tower down past you, so the climber rises). **Swipe up to climb** is offered as a setting chip on the tower itself, for members who want to try the counter-intuitive direction. The choice is saved on the device. Reduced motion turns off the climber's bob and the brick animation.
+
 ## Comment trees
 
-`apps/mobile/src/components/comment-tree.tsx`. Each comment is a leaf with a twig to its branch, colored from the member's vine skin (or the plain vine's colors). New leaves grow in with a short spring, and tapping the blur shuffles the hidden leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it.
+`apps/mobile/src/components/comment-tree.tsx`. Each comment is a leaf with a twig to its branch, colored from the member's vine skin (or the plain vine's colors). New leaves grow in with a short spring, and tapping the blur shuffles the hidden leaves forward. Both animations stay off for anyone whose device asks for reduced motion. A shared comment link opens the branches that hold it. The comment pieces follow the skin: stone tablets and smaller sub-tablets on the tower, stars on Neon Cinderella, flowers on Blossom Garden.
 
-## Member skin ideas
+## Theme maker (members make their own skins)
 
-A member sends a name, a description, vine or wall, and three colors (#RRGGBB). Up to 3 can wait at once. Approving one creates a gated beta skin in the member's community from those colors, and admins can retune its tokens later. Ideas are in the member's data export and are deleted with the account.
+Me → Make your own feed skin (`apps/mobile/src/app/skin-idea.tsx`). A member names the skin, picks a layout (growing vine, full-screen wall, climbing tower or neon circuit), sets its colors, and for vines picks the comment shape (round, pointed, flower, star, stone tablet), stem width, double outline, glow and fairy-tale scenery. A live preview updates as they go.
+
+Saving creates a private skin owned by the member (`feed_themes.owner_id`); it shows at once in their own Feed style. Everyone else sees it only after an admin approves it in Admin → Feed skins, which offers it in the member's community (still behind the skins switch). Declining leaves it private. The server accepts only known token names and values (hex colors, set ranges, listed shapes), so a skin can't inject anything else. Up to 3 can wait for review at once. Skins and ideas are in the member's data export and are deleted with the account.
 
 ## Using Claude Design for new skins
 
@@ -74,3 +86,5 @@ At 10 pilot members, one clip each a week, seen by the other 9: about 43 clips (
 ## Notes for the legal department
 
 The skins use our own names (Golden Wood, Moonlit Gate). Middle-earth Enterprises holds many Tolkien trademarks ([Justia listing](https://trademarks.justia.com/owners/middle-earth-enterprises-llc-5365969)), so Tolkien's place names stay out of the app and store text until legal checks them. The skins are only inspired by golden woods and moonlit stone gates.
+
+Neon Cinderella's drawings (castle, pumpkin coach, glass slipper) are our own simple line drawings built from shapes in `apps/mobile/src/layouts/motifs.tsx`, not traced or copied from any film or park. The Cinderella story itself is an old folk tale (Perrault's 1697 version; see [Britannica Kids](https://kids.britannica.com/students/article/Cinderella/319708) and [The Legal Guide](https://thelegalguide.org/is-cinderella-story-public-domain/)), but a studio's own designs and characters are not. Keep the skin's name and art generic, and have legal check before any store text names Cinderella.
