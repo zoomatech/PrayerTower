@@ -167,6 +167,7 @@ export interface Features {
   podcasts: boolean;
   /** Paid radio prayers are matched with equal material help. */
   materialMatch: boolean;
+  library: boolean;
   /** Growth ideas (docs/GROWTH.md). */
   guestPrayer: boolean;
   prayerChain: boolean;
@@ -1497,6 +1498,10 @@ export type ReadingPlanToday =
         reading: { reference: string; url: string; read: boolean; readers: number } | null;
       } | null;
     };
+export type LibraryOverview = { enabled: false } | { enabled: true; collections: { id: LibraryCollectionId; title: string; faith: boolean }[] };
+export type LibraryCollectionId = 'bible-kjv' | 'ancient-writings';
+export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string } };
+export type LibraryResults = { total: number; source: string; hits: LibraryHit[] };
 export type StaffReadingPlan = { id: string; title: string; startsOn: string; days: number; readers: number; archived: boolean };
 
 export type Lamps = {
@@ -1978,6 +1983,8 @@ export const api = {
     createAnnouncement: (input: { kind: 'banner' | 'notice'; title: string; body?: string; titleEs?: string; bodyEs?: string; durationHours?: number | null }) =>
       post<{ announcement: Announcement }>('/admin/announcements', input),
     endAnnouncement: (id: string) => post<{ announcement: Announcement }>(`/admin/announcements/${id}/end`),
+    library: () => get<{ enabled: boolean }>('/admin/library'),
+    updateLibrary: (patch: { enabled: boolean }) => request<{ enabled: boolean }>('PATCH', '/admin/library', patch),
     materialMatch: () =>
       get<{ settings: { enabled: boolean; centsPerToken: number }; owed: { count: number; cents: number; since: string | null }; fulfilled: { count: number; cents: number } }>(
         '/admin/material-match',
@@ -2241,6 +2248,9 @@ export const api = {
   removePrayerListItem: (id: string) => request<PrayerList>('DELETE', `/me/prayer-list/${id}`),
   prayedForListItem: (id: string) => post<PrayerList>(`/me/prayer-list/${id}/prayed`, {}),
   readingPlan: () => get<ReadingPlanToday>('/reading-plan'),
+  library: () => get<LibraryOverview>('/library'),
+  searchLibrary: (input: { q: string; collection: LibraryCollectionId; offset?: number; limit?: number }) =>
+    get<LibraryResults>(`/library/search?${new URLSearchParams({ q: input.q, collection: input.collection, offset: String(input.offset ?? 0), limit: String(input.limit ?? 20) })}`),
   markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),
   staffReadingPlans: () => get<{ plans: StaffReadingPlan[] }>('/staff/reading-plans'),
   createReadingPlan: (input: { title: string; startsOn: string; references: string[]; conversationId?: string | null }) => post<{ id: string }>('/staff/reading-plans', input),

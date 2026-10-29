@@ -21,6 +21,8 @@ COPY apps/server/package.json ./apps/server/
 COPY --from=build /app/packages/shared ./packages/shared
 # The privacy policy and terms served at /privacy and /terms (the reviewed .md wins over the _DRAFT).
 COPY docs/legal ./docs/legal
+# The Bible and ancient writings searched by modules/library (public domain).
+COPY apps/server/data ./apps/server/data
 # Apple's root certificate, for checking App Store purchases (APPLE_ROOT_CA_PATHS; docs/TOKEN_PURCHASE.md).
 ADD --chmod=644 https://www.apple.com/certificateauthority/AppleRootCA-G3.cer ./certs/AppleRootCA-G3.cer
 USER node
