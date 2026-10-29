@@ -604,7 +604,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 export const NOTIFICATION_KINDS: Record<NotificationCategory, readonly string[]> = {
   prayers: ['praying_now', 'prayer', 'pray_request', 'pray_with_me', 'power_prayer', 'intercessory', 'radio_prayer', 'spoken_prayer', 'live_amplifier_read', 'guest_prayer', 'prayer_minute'],
   promises: ['commitment_made', 'commitment_reminder'],
-  encouragement: ['encouragement', 'thanks', 'weekly_review', 'testimony', 'answered', 'award'],
+  encouragement: ['encouragement', 'thanks', 'lamp', 'weekly_review', 'testimony', 'answered', 'award'],
   messages: ['message', 'meetup', 'care_request'],
   community: ['event_new', 'event_reminder', 'event_cancelled', 'group_invite', 'witness_story'],
   tokens: ['mint', 'milestone', 'scheduled_spend', 'radio_not_sent', 'token_purchase_refunded'],

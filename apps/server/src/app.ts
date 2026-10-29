@@ -30,6 +30,7 @@ import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
 import { aiRoutes } from './modules/ai/routes.js';
+import { lampRoutes } from './modules/lamps/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
 import { liveRoutes } from './modules/live/routes.js';
@@ -272,6 +273,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     securityRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);
     aiRoutes(authed, db, converse);
+    lampRoutes(authed, db);
     liveRoutes(authed, db);
     communityRoutes(authed, db);
     surveyRoutes(authed, db);

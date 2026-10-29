@@ -66,6 +66,7 @@ export interface Features {
   checkinAffirmation: boolean;
   whyGifts: boolean;
   poolMatching: boolean;
+  lamps: boolean;
   /** Moderators can escalate a report for a law-enforcement review. */
   legalReview: boolean;
   podcasts: boolean;
@@ -138,6 +139,8 @@ export interface NotebookSettings {
   checkin_affirmation_enabled: boolean;
   why_gifts_enabled: boolean;
   pool_matching_enabled: boolean;
+  lamps_enabled: boolean;
+  lamps_per_week: number;
   promise_page_enabled: boolean;
   podcasts_enabled: boolean;
 }
@@ -692,6 +695,15 @@ export type AiSettings = {
   auto_pray_days: number;
 };
 
+/** Lamp awards: thanks with a note, recognition only. */
+export type Lamps = {
+  enabled: boolean;
+  count: number;
+  lamps: { id: string; note: string; createdAt: string; giverId: string; giverName: string }[];
+  canGive: boolean;
+  leftThisWeek: number;
+};
+
 /** Auto-Pray: AI prayers under a request, counted apart from prayers by people. */
 export type AiPrayers = {
   enabled: boolean;
@@ -1114,7 +1126,7 @@ export const api = {
     growthSettings: () => get<{ settings: GrowthSettings }>('/admin/growth-settings'),
     updateGrowthSettings: (patch: Partial<{ guestPrayerEnabled: boolean; prayerChainEnabled: boolean; prayerChainMax: number; prayedForWidgetEnabled: boolean; prayerMinuteEnabled: boolean }>) =>
       request<{ settings: GrowthSettings }>('PATCH', '/admin/growth-settings', patch),
-    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean }>) =>
+    updateNotebookSettings: (patch: Partial<{ worldwideCountEnabled: boolean; thanksCardEnabled: boolean; thanksCardDays: number; sermonInputsEnabled: boolean; supportLabelEnabled: boolean; witnessStoriesEnabled: boolean; pressureRuleEnabled: boolean; promisePageEnabled: boolean; podcastsEnabled: boolean; misleadingRuleEnabled: boolean; automationRuleEnabled: boolean; urgencyGlowEnabled: boolean; reactionTrayEnabled: boolean; memberTownEnabled: boolean; prizeChoiceEnabled: boolean; waitlistEnabled: boolean; crossCommunityEnabled: boolean; postLinesEnabled: boolean; tierUpkeepEnabled: boolean; tierUpkeepDays: number; checkinAffirmationEnabled: boolean; whyGiftsEnabled: boolean; poolMatchingEnabled: boolean; lampsEnabled: boolean; lampsPerWeek: number }>) =>
       request<{ settings: NotebookSettings }>('PATCH', '/admin/notebook-settings', patch),
     eventSettings: () => get<{ settings: { events_enabled: boolean; new_members_can_host: boolean; allowed_video_hosts: string[]; reminder_minutes: number } }>('/admin/event-settings'),
     updateEventSettings: (patch: Partial<{ eventsEnabled: boolean; newMembersCanHost: boolean; allowedVideoHosts: string[]; reminderMinutes: number }>) =>
@@ -1138,6 +1150,8 @@ export const api = {
   myTokenPools: () => get<{ pools: TokenPool[] }>('/me/token-pools'),
   createTokenPool: (input: { name: string; purpose: string; realm: string | null; drawAmount: number; showDonor: boolean; amount: number; matchRatio?: number; matchCap?: number }) =>
     post<{ id: string; balance: number }>('/token-pools', { ...input, idempotencyKey: `pool-${Date.now()}` }),
+  lamps: (personId: string) => get<Lamps>(`/people/${personId}/lamps`),
+  giveLamp: (personId: string, note: string) => post<{ id: string }>(`/people/${personId}/lamps`, { note }),
   aiPrayers: (postId: string) => get<AiPrayers>(`/posts/${postId}/ai-prayers`),
   setAutoPray: (postId: string, on: boolean) => request<AiPrayers>('PUT', `/posts/${postId}/auto-pray`, { on }),
   fundTokenPool: (id: string, amount: number) => post<{ matched: number; poolBalance: number; balance: number }>(`/token-pools/${id}/fund`, { amount, idempotencyKey: `fund-${id}-${Date.now()}` }),
