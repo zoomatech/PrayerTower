@@ -198,6 +198,9 @@ describe('every radio feature, every switch on, both editions', () => {
     const pt = await app.inject({ method: 'GET', url: '/listen' });
     expect(pt.statusCode).toBe(200);
     expect(pt.body).toContain('Listen to a prayer burst');
+    // Microphone capture on the audio thread, and the packet fallback's cards.
+    expect(pt.body).toContain('audioWorklet.addModule');
+    expect(pt.body).toContain('PTDecoder.decodePackets');
     for (const [url, host] of [['/listen', 'opencircle.example'], ['/open-circle/listen', 'localhost'], ['/on-the-air', 'opencircle.example'], ['/open-circle/on-the-air', 'localhost']] as const) {
       const res = await app.inject({ method: 'GET', url, headers: { host } });
       expect(res.statusCode, url).toBe(200);
@@ -208,6 +211,7 @@ describe('every radio feature, every switch on, both editions', () => {
         .join(' ');
       expect(text, `${host}${url}`).not.toMatch(RELIGIOUS);
       if (url.endsWith('/listen')) expect(text).toContain('Listen to a radio burst');
+      if (url.endsWith('/listen')) expect(res.body).toContain("const ITEMS = ' message(s)';");
     }
   });
 });

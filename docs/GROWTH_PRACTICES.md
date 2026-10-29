@@ -128,3 +128,21 @@ Only tools that are switched on get a card, and the wording follows the edition.
 member sees it once on each device, until they tap **Got it** or **Skip**.
 
 Code: `components/kindness-intro.tsx`.
+
+## Check back (off)
+
+Admin → Growth practices → **Check back** (migration 20261029018500). On their own open
+request, the person who asked sees **Check back with me** and picks **In 3 days**,
+**In a week** or **In 2 weeks**:
+
+- When the day comes, they get one soft reminder ("Checking back, as you asked… No
+  pressure at all"). A request answered by then gets none. They can pick **No reminder**
+  at any time.
+- When they post an update (**Post update**), everyone who prayed gets one quiet in-app
+  heads-up ("Ana shared an update on a request you prayed for"). It never sends a push,
+  carries none of the update's words, and comes at most once a day per request. An
+  update also clears a pending reminder, since it did what the reminder was for.
+
+This sits beside the 21-day follow-up: that one asks once on its own, while check back
+is chosen by the person who asked. Code: `modules/check-back`, `components/check-back.tsx`,
+the `check_back_due` cron (hourly at :30), and `quiet` on `notifications.notify`.

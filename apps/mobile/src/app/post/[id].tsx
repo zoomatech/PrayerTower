@@ -5,6 +5,7 @@ import { ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from '
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
+import { CheckBack } from '@/components/check-back';
 import { CoolDownCard } from '@/components/cool-down-card';
 import { LamentControls } from '@/components/lament-controls';
 import { useCelebration } from '@/components/celebration';
@@ -309,6 +310,7 @@ export default function PostScreen() {
         ) : null}
         {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
+        {card?.isMine && card.postType === 'prayer_request' && card.state !== 'answered' ? <CheckBack postId={card.id} /> : null}
         {card ? <MeaningReactions postId={card.id} postBody={card.body} tokens={leafTokens} /> : null}
         {card?.crisis || support ? <CrisisSupport /> : null}
         {harmSupport ? <HarmSupport note={harmSupport} /> : null}
@@ -569,6 +571,8 @@ export default function PostScreen() {
                 empty={false}
                 text={text}
                 onPick={setText}
+                postType={replyTo || card.isMine ? null : card.postType}
+                lament={!replyTo && !card.isMine && features.lament && !!card.lament}
               />
               {warnedFor && warnedFor.text === text ? <RulesWarning busy={busy} onPostAnyway={() => send(warnedFor.isUpdate, true)} /> : null}
               <View style={styles.row}>

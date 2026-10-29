@@ -13,6 +13,7 @@ import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
 import * as growth from '../growth/index.js';
 import { settings as practiceSettings } from '../practices/index.js';
+import * as checkBack from '../check-back/index.js';
 import * as coolDown from '../cool-down/index.js';
 import * as radioThanks from '../radio/thanksgiving.js';
 
@@ -107,6 +108,7 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     const input = posts.NewComment.parse(req.body);
     const { comment, coolDown: cool } = await withTx(db, async (tx) => {
       const comment = await posts.addComment(tx, userId, req.params.id, input);
+      if (input.isUpdate && !comment.harm) await checkBack.noteUpdate(tx, userId, req.params.id);
       return { comment, coolDown: await coolDown.noteComment(tx, userId, req.params.id, input.parentId, input.body) };
     });
     reply.code(201);

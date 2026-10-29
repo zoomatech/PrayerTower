@@ -8,8 +8,11 @@
 // receipts on, tells senders a listener decoded their prayer. A heartbeat about
 // once a minute tells the server the listener is running.
 import { spawn, type ChildProcess } from 'node:child_process';
+import { createHash, createHmac } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { channelReport, decodeAudio, fingerprint, type HeardFrame } from './burst/web.js';
+import { demodulate as demodulatePackets } from './packet/afsk.js';
+import { parseStatus, type PacketStatus } from './packet/message.js';
 
 export const RATE = 48_000;
 const KEEP_SECONDS = 24;
@@ -30,6 +33,9 @@ export class RollingDecoder {
   private total = 0;
   private dropped = 0;
   private decodedUpTo = 0;
+  private packetsUpTo = 0;
+  /** Packet fallback status frames decoded by the last decode() (packet/message.ts). */
+  packets: PacketStatus[] = [];
 
   push(samples: Float32Array) {
     if (!samples.length) return;
@@ -52,6 +58,16 @@ export class RollingDecoder {
       if (end <= this.decodedUpTo) continue;
       this.decodedUpTo = end;
       fresh.push({ ...f, peakDbfs: peakDbfs(buf.subarray(from + f.start, from + f.end)) });
+    }
+    // The packet fallback's 1200-baud frames, each once.
+    const pFrom = Math.max(0, this.packetsUpTo - this.dropped);
+    this.packets = [];
+    for (const p of demodulatePackets(buf.subarray(pFrom), RATE)) {
+      const end = this.dropped + pFrom + p.end;
+      if (end <= this.packetsUpTo) continue;
+      this.packetsUpTo = end;
+      const status = parseStatus(p.frame);
+      if (status) this.packets.push(status);
     }
     while (this.chunks.length > 1 && this.total - this.chunks[0]!.length > KEEP_SECONDS * RATE) {
       const first = this.chunks.shift()!;
@@ -76,18 +92,39 @@ export interface ListenerApi {
   channelReport(r: { callSign: string; preset: string; snrDb: number }): Promise<void>;
   heard(r: { callSign: string; preset: string; snrDb: number; hashes: string[]; peakDbfs?: number }): Promise<void>;
   heartbeat(location?: NodeLocation): Promise<void>;
+  /** The packet fallback's short IDs (POST /node/heard-ids). */
+  heardIds?(r: { callSign: string; ids: string[] }): Promise<void>;
 }
 
-/** Prayer Tower's listener endpoints: POST /node/channel-report, /node/heard and /node/heartbeat, each with the node key (x-node-key). */
-export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch): ListenerApi {
+/**
+ * Signed headers (LISTEN_SIGN=on, docs/STATION_OPERATOR_GUIDE.md, "Signed listener
+ * reports"): the key never leaves the node. The HMAC is keyed with sha256(key) in
+ * hex, which is what the server keeps, over "<ts>\n<METHOD>\n<path>\n<body>".
+ */
+export function signedHeaders(nodeKey: string, method: string, path: string, body: string, ts: number): Record<string, string> {
+  const secret = createHash('sha256').update(nodeKey).digest('hex');
+  return {
+    'x-node-kid': secret.slice(0, 16),
+    'x-node-ts': String(ts),
+    'x-node-sig': createHmac('sha256', secret).update(`${ts}\n${method}\n${path}\n${body}`).digest('hex'),
+  };
+}
+
+/** Prayer Tower's listener endpoints: POST /node/channel-report, /node/heard and /node/heartbeat, with the node key (x-node-key) or, signed, without it. */
+export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typeof fetch = fetch, opts: { sign?: boolean } = {}): ListenerApi {
   const base = baseUrl.replace(/\/$/, '');
-  const post = (path: string, body: object) =>
-    fetchImpl(`${base}${path}`, {
+  // Each signature's timestamp must be newer than the last (the server refuses replays).
+  let lastTs = 0;
+  const post = (path: string, body: object) => {
+    const text = JSON.stringify(body);
+    const auth = opts.sign ? signedHeaders(nodeKey, 'POST', path, text, (lastTs = Math.max(Date.now(), lastTs + 1))) : { 'x-node-key': nodeKey };
+    return fetchImpl(`${base}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-node-key': nodeKey },
-      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json', ...auth },
+      body: text,
       signal: AbortSignal.timeout(10_000),
     });
+  };
   return {
     async channelReport(r) {
       const res = await post('/node/channel-report', r);
@@ -98,6 +135,11 @@ export function httpListenerApi(baseUrl: string, nodeKey: string, fetchImpl: typ
       const res = await post('/node/heard', r);
       // 404: receipts, acknowledgements and listener reports are all switched off.
       if (!res.ok && res.status !== 404) throw new Error(`receipt failed (${res.status})`);
+    },
+    async heardIds(r) {
+      const res = await post('/node/heard-ids', r);
+      // 404: the packet fallback is switched off.
+      if (!res.ok && res.status !== 404) throw new Error(`packet receipt failed (${res.status})`);
     },
     async heartbeat(location) {
       const res = await post('/node/heartbeat', location ? { location } : {});
@@ -135,6 +177,10 @@ export interface ListenerConfig {
 /** Decode what arrived and report each new frame. Returns the frames, for the log. Reporting errors are logged, never thrown. */
 export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: ListenerConfig, log: (m: string) => void = console.log): Promise<ListenedFrame[]> {
   const frames = dec.decode(cfg.searchHz);
+  for (const p of dec.packets) {
+    log(`[listener] heard ${p.callSign} by packet: ${p.count} prayer(s), page ${p.page}/${p.pages}`);
+    if (cfg.receipts && p.ids.length && api.heardIds) await api.heardIds({ callSign: p.callSign, ids: p.ids }).catch((err: Error) => log(`[listener] ${err.message}`));
+  }
   if (!frames.length) return frames;
   // One channel report per station heard: its weakest frame.
   const byStation = new Map<string, ListenedFrame[]>();
