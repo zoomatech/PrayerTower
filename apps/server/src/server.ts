@@ -56,6 +56,7 @@ const app = buildApp({
   metricsToken: config.METRICS_TOKEN ?? null,
   mailer: createMailer(config),
   webAppUrl: config.WEB_APP_URL ?? null,
+  testFlight: { prayerTower: config.TESTFLIGHT_URL ?? null, openCircle: config.OPEN_CIRCLE_TESTFLIGHT_URL ?? null },
   appleVerifier: appleVerifier(config),
   crosspost: crosspostOptions(config),
   // Practice purchases (Admin → Practice mode) can never be on while the App Store is set to production.

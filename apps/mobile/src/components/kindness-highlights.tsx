@@ -10,6 +10,7 @@ import { api, type HighlightQueueItem } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 /** Under someone else's comment on your request: ask its author if it may be shared. */
 export function LiftedMeUp({ commentId }: { commentId: string }) {
@@ -51,11 +52,11 @@ export function HighlightsAdmin() {
   const [note, setNote] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      api.admin.highlightQueue().then((r) => setItems(r.items), (e) => setNote((e as Error).message));
+      api.admin.highlightQueue().then((r) => setItems(r.items), (e) => setNote(errorText(e)));
     }, []),
   );
   if (!items) return note ? <Text style={type.small}>{note}</Text> : null;
-  const run = (p: Promise<{ items: HighlightQueueItem[] }>) => p.then((r) => setItems(r.items), (e) => setNote((e as Error).message));
+  const run = (p: Promise<{ items: HighlightQueueItem[] }>) => p.then((r) => setItems(r.items), (e) => setNote(errorText(e)));
   return (
     <View style={styles.admin} testID="highlights-admin">
       <Text style={type.body}>{t('highlightsKind.adminQueue')}</Text>
@@ -82,7 +83,7 @@ export function HighlightsAdmin() {
           small
           variant="secondary"
           label={t('highlightsKind.adminSend')}
-          onPress={() => api.admin.sendHighlights().then((r) => setNote(t('highlightsKind.adminSent', { count: r.sent })), (e) => setNote((e as Error).message))}
+          onPress={() => api.admin.sendHighlights().then((r) => setNote(t('highlightsKind.adminSent', { count: r.sent })), (e) => setNote(errorText(e)))}
         />
       ) : null}
       {note ? <Text style={type.small}>{note}</Text> : null}

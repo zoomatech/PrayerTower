@@ -10,6 +10,7 @@ import { api, type SpokenPrayer, type SpokenPrayerStatus } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { space, type } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 const OFFERS = [0, 1, 2, 5, 10];
 
@@ -23,7 +24,7 @@ export function SpokenPrayers({ postId }: { postId: string }) {
   useEffect(load, [load]);
 
   if (!status?.enabled) return null;
-  const fail = (e: unknown) => setNote((e as Error).message);
+  const fail = (e: unknown) => setNote(errorText(e));
   if (status.mine) {
     return (
       <View style={styles.section} role="group" aria-label={t('spoken.heading')}>
@@ -78,8 +79,8 @@ function Received({ prayer, onChange, onNote }: { prayer: SpokenPrayer; onChange
       <Text style={type.body}>{t('spoken.from', { name: prayer.from.displayName, seconds: prayer.durationSeconds })}</Text>
       <View style={styles.row}>
         <Button small label={t('spoken.play')} disabled={!prayer.url} onPress={play} />
-        <Button small variant="ghost" label={t('spoken.report')} onPress={() => api.report('spoken_prayer', prayer.id, 'Reported from a spoken prayer').then(() => onNote(t('spoken.reported')), (e) => onNote((e as Error).message))} />
-        <Button small variant="ghost" label={t('spoken.remove')} onPress={() => api.removeSpokenPrayer(prayer.id).then(onChange, (e) => onNote((e as Error).message))} />
+        <Button small variant="ghost" label={t('spoken.report')} onPress={() => api.report('spoken_prayer', prayer.id, 'Reported from a spoken prayer').then(() => onNote(t('spoken.reported')), (e) => onNote(errorText(e)))} />
+        <Button small variant="ghost" label={t('spoken.remove')} onPress={() => api.removeSpokenPrayer(prayer.id).then(onChange, (e) => onNote(errorText(e)))} />
       </View>
     </View>
   );
@@ -125,7 +126,7 @@ function Recorder({ postId, maxSeconds, onSent, onNote }: { postId: string; maxS
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
       onSent();
     } catch (e) {
-      onNote((e as Error).message);
+      onNote(errorText(e));
     } finally {
       setSending(false);
     }

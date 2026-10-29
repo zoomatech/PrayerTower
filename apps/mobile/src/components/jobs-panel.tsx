@@ -9,6 +9,7 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import { Button, ErrorText } from './ui';
+import { errorText } from '@/lib/error-report';
 
 export function JobsPanel() {
   const { t, language } = useLocale();
@@ -26,7 +27,7 @@ export function JobsPanel() {
       setRetrying(r.retrying);
       setLoaded(true);
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     }
   }, []);
 
@@ -45,7 +46,7 @@ export function JobsPanel() {
       setNotice(done);
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(null);
     }

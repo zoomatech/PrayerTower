@@ -7,6 +7,7 @@ import { ErrorText, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { space } from '@/lib/theme';
+import { errorText } from '@/lib/error-report';
 
 export function LamentControls({ postId, lament, radio, onChange }: { postId: string; lament: boolean; radio: boolean; onChange: (lament: boolean, radio: boolean) => void }) {
   const t = useT();
@@ -17,7 +18,7 @@ export function LamentControls({ postId, lament, radio, onChange }: { postId: st
         setError(null);
         onChange(r.lament, r.lamentRadio);
       },
-      (e) => setError((e as Error).message),
+      (e) => setError(errorText(e)),
     );
   return (
     <View style={{ gap: space.xs }} testID="lament-controls">

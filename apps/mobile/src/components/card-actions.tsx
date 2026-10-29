@@ -14,6 +14,7 @@ import { PostGivingSplit } from './giving-split';
 import { KindCloud } from './kind-cloud';
 import { OutsideShareButton } from './outside-share';
 import { Button, Chip, ErrorText, Field, RulesWarning } from './ui';
+import { errorText } from '@/lib/error-report';
 
 type ReportTarget = { type: 'post' | 'comment'; id: string };
 type Sheet = {
@@ -70,7 +71,7 @@ export function useCardActions(onChanged: () => void) {
       setSheet({ kind: 'done', card: sheet.card, message: queued ? t('actions.queued') : done });
       onChanged();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
