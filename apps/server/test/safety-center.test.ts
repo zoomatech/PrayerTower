@@ -19,7 +19,16 @@ afterAll(async () => {
   await db.end();
 });
 
-const feedIds = async (who: string) => (await as(who).get('/feed')).json().posts.map((p: { id: string }) => p.id);
+// Every post the member can see, across all pages: the feed is ranked, so new posts need not be on page one.
+async function feedIds(who: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let page = 0; page < 20; page++) {
+    const posts: { id: string }[] = (await as(who).get(`/feed?page=${page}&pageSize=50`)).json().posts;
+    ids.push(...posts.map((p) => p.id));
+    if (posts.length < 50) break;
+  }
+  return ids;
+}
 
 describe('safety center', () => {
   it('is off by default; only admins switch it', async () => {
