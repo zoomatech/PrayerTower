@@ -173,7 +173,9 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     }
   });
   app.register(cors, {
-    origin: corsOrigins.length ? corsOrigins : true,
+    // The cross-posting browser extension calls from its own origin (Chrome, Safari, Firefox).
+    // It signs in with its key header, never a cookie, so these origins are safe to allow.
+    origin: corsOrigins.length ? [...corsOrigins, /^(chrome|safari-web|moz)-extension:\/\/[A-Za-z0-9-]+$/] : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 

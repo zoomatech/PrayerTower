@@ -5,16 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Prayer Tower Cross-posting</title>
     <style>
-      body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; min-width: 320px; max-width: 520px; color: #1f2937; line-height: 1.45; }
+      /* Light and dark follow the device (Apple asks Safari extensions to support Dark Mode). */
+      :root { color-scheme: light dark; --text: #1f2937; --muted: #4b5563; --line: #d1d5db; --accent: #1d4ed8; --ok: #047857; --bad: #b45309; }
+      @media (prefers-color-scheme: dark) {
+        :root { --text: #e5e7eb; --muted: #9ca3af; --line: #4b5563; --accent: #3b82f6; --ok: #34d399; --bad: #fbbf24; }
+      }
+      /* On iPhone and iPad, text follows the member's Text Size setting (Dynamic Type). */
+      @supports (font: -apple-system-body) { body { font: -apple-system-body; } }
+      body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; min-width: 300px; max-width: 520px; color: var(--text); line-height: 1.45; }
       h1 { font-size: 18px; margin: 0 0 8px; }
       label { display: block; font-weight: 600; margin-top: 12px; }
-      input[type='url'], input[type='password'] { width: 100%; box-sizing: border-box; padding: 8px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 8px; }
+      input[type='url'], input[type='password'] { width: 100%; box-sizing: border-box; padding: 8px; font-size: 16px; border: 1px solid var(--line); border-radius: 8px; }
       .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
-      button { padding: 8px 14px; border-radius: 8px; border: 0; background: #1d4ed8; color: #fff; font-size: 14px; cursor: pointer; }
-      .note { font-size: 13px; color: #4b5563; }
-      .ok { color: #047857; }
-      .bad { color: #b45309; }
-      ul { padding-left: 18px; font-size: 13px; }
+      button { padding: 8px 14px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; min-height: 44px; font-size: 14px; cursor: pointer; }
+      .note { font-size: 0.9em; color: var(--muted); }
+      .ok { color: var(--ok); }
+      .bad { color: var(--bad); }
+      ul { padding-left: 18px; font-size: 0.9em; }
     </style>
   </head>
   <body>
