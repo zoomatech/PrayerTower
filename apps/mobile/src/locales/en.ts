@@ -1775,6 +1775,8 @@ const en = {
   wall: {
     swipe: 'Swipe up for the next post',
     position: 'Post %{n} of %{total}',
+    soundOn: 'Turn the sound on',
+    soundOff: 'Turn the sound off',
   },
   harm: {
     section: 'Harmful prayers',
