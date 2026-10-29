@@ -26,6 +26,7 @@ Every current doc, grouped by who it's for. The pilot is **English only** and **
 | [RADIO_STATION_INSTALL.md](RADIO_STATION_INSTALL.md) | Installing the station on a Raspberry Pi or Debian laptop |
 | [PILOT_RESULTS_TEMPLATE.md](PILOT_RESULTS_TEMPLATE.md) | Pilot results for the sponsorship ask |
 | [ABUSE_TESTS.md](ABUSE_TESTS.md) | Spam and token-farming attacks we tested, and the limits that stop them |
+| [HARMFUL_PRAYERS.md](HARMFUL_PRAYERS.md) | Prayers for harm, curses, revenge, threats, hate, abuse disclosures and heavy swearing: what is held for a person, what stays up, and why none of it goes out by radio. Off until switched on |
 
 The product plans are in the project files under `roadmap/`: the product roadmap, the V1 architecture, the community data model and the Phase 3 gap list.
 

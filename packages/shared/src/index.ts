@@ -333,7 +333,7 @@ export interface ModerationItem {
   id: string;
   target_type: 'post' | 'comment' | 'reaction' | 'message' | 'event';
   target_id: string;
-  source: 'report' | 'ai' | 'crisis';
+  source: 'report' | 'ai' | 'crisis' | 'harm';
   reason: string | null;
   status: string;
   content: string | null;

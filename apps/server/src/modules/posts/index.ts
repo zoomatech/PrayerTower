@@ -8,6 +8,7 @@ import { badRequest, forbidden, notFound } from '../../errors.js';
 import { getProfile, presentIdentity, primaryCommunityId } from '../accounts/index.js';
 import { badgesOf } from '../churches/index.js';
 import * as moderation from '../moderation/index.js';
+import * as harm from '../harm/index.js';
 import * as safety from '../safety/index.js';
 import { tiersOf } from '../tiers/index.js';
 import * as tokens from '../tokens/index.js';
@@ -63,6 +64,8 @@ export interface PostRow {
   is_sensitive: boolean;
   all_support_welcome: boolean;
   crisis: boolean;
+  /** Set by the harmful-prayer check (modules/harm) until a moderator clears it. */
+  harm_category: string | null;
   state: PostState;
   answered_at: Date | null;
   testimony: string | null;
@@ -72,9 +75,10 @@ export interface PostRow {
   created_at: Date;
 }
 
-export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPost>): Promise<PostRow> {
+export async function create(q: Queryable, userId: string, input: z.infer<typeof NewPost>): Promise<PostRow & { harm: harm.Guidance | null }> {
   await safety.checkNewMember(q, userId, 'post', input.body);
   await safety.checkFlood(q, userId, 'post', input.body);
+  const harmDecision = await harm.screen(q, userId, 'post', input.body);
   const profile = await getProfile(q, userId);
   const isAnonymous = input.isAnonymous ?? profile?.anonymous_by_default ?? false;
   for (const m of input.media) {
@@ -120,7 +124,8 @@ export async function create(q: Queryable, userId: string, input: z.infer<typeof
     await moderation.flagCrisis(q, 'post', post.id);
     post.crisis = true;
   }
-  return post;
+  const harmGuidance = await harm.apply(q, userId, 'post', post.id, harmDecision);
+  return { ...post, harm: harmGuidance };
 }
 
 export async function get(q: Queryable, postId: string): Promise<PostRow | null> {
@@ -224,10 +229,12 @@ export async function setTestimony(q: Queryable, userId: string, postId: string,
   if (post.user_id !== userId) throw forbidden('Only the poster can add a testimony');
   if (post.state !== 'answered') throw badRequest('Mark the request answered first');
   await safety.checkNewMember(q, userId, 'post', input.body);
+  const harmDecision = await harm.screen(q, userId, 'post', input.body);
   await q.query(`update public.posts set testimony = $2, testimony_at = coalesce(testimony_at, now()) where id = $1`, [postId, input.body]);
   await moderation.queueScan(q, 'post', postId);
   const crisis = safety.mentionsCrisis(input.body);
   if (crisis) await moderation.flagCrisis(q, 'post', postId);
+  await harm.apply(q, userId, 'post', postId, harmDecision);
   return { post, first: post.testimony === null, crisis };
 }
 
@@ -323,6 +330,7 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
   }
   await safety.checkNewMember(q, userId, 'comment', input.body);
   await safety.checkFlood(q, userId, 'comment', input.body);
+  const harmDecision = await harm.screen(q, userId, 'comment', input.body);
   const isAnonymous = input.isAnonymous ?? (input.isUpdate ? post.is_anonymous : false);
   const { rows } = await q.query<{ id: string }>(
     `insert into public.comments (post_id, user_id, parent_id, body, is_update, is_anonymous)
@@ -332,7 +340,8 @@ export async function addComment(q: Queryable, userId: string, postId: string, i
   await moderation.queueScan(q, 'comment', rows[0]!.id);
   const crisis = safety.mentionsCrisis(input.body);
   if (crisis) await moderation.flagCrisis(q, 'comment', rows[0]!.id);
-  return { ...rows[0]!, crisis };
+  const harmGuidance = await harm.apply(q, userId, 'comment', rows[0]!.id, harmDecision);
+  return { ...rows[0]!, crisis, harm: harmGuidance };
 }
 
 interface CommentRow {
