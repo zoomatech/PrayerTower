@@ -58,6 +58,8 @@ import { nodeRoutes, stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
 import { notebookRoutes } from './modules/notebook/routes.js';
+import { givingSplitRoutes } from './modules/giving-split/routes.js';
+import { liveActivityRoutes } from './modules/live-activity/routes.js';
 import { growthPublicRoutes, growthRoutes } from './modules/growth/routes.js';
 import { skinRoutes } from './modules/skins/routes.js';
 import { securityRoutes } from './modules/security/routes.js';
@@ -299,6 +301,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     churchRoutes(authed, db);
     notebookRoutes(authed, db);
     growthRoutes(authed, db);
+    givingSplitRoutes(authed, db);
+    liveActivityRoutes(authed, db);
     skinRoutes(authed, db);
     securityRoutes(authed, db);
     futureRoutes(authed, db, appleVerifier);

@@ -7,8 +7,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, ErrorText, Field, Loading, Screen } from '@/components/ui';
-import { api, type GiftTarget, type GivingInfo, type MyGift, type RadioAllowance, type TokenPool } from '@/lib/api';
+import { api, type GiftTarget, type GivingInfo, type GivingSplit, type MyGift, type RadioAllowance, type TokenPool } from '@/lib/api';
+import { GivingSplitNote } from '@/components/giving-split';
 import { useFeature } from '@/lib/community-features';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -43,7 +45,26 @@ export default function GiveScreen() {
   }, []);
   useEffect(load, [load]);
 
-  const cents = custom.trim() ? Math.round(Number(custom.replace(/[$,]/g, '')) * 100) : amount;
+  const typed = custom.trim() ? Math.round(Number(custom.replace(/[$,]/g, '')) * 100) : amount;
+  // Giving split: a member may ask that a share of gifts go to their own page. The giver
+  // can split: the gift here is smaller by that share, which they send there themselves.
+  const { givingSplit } = useFeatures();
+  const [found, setSplit] = useState<GivingSplit | null>(null);
+  const [splitting, setSplitting] = useState(false);
+  const toMember = target.kind === 'member' ? target.userId : null;
+  useEffect(() => {
+    if (!givingSplit || !toMember || !Number.isFinite(typed) || typed <= 0) return;
+    let live = true;
+    Promise.resolve()
+      .then(() => api.memberGivingSplit(toMember, typed))
+      .then((r) => live && setSplit(r.split), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, [givingSplit, toMember, typed]);
+  const split = givingSplit && toMember && Number.isFinite(typed) && typed > 0 ? found : null;
+  const share = splitting && split?.shareCents ? split.shareCents : 0;
+  const cents = typed - share;
   const amountOk = info ? Number.isFinite(cents) && cents >= info.minCents && cents <= info.maxCents : false;
 
   const give = async () => {
@@ -110,6 +131,18 @@ export default function GiveScreen() {
                     <Chip key={p.id} label={p.name} selected={target.kind === 'pool' && target.poolId === p.id} onPress={() => setTarget({ kind: 'pool', poolId: p.id })} />
                   ))}
                 </View>
+                {split ? (
+                  <>
+                    <GivingSplitNote split={split} name={params.name} />
+                    {split.shareCents ? (
+                      <Chip
+                        label={t('givingSplit.splitMine', { here: dollars(typed - split.shareCents), there: dollars(split.shareCents) })}
+                        selected={splitting}
+                        onPress={() => setSplitting(!splitting)}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
                 <Chip label={t('give.showName')} selected={showDonor} onPress={() => setShowDonor(!showDonor)} />
                 <Text style={type.small}>{t('give.fees')}</Text>
               </>
