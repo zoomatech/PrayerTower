@@ -29,7 +29,7 @@ final class AccessibilityAuditTests: XCTestCase {
             app.launchArguments = ["-PTAuditSamples", "-UIPreferredContentSizeCategoryName", size]
             app.launch()
             for name in Self.skins {
-                XCTContext.runActivity(named: "\(name) at \(size)") { _ in
+                try XCTContext.runActivity(named: "\(name) at \(size)") { _ in
                     let link = app.buttons[name]
                     for _ in 0..<5 where !link.isHittable { app.collectionViews.firstMatch.swipeUp() }
                     link.tap()
