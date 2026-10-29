@@ -1616,6 +1616,7 @@ function PracticeSettingsSection() {
       <Field label={t('practices.adminPartnerDays')} keyboardType="number-pad" value={partnerDays} onChangeText={setPartnerDays} />
       <Toggle label={t('highlightsKind.adminTitle')} hint={t('highlightsKind.adminHint')} value={s.highlights_enabled} onChange={(v) => save({ highlightsEnabled: v })} />
       {s.highlights_enabled ? <HighlightsAdmin /> : null}
+      <Toggle label={t('coolDown.adminTitle')} hint={t('coolDown.adminHint')} value={s.cool_down_enabled} onChange={(v) => save({ coolDownEnabled: v })} />
       <Toggle label={t('practices.adminRemembered')} hint={t('practices.adminRememberedHint')} value={s.remembered_enabled} onChange={(v) => save({ rememberedEnabled: v })} />
       <Toggle label={t('repair.adminWelcome')} hint={t('repair.adminWelcomeHint')} value={s.welcome_card_enabled} onChange={(v) => save({ welcomeCardEnabled: v })} />
       <Field label={t('repair.adminWelcomeText')} value={welcome} onChangeText={setWelcome} multiline maxLength={600} />

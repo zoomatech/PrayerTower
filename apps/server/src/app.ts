@@ -32,6 +32,7 @@ import { repairRoutes } from './modules/repair/routes.js';
 import { conversationHelperRoutes } from './modules/conversation-helpers/routes.js';
 import { partnerRoutes } from './modules/partners/routes.js';
 import { kindnessHighlightRoutes } from './modules/kindness-highlights/routes.js';
+import { coolDownRoutes } from './modules/cool-down/routes.js';
 import { legalRoutes } from './modules/legal/routes.js';
 import { podcastPublicRoutes, podcastRoutes } from './modules/podcasts/routes.js';
 import { futureRoutes } from './modules/future/routes.js';
@@ -318,6 +319,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     conversationHelperRoutes(authed, db);
     partnerRoutes(authed, db);
     kindnessHighlightRoutes(authed, db);
+    coolDownRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);

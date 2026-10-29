@@ -144,6 +144,7 @@ export interface Features {
   believe: boolean;
   partners: boolean;
   kindnessHighlights: boolean;
+  coolDown: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -214,6 +215,7 @@ export interface PracticeSettings {
   partners_enabled: boolean;
   partner_days: number;
   highlights_enabled: boolean;
+  cool_down_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -1209,7 +1211,7 @@ export const api = {
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
-    post<{ comment: { id: string; crisis: boolean } }>(`/posts/${id}/comments`, { body, ...opts }),
+    post<{ comment: { id: string; crisis: boolean }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
   prayingNow: (id: string) => postOrQueue<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`, {}, 'Praying Now'),
@@ -1448,7 +1450,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean }>) =>
@@ -1529,7 +1531,9 @@ export const api = {
   highlights: () => get<Highlights>('/highlights'),
   conversations: () => get<{ conversations: ConversationSummary[] }>('/me/conversations'),
   conversation: (id: string, before?: string) => get<ConversationView>(`/conversations/${id}${before ? `?before=${before}` : ''}`),
-  sendMessage: (id: string, body: string) => post<{ message: Pick<ChatMessage, 'id' | 'createdAt' | 'crisis'> }>(`/conversations/${id}/messages`, { body }),
+  sendMessage: (id: string, body: string) => post<{ message: Pick<ChatMessage, 'id' | 'createdAt' | 'crisis'>; coolDown?: boolean }>(`/conversations/${id}/messages`, { body }),
+  coolDown: () => get<{ coolDown: { id: string; line: number } | null }>('/me/cool-down'),
+  coolDownDone: (id: string, choice: 'breather' | 'okay') => post<{ ok: true }>(`/me/cool-down/${id}`, { choice }),
   messageRequester: (postId: string, body: string, isAnonymous = false) =>
     post<{ conversationId: string; message: { crisis: boolean } }>(`/posts/${postId}/messages`, { body, isAnonymous }),
   messagePerson: (userId: string, body: string) =>

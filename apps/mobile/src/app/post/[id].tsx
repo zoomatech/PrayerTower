@@ -5,6 +5,7 @@ import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { useCardActions } from '@/components/card-actions';
 import { BelieveCard } from '@/components/believe-card';
+import { CoolDownCard } from '@/components/cool-down-card';
 import { useCelebration } from '@/components/celebration';
 import { CommentTree } from '@/components/comment-tree';
 import { CrisisSupport } from '@/components/crisis';
@@ -60,6 +61,7 @@ export default function PostScreen() {
   // Two taps to delete: the first asks "Tap again to delete".
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [coolNudge, setCoolNudge] = useState(0);
   const [tokens, setTokens] = useState<TokenSummary | null>(null);
   const [radioSent, setRadioSent] = useState(false);
   const radioOn = useFeature('radio');
@@ -114,6 +116,7 @@ export default function PostScreen() {
       setWarnedFor(null);
       const r = await api.addComment(id, text.trim(), { parentId: replyTo?.id, isUpdate });
       if (r.comment.crisis) setSupport(true);
+      if (r.coolDown) setCoolNudge((n) => n + 1);
       setText('');
       setReplyTo(null);
       await load();
@@ -480,6 +483,7 @@ export default function PostScreen() {
                 </Text>
               ) : null}
               <WelcomeCard />
+              <CoolDownCard nudge={coolNudge} />
               <Field placeholder={t('post.commentPlaceholder')} value={text} onChangeText={setText} multiline maxLength={5000} />
               <KindCloud text={text} />
               <ReplyHelpers

@@ -66,3 +66,16 @@ Each nudge has its own switch in **Admin → Growth practices**, and all are off
 - **Where members see them:** Me → Kindness highlights (`app/highlights.tsx`) shows this week and last week. Each community sees only its own highlights.
 - **Account data:** data export includes the member's own nominated comments. Account deletion removes any nominations they wrote or made.
 - **Code and tests:** code in `apps/server/src/modules/kindness-highlights/` and `components/kindness-highlights.tsx`. Tests in `apps/server/test/kindness-highlights.test.ts`, `apps/mobile/src/__tests__/kindness-highlights.test.tsx` and `highlights-screen.test.tsx`.
+
+## Cool-down (off)
+
+Admin → Growth practices → **Cool-down**. When two members trade three replies within a
+day that the kind cloud's word rules would flag (an insult aimed at someone, a stream of
+swearing, a threat), both see a pause card above the composer on the post or in the
+one-to-one conversation, with one of four gentle lines in the spirit of "What would Ted
+Lasso do?" ("Be curious, not judgmental", "Be a goldfish for a minute"). **Take a
+breather** steps back from the screen; **I'm okay** puts the card away. Nothing is ever
+blocked, held or hidden by this. Only who replied to whom and when is kept
+(`heated_replies`), never the words, and the pair is offered at most once a day. Group
+conversations don't count, since a heated line there isn't aimed at one person.
+Code: `apps/server/src/modules/cool-down`, `components/cool-down-card.tsx`.

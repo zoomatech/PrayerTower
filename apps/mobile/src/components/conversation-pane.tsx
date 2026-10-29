@@ -7,6 +7,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 
 import { CrisisSupport } from '@/components/crisis';
+import { CoolDownCard } from '@/components/cool-down-card';
 import { KindCloud } from '@/components/kind-cloud';
 import { GroupGift } from '@/components/group-gift';
 import { ReplyHelpers, useTalkCount } from '@/components/reply-helpers';
@@ -31,6 +32,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
   const [view, setView] = useState<ConversationView | null>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [coolNudge, setCoolNudge] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [warned, setWarned] = useState(false);
   const [support, setSupport] = useState(false);
@@ -74,6 +76,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       setWarned(false);
       const r = await api.sendMessage(id, body);
       if (r.message.crisis) setSupport(true);
+      if (r.coolDown) setCoolNudge((n) => n + 1);
       const before = view?.messages ?? [];
       const chain = chainOf(before.at(-2)?.body, before.at(-1)?.body, body);
       count(chain && { kind: 'chain', moves: chain });
@@ -203,6 +206,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
 
       {c && !c.isRequest && !c.awaitingReply ? (
         <View style={styles.compose}>
+          <CoolDownCard nudge={coolNudge} />
           <Field
             testID="message-input"
             placeholder={c.kind === 'group' ? t('conversation.writeGroup') : t('conversation.write')}

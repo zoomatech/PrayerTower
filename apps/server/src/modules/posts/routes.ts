@@ -13,6 +13,7 @@ import * as posts from './index.js';
 import { MEDIA_BUCKET, signMedia } from './media.js';
 import * as growth from '../growth/index.js';
 import { settings as practiceSettings } from '../practices/index.js';
+import * as coolDown from '../cool-down/index.js';
 
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
@@ -91,9 +92,12 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.post<{ Params: { id: string } }>('/posts/:id/comments', async (req, reply) => {
     const userId = requireUser(req);
     const input = posts.NewComment.parse(req.body);
-    const comment = await withTx(db, (tx) => posts.addComment(tx, userId, req.params.id, input));
+    const { comment, coolDown: cool } = await withTx(db, async (tx) => {
+      const comment = await posts.addComment(tx, userId, req.params.id, input);
+      return { comment, coolDown: await coolDown.noteComment(tx, userId, req.params.id, input.parentId, input.body) };
+    });
     reply.code(201);
-    return { comment };
+    return cool ? { comment, coolDown: true } : { comment };
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/reactions', async (req, reply) => {

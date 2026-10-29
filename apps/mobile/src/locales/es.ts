@@ -1707,6 +1707,20 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
       extend_reach: 'Para extender el alcance de la oración',
     },
   },
+  coolDown: {
+    title: 'A breather?',
+    lines: {
+      l0: 'Things got a little warm in here. How about a quick breather? The conversation will still be here.',
+      l1: 'Be curious, not judgmental. Want to step away for a few minutes and come back fresh?',
+      l2: 'Be a goldfish for a minute: let it go, take a breath, and come back when it feels lighter.',
+      l3: 'You both clearly care a lot. Want to take ten and come back when it feels lighter?',
+    },
+    breather: 'Take a breather',
+    okay: 'I’m okay',
+    thanks: 'Good call. Come back whenever you’re ready.',
+    adminTitle: 'Cool-down',
+    adminHint: 'When two members trade three heated replies within a day (words the kind cloud would flag), both get a pause card with a gentle line. Nothing is ever blocked; only who replied to whom is kept, never the words.',
+  },
   highlightsKind: {
     title: 'Kindness highlights',
     intro: 'Real moments from this week when people here lifted each other up. Shared with the writer’s permission, and without names.',
