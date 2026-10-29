@@ -5,6 +5,7 @@ import { ActivityIndicator, AppState, Platform, Text, View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { api, sendQueued } from '@/lib/api';
+import { pendingCount } from '@/lib/offline';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { LocaleProvider, useLocale } from '@/lib/i18n';
 import { useMenuCommands } from '@/lib/menu-commands';
@@ -32,7 +33,15 @@ function RootStack() {
     if (!session) return;
     void sendQueued();
     const sub = AppState.addEventListener('change', (s) => s === 'active' && void sendQueued());
-    return () => sub.remove();
+    // While something is waiting, try again every half minute, so it sends when the signal
+    // comes back even if nothing else in the app reaches the server first.
+    const retry = setInterval(() => {
+      if (AppState.currentState === 'active' && pendingCount() > 0) void sendQueued();
+    }, 30_000);
+    return () => {
+      sub.remove();
+      clearInterval(retry);
+    };
   }, [session]);
   if (!loading && session && !profile && profileError) {
     return (

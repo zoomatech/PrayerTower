@@ -196,6 +196,11 @@ describe('Cross-posting while on', () => {
     const copied = (await as(member).get('/crosspost')).json();
     expect(copied.accounts).toMatchObject([{ provider: 'threads', username: 'poster', status: 'active' }]);
     expect(copied.recent.filter((r: { status: string }) => r.status === 'posted')).toHaveLength(2);
+    // "Download my data" lists the connection and the copies, never the stored token.
+    const exported = (await as(member).get('/me/export')).json();
+    expect(exported.crosspostAccounts).toMatchObject([{ provider: 'threads', username: 'poster' }]);
+    expect(exported.crosspostAccounts[0].access_token).toBeUndefined();
+    expect(exported.crosspostImports.length).toBeGreaterThanOrEqual(2);
 
     // A revoked token marks the account expired, so the app asks to reconnect.
     const revoked = fakeMeta({ '/me/threads': { error: { message: 'Session expired', code: 190, type: 'OAuthException' } } });

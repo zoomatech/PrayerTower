@@ -230,6 +230,10 @@ export interface Card {
   lament?: boolean;
   /** The author said this lament may go out by radio. */
   lamentRadio?: boolean;
+  /** A "prayer answered" story: the request it tells the ending of. */
+  answers?: { id: string; preview: string } | null;
+  /** A request's "prayer answered" story, once posted. */
+  storyId?: string | null;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */

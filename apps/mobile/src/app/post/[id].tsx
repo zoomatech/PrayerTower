@@ -14,6 +14,7 @@ import { CrisisSupport } from '@/components/crisis';
 import { GuestShare } from '@/components/guest-share';
 import { LiveFollow } from '@/components/live-follow';
 import { ShareChoice } from '@/components/outside-share';
+import { OfflineBanner } from '@/components/offline-banner';
 import { PostCard } from '@/components/post-card';
 import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
@@ -59,6 +60,7 @@ export default function PostScreen() {
   const treeTokens = useMemo(() => (skin?.layout === 'tower' ? tabletTokens(skin) : vineTokens(skin?.layout === 'vine' ? skin : null)), [skin]);
   const leafTokens = useMemo(() => wordLeafTokens(skin), [skin]);
   const [card, setCard] = useState<Card | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
   const [text, setText] = useState('');
@@ -79,6 +81,8 @@ export default function PostScreen() {
   const [support, setSupport] = useState(false);
   // The answered / testimony panel: closed, or open with the draft text.
   const [testimony, setTestimony] = useState<string | null>(null);
+  // The "how it turned out" story panel: closed, or open with the draft text.
+  const [story, setStory] = useState<string | null>(null);
   const [warnedFor, setWarnedFor] = useState<{ text: string; isUpdate: boolean } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [witnessNote, setWitnessNote] = useState('');
@@ -89,10 +93,14 @@ export default function PostScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [p, c, pr, t, pw] = await Promise.all([api.post(id), api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
+      // Offline, a request saved with the feed still opens; the rest fills in once back online.
+      const p = await api.post(id);
+      setCard(p.post);
+      setSavedAt(p.savedAt ?? null);
+      if (p.savedAt) return;
+      const [c, pr, t, pw] = await Promise.all([api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
       setPower(pw);
       setTokens(t);
-      setCard(p.post);
       setComments(c.comments);
       setPrayers(pr);
     } catch (e) {
@@ -179,6 +187,18 @@ export default function PostScreen() {
     load();
   };
 
+  const shareStory = async () => {
+    try {
+      const r = await api.answeredStory(id, story!.trim());
+      if (r.crisis) setSupport(true);
+      setStory(null);
+      celebrate();
+      router.push(`/post/${r.post.id}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   const saveTestimony = async () => {
     try {
       const r = await api.setTestimony(id, testimony!.trim());
@@ -250,6 +270,19 @@ export default function PostScreen() {
       {card && !c.isMine && c.author.id !== profile?.id ? <HurtNote commentId={c.id} onReport={() => openReport(card, { type: 'comment', id: c.id })} /> : null}
     </>
   );
+
+  // Offline: just the saved request, read-only, until it can be loaded again.
+  if (savedAt && card) {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+          <OfflineBanner savedAt={savedAt} onRetry={load} />
+          <PostCard card={card} onAction={onAction} expanded />
+        </ScrollView>
+      </Screen>
+    );
+  }
 
   return (
     <Screen style={roomy ? styles.roomy : undefined}>
@@ -371,6 +404,29 @@ export default function PostScreen() {
               <Button small variant="ghost" label={t('post.testimonyRemove')} onPress={() => api.removeTestimony(id).then(load, (e) => setError((e as Error).message))} />
             ) : null}
           </View>
+        ) : null}
+
+        {features.answeredStories && card?.isMine && card.postType === 'prayer_request' && !card.storyId ? (
+          story !== null ? (
+            <View style={{ gap: space.sm }}>
+              <Text style={type.small}>{t('answeredStory.hint')}</Text>
+              <Field
+                label={t('answeredStory.label')}
+                placeholder={t('answeredStory.placeholder')}
+                value={story}
+                onChangeText={setStory}
+                maxLength={2000}
+                multiline
+              />
+              <KindCloud text={story} />
+              <View style={styles.row}>
+                <Button small label={t('answeredStory.post')} disabled={!story.trim()} onPress={shareStory} />
+                <Button small variant="ghost" label={t('common.cancel')} onPress={() => setStory(null)} />
+              </View>
+            </View>
+          ) : (
+            <Button variant="secondary" label={t('answeredStory.open')} onPress={() => setStory('')} />
+          )
         ) : null}
 
         {card && prayable ? <GuestShare card={card} /> : null}

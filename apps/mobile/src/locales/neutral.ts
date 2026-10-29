@@ -23,6 +23,15 @@ export const keys: Tree = named({
   crosspost: {
     extensionSteps: 'Install the Open Circle extension in Chrome (or Safari on a Mac), open its settings, and paste this server address and your key: %{server}',
   },
+  kindIntro: {
+    meaningsBody: 'Press and hold Thinking of You, Well Wishes, Encourage or Promise to Check In to pick the words behind it, like “Holding you close.” A tap still does the action.',
+  },
+  answeredStory: {
+    open: 'Share how it turned out',
+    hint: 'A short story that links back to this request. Everyone who lifted you up gets a note.',
+    adminTitle: 'Good-news stories',
+    adminHint: 'The person who asked can post a short follow-up that links to their request. Everyone who supported them gets a note, and both posts link to each other.',
+  },
   common: { praiseGod: 'Wonderful news!' },
   tabs: { prayers: 'Support' },
   menu: { newRequest: 'New Request', tour: 'How Open Circle Works' },
@@ -276,7 +285,7 @@ export const keys: Tree = named({
     },
   },
   deleteAccount: {
-    list: '• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and support history\n• your tokens',
+    list: '• your sign-in and profile\n• your requests, comments, encouragements and photos\n• your messages, promises, events and support history\n• your tokens\n• everything else tied to your account',
   },
   feedback: { intro: 'Tell us what broke, what confused you, or what you wish Open Circle did. The pilot team reads every note.' },
   highlights: {
@@ -287,6 +296,7 @@ export const keys: Tree = named({
     window: 'Support for others in the last %{count} days.',
     anonymous: 'Anonymous helper',
   },
+  offline: { saved: 'Showing posts saved %{when}.' },
   conversation: { invited: 'You were invited to this group. Join to talk and cheer each other on.' },
   groups: { intro: 'Talk and cheer each other on about a need, a place, or a topic.', namePlaceholder: 'Morning walking group', topicPlaceholder: 'We meet up at 7am' },
   events: { intro: 'Get together on a video call or meet in person.', titlePlaceholder: 'Wednesday night meetup', placePlaceholder: 'Community Center, 12 Main St' },

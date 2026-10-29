@@ -17,6 +17,7 @@ import { GivingAsk, ThanksCard, WorldwideCount } from "@/components/notebook";
 import { PostCard } from "@/components/post-card";
 import { AcrossCard } from "@/components/across-card";
 import { Announcements } from "@/components/announcements";
+import { KindnessIntro } from "@/components/kindness-intro";
 import { LiveNow } from "@/components/live-now";
 import { SurveyPrompts } from "@/components/survey-prompts";
 import { OfflineBanner } from "@/components/offline-banner";
@@ -71,12 +72,10 @@ export default function Feed() {
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [page, mn] = await Promise.all([
-        api.feed(0, filter),
-        api.macroNeeds().catch(() => ({ needs: [] })),
-      ]);
-      setNeeds(mn.needs);
+      // The feed shows as soon as it arrives; the side panels fill in on their own.
+      api.macroNeeds().then((mn) => setNeeds(mn.needs), () => undefined);
       api.highlights().then(setHighlights, () => undefined);
+      const page = await api.feed(0, filter);
       setCards(page.posts);
       setTheme(page.theme ?? null);
       setPinnedId(page.pinnedId);
@@ -150,6 +149,7 @@ export default function Feed() {
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
       <OfflineBanner savedAt={savedAt} />
       <Announcements />
+      <KindnessIntro />
       <LiveNow />
       <SurveyPrompts />
       <Pressable

@@ -175,6 +175,8 @@ export interface Features {
   kindnessHighlights: boolean;
   coolDown: boolean;
   lament: boolean;
+  answeredStories: boolean;
+  kindnessIntro: boolean;
   /** Conversation helpers (docs/CONVERSATION_HELPERS.md); members opt in on Me too. */
   replySuggestions: boolean;
   meaningPrefs: boolean;
@@ -264,6 +266,8 @@ export interface PracticeSettings {
   highlights_enabled: boolean;
   cool_down_enabled: boolean;
   lament_enabled: boolean;
+  answered_stories_enabled: boolean;
+  kindness_intro_enabled: boolean;
 }
 export interface ConversationSettings {
   reply_suggestions_enabled: boolean;
@@ -1399,7 +1403,18 @@ export const api = {
       : page === 0
         ? cachedGet<FeedPage>('feed', '/feed?page=0')
         : get<FeedPage>(`/feed?page=${page}`),
-  post: (id: string) => get<{ post: Card }>(`/posts/${id}`),
+  /** Offline, a request saved with the feed still opens (with `savedAt`). */
+  post: async (id: string): Promise<{ post: Card; savedAt?: number }> => {
+    try {
+      return await get<{ post: Card }>(`/posts/${id}`);
+    } catch (e) {
+      if (!isOffline(e)) throw e;
+      const saved = await readCached<FeedPage>('feed');
+      const card = saved?.value.posts.find((p) => p.id === id);
+      if (!saved || !card) throw e;
+      return { post: card, savedAt: saved.savedAt };
+    }
+  },
   createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
   /** Text-only posts made offline wait in the queue. */
   createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card }>('/posts', input, 'Your post'),
@@ -1407,6 +1422,7 @@ export const api = {
   deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
   hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
   unhidePost: (id: string) => request<{ hidden: boolean }>('DELETE', `/posts/${id}/hide`),
+  answeredStory: (id: string, body: string) => post<{ post: Card; crisis: boolean }>(`/posts/${id}/answered-story`, { body }),
   markAnswered: (id: string, testimony?: string) => post<{ post: Card; crisis: boolean }>(`/posts/${id}/answered`, testimony ? { testimony } : {}),
   setTestimony: (id: string, body: string) => put<{ post: Card; crisis: boolean }>(`/posts/${id}/testimony`, { body }),
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
@@ -1680,7 +1696,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -1836,7 +1852,8 @@ export const api = {
   askForRadioPrayers: (count: number, note: string) => post('/me/radio-allocation-requests', { count, note }),
   radioRequests: () => get<{ requests: AllocationRequestRow[] }>('/staff/radio-allocation-requests'),
   decideRadioRequest: (id: string, grant: number) => post(`/staff/radio-allocation-requests/${id}/decide`, { grant }),
-  features: () => get<{ features: Features }>('/features'),
+  /** Saved too, so skins and switched-on features stay as they were when offline. */
+  features: () => cachedGet<{ features: Features }>('features', '/features'),
   guestLink: (postId: string) => get<{ link: GuestLink | null }>(`/posts/${postId}/guest-link`),
   createGuestLink: (postId: string) => post<{ link: GuestLink }>(`/posts/${postId}/guest-link`),
   revokeGuestLink: (postId: string) => request<{ revoked: true }>('DELETE', `/posts/${postId}/guest-link`),
