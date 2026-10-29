@@ -9,7 +9,7 @@
 //   * the "no misleading claims" and "no automated accounts" rules (20261029006000);
 //   * the post anatomy lines from Mockups 1 and 2 (20261029009200);
 //   * tier upkeep, Notes Page 3 (20261029009300; the rule itself is in tiers/);
-//   * the kind cloud (20261029011800; the rules are in kindness/);
+//   * the kind cloud (20261029015600; the rules are in kindness/);
 //   * emoji meanings (20261029015700; meaning-reactions/).
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
