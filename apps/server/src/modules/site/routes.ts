@@ -7,6 +7,8 @@ import * as openCircle from './open-circle.js';
 import { promisePage } from './promise.js';
 import * as listen from '../listen/index.js';
 import * as onAir from '../listen/on-air.js';
+import * as signups from '../radio/listener-signup.js';
+import * as qsl from '../radio/qsl.js';
 import * as receipts from '../radio/receipts.js';
 import * as whyGifts from './why-gifts.js';
 import { waitlistPage } from '../waitlist/page.js';
@@ -70,6 +72,40 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db
     app.get(`${openCircle.PREFIX}/listen`, async (_req, reply) => {
       if (!db || !(await listen.enabled(db))) return reply.code(404).type(html).send(notFound());
       return reply.type(html).send(listen.listenPage(await receipts.enabled(db), openCircle.brand(oc, openCircle.PREFIX)));
+    });
+  }
+
+  // Listener sign-up (radio/listener-signup.ts) and thank-you cards (radio/qsl.ts), each a 404 while switched off.
+  // Each page is also under /open-circle in Open Circle's words.
+  const editions: [string, (req: FastifyRequest) => site.Brand | undefined][] = [['', (req) => (ocHere(req) && oc ? openCircle.brand(oc, '') : undefined)]];
+  if (oc) editions.push([openCircle.PREFIX, () => openCircle.brand(oc, openCircle.PREFIX)]);
+  const nameOf = (brand: site.Brand | undefined) => brand?.name ?? 'Prayer Tower';
+  for (const [prefix, brandOf] of editions) {
+    app.get(`${prefix}/listeners`, async (req, reply) => {
+      if (!db || !(await signups.enabled(db))) return reply.code(404).type(html).send(notFound());
+      const brand = brandOf(req);
+      return reply.type(html).send(signups.signUpPage(nameOf(brand), brand));
+    });
+    app.get<{ Params: { token: string } }>(`${prefix}/listeners/setup/:token`, async (req, reply) => {
+      const s = db && (await signups.enabled(db)) ? await signups.bySetupToken(db, req.params.token) : null;
+      if (!db || !s) return reply.code(404).type(html).send(site.layout('Not found', '<h1>This setup link has been used or has expired.</h1><p>Ask us for a new one.</p>', ''));
+      const brand = brandOf(req);
+      const tuning = await signups.stationTuning(db);
+      const apiUrl = opts.publicUrl?.replace(/\/+$/, '') || `${req.protocol}://${req.host}`;
+      return reply
+        .type(html)
+        .header('cache-control', 'no-store')
+        .header('referrer-policy', 'no-referrer')
+        .send(signups.setupPage(s, { name: nameOf(brand), apiUrl, ...tuning, keyPath: `/listeners/setup/${req.params.token}/key`, brand }));
+    });
+    app.get<{ Params: { token: string } }>(`${prefix}/qsl/:token`, async (req, reply) => {
+      if (!db) return reply.code(404).type(html).send(notFound());
+      const card = await qsl.byToken(db, req.params.token).catch(() => null);
+      if (!card) return reply.code(404).type(html).send(notFound());
+      // The card's own edition decides its words and look, wherever it is opened.
+      const secular = card.edition === 'open-circle';
+      const brand = secular && oc ? openCircle.brand(oc, prefix) : undefined;
+      return reply.type(html).header('cache-control', 'no-store').send(qsl.cardPage(card, secular ? (oc?.name ?? 'Open Circle') : 'Prayer Tower', brand));
     });
   }
 

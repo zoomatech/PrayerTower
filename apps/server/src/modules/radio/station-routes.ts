@@ -10,6 +10,7 @@ import * as ops from '../ops/index.js';
 import * as health from './health.js';
 import * as radio from './index.js';
 import * as acks from './acks.js';
+import { cardFor, type ListenerRouteOptions } from './listener-routes.js';
 import * as receipts from './receipts.js';
 import * as nodes from './nodes.js';
 import * as setup from './setup.js';
@@ -115,7 +116,7 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
 }
 
 /** Listener nodes' reports (own keys, x-node-key), registered with a per-address rate limit in app.ts. */
-export function nodeRoutes(app: FastifyInstance, db: Db) {
+export function nodeRoutes(app: FastifyInstance, db: Db, listeners: ListenerRouteOptions = { mailer: null, openCircleName: 'Open Circle' }) {
   // A listener node heard the station: what it measured (never the prayers' words).
   app.post('/node/channel-report', async (req) => {
     const node = await nodes.authenticateRequest(db, req, 'listener');
@@ -133,7 +134,10 @@ export function nodeRoutes(app: FastifyInstance, db: Db) {
     const report = receipts.HeardReport.parse(req.body);
     // A setup wizard test burst (setup.ts) is not a prayer: it never reaches receipts.
     const tests = wizard ? await setup.heard(db, report, node.name) : 0;
-    return { matched: (await withTx(db, (tx) => receipts.heard(tx, report, { id: node.id, name: node.name }))) + tests };
+    const matched = await withTx(db, (tx) => receipts.heard(tx, report, { id: node.id, name: node.name }));
+    // Prayers the station really sent: a thank-you card (qsl.ts), while cards are on.
+    const card = await cardFor(db, req, node, report, matched, listeners);
+    return { matched: matched + tests, ...(card ? { card } : {}) };
   });
 
   // A listener decoded the packet fallback's short IDs (packet.ts): heard, like a burst receipt.

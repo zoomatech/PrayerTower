@@ -197,6 +197,15 @@ describe('listener node', () => {
     await expect(api.channelReport({ callSign: 'N0CALL', preset: 'fm-fast', snrDb: 18 })).rejects.toThrow(/401/);
   });
 
+  it('logs a new thank-you card once, with its full link', async () => {
+    const replies = [{ matched: 1, card: { path: '/qsl/abc', new: true } }, { matched: 1, card: { path: '/qsl/abc', new: false } }, { matched: 0 }];
+    const fetchImpl = (async () => new Response(JSON.stringify(replies.shift()), { status: 200 })) as unknown as typeof fetch;
+    const lines: string[] = [];
+    const api = httpListenerApi('https://api.test/', 'ptn_abc', fetchImpl, { log: (m) => lines.push(m) });
+    for (let i = 0; i < 3; i++) await api.heard({ callSign: 'N0CALL', preset: 'fm-fast', snrDb: 18, hashes: ['0'.repeat(32)] });
+    expect(lines).toEqual(['[listener] the station sent a thank-you card: https://api.test/qsl/abc']);
+  });
+
   it('auto preset reads the server report with the station key, and falls back on a 204', async () => {
     const asked: (string | undefined)[] = [];
     let body = JSON.stringify({ snrDb: 30, at: new Date().toISOString(), callSign: 'N0CALL', preset: 'fm-standard' });
