@@ -62,10 +62,16 @@ export function siteRoutes(app: FastifyInstance, opts: site.SiteOptions, db?: Db
   }
 
   // The browser listening page for radio bursts, only while Admin → Radio has it on.
-  app.get('/listen', async (_req, reply) => {
+  app.get('/listen', async (req, reply) => {
     if (!db || !(await listen.enabled(db))) return reply.code(404).type(html).send(notFound());
-    return reply.type(html).send(listen.listenPage(await receipts.enabled(db)));
+    return reply.type(html).send(listen.listenPage(await receipts.enabled(db), ocHere(req) && oc ? openCircle.brand(oc, '') : undefined));
   });
+  if (oc) {
+    app.get(`${openCircle.PREFIX}/listen`, async (_req, reply) => {
+      if (!db || !(await listen.enabled(db))) return reply.code(404).type(html).send(notFound());
+      return reply.type(html).send(listen.listenPage(await receipts.enabled(db), openCircle.brand(oc, openCircle.PREFIX)));
+    });
+  }
 
   // Prayers on the air: counts only, while Admin → Radio has the page on.
   const onAirOn = async () => (db ? onAir.enabled(db) : false);

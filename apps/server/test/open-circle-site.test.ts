@@ -109,4 +109,21 @@ describe('Open Circle website', () => {
     expect((await get('/account-deletion')).body).toContain('Delete your Kind Corner account');
     await named.close();
   });
+
+  it('serves the radio listening page in its own look, without religious words', async () => {
+    await db.query('update public.token_settings set listen_page_enabled = true');
+    try {
+      // The words a visitor sees; the decoder script's own names are not shown.
+      const words = (html: string) => visible(html).replace(/<script>[\s\S]*?<\/script>/g, '');
+      for (const url of ['/listen', '/open-circle/listen']) {
+        const page = url === '/listen' ? await onHost(url) : await app.inject({ method: 'GET', url });
+        expect(page.statusCode, url).toBe(200);
+        expect(page.body).toContain('Listen to a message burst');
+        expect(words(page.body)).not.toMatch(RELIGIOUS);
+      }
+      expect((await app.inject({ method: 'GET', url: '/listen' })).body).toContain('Listen to a prayer burst');
+    } finally {
+      await db.query('update public.token_settings set listen_page_enabled = false');
+    }
+  });
 });
