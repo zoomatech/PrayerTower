@@ -1147,6 +1147,34 @@ export type HarmSettings = {
   foul_junk_filter: boolean;
   flood_per_day: number;
   extra_hate_words: string[];
+  explain_held: boolean;
+};
+export type ModeratorCare = {
+  settings: { enabled: boolean; dashboard_enabled: boolean; weekly_report_enabled: boolean; restore_enabled: boolean; blur_hard: boolean; break_after_minutes: number; break_after_hard_items: number; break_minutes: number };
+  colleagues: { id: string; display_name: string }[];
+};
+export type ModerationDashboard = {
+  days: number;
+  queue: { source: string; pending: number; oldest_minutes: number | null }[];
+  speed: { source: string; decided: number; median_minutes: number | null; p90_minutes: number | null }[];
+  falseAlarms: { category: string; decided: number; dismissed: number; rate: number | null }[];
+  floods: { floods: number; accounts: number; items: number };
+  handoffs: number;
+};
+export type HarmReport = {
+  id: string;
+  week_start: string;
+  report: { flagged: number; bundled: number; rules: { rule: string; flagged: number; dismissed: number; removed: number; falseAlarmRate: number | null; tooLoose: boolean }[] };
+};
+export type OncallSettings = { enabled: boolean; max_wait_minutes: number; remind_at_percent: number; timezone: string; escalate_to: string | null };
+export type OncallShift = { id: string; user_id: string; display_name: string; weekday: number; start_minute: number; end_minute: number };
+export type OncallStatus = {
+  settings: OncallSettings;
+  onCall: { user_id: string; display_name: string; end_minute: number }[];
+  waiting: number;
+  oldest_minutes: number | null;
+  over: number;
+  notes: { id: string; author_name: string | null; body: string; created_at: string }[];
 };
 export type HarmFlood = { user_id: string; display_name: string; items: number; categories: string[]; first_at: string; last_at: string };
 export type LiveSettings = { enabled: boolean; jitsi_url: string | null; max_minutes: number };
@@ -1407,9 +1435,9 @@ export const api = {
       return { post: card, savedAt: saved.savedAt };
     }
   },
-  createPost: (input: NewPost) => post<{ post: Card }>('/posts', input),
+  createPost: (input: NewPost) => post<{ post: Card; harm?: HarmNote | null }>('/posts', input),
   /** Text-only posts made offline wait in the queue. */
-  createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card }>('/posts', input, 'Your post'),
+  createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card; harm?: HarmNote | null }>('/posts', input, 'Your post'),
   deletePost: (id: string) => request<{ deleted: true }>('DELETE', `/posts/${id}`),
   deleteComment: (id: string) => request<{ deleted: true }>('DELETE', `/comments/${id}`),
   hidePost: (id: string) => put<{ hidden: boolean }>(`/posts/${id}/hide`),
@@ -1420,7 +1448,7 @@ export const api = {
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
   comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean } = {}) =>
-    post<{ comment: { id: string; crisis: boolean }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
+    post<{ comment: { id: string; crisis: boolean; harm?: HarmNote | null }; coolDown?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
   prayers: (id: string) =>
     get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
   prayingNow: (id: string) => postOrQueue<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`, {}, 'Praying Now'),
@@ -1823,6 +1851,16 @@ export const api = {
       '/moderation/activity-flags',
     ),
   decideActivityFlag: (id: string, status: 'cleared' | 'confirmed') => post(`/moderation/activity-flags/${id}`, { status }),
+  moderatorCare: () => get<ModeratorCare>('/moderation/care'),
+  updateModeratorCare: (patch: Partial<ModeratorCare['settings']>) => request<{ settings: ModeratorCare['settings'] }>('PATCH', '/admin/moderator-care-settings', patch),
+  handoff: (itemId: string, toUserId?: string, note?: string) => post<{ ok: boolean }>(`/moderation/items/${itemId}/handoff`, { toUserId, note }),
+  moderationDashboard: (days = 7) => get<{ dashboard: ModerationDashboard; reports: HarmReport[] }>(`/admin/moderation-dashboard?days=${days}`),
+  oncall: () => get<{ status: OncallStatus; shifts?: OncallShift[] }>('/moderation/oncall'),
+  addOncallNote: (body: string) => post<{ id: string }>('/moderation/oncall/notes', { body }),
+  oncallAdmin: () => get<{ settings: OncallSettings; shifts: OncallShift[]; people: { id: string; display_name: string }[] }>('/admin/oncall'),
+  updateOncall: (patch: Partial<OncallSettings>) => request<{ settings: OncallSettings }>('PATCH', '/admin/oncall', patch),
+  addOncallShift: (shift: { userId: string; weekday: number; startMinute: number; endMinute: number }) => post<{ id: string }>('/admin/oncall/shifts', shift),
+  removeOncallShift: (id: string) => request<{ ok: boolean }>('DELETE', `/admin/oncall/shifts/${id}`),
   harmSettings: () => get<{ settings: HarmSettings }>('/admin/harm-settings'),
   updateHarmSettings: (patch: Partial<HarmSettings>) => request<{ settings: HarmSettings }>('PATCH', '/admin/harm-settings', patch),
   harmFloods: () => get<{ floods: HarmFlood[] }>('/moderation/harm-floods'),

@@ -617,6 +617,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   notices: {
     empty: "Cuando alguien ore por ti, lo verás aquí.",
     appeal: "Apelar esta decisión",
+    explain: en.notices.explain,
   },
   messages: {
     kinds: {"prayer": "Nota de oración", "direct": "Mensaje", "group": "Grupo", "care": "Compañero de oración"},
@@ -696,6 +697,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     reason: "Tu motivo",
     send: "Enviar apelación",
     rules: "Leer las normas de la comunidad",
+    heldTitle: en.appeal.heldTitle,
+    heldIntro: en.appeal.heldIntro,
+    heldSent: en.appeal.heldSent,
   },
   highlights: {
     mostPrayed: "Las más oradas esta semana",
@@ -1725,6 +1729,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     refunded: 'Refunded',
   },
   harm: en.harm,
+  modCare: en.modCare,
+  oncall: en.oncall,
   enums: {
     moderationRule: {
       harm: 'Ora por el bien, nunca por el mal',

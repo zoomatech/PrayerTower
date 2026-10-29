@@ -11,7 +11,9 @@ import { space, type } from '@/lib/theme';
 
 export default function AppealScreen() {
   const { t } = useLocale();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // held=1: the post is waiting for a moderator (harmful-prayer check), so this is an explanation, not an appeal.
+  const { id, held } = useLocalSearchParams<{ id: string; held?: string }>();
+  const isHeld = held === '1';
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -34,12 +36,12 @@ export default function AppealScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-        <Text style={type.title}>{t('appeal.title')}</Text>
+        <Text style={type.title}>{t(isHeld ? 'appeal.heldTitle' : 'appeal.title')}</Text>
         {sent ? (
-          <Text style={type.body}>{t('appeal.sent')}</Text>
+          <Text style={type.body}>{t(isHeld ? 'appeal.heldSent' : 'appeal.sent')}</Text>
         ) : (
           <>
-            <Text style={type.body}>{t('appeal.intro')}</Text>
+            <Text style={type.body}>{t(isHeld ? 'appeal.heldIntro' : 'appeal.intro')}</Text>
             <Field placeholder={t('appeal.reason')} value={message} onChangeText={setMessage} multiline maxLength={1000} />
             <ErrorText error={error} />
             <Button label={t('appeal.send')} busy={busy} disabled={!message.trim()} onPress={send} />
