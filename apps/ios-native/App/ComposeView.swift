@@ -2,7 +2,9 @@ import AVFoundation
 import PhotosUI
 import PrayerTowerKit
 import SwiftUI
+#if os(iOS)
 import UIKit
+#endif
 import UniformTypeIdentifiers
 
 /// Post a request, as apps/mobile/src/app/compose.tsx: the community's kinds of post, up to
@@ -73,7 +75,7 @@ struct ComposeView: View {
                     if media.isEmpty {
                         ScrollView(.horizontal) {
                             HStack {
-                                Swatch(color: Color(.secondarySystemBackground), on: draft.background == nil, label: w("compose.noBackground")) { draft.background = nil }
+                                Swatch(color: Color.softBackground, on: draft.background == nil, label: w("compose.noBackground")) { draft.background = nil }
                                 ForEach(Compose.backgrounds) { b in
                                     Swatch(color: Color(hex: b.color), on: draft.background == b.id, label: w("compose.backgroundNamed", ["name": b.label])) { draft.background = b.id }
                                 }
@@ -182,7 +184,11 @@ struct PickedMedia: Identifiable {
         }
         guard let data = try? await item.loadTransferable(type: Data.self) else { return nil }
         let mime = item.supportedContentTypes.first?.preferredMIMEType
+        #if os(iOS)
         let image = UIImage(data: data).map(Image.init(uiImage:)) ?? Image(systemName: "photo")
+        #else
+        let image = NSImage(data: data).map(Image.init(nsImage:)) ?? Image(systemName: "photo")
+        #endif
         return PickedMedia(data: data, contentType: Compose.contentType(mime, video: false), video: false, seconds: nil, thumbnail: image)
     }
 }

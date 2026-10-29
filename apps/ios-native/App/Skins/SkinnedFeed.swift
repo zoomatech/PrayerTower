@@ -71,7 +71,7 @@ struct VineFeed<Row: View>: View {
             .padding(.vertical, 20)
             .background(alignment: .topLeading) { Stalk(look: look).frame(width: 40).accessibilityHidden(true) }
         }
-        .background(look.backdrop.map { Color($0) } ?? Color(.systemBackground))
+        .background(look.backdrop.map { Color($0) } ?? Color.pageBackground)
         .environment(\.colorScheme, look.backdrop?.isDark == true ? .dark : .light)
     }
 }

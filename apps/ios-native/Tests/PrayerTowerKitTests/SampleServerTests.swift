@@ -28,5 +28,9 @@ import Testing
         #expect(SampleServer.answer(method: "POST", path: "/posts/sample-p1/praying-now").status == 200)
         #expect(SampleServer.isOn(["app", "-PTSampleData"]))
         #expect(!SampleServer.isOn(["app"]))
+        #expect(SampleServer.screen(["app", "-PTSampleData", "-PTScreen", "notices"]) == "notices")
+        #expect(SampleServer.screen(["app", "-PTScreen", "notices"]) == nil)
+        #expect(SampleServer.tab(for: "post") == (0, true))
+        #expect(SampleServer.tab(for: "me").tab == 4)
     }
 }
