@@ -850,40 +850,40 @@ private struct BeanReader: View {
     let words: Words
     let close: () -> Void
 
+    // The full close-up only hints at a leaf (Steve, 2026-10-30): a plain green square, paler in
+    // the middle, with V-shaped veins repeating down it, and the replies indented under the comment
+    // as in any social app. No leaf outline, no vine lining.
     var body: some View {
-        GeometryReader { g in
-            let w: Double = Double(g.size.width)
-            let h: Double = Double(g.size.height)
-            ZStack(alignment: .topLeading) {
-                LeafBack(fill: Bean.leaves[1], line: 3, big: true).accessibilityHidden(true)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(note.author).font(BeanFont.bold(15))
-                            Text(note.body).font(BeanFont.body(19))
-                        }
-                        replies(note.id, level: 1)
-                    }
-                    .foregroundStyle(Bean.ink)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(note.author).font(BeanFont.bold(15))
+                    Text(note.body).font(BeanFont.body(19)).fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(width: w * 0.76, height: h * 0.70)
-                .offset(x: w * 0.09, y: h * 0.17)
-                Button(action: close) {
-                    Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
-                        .frame(width: 48, height: 48)
-                        .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
-                        .overlay(Circle().stroke(Bean.ink, lineWidth: 3))
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut(.cancelAction)
-                .accessibilityLabel(words("common.close"))
-                .offset(x: w * 0.86 - 48, y: h * 0.08)
+                replies(note.id, level: 1)
             }
+            .foregroundStyle(Bean.text)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 22)
+            .padding(.top, 64)
+            .padding(.bottom, 24)
         }
-        .frame(maxWidth: 760, maxHeight: 560)
-        .padding(12)
+        .scrollBounceBehavior(.basedOnSize)
+        .background { LeafSquare().accessibilityHidden(true) }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(alignment: .topTrailing) {
+            Button(action: close) {
+                Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
+                    .frame(width: 44, height: 44)
+                    .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut(.cancelAction)
+            .accessibilityLabel(words("common.close"))
+            .padding(12)
+        }
+        .frame(maxWidth: 600, maxHeight: 640)
+        .padding(16)
         .presentationBackground(Color(RGB(hex: "#1F1A14")!).opacity(0.55))
         .environment(\.colorScheme, .light)
     }
@@ -892,13 +892,41 @@ private struct BeanReader: View {
         AnyView(ForEach(kids[id] ?? []) { r in
             VStack(alignment: .leading, spacing: 2) {
                 Text(r.author).font(BeanFont.bold(15))
-                Text(r.body).font(BeanFont.body(17))
+                Text(r.body).font(BeanFont.body(17)).fixedSize(horizontal: false, vertical: true)
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
+            .padding(.top, 8)
             .padding(.leading, 12)
             .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
             .padding(.leading, 20)
         })
+    }
+}
+
+/// A green square that suggests a leaf: the leaf's green at the edges, paler and brighter in the
+/// middle, a midrib down the centre and V-shaped veins repeating along it.
+private struct LeafSquare: View {
+    var body: some View {
+        ZStack {
+            Rectangle().fill(Bean.leaves[0])
+            Rectangle().fill(EllipticalGradient(colors: [Color(RGB(hex: "#F4FBE4")!).opacity(0.9), Color(RGB(hex: "#F4FBE4")!).opacity(0)],
+                                                center: .center, startRadiusFraction: 0, endRadiusFraction: 0.6))
+            Canvas { ctx, size in
+                let cx = size.width / 2
+                let reach = size.width * 0.42
+                var veins = Path()
+                veins.move(to: CGPoint(x: cx, y: 0))
+                veins.addLine(to: CGPoint(x: cx, y: size.height))
+                var y: CGFloat = reach * 0.6
+                while y < size.height + reach * 0.6 {
+                    veins.move(to: CGPoint(x: cx - reach, y: y - reach * 0.6))
+                    veins.addLine(to: CGPoint(x: cx, y: y))
+                    veins.addLine(to: CGPoint(x: cx + reach, y: y - reach * 0.6))
+                    y += 70
+                }
+                ctx.stroke(veins, with: .color(Bean.vein.opacity(0.35)), style: .init(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            }
+        }
     }
 }
 
