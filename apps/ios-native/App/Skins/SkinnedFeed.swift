@@ -109,13 +109,9 @@ struct Stalk: View {
 
     var body: some View {
         rod
-            .mask(alignment: .top) {
-                GeometryReader { g in
-                    Rectangle().frame(height: look.vineStyle == .neon ? g.size.height * grown : g.size.height)
-                }
-            }
+            .buildsDownward(look.vineStyle == .neon ? grown : 1)
             .onAppear {
-                if look.vineStyle != .neon || still || Spark.frozen { grown = 1; return }
+                if look.vineStyle != .neon || still || GrowingIn<EmptyView>.frozen { grown = 1; return }
                 withAnimation(.easeIn(duration: 2.5)) { grown = 1 }
             }
     }
@@ -148,16 +144,25 @@ struct Stalk: View {
                 rod.move(to: CGPoint(x: x, y: 0))
                 rod.addLine(to: CGPoint(x: x, y: size.height))
                 let tube: CGFloat = max(8, CGFloat(w) * 2.5)
-                let stem = Color(look.stem)
-                let round = StrokeStyle(lineWidth: tube, lineCap: .round, lineJoin: .round)
-                var glow = ctx
-                glow.addFilter(.blur(radius: tube * 2.2))
-                glow.stroke(rod, with: .color(stem.opacity(0.55)), style: StrokeStyle(lineWidth: tube * 3, lineCap: .round))
-                ctx.stroke(rod, with: .color(stem), style: round)
-                ctx.stroke(rod, with: .color(.black.opacity(0.3)), style: round)
-                ctx.stroke(rod, with: .color(stem), style: StrokeStyle(lineWidth: tube * 0.72, lineCap: .round, lineJoin: .round))
-                ctx.stroke(rod, with: .color(.white.opacity(0.55)), style: StrokeStyle(lineWidth: tube * 0.45, lineCap: .round, lineJoin: .round))
-                ctx.stroke(rod, with: .color(.white.opacity(0.95)), style: StrokeStyle(lineWidth: max(1, tube * 0.2), lineCap: .round, lineJoin: .round))
+                NeonGlassLook(color: Color(look.stem)).stroke(rod, width: tube, in: ctx)
+                if !look.fairytale {
+                    // Tron's circuitry: short traces off the rod in the second color, each a straight
+                    // run that bends down in a small smooth curve, then runs on.
+                    let trace = NeonGlassLook(color: Color(look.branch))
+                    var ty = 70.0
+                    var k = 0
+                    while ty < size.height {
+                        let reach = k % 2 == 0 ? 34.0 : 22.0
+                        var t = Path()
+                        t.move(to: CGPoint(x: x + tube / 2, y: ty))
+                        t.addLine(to: CGPoint(x: x + reach - 8, y: ty))
+                        t.addQuadCurve(to: CGPoint(x: x + reach, y: ty + 8), control: CGPoint(x: x + reach, y: ty))
+                        t.addLine(to: CGPoint(x: x + reach, y: ty + 30))
+                        trace.stroke(t, width: 3, in: ctx)
+                        ty += k % 2 == 0 ? 110 : 170
+                        k += 1
+                    }
+                }
             case .gate:
                 // Fine lines of silver light.
                 for dx in [-2.0, 2.0] {
@@ -194,7 +199,7 @@ struct Stalk: View {
 struct Spark: View {
     let color: Color
     /// Held still inside the snapshot tests (XCTest is loaded in the app there), so each picture matches its reference.
-    static let frozen = NSClassFromString("XCTestCase") != nil
+    static var frozen: Bool { GrowingIn<EmptyView>.frozen }
     var body: some View {
         TimelineView(.animation(paused: Self.frozen)) { t in
             GeometryReader { geo in
@@ -219,11 +224,13 @@ struct VineLeaf<Content: View>: View {
     let depth: Int
     @ViewBuilder let content: () -> Content
     @Environment(\.dynamicTypeSize) private var size
-    @Environment(\.accessibilityReduceMotion) private var still
-    /// How much of a neon box's tube has drawn itself: 0 to 1 as it comes into view, back to 0 when it leaves.
-    @State private var drawn: CGFloat = 0
 
     var body: some View {
+        // Neon's connector grows in as the post comes into view: the branch, then the frame.
+        GrowingIn(duration: look.vineStyle == .neon ? 1.4 : 0) { p in leaf(look.vineStyle == .neon ? p : 1) }
+    }
+
+    private func leaf(_ drawn: CGFloat) -> some View {
         let box = Color(look.leafBox(wording))
         content()
             .padding(depth == 0 ? 14 : 10)
@@ -233,26 +240,20 @@ struct VineLeaf<Content: View>: View {
             }
             .padding(.horizontal, depth == 0 ? 18 : 14)
             .padding(.vertical, depth == 0 ? 40 : 26)
-            .background { frame.accessibilityHidden(true) }
+            .background { frame(drawn).accessibilityHidden(true) }
             .environment(\.colorScheme, .light)
             .padding(.leading, depth == 0 ? 36 : 64)
             .padding(.trailing, 8)
-            .overlay(alignment: .leading) { twig.accessibilityHidden(true) }
-            .onAppear {
-                guard look.vineStyle == .neon else { return }
-                if still || Spark.frozen { drawn = 1; return }
-                // Like the vines: the branch shoots out from the rod, then the tube bends round the box.
-                withAnimation(.easeOut(duration: 1.4)) { drawn = 1 }
-            }
-            .onDisappear { if look.vineStyle == .neon && !(still || Spark.frozen) { drawn = 0 } }
+            .overlay(alignment: .leading) { twig.shootsOut(ConnectorTiming.branch(drawn)).accessibilityHidden(true) }
     }
 
     /// What houses the box: a leaf, a neon frame, an arched doorway or a petal frame.
-    @ViewBuilder private var frame: some View {
+    @ViewBuilder private func frame(_ drawn: CGFloat) -> some View {
         switch look.vineStyle {
         case .neon:
             // A real tube: colored glass glowing round a thin white-hot core.
-            NeonGlass(shape: NeonFrame(), color: Color(look.stem), width: 8, progress: max(0, (drawn - 0.25) / 0.75))
+            // Posts glow in the main color, their comments in the second (Tron's blue and red).
+            ConnectorOutline(shape: NeonFrame(), look: NeonGlassLook(color: Color(depth == 0 || look.fairytale ? look.stem : look.branch)), width: 8, progress: ConnectorTiming.frame(drawn))
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)
@@ -286,16 +287,7 @@ struct VineLeaf<Content: View>: View {
                 let y = size.height * 0.3
                 p.move(to: CGPoint(x: 20, y: y))
                 p.addLine(to: CGPoint(x: reach, y: y))
-                let color = Color(look.stem)
-                let tube: CGFloat = 6
-                var glow = ctx
-                glow.addFilter(.blur(radius: tube * 1.6))
-                glow.stroke(p, with: .color(color.opacity(0.55)), lineWidth: tube * 2.6)
-                ctx.stroke(p, with: .color(color), lineWidth: tube)
-                ctx.stroke(p, with: .color(.black.opacity(0.3)), lineWidth: tube)
-                ctx.stroke(p, with: .color(color), lineWidth: tube * 0.72)
-                ctx.stroke(p, with: .color(.white.opacity(0.55)), lineWidth: tube * 0.45)
-                ctx.stroke(p, with: .color(.white.opacity(0.95)), lineWidth: max(1, tube * 0.2))
+                NeonGlassLook(color: Color(look.stem)).stroke(p, width: 6, in: ctx)
                 return
             }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
@@ -307,10 +299,6 @@ struct VineLeaf<Content: View>: View {
             }
         }
         .frame(width: depth == 0 ? 44 : 72)
-        // A neon branch shoots out from the rod first, before its box draws.
-        .mask(alignment: .leading) {
-            Rectangle().frame(width: look.vineStyle == .neon ? (depth == 0 ? 44 : 72) * min(1, drawn * 4) : nil)
-        }
     }
 }
 
@@ -649,7 +637,7 @@ struct CircuitFeed<Row: View>: View {
                                 NeonFrame(radius: 10)
                                     .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
                                     .padding(3)
-                                NeonGlass(shape: NeonFrame(radius: 10), color: Color(look.screen), width: 7)
+                                ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: Color(look.screen)), width: 7)
                                     .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                             }
                             .accessibilityHidden(true)
@@ -666,7 +654,7 @@ struct CircuitFeed<Row: View>: View {
                 }
                 if !hasMore, !cards.isEmpty {
                     VStack(spacing: 8) {
-                        NeonGlass(shape: NeonFrame(radius: 4), color: Color(look.wire), width: 5).frame(width: 18, height: 18).accessibilityHidden(true)
+                        ConnectorOutline(shape: NeonFrame(radius: 4), look: NeonGlassLook(color: Color(look.wire)), width: 5).frame(width: 18, height: 18).accessibilityHidden(true)
                         Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).backdropPlate(look.backdrop)
                     }
                     .padding(.trailing, 40)

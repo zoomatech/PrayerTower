@@ -182,31 +182,6 @@ extension View {
     }
 }
 
-/// Real neon glass (Steve, 2026-10-30): close to white in the middle, deeper shades of the color
-/// toward the edge of the glass, and a radiant glow around the whole tube.
-struct NeonGlass<S: Shape>: View {
-    let shape: S
-    let color: Color
-    var width: CGFloat = 5
-    /// How much of the tube is lit, from its start round to its end, so it can draw itself in.
-    var progress: CGFloat = 1
-
-    var body: some View {
-        let shape = self.shape.trim(from: 0, to: progress)
-        return ZStack {
-            // The glow the gas throws round the tube.
-            shape.stroke(color.opacity(0.45), style: .init(lineWidth: width * 3, lineCap: .round, lineJoin: .round)).blur(radius: width * 2.4)
-            shape.stroke(color.opacity(0.6), style: .init(lineWidth: width * 1.6, lineCap: .round, lineJoin: .round)).blur(radius: width * 0.8)
-            // The glass: a deeper shade at its edges, the full color, a paler band, then the white-hot core.
-            shape.stroke(color, style: .init(lineWidth: width, lineCap: .round, lineJoin: .round))
-            shape.stroke(Color.black.opacity(0.3), style: .init(lineWidth: width, lineCap: .round, lineJoin: .round))
-            shape.stroke(color, style: .init(lineWidth: width * 0.72, lineCap: .round, lineJoin: .round))
-            shape.stroke(Color.white.opacity(0.55), style: .init(lineWidth: width * 0.45, lineCap: .round, lineJoin: .round)).blur(radius: width * 0.08)
-            shape.stroke(Color.white.opacity(0.95), style: .init(lineWidth: max(1, width * 0.2), lineCap: .round, lineJoin: .round))
-        }
-        .compositingGroup()
-    }
-}
 
 extension View {
     /// The title and tab bar over a skin take its backdrop, with light text on a dark one, so
