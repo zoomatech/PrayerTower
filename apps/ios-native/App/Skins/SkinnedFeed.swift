@@ -29,7 +29,7 @@ struct SkinnedFeed<Row: View>: View {
             if VineLook(theme).vineStyle == .beanstalk {
                 BeanstalkFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, loadComments: loadComments)
             } else {
-                VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, onOpen: onOpen)
+                VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, onOpen: onOpen, loadComments: loadComments)
             }
         case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), row: row, onEnd: onEnd)
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
@@ -52,6 +52,7 @@ struct VineFeed<Row: View>: View {
     @ViewBuilder let row: (Card) -> Row
     let onEnd: () async -> Void
     var onOpen: ((Card) -> Void)?
+    var loadComments: ((Card) async -> [Comment])?
 
     var body: some View {
         ScrollView {
@@ -59,24 +60,22 @@ struct VineFeed<Row: View>: View {
                 if look.vineStyle == .gate { GateTop(look: look).frame(height: 150).frame(maxWidth: .infinity) }
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     VStack(alignment: .leading, spacing: 18) {
-                        VineLeaf(look: look, wording: wording, depth: 0) {
+                        // Neon: the post's icons sit inside its frame, under the box, as neon outlines (Steve, 2026-10-30).
+                        VineLeaf(look: look, wording: wording, depth: 0, below: look.vineStyle == .neon ? AnyView(row(card).environment(\.cardPart, .icons(Color(look.leaf)))) : nil) {
                             row(card).environment(\.cardPart, look.vineStyle == .neon ? .post : .whole)
                         }
                         .overlay(alignment: .topTrailing) {
                             if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
                         }
-                        // Neon: the post's icons sit bigger on the black screen, outside the post (Steve, 2026-10-30).
                         if look.vineStyle == .neon {
-                            // They show once the post's frame has drawn, with its text.
-                            GrowingIn(duration: 2) { p in
-                                row(card).environment(\.cardPart, .icons(Color(look.leaf))).opacity(ConnectorTiming.text(p))
+                            // A loaded stack of comments to flip through, coming out of the post (Steve, 2026-10-30).
+                            NeonCommentStack(card: card, look: look, wording: wording, load: loadComments, onOpen: onOpen)
+                        } else {
+                            ForEach(card.leafComments ?? []) { c in
+                                VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
                             }
-                            .padding(.leading, 54).padding(.trailing, 8)
                         }
-                        ForEach(card.leafComments ?? []) { c in
-                            VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
-                        }
-                        if card.moreComments > 0 {
+                        if look.vineStyle != .neon, card.moreComments > 0 {
                             if let onOpen {
                                 Button { onOpen(card) } label: { MoreLeaves(count: card.moreComments, look: look, wording: wording) }.buttonStyle(.plain)
                             } else {
@@ -232,8 +231,16 @@ struct VineLeaf<Content: View>: View {
     let look: VineLook
     let wording: Wording
     let depth: Int
+    /// Shown inside the frame, under the post's box: neon's icons (Steve, 2026-10-30).
+    var below: AnyView? = nil
+    /// How many more cards wait behind this one in a stack, drawn as frames peeking out behind it.
+    var stacked: Int = 0
     @ViewBuilder let content: () -> Content
     @Environment(\.dynamicTypeSize) private var size
+    /// Neon indents a comment under its post, joined by a tube that comes down and turns into it.
+    private var tucked: Bool { look.vineStyle == .neon && depth > 0 }
+    /// Each level of reply sits further in, under its parent.
+    private var indent: CGFloat { 104 + CGFloat(depth - 1) * 40 }
 
     var body: some View {
         // Neon's connector grows in as the post comes into view: the branch, then the frame.
@@ -242,20 +249,39 @@ struct VineLeaf<Content: View>: View {
 
     @ViewBuilder private func leaf(_ drawn: CGFloat) -> some View {
         let box = Color(look.leafBox(wording))
-        content()
-            .opacity(ConnectorTiming.text(drawn))
-            .padding(depth == 0 ? 14 : 10)
-            .background(box, in: .rect(cornerRadius: 12))
-            .overlay {
-                if look.vineStyle == .ink { RoundedRectangle(cornerRadius: 12).stroke(Color(look.ink ?? look.branch), lineWidth: 1.5) }
-            }
+        VStack(spacing: 12) {
+            content()
+                .opacity(ConnectorTiming.text(drawn))
+                .padding(depth == 0 ? 14 : 10)
+                .background(box, in: .rect(cornerRadius: 12))
+                .overlay {
+                    if look.vineStyle == .ink { RoundedRectangle(cornerRadius: 12).stroke(Color(look.ink ?? look.branch), lineWidth: 1.5) }
+                }
+            if let below { below.opacity(ConnectorTiming.text(drawn)) }
+        }
             .padding(.horizontal, depth == 0 ? 18 : 14)
-            .padding(.vertical, depth == 0 ? 40 : 26)
-            .background { frame(drawn).accessibilityHidden(true) }
+            .padding(.vertical, below == nil ? (depth == 0 ? 40 : 26) : 24)
+            .background {
+                ZStack {
+                    // The rest of the stack, peeking out behind, dimmer the further back.
+                    ForEach(Array(stride(from: min(stacked, 3), to: 0, by: -1)), id: \.self) { k in
+                        frame(drawn).opacity(0.6 - Double(k) * 0.15).offset(x: CGFloat(k) * 9, y: CGFloat(k) * 9)
+                    }
+                    frame(drawn)
+                }
+                .accessibilityHidden(true)
+            }
             .environment(\.colorScheme, .light)
-            .padding(.leading, depth == 0 ? 36 : 64)
+            .padding(.leading, depth == 0 ? 36 : tucked ? indent : 64)
             .padding(.trailing, 8)
-            .overlay(alignment: .leading) { twig.shootsOut(ConnectorTiming.branch(drawn)).accessibilityHidden(true) }
+            .overlay(alignment: .leading) {
+                if tucked {
+                    // From the post's box above (over the gap between them), down and round into this box.
+                    drop.buildsDownward(ConnectorTiming.branch(drawn)).padding(.top, -18).accessibilityHidden(true)
+                } else {
+                    twig.shootsOut(ConnectorTiming.branch(drawn)).accessibilityHidden(true)
+                }
+            }
     }
 
     /// What houses the box: a leaf, a neon frame, an arched doorway or a petal frame.
@@ -288,6 +314,21 @@ struct VineLeaf<Content: View>: View {
     }
 
     /// The short curved stem from the stalk to this leaf.
+    /// Neon's comment connector: a tube down from the post's box that bends smoothly into the
+    /// comment's box, fading from the post's blue into the comment's red.
+    private var drop: some View {
+        Canvas { ctx, size in
+            let x = 72.0 + Double(depth - 1) * 40, r = 12.0, y = 18 + 30.0
+            var p = Path()
+            p.move(to: CGPoint(x: x, y: 0))
+            p.addLine(to: CGPoint(x: x, y: y - r))
+            p.addQuadCurve(to: CGPoint(x: x + r, y: y), control: CGPoint(x: x, y: y))
+            p.addLine(to: CGPoint(x: indent + 4, y: y))
+            NeonGlassLook(color: Color(look.branch), from: Color(look.stem), fade: (CGPoint(x: x, y: 0), CGPoint(x: x, y: y)), white: 0.45).stroke(p, width: 6, in: ctx)
+        }
+        .frame(width: indent + 26)
+    }
+
     private var twig: some View {
         Canvas { ctx, size in
             var p = Path()
@@ -356,6 +397,91 @@ struct LeafCommentText: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Neon's comments (Steve, 2026-10-30): a loaded stack you flip through, coming out of the parent
+/// post; a comment's replies come out of it the same way, each with its own icons. Swipe sideways
+/// to flip.
+struct NeonCommentStack: View {
+    let card: Card
+    let look: VineLook
+    let wording: Wording
+    let load: ((Card) async -> [Comment])?
+    var onOpen: ((Card) -> Void)?
+    @State private var comments: [Comment] = []
+
+    var body: some View {
+        CommentLevel(card: card, all: comments, parent: nil, depth: 1, look: look, wording: wording, onOpen: onOpen)
+            .task(id: card.id) { comments = await load?(card) ?? [] }
+    }
+}
+
+/// One level of the stack: the comments under `parent`, one showing at a time, then that one's replies.
+private struct CommentLevel: View {
+    let card: Card
+    let all: [Comment]
+    let parent: String?
+    let depth: Int
+    let look: VineLook
+    let wording: Wording
+    var onOpen: ((Card) -> Void)?
+    @State private var shown = 0
+    @State private var hearted: Set<String> = []
+    @Environment(AppModel.self) private var model
+
+    private var here: [Comment] { all.filter { $0.parentId == parent } }
+
+    var body: some View {
+        if !here.isEmpty {
+            let i = min(shown, here.count - 1)
+            let c = here[i]
+            VStack(alignment: .leading, spacing: 18) {
+                VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i)), stacked: here.count - 1 - i) {
+                    LeafCommentText(comment: LeafComment(id: c.id, body: c.body, author: c.author, createdAt: c.createdAt), look: look)
+                }
+                .id(c.id)
+                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
+                .gesture(DragGesture(minimumDistance: 24).onEnded { g in
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        if g.translation.width < -40 { shown = min(here.count - 1, i + 1) }
+                        if g.translation.width > 40 { shown = max(0, i - 1) }
+                    }
+                })
+                .accessibilityAction(named: "Next comment") { shown = min(here.count - 1, i + 1) }
+                .accessibilityAction(named: "Previous comment") { shown = max(0, i - 1) }
+                // Replies: at most three levels deep (Steve, 2026-10-29).
+                if depth < 3 {
+                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
+                }
+            }
+        }
+    }
+
+    /// A comment's own icons: a heart, reply, and where it sits in the stack.
+    private func icons(_ c: Comment, _ i: Int) -> some View {
+        let color = Color(look.branch)
+        return HStack(spacing: 18) {
+            Button {
+                let on = !hearted.contains(c.id)
+                if on { hearted.insert(c.id) } else { hearted.remove(c.id) }
+                Task { _ = try? await model.store.api.heartComment(c.id, on: on) }
+            } label: {
+                NeonButtonGlyph(symbol: "heart", color: color, size: 34, action: .wellWishes)
+                    .background(hearted.contains(c.id) ? color.opacity(0.25) : .clear, in: .capsule)
+            }
+            .accessibilityLabel("Heart")
+            .accessibilityAddTraits(hearted.contains(c.id) ? .isSelected : [])
+            Button { onOpen?(card) } label: { NeonButtonGlyph(symbol: "arrowshape.turn.up.left", color: color, size: 34, tron: TronIcon.reply) }
+                .accessibilityLabel("Reply")
+            Spacer()
+            if here.count > 1 {
+                Text("\(i + 1) of \(here.count)").font(.caption.monospacedDigit().bold()).foregroundStyle(.white)
+                    .shadow(color: color, radius: 4)
+                    .accessibilityHidden(true)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

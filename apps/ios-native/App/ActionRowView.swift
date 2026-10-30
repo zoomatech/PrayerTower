@@ -59,8 +59,7 @@ struct ActionRowView: View {
     @ViewBuilder private func glyph(_ item: ActionItem) -> some View {
         let emojiOnly = wording == .neutral && (item.action == .prayingNow || item.action == .commit)
         if let glow {
-            // Praying hands have no standard symbol, so that one is Steve's drawn hands, lit as neon.
-            NeonButtonGlyph(symbol: Self.standardSymbol(item.action), art: item.action == .prayingNow ? Self.art("action-praying_now") : nil, color: glow, size: size)
+            NeonButtonGlyph(symbol: Self.standardSymbol(item.action), color: glow, size: size, action: item.action)
         } else if item.action == .share {
             Image(systemName: "square.and.arrow.up").font(.system(size: size * 0.75, weight: .semibold)).foregroundStyle(Color.accessibleAccent)
                 .frame(width: size, height: size).accessibilityHidden(true)
@@ -75,12 +74,12 @@ struct ActionRowView: View {
     static func standardSymbol(_ action: CardAction) -> String {
         switch action {
         case .prayingNow: "hands.sparkles.fill"
-        case .thumbsUp: "hand.thumbsup.fill"
-        case .commit: "mountain.2.fill"
-        case .encouragement: "paperplane.fill"
-        case .wellWishes: "heart.fill"
+        case .thumbsUp: "M2.5 10.5 L6.5 10.5 L6.5 21 L2.5 21 Z M6.5 11.5 L10 4.5 L11 3 L12.8 3.6 L13.2 6 L12.4 9.5 L19.6 9.5 L21 11 L20.6 12.6 L19.6 13 L20.4 14.6 L19.6 16.2 L18.6 16.4 L19 17.8 L18 19.4 L16.4 19.6 L16.4 20.4 L15.4 21 L6.5 21 M19.6 13 L14.5 13 M18.6 16.4 L14.5 16.4 M16.4 19.6 L14.5 19.6"
+        case .commit: "mountain.2"
+        case .encouragement: "paperplane"
+        case .wellWishes: "M12 21 L3.2 12.2 L2.6 8.6 L4.4 5 L8 4 L12 7 L16 4 L19.6 5 L21.4 8.6 L20.8 12.2 Z M12 17 L6.2 11.2 L5.9 9.1 L7 7.2 L8.6 6.9"
         case .share: "square.and.arrow.up"
-        case .giftTokens: "gift.fill"
+        case .giftTokens: "gift"
         }
     }
 
@@ -93,33 +92,66 @@ struct ActionRowView: View {
     }
 }
 
-/// A techy neon button: a standard icon lit like neon (a white-hot core glowing in the skin's
-/// color) inside a small glass-tube frame with elegant rounded corners, Tron style.
+/// A neon icon, Tron style (Steve, 2026-10-30): straight lines with small smooth joins, drawn as a
+/// neon glass tube glowing in the skin's color, on a 24-point grid.
 struct NeonButtonGlyph: View {
     let symbol: String
-    /// Drawn art used in place of the symbol, lit the same way.
     var art: Image? = nil
     let color: Color
     var size: CGFloat = 40
+    /// The action drawn; nil draws `tron` instead.
+    var action: CardAction? = nil
+    var tron: String? = nil
 
-    @ViewBuilder private var icon: some View {
-        if let art {
-            art.renderingMode(.template).resizable().scaledToFit().frame(width: size * 0.62, height: size * 0.62)
-        } else {
-            Image(systemName: symbol).font(.system(size: size * 0.5, weight: .semibold))
+    var body: some View {
+        Canvas { ctx, sz in
+            guard let d = tron ?? action.map(TronIcon.path) else { return }
+            let box = CGRect(origin: .zero, size: sz).insetBy(dx: sz.width * 0.14, dy: sz.height * 0.14)
+            NeonGlassLook(color: color, white: 0.7).stroke(TronIcon.shape(d, in: box), width: max(1.6, box.width / 24 * 1.7), in: ctx)
+        }
+        .frame(width: size + 4, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The Tron icons' outlines, as straight-line paths on a 24-point grid ("M x y L x y … Z").
+enum TronIcon {
+    static func path(_ action: CardAction) -> String {
+        switch action {
+        // Two hands pressed together in prayer, fingers up.
+        case .prayingNow: "M12 3 L12 18 M12 3 L9 7 L7 13 L4 16 L4 21 L9 21 L12 18 M12 3 L15 7 L17 13 L20 16 L20 21 L15 21 L12 18 M9.5 8 L9.5 14 M14.5 8 L14.5 14"
+        case .thumbsUp: "M2.5 10.5 L6.5 10.5 L6.5 21 L2.5 21 Z M6.5 11.5 L10 4.5 L11 3 L12.8 3.6 L13.2 6 L12.4 9.5 L19.6 9.5 L21 11 L20.6 12.6 L19.6 13 L20.4 14.6 L19.6 16.2 L18.6 16.4 L19 17.8 L18 19.4 L16.4 19.6 L16.4 20.4 L15.4 21 L6.5 21 M19.6 13 L14.5 13 M18.6 16.4 L14.5 16.4 M16.4 19.6 L14.5 19.6"
+        case .wellWishes: "M12 21 L3.2 12.2 L2.6 8.6 L4.4 5 L8 4 L12 7 L16 4 L19.6 5 L21.4 8.6 L20.8 12.2 Z M12 17 L6.2 11.2 L5.9 9.1 L7 7.2 L8.6 6.9"
+        case .commit: "M2 20 L9 8 L13 14 L16 10 L22 20 Z M7.5 10.5 L9 12 L10.5 10.5 M12 3 L12 7 M10 5 L14 5"
+        case .share: "M12 3 L12 15 M8 7 L12 3 L16 7 M8 10 L5 10 L5 21 L19 21 L19 10 L16 10"
+        // An open hand reaching out to lend a helping hand.
+        case .giftTokens: "M5 9 L5 20 M5 10.5 L9 8.5 L13.5 8.5 L15.5 4.5 L17.5 5 L16.5 9 L21.5 10 L22 11.5 L15 12 L21.5 13 L22 14.5 L15 15 L21 16 L21 17.5 L12 18.5 L5 18.5"
+        case .encouragement: "M3 11 L21 4 L15 20 L11 13 Z M11 13 L21 4"
         }
     }
 
-    var body: some View {
-        icon
-            .foregroundStyle(.white)
-            .shadow(color: color, radius: 2)
-            .shadow(color: color, radius: 5)
-            .shadow(color: color.opacity(0.8), radius: 10)
-            .frame(width: size + 4, height: size)
-            .background {
-                ConnectorOutline(shape: NeonFrame(radius: 9), look: NeonGlassLook(color: color, white: 0.6), width: 3)
+    /// A reply arrow, for a comment's icons.
+    static let reply = "M10 6 L4 12 L10 18 M4 12 L15 12 L20 17 L20 20"
+
+    static func shape(_ d: String, in r: CGRect) -> Path {
+        var p = Path()
+        let parts = d.split(separator: " ")
+        var i = 0
+        func point() -> CGPoint {
+            let x = Double(parts[i]) ?? 0, y = Double(parts[i + 1]) ?? 0
+            i += 2
+            return CGPoint(x: r.minX + x / 24 * r.width, y: r.minY + y / 24 * r.height)
+        }
+        while i < parts.count {
+            let c = parts[i]
+            i += 1
+            switch c {
+            case "M": p.move(to: point())
+            case "L": p.addLine(to: point())
+            case "Z": p.closeSubpath()
+            default: break
             }
-            .accessibilityHidden(true)
+        }
+        return p
     }
 }

@@ -104,6 +104,7 @@ public enum SampleServer {
               {"id":"sample-c5","parentId":null,"body":"Lighting a candle for her tonight.","isUpdate":false,"createdAt":"2026-10-29T09:20:00Z","isMine":false,"author":{"id":"sample-teresa","displayName":"Teresa","handle":null,"anonymous":false}},
               {"id":"sample-c6","parentId":null,"body":"We will bring a meal on Wednesday.","isUpdate":false,"createdAt":"2026-10-29T09:30:00Z","isMine":false,"author":{"id":"sample-luis","displayName":"Luis","handle":null,"anonymous":false}}]}
             """),
+            ("PUT", "^/comments/[^/]+/heart$", #"{"hearted":true}"#),
             ("GET", "^/posts/[^/]+/prayers$", #"{"count":4,"people":[{"id":"sample-sam","displayName":"Sam"}]}"#),
             ("GET", "^/me/commitments$", """
             {"commitments":[{"id":"sample-k1","post_id":"sample-p1","frequency":"daily","vow_text":"\(l.vow)","status":"active",
