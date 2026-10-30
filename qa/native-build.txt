@@ -1,0 +1,31 @@
+
+Shared tests       PASS   Test run with 233 tests
+Xcode project      PASS   PrayerTowerNative.xcodeproj
+iPhone app         PASS   iOS Simulator (id=15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D)
+UI walks           FAIL   /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261030-025022/ui-walks.txt
+Open Circle app    PASS   iOS Simulator (id=15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D)
+Mac app            PASS   macOS
+Mac console        PASS   macOS
+
+First errors:
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:21: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast failed
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:21: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast nearly passed
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:21: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Dynamic Type font sizes are partially unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:21: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Dynamic Type font sizes are unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:21: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Text clipped
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:36: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:36: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast nearly passed
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:36: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are partially unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:36: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:36: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:36: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:37: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Failed to tap Button (Element at index 0): No matches found for Descendants matching type Button from input {(
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift:69: error: -[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit] : XCTAssertTrue failed - Accessibility audit:
+Me: Contrast failed on screen
+Request: Contrast failed on screen
+Request: Contrast failed on XCUIElementType(rawValue: 9) 'Comment'
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin]' failed (105.029 seconds).
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen]' failed (21.296 seconds).
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit]' failed (130.220 seconds).
+Test Suite 'AccessibilityAuditTests' failed at 2026-10-30 03:02:34.672.
+Logs: /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261030-025022
