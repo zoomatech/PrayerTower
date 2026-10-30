@@ -138,15 +138,18 @@ private struct BeanSection<Row: View>: View {
     private func tap(_ n: Beanstalk.Note, _ cut: Bool, _ kids: [String: [Beanstalk.Note]]) {
         fresh = false
         if cut { reading = n; return }
-        withAnimation(still ? nil : .spring(response: 0.5, dampingFraction: 0.75)) {
-            if open.contains(n.id) {
-                // Closing a leaf folds its replies' replies away too.
-                func fold(_ id: String) { open.remove(id); for r in kids[id] ?? [] { fold(r.id) } }
-                fold(n.id)
-            } else {
-                open.insert(n.id)
+        var next = open
+        if next.contains(n.id) {
+            // Closing a leaf folds its replies' replies away too.
+            var stack = [n.id]
+            while let id = stack.popLast() {
+                next.remove(id)
+                stack += (kids[id] ?? []).map(\.id)
             }
+        } else {
+            next.insert(n.id)
         }
+        withAnimation(still ? nil : .spring(response: 0.5, dampingFraction: 0.75)) { open = next }
     }
 
     private func cycle(total: Int) -> some View {
@@ -203,7 +206,7 @@ private struct BraidStalk: View {
 
     var body: some View {
         Canvas { ctx, size in
-            let h = size.height, cx = size.width / 2
+            let h = Double(size.height), cx = Double(size.width) / 2
             let amp = max(4, stemWidth * 0.42), w = max(4, stemWidth * 0.62)
             let turns = max(1, (h / 120).rounded())
             func strand(_ phase: Double) -> Path {
@@ -212,7 +215,8 @@ private struct BraidStalk: View {
                 p.move(to: CGPoint(x: cx + amp * sin(phase), y: 0))
                 while y < h {
                     y = min(h, y + 5)
-                    p.addLine(to: CGPoint(x: cx + amp * sin(y / h * turns * 2 * .pi + phase), y: y))
+                    let angle: Double = y / h * turns * 2 * Double.pi + phase
+                    p.addLine(to: CGPoint(x: cx + amp * sin(angle), y: y))
                 }
                 return p
             }
@@ -237,16 +241,20 @@ private struct BeanLeafShape: Shape {
     let flip: Bool
     var veins = false
     func path(in r: CGRect) -> Path {
-        let W = r.width, H = r.height
-        func P(_ x: Double, _ y: Double) -> CGPoint { CGPoint(x: r.minX + (flip ? W - x * W : x * W), y: r.minY + y * H) }
+        let W = Double(r.width), H = Double(r.height), X0 = Double(r.minX), Y0 = Double(r.minY)
+        func P(_ x: Double, _ y: Double) -> CGPoint {
+            let px: Double = flip ? W - x * W : x * W
+            return CGPoint(x: X0 + px, y: Y0 + y * H)
+        }
         var p = Path()
         if veins {
             p.move(to: P(0.06, 0.5))
             p.addQuadCurve(to: P(1, 0.64), control: P(0.55, 0.44))
-            for t in [0.2, 0.36, 0.52, 0.68, 0.82] {
-                let u = 1 - t
-                let x = u * u * 0.06 + 2 * u * t * 0.55 + t * t, y = u * u * 0.5 + 2 * u * t * 0.44 + t * t * 0.64
-                let reach = sin(.pi * min(1, t * 1.15)) * 0.36
+            for t: Double in [0.2, 0.36, 0.52, 0.68, 0.82] {
+                let u: Double = 1 - t
+                let x: Double = u * u * 0.06 + 2 * u * t * 0.55 + t * t
+                let y: Double = u * u * 0.5 + 2 * u * t * 0.44 + t * t * 0.64
+                let reach: Double = sin(Double.pi * min(1, t * 1.15)) * 0.36
                 p.move(to: P(x, y)); p.addQuadCurve(to: P(x + 0.13, y - reach), control: P(x + 0.05, y - reach * 0.5))
                 p.move(to: P(x, y)); p.addQuadCurve(to: P(x + 0.13, y + reach), control: P(x + 0.05, y + reach * 0.5))
             }
@@ -274,24 +282,30 @@ private struct BeanLeafRow: View {
     @Environment(\.accessibilityReduceMotion) private var still
 
     var body: some View {
-        let scale = [1, 0.76, 0.6][row.level]
-        let W = min(290, lane / 2 - 8) * scale, H = W * 0.5
-        let font = row.level == 0 ? (W > 220 ? 14.0 : 12.5) : row.level == 1 ? 11.5 : 10.5
+        let scale: Double = [1, 0.76, 0.6][row.level]
+        let W: Double = min(290, lane / 2 - 8) * scale
+        let H: Double = W * 0.5
+        let font: Double = row.level == 0 ? (W > 220 ? 14 : 12.5) : (row.level == 1 ? 11.5 : 10.5)
         let lines = row.level == 0 ? 2 : 1
         let fit = Beanstalk.fit(row.note.body, max: Beanstalk.chars(width: W, font: font, lines: lines))
         let label = fit.cut ? words("beanstalk.readMore") : replies > 0 ? words("beanstalk.replies", count: replies) : ""
         let actionable = fit.cut || (replies > 0 && row.level < Beanstalk.maxLevel)
-        let out = row.right ? 1.0 : -1.0
-        let reach = 20.0 * Double(row.level)
-        let rowH = H * 0.78 + 4
-        let baseX = lane / 2 + out * reach
+        let out: Double = row.right ? 1 : -1
+        let reach: Double = 20 * Double(row.level)
+        let rowH: Double = H * 0.78 + 4
+        let baseX: Double = lane / 2 + out * reach
+        let stemFrom = CGPoint(x: lane / 2 + out * (reach - 14), y: rowH + 6)
+        let stemBend = CGPoint(x: lane / 2 + out * (reach - 12), y: rowH * 0.7)
+        let leafX: Double = row.right ? baseX - 2 : baseX - W + 2
         let anchor: UnitPoint = row.right ? .leading : .trailing
+        let tilt: Double = 9 * out, furl: Double = -40 * out
+        let textShift: Double = row.right ? W * 0.04 : -W * 0.04
         ZStack(alignment: .topLeading) {
             if row.level > 0 {
                 // Its own stem, off the leaf it answers.
                 Path { p in
-                    p.move(to: CGPoint(x: lane / 2 + out * (reach - 14), y: rowH + 6))
-                    p.addCurve(to: CGPoint(x: baseX, y: rowH / 2), control1: CGPoint(x: lane / 2 + out * (reach - 12), y: rowH * 0.7), control2: CGPoint(x: baseX, y: rowH * 0.7))
+                    p.move(to: stemFrom)
+                    p.addCurve(to: CGPoint(x: baseX, y: rowH / 2), control1: stemBend, control2: CGPoint(x: baseX, y: rowH * 0.7))
                 }
                 .stroke(Bean.strandDark, style: .init(lineWidth: 2.5, lineCap: .round))
                 .accessibilityHidden(true)
@@ -312,7 +326,7 @@ private struct BeanLeafRow: View {
                     }
                     .foregroundStyle(Bean.text)
                     .frame(width: W * 0.68)
-                    .offset(x: W * (row.right ? 0.04 : -0.04))
+                    .offset(x: textShift)
                 }
                 .frame(width: W, height: H)
             }
@@ -323,10 +337,10 @@ private struct BeanLeafRow: View {
             .accessibilityHint(fit.cut ? words("beanstalk.readHint") : actionable ? words("beanstalk.repliesHint") : "")
             .accessibilityAddTraits(actionable ? .isButton : [])
             // It unfurls from its stem.
-            .rotationEffect(.degrees(open ? 9 * out : -40 * out), anchor: anchor)
+            .rotationEffect(.degrees(open ? tilt : furl), anchor: anchor)
             .scaleEffect(open ? 1 : 0.15, anchor: anchor)
             .opacity(open ? 1 : 0)
-            .offset(x: row.right ? baseX - 2 : baseX - W + 2, y: (rowH - H) / 2)
+            .offset(x: leafX, y: (rowH - H) / 2)
         }
         .frame(width: lane, height: rowH, alignment: .topLeading)
         .task(id: show) {
@@ -340,13 +354,14 @@ private struct BeanLeafRow: View {
 private struct FrameVine: View {
     var body: some View {
         Canvas { ctx, size in
-            let pad = 14.0, r = 22.0
-            let rect = CGRect(x: pad, y: pad, width: size.width - pad * 2, height: size.height - pad * 2)
-            let edge = Self.edge(rect, r: r, step: 4)
+            let pad: Double = 14, r: Double = 22
+            let w = Double(size.width), h = Double(size.height)
+            let edge = Self.edge(x: pad, y: pad, w: w - pad * 2, h: h - pad * 2, r: r, step: 4)
             func strand(_ sign: Double) -> Path {
                 var p = Path()
                 for (i, e) in edge.enumerated() {
-                    let off = 1 + sign * 3.2 * sin(e.s / 34 * 2 * .pi)
+                    let wave: Double = sin(e.s / 34 * 2 * Double.pi)
+                    let off: Double = 1 + sign * 3.2 * wave
                     let pt = CGPoint(x: e.x + e.nx * off, y: e.y + e.ny * off)
                     if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
                 }
@@ -356,8 +371,9 @@ private struct FrameVine: View {
             var leaves = Path(), curls = Path()
             for (i, e) in edge.enumerated() {
                 if i % 8 == 4 {
-                    let a = atan2(e.ny, e.nx) + (i % 16 == 4 ? 0.7 : -0.7)
-                    let x = e.x + e.nx * 3, y = e.y + e.ny * 3, c = cos(a), s = sin(a)
+                    let turn: Double = i % 16 == 4 ? 0.7 : -0.7
+                    let a: Double = atan2(e.ny, e.nx) + turn
+                    let x: Double = e.x + e.nx * 3, y: Double = e.y + e.ny * 3, c: Double = cos(a), s: Double = sin(a)
                     func pt(_ u: Double, _ v: Double) -> CGPoint { CGPoint(x: x + u * c - v * s, y: y + u * s + v * c) }
                     leaves.move(to: pt(0, 0))
                     leaves.addQuadCurve(to: pt(14, 0), control: pt(6.3, -5.5))
@@ -365,12 +381,14 @@ private struct FrameVine: View {
                     leaves.closeSubpath()
                 }
                 if i % 42 == 21 {
-                    let a = atan2(e.ny, e.nx) + 0.4, x = e.x + e.nx * 4, y = e.y + e.ny * 4
-                    curls.move(to: CGPoint(x: x, y: y))
+                    let a: Double = atan2(e.ny, e.nx) + 0.4
+                    let x: Double = e.x + e.nx * 4 + cos(a) * 6, y: Double = e.y + e.ny * 4 + sin(a) * 6
+                    curls.move(to: CGPoint(x: x - cos(a) * 6, y: y - sin(a) * 6))
                     var t = 0.0
-                    while t <= 3.6 * .pi {
-                        let rr = 6 * (1 - t / (4.2 * .pi))
-                        curls.addLine(to: CGPoint(x: x + cos(a) * 6 + rr * cos(a + t + .pi), y: y + sin(a) * 6 + rr * sin(a + t + .pi)))
+                    while t <= 3.6 * Double.pi {
+                        let rr: Double = 6 * (1 - t / (4.2 * Double.pi))
+                        let b: Double = a + t + Double.pi
+                        curls.addLine(to: CGPoint(x: x + rr * cos(b), y: y + rr * sin(b)))
                         t += 0.3
                     }
                 }
@@ -383,10 +401,11 @@ private struct FrameVine: View {
                 ctx.stroke(strand(sign), with: .color(color), lineWidth: 3.5)
             }
             // The flower at the top middle.
-            let fx = size.width / 2, fy = pad
+            let fx: Double = w / 2, fy: Double = pad
             for k in 0..<5 {
-                let a = Double(k) * 2 * .pi / 5 - .pi / 2
-                let petal = Path(ellipseIn: CGRect(x: fx + cos(a) * 8 - 5, y: fy + sin(a) * 8 - 5, width: 10, height: 10))
+                let a: Double = Double(k) * 2 * Double.pi / 5 - Double.pi / 2
+                let px: Double = fx + cos(a) * 8 - 5, py: Double = fy + sin(a) * 8 - 5
+                let petal = Path(ellipseIn: CGRect(x: px, y: py, width: 10, height: 10))
                 ctx.fill(petal, with: .color(Bean.petal))
                 ctx.stroke(petal, with: .color(Bean.ink), lineWidth: 1.2)
             }
@@ -400,21 +419,21 @@ private struct FrameVine: View {
     struct Edge { let x, y, nx, ny, s: Double }
 
     /// Points every `step` round a rounded rectangle, clockwise from the top middle (roundedRectEdge in beanstalk.tsx).
-    static func edge(_ r: CGRect, r rad: Double, step: Double) -> [Edge] {
+    static func edge(x x0: Double, y y0: Double, w: Double, h: Double, r rad: Double, step: Double) -> [Edge] {
         typealias Seg = (len: Double, at: (Double) -> (Double, Double, Double, Double))
         func line(_ ax: Double, _ ay: Double, _ bx: Double, _ by: Double, _ nx: Double, _ ny: Double) -> Seg {
             (hypot(bx - ax, by - ay), { t in (ax + (bx - ax) * t, ay + (by - ay) * t, nx, ny) })
         }
         func arc(_ cx: Double, _ cy: Double, _ a0: Double) -> Seg {
-            (.pi * rad / 2, { t in let a = a0 + t * .pi / 2; return (cx + rad * cos(a), cy + rad * sin(a), cos(a), sin(a)) })
+            (Double.pi * rad / 2, { (t: Double) in let a: Double = a0 + t * Double.pi / 2; return (cx + rad * cos(a), cy + rad * sin(a), cos(a), sin(a)) })
         }
-        let L = r.minX, T = r.minY, R = r.maxX, B = r.maxY
+        let L = x0, T = y0, R = x0 + w, B = y0 + h, mid = x0 + w / 2
         let segs: [Seg] = [
-            line(r.midX, T, R - rad, T, 0, -1), arc(R - rad, T + rad, -.pi / 2),
+            line(mid, T, R - rad, T, 0, -1), arc(R - rad, T + rad, -.pi / 2),
             line(R, T + rad, R, B - rad, 1, 0), arc(R - rad, B - rad, 0),
             line(R - rad, B, L + rad, B, 0, 1), arc(L + rad, B - rad, .pi / 2),
             line(L, B - rad, L, T + rad, -1, 0), arc(L + rad, T + rad, .pi),
-            line(L + rad, T, r.midX, T, 0, -1),
+            line(L + rad, T, mid, T, 0, -1),
         ]
         let total = segs.reduce(0) { $0 + $1.len }
         var out: [Edge] = []
