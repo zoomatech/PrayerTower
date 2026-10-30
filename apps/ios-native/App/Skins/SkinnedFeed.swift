@@ -59,7 +59,7 @@ struct VineFeed<Row: View>: View {
             LazyVStack(alignment: .leading, spacing: 44) {
                 if look.vineStyle == .gate { GateTop(look: look).frame(height: 150).frame(maxWidth: .infinity) }
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
-                    VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: look.vineStyle == .neon ? NeonDrop.gap : 18) {
                         // Neon: the post's icons sit inside its frame, under the box, as neon outlines (Steve, 2026-10-30).
                         VineLeaf(look: look, wording: wording, depth: 0, below: look.vineStyle == .neon ? AnyView(row(card).environment(\.cardPart, .icons(Color(look.leaf)))) : nil) {
                             row(card).environment(\.cardPart, look.vineStyle == .neon ? .post : .whole)
@@ -291,7 +291,7 @@ struct VineLeaf<Content: View>: View {
             .overlay(alignment: .leading) {
                 if tucked {
                     // From the post's box above (over the gap between them), down and round into this box.
-                    NeonDrop(look: look, depth: depth, y: 48).buildsDownward(ConnectorTiming.branch(drawn)).padding(.top, -18).accessibilityHidden(true)
+                    NeonDrop(look: look, depth: depth, y: 48).buildsDownward(ConnectorTiming.branch(drawn)).padding(.top, -NeonDrop.gap).accessibilityHidden(true)
                 } else {
                     twig.shootsOut(ConnectorTiming.branch(drawn)).accessibilityHidden(true)
                 }
@@ -406,13 +406,16 @@ struct NeonDrop: View {
     let depth: Int
     let y: CGFloat
 
+    /// The space between a box and the comment under it, which the tube crosses.
+    static let gap: CGFloat = 30
+
     /// Each level of reply sits further in, under its parent.
     static func indent(_ depth: Int) -> CGFloat { 104 + CGFloat(depth - 1) * 40 }
 
     var body: some View {
         let indent = Self.indent(depth)
         Canvas { ctx, size in
-            let x: CGFloat = indent - 32, r: CGFloat = 12, y = self.y + 18
+            let x: CGFloat = indent - 32, r: CGFloat = 12, y = self.y + Self.gap
             var p = Path()
             p.move(to: CGPoint(x: x, y: 0))
             p.addLine(to: CGPoint(x: x, y: y - r))
@@ -424,8 +427,8 @@ struct NeonDrop: View {
     }
 }
 
-/// A comment laid forward on its face at the top of its stack (Steve, 2026-10-30): a neon card
-/// tipped away from you, showing only its first line, with the rest of the stack under it.
+/// A closed comment cluster (Steve, 2026-10-30): the top comment's first line on a neon card laid
+/// forward on its face, the others a fading recession of neon lines under it.
 private struct FaceDownCard: View {
     let line: String
     let behind: Int
@@ -436,12 +439,6 @@ private struct FaceDownCard: View {
         let color = Color(look.branch)
         let backdrop = look.backdrop.map { Color($0) } ?? Color.pageBackground
         ZStack(alignment: .leading) {
-            ForEach(Array(stride(from: min(behind, 3), to: 0, by: -1)), id: \.self) { k in
-                ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.4), width: 4)
-                    .background(backdrop, in: .rect(cornerRadius: 10))
-                    .opacity(1 - Double(k) * 0.25)
-                    .offset(y: CGFloat(k) * 7)
-            }
             ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.5), width: 5)
                 .background(backdrop, in: .rect(cornerRadius: 10))
             Text(line).font(.callout.bold()).lineLimit(1).foregroundStyle(.white)
@@ -450,10 +447,25 @@ private struct FaceDownCard: View {
         }
         .frame(height: 50)
         .rotation3DEffect(.degrees(40), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.45)
-        .padding(.vertical, 14)
+        // The other comments: a recession of neon lines under it, each further back, narrower and fainter.
+        .background(alignment: .bottom) {
+            ZStack(alignment: .top) {
+                ForEach(0..<min(behind, 4), id: \.self) { k in
+                    let step = CGFloat(k + 1)
+                    Capsule().fill(color).frame(height: 3).shadow(color: color, radius: 4)
+                        .padding(.horizontal, 8 * step)
+                        .opacity(0.75 - Double(k) * 0.18)
+                        .offset(y: 9 * step)
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .accessibilityHidden(true)
+        }
+        .padding(.top, 14)
+        .padding(.bottom, 14 + CGFloat(min(behind, 4)) * 9)
         .padding(.leading, NeonDrop.indent(depth))
         .padding(.trailing, 16)
-        .overlay(alignment: .leading) { NeonDrop(look: look, depth: depth, y: 39).padding(.top, -18).accessibilityHidden(true) }
+        .overlay(alignment: .leading) { NeonDrop(look: look, depth: depth, y: 39).padding(.top, -NeonDrop.gap).accessibilityHidden(true) }
         .contentShape(.rect)
     }
 }
@@ -488,60 +500,45 @@ private struct CommentLevel: View {
     let look: VineLook
     let wording: Wording
     var onOpen: ((Card) -> Void)?
-    @State private var shown = 0
     @State private var hearted: Set<String> = []
-    /// Comments turned face up; the rest lie face down until tapped.
-    @State private var opened: Set<String> = []
+    /// Open: the top 5 comments laid out in full. Closed: only the top comment's first line, the
+    /// rest a fading recession of neon lines behind it (Steve, 2026-10-30).
+    @State private var open = false
     @Environment(AppModel.self) private var model
 
     private var here: [Comment] { all.filter { $0.parentId == parent } }
 
     var body: some View {
-        if !here.isEmpty {
-            let i = min(shown, here.count - 1)
-            let c = here[i]
-            VStack(alignment: .leading, spacing: 18) {
-              if !opened.contains(c.id) {
-                // Tapped, it turns face up, draws itself in fully and pushes everything below it down.
-                Button {
-                    withAnimation(.spring(duration: 0.6)) { _ = opened.insert(c.id) }
-                } label: {
-                    FaceDownCard(line: "\(c.author.displayName): \(c.body)", behind: here.count - 1 - i, look: look, depth: depth)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(c.author.displayName): \(c.body)")
-                .accessibilityHint("Opens the comment")
-                .transition(.opacity)
-              } else {
-                VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i)), behind: here.dropFirst(i + 1).prefix(3).map { "\($0.author.displayName): \($0.body)" }) {
-                    LeafCommentText(comment: LeafComment(id: c.id, body: c.body, author: c.author, createdAt: c.createdAt), look: look)
-                }
-                .id(c.id)
-                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
-                .gesture(DragGesture(minimumDistance: 24).onEnded { g in
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        if g.translation.width < -40 { flip(to: min(here.count - 1, i + 1)) }
-                        if g.translation.width > 40 { flip(to: max(0, i - 1)) }
+        if let top = here.first {
+            Group {
+                if open {
+                    VStack(alignment: .leading, spacing: NeonDrop.gap) {
+                        ForEach(Array(here.prefix(5).enumerated()), id: \.element.id) { i, c in
+                            VStack(alignment: .leading, spacing: NeonDrop.gap) {
+                                VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i))) {
+                                    LeafCommentText(comment: LeafComment(id: c.id, body: c.body, author: c.author, createdAt: c.createdAt), look: look)
+                                }
+                                // Replies: at most three levels deep (Steve, 2026-10-29).
+                                if depth < 3 {
+                                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
+                                }
+                            }
+                        }
                     }
-                })
-                .accessibilityAction(named: "Next comment") { flip(to: min(here.count - 1, i + 1)) }
-                .accessibilityAction(named: "Previous comment") { flip(to: max(0, i - 1)) }
-                // Replies: at most three levels deep (Steve, 2026-10-29).
-                if depth < 3 {
-                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
+                    .transition(.opacity)
+                } else {
+                    FaceDownCard(line: "\(top.author.displayName): \(top.body)", behind: here.count - 1, look: look, depth: depth)
+                        .transition(.opacity)
                 }
-              }
             }
+            // A tap anywhere on the cluster opens it, pushing everything below it down; again closes it.
+            .contentShape(.rect)
+            .onTapGesture { withAnimation(.spring(duration: 0.6)) { open.toggle() } }
+            .accessibilityAction(named: open ? "Close comments" : "Open comments") { open.toggle() }
         }
     }
 
-    /// Flips to another card of an open stack; it comes face up, as the one before it was.
-    private func flip(to n: Int) {
-        shown = n
-        opened.insert(here[n].id)
-    }
-
-    /// A comment's own icons: a heart, reply, and where it sits in the stack.
+    /// A comment's own icons: a heart and reply.
     private func icons(_ c: Comment, _ i: Int) -> some View {
         let color = Color(look.branch)
         return HStack(spacing: 18) {
@@ -558,11 +555,6 @@ private struct CommentLevel: View {
             Button { onOpen?(card) } label: { NeonButtonGlyph(symbol: "arrowshape.turn.up.left", color: color, size: 34, tron: TronIcon.reply) }
                 .accessibilityLabel("Reply")
             Spacer()
-            if here.count > 1 {
-                Text("\(i + 1) of \(here.count)").font(.caption.monospacedDigit().bold()).foregroundStyle(.white)
-                    .shadow(color: color, radius: 4)
-                    .accessibilityHidden(true)
-            }
         }
         .buttonStyle(.plain)
     }
