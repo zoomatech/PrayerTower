@@ -1,7 +1,7 @@
 // The Beanstalk, ported from Steve's Claude Design file: the frame vine, the stalk and leaves below each post, the sway.
 import { COMMENT_TEXT, contrastRatio, type Comment } from '@prayer-tower/shared';
 
-import { BEANSTALK, commentTree, fitText, frameVine, frameWidth, hanging, leafChars, maxShift, PER_PAGE, postShift } from '@/layouts/beanstalk';
+import { BEANSTALK, commentTree, fitText, frameVine, frameWidth, hanging, leafChars, maxShift, postShift } from '@/layouts/beanstalk';
 
 const c = (id: string, mins: number, parentId: string | null = null, body = id) =>
   ({ id, parentId, body, isUpdate: false, createdAt: new Date(Date.UTC(2026, 9, 30, 0, mins)).toISOString(), author: { displayName: id } }) as unknown as Comment;
@@ -65,21 +65,28 @@ describe('Beanstalk leaves', () => {
     expect(leafChars(280, 14, 2)).toBeGreaterThan(leafChars(170, 14, 2));
   });
 
-  it('hangs three leaves at a time below the post, left then right, and sprouts an open leaf’s replies three levels deep', () => {
-    const all = [c('a', 1), c('b', 2), c('c', 3), c('d', 4), c('r1', 5, 'd'), c('r2', 6, 'd'), c('r3', 7, 'd'), c('r4', 8, 'd'), c('rr', 9, 'r1'), c('rrr', 10, 'rr')];
+  it('keeps more than three comments in an uncountable cluster until it spreads, then hangs five at a time, left then right, and sprouts an open leaf’s replies three levels deep', () => {
+    const all = [c('a', 1), c('b', 2), c('c', 3), c('d', 4), c('e', 5), c('f', 6), c('g', 7), c('r1', 8, 'g'), c('r2', 9, 'g'), c('r3', 10, 'g'), c('rr', 11, 'r1'), c('rrr', 12, 'rr')];
     const { top, kids } = commentTree(all);
-    expect(top.map((x) => x.id)).toEqual(['d', 'c', 'b', 'a']);
-    const closed = hanging(360, top, kids, { page: 0, open: null, open2: null }, 0);
-    expect(closed.leaves.map((l) => l.comment.id)).toEqual(['d', 'c', 'b']);
-    expect(closed.leaves.map((l) => l.side)).toEqual([-1, 1, -1]);
-    expect(closed.pager).toBe(true);
-    expect(closed.pages).toBe(2);
-    // The second page.
-    expect(hanging(360, top, kids, { page: 1, open: null, open2: null }, 0).leaves.map((l) => l.comment.id)).toEqual(['a']);
-    const open = hanging(360, top, kids, { page: 0, open: 0, open2: 0 }, 0);
-    expect(open.leaves.map((l) => `${l.comment.id}:${l.level}`)).toEqual(['d:1', 'c:1', 'b:1', 'r1:2', 'rr:3', 'r2:2', 'r3:2']);
-    expect(open.leaves.filter((l) => l.level === 2)).toHaveLength(PER_PAGE);
-    expect(open.H).toBeGreaterThan(closed.H);
+    expect(top.map((x) => x.id)).toEqual(['g', 'f', 'e', 'd', 'c', 'b', 'a']);
+    const clumped = hanging(360, top, kids, { page: 0, open: null, open2: null }, 0);
+    expect(clumped.leaves).toHaveLength(0);
+    expect(clumped.clump).not.toBeNull();
+    expect(clumped.pager).toBe(false);
+    // Three or fewer hang as leaves straight away.
+    const few = commentTree([c('a', 1), c('b', 2), c('c', 3)]);
+    expect(hanging(360, few.top, few.kids, { page: 0, open: null, open2: null }, 0).clump).toBeNull();
+    const spread = hanging(360, top, kids, { page: 0, open: null, open2: null, spread: true }, 0);
+    expect(spread.clump).toBeNull();
+    expect(spread.leaves.map((l) => l.comment.id)).toEqual(['g', 'f', 'e', 'd', 'c']);
+    expect(spread.leaves.map((l) => l.side)).toEqual([-1, 1, -1, 1, -1]);
+    // More than five: the pager shows there are more.
+    expect(spread.pager).toBe(true);
+    expect(spread.pages).toBe(2);
+    expect(hanging(360, top, kids, { page: 1, open: null, open2: null, spread: true }, 0).leaves.map((l) => l.comment.id)).toEqual(['b', 'a']);
+    const open = hanging(360, top, kids, { page: 0, open: 0, open2: 0, spread: true }, 0);
+    expect(open.leaves.map((l) => `${l.comment.id}:${l.level}`)).toEqual(['g:1', 'f:1', 'e:1', 'd:1', 'c:1', 'r1:2', 'rr:3', 'r2:2', 'r3:2']);
+    expect(open.H).toBeGreaterThan(spread.H);
   });
 
   it('bends the stalk below a post over to where the next post sits', () => {
