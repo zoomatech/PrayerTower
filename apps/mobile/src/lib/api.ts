@@ -1997,8 +1997,8 @@ export const api = {
   acceptAward: (id: string, showName: boolean, prize?: PrizeChoice) =>
     post<{ accepted: true; tokens: number; priestly: number; prizeChoice: PrizeChoice }>(`/me/awards/${id}/accept`, prize ? { showName, prize } : { showName }),
   across: () => get<{ card: Card | null }>('/across'),
-  quickReact: (postId: string, kind: 'candle' | 'standing', on: boolean) =>
-    request<{ candles: number; standing: number; mine: ('candle' | 'standing')[] }>(on ? 'PUT' : 'DELETE', `/posts/${postId}/quick-reactions/${kind}`),
+  quickReact: (postId: string, kind: 'candle' | 'standing' | 'thumbs_up', on: boolean) =>
+    request<{ candles: number; standing: number; thumbsUp: number; mine: ('candle' | 'standing' | 'thumbs_up')[] }>(on ? 'PUT' : 'DELETE', `/posts/${postId}/quick-reactions/${kind}`),
   reactionMeanings: () => get<{ emoji: MeaningEmoji[] }>('/reaction-meanings'),
   meanings: (postId: string) => get<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`),
   chooseMeaning: (postId: string, emoji: string, meaning: string) => put<{ leaves: MeaningLeaf[] }>(`/posts/${postId}/meanings`, { emoji, meaning }),

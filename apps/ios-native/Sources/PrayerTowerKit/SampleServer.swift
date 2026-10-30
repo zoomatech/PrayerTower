@@ -52,7 +52,7 @@ public enum SampleServer {
         """
         {"id":"\(id)","author":{"id":"sample-\(name.lowercased())","displayName":"\(name)","handle":null,"anonymous":false},"isMine":\(mine),"postType":"prayer_request",
          "urgency":0,"preview":"\(text)","body":"\(text)","crisis":false,"counts":{"prayingNow":1,"prayers":4,"commitments":1,"comments":1},
-         "createdAt":"2026-10-29T08:00:00Z","state":"open","actions":["praying_now","well_wishes","encouragement","share","commit","gift_tokens"]}
+         "createdAt":"2026-10-29T08:00:00Z","state":"open","actions":["thumbs_up","praying_now","well_wishes","encouragement","share","commit","gift_tokens"]}
         """
     }
 

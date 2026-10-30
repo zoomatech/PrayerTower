@@ -593,6 +593,7 @@ export interface CardCounts {
   /** Quick reactions (long-press), counted whether or not the tray is switched on. */
   candles: number;
   standing: number;
+  thumbsUp: number;
 }
 
 /** Build post cards for a viewer, in the order given. */
@@ -620,7 +621,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
               'shares', (select count(*) from public.reactions r where r.post_id = po.id and r.kind = 'share'),
               'comments', (select count(*) from public.comments c where c.post_id = po.id and c.moderation_status = 'visible'),
               'candles', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'candle'),
-              'standing', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'standing')
+              'standing', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'standing'),
+              'thumbsUp', (select count(*) from public.quick_reactions x where x.post_id = po.id and x.kind = 'thumbs_up')
             ) as counts,
             coalesce((select json_agg(json_build_object('kind', m.kind, 'storagePath', m.storage_path) order by m.position)
                         from public.post_media m where m.post_id = po.id), '[]') as media,
@@ -803,9 +805,10 @@ export type CardType = PostType | 'scripture_leaf' | 'feed_end';
 
 /**
  * The labeled action row, in the same order on every card in every layout.
+ * Thumbs up is leftmost, "the most used icon" (Steve, 2026-10-30).
  * Prayer Cast stays out until the broadcast ships.
  */
-export const ACTION_ORDER = ['praying_now', 'commit', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
+export const ACTION_ORDER = ['thumbs_up', 'praying_now', 'commit', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
 export type CardAction = (typeof ACTION_ORDER)[number];
 
 function cardActions(enabledReactions: string[]): CardAction[] {

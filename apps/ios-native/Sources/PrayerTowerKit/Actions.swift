@@ -3,6 +3,8 @@ import Foundation
 /// The six actions on a card (`ACTION_ORDER` in packages/shared). Every design shows them as ONE
 /// row of icons (Steve, 2026-10-29); the name shows on a long press or pointer hover.
 public enum CardAction: String, CaseIterable, Sendable, Codable {
+    /// Leftmost, "the most used icon" (Steve, 2026-10-30).
+    case thumbsUp = "thumbs_up"
     case prayingNow = "praying_now"
     case commit
     case encouragement
@@ -13,6 +15,7 @@ public enum CardAction: String, CaseIterable, Sendable, Codable {
     /// The same glyphs as `ACTION_ICONS` in apps/mobile/src/components/post-card.tsx.
     public var icon: String {
         switch self {
+        case .thumbsUp: "👍"
         case .prayingNow: "💜"
         case .commit: "🙏"
         case .encouragement: "✉️"
@@ -25,6 +28,7 @@ public enum CardAction: String, CaseIterable, Sendable, Codable {
     /// `ACTION_LABELS` in packages/shared, with Open Circle's words from neutral.ts where they differ.
     public func name(_ wording: Wording) -> String {
         switch (self, wording) {
+        case (.thumbsUp, _): "Thumbs Up"
         case (.prayingNow, .faith): "Praying Now"
         case (.prayingNow, .neutral): "Thinking of You"
         case (.commit, .faith): "Commit to Pray"
@@ -43,7 +47,7 @@ public enum CardAction: String, CaseIterable, Sendable, Codable {
         case .wellWishes: "love"
         case .encouragement: "support"
         case .commit: "strength"
-        case .share, .giftTokens: nil
+        case .thumbsUp, .share, .giftTokens: nil
         }
     }
 }
