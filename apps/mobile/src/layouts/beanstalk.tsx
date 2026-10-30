@@ -32,6 +32,7 @@ import { Button } from '@/components/ui';
 import { CardNoType, CardSurface } from '@/components/post-card';
 import { VineFruit } from '@/components/vine-flow';
 import { api } from '@/lib/api';
+import { useCommentCluster, usePostComments } from '@/skins/comments';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { space } from '@/lib/theme';
@@ -462,12 +463,8 @@ export function fitText(text: string, max: number): { text: string; cut: boolean
 }
 
 /** Top-level comments newest first, and each comment's replies in order. */
-export function commentTree(all: Comment[]) {
-  const top = all.filter((c) => !c.parentId).sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
-  const kids = new Map<string, Comment[]>();
-  for (const c of all) if (c.parentId) kids.set(c.parentId, [...(kids.get(c.parentId) ?? []), c]);
-  return { top, kids };
-}
+/** Moved to the shared skin hooks; kept here for older imports. */
+export { commentTree } from '@/skins/comments';
 
 // ---------------------------------------------------------------------------
 // The growing clock: each post runs one clock from 0 to 2 seconds when it scrolls
@@ -892,29 +889,14 @@ const Post = memo(function Post({
   const grown = useGrown(bus, here);
   const t = useClock(grown);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const [all, setAll] = useState<Comment[] | null>(null);
-  const [cv, setCv] = useState<LeafState>({ page: 0, open: null, open2: null, spread: false });
-  const [cyc, setCyc] = useState(0);
+  // The comments and how their cluster opens come from the shared skin hooks (skins/comments.ts); this skin draws them.
+  const cluster = useCommentCluster();
+  const cv = cluster.state;
+  const cyc = cluster.cycle;
   const [reading, setReading] = useState<Comment | null>(null);
   // Bumped when the top comment of a closed cluster is tapped, to rustle the bunch open.
   const [go, setGo] = useState(0);
-
-  useEffect(() => {
-    if (!grown || all || card.counts.comments <= 0) return;
-    let live = true;
-    api
-      .comments(card.id)
-      .then((r) => live && setAll(r.comments))
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [grown, all, card.id, card.counts.comments]);
-
-  // Until the comments arrive, the newest few the feed already sent.
-  const fallback = useMemo(() => (card.leafComments ?? []).map((c) => ({ ...c, parentId: c.parentId ?? null })), [card.leafComments]);
-  const { top, kids } = useMemo(() => commentTree(all ?? fallback), [all, fallback]);
-  const total = all ? top.length : Math.max(top.length, card.counts.comments);
+  const { top, kids, total } = usePostComments(card, grown);
   const geo = useMemo(() => (size.w > 20 && size.h > 20 ? frameVine(Math.round(size.w), Math.round(size.h)) : null), [size]);
   const hang = useMemo(() => hanging(width, top, kids, cv, index, next - shift), [width, top, kids, cv, index, next, shift]);
   // A new page of leaves, or a reply opening, unfurls on its own short clock.
@@ -929,16 +911,14 @@ const Post = memo(function Post({
       const sprouts = leaf.replies > 0 && leaf.level < 3;
       if (cut && (!sprouts || leaf.open)) return setReading(leaf.comment);
       if (!sprouts) return;
-      setCv((c) => (leaf.level === 1 ? { ...c, open: c.open === leaf.path[0] ? null : leaf.path[0]!, open2: null } : { ...c, open2: c.open2 === leaf.path[1] ? null : leaf.path[1]! }));
+      if (leaf.level === 1) cluster.toggleReplies(1, leaf.path[0]!);
+      else cluster.toggleReplies(2, leaf.path[1]!);
     },
-    [],
+    [cluster.toggleReplies], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const spread = useCallback(() => onPage(0), []); // eslint-disable-line react-hooks/exhaustive-deps
   const more = useCallback(() => onPage(hang.page + 1), [hang.page]); // eslint-disable-line react-hooks/exhaustive-deps
-  const onPage = useCallback((p: number) => {
-    setCv({ page: p, open: null, open2: null, spread: true });
-    setCyc((n) => n + 1);
-  }, []);
+  const onPage = cluster.showPage;
   const closeReader = useCallback(() => setReading(null), []);
   // Its comments show on the leaves, so the card doesn't repeat one.
   const shown = useMemo(() => (card.counts.comments > 0 ? { ...card, topComment: null } : card), [card]);

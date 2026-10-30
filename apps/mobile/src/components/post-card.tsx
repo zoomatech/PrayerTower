@@ -2,7 +2,6 @@
 // with "more", tier icon, first/top comment, and the labeled action row.
 // Layouts decide where a card goes; the card's content and action order never change.
 import {
-  ACTION_LABELS,
   isPrayable,
   POST_BACKGROUND_STYLES,
   POST_TYPE_LABELS,
@@ -15,8 +14,6 @@ import { router } from 'expo-router';
 import { createContext, memo, useContext, useState, type ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
-import { api } from '@/lib/api';
-import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -26,8 +23,8 @@ import { SparkleWords } from './sparkle-words';
 import { hasParts, PostParts, type PartComments } from './post-parts';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
-import { useMeaningChooser, type MeaningChooser } from './meaning-chooser';
 import { useQuietSeen } from './comment-kindness';
+import { useActionRow } from '@/skins/action-row';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
@@ -86,27 +83,12 @@ export const PostCard = memo(function PostCard({
   const [expanded, setExpanded] = useState(startExpanded);
   const [tray, setTray] = useState(false);
   const [quick, setQuick] = useState({ candles: card.counts.candles ?? 0, standing: card.counts.standing ?? 0 });
-  // Thumbs up toggles right here, with no sheet; its count joins the counts line.
-  const [thumbs, setThumbs] = useState({ n: card.counts.thumbsUp ?? 0, mine: !!card.myQuickReactions?.includes('thumbs_up') });
-  const thumbsUp = () => {
-    const on = !thumbs.mine;
-    setThumbs((t) => ({ n: Math.max(0, t.n + (on ? 1 : -1)), mine: on }));
-    api.quickReact(card.id, 'thumbs_up', on).then(
-      (r) => setThumbs({ n: r.thumbsUp, mine: r.mine.includes('thumbs_up') }),
-      () => setThumbs((t) => ({ n: Math.max(0, t.n + (on ? -1 : 1)), mine: !on })),
-    );
-  };
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
-  // Prayer Cast only where the community has radio.
-  const radioOn = useFeature('radio');
+  // What each button does lives in the shared skin hooks; this card only draws them.
   // Emoji meanings ride on the same row of action icons; on the request's own page the full tree sits below instead.
-  const chooser: MeaningChooser = useMeaningChooser(card.id, card.body, !startExpanded);
-  const meaningsFor = (action: string) => {
-    const e = chooser.forAction(action);
-    return e ? { words: chooser.words(e), open: () => chooser.open(e), action: t('meanings.choose', { emoji: e.emoji }), hint: t('meanings.holdHint') } : null;
-  };
+  const row = useActionRow(card, onAction, !startExpanded);
   const surface = useContext(CardSurface);
   const noType = useContext(CardNoType);
   const frame = useContext(CardFrame);
@@ -225,7 +207,7 @@ export const PostCard = memo(function PostCard({
                   : t('card.firstToPray')}
           {card.counts.commitments > 0 && !quiet ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
           {card.counts.encouragements > 0 && !quiet ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
-          {thumbs.n > 0 && !quiet ? ` · 👍 ${thumbs.n}` : ''}
+          {row.thumbsUp > 0 && !quiet ? ` · 👍 ${row.thumbsUp}` : ''}
           {features.reactionTray && quick.candles ? ` · 🕯️ ${quick.candles}` : ''}
           {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
         </Text>
@@ -252,26 +234,23 @@ export const PostCard = memo(function PostCard({
       {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press.
           It sits under the post's box, bigger, not inside the post (Steve, 2026-10-30). */}
       <View style={[styles.actions, frame?.inset ? { marginLeft: frame.inset } : null]} testID="card-actions">
-        {card.actions.filter((a) => a !== 'prayer_cast' || radioOn).map((action) => {
-          const active = (action === 'commit' && !!card.myCommitment) || (action === 'thumbs_up' && thumbs.mine);
-          return (
-            <ActionIcon
-              key={action}
-              icon={icon(action, ACTION_ICONS)}
-              art={wording === 'neutral' && NEUTRAL_EMOJI_ACTIONS.has(action) ? undefined : ACTION_ART[action]}
-              label={active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
-              name={label('action', action, ACTION_LABELS[action])}
-              active={active}
-              onPress={() => (action === 'thumbs_up' ? thumbsUp() : onAction(card, action))}
-              meanings={meaningsFor(action)}
-              caption={action === 'praying_now'}
-              neon={frame?.neon && hasNeonIcon(action) ? <NeonActionIcon action={action} color={active ? frame.neon.active : frame.neon.color} /> : undefined}
-              captionColor={frame?.neon?.color}
-            />
-          );
-        })}
+        {row.buttons.map((b) => (
+          <ActionIcon
+            key={b.action}
+            icon={icon(b.action, ACTION_ICONS)}
+            art={wording === 'neutral' && NEUTRAL_EMOJI_ACTIONS.has(b.action) ? undefined : ACTION_ART[b.action]}
+            label={b.tip}
+            name={b.name}
+            active={b.active}
+            onPress={b.press}
+            meanings={b.meanings}
+            caption={b.action === 'praying_now'}
+            neon={frame?.neon && hasNeonIcon(b.action) ? <NeonActionIcon action={b.action} color={b.active ? frame.neon.active : frame.neon.color} /> : undefined}
+            captionColor={frame?.neon?.color}
+          />
+        ))}
       </View>
-      {chooser.sheet}
+      {row.sheet}
     </View>
   );
 });
