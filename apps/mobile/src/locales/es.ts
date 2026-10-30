@@ -630,6 +630,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     integrity: 'Tocar significa que estás presentando esta petición ante el Señor ahora mismo.',
     prayingNow: 'Estoy orando ahora',
     prayingDone: 'Gracias. Sabrá que alguien está orando por su petición ahora mismo.',
+    // Spanish is dormant (Steve, 2026-10-28): English until it is turned on.
+    castBody: 'Send this request out over the air by radio, so the prayer travels on as radio waves.',
     commitTitle: 'Comprometerse a orar con regularidad',
     promise: 'Tu promesa',
     howOften: 'Con qué frecuencia',

@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react';
 
 import { useMeaningChooser } from '@/components/meaning-chooser';
 import { api } from '@/lib/api';
+import { useFeature } from '@/lib/community-features';
 import { useLocale } from '@/lib/i18n';
 
 export interface ActionButton {
@@ -50,7 +51,9 @@ export function useActionRow(card: Card, act: (card: Card, action: CardAction) =
     const e = chooser.forAction(action);
     return e ? { words: chooser.words(e), open: () => chooser.open(e), action: t('meanings.choose', { emoji: e.emoji }), hint: t('meanings.holdHint') } : null;
   };
-  const buttons = card.actions.map((action): ActionButton => {
+  // Prayer Cast only where the community has radio.
+  const radioOn = useFeature('radio');
+  const buttons = card.actions.filter((a) => a !== 'prayer_cast' || radioOn).map((action): ActionButton => {
     const active = (action === 'commit' && !!card.myCommitment) || (action === 'thumbs_up' && thumbs.mine);
     const name = label('action', action, ACTION_LABELS[action]);
     return {

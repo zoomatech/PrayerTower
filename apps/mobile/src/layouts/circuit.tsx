@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 
+import { CardFrame } from '@/components/post-card';
 import { GlassTube, GLOW_REACH, roundedBox, tubeShades } from '@/components/glass-tube';
 import { boxRuns, Sparkles } from '@/components/sparkles';
 import { DrawBusContext, makeDrawBus, useDrawIn, type Row } from '@/lib/draw-in';
@@ -77,6 +78,36 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
   const [row, setRow] = useState({ w: 0, h: 0 });
   const [box, setBox] = useState({ y: 0, w: 0, h: 0 });
   const room = GLOW_REACH + 4;
+  const screen = (postBox: React.ReactNode) => (
+        <Animated.View
+          style={[
+            styles.screen,
+            { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
+          ]}
+          onLayout={(e) => {
+            const { y, width, height } = e.nativeEvent.layout;
+            if (Math.abs(width - box.w) > 1 || Math.abs(height - box.h) > 1 || Math.abs(y - box.y) > 1) setBox({ y, w: width, h: height });
+          }}>
+          {/* The screen's frame: one glass tube bent into a rectangle with elegantly rounded corners.
+              Scrolling down, its top is drawn first and its bottom, still mostly off screen, last. */}
+          {box.w ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.frameClip, { left: -room, top: -room, width: box.w + room * 2, height: drawn.interpolate({ inputRange: [0, 0.4, 0.8, 1], outputRange: [0, 0, box.h + room * 2, box.h + room * 2] }) }]}>
+              <Svg aria-hidden width={box.w + room * 2} height={box.h + room * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <GlassTube d={roundedBox(box.w + room * 2, box.h + room * 2, 16, room + 3)} color={tokens.wire} width={6} />
+              </Svg>
+            </Animated.View>
+          ) : null}
+          {/* Now and then a sparkle of light runs round the screen's tube. */}
+          {box.w ? <Sparkles runs={boxRuns(box.w, box.h, 3)} color={tokens.wire} /> : null}
+          {/* The card's words fade in only once the tube round it is drawn. */}
+          <Animated.View style={{ opacity: drawn.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0, 0, 1] }) }}>
+            {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
+            <View style={styles.glass}>{postBox}</View>
+          </Animated.View>
+        </Animated.View>
+  );
   return (
     <View
       ref={rowRef}
@@ -126,34 +157,8 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
           <Burst tokens={tokens} delay={(index % 4) * 650} />
         </Animated.View>
       )}
-      <Animated.View
-        style={[
-          styles.screen,
-          { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
-        ]}
-        onLayout={(e) => {
-          const { y, width, height } = e.nativeEvent.layout;
-          if (Math.abs(width - box.w) > 1 || Math.abs(height - box.h) > 1 || Math.abs(y - box.y) > 1) setBox({ y, w: width, h: height });
-        }}>
-        {/* The screen's frame: one glass tube bent into a rectangle with elegantly rounded corners.
-            Scrolling down, its top is drawn first and its bottom, still mostly off screen, last. */}
-        {box.w ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.frameClip, { left: -room, top: -room, width: box.w + room * 2, height: drawn.interpolate({ inputRange: [0, 0.4, 0.8, 1], outputRange: [0, 0, box.h + room * 2, box.h + room * 2] }) }]}>
-            <Svg aria-hidden width={box.w + room * 2} height={box.h + room * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <GlassTube d={roundedBox(box.w + room * 2, box.h + room * 2, 16, room + 3)} color={tokens.wire} width={6} />
-            </Svg>
-          </Animated.View>
-        ) : null}
-        {/* Now and then a sparkle of light runs round the screen's tube. */}
-        {box.w ? <Sparkles runs={boxRuns(box.w, box.h, 3)} color={tokens.wire} /> : null}
-        {/* The card's words fade in only once the tube round it is drawn. */}
-        <Animated.View style={{ opacity: drawn.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0, 0, 1] }) }}>
-          {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
-          <View style={styles.glass}>{children}</View>
-        </Animated.View>
-      </Animated.View>
+      {/* The post glows inside the screen; its action icons sit under it on the black, as neon (Steve, 2026-10-30). */}
+      <CardFrame.Provider value={{ frame: screen, neon: { color: tokens.wire, active: tokens.screen }, inset: TAP_END + 6 }}>{children}</CardFrame.Provider>
       {/* Its comments branch from it, a loaded stack to flip through. */}
       <CommentStack card={card} tokens={tokens} start={TAP_END + 6} />
     </View>
