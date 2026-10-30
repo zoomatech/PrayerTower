@@ -553,6 +553,8 @@ struct CircuitFeed<Row: View>: View {
                     row(card)
                         .padding(16)
                         .background(BackdropText(on: look.backdrop).plate ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color(look.backdrop).opacity(0.92)), in: .rect(cornerRadius: 10))
+                        // Text in the card's own scheme: light words on a dark screen, never the system's dark ones.
+                        .environment(\.colorScheme, BackdropText(on: look.backdrop).light ? .dark : .light)
                         .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)).accessibilityHidden(true) }
                         .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                         .padding(.leading, 18)
