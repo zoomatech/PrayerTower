@@ -11,7 +11,7 @@ struct AuditSamplesView: View {
     /// Names match the buttons the UI tests tap; tokens follow the supabase/migrations seeds.
     static let skins: [FeedTheme] = [
         FeedTheme(slug: "beanstalk", name: "Beanstalk", layout: "vine", tokens: ["vineStyle": .string("beanstalk"), "stemWidth": .number(12)]),
-        FeedTheme(slug: "golden-wood", name: "Golden Wood", layout: "vine", tokens: ["vineStyle": .string("ink"), "ink": .string("#3A2E1F")]),
+        FeedTheme(slug: "golden-wood", name: "Golden Wood", layout: "vine", tokens: ["vineStyle": .string("ink"), "ink": .string("#3A2E1F"), "backdrop": .string("#F4ECD8")]),
         FeedTheme(slug: "moonlit-gate", name: "Moonlit Gate", layout: "vine", tokens: [
             "vineStyle": .string("gate"), "backdrop": .string("#0B1324"), "stem": .string("#CFE0F5"), "leaf": .string("#E6EEF9"),
             "leafSoft": .string("#EEF3FA"), "tendril": .string("#9FC3E8"), "branch": .string("#8FA6BD"), "stemWidth": .number(2),
