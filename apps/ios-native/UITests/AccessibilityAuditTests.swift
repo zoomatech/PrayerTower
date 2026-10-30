@@ -10,7 +10,7 @@ final class AccessibilityAuditTests: XCTestCase {
     static let sizes = ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"]
 
     /// Names the element in the log so the issue can be found; every issue still fails the test.
-    static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
+    @MainActor static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
         let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
         print("AUDIT \(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
         return false
