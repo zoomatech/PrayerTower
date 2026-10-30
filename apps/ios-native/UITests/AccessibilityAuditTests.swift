@@ -11,7 +11,8 @@ final class AccessibilityAuditTests: XCTestCase {
 
     /// Names the element in the log so the issue can be found; every issue still fails the test.
     static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
-        let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
+        // The audit calls back on the main thread; XCUIElement's properties are main-actor isolated.
+        let what = MainActor.assumeIsolated { issue.element.map { "\($0.elementType) '\($0.label)'" } } ?? "screen"
         print("AUDIT \(place): \(issue.compactDescription) on \(what)")
         return false
     }
