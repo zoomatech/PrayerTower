@@ -179,7 +179,9 @@ struct BeanstalkFeed<Row: View>: View {
             .buttonStyle(.plain)
             .accessibilityHint(words("beanstalk.climbHint"))
         }
-        .padding(.horizontal, 16)
+        // Clear of the Home button at the top left.
+        .padding(.leading, 60)
+        .padding(.trailing, 16)
         .padding(.vertical, 10)
         .background(Bean.cream)
         .overlay(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 3) }
@@ -362,7 +364,7 @@ private struct BeanPost<Row: View>: View {
                     pageAt = .now
                 }
                 .frame(width: width)
-                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - (h.cluster ? 56 : 36))
+                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - (h.cluster ? 80 : 36))
                 .opacity(c.span(1100, 300, 0, 1))
             }
         }
@@ -657,11 +659,11 @@ private struct LeafCluster: View {
             r = r &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
             return Double((r >> 33) % 10_000) / 10_000
         }
-        let n = big ? 7 : 4
+        let n = big ? 11 : 5
         return (0..<n).map { i in
             let flip = i % 2 == 0
-            return Back(x: (flip ? -1 : 1) * (0.12 + 0.3 * next()) * width,
-                        y: (next() - 0.55) * width * 0.42,
+            return Back(x: (flip ? -0.75 : 0.25) * width + (next() - 0.5) * width * 0.5,
+                        y: (next() - 0.5) * width * 0.5,
                         turn: (flip ? -1 : 1) * (8 + 34 * next()) + (next() - 0.5) * 16,
                         size: width * (big ? 0.55 + 0.3 * next() : 0.42 + 0.2 * next()),
                         flip: flip,
@@ -670,7 +672,7 @@ private struct LeafCluster: View {
     }
 
     var body: some View {
-        let lead: Double = big ? width : width * 0.62
+        let lead: Double = big ? width * 1.25 : width * 0.62
         Button {
             rustles += 1
             Task {
@@ -691,21 +693,21 @@ private struct LeafCluster: View {
                     if let first {
                         VStack(spacing: 1) {
                             Text(first.author).font(BeanFont.bold(13)).lineLimit(1)
-                            Text(Beanstalk.fit(first.body, max: Beanstalk.chars(width: lead * 0.6, font: 13.5, lines: 1)).text)
-                                .font(BeanFont.body(13.5)).lineLimit(1)
+                            // The whole first line of the top comment, as wide as the leaf allows.
+                            Text(first.body).font(BeanFont.body(12.5)).lineLimit(1).truncationMode(.tail)
                         }
                         .foregroundStyle(Bean.text)
-                        .padding(.leading, lead * 0.24)
-                        .padding(.trailing, lead * 0.14)
+                        .padding(.leading, lead * 0.14)
+                        .padding(.trailing, lead * 0.1)
                     }
                 }
                 .frame(width: lead, height: (lead * 0.52).rounded())
                 .rustle(rustles, by: 3, anchor: .trailing)
                 .rotationEffect(.degrees(-6), anchor: .trailing)
                 // Its stem end rests on the stalk, so the clump hangs off the vine rather than sitting on it.
-                .offset(x: -lead * 0.4)
+                .offset(x: -lead * 0.3)
             }
-            .frame(width: width * 1.6, height: width * 0.78)
+            .frame(width: width * 1.8, height: width * 0.95)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(first.map { "\($0.author): \($0.body). " + words("beanstalk.openCluster") } ?? words(big ? "beanstalk.openCluster" : "beanstalk.moreCluster"))

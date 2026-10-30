@@ -303,8 +303,9 @@ public enum BeanDraw {
         var H = top.isEmpty ? 96 : (maxB + 20).rounded()
         var pgY = 0.0
         if cluster {
-            pgY = 70
-            H = 170
+            // Room for the clump and the next post's locket below it.
+            pgY = 100
+            H = 270
         } else if more {
             pgY = H + 20
             H += 90
