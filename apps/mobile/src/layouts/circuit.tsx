@@ -20,7 +20,8 @@ import { CommentStack } from './circuit-comments';
 import { feedListTuning } from './list-tuning';
 import { glow, isDark, textOn } from './motifs';
 
-// Tron colors (Steve, 2026-10-30): strong electric blue and red on near-black.
+// Tron colors (Steve, 2026-10-30): strong electric blue and red on near-black. Posts and the
+// wire are blue; comments are red (circuit-comments.tsx), as on the iPhone.
 const DEFAULTS = { backdrop: '#02040A', wire: '#1E9BFF', burst: '#FFFFFF', screen: '#FF2A1F', tilt: 10 };
 /** Where the wire runs, and where its tap meets the screen. */
 const WIRE_X = 12;
@@ -111,8 +112,8 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
           pointerEvents="none"
           style={[styles.tapClip, { top: box.y + box.h / 2 - room, width: drawn.interpolate({ inputRange: [0, 0.3, 0.45, 1], outputRange: [0, 0, TAP_END + 22 + room, TAP_END + 22 + room] }) }]}>
           <Svg aria-hidden width={TAP_END + 22 + room} height={room * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            {/* The connector takes its box's color, shading gradually to the wire's blue where it meets the wire. */}
-            <GlassTube d={`M ${WIRE_X} ${room} L ${TAP_END + 22} ${room}`} color={tokens.screen} width={4} blend={{ to: tokens.wire, x1: WIRE_X + 26, x2: WIRE_X + 4 }} />
+            {/* The connector takes its box's color. */}
+            <GlassTube d={`M ${WIRE_X} ${room} L ${TAP_END + 22} ${room}`} color={tokens.wire} width={4} />
           </Svg>
         </Animated.View>
       ) : null}
@@ -138,7 +139,7 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
             pointerEvents="none"
             style={[styles.frameClip, { left: -room, top: -room, width: box.w + room * 2, height: drawn.interpolate({ inputRange: [0, 0.4, 0.8, 1], outputRange: [0, 0, box.h + room * 2, box.h + room * 2] }) }]}>
             <Svg aria-hidden width={box.w + room * 2} height={box.h + room * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <GlassTube d={roundedBox(box.w + room * 2, box.h + room * 2, 16, room + 3)} color={tokens.screen} width={6} />
+              <GlassTube d={roundedBox(box.w + room * 2, box.h + room * 2, 16, room + 3)} color={tokens.wire} width={6} />
             </Svg>
           </Animated.View>
         ) : null}
