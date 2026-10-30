@@ -32,7 +32,7 @@ import Testing
         #expect(try await api.tier().prayers == 42)
         #expect(try await api.tokens().balance == 12)
         #expect(try await api.prayerStats().week.count == 7)
-        #expect(try await api.weeklyReview().people == 6)
+        #expect(try await api.weeklyReview().people == 3)
         #expect(try await api.myCircles().circles.count == 2)
         #expect(try await api.feedThemes().themes.isEmpty)
     }

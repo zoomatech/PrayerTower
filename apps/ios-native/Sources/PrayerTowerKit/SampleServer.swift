@@ -95,10 +95,7 @@ public enum SampleServer {
             {"conversations":[{"id":"sample-m1","kind":"direct","postId":null,"title":"Sam","topic":null,"isPublic":false,"isRequest":false,"isOwner":false,
               "memberCount":2,"lastMessage":"Thank you for praying!","lastMessageAt":"2026-10-29T10:00:00Z","unread":1}]}
             """),
-            ("GET", "^/me/tier$", #"{"tier":{"tier":"faithful","label":"Faithful"},"prayers":42,"next":{"tier":"steadfast","label":"Steadfast","prayersNeeded":8},"upkeep":null}"#),
-            ("GET", "^/me/tokens$", #"{"balance":12,"priestly":{"balance":1,"verifiedPrayers":42,"towardNext":2,"prayersPerToken":10,"radioPrayerCost":1,"amplifyRepeats":null,"amplifyCost":null}}"#),
             ("GET", "^/me/prayer-stats$", stats),
-            ("GET", "^/me/commitments/review$", #"{"prayers":9,"checkins":5,"people":6,"active":1,"kept":1,"message":"You showed up for 6 people this week."}"#),
             ("GET", "^/me/circles$", #"{"enabled":true,"circles":[{"id":"sample-c1","name":"Tuesday small group","about":"We pray for each other every week.","isOwner":true,"members":8,"lastPostAt":"2026-10-28T18:00:00Z"},{"id":"sample-c2","name":"Family","about":null,"isOwner":false,"members":5,"lastPostAt":null}]}"#),
             ("GET", "^/me/feed-themes$", #"{"themes":[],"current":null,"theme":null}"#),
             ("GET", "^/me/notifications$", """
