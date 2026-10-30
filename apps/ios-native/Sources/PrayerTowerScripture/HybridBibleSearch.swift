@@ -2,9 +2,8 @@
 import Foundation
 
 // The hybrid Bible search, ported unchanged from Winstons Syndicate (Packages/ZoomaBibleSearch/Sources/ZoomaBibleHybrid/
-// HybridBibleSearch.swift), with one addition (Steve, 30 October 2026): a second meaning search, Apple's sentence
-// embedding over the same six-verse groups, taking its turn after EmbeddingGemma's. Apple platforms only: the word
-// search's relationship part reads the phrase with Apple's NaturalLanguage tagger (RelationQuery.swift).
+// HybridBibleSearch.swift). Apple platforms only: the word search's relationship part reads the phrase with Apple's
+// NaturalLanguage tagger (RelationQuery.swift).
 
 /// The hybrid Bible search, for every Bible search in Winston's Syndicate and Comic Script (owner, 29 October 2026:
 /// "implement the hybridized comic script bible search then into the program for all of winstons syndicate, including
@@ -18,7 +17,7 @@ import Foundation
 /// together 70, meaning alone 64). A reference typed ("John 3:16") gives its verses.
 public struct HybridBibleSearch: Sendable {
     /// Which search found a verse first.
-    public enum Finder: Sendable, Equatable { case meaning, appleMeaning, cascade, words }
+    public enum Finder: Sendable, Equatable { case meaning, cascade, words }
 
     public struct Found: Sendable, Equatable {
         public let verse: ScriptureVerse
@@ -27,7 +26,6 @@ public struct HybridBibleSearch: Sendable {
         public var explanation: String {
             switch finder {
             case .meaning: "Found by meaning on this device"
-            case .appleMeaning: "Found by meaning (Apple) on this device"
             case .cascade: "Found by its words on this device"
             case .words: "Found by the word search on this device"
             }
@@ -36,31 +34,25 @@ public struct HybridBibleSearch: Sendable {
 
     public let library: VerseLibrary
     public let fuzzy: FuzzyBibleSearch
-    /// Prayer Tower's second meaning search, Apple's sentence embedding over the same groups (Steve, 30 October 2026);
-    /// nil leaves Winstons Syndicate's three.
-    public let apple: FuzzyBibleSearch?
     /// Where each verse stands in the KJV's order.
     private let position: [String: Int]
     /// How many verses each search gives.
     static let each = 5
 
-    public init(library: VerseLibrary, fuzzy: FuzzyBibleSearch, apple: FuzzyBibleSearch? = nil) {
+    public init(library: VerseLibrary, fuzzy: FuzzyBibleSearch) {
         self.library = library
         self.fuzzy = fuzzy
-        self.apple = apple
         position = Dictionary(library.verses.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// The verses that fit what was typed: the first of each search, then the second of each, and so on, in the order
-    /// meaning (EmbeddingGemma), meaning (Apple), cascade, word search; a verse found by more than one is given once, as
-    /// its first finder's.
+    /// meaning, cascade, word search; a verse found by more than one is given once, as its first finder's.
     public func search(_ typed: String) async -> [Found] {
         let text = typed.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return [] }
         if VerseReference(text) != nil { return words(text).map { Found(verse: $0, finder: .words) } }
         let lists: [(Finder, [ScriptureVerse])] = [
             (.meaning, await verses(of: (try? await fuzzy.search(text, count: Self.each * 3)) ?? [], nearest: text)),
-            (.appleMeaning, await verses(of: (try? await apple?.search(text, count: Self.each * 3)) ?? [], nearest: text)),
             (.cascade, await verses(of: await fuzzy.cascadeSearch(text, count: Self.each * 3), nearest: text)),
             (.words, Array(words(text).prefix(Self.each))),
         ]

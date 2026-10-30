@@ -56,13 +56,6 @@ public struct EmbeddingModel: Sendable, Equatable {
     /// Best first.
     public static let all = [embeddingGemma, graniteSmall]
 
-    /// Apple's built-in English sentence embedding (NaturalLanguage), Prayer Tower's second meaning search beside
-    /// EmbeddingGemma (Steve, 30 October 2026: "The apple fallback isnt a fallback - ITs PART OF THE NECEssary hybrid
-    /// search"). Nothing to download; `AppleSentenceEmbedder` runs it.
-    public static let appleSentence = EmbeddingModel(
-        key: "apple-sentence-en", repository: "apple/NaturalLanguage", revision: "", onnx: "", files: [],
-        queryPrompt: "", documentPrompt: "")
-
     public func address(_ file: String) -> URL {
         URL(string: "https://huggingface.co/\(repository)/resolve/\(revision)/\(file)")!
     }
@@ -237,31 +230,4 @@ public actor FuzzyBibleSearch {
             }
         }
     }
-}
-#if canImport(NaturalLanguage)
-import NaturalLanguage
-
-/// Apple's built-in English sentence embedding, on the device with no download: the hybrid's second meaning search.
-public final class AppleSentenceEmbedder: PassageEmbedder, @unchecked Sendable {
-    private let embedding: NLEmbedding
-    // NLEmbedding is not documented as thread-safe, so one call at a time.
-    private let lock = NSLock()
-
-    public init?() {
-        guard let embedding = NLEmbedding.sentenceEmbedding(for: .english) else { return nil }
-        self.embedding = embedding
-    }
-
-    public func query(_ phrase: String) throws -> [Float] { vector(phrase) }
-
-    public func documents(_ texts: [String]) throws -> [[Float]] { texts.map(vector) }
-
-    /// The text's vector; zeros, which match nothing, where Apple's embedding gives none.
-    private func vector(_ text: String) -> [Float] {
-        lock.lock(); defer { lock.unlock() }
-        if let v = embedding.vector(for: text) { return v.map(Float.init) }
-        return [Float](repeating: 0, count: embedding.dimension)
-    }
-}
-#endif
-#endif
+}#endif
