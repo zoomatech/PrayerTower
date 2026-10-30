@@ -1,12 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireUser } from '../../auth.js';
-import type { Db } from '../../db.js';
+import { withTx, type Db } from '../../db.js';
 import * as library from './index.js';
+import * as listen from './listen.js';
 import * as notes from './notes.js';
 import * as offline from './offline.js';
 import * as parallels from './parallels.js';
 import * as plans from './plans.js';
+import * as studies from './studies.js';
 import * as words from './words.js';
 
 // Scripture and ancient writings search (off by default).
@@ -40,6 +42,28 @@ export function libraryRoutes(app: FastifyInstance, db: Db) {
   app.put('/library/notes', async (req) => notes.save(db, requireUser(req), notes.SaveInput.parse(req.body)));
   app.delete('/library/notes/:id', async (req) => notes.remove(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
   app.get('/library/notes/circle/:id', async (req) => notes.circle(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
+  // Listening: a public-domain recording of where a passage is, if there is one.
+  app.get('/library/listen', async (req) => listen.recording(db, requireUser(req), listen.ListenQuery.parse(req.query)));
+  // Circle study rooms.
+  app.get('/library/studies', async (req) => studies.list(db, requireUser(req), z.object({ circle: z.uuid() }).parse(req.query).circle));
+  app.post('/library/studies', async (req, reply) => {
+    const userId = requireUser(req);
+    const input = studies.StartInput.parse(req.body);
+    const r = await withTx(db, (tx) => studies.start(tx, userId, input));
+    reply.code(201);
+    return r;
+  });
+  app.get('/library/studies/:id', async (req) => studies.get(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
+  app.delete('/library/studies/:id', async (req) => studies.remove(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
+  app.post('/library/studies/:id/replies', async (req, reply) => {
+    const userId = requireUser(req);
+    const studyId = z.object({ id: z.uuid() }).parse(req.params).id;
+    const input = studies.ReplyInput.parse(req.body);
+    const r = await withTx(db, (tx) => studies.reply(tx, userId, studyId, input));
+    reply.code(201);
+    return r;
+  });
+  app.delete('/library/study-replies/:id', async (req) => studies.removeReply(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
   // Offline texts for the native app.
   app.get('/library/offline', async (req) => offline.list(db, requireUser(req)));
   app.get('/library/offline/:id', async (req, reply) => {
