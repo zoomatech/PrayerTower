@@ -167,3 +167,22 @@ extension View {
         self.shadow(color: color.opacity(0.9), radius: 3).shadow(color: color.opacity(0.5), radius: 10).shadow(color: color.opacity(0.25), radius: 22)
     }
 }
+
+extension View {
+    /// The title and tab bar over a skin take its backdrop, with light text on a dark one, so
+    /// "Prayers" and the tabs stay readable on a night sky (Moonlit Gate, neon, the wall).
+    @ViewBuilder func skinBars(_ backdrop: RGB?) -> some View {
+        #if os(iOS)
+        if let backdrop {
+            let scheme: ColorScheme = BackdropText(on: backdrop).light ? .dark : .light
+            self.toolbarBackground(Color(backdrop), for: .navigationBar, .tabBar)
+                .toolbarBackground(.visible, for: .navigationBar, .tabBar)
+                .toolbarColorScheme(scheme, for: .navigationBar, .tabBar)
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
+    }
+}
