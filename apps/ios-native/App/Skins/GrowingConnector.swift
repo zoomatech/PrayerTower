@@ -16,20 +16,29 @@ struct NeonGlassLook: ConnectorLook {
     let color: Color
     /// Square ends where two drawn halves meet, so the join is seamless; round ends otherwise.
     var cap: CGLineCap = .round
+    /// A tube that changes color along its length: from `from` (at `fade.start`) to `color` (at
+    /// `fade.end`), gradually, like a branch from a blue stalk to a red box (Steve, 2026-10-30).
+    var from: Color? = nil
+    var fade: (start: CGPoint, end: CGPoint) = (.zero, .zero)
+
+    private func tint(_ opacity: Double = 1) -> GraphicsContext.Shading {
+        guard let from else { return .color(color.opacity(opacity)) }
+        return .linearGradient(Gradient(colors: [from.opacity(opacity), color.opacity(opacity)]), startPoint: fade.start, endPoint: fade.end)
+    }
 
     func stroke(_ path: Path, width: CGFloat, in ctx: GraphicsContext) {
         func line(_ w: CGFloat) -> StrokeStyle { StrokeStyle(lineWidth: w, lineCap: cap, lineJoin: .round) }
         // The glow the gas throws round the tube.
         var glow = ctx
         glow.addFilter(.blur(radius: width * 2.2))
-        glow.stroke(path, with: .color(color.opacity(0.8)), style: line(width * 3))
+        glow.stroke(path, with: tint(0.8), style: line(width * 3))
         var halo = ctx
         halo.addFilter(.blur(radius: width * 0.9))
-        halo.stroke(path, with: .color(color), style: line(width * 1.6))
+        halo.stroke(path, with: tint(), style: line(width * 1.6))
         // The glass: a deeper shade at its edges, the full color, a paler band, then the white-hot core.
-        ctx.stroke(path, with: .color(color), style: line(width))
+        ctx.stroke(path, with: tint(), style: line(width))
         ctx.stroke(path, with: .color(.black.opacity(0.4)), style: line(width))
-        ctx.stroke(path, with: .color(color), style: line(width * 0.72))
+        ctx.stroke(path, with: tint(), style: line(width * 0.72))
         ctx.stroke(path, with: .color(.white.opacity(0.55)), style: line(width * 0.45))
         ctx.stroke(path, with: .color(.white.opacity(0.95)), style: line(max(1, width * 0.2)))
     }
