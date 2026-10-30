@@ -77,7 +77,7 @@ function around(cx: number, cy: number, r1: number, r2: number, n: number, offse
  */
 export function NeonScene({ kind, line, accent }: { kind: SceneKind; line: string; accent: string }) {
   let n = 0;
-  const tube = (d: string, c = line, w = 2.2) => <Rod key={n++} d={d} color={c} width={w} />;
+  const tube = (d: string, c = line, w = 2.2) => <Rod key={n++} d={d} color={c} width={w * 1.6} />;
   let art: React.ReactNode;
   if (kind === 'castle') {
     // A keep with battlements, three towers with tall spires and pennants, an arched gate and lit windows.
@@ -132,7 +132,7 @@ export function NeonScene({ kind, line, accent }: { kind: SceneKind; line: strin
   }
   return (
     <View style={styles.scene} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`scene-${kind}`}>
-      <Svg aria-hidden width={180} height={170} viewBox="-10 -14 180 170" pointerEvents="none">
+      <Svg aria-hidden width={208} height={200} viewBox="-24 -28 208 200" pointerEvents="none">
         {art}
       </Svg>
     </View>

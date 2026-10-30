@@ -7,7 +7,9 @@
 import type { Card, FeedTheme } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
+import Svg from 'react-native-svg';
 
+import { Rod, tubeShades } from '@/components/vine-flow';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -60,22 +62,38 @@ function Burst({ tokens, delay }: { tokens: CircuitTokens; delay: number }) {
 
 function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: Card; index: number; tokens: CircuitTokens; pinned: boolean; reduced: boolean; children: React.ReactNode }) {
   const left = index % 2 === 0;
+  // Glass neon tubes (Steve, 2026-10-30): near-white in the middle, deeper color toward
+  // the edge of the glass, a radiant glow around it, and smooth curves, no corners.
+  const wire = tubeShades(tokens.wire);
+  const screen = tubeShades(tokens.screen);
   return (
     <View style={styles.row} testID={`screen-${card.id}`}>
-      {/* The wire, its tap into this screen, and the bursts on it. */}
-      {/* Neon tubes: a white-hot core with the color blooming round it. */}
-      <View style={[styles.wire, styles.core, { borderColor: tokens.wire, ...glow(tokens.wire, 12) }]}>{reduced ? null : <Burst tokens={tokens} delay={(index % 4) * 650} />}</View>
-      <View style={[styles.tap, styles.core, { borderColor: tokens.wire, ...glow(tokens.wire, 12) }]} />
-      <View style={[styles.node, { borderColor: tokens.wire, ...glow(tokens.wire, 8) }]} />
+      {/* The wire, the curved tube from it into this screen, and the bursts on it. */}
+      <View style={[styles.wire, { backgroundColor: wire.edge, ...glow(tokens.wire, 14) }]}>
+        <View style={[styles.wireBody, { backgroundColor: wire.inner }]} />
+        <View style={[styles.wireCore, { backgroundColor: wire.core }]} />
+        {reduced ? null : <Burst tokens={tokens} delay={(index % 4) * 650} />}
+      </View>
+      <View style={styles.tap} pointerEvents="none">
+        <Svg aria-hidden width={60} height={60} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Rod d="M 11 10 C 11 34, 22 44, 44 44" color={tokens.wire} width={4} />
+        </Svg>
+      </View>
       <View
         style={[
           styles.screen,
-          { borderColor: tokens.screen, ...glow(tokens.screen, 18) },
+          { borderColor: screen.edge, ...glow(tokens.screen, 20) },
           { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
         ]}>
-        {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
-        <View style={styles.tube}>
-          <View style={styles.glass}>{children}</View>
+        <View style={[styles.ring, { borderColor: screen.inner, borderRadius: radius.lg - 3 }]}>
+          <View style={[styles.ring, { borderColor: screen.core, borderRadius: radius.lg - 5 }]}>
+            <View style={[styles.ring, { borderColor: screen.inner, borderRadius: radius.lg - 7 }]}>
+              <View style={[styles.ringEdge, { borderColor: screen.edge }]}>
+                {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
+                <View style={styles.glass}>{children}</View>
+              </View>
+            </View>
+          </View>
         </View>
       </View>
     </View>
@@ -100,7 +118,7 @@ export function CircuitLayout({ cards, theme, pinnedId, renderCard, header, refr
         ListFooterComponent={
           atEnd && cards.length > 0 ? (
             <View style={styles.end}>
-              <View style={[styles.endNode, { borderColor: tokens.wire, ...glow(tokens.wire, 10) }]} />
+              <View style={[styles.endNode, { borderColor: tubeShades(tokens.wire).edge, backgroundColor: tubeShades(tokens.wire).core, ...glow(tokens.wire, 14) }]} />
               <Text style={[type.small, { color: textOn(tokens.backdrop), textAlign: 'center' }]}>{t('circuit.end')}</Text>
             </View>
           ) : undefined
@@ -119,17 +137,18 @@ export function CircuitLayout({ cards, theme, pinnedId, renderCard, header, refr
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { padding: space.md, paddingBottom: 120 },
-  core: { backgroundColor: '#F2FEFF', borderWidth: 0.5 },
-  // The screen's frame glows as a tube: its color outside, a thin bright line inside.
-  tube: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.75)', borderRadius: radius.md },
+  // The screen's frame is one glass tube: deep color at both edges, near white in the middle.
+  ring: { borderWidth: 1.5 },
+  ringEdge: { borderWidth: 2, borderRadius: radius.lg - 9, padding: 5, backgroundColor: '#0E1220' },
   headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm, marginBottom: space.md },
   row: { position: 'relative', paddingVertical: space.md },
   // The live wire runs down the left edge of every row, so together the rows form one line.
-  wire: { position: 'absolute', left: 8, top: 0, bottom: 0, width: 2 },
-  burst: { position: 'absolute', left: -3, width: 8, height: 18, borderRadius: 4 },
-  tap: { position: 'absolute', top: '50%', left: 8, width: 22, height: 2 },
-  node: { position: 'absolute', top: '50%', left: 3, marginTop: -6, width: 12, height: 12, borderRadius: 6, borderWidth: 2, backgroundColor: '#000' },
-  screen: { marginLeft: 30, borderWidth: 2, borderRadius: radius.md, padding: 5, backgroundColor: '#0E1220' },
+  wire: { position: 'absolute', left: 8, top: 0, bottom: 0, width: 6 },
+  wireBody: { position: 'absolute', left: 1, top: 0, bottom: 0, width: 4 },
+  wireCore: { position: 'absolute', left: 2.25, top: 0, bottom: 0, width: 1.5 },
+  burst: { position: 'absolute', left: -1, width: 8, height: 18, borderRadius: 4 },
+  tap: { position: 'absolute', top: '50%', left: 0, marginTop: -44 },
+  screen: { marginLeft: 44, borderWidth: 2, borderRadius: radius.lg },
   glass: { borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surface },
   pinned: { ...type.small, fontWeight: '700', marginBottom: 4 },
   end: { alignItems: 'center', gap: space.sm, paddingTop: space.md },

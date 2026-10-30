@@ -24,7 +24,7 @@
 import { COMMENT_TEXT, contrastRatio } from '@prayer-tower/shared';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space } from '@/lib/theme';
@@ -59,7 +59,7 @@ const LEAF_PAD = [54, 34, 28] as const;
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 
-function mix(a: string, b: string, t: number) {
+export function mix(a: string, b: string, t: number) {
   if (!HEX.test(a) || !HEX.test(b)) return a;
   const ch = (h: string, i: number) => parseInt(h.slice(i, i + 2), 16);
   return `#${[1, 3, 5].map((i) => Math.round(ch(a, i) * (1 - t) + ch(b, i) * t).toString(16).padStart(2, '0')).join('')}`;
@@ -185,10 +185,38 @@ function sprig(x: number, y: number, dir: 1 | -1) {
 }
 
 /**
- * A neon tube: a wide faint bloom, a brighter halo and a thin white-hot core.
- * `fine` is a thread of light (Moonlit Gate): the same layers, drawn closer in.
+ * The shades across a glass neon tube (Steve, 2026-10-30): "close to white in the
+ * middle and darker shades of color toward the edge of the glass", with a radiant
+ * glow around it.
  */
-export function Rod({ d, color, width = 2.5, fine = false }: { d: string; color: string; width?: number; fine?: boolean }) {
+const GLOW = [26, 21, 16, 12, 8, 4];
+
+export function tubeShades(color: string) {
+  return { edge: mix(color, '#000000', 0.3), body: color, inner: mix(color, '#FFFFFF', 0.55), core: mix(color, '#FFFFFF', 0.92) };
+}
+
+/**
+ * A neon tube: a radiant glow around the glass, the glass deepest in color at its
+ * edges, lightening inward to a near-white core. `fine` is a thread of light
+ * (Moonlit Gate): a bloom, a halo and a thin white core, drawn closer in.
+ */
+export function Rod({ d, color, width = 4, fine = false }: { d: string; color: string; width?: number; fine?: boolean }) {
+  if (!fine) {
+    const t = tubeShades(color);
+    const line = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
+    return (
+      <>
+        {/* The radiant glow: faint layers that build up toward the glass, so it fades smoothly outward. */}
+        {GLOW.map((g) => (
+          <Path key={g} d={d} stroke={color} strokeOpacity={0.09} strokeWidth={width + g} {...line} />
+        ))}
+        <Path d={d} stroke={t.edge} strokeWidth={width} {...line} />
+        <Path d={d} stroke={t.body} strokeWidth={width * 0.72} {...line} />
+        <Path d={d} stroke={t.inner} strokeWidth={width * 0.45} {...line} />
+        <Path d={d} stroke={t.core} strokeWidth={Math.max(0.8, width * 0.22)} {...line} />
+      </>
+    );
+  }
   return (
     <>
       <Path d={d} stroke={color} strokeOpacity={fine ? 0.1 : 0.14} strokeWidth={width + (fine ? 8 : 14)} fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -282,7 +310,7 @@ export function VineRow({
       : gate
         ? `M ${sx} ${baseY - 3} L ${baseX} ${baseY - 3}`
         : neon
-        ? `M ${sx} ${fromY} L ${sx} ${gap - 4} L ${baseX} ${gap - 4} L ${baseX} ${baseY}`
+        ? `M ${sx} ${fromY} C ${sx} ${gap - 10}, ${baseX} ${gap - 14}, ${baseX} ${baseY}`
         : `M ${sx} ${fromY} C ${sx + (baseX - sx) * 0.15} ${gap - 14}, ${baseX - (baseX - sx) * 0.3} ${gap - 18}, ${baseX} ${baseY}`;
   const stemW = Math.max(2, sw * (depth > 0 ? 0.35 : 0.5));
   const placed: ViewStyle | null = side === 'center' ? (g.centered ? null : { marginLeft: g.leafLeft }) : { marginLeft: g.leafLeft, width: g.leafWidth };
@@ -324,8 +352,8 @@ export function VineRow({
     } else if (neon) {
       stalk = (
         <>
-          <Rod d={`M ${sx} 0 L ${sx} ${h}`} color={look.stem} width={Math.max(2, sw - 1)} />
-          {stem ? <Rod d={stem} color={look.stem} width={2} /> : null}
+          <Rod d={`M ${sx} 0 L ${sx} ${h}`} color={look.stem} width={Math.max(6, sw + 3)} />
+          {stem ? <Rod d={stem} color={look.stem} width={5} /> : null}
           {stem ? <Circle cx={sx} cy={fromY} r={4} fill="#FFFFFF" stroke={look.stem} strokeWidth={2} /> : null}
         </>
       );
@@ -422,8 +450,11 @@ export function LeafFrame({
       return `M ${w / 2} ${y} Q ${w / 2 + reach * 0.5} ${y - 6}, ${w / 2 + reach} ${y - h * 0.08} M ${w / 2} ${y} Q ${w / 2 - reach * 0.5} ${y - 6}, ${w / 2 - reach} ${y - h * 0.08}`;
     })
     .join(' ');
-  const c = 16; // neon frame's cut corners
-  const frame = `M ${c} 2 L ${w - c} 2 L ${w - 2} ${c} L ${w - 2} ${h - c} L ${w - c} ${h - 2} L ${c} ${h - 2} L 2 ${h - c} L 2 ${c} Z`;
+  // The neon frame: one glass tube bent round with smooth, generous curves, no corners.
+  const r = Math.min(26, w / 4, h / 4);
+  const e = 5;
+  const glowRoom = neon ? 20 : 0;
+  const frame = `M ${e + r} ${e} L ${w - e - r} ${e} C ${w - e - r * 0.45} ${e}, ${w - e} ${e + r * 0.45}, ${w - e} ${e + r} L ${w - e} ${h - e - r} C ${w - e} ${h - e - r * 0.45}, ${w - e - r * 0.45} ${h - e}, ${w - e - r} ${h - e} L ${e + r} ${h - e} C ${e + r * 0.45} ${h - e}, ${e} ${h - e - r * 0.45}, ${e} ${h - e - r} L ${e} ${e + r} C ${e} ${e + r * 0.45}, ${e + r * 0.45} ${e}, ${e + r} ${e} Z`;
   return (
     <View
       style={[
@@ -432,14 +463,23 @@ export function LeafFrame({
           ? { paddingTop: arch * 0.7 + 14, paddingBottom: 16, paddingHorizontal: 16 }
           : floral
           ? { paddingTop: depth ? 26 : 40, paddingBottom: depth ? 14 : 18, paddingHorizontal: depth ? 14 : 18 }
-          : { paddingVertical: neon ? 14 : pad, paddingHorizontal: neon ? 14 : Math.max(10, w * 0.08) },
+          : { paddingVertical: neon ? 18 : pad, paddingHorizontal: neon ? 18 : Math.max(10, w * 0.08) },
       ]}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         if (Math.abs(width - w) > 1 || Math.abs(height - h) > 1) setSize({ w: width, h: height });
       }}>
       {w ? (
-        <Svg aria-hidden style={StyleSheet.absoluteFill} width={w} height={h} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        // A neon frame's glow spreads past the leaf's box, so its drawing gets room round the edge (nothing cut off).
+        <Svg
+          aria-hidden
+          style={{ position: 'absolute', left: -glowRoom, top: -glowRoom }}
+          width={w + glowRoom * 2}
+          height={h + glowRoom * 2}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants">
+          <G transform={`translate(${glowRoom} ${glowRoom})`}>
           {floral ? (
             <>
               <Path d={scallops(w, h, depth ? 7 : 9, depth ? 18 : 24)} fill={mix(look.leafSoft, look.leaf, 0.35)} stroke={mix(look.leaf, '#000000', 0.2)} strokeWidth={1.2} />
@@ -467,7 +507,7 @@ export function LeafFrame({
           ) : neon ? (
             <>
               <Path d={frame} fill="#0B0820" fillOpacity={0.6} />
-              <Rod d={frame} color={look.leaf} width={2.5} />
+              <Rod d={frame} color={look.leaf} width={7} />
             </>
           ) : (
             <>
@@ -476,6 +516,7 @@ export function LeafFrame({
               <Path d={veins} stroke={ink || mix(look.leaf, look.stem, 0.5)} strokeOpacity={ink ? 0.8 : 0.55} strokeWidth={1.3} fill="none" />
             </>
           )}
+          </G>
         </Svg>
       ) : null}
       {mark ? <View style={styles.mark}>{mark}</View> : null}
@@ -513,7 +554,7 @@ export function leafCardSurface(look: VineLook): ViewStyle {
   return {
     backgroundColor: leafBox(look),
     borderColor: ink || (isLit(look.vineStyle) ? look.leaf : 'transparent'),
-    borderRadius: look.vineStyle === 'neon' ? 4 : radius.md,
+    borderRadius: look.vineStyle === 'neon' ? radius.lg : radius.md,
     padding: space.md,
   };
 }
