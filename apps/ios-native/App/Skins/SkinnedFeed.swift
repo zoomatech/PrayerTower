@@ -90,7 +90,8 @@ struct VineFeed<Row: View>: View {
                     .padding(.bottom, 160)
             }
             .padding(.vertical, 20)
-            .background(alignment: .topLeading) { Stalk(look: look).frame(width: 40).accessibilityHidden(true) }
+            // Neon's stalk gets room for its glow, which would otherwise stop at a hard edge.
+            .background(alignment: .topLeading) { Stalk(look: look).frame(width: look.vineStyle == .neon ? 80 : 40).accessibilityHidden(true) }
         }
         .background(look.backdrop.map { Color($0) } ?? Color.pageBackground)
         .environment(\.colorScheme, look.backdrop.map { BackdropText(on: $0).light } == true ? .dark : .light)
@@ -126,16 +127,12 @@ struct Stalk: View {
                 ctx.stroke(wave(0, 3), with: .color(Color(look.ink ?? look.branch)), style: .init(lineWidth: w + 2))
                 ctx.stroke(wave(0, 3), with: .color(Color(look.stem)), style: .init(lineWidth: w))
             case .neon:
-                // One neon tube in a long, gentle curve: a radiant glow round glass that is
+                // One straight neon glass tube, Tron style: a radiant glow round glass that is
                 // deeper colored at its edges and close to white in the middle.
                 var rod = Path()
                 rod.move(to: CGPoint(x: x, y: 0))
-                var ry = 0.0
-                while ry < size.height {
-                    ry += 6
-                    rod.addLine(to: CGPoint(x: x + 5 * sin(ry / 170), y: ry))
-                }
-                let tube: CGFloat = max(5, CGFloat(w) * 1.6)
+                rod.addLine(to: CGPoint(x: x, y: size.height))
+                let tube: CGFloat = max(8, CGFloat(w) * 2.5)
                 let stem = Color(look.stem)
                 let round = StrokeStyle(lineWidth: tube, lineCap: .round, lineJoin: .round)
                 var glow = ctx
@@ -230,7 +227,7 @@ struct VineLeaf<Content: View>: View {
         switch look.vineStyle {
         case .neon:
             // A real tube: colored glass glowing round a thin white-hot core.
-            NeonGlass(shape: NeonFrame(), color: Color(look.stem), width: 5)
+            NeonGlass(shape: NeonFrame(), color: Color(look.stem), width: 8)
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)
@@ -259,18 +256,21 @@ struct VineLeaf<Content: View>: View {
             var p = Path()
             let reach = depth == 0 ? 40.0 : 68.0
             if look.vineStyle == .neon {
-                // No plant: a straight tube at a hard right angle off the rod, with a white node
-                // where it joins (the neon `stem` in vine-flow.tsx).
+                // No plant: a straight glass tube off the rod, Tron style, glowing like the rest,
+                // with no node or ornament where it joins.
                 let y = size.height * 0.3
                 p.move(to: CGPoint(x: 20, y: y))
                 p.addLine(to: CGPoint(x: reach, y: y))
                 let color = Color(look.stem)
-                for (c, w) in [(color.opacity(0.14), 12.0), (color.opacity(0.35), 6.0), (color, 2.0), (Color.white.opacity(0.85), 0.8)] {
-                    ctx.stroke(p, with: .color(c), style: .init(lineWidth: w, lineCap: .butt))
-                }
-                let node = Path(ellipseIn: CGRect(x: 16, y: y - 4, width: 8, height: 8))
-                ctx.fill(node, with: .color(.white))
-                ctx.stroke(node, with: .color(color), lineWidth: 2)
+                let tube: CGFloat = 6
+                var glow = ctx
+                glow.addFilter(.blur(radius: tube * 1.6))
+                glow.stroke(p, with: .color(color.opacity(0.55)), lineWidth: tube * 2.6)
+                ctx.stroke(p, with: .color(color), lineWidth: tube)
+                ctx.stroke(p, with: .color(.black.opacity(0.3)), lineWidth: tube)
+                ctx.stroke(p, with: .color(color), lineWidth: tube * 0.72)
+                ctx.stroke(p, with: .color(.white.opacity(0.55)), lineWidth: tube * 0.45)
+                ctx.stroke(p, with: .color(.white.opacity(0.95)), lineWidth: max(1, tube * 0.2))
                 return
             }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
@@ -617,10 +617,10 @@ struct CircuitFeed<Row: View>: View {
                         .background {
                             // A plain screen for the words, framed by one neon tube bent in smooth curves.
                             ZStack {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                NeonFrame(radius: 10)
                                     .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
                                     .padding(3)
-                                NeonGlass(shape: RoundedRectangle(cornerRadius: 16, style: .continuous), color: Color(look.screen), width: 4)
+                                NeonGlass(shape: NeonFrame(radius: 10), color: Color(look.screen), width: 7)
                                     .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                             }
                             .accessibilityHidden(true)
@@ -637,7 +637,7 @@ struct CircuitFeed<Row: View>: View {
                 }
                 if !hasMore, !cards.isEmpty {
                     VStack(spacing: 8) {
-                        NeonGlass(shape: Circle(), color: Color(look.wire), width: 3).frame(width: 18, height: 18).accessibilityHidden(true)
+                        NeonGlass(shape: NeonFrame(radius: 4), color: Color(look.wire), width: 5).frame(width: 18, height: 18).accessibilityHidden(true)
                         Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).backdropPlate(look.backdrop)
                     }
                     .padding(.trailing, 40)

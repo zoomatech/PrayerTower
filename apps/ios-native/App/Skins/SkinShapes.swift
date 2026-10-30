@@ -75,12 +75,13 @@ enum PenCurl {
     }
 }
 
-/// A neon frame bent from one tube: long straight runs meeting in wide, smooth curves, with no
-/// corners or ornaments (Steve, 2026-10-30: "elegant curves only").
+/// A neon box bent from one glass tube: straight Tron-style runs meeting in small, elegant curved
+/// corners, with no cut corners or ornaments (Steve, 2026-10-30).
 struct NeonFrame: Shape {
-    var radius: Double = 26
+    /// A box's corner: a small, smooth bend, never so big the box turns into an oval or a pill.
+    var radius: Double = 12
     func path(in r: CGRect) -> Path {
-        RoundedRectangle(cornerRadius: min(radius, min(r.width, r.height) / 2), style: .continuous).path(in: r)
+        RoundedRectangle(cornerRadius: min(radius, min(r.width, r.height) / 4), style: .continuous).path(in: r)
     }
 }
 
