@@ -357,7 +357,7 @@ private struct BeanPost<Row: View>: View {
             // More than three comments: an uncountable cluster of leaves that rustles and spreads out
             // to five when tapped; past five, a smaller cluster at the bottom reveals the next ones.
             if h.cluster || h.more {
-                LeafCluster(big: h.cluster, seed: index, first: h.cluster ? tree.top.first : nil, width: max(170, (width * 0.5).rounded()), words: words) {
+                LeafCluster(big: h.cluster, seed: index, first: h.cluster ? tree.top.first : nil, width: (width * 0.5).rounded(), words: words) {
                     var next = cv
                     if next.spread { next.shown += Beanstalk.spreadCount } else { next.spread = true }
                     cv = next
@@ -632,47 +632,48 @@ private struct HollyBerries: View {
     }
 }
 
-/// An uncountable clump of leaves hanging off the stalk: comments waiting to be read. The front
-/// leaf shows the first line of the top comment; the rest peek out behind it at loose, uneven
-/// angles and sizes, as foliage grows. A tap rustles every leaf, then it spreads out into the
-/// comments (Steve, 2026-10-30).
+/// A cluster of comments waiting to be read, grown the way a vine grows leaves: several nodes
+/// close together on the stalk, each leaf on its own short stalk (petiole), alternating sides
+/// and spreading outward, never overlapping. The largest leaf carries the first line of the top
+/// comment. A tap rustles every leaf on its stalk, then the comments spread out (Steve, 2026-10-30).
 private struct LeafCluster: View {
-    /// The clump under a post; false for the smaller one that reveals more.
+    /// The cluster under a post; false for the smaller one that reveals more.
     let big: Bool
     let seed: Int
-    /// The top comment, whose first line shows on the front leaf.
+    /// The top comment, whose first line shows on the largest leaf.
     let first: Beanstalk.Note?
-    /// A hanging leaf's width.
+    /// A hanging leaf's width; the cluster is twice that, centred on the stalk.
     let width: Double
     let words: Words
     let spread: () -> Void
     @State private var rustles = 0
     @Environment(\.accessibilityReduceMotion) private var still
 
-    /// A leaf peeking out behind the front one: where it sits off the clump's centre, its tilt and size.
-    private struct Back { let x: Double, y: Double, turn: Double, size: Double, flip: Bool, fill: Int }
+    /// One leaf at its node: how far down the stalk, which side, its stalk's length, the blade's
+    /// width and its tilt (positive droops the tip).
+    private struct Node { let y: Double, side: Double, stalk: Double, size: Double, droop: Double, text: Bool }
 
-    private var backs: [Back] {
-        // A fixed scatter per post, so the clump looks grown, not arranged: no two alike, no ring.
-        var r = UInt64(truncatingIfNeeded: seed &* 2_654_435_761 &+ 97)
-        func next() -> Double {
-            r = r &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
-            return Double((r >> 33) % 10_000) / 10_000
+    private var nodes: [Node] {
+        let lead = width - 26
+        if !big {
+            return [Node(y: 8, side: 1, stalk: 14, size: 58, droop: -24, text: false),
+                    Node(y: 34, side: -1, stalk: 14, size: 52, droop: 10, text: false),
+                    Node(y: 58, side: 1, stalk: 12, size: 46, droop: 30, text: false)]
         }
-        let n = big ? 11 : 5
-        return (0..<n).map { i in
-            let flip = i % 2 == 0
-            return Back(x: (flip ? -0.75 : 0.25) * width + (next() - 0.5) * width * 0.5,
-                        y: (next() - 0.5) * width * 0.5,
-                        turn: (flip ? -1 : 1) * (8 + 34 * next()) + (next() - 0.5) * 16,
-                        size: width * (big ? 0.55 + 0.3 * next() : 0.42 + 0.2 * next()),
-                        flip: flip,
-                        fill: (i + seed) % Bean.leaves.count)
-        }
+        // Upper leaves reach up and out, lower ones droop, like a shoot seen from the side.
+        return [Node(y: 14, side: 1, stalk: 18, size: 78, droop: -32, text: false),
+                Node(y: 26, side: -1, stalk: 16, size: lead, droop: 10, text: true),
+                Node(y: 70, side: 1, stalk: 18, size: 70, droop: 0, text: false),
+                Node(y: 124, side: 1, stalk: 16, size: 62, droop: 28, text: false),
+                Node(y: 136, side: -1, stalk: 16, size: 66, droop: 30, text: false),
+                Node(y: 176, side: -1, stalk: 14, size: 52, droop: 46, text: false),
+                Node(y: 172, side: 1, stalk: 12, size: 48, droop: 52, text: false)]
     }
 
     var body: some View {
-        let lead: Double = big ? width * 1.25 : width * 0.62
+        let W = width
+        let all = nodes
+        let tall: Double = big ? 220 : 90
         Button {
             rustles += 1
             Task {
@@ -680,37 +681,54 @@ private struct LeafCluster: View {
                 withAnimation(.easeOut(duration: 0.4)) { spread() }
             }
         } label: {
-            ZStack {
-                ForEach(Array(backs.enumerated()), id: \.offset) { i, b in
-                    LeafBack(flip: b.flip, fill: Bean.leaves[b.fill], line: 2)
-                        .frame(width: b.size, height: b.size * 0.5)
-                        .rustle(rustles, by: Double(i % 3 + 2) * (i % 2 == 0 ? 1 : -1), anchor: b.flip ? .trailing : .leading)
-                        .rotationEffect(.degrees(b.turn), anchor: b.flip ? .trailing : .leading)
-                        .offset(x: b.x, y: b.y)
-                }
-                ZStack {
-                    LeafBack(flip: true, fill: Bean.leaves[seed % Bean.leaves.count])
-                    if let first {
-                        VStack(spacing: 1) {
-                            Text(first.author).font(BeanFont.bold(13)).lineLimit(1)
-                            // The whole first line of the top comment, as wide as the leaf allows.
-                            Text(first.body).font(BeanFont.body(12.5)).lineLimit(1).truncationMode(.tail)
-                        }
-                        .foregroundStyle(Bean.text)
-                        .padding(.leading, lead * 0.14)
-                        .padding(.trailing, lead * 0.1)
+            ZStack(alignment: .topLeading) {
+                // The leaf stalks, each from its own node on the vine.
+                Canvas { ctx, _ in
+                    for n in all {
+                        let a = n.droop * .pi / 180
+                        var p = Path()
+                        p.move(to: CGPoint(x: W, y: n.y))
+                        p.addQuadCurve(to: CGPoint(x: W + n.side * n.stalk, y: n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(a)),
+                                       control: CGPoint(x: W + n.side * n.stalk * 0.5, y: n.y - 3))
+                        ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 4.5, lineCap: .round))
+                        ctx.stroke(p, with: .color(Bean.stem), style: .init(lineWidth: 2.5, lineCap: .round))
                     }
                 }
-                .frame(width: lead, height: (lead * 0.52).rounded())
-                .rustle(rustles, by: 3, anchor: .trailing)
-                .rotationEffect(.degrees(-6), anchor: .trailing)
-                // Its stem end rests on the stalk, so the clump hangs off the vine rather than sitting on it.
-                .offset(x: -lead * 0.3)
+                .frame(width: 2 * W, height: tall)
+                ForEach(Array(all.enumerated()), id: \.offset) { i, n in
+                    let left = n.side < 0
+                    let h = (n.size * 0.5).rounded()
+                    let ex = W + n.side * n.stalk
+                    let ey = n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(n.droop * .pi / 180)
+                    let anchor: UnitPoint = left ? .trailing : .leading
+                    blade(n, flip: left, fill: Bean.leaves[(i + seed) % Bean.leaves.count])
+                        .frame(width: n.size, height: h)
+                        // Each leaf swings on its own stalk, out of step with the rest.
+                        .rustle(rustles, by: Double(i % 3 + 2) * (i % 2 == 0 ? 1 : -1), anchor: anchor)
+                        .rotationEffect(.degrees(n.side * n.droop), anchor: anchor)
+                        .offset(x: left ? ex - n.size : ex, y: ey - h / 2)
+                }
             }
-            .frame(width: width * 1.8, height: width * 0.95)
+            .frame(width: 2 * W, height: tall, alignment: .topLeading)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(first.map { "\($0.author): \($0.body). " + words("beanstalk.openCluster") } ?? words(big ? "beanstalk.openCluster" : "beanstalk.moreCluster"))
+    }
+
+    @ViewBuilder private func blade(_ n: Node, flip: Bool, fill: Color) -> some View {
+        ZStack {
+            LeafBack(flip: flip, fill: fill, line: 2)
+            if n.text, let first {
+                VStack(spacing: 1) {
+                    Text(first.author).font(BeanFont.bold(13)).lineLimit(1)
+                    // The whole first line of the top comment, as wide as the leaf allows.
+                    Text(first.body).font(BeanFont.body(12.5)).lineLimit(1).truncationMode(.tail)
+                }
+                .foregroundStyle(Bean.text)
+                .padding(.leading, n.size * (flip ? 0.12 : 0.16))
+                .padding(.trailing, n.size * (flip ? 0.16 : 0.12))
+            }
+        }
     }
 }
 
