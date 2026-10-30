@@ -19,7 +19,7 @@ This work lives on its own branch until Steve says to merge it.
 
 | What | Expo / web (`apps/mobile/src/skins/`) | Native Swift (`apps/ios-native/`) |
 | --- | --- | --- |
-| Praying Now, like (thumbs up), Commit to Pray (the radio antenna icon), encourage, well wishes, share, gift | `useActionRow(card, act)` in `action-row.tsx` gives each button's `name`, `tip`, `active`, `press` and emoji meanings. Like toggles at once; the rest go to `act`. | `FeedHooks.act` (`App/Skins/FeedHooks.swift`); the row's buttons come from Kit `ActionRow.items`. |
+| Praying Now, like (thumbs up), Commit to Pray, Prayer Cast (the radio antenna; only where the community has radio), encourage, well wishes, share, gift | `useActionRow(card, act)` in `action-row.tsx` gives each button's `name`, `tip`, `active`, `press` and emoji meanings. Like toggles at once; the rest go to `act`. | `FeedHooks.act` (`App/Skins/FeedHooks.swift`); the row's buttons come from Kit `ActionRow.items`. |
 | Every card action, from anywhere in a skin | `useFeedHooks().act` (`feed-hooks.tsx`) | `FeedHooks.act` |
 | "Not for me" | `useFeedHooks().hide` | (not in the native feed yet) |
 | Open a post, or open it at one comment | `useFeedHooks().openPost(postId, commentId?)` | `FeedHooks.open` |
@@ -29,9 +29,6 @@ This work lives on its own branch until Steve says to merge it.
 | Infinite scroll | `useFeedHooks().loadMore` / `atEnd`; list skins use `onEndReached`, deck and climb skins use `useNearEnd()` | `FeedHooks.loadMore` / `hasMore`, and `.loadsMore(after:in:_:)` on each post |
 | Pull to refresh | `useFeedHooks().refresh` / `refreshing` | (each skin's scroll view) |
 | Swipe right to pray (deck) | `act(card, 'praying_now')` | `hooks.act(.prayingNow, card)` |
-
-New buttons from other work on main (the toolbar icons) join the same row and the same
-`act` hook when this branch is rebased.
 
 ## Adding a skin
 
