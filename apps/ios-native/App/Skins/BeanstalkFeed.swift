@@ -859,8 +859,8 @@ private struct BeanReader: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(note.author).font(BeanFont.bold(15))
-                    Text(note.body).font(BeanFont.body(19)).fixedSize(horizontal: false, vertical: true)
+                    Text(note.author).font(BeanFont.bold(16))
+                    Text(note.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
                 }
                 replies(note.id, level: 1)
             }
@@ -898,8 +898,8 @@ private struct BeanReader: View {
     private func replies(_ id: String, level: Int) -> AnyView {
         AnyView(ForEach(kids[id] ?? []) { r in
             VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(BeanFont.bold(15))
-                Text(r.body).font(BeanFont.body(17)).fixedSize(horizontal: false, vertical: true)
+                Text(r.author).font(BeanFont.bold(16))
+                Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
             .padding(.top, 8)
@@ -915,8 +915,9 @@ private struct BeanReader: View {
 private struct LeafSquare: View {
     var body: some View {
         ZStack {
-            Rectangle().fill(Bean.leaves[0])
-            Rectangle().fill(EllipticalGradient(colors: [Color(RGB(hex: "#F4FBE4")!).opacity(0.9), Color(RGB(hex: "#F4FBE4")!).opacity(0)],
+            // 10% lighter at both ends of the gradient than first drawn (Steve, 2026-10-30).
+            Rectangle().fill(Color(RGB(hex: "#BDDB87")!))
+            Rectangle().fill(EllipticalGradient(colors: [Color(RGB(hex: "#F5FBE7")!).opacity(0.9), Color(RGB(hex: "#F5FBE7")!).opacity(0)],
                                                 center: .center, startRadiusFraction: 0, endRadiusFraction: 0.6))
             Canvas { ctx, size in
                 let cx = size.width / 2
