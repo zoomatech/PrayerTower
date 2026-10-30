@@ -32,7 +32,7 @@ struct AdminKindnessView: View {
                         let l = wk.lines(w)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(wk.sky) \(l.title)")
-                            if let n = l.numbers { Text(n).font(.footnote).foregroundStyle(.secondary) }
+                            if let n = l.numbers { Text(n).font(.footnote).foregroundStyle(Color.subtle) }
                         }
                         .accessibilityElement(children: .combine)
                     }

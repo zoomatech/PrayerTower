@@ -21,6 +21,12 @@ struct AuditSamplesView: View {
             "branch": .string("#FFD36E"), "leaf": .string("#8FB3FF"), "leafSoft": .string("#F3EDFF"), "tendril": .string("#FFD36E"),
             "leafShape": .string("star"), "scenery": .string("fairytale"), "leafEvery": .number(4),
         ]),
+        // Tron-style neon (Steve, 2026-10-30): glass tubes only, straight runs with small curved
+        // corners, growing downward. No scenery: Cinderella is its own style.
+        FeedTheme(slug: "neon", name: "Neon", layout: "vine", tokens: [
+            "vineStyle": .string("neon"), "backdrop": .string("#02040A"), "stem": .string("#00C8FF"), "stemWidth": .number(3),
+            "branch": .string("#FF2B1C"), "leaf": .string("#00C8FF"), "leafSoft": .string("#EAFBFF"), "tendril": .string("#FF2B1C"),
+        ]),
         FeedTheme(slug: "blossom-garden", name: "Blossom Garden", layout: "vine", tokens: ["vineStyle": .string("floral"), "stemWidth": .number(3)]),
         FeedTheme(slug: "christmas-star", name: "Christmas Star", layout: "vine", tokens: [
             "backdrop": .string("#0D1B36"), "stem": .string("#E8C15A"), "leaf": .string("#FFF4C2"), "leafSoft": .string("#FFF8E1"),
@@ -48,7 +54,7 @@ struct AuditSamplesView: View {
                     }, onEnd: {})
                     .navigationTitle(skin.name)
                     .navigationBarTitleDisplayMode(.inline)
-                    // The same bars as the feed, so the title stays readable on a dark skin.
+                    // As FeedView does: the bar takes the skin's backdrop, light text on a dark one.
                     .skinBars(Skin.backdrop(skin))
                 }
             }

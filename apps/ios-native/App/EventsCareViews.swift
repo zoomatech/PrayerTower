@@ -34,11 +34,11 @@ struct EventsView: View {
     var body: some View {
         List {
             Section { Text(w("events.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section {
                 if creating { form } else { Button(w("events.hostAn")) { creating = true } }
             }
-            if events?.isEmpty == true { Section { Text(w("events.empty")).foregroundStyle(.secondary) } }
+            if events?.isEmpty == true { Section { Text(w("events.empty")).foregroundStyle(Color.subtle) } }
             ForEach(events ?? []) { e in
                 Button { opened = e.id } label: { EventRow(event: e) }.buttonStyle(.plain)
             }
@@ -123,13 +123,13 @@ struct EventRow: View {
             HStack {
                 Text(e.title).font(.headline)
                 Spacer()
-                Text(w("enums.eventKind.\(e.kind)")).font(.caption).foregroundStyle(.secondary)
+                Text(w("enums.eventKind.\(e.kind)")).font(.caption).foregroundStyle(Color.subtle)
             }
             Text(e.live ? w("events.happening") : whenText(e.startsAt)).font(.subheadline.bold()).foregroundStyle(.tint)
             let place = [e.hasVideo ? w("events.videoMeeting") : nil, e.location, e.groupTitle.map { w("events.groupLabel", ["name": $0]) }].compactMap { $0 }
             if !place.isEmpty { Text(place.joined(separator: " · ")).font(.caption) }
             Text(hosted(e, w) + (e.myRsvp.map { " · " + w($0 == "going" ? "events.youreGoing" : "events.youreMaybe") } ?? ""))
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(Color.subtle)
         }
         .accessibilityElement(children: .combine)
     }
@@ -154,18 +154,18 @@ struct EventDetailView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let e = event {
                 Section {
-                    Text(w("enums.eventKind.\(e.kind)")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("enums.eventKind.\(e.kind)")).font(.caption).foregroundStyle(Color.subtle)
                     Text(e.title).font(.title2.bold())
-                    if e.cancelled { Text(w("events.cancelled")).foregroundStyle(.red).bold() }
+                    if e.cancelled { Text(w("events.cancelled")).foregroundStyle(Color.danger).bold() }
                     Text("\(e.live ? w("events.happening") : whenText(e.startsAt)) · \(w("events.minutesShort", ["count": String(e.durationMinutes)]))")
                         .bold().foregroundStyle(.tint)
                     if !e.description.isEmpty { Text(e.description) }
                     if let place = e.location { Label(place, systemImage: "mappin.and.ellipse") }
                     if let group = e.groupTitle { Text(w("events.forGroup", ["name": group])).font(.caption) }
-                    Text(hosted(e, w)).font(.caption).foregroundStyle(.secondary)
+                    Text(hosted(e, w)).font(.caption).foregroundStyle(Color.subtle)
                 }
                 Section {
                     if let link = e.videoUrl.flatMap(URL.init(string:)) {
@@ -267,7 +267,7 @@ struct CareView: View {
     var body: some View {
         List {
             Section { Text(w("care.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if crisis { Section { CrisisBox() } }
             if let options {
                 Section {
@@ -297,7 +297,7 @@ struct CareView: View {
                 Section(w("care.yours")) {
                     ForEach(mine) { r in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(w("enums.careKind.\(r.kind)")) · \(w("care.status.\(r.status)"))").font(.caption).foregroundStyle(.secondary)
+                            Text("\(w("enums.careKind.\(r.kind)")) · \(w("care.status.\(r.status)"))").font(.caption).foregroundStyle(Color.subtle)
                             Text(r.body).lineLimit(3)
                             HStack {
                                 if let c = r.conversationId { Button(w("care.open")) { opened = c }.buttonStyle(.bordered) }

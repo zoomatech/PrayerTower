@@ -16,7 +16,7 @@ import Testing
         let feed = try await api.feed()
         #expect(feed.posts.count == 2)
         #expect(try await api.post("sample-p1").author.displayName == "Ruth")
-        #expect(try await api.comments(postId: "sample-p1").count == 1)
+        #expect(try await api.comments(postId: "sample-p1").count == 9)
         #expect(try await api.prayers(postId: "sample-p1").count == 4)
         #expect(try await api.commitments().commitments.count == 1)
         #expect(try await api.conversations().count == 1)
@@ -25,6 +25,31 @@ import Testing
         #expect(try await api.weeklyReview().kept == 2)
         #expect(try await api.tier().prayers == 42)
         #expect(try await api.tokens().balance == 12)
+    }
+
+    @Test func meCountsAndCirclesDecode() async throws {
+        #expect(try await !api.features()["prayerCircles"])
+        #expect(try await api.tier().prayers == 42)
+        #expect(try await api.tokens().balance == 12)
+        #expect(try await api.prayerStats().week.count == 7)
+        #expect(try await api.weeklyReview().people == 3)
+        #expect(try await api.myCircles().circles.count == 2)
+        #expect(try await api.feedThemes().themes.isEmpty)
+    }
+
+    /// The performance tests' feed: -PTSamplePosts 1000 pages through 1,000 different posts.
+    @Test func theLongFeedPagesThroughAThousandPosts() throws {
+        var page: Int? = 0, ids: [String] = []
+        while let p = page {
+            let f = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed", query: ["page": String(p)], posts: 1000).body)
+            ids += f.posts.map(\.id)
+            page = f.nextPage
+        }
+        #expect(ids.count == 1000 && Set(ids).count == 1000 && ids.last == "sample-g999")
+        let one = try JSONDecoder().decode([String: Card].self, from: SampleServer.answer(method: "GET", path: "/posts/sample-g2", posts: 1000).body)
+        #expect((one["post"]?.body.count ?? 0) > 100)
+        #expect(SampleServer.posts(["app", "-PTSampleData", "-PTSamplePosts", "1000"]) == 1000)
+        #expect(SampleServer.posts(["app", "-PTSampleData"]) == nil)
     }
 
     @Test func unknownReadsAreNotFoundAndWritesSucceed() {
@@ -43,7 +68,7 @@ import Testing
     @Test func openCircleSampleNeverSaysPray() {
         // Field names and codes ("prayers":, "praying_now") are not words people read.
         let shown = SampleServer.routes(.openCircle).map(\.body).joined()
-            .replacingOccurrences(of: #""pray\w*"\s*:"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #""\w*[Pp]ray\w*"\s*:"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: #""(praying_now|prayer_request|prayed_for)""#, with: "", options: .regularExpression)
         #expect(shown.range(of: "pray", options: .caseInsensitive) == nil)
         #expect(SampleServer.routes(.prayerTower).map(\.body).joined().contains("Thank you for praying!"))

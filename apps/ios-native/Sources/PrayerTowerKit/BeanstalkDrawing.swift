@@ -27,7 +27,7 @@ public enum BeanDraw {
         return l
     }
 
-    static func smooth(_ t: Double) -> Double {
+    public static func smooth(_ t: Double) -> Double {
         let c = min(1, max(0, t))
         return c * c * (3 - 2 * c)
     }
@@ -200,10 +200,16 @@ public enum BeanDraw {
         /// The open comment (by index in all of them) and the open reply under it.
         public var open: Int?
         public var open2: Int?
-        public init(page: Int = 0, open: Int? = nil, open2: Int? = nil) {
+        /// More than three comments sit in an uncountable cluster until it's tapped; then they
+        /// spread out, `shown` at a time (Steve, 2026-10-30).
+        public var spread = false
+        public var shown = Beanstalk.spreadCount
+        public init(page: Int = 0, open: Int? = nil, open2: Int? = nil, spread: Bool = false, shown: Int = Beanstalk.spreadCount) {
             self.page = page
             self.open = open
             self.open2 = open2
+            self.spread = spread
+            self.shown = shown
         }
     }
 
@@ -217,6 +223,10 @@ public enum BeanDraw {
         public let pager: Bool
         public let pgY: Double
         public let page: Int, pages: Int
+        /// The comments are still in their closed cluster, drawn at `pgY` on the stalk.
+        public let cluster: Bool
+        /// Spread out, with more comments than shown: a smaller cluster at `pgY` reveals the next ones.
+        public let more: Bool
     }
 
     /// The stalk below a post and the leaves on it (the design's layoutComments and vineDown).
@@ -227,9 +237,10 @@ public enum BeanDraw {
         let lw = max(170, (w * 0.5).rounded())
         let angles = [22.0, 15, 27]
         let per = Beanstalk.perPage
-        let pages = max(1, (top.count + per - 1) / per)
-        let page = min(cv.page, pages - 1)
-        let shown = Array(top.dropFirst(page * per).prefix(per))
+        let pages = 1, page = 0
+        let cluster = top.count > per && !cv.spread
+        let shown = cluster ? [] : Array(top.prefix(cv.spread ? cv.shown : per))
+        let more = cv.spread && top.count > shown.count
         var leaves: [Leaf] = [], subs: [Leaf] = []
         var stems: Drawing = []
         var maxB = 60.0
@@ -250,7 +261,7 @@ public enum BeanDraw {
                 let y = max(prevY + 70, 30, (sideBottom[side] ?? 0) + 30)
                 prevY = y
                 let tipX = cx + sway(y + 26) + sd * 16, tipY = y + 26
-                let a = angles[k]
+                let a = angles[k % angles.count]
                 let vX = vx(y)
                 stems += [.move(vX, y), .curve(vX + sd * 8, y + 8, tipX - sd * 6, tipY - 10, tipX, tipY)]
                 let reps = kids[c.id] ?? []
@@ -259,7 +270,8 @@ public enum BeanDraw {
                 let ccX = tipX + sd * (lw / 2) * cos(a * deg), ccY = tipY + (lw / 2) * sin(a * deg)
                 var bottom = ccY + 58
                 if open {
-                    let rw = (lw * 0.64).rounded()
+                    // Replies are small leaves of a true leaf's proportions (half as tall as wide).
+                    let rw = (lw * 0.6).rounded(), rh = (rw * 0.52).rounded()
                     var cur = ccY + 54
                     for (m, r) in reps.prefix(per).enumerated() {
                         let baseX = side < 0 ? ccX + rw / 2 : ccX - rw / 2, baseY = cur + 6
@@ -267,16 +279,16 @@ public enum BeanDraw {
                         let reps2 = kids[r.id] ?? []
                         let open2 = cv.open2 == m && !reps2.isEmpty
                         let ra = 12.0
-                        subs.append(Leaf(note: r, level: 2, path: [gi, m], x: (side < 0 ? baseX - rw : baseX).rounded(), y: (baseY - 42).rounded(), lw: rw, side: side, ang: sd * ra, fill: (k + m + seed + 1) % 3, replies: reps2.count, open: open2, k: m))
+                        subs.append(Leaf(note: r, level: 2, path: [gi, m], x: (side < 0 ? baseX - rw : baseX).rounded(), y: (baseY - rh / 2).rounded(), lw: rw, side: side, ang: sd * ra, fill: (k + m + seed + 1) % 3, replies: reps2.count, open: open2, k: m))
                         let rcX = baseX + sd * (rw / 2) * cos(ra * deg), rcY = baseY + (rw / 2) * sin(ra * deg)
-                        cur = rcY + 50
+                        cur = rcY + rh / 2 + 12
                         if open2 {
-                            let qw = (lw * 0.46).rounded()
+                            let qw = (lw * 0.48).rounded(), qh = (qw * 0.52).rounded()
                             for (z, q) in reps2.prefix(per).enumerated() {
                                 let bX = side < 0 ? rcX + qw / 2 : rcX - qw / 2, bY = cur + 4
                                 stems += [.move(rcX, rcY + 22), .curve(rcX, bY - 14, bX - sd * 3, bY - 10, bX, bY)]
-                                subs.append(Leaf(note: q, level: 3, path: [gi, m, z], x: (side < 0 ? bX - qw : bX).rounded(), y: (bY - 33).rounded(), lw: qw, side: side, ang: sd * 9, fill: (k + m + z + seed + 2) % 3, replies: 0, open: false, k: z))
-                                cur = bY + (qw / 2) * sin(9 * deg) + 33 + 12
+                                subs.append(Leaf(note: q, level: 3, path: [gi, m, z], x: (side < 0 ? bX - qw : bX).rounded(), y: (bY - qh / 2).rounded(), lw: qw, side: side, ang: sd * 9, fill: (k + m + z + seed + 2) % 3, replies: 0, open: false, k: z))
+                                cur = bY + (qw / 2) * sin(9 * deg) + qh / 2 + 12
                             }
                         }
                     }
@@ -287,12 +299,16 @@ public enum BeanDraw {
             }
         }
         place()
-        let pager = top.count > per
+        let pager = false
         var H = top.isEmpty ? 96 : (maxB + 20).rounded()
         var pgY = 0.0
-        if pager {
-            pgY = H
-            H += 60
+        if cluster {
+            // Room for the clump and the next post's locket below it.
+            pgY = 100
+            H = 270
+        } else if more {
+            pgY = H + 20
+            H += 90
         }
         if bend != 0 {
             H0 = H
@@ -312,7 +328,7 @@ public enum BeanDraw {
         }
         let s1 = strand(7, 0), s2 = strand(5.5, Double.pi)
         var deco: Drawing = []
-        if top.isEmpty || !pager {
+        if top.isEmpty || !(cluster || more) {
             let y = H - 30
             deco += vineLeaf(cx + sway(y) + 7 * env(y) * sin(y / 30), y, 0.9, 0.44, 14)
         }
@@ -320,6 +336,6 @@ public enum BeanDraw {
             let y = (H * 0.5).rounded()
             deco += vineLeaf(cx + sway(y) + 7 * env(y) * sin(y / 30), y, shown.count % 2 == 1 ? -1 : 1, 0.5, 15)
         }
-        return Hanging(H: H, leaves: leaves + subs, stems: stems, s1: polyline(s1), s2: polyline(s2), l1: length(s1).rounded(.up) + 4, l2: length(s2).rounded(.up) + 4, deco: deco, pager: pager, pgY: pgY, page: page, pages: pages)
+        return Hanging(H: H, leaves: leaves + subs, stems: stems, s1: polyline(s1), s2: polyline(s2), l1: length(s1).rounded(.up) + 4, l2: length(s2).rounded(.up) + 4, deco: deco, pager: pager, pgY: pgY, page: page, pages: pages, cluster: cluster, more: more)
     }
 }

@@ -40,7 +40,7 @@ struct ThemeMakerView: View {
                 if sent {
                     Text("Saved! Your skin is ready in Feed style. Others see it once an admin approves it.").bold().foregroundStyle(.tint)
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
                 TextField("Name", text: $maker.name).onChange(of: maker.name) { maker.name = String(maker.name.prefix(40)) }
                 TextField("What it looks like", text: $maker.description, axis: .vertical)
                     .onChange(of: maker.description) { maker.description = String(maker.description.prefix(500)) }
@@ -61,7 +61,7 @@ struct ThemeMakerView: View {
                 }
                 if !maker.colorsOk { Text("Colors are written like #6E8B4E.").font(.footnote) }
                 if !maker.commentsReadable {
-                    Text("The comment background is too dark for comments to be read. Pick a lighter color.").font(.footnote).foregroundStyle(.red)
+                    Text("The comment background is too dark for comments to be read. Pick a lighter color.").font(.footnote).foregroundStyle(Color.danger)
                 }
             } header: { Text("Colors") }
             if maker.layout == .vine {
@@ -97,12 +97,12 @@ struct ThemeMakerView: View {
                 .disabled(!maker.canSave || busy)
             }
             Section("Your skins") {
-                if mine.isEmpty { Text("No skins yet.").foregroundStyle(.secondary) }
+                if mine.isEmpty { Text("No skins yet.").foregroundStyle(Color.subtle) }
                 ForEach(mine) { p in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(p.name).bold()
                         Text(p.statusLine).font(.footnote)
-                        if let note = p.reviewNote, !note.isEmpty { Text(note).font(.footnote).foregroundStyle(.secondary) }
+                        if let note = p.reviewNote, !note.isEmpty { Text(note).font(.footnote).foregroundStyle(Color.subtle) }
                     }
                     .accessibilityElement(children: .combine)
                 }
