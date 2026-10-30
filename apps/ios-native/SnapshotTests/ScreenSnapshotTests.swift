@@ -38,8 +38,9 @@ final class ScreenSnapshotTests: XCTestCase {
                 }, onEnd: {})
                 .navigationTitle(skin.name)
                 .navigationBarTitleDisplayMode(.inline)
+                .skinBars(Skin.backdrop(skin))
             }
-            assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1),
+            assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1, wholeScreen: true),
                            named: "skin-\(skin.slug)-largest-text", timeout: 10)
         }
     }
@@ -65,7 +66,9 @@ extension Snapshotting where Value == UIViewController, Format == UIImage {
     /// The screen shown in a real window on an iPhone 13-sized screen at the largest accessibility
     /// text size, given a few seconds there so its own `.task` loads finish before the picture.
     /// (The library's `.wait` waits before the screen is in a window, so loads never start.)
-    @MainActor static func loaded(style: UIUserInterfaceStyle, seconds: Double = 3) -> Snapshotting {
+    /// `wholeScreen` draws what the screen shows (3D page turns and leaning frames included),
+    /// where a plain layer render flattens them and draws hidden pages too.
+    @MainActor static func loaded(style: UIUserInterfaceStyle, seconds: Double = 3, wholeScreen: Bool = false) -> Snapshotting {
         Snapshotting(pathExtension: "png", diffing: .image(perceptualPrecision: 0.98)) { controller in
             Async { done in
                 nonisolated(unsafe) let finish = done
@@ -83,7 +86,11 @@ extension Snapshotting where Value == UIViewController, Format == UIImage {
                     let format = UIGraphicsImageRendererFormat()
                     format.scale = 3
                     let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { ctx in
-                        window.layer.render(in: ctx.cgContext)
+                        if wholeScreen {
+                            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                        } else {
+                            window.layer.render(in: ctx.cgContext)
+                        }
                     }
                     window.isHidden = true
                     window.rootViewController = nil

@@ -44,6 +44,8 @@ struct AuditSamplesView: View {
                     }, onEnd: {})
                     .navigationTitle(skin.name)
                     .navigationBarTitleDisplayMode(.inline)
+                    // As FeedView does: the bar takes the skin's backdrop, light text on a dark one.
+                    .skinBars(Skin.backdrop(skin))
                 }
             }
             .navigationTitle("Skins")

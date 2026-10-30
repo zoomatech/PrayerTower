@@ -451,13 +451,14 @@ struct TowerFeed<Row: View>: View {
         .scrollPosition(id: $floor, anchor: .top)
         .safeAreaInset(edge: .bottom) {
             if let n = cards.firstIndex(where: { $0.id == floor }) ?? (cards.isEmpty ? nil : 0) {
+                // A solid strip along the bottom, like a toolbar, so the words scroll under it
+                // rather than showing through round a floating label.
                 Text(LayoutWords(wording).towerFloor(n + 1, of: cards.count))
                     .font(.footnote.bold())
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
                     .foregroundStyle(Color(RGB.commentText))
-                    .background(Color(RGB(hex: "#FBFAF7")!), in: .capsule)
-                    .padding(.bottom, 6)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(RGB(hex: "#FBFAF7")!))
             }
         }
         .background { StoneWalls(look: look).accessibilityHidden(true) }
