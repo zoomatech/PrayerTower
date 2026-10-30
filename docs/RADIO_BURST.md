@@ -390,8 +390,13 @@ from the SSTV audio. The sample prayers fit 18 to a panel.
 - **Send by radio.** `BURST_MODE=sstv` claims a batch as burst mode does,
   filters and folds it, packs it into as many panels as it takes, and sends
   each as an SSTV Robot 36 picture (about 37 seconds) through the sound card
-  with the usual PTT. Each prayer is logged with preset `sstv-robot36`. Any
-  SSTV program (MMSSTV, QSSTV, Robot36 on a phone) shows the picture.
+  with the usual PTT, followed by the CW station ID when one is due
+  (`STATION_ID=cw`), as after a burst. Each prayer is logged with preset
+  `sstv-robot36`. Any SSTV program (MMSSTV, QSSTV, Robot36 on a phone) shows
+  the picture.
+- **Practice first.** `SSTV_SEND=simulate` writes each picture to a WAV file in
+  the bursts folder instead of keying the radio, and logs what a receiver reads
+  back from it.
 - **Read it.** The Expo app and the native iPhone and Mac apps read a panel from
   a camera photo or a picture, any of four ways up and at a slant. The Listen
   screen's **Also read SSTV pictures** reads panels from the radio's audio.
@@ -421,7 +426,10 @@ little fast or slow), and corrects a radio tuned up to about 100 Hz off.
 Tests (`apps/station/test/panel.test.ts`): Reed-Solomon correction, a
 simulated camera photo (upside down, at a slant, uneven light, noise, blur),
 SSTV through noise, 60 Hz off, 0.05% clock drift, at 44.1 kHz, and the
-station's whole send loop. The native apps are tested on the station's own
+station's whole send loop. `apps/server/test/station-practice-sstv.test.ts`
+runs it end to end in practice mode: members queue prayers, the station sends
+a panel to a WAV file, an independent receiver reads it back, a listener node
+reports it, and the console and signal queue agree. The native apps are tested on the station's own
 panel and a noisy SSTV recording (`scripts/build-panel-fixtures.ts`).
 
 ## Compression v2 (codec 4)

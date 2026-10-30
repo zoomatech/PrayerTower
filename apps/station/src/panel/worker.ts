@@ -7,8 +7,9 @@ import { foldAscii, passesFilter } from '../text.js';
 import { reportWithRetry, REPORT_RETRY_MS, TransmitError, type StationApi } from '../worker.js';
 import { fingerprint } from '../burst/sha256.js';
 import type { BurstTransmitter } from '../burst/transmit.js';
-import { encodePanel, panelImage } from './panel.js';
-import { encodeRobot36 } from './sstv.js';
+import { decodeBatch } from '../burst/codec.js';
+import { decodePanelImage, encodePanel, panelImage } from './panel.js';
+import { decodeRobot36, encodeRobot36, HEIGHT, WIDTH } from './sstv.js';
 
 export const SSTV_PRESET = 'sstv-robot36';
 export const SAMPLE_RATE = 48_000;
@@ -52,12 +53,20 @@ export async function runSstvOnce(
     const audio = encodeRobot36(panelImage(panel.count ? panel.cells : encodePanel([batch[0]!.text.slice(0, 300)], cfg.callSign).cells).gray, SAMPLE_RATE);
     const sending = batch.slice(0, count);
     try {
-      await tx.sendAudio(audio, SAMPLE_RATE);
+      // The station ID (STATION_ID=cw) follows the picture when one is due, as after a burst.
+      await tx.sendAudio(audio, SAMPLE_RATE, { label: 'sstv', stationId: true });
     } catch (err) {
       await tx.stop().catch(() => undefined);
       const message = String((err as Error).message ?? err).slice(0, 500);
       for (const p of ok.slice(at)) await reportWithRetry(api, p.id, { ok: false, callSign: cfg.callSign, error: message }, retryMs).catch(() => undefined);
       throw new TransmitError(message);
+    }
+    // Practice mode: read the picture back as a receiver would, so the log shows what went out.
+    if (tx.mode === 'simulate') {
+      const pic = decodeRobot36(audio, SAMPLE_RATE);
+      const frame = pic && decodePanelImage(pic.gray, WIDTH, HEIGHT);
+      const heard = frame ? decodeBatch(frame.batch) : [];
+      log(`[simulate] a receiver reads ${heard.length} prayer(s) from the picture${frame ? ` (de ${frame.callSign})` : ''}`);
     }
     for (const p of sending) {
       await reportWithRetry(api, p.id, { ok: true, callSign: cfg.callSign, pieces: 1, preset: SSTV_PRESET, sentHash: fingerprint(p.text), frequencyHz: cfg.frequencyHz }, retryMs);

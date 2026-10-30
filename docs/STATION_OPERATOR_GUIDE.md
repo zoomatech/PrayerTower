@@ -849,10 +849,13 @@ it, and the Prayer Tower listener apps read the prayers back from the audio or
 from a photo of the screen.
 
 1. Turn on Admin → Radio → **Prayer panel and SSTV**.
-2. In `/etc/prayer-tower-station.env` set `BURST_MODE=sstv`.
+2. In `/etc/prayer-tower-station.env` set `BURST_MODE=sstv`. To practise with
+   nothing keyed, also set `SSTV_SEND=simulate`: each picture goes to a WAV file
+   in the bursts folder, and the log says what a receiver reads back.
 3. `sudo systemctl restart prayer-tower-station`. Sound card and PTT are set up as for `BURST_MODE=audio`.
 
-A panel takes about 37 seconds on the air. Members can also show or print the
+A panel takes about 37 seconds on the air, and the CW station ID (`STATION_ID=cw`)
+follows it when one is due. Members can also show or print the
 latest panel from the app. Details: [RADIO_BURST.md](RADIO_BURST.md#prayer-panel).
 
 ## Diagnose a weak signal
