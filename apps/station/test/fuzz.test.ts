@@ -15,6 +15,8 @@ import { decodeAudio, decodePackets } from '../src/burst/web.js';
 import { RollingDecoder } from '../src/listener.js';
 import { decodeFrame, demodulate as demodulatePackets, encodeFrame, modulate } from '../src/packet/afsk.js';
 import { parseStatus, statusFrames } from '../src/packet/message.js';
+import { decodeCells, decodePanelImage, encodePanel, panelImage } from '../src/panel/panel.js';
+import { decodeRobot36, encodeRobot36 } from '../src/panel/sstv.js';
 import { SAMPLE_PRAYERS } from './fixtures/sample-prayers.js';
 
 function rng(seed: number) {
@@ -185,4 +187,104 @@ describe('decoder fuzzing', () => {
     expect(frames).toBe(1);
     expect(packets).toBe(1);
   });
+});
+
+describe('prayer panel and SSTV fuzzing', () => {
+  const W = 80;
+  const H = 60;
+
+  it('random cells, and a real panel with random damage, read right or not at all (never another prayer)', () => {
+    const r = rng(21);
+    for (let i = 0; i < 200; i++) {
+      const cells = Uint8Array.from({ length: W * H }, () => (r() < 0.5 ? 1 : 0));
+      expect(within(500, () => safely(() => decodeCells(cells)))).toBeNull();
+    }
+    const sent = SAMPLE_PRAYERS.slice(0, 6);
+    const { cells } = encodePanel(sent, 'N0FUZ');
+    let read = 0;
+    for (let i = 0; i < 200; i++) {
+      const bad = cells.slice();
+      // Up to about 150 flipped cells: around where Reed-Solomon gives up, where a wrong answer would hide.
+      const hits = Math.floor(r() * 150);
+      for (let k = 0; k < hits; k++) bad[Math.floor(r() * bad.length)]! ^= 1;
+      const out = within(500, () => safely(() => decodeCells(bad)));
+      if (out && !(out instanceof Error)) {
+        expect(out.callSign).toBe('N0FUZ');
+        expect(decodeBatch(out.batch)).toEqual(sent);
+        read++;
+      }
+    }
+    expect(read).toBeGreaterThan(20);
+    expect(read).toBeLessThan(200);
+  });
+
+  it('pictures of any size, any content, or a buffer shorter than they claim, never throw or hang', () => {
+    const r = rng(22);
+    const sizes: [number, number][] = [[0, 0], [1, 1], [3, 2], [80, 60], [79, 61], [320, 240], [1000, 3], [3, 1000]];
+    for (const [w, h] of sizes) {
+      for (const fill of ['noise', 'black', 'white', 'short'] as const) {
+        const n = fill === 'short' ? Math.floor((w * h) / 2) : w * h;
+        const gray = fill === 'noise' ? bytes(r, n) : new Uint8Array(n).fill(fill === 'black' ? 0 : 255);
+        const out = within(5_000, () => safely(() => decodePanelImage(gray, w, h)));
+        expect(out === null || out instanceof Error).toBe(true);
+      }
+    }
+  });
+
+  it('a tilted panel photo with random pixel noise reads the same prayers or none', () => {
+    const r = rng(23);
+    const sent = SAMPLE_PRAYERS.slice(2, 7);
+    const img = panelImage(encodePanel(sent, 'N0FUZ').cells, 4);
+    for (let i = 0; i < 12; i++) {
+      const gray = img.gray.slice();
+      const spread = 40 + i * 25;
+      for (let k = 0; k < gray.length; k++) gray[k] = Math.max(0, Math.min(255, gray[k]! + gauss(r) * spread));
+      const out = within(5_000, () => safely(() => decodePanelImage(gray, img.width, img.height)));
+      if (out && !(out instanceof Error)) expect(decodeBatch(out.batch)).toEqual(sent);
+    }
+  });
+
+  it('SSTV: silence, noise, clipped or NaN audio and a VIS header followed by junk say nothing, quickly', () => {
+    const r = rng(24);
+    const rate = 12_000;
+    const secs = (s: number) => Math.floor(s * rate);
+    const cases: Float32Array[] = [
+      new Float32Array(0),
+      new Float32Array(10),
+      new Float32Array(secs(40)),
+      Float32Array.from({ length: secs(40) }, () => gauss(r) * 0.3),
+      Float32Array.from({ length: secs(40) }, () => (r() < 0.5 ? -1 : 1)),
+      new Float32Array(secs(5)).fill(Number.NaN),
+      new Float32Array(secs(5)).fill(Number.POSITIVE_INFINITY),
+    ];
+    // A real picture's first second (VIS header and a few lines), then noise for the rest.
+    const real = encodeRobot36(panelImage(encodePanel(SAMPLE_PRAYERS.slice(0, 3), 'N0FUZ').cells, 4).gray, rate);
+    const vis = new Float32Array(secs(40));
+    vis.set(real.subarray(0, secs(1)));
+    for (let k = secs(1); k < vis.length; k++) vis[k] = gauss(r) * 0.3;
+    cases.push(vis);
+    for (const audio of cases) {
+      const out = within(20_000, () => safely(() => decodeRobot36(audio, rate)));
+      expect(out === null || out instanceof Error).toBe(true);
+    }
+  }, 120_000);
+
+  it('SSTV: a real picture under heavy noise reads the same prayers or none', () => {
+    const r = rng(25);
+    const rate = 12_000;
+    const sent = SAMPLE_PRAYERS.slice(0, 4);
+    const clean = encodeRobot36(panelImage(encodePanel(sent, 'N0FUZ').cells, 4).gray, rate);
+    let read = 0;
+    for (const noise of [0.1, 0.2, 0.3, 0.4, 0.5, 1, 2]) {
+      const audio = clean.map((v) => v + gauss(r) * noise);
+      const pic = within(20_000, () => safely(() => decodeRobot36(audio, rate)));
+      if (!pic || pic instanceof Error) continue;
+      const frame = safely(() => decodePanelImage(pic.gray, 320, 240));
+      if (frame && !(frame instanceof Error)) {
+        expect(decodeBatch(frame.batch)).toEqual(sent);
+        read++;
+      }
+    }
+    expect(read).toBeGreaterThan(0);
+  }, 120_000);
 });

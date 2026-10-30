@@ -104,6 +104,40 @@ private func picture(_ cells: [UInt8], scale: Int = 5, margin: Int = 30, upsideD
         #expect(Robot36.decode([Float](repeating: 0, count: 48_000), rate: 48_000) == nil)
     }
 
+    /// Fuzzing, as apps/station/test/fuzz.test.ts: a crash here would close the app, so odd input must
+    /// come back as nil (or the prayers that were sent), never trap.
+    @Test func oddPicturesAndAudioNeverCrashOrReadAnotherPrayer() throws {
+        var seed: UInt32 = 7
+        func next() -> UInt32 { seed = seed &* 1_664_525 &+ 1_013_904_223; return seed }
+        for _ in 0..<100 {
+            let cells = (0..<(80 * 60)).map { _ in UInt8(next() >> 31) }
+            #expect(PrayerPanel.read(cells: cells) == nil)
+        }
+        #expect(PrayerPanel.read(cells: []) == nil)
+        #expect(PrayerPanel.read(cells: [UInt8](repeating: 1, count: 80 * 60 + 1)) == nil)
+        let (cells, _) = PrayerPanel.draw(PanelDemo.prayers, callSign: "N0FUZ")
+        var read = 0
+        for _ in 0..<150 {
+            var bad = cells
+            for _ in 0..<Int(next() % 150) { bad[Int(next() % UInt32(bad.count))] ^= 1 }
+            if let r = PrayerPanel.read(cells: bad) {
+                #expect(r.callSign == "N0FUZ" && r.prayers == PanelDemo.prayers)
+                read += 1
+            }
+        }
+        #expect(read > 10 && read < 150)
+        for (w, h) in [(0, 0), (1, 1), (3, 2), (80, 60), (1000, 3), (3, 1000), (-5, 4)] {
+            let n = max(0, w * h)
+            #expect(PrayerPanel.read(gray: (0..<n).map { _ in UInt8(next() >> 24) }, width: w, height: h) == nil)
+            #expect(PrayerPanel.read(gray: [UInt8](repeating: 0, count: n / 2), width: w, height: h) == nil)
+        }
+        for audio in [[Float](), [Float](repeating: 0, count: 10), [Float](repeating: .nan, count: 60_000), [Float](repeating: .infinity, count: 60_000),
+                      (0..<(12_000 * 40)).map { _ in Float(Int32(bitPattern: next())) / Float(Int32.max) }] {
+            #expect(Robot36.decode(audio, rate: 12_000) == nil)
+        }
+        #expect(Robot36.decode([Float](repeating: 0, count: 100), rate: 0) == nil)
+    }
+
     @Test func foldsAsTheStationDoes() {
         #expect(PrayerPanel.fold("Pray for José’s “recovery” — today") == "Pray for Jose's \"recovery\" - today")
     }
