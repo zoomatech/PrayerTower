@@ -25,6 +25,25 @@ final class ScreenSnapshotTests: XCTestCase {
     func testMe() { snap(MeView()) }
     func testCompose() { snap(ComposeView()) }
 
+    /// Every feed skin on its sample requests at the largest text, light mode, for the clipping
+    /// the accessibility audit can only describe (AuditSamplesView's list, in the same order).
+    func testEverySkin() {
+        for skin in AuditSamplesView.skins {
+            let feed = NavigationStack {
+                SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(card.author.displayName).font(.subheadline.bold())
+                        Text(card.body)
+                    }
+                }, onEnd: {})
+                .navigationTitle(skin.name)
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1),
+                           named: "skin-\(skin.slug)-largest-text", timeout: 10)
+        }
+    }
+
     private func snap(_ view: some View, file: StaticString = #filePath, testName: String = #function, line: UInt = #line) {
         let model = AppModel(store: .sampleData(posts: nil))
         let ready = expectation(description: "sample data loaded")
