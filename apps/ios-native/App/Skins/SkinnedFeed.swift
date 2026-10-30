@@ -168,6 +168,9 @@ struct Stalk: View {
                         t.addQuadCurve(to: CGPoint(x: x + reach, y: ty + 8), control: CGPoint(x: x + reach, y: ty))
                         t.addLine(to: CGPoint(x: x + reach, y: ty + 30))
                         trace.stroke(t, width: 3, in: ctx)
+                        // Each trace ends at a solder pad, as on a circuit board, so it ends somewhere.
+                        let pad = Path(roundedRect: CGRect(x: x + reach - 4, y: ty + 30, width: 8, height: 8), cornerRadius: 2)
+                        trace.stroke(pad, width: 2.5, in: ctx)
                         ty += k % 2 == 0 ? 110 : 170
                         k += 1
                     }
@@ -523,8 +526,20 @@ private struct CommentLevel: View {
     @State private var hearted: Set<String> = []
     /// Open: the top 5 comments laid out in full. Closed: only the top comment's first line, the
     /// rest a fading recession of neon lines behind it (Steve, 2026-10-30).
-    @State private var open = false
+    @State private var open: Bool
     @Environment(AppModel.self) private var model
+
+    /// Replies under a comment come out already open when their cluster is opened.
+    init(card: Card, all: [Comment], parent: String?, depth: Int, look: VineLook, wording: Wording, onOpen: ((Card) -> Void)?, open: Bool = false) {
+        self.card = card
+        self.all = all
+        self.parent = parent
+        self.depth = depth
+        self.look = look
+        self.wording = wording
+        self.onOpen = onOpen
+        _open = State(initialValue: open)
+    }
 
     private var here: [Comment] { all.filter { $0.parentId == parent } }
 
@@ -541,7 +556,7 @@ private struct CommentLevel: View {
                                 }
                                 // Replies: at most three levels deep (Steve, 2026-10-29).
                                 if depth < 3 {
-                                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
+                                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen, open: true))
                                 }
                             }
                             // The red tube runs on down past this comment and its replies to the next one,
