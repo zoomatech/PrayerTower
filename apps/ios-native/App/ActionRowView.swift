@@ -16,11 +16,13 @@ struct ActionRowView: View {
     var glow: Color? = nil
 
     var body: some View {
-        HStack(spacing: 0) {
+        // On a neon backdrop the icons sit from the card's left edge, evenly spaced, rather than
+        // each centered in an equal share of the row.
+        HStack(spacing: glow == nil ? 0 : 6) {
             ForEach(items) { item in
                 Button { onAction(item.action) } label: {
                     glyph(item)
-                        .frame(maxWidth: .infinity, minHeight: max(44, size + 12))
+                        .frame(maxWidth: glow == nil ? .infinity : nil, minHeight: max(44, size + 12))
                         .background(active.contains(item.action) ? Color.accentColor.opacity(0.15) : .clear, in: .capsule)
                         .contentShape(.rect)
                 }
@@ -48,6 +50,7 @@ struct ActionRowView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Actions")
     }

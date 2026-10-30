@@ -215,8 +215,9 @@ struct NeonSparks<S: Shape>: View {
                         let spot = shape.trim(from: along, to: min(1, along + dash)).path(in: rect)
                         var glow = ctx
                         glow.addFilter(.blur(radius: width * 0.9))
-                        glow.stroke(spot, with: .color(color.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 1.6, lineCap: .round))
-                        ctx.stroke(spot, with: .color(.white.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 0.8, lineCap: .round))
+                        glow.stroke(spot, with: .color(color.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 1.2, lineCap: .round))
+                        // Thinner than the tube's own white core, so it reads as light inside the glass.
+                        ctx.stroke(spot, with: .color(.white.opacity(twinkle * 0.9)), style: StrokeStyle(lineWidth: width * 0.35, lineCap: .round))
                     }
                 }
             }
