@@ -22,7 +22,9 @@ struct SwipeFeed<Row: View>: View {
             VStack(spacing: 16) {
                 if deck.index < cards.count {
                     let card = cards[deck.index]
+                    // The card scrolls when the words outgrow it; the bar flashes to say so.
                     ScrollView { row(card).padding(16) }
+                        .scrollIndicatorsFlash(onAppear: true)
                         .background(.regularMaterial, in: .rect(cornerRadius: 18))
                         .offset(x: drag.width)
                         .rotationEffect(.degrees(still ? 0 : drag.width / 30))

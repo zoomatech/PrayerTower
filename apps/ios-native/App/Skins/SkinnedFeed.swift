@@ -177,6 +177,7 @@ struct VineLeaf<Content: View>: View {
     let wording: Wording
     let depth: Int
     @ViewBuilder let content: () -> Content
+    @Environment(\.dynamicTypeSize) private var size
 
     var body: some View {
         let box = Color(look.leafBox(wording))
@@ -213,7 +214,8 @@ struct VineLeaf<Content: View>: View {
         default:
             ZStack {
                 LeafOutline(shape: look.leafShape).fill(Color(look.leaf))
-                LeafVeins().stroke(Color(look.branch).opacity(0.45), lineWidth: 1)
+                // Fine veins read as stray strokes beside the accessibility sizes' giant letters.
+                if !size.isAccessibilitySize { LeafVeins().stroke(Color(look.branch).opacity(0.45), lineWidth: 1) }
                 if look.vineStyle == .ink {
                     // Pen and ink in the manner of Tolkien's own tree drawings: a firm outline and
                     // fine hatching along the leaf's edges, clipped to the leaf.

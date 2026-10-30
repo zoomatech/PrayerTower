@@ -101,8 +101,9 @@ struct SignInView: View {
             }
             if mode == .signIn {
                 Button { switchMode(.forgot) } label: {
-                    Text(w("signIn.forgot")).font(.body).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                    Text(w("signIn.forgot")).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
                 }
+                .buttonStyle(.borderless)
             }
             Button(w(mode == .signIn ? "signIn.toSignUp" : "signIn.toSignIn")) { switchMode(mode == .signIn ? .signUp : .signIn) }
         }
