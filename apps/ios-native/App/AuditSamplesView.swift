@@ -46,11 +46,7 @@ struct AuditSamplesView: View {
             List(Self.skins, id: \.slug) { skin in
                 NavigationLink(skin.name) {
                     SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(card.author.displayName).font(.subheadline.bold())
-                            Text(card.body)
-                        }
-                        .accessibilityElement(children: .combine)
+                        SampleCardRow(card: card)
                     }, onEnd: {})
                     .navigationTitle(skin.name)
                     .navigationBarTitleDisplayMode(.inline)
@@ -63,3 +59,23 @@ struct AuditSamplesView: View {
     }
 }
 #endif
+
+/// A sample post's name and words, standing in for CardRow. Like CardRow it draws only the part a
+/// skin asks for: neon draws the post in its box and the icons under it, so the icons part is empty
+/// here rather than the words a second time on the dark backdrop.
+struct SampleCardRow: View {
+    let card: Card
+    @Environment(\.cardPart) private var part
+
+    var body: some View {
+        if case .icons = part {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.author.displayName).font(.subheadline.bold())
+                Text(card.body)
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+}

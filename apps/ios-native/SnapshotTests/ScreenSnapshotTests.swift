@@ -35,10 +35,7 @@ final class ScreenSnapshotTests: XCTestCase {
         for skin in AuditSamplesView.skins {
             let feed = NavigationStack {
                 SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(card.author.displayName).font(.subheadline.bold())
-                        Text(card.body)
-                    }
+                    SampleCardRow(card: card)
                 }, onEnd: {})
                 .navigationTitle(skin.name)
                 .navigationBarTitleDisplayMode(.inline)
