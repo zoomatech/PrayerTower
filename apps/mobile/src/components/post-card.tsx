@@ -34,14 +34,14 @@ const NEUTRAL_ICONS: Record<string, string> = { prayerful_helper: '🤝', commit
 // What a screen reader says instead of the tier emoji.
 const TIER_NAMES: Record<string, string> = { prayer_scout: 'Prayer Scout', prayerful_helper: 'Prayerful Helper', prayer_warrior: 'Prayer Warrior' };
 // The action icons drawn in Steve's post mockups (Business Plan, "Sample prayer post request with
-// proposed action icons"); thumbs up isn't drawn there, so it stays an emoji. Open Circle keeps its emoji for the two prayer actions, which are religious signs there.
+// proposed action icons"); thumbs up isn't drawn there, so it stays an emoji. Gift tokens is a hand held out to
+// help, not a hand with a gift (Steve, 2026-10-30). Open Circle keeps its emoji for the two prayer actions, which are religious signs there.
 const ACTION_ART: Partial<Record<CardAction, ImageSourcePropType>> = {
   praying_now: require('../../assets/images/actions/praying_now.png'),
   commit: require('../../assets/images/actions/commit.png'),
   encouragement: require('../../assets/images/actions/encouragement.png'),
   well_wishes: require('../../assets/images/actions/well_wishes.png'),
   share: require('../../assets/images/actions/share.png'),
-  gift_tokens: require('../../assets/images/actions/gift_tokens.png'),
 };
 const NEUTRAL_EMOJI_ACTIONS: ReadonlySet<CardAction> = new Set(['praying_now', 'commit']);
 
@@ -52,7 +52,7 @@ const ACTION_ICONS: Record<CardAction, string> = {
   encouragement: '✉️',
   well_wishes: '❤️',
   share: '↗',
-  gift_tokens: '🎁',
+  gift_tokens: '🫴',
 };
 
 export interface CardHandlers {
