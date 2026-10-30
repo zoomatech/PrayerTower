@@ -375,11 +375,12 @@ struct WallFeed<Row: View>: View {
                     ScrollView {
                         VStack(spacing: 12) {
                             row(card)
-                            // "2 / 9", and on the first post how to reach the next.
-                            Text("\(i + 1) / \(cards.count)" + (i == 0 ? " · \(words.wallSwipe)" : ""))
+                            // "Post 2 of 9", and on the first post how to reach the next. The words shown
+                            // are the words read, so nothing reads as cut off.
+                            Text(words.wallPosition(i + 1, of: cards.count) + (i == 0 ? " · \(words.wallSwipe)" : ""))
                                 .font(.footnote)
                                 .foregroundStyle(Color.subtle)
-                                .accessibilityLabel(words.wallPosition(i + 1, of: cards.count))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .backdropPlate(look.backdrop)
                         .padding(24)
@@ -564,8 +565,10 @@ struct CircuitFeed<Row: View>: View {
                         .background {
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
-                                .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)) }
-                                .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen))
+                                        .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                                }
                                 .accessibilityHidden(true)
                         }
                         .padding(.leading, 18)
@@ -606,7 +609,7 @@ extension View {
     /// (`BackdropText`); nothing on the usual backdrops.
     func backdropPlate(_ backdrop: RGB?) -> some View {
         let plate = backdrop.map { BackdropText(on: $0).plate } ?? false
-        return padding(plate ? 8 : 0).background { if plate { RoundedRectangle(cornerRadius: 10).fill(.regularMaterial) } }
+        return padding(plate ? 8 : 0).background { if plate { RoundedRectangle(cornerRadius: 10).fill(Color.pageBackground) } }
     }
 
     /// Text on a backdrop inside a view that has its own color scheme (the tower keeps the light

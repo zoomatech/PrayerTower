@@ -49,7 +49,8 @@ struct DecorativeGlyph: View {
     @ScaledMetric private var scale: CGFloat = 1
 
     var body: some View {
-        let side = size * scale
+        // Grows with the text, up to half again its size, so a big glyph never crowds the words.
+        let side = size * min(scale, 1.5)
         Canvas { ctx, box in
             ctx.draw(Text(glyph).font(.system(size: side)).foregroundStyle(color), at: CGPoint(x: box.width / 2, y: box.height / 2))
         }

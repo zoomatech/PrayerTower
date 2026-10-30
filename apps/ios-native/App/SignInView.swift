@@ -100,7 +100,9 @@ struct SignInView: View {
                 .disabled(busy)
             }
             if mode == .signIn {
-                Button { switchMode(.forgot) } label: { Text(w("signIn.forgot")).fixedSize(horizontal: false, vertical: true) }
+                Button { switchMode(.forgot) } label: {
+                    Text(w("signIn.forgot")).font(.body).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                }
             }
             Button(w(mode == .signIn ? "signIn.toSignUp" : "signIn.toSignIn")) { switchMode(mode == .signIn ? .signUp : .signIn) }
         }
