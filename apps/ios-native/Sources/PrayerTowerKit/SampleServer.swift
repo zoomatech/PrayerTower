@@ -104,7 +104,8 @@ public enum SampleServer {
               {"id":"sample-c5","parentId":null,"body":"Lighting a candle for her tonight.","isUpdate":false,"createdAt":"2026-10-29T09:20:00Z","isMine":false,"author":{"id":"sample-teresa","displayName":"Teresa","handle":null,"anonymous":false}},
               {"id":"sample-c6","parentId":null,"body":"We will bring a meal on Wednesday.","isUpdate":false,"createdAt":"2026-10-29T09:30:00Z","isMine":false,"author":{"id":"sample-luis","displayName":"Luis","handle":null,"anonymous":false}},
               {"id":"sample-c7","parentId":"sample-c1","body":"Same here, all week.","isUpdate":false,"createdAt":"2026-10-29T09:40:00Z","isMine":false,"author":{"id":"sample-nora","displayName":"Nora","handle":null,"anonymous":false}},
-              {"id":"sample-c8","parentId":"sample-c3","body":"Thank you both so much.","isUpdate":false,"createdAt":"2026-10-29T09:50:00Z","isMine":false,"author":{"id":"sample-ruth","displayName":"Ruth","handle":null,"anonymous":false}}]}
+              {"id":"sample-c8","parentId":"sample-c3","body":"Thank you both so much.","isUpdate":false,"createdAt":"2026-10-29T09:50:00Z","isMine":false,"author":{"id":"sample-ruth","displayName":"Ruth","handle":null,"anonymous":false}},
+              {"id":"sample-c9","parentId":null,"body":"Peace to your whole family this week.","isUpdate":false,"createdAt":"2026-10-29T08:50:00Z","isMine":false,"author":{"id":"sample-grace","displayName":"Grace","handle":null,"anonymous":false}}]}
             """),
             ("PUT", "^/comments/[^/]+/heart$", #"{"hearted":true}"#),
             ("GET", "^/posts/[^/]+/prayers$", #"{"count":4,"people":[{"id":"sample-sam","displayName":"Sam"}]}"#),
