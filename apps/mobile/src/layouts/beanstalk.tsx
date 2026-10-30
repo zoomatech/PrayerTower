@@ -16,7 +16,7 @@
 import { COMMENT_TEXT, type Card, type Comment } from '@prayer-tower/shared';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, Ellipse, Image as SvgImage, Path } from 'react-native-svg';
 
 import { Alegreya_400Regular } from '@expo-google-fonts/alegreya/400Regular';
 import { Alegreya_400Regular_Italic } from '@expo-google-fonts/alegreya/400Regular_Italic';
@@ -589,17 +589,25 @@ const LOCKET_SCALE = 1.7;
 const LOCKET_W = 50 * LOCKET_SCALE;
 const LOCKET_H = 64 * LOCKET_SCALE;
 
-function Locket({ name }: { name: string }) {
+function Locket({ name, photo, clip }: { name: string; photo?: string | null; clip: string }) {
   const initial = (name.trim()[0] ?? '?').toUpperCase();
   return (
     <View style={styles.locket} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width={LOCKET_W} height={LOCKET_H} viewBox="0 0 50 64">
+        <Defs>
+          <ClipPath id={clip}>
+            <Ellipse cx={25} cy={37} rx={18} ry={21} />
+          </ClipPath>
+        </Defs>
         <Circle cx={25} cy={6} r={4.5} fill="none" stroke={BEANSTALK.ink} strokeWidth={4} />
         <Circle cx={25} cy={6} r={4.5} fill="none" stroke={BEANSTALK.locket} strokeWidth={2} />
         <Ellipse cx={25} cy={37} rx={23} ry={26} fill={BEANSTALK.locket} stroke={BEANSTALK.ink} strokeWidth={2} />
         <Ellipse cx={25} cy={37} rx={18} ry={21} fill={BEANSTALK.locketFace} stroke={BEANSTALK.ink} strokeWidth={1.5} />
+        {/* The member's own photo, when they've added one under Me. */}
+        {photo ? <SvgImage href={{ uri: photo }} x={7} y={16} width={36} height={42} preserveAspectRatio="xMidYMid slice" clipPath={`url(#${clip})`} /> : null}
+        {photo ? <Ellipse cx={25} cy={37} rx={18} ry={21} fill="none" stroke={BEANSTALK.ink} strokeWidth={1.5} /> : null}
       </Svg>
-      <Text style={styles.locketText}>{initial}</Text>
+      {photo ? null : <Text style={styles.locketText}>{initial}</Text>}
     </View>
   );
 }
@@ -848,7 +856,7 @@ const Post = memo(function Post({
         </Animated.View>
         {/* Over the vine, coming in with the card. */}
         <Animated.View style={[styles.locketAt, { opacity: cardO, transform: [{ scale: span(t, 100, 600, 0.4, 1, EASE.card) }] }]} pointerEvents="none">
-          <Locket name={card.author.displayName} />
+          <Locket name={card.author.displayName} photo={card.author.photoUrl} clip={`locket-${card.id}`} />
         </Animated.View>
         {card.gifted ? (
           <Animated.View style={[styles.fruit, { transform: [{ scale: fruitPop }] }]}>
