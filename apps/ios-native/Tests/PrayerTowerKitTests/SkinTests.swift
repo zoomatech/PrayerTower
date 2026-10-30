@@ -144,4 +144,12 @@ extension APIClientTests {
             #expect(BackdropText(on: c).plate || c.contrast(tip.tipColor) >= 7)
         }
     }
+
+    @Test func knowsTheScreenBackdropForTheBarsAboveIt() throws {
+        #expect(Skin.backdrop(try theme("vine", ##"{"backdrop":"#0B1324"}"##))?.hex == "#0B1324")
+        #expect(Skin.backdrop(try theme("vine", "{}")) == nil)
+        #expect(Skin.backdrop(try theme("wall", "{}"))?.hex == "#101418")
+        #expect(Skin.backdrop(try theme("tower", "{}")) == nil)
+        #expect(Skin.backdrop(nil) == nil)
+    }
 }
