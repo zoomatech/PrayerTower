@@ -162,9 +162,12 @@ struct BeanstalkFeed<Row: View>: View {
             .frame(width: 34, height: 34)
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
+                // Wraps instead of clipping at the largest text sizes.
                 Text(words("beanstalk.title")).font(BeanFont.title(23)).foregroundStyle(Bean.ink)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Button(action: climb) {
