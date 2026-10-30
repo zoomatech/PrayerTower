@@ -1,16 +1,22 @@
 import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'expo-router/ui';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DoveIcon } from '@/components/dove-icon';
 import { useLocale } from '@/lib/i18n';
 import { colors, space } from '@/lib/theme';
 
-function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSlotProps & { icon: string; label: string }) {
+function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSlotProps & { icon: string | ReactNode; label: string }) {
   return (
     <Pressable {...props} style={styles.tab} role="tab" aria-label={label} aria-selected={!!isFocused}>
-      <Text style={styles.icon} importantForAccessibility="no" accessibilityElementsHidden>
-        {icon}
-      </Text>
+      {typeof icon === 'string' ? (
+        <Text style={styles.icon} importantForAccessibility="no" accessibilityElementsHidden>
+          {icon}
+        </Text>
+      ) : (
+        icon
+      )}
       <Text style={StyleSheet.flatten([styles.label, isFocused && styles.labelActive])}>{label}</Text>
     </Pressable>
   );
@@ -25,8 +31,7 @@ export default function TabsLayout() {
       <TabList asChild>
         <View role="tablist" aria-label={t('tabs.label')} style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
           <TabTrigger name="index" href="/" asChild>
-            {/* U+FE0F asks for the colour dove; without it the 🕊 draws as a black outline bird. */}
-            <TabButton icon="🕊️" label={t('tabs.prayers')} />
+            <TabButton icon={<DoveIcon />} label={t('tabs.prayers')} />
           </TabTrigger>
           <TabTrigger name="commitments" href="/commitments" asChild>
             {/* Open Circle (neutral wording): praying hands are a religious sign there. */}
@@ -43,9 +48,14 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  // 75% opaque, over the screen so it shows faintly through (Steve, 2026-10-30).
   bar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: space.sm,

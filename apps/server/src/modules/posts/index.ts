@@ -821,7 +821,8 @@ export type CardAction = (typeof ACTION_ORDER)[number];
 
 function cardActions(enabledReactions: string[]): CardAction[] {
   const reactions = new Set(['encouragement', 'well_wishes', 'share']);
-  return ACTION_ORDER.filter((a) => !reactions.has(a) || enabledReactions.includes(a));
+  // No paper plane on posts: messages aren't sent from a post (Steve, 2026-10-30). Encouragement stays a word in comments.
+  return ACTION_ORDER.filter((a) => a !== 'encouragement' && (!reactions.has(a) || enabledReactions.includes(a)));
 }
 
 export function branchKey(userId: string) {

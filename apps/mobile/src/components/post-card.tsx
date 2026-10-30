@@ -12,7 +12,7 @@ import {
   type CardAction,
 } from '@prayer-tower/shared';
 import { router } from 'expo-router';
-import { createContext, memo, useContext, useState } from 'react';
+import { createContext, memo, useContext, useState, type ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
 import { api } from '@/lib/api';
@@ -20,6 +20,7 @@ import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
+import { hasNeonIcon, NeonActionIcon } from './neon-action-icon';
 import { SparkleWords } from './sparkle-words';
 import { hasParts, PostParts, type PartComments } from './post-parts';
 import { QuickReactionTray } from './quick-reactions';
@@ -65,6 +66,11 @@ export interface CardHandlers {
 export const CardSurface = createContext<ViewStyle | null>(null);
 /** True where a skin leaves out the post-type label (the Beanstalk, Steve 2026-10-30). */
 export const CardNoType = createContext(false);
+/**
+ * Where a skin draws the post's box in its own frame (Neon Circuit's glowing screen), and draws the action icons as neon.
+ * The action row always sits under the box, on the screen's background, not inside the post (Steve, 2026-10-30).
+ */
+export const CardFrame = createContext<{ frame: (box: ReactNode) => ReactNode; neon?: { color: string; active: string }; inset?: number } | null>(null);
 
 export const PostCard = memo(function PostCard({
   card,
@@ -97,6 +103,7 @@ export const PostCard = memo(function PostCard({
   };
   const surface = useContext(CardSurface);
   const noType = useContext(CardNoType);
+  const frame = useContext(CardFrame);
   const lines = features.postLines;
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
@@ -112,7 +119,7 @@ export const PostCard = memo(function PostCard({
 
   const typeLabel = noType ? null : <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
 
-  return (
+  const box = (
     <View style={[styles.card, answered && styles.answered, surface]}>
       {answered ? <Text style={styles.answeredBanner}>{t('card.answered')}</Text> : null}
       <View style={styles.header}>
@@ -217,25 +224,6 @@ export const PostCard = memo(function PostCard({
           {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
         </Text>
 
-        {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press. */}
-        <View style={styles.actions} testID="card-actions">
-          {card.actions.map((action) => {
-            const active = (action === 'commit' && !!card.myCommitment) || (action === 'thumbs_up' && thumbs.mine);
-            return (
-              <ActionIcon
-                key={action}
-                icon={icon(action, ACTION_ICONS)}
-                art={wording === 'neutral' && NEUTRAL_EMOJI_ACTIONS.has(action) ? undefined : ACTION_ART[action]}
-                label={active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
-                name={label('action', action, ACTION_LABELS[action])}
-                active={active}
-                onPress={() => (action === 'thumbs_up' ? thumbsUp() : onAction(card, action))}
-                meanings={meaningsFor(action)}
-              />
-            );
-          })}
-        </View>
-        {chooser.sheet}
 
         {card.topComment ? (
           <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
@@ -252,6 +240,34 @@ export const PostCard = memo(function PostCard({
       </View>
     </View>
   );
+  return (
+    <View style={styles.wrap}>
+      {frame ? frame.frame(box) : box}
+      {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press.
+          It sits under the post's box, bigger, not inside the post (Steve, 2026-10-30). */}
+      <View style={[styles.actions, frame?.inset ? { marginLeft: frame.inset } : null]} testID="card-actions">
+        {card.actions.map((action) => {
+          const active = (action === 'commit' && !!card.myCommitment) || (action === 'thumbs_up' && thumbs.mine);
+          return (
+            <ActionIcon
+              key={action}
+              icon={icon(action, ACTION_ICONS)}
+              art={wording === 'neutral' && NEUTRAL_EMOJI_ACTIONS.has(action) ? undefined : ACTION_ART[action]}
+              label={active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
+              name={label('action', action, ACTION_LABELS[action])}
+              active={active}
+              onPress={() => (action === 'thumbs_up' ? thumbsUp() : onAction(card, action))}
+              meanings={meaningsFor(action)}
+              caption={action === 'praying_now'}
+              neon={frame?.neon && hasNeonIcon(action) ? <NeonActionIcon action={action} color={active ? frame.neon.active : frame.neon.color} /> : undefined}
+              captionColor={frame?.neon?.color}
+            />
+          );
+        })}
+      </View>
+      {chooser.sheet}
+    </View>
+  );
 });
 
 /**
@@ -266,6 +282,9 @@ function ActionIcon({
   active,
   onPress,
   meanings,
+  caption,
+  neon,
+  captionColor,
 }: {
   icon: string;
   art?: ImageSourcePropType;
@@ -274,6 +293,11 @@ function ActionIcon({
   active: boolean;
   onPress: () => void;
   meanings?: { words: string; open: () => void; action: string; hint: string } | null;
+  /** Shows the name under the icon: Praying Now, "the single most important button", is named on the card (Steve, 2026-10-30). */
+  caption?: boolean;
+  /** The skin's neon drawing of the icon, in place of the art. */
+  neon?: ReactNode;
+  captionColor?: string;
 }) {
   const [shown, setShown] = useState(false);
   return (
@@ -310,7 +334,9 @@ function ActionIcon({
         style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
         {/* The icon is decoration; the button's name is the action's name. */}
         {/* The icon grows with larger text only so far that it stays inside its 44 pt circle; the tip and the screen-reader label carry the words. */}
-        {art ? (
+        {neon ? (
+          neon
+        ) : art ? (
           <Image source={art} style={styles.actionArt} aria-hidden accessibilityIgnoresInvertColors />
         ) : (
           <Text style={styles.actionIcon} aria-hidden maxFontSizeMultiplier={1.3}>
@@ -318,12 +344,18 @@ function ActionIcon({
           </Text>
         )}
       </Pressable>
+      {caption ? (
+        <Text style={[styles.actionCaption, captionColor ? { color: captionColor } : null]} aria-hidden numberOfLines={2}>
+          {name}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   hide: { fontSize: 15, color: colors.textMuted, paddingHorizontal: space.xs },
+  wrap: { gap: space.sm },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -352,12 +384,13 @@ const styles = StyleSheet.create({
   counts: type.small,
   actions: { flexDirection: 'row', justifyContent: 'space-between', gap: space.xs },
   actionCell: { flex: 1, alignItems: 'center', position: 'relative' },
-  // 44 pt touch targets (Apple HIG).
-  action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.background },
+  // 48 pt touch targets (Apple HIG asks at least 44).
+  action: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
   actionActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
-  actionIcon: { fontSize: 20 },
-  actionArt: { width: 28, height: 28 },
-  tip: { position: 'absolute', bottom: 50, zIndex: 10, minWidth: 90, maxWidth: 140, paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.text },
+  actionIcon: { fontSize: 30 },
+  actionCaption: { marginTop: 2, fontSize: 12, fontWeight: '700', color: colors.primary, textAlign: 'center' },
+  actionArt: { width: 40, height: 40 },
+  tip: { position: 'absolute', bottom: 54, zIndex: 10, minWidth: 90, maxWidth: 140, paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.text },
   tipText: { fontSize: 12, color: colors.surface, textAlign: 'center', fontWeight: '600' },
   comment: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: 2 },
   commentAuthor: { fontWeight: '700', color: colors.text, fontSize: 14 },

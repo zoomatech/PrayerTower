@@ -8,6 +8,7 @@ import type { Card, FeedTheme } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { CardFrame } from '@/components/post-card';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -16,6 +17,7 @@ import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
 import { glow, isDark, textOn } from './motifs';
 
+const SCREEN_INSET = 30;
 const DEFAULTS = { backdrop: '#05070D', wire: '#00E5FF', burst: '#FFFFFF', screen: '#FF2BD6', tilt: 10 };
 type CircuitTokens = typeof DEFAULTS;
 
@@ -60,6 +62,27 @@ function Burst({ tokens, delay }: { tokens: CircuitTokens; delay: number }) {
 
 function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: Card; index: number; tokens: CircuitTokens; pinned: boolean; reduced: boolean; children: React.ReactNode }) {
   const left = index % 2 === 0;
+  // The post glows inside the screen; its action icons sit under it on the black, as neon tubes (Steve, 2026-10-30).
+  const frame = useMemo(
+    () => ({
+      frame: (box: React.ReactNode) => (
+        <View
+          style={[
+            styles.screen,
+            { borderColor: tokens.screen, ...glow(tokens.screen, 18) },
+            { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
+          ]}>
+          {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
+          <View style={styles.tube}>
+            <View style={styles.glass}>{box}</View>
+          </View>
+        </View>
+      ),
+      neon: { color: tokens.wire, active: tokens.screen },
+      inset: SCREEN_INSET,
+    }),
+    [tokens, left, pinned],
+  );
   return (
     <View style={styles.row} testID={`screen-${card.id}`}>
       {/* The wire, its tap into this screen, and the bursts on it. */}
@@ -67,17 +90,7 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
       <View style={[styles.wire, styles.core, { borderColor: tokens.wire, ...glow(tokens.wire, 12) }]}>{reduced ? null : <Burst tokens={tokens} delay={(index % 4) * 650} />}</View>
       <View style={[styles.tap, styles.core, { borderColor: tokens.wire, ...glow(tokens.wire, 12) }]} />
       <View style={[styles.node, { borderColor: tokens.wire, ...glow(tokens.wire, 8) }]} />
-      <View
-        style={[
-          styles.screen,
-          { borderColor: tokens.screen, ...glow(tokens.screen, 18) },
-          { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
-        ]}>
-        {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
-        <View style={styles.tube}>
-          <View style={styles.glass}>{children}</View>
-        </View>
-      </View>
+      <CardFrame.Provider value={frame}>{children}</CardFrame.Provider>
     </View>
   );
 }
@@ -129,7 +142,7 @@ const styles = StyleSheet.create({
   burst: { position: 'absolute', left: -3, width: 8, height: 18, borderRadius: 4 },
   tap: { position: 'absolute', top: '50%', left: 8, width: 22, height: 2 },
   node: { position: 'absolute', top: '50%', left: 3, marginTop: -6, width: 12, height: 12, borderRadius: 6, borderWidth: 2, backgroundColor: '#000' },
-  screen: { marginLeft: 30, borderWidth: 2, borderRadius: radius.md, padding: 5, backgroundColor: '#0E1220' },
+  screen: { marginLeft: SCREEN_INSET, borderWidth: 2, borderRadius: radius.md, padding: 5, backgroundColor: '#0E1220' },
   glass: { borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surface },
   pinned: { ...type.small, fontWeight: '700', marginBottom: 4 },
   end: { alignItems: 'center', gap: space.sm, paddingTop: space.md },
