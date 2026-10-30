@@ -145,7 +145,7 @@ struct TourView: View {
             }
             Spacer()
             VStack(alignment: .leading, spacing: 12) {
-                Text(Tour.icon(s, wording: model.wording)).font(.system(size: 44)).accessibilityHidden(true)
+                Text(Tour.icon(s, wording: model.wording)).font(.largeTitle).accessibilityHidden(true)
                 Text(w("tour.\(s.key)Title")).font(.title.bold()).accessibilityAddTraits(.isHeader)
                 Text(w("tour.\(s.key)Body")).font(.title3)
             }

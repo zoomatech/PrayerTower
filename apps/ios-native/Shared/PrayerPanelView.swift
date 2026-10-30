@@ -63,7 +63,7 @@ enum PanelPhoto {
                        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue), provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 
-    static func print(_ cells: [UInt8]) {
+    @MainActor static func print(_ cells: [UInt8]) {
         guard let image = image(cells) else { return }
         #if os(iOS)
         let controller = UIPrintInteractionController.shared
