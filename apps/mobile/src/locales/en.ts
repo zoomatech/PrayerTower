@@ -592,6 +592,11 @@ const en = {
     groundSub: 'These are the oldest posts. Scroll back up to climb.',
   },
   profile: {
+    photoAdd: 'Add your photo',
+    photoChange: 'Change photo',
+    photoRemove: 'Remove photo',
+    photoAlt: 'Your profile photo',
+    photoHint: 'It shows in the oval on your posts.',
     community: 'Community',
     communityHint: 'Pick the community you post in and see posts from. You can switch any time.',
     communitySaved: 'You are now in %{name}.',

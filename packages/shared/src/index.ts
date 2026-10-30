@@ -182,6 +182,8 @@ export interface Identity {
   displayName: string;
   handle: string | null;
   anonymous: boolean;
+  /** The member's own profile photo (a short-lived signed URL), on post cards; null or absent shows initials. */
+  photoUrl?: string | null;
 }
 
 export interface Comment {
@@ -405,6 +407,8 @@ export interface FeedPage {
 export interface Profile {
   id: string;
   display_name: string;
+  /** The member's own photo, as a signed URL (GET /me); null until they add one. */
+  photo_url?: string | null;
   handle: string | null;
   bio: string;
   why_here: string[];

@@ -10,7 +10,7 @@ import * as posts from '../posts/index.js';
 import * as freshDays from '../fresh-days/index.js';
 import { settings as practiceSettings } from '../practices/index.js';
 import { prayerStats, setIntention } from '../prayer-stats/index.js';
-import { MEDIA_BUCKET } from '../posts/media.js';
+import { MEDIA_BUCKET, signPhoto } from '../posts/media.js';
 import { SPOKEN_BUCKET } from '../spoken-prayers/index.js';
 import { exportData } from './export.js';
 import * as accounts from './index.js';
@@ -21,7 +21,8 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
     const userId = requireUser(req);
     const profile = await accounts.getProfile(db, userId);
     if (!profile) throw notFound('Profile');
-    return { profile, roles: await accounts.roles(db, userId), community: await communities.mine(db, userId) };
+    const { photo_path, ...rest } = profile;
+    return { profile: { ...rest, photo_url: await signPhoto(storage, photo_path) }, roles: await accounts.roles(db, userId), community: await communities.mine(db, userId) };
   });
 
   // A member's own ad fines (empty unless the switch was ever on).
@@ -51,9 +52,24 @@ export function accountRoutes(app: FastifyInstance, db: Db, storage: SupabaseCli
     return { stats: await prayerStats(db, userId, tz) };
   });
 
+  // The member's own profile photo: uploaded through /media/upload-url, then set here. It fills the locket on their posts.
+  app.put('/me/photo', async (req) => {
+    const userId = requireUser(req);
+    const { storagePath } = accounts.PhotoPath.parse(req.body);
+    const old = await accounts.setPhoto(db, userId, storagePath);
+    if (storage && old) await storage.storage.from(MEDIA_BUCKET).remove([old]);
+    return { photoUrl: await signPhoto(storage, storagePath) };
+  });
+  app.delete('/me/photo', async (req) => {
+    const old = await accounts.setPhoto(db, requireUser(req), null);
+    if (storage && old) await storage.storage.from(MEDIA_BUCKET).remove([old]);
+    return { photoUrl: null };
+  });
+
   app.patch('/me', async (req) => {
     const input = accounts.ProfileUpdate.parse(req.body);
-    return { profile: await accounts.updateProfile(db, requireUser(req), input) };
+    const { photo_path, ...profile } = await accounts.updateProfile(db, requireUser(req), input);
+    return { profile: { ...profile, photo_url: await signPhoto(storage, photo_path) } };
   });
 
   // Download my data: one JSON file with everything on the member's account.

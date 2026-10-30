@@ -8,6 +8,8 @@ public struct Identity: Codable, Sendable, Equatable {
     public let displayName: String
     public let handle: String?
     public let anonymous: Bool
+    /// The member's own profile photo (a short-lived signed URL), on post cards; nil shows initials.
+    public var photoUrl: String? = nil
 }
 
 public struct CardCounts: Codable, Sendable, Equatable {
@@ -104,12 +106,14 @@ public struct Profile: Codable, Sendable, Equatable {
     public let supportWanted: [String]?
     public let supportOffered: [String]?
     public let prayForScope: [String]?
+    /// The member's own photo (GET /me), as a signed URL; nil until they add one.
+    public let photoUrl: String?
 
     public init(
         id: String, displayName: String, anonymousByDefault: Bool? = nil, whyHere: [String]? = nil, traumaContentOptOut: Bool? = nil,
         updatesInFirstComment: Bool? = nil, promptsEnabled: Bool? = nil, promptTone: String? = nil, digestEnabled: Bool? = nil, showPrayerStats: Bool? = nil,
         notificationPrefs: NotificationPrefs? = nil, onboardedAt: String? = nil, supportWanted: [String]? = nil, supportOffered: [String]? = nil,
-        prayForScope: [String]? = nil
+        prayForScope: [String]? = nil, photoUrl: String? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -126,11 +130,13 @@ public struct Profile: Codable, Sendable, Equatable {
         self.supportWanted = supportWanted
         self.supportOffered = supportOffered
         self.prayForScope = prayForScope
+        self.photoUrl = photoUrl
     }
 
     enum CodingKeys: String, CodingKey {
         case id
         case displayName = "display_name"
+        case photoUrl = "photo_url"
         case anonymousByDefault = "anonymous_by_default"
         case whyHere = "why_here"
         case traumaContentOptOut = "trauma_content_opt_out"
