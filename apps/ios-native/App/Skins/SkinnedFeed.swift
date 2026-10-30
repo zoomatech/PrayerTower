@@ -230,7 +230,7 @@ struct VineLeaf<Content: View>: View {
         GrowingIn(duration: look.vineStyle == .neon ? 1.4 : 0) { p in leaf(look.vineStyle == .neon ? p : 1) }
     }
 
-    private func leaf(_ drawn: CGFloat) -> some View {
+    @ViewBuilder private func leaf(_ drawn: CGFloat) -> some View {
         let box = Color(look.leafBox(wording))
         content()
             .padding(depth == 0 ? 14 : 10)
