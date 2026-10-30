@@ -124,13 +124,26 @@ struct GrowingIn<Content: View>: View {
     static var frozen: Bool { NSClassFromString("XCTestCase") != nil }
 
     var body: some View {
-        content(progress)
+        Stepped(progress: progress, content: content)
             .onAppear {
                 if still || Self.frozen { progress = 1; return }
                 withAnimation(.easeOut(duration: duration)) { progress = 1 }
             }
             .onDisappear { if !(still || Self.frozen) { progress = 0 } }
     }
+}
+
+/// Hands its content every in-between step of `progress`, so each part's own timing (the branch,
+/// then the frame, then the text) plays in order, instead of all of them easing from start to end together.
+private struct Stepped<Content: View>: View, Animatable {
+    nonisolated var progress: CGFloat
+    let content: (CGFloat) -> Content
+    nonisolated var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View { content(progress) }
 }
 
 extension View {

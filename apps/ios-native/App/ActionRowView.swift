@@ -59,7 +59,8 @@ struct ActionRowView: View {
     @ViewBuilder private func glyph(_ item: ActionItem) -> some View {
         let emojiOnly = wording == .neutral && (item.action == .prayingNow || item.action == .commit)
         if let glow {
-            NeonButtonGlyph(symbol: Self.standardSymbol(item.action), color: glow, size: size)
+            // Praying hands have no standard symbol, so that one is Steve's drawn hands, lit as neon.
+            NeonButtonGlyph(symbol: Self.standardSymbol(item.action), art: item.action == .prayingNow ? Self.art("action-praying_now") : nil, color: glow, size: size)
         } else if item.action == .share {
             Image(systemName: "square.and.arrow.up").font(.system(size: size * 0.75, weight: .semibold)).foregroundStyle(Color.accessibleAccent)
                 .frame(width: size, height: size).accessibilityHidden(true)
@@ -73,7 +74,7 @@ struct ActionRowView: View {
     /// The standard icon for each action, for the neon buttons.
     static func standardSymbol(_ action: CardAction) -> String {
         switch action {
-        case .prayingNow: "hands.and.sparkles.fill"
+        case .prayingNow: "hands.sparkles.fill"
         case .thumbsUp: "hand.thumbsup.fill"
         case .commit: "mountain.2.fill"
         case .encouragement: "paperplane.fill"
@@ -96,12 +97,21 @@ struct ActionRowView: View {
 /// color) inside a small glass-tube frame with elegant rounded corners, Tron style.
 struct NeonButtonGlyph: View {
     let symbol: String
+    /// Drawn art used in place of the symbol, lit the same way.
+    var art: Image? = nil
     let color: Color
     var size: CGFloat = 40
 
+    @ViewBuilder private var icon: some View {
+        if let art {
+            art.renderingMode(.template).resizable().scaledToFit().frame(width: size * 0.62, height: size * 0.62)
+        } else {
+            Image(systemName: symbol).font(.system(size: size * 0.5, weight: .semibold))
+        }
+    }
+
     var body: some View {
-        Image(systemName: symbol)
-            .font(.system(size: size * 0.5, weight: .semibold))
+        icon
             .foregroundStyle(.white)
             .shadow(color: color, radius: 2)
             .shadow(color: color, radius: 5)

@@ -67,8 +67,11 @@ struct VineFeed<Row: View>: View {
                         }
                         // Neon: the post's icons sit bigger on the black screen, outside the post (Steve, 2026-10-30).
                         if look.vineStyle == .neon {
-                            row(card).environment(\.cardPart, .icons(Color(look.leaf)))
-                                .padding(.leading, 54).padding(.trailing, 8)
+                            // They show once the post's frame has drawn, with its text.
+                            GrowingIn(duration: 2) { p in
+                                row(card).environment(\.cardPart, .icons(Color(look.leaf))).opacity(ConnectorTiming.text(p))
+                            }
+                            .padding(.leading, 54).padding(.trailing, 8)
                         }
                         ForEach(card.leafComments ?? []) { c in
                             VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
