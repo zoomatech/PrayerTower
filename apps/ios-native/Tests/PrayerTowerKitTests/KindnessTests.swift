@@ -18,7 +18,7 @@ private let allActions = CardAction.allCases.map(\.rawValue)
     @Test func keepsOneRowInTheServersOrderAndSkipsUnknownActions() {
         let row = ActionRow.items(actions: ["praying_now", "share", "something_new", "well_wishes"], features: Features(values: [:]), tree: tree, wording: .faith)
         #expect(row.map(\.action) == [.prayingNow, .share, .wellWishes])
-        #expect(row.map(\.icon) == ["💜", "↗", "🤍"])
+        #expect(row.map(\.icon) == ["💜", "↗", "❤️"])
         #expect(row.allSatisfy { $0.meanings == nil })
     }
 

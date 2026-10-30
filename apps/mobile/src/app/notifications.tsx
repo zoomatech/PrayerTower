@@ -53,6 +53,7 @@ export default function Notifications() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
         <Text style={type.title}>{t('tabs.notices')}</Text>
         <ErrorText error={error} onRetry={load} />
         {!loaded && !error ? <Loading /> : null}

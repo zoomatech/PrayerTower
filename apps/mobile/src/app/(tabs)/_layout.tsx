@@ -25,17 +25,12 @@ export default function TabsLayout() {
       <TabList asChild>
         <View role="tablist" aria-label={t('tabs.label')} style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
           <TabTrigger name="index" href="/" asChild>
-            <TabButton icon="🕊" label={t('tabs.prayers')} />
+            {/* U+FE0F asks for the colour dove; without it the 🕊 draws as a black outline bird. */}
+            <TabButton icon="🕊️" label={t('tabs.prayers')} />
           </TabTrigger>
           <TabTrigger name="commitments" href="/commitments" asChild>
             {/* Open Circle (neutral wording): praying hands are a religious sign there. */}
             <TabButton icon={wording === 'neutral' ? '🤝' : '🙏'} label={t('tabs.promises')} />
-          </TabTrigger>
-          <TabTrigger name="messages" href="/messages" asChild>
-            <TabButton icon="💬" label={t('tabs.messages')} />
-          </TabTrigger>
-          <TabTrigger name="notifications" href="/notifications" asChild>
-            <TabButton icon="🔔" label={t('tabs.notices')} />
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
             <TabButton icon="👤" label={t('tabs.me')} />

@@ -48,6 +48,8 @@ final class AppModel {
     var tree: [MeaningEmoji] = []
     /// A request to open from a widget or Live Activity tap.
     var openPost: String?
+    /// On iPhone, the Me menu page to open: Messages (2) or Notices (5), which are not tabs there.
+    var meOpens: Int?
     /// The code from an invite link (prayertower://sign-in?invite=CODE), for sign-up.
     var invite: String?
     /// The tour shows once after the welcome questions.

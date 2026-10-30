@@ -4,7 +4,7 @@ import { act, fireEvent, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
 import { renderApp } from '@/__tests__/helpers';
-import Messages from '@/app/(tabs)/messages';
+import Messages from '@/app/messages';
 import { ConversationPane } from '@/components/conversation-pane';
 import { api } from '@/lib/api';
 

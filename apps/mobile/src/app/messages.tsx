@@ -87,6 +87,7 @@ export default function Messages() {
       style={split ? styles.list : undefined}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
+      <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
       <Text style={type.title}>{t('tabs.messages')}</Text>
       <Text style={type.small}>{t('messages.privacy')}</Text>
       <View style={styles.links}>

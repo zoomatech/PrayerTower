@@ -6,11 +6,39 @@ struct AppSection: Identifiable, Hashable {
     let tag: Int
     let title: String
     let icon: String
+    /// Drawn instead of the SF Symbol, to match the Expo app's tab bar (🕊️ Prayers, 🙏 My Promises, 👤 Me).
+    var emoji: String? = nil
     var id: Int { tag }
+
+    /// The icon for the sidebar.
+    @ViewBuilder var label: some View {
+        Label {
+            Text(title)
+        } icon: {
+            if let emoji { Text(emoji).accessibilityHidden(true) } else { Image(systemName: icon) }
+        }
+    }
+
+    /// The icon for the iPhone tab bar, which takes only an image and a text: the emoji drawn into
+    /// an image, kept in its own colours.
+    var tabImage: Image {
+        #if os(iOS)
+        if let emoji {
+            let font = UIFont.systemFont(ofSize: 22)
+            let text = emoji as NSString
+            let image = UIGraphicsImageRenderer(size: text.size(withAttributes: [.font: font])).image { _ in
+                text.draw(at: .zero, withAttributes: [.font: font])
+            }
+            return Image(uiImage: image.withRenderingMode(.alwaysOriginal))
+        }
+        #endif
+        return Image(systemName: icon)
+    }
 }
 
 /// The signed-in app. Circles and Me show only what the admin switches turn on. On iPhone, tabs;
-/// on iPad (regular width) and Mac, a sidebar with the section beside it.
+/// on iPad (regular width) and Mac, a sidebar with the section beside it. Messages and Notices are
+/// in the sidebar but not in the iPhone tab bar under the feed: there they open from Me (Steve, 2026-10-30).
 struct MainTabs: View {
     @Environment(AppModel.self) private var model
     @State private var tab = 0
@@ -22,14 +50,18 @@ struct MainTabs: View {
     #endif
 
     private var sections: [AppSection] {
+        // U+FE0F asks for the colour dove; without it 🕊 can draw as a black outline bird.
         var all = [
-            AppSection(tag: 0, title: "Feed", icon: "list.bullet"),
-            AppSection(tag: 1, title: model.words("tabs.promises"), icon: "checkmark.circle"),
-            AppSection(tag: 2, title: model.words("tabs.messages"), icon: "bubble.left.and.bubble.right"),
-            AppSection(tag: 5, title: model.words("tabs.notices"), icon: "bell"),
+            AppSection(tag: 0, title: model.words("tabs.prayers"), icon: "list.bullet", emoji: "🕊️"),
+            // Open Circle: praying hands are a religious sign there.
+            AppSection(tag: 1, title: model.words("tabs.promises"), icon: "checkmark.circle", emoji: model.wording == .neutral ? "🤝" : "🙏"),
         ]
+        if sidebar {
+            all.append(AppSection(tag: 2, title: model.words("tabs.messages"), icon: "bubble.left.and.bubble.right"))
+            all.append(AppSection(tag: 5, title: model.words("tabs.notices"), icon: "bell"))
+        }
         if model.features["prayerCircles"] { all.append(AppSection(tag: 3, title: "Circles", icon: "person.3")) }
-        all.append(AppSection(tag: 4, title: model.words("tabs.me"), icon: "person.crop.circle"))
+        all.append(AppSection(tag: 4, title: model.words("tabs.me"), icon: "person.crop.circle", emoji: "👤"))
         return all
     }
 
@@ -38,7 +70,7 @@ struct MainTabs: View {
             if sidebar {
                 NavigationSplitView {
                     List(sections, selection: Binding(get: { tab }, set: { if let t = $0 { tab = t } })) { s in
-                        Label(s.title, systemImage: s.icon).tag(s.tag)
+                        s.label.tag(s.tag)
                     }
                     .navigationTitle(model.wording == .neutral ? "Open Circle" : "Prayer Tower")
                 } detail: {
@@ -48,7 +80,7 @@ struct MainTabs: View {
                 TabView(selection: $tab) {
                     // .tabItem rather than Tab(…), which needs iOS 18; the app supports iOS 17.
                     ForEach(sections) { s in
-                        screen(s.tag).tabItem { Label(s.title, systemImage: s.icon) }.tag(s.tag)
+                        screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
                     }
                 }
             }
@@ -63,6 +95,11 @@ struct MainTabs: View {
             guard let screen = SampleServer.screen() else { return }
             let start = SampleServer.tab(for: screen)
             tab = start.tab
+            // iPhone: Messages and Notices open from Me.
+            if !sidebar, start.tab == 2 || start.tab == 5 {
+                tab = 4
+                model.meOpens = start.tab
+            }
             if start.openPost { model.openPost = "sample-p1" }
         }
     }

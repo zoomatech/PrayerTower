@@ -35,7 +35,7 @@ const ACTION_ICONS: Record<CardAction, string> = {
   praying_now: '💜',
   commit: '🙏',
   encouragement: '✉️',
-  well_wishes: '🤍',
+  well_wishes: '❤️',
   share: '↗',
   gift_tokens: '🎁',
 };

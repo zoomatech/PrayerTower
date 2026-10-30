@@ -14,8 +14,15 @@ struct MessagesView: View {
     private var eventsOn: Bool { model.me?.community?.shows("events") ?? true }
     private var careOn: Bool { model.me?.community?.shows("care") ?? true }
 
+    /// false when pushed from Me, inside Me's own NavigationStack.
+    var standalone = true
+
     var body: some View {
-        NavigationStack {
+        if standalone { NavigationStack { content } } else { content }
+    }
+
+    private var content: some View {
+        Group {
             List {
                 Section {
                     Text(w("messages.privacy")).font(.footnote).foregroundStyle(.secondary)

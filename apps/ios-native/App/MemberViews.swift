@@ -186,8 +186,15 @@ struct NotificationsView: View {
 
     private var w: Words { model.words }
 
+    /// false when pushed from Me, inside Me's own NavigationStack.
+    var standalone = true
+
     var body: some View {
-        NavigationStack {
+        if standalone { NavigationStack { content } } else { content }
+    }
+
+    private var content: some View {
+        Group {
             List {
                 if let error { Text(error).foregroundStyle(.red) }
                 if items?.isEmpty == true { Text(w("notices.empty")).foregroundStyle(.secondary) }

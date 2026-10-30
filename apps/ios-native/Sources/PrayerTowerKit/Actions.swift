@@ -16,7 +16,7 @@ public enum CardAction: String, CaseIterable, Sendable, Codable {
         case .prayingNow: "💜"
         case .commit: "🙏"
         case .encouragement: "✉️"
-        case .wellWishes: "🤍"
+        case .wellWishes: "❤️"
         case .share: "↗"
         case .giftTokens: "🎁"
         }

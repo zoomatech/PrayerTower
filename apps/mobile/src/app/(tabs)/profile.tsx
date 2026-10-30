@@ -106,6 +106,12 @@ export default function Profile() {
           <Text style={type.body}>{profile.why_here.map((w) => label('whyHere', w, WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS])).join(' · ')}</Text>
         ) : null}
 
+        {/* Messages and Notices live in this menu, not in the bar under the feed (Steve, 2026-10-30). */}
+        <View style={styles.chips}>
+          <Button variant="secondary" label={`💬 ${t('tabs.messages')}`} testID="open-messages" onPress={() => router.push('/messages')} />
+          <Button variant="secondary" label={`🔔 ${t('tabs.notices')}`} testID="open-notices" onPress={() => router.push('/notifications')} />
+        </View>
+
         <ErrorText error={countsError} onRetry={loadCounts} />
         <View style={styles.stats}>
           <View style={[styles.stat, styles.tierStat]}>
