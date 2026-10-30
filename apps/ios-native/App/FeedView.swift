@@ -240,7 +240,7 @@ struct CardRow: View {
                 }
             }
             ActionRowView(
-                items: ActionRow.items(actions: card.actions ?? (card.isMine ? [] : ["praying_now"]), features: model.features, tree: model.tree, wording: model.wording),
+                items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
                 wording: model.wording,
                 active: active,
                 onAction: onAction,

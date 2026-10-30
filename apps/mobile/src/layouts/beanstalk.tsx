@@ -27,7 +27,7 @@ import { HennyPenny_400Regular } from '@expo-google-fonts/henny-penny/400Regular
 import { useFonts } from 'expo-font';
 
 import { Button } from '@/components/ui';
-import { CardSurface } from '@/components/post-card';
+import { CardNoType, CardSurface } from '@/components/post-card';
 import { VineFruit } from '@/components/vine-flow';
 import { api } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -842,7 +842,9 @@ const Post = memo(function Post({
             if (Math.abs(w - size.w) > 1 || Math.abs(h - size.h) > 1) setSize({ w, h });
           }}>
           <View style={styles.cardShadow} />
-          <CardSurface.Provider value={surface}>{renderCard(shown)}</CardSurface.Provider>
+          <CardSurface.Provider value={surface}>
+            <CardNoType.Provider value>{renderCard(shown)}</CardNoType.Provider>
+          </CardSurface.Provider>
         </Animated.View>
         {/* Over the vine, coming in with the card. */}
         <Animated.View style={[styles.locketAt, { opacity: cardO, transform: [{ scale: span(t, 100, 600, 0.4, 1, EASE.card) }] }]} pointerEvents="none">
