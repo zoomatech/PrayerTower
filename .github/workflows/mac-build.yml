@@ -1,0 +1,30 @@
+# STEVE_TODO B1 on GitHub's macOS runner: build the Expo iPhone app, the "Designed for iPad" Mac app
+# and the Pray now widget with scripts/mac-build.sh, so nothing runs on a member's Mac. Run it from the
+# Actions tab, or it runs when the native parts change. Logs are kept as the "mac-build" artifact.
+name: Mac build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: [scripts/mac-build.sh, .github/workflows/mac-build.yml, apps/mobile/plugins/**, apps/mobile/modules/**, apps/mobile/app.config.*, apps/mobile/app.json]
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - shell: bash
+        run: bash scripts/mac-build.sh
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-build
+          path: |
+            build-logs/
+            !build-logs/derived/
+          retention-days: 14
