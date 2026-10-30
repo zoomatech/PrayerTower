@@ -609,9 +609,10 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
       story_id: string | null;
       counts_quiet: boolean;
       gifted: boolean;
+      photo_path: string | null;
     }
   >(
-    `select po.*, pr.display_name, pr.handle, pr.anonymous_by_default as private_tier,
+    `select po.*, pr.display_name, pr.handle, pr.anonymous_by_default as private_tier, pr.photo_path,
             json_build_object(
               'prayingNow', (select count(*) from public.prayer_events e where e.post_id = po.id and e.kind = 'praying_now'),
               'prayers', (select count(distinct e.user_id) from public.prayer_events e where e.post_id = po.id),
@@ -739,6 +740,8 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
           tier: tierShown(r),
           pastor: r.is_anonymous ? null : (pastors.get(r.user_id) ?? null),
           ...(towns.has(r.id) ? { town: towns.get(r.id)! } : {}),
+          // Signed into photoUrl by signMedia; an anonymous post never shows the poster's photo.
+          ...(r.photo_path && (!r.is_anonymous || r.user_id === viewerId) ? { photoPath: r.photo_path } : {}),
         },
         cardType: r.post_type as CardType,
         // Groups one person's posts (e.g. a personal vine branch) without exposing who; null when anonymous.

@@ -27,6 +27,7 @@ import { LiftUpCard } from '@/components/lift-up-card';
 import { HighlightsLink } from '@/components/kindness-highlights';
 import { MeaningProposals } from '@/components/meaning-proposals';
 import { PartnerCard } from '@/components/partner-card';
+import { ProfilePhoto } from '@/components/profile-photo';
 import { DailyReminderCard } from '@/components/daily-reminder-card';
 import { GratitudeCard } from '@/components/gratitude-card';
 import { KindWordsCard } from '@/components/kind-words-card';
@@ -102,6 +103,7 @@ export default function Profile() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={type.title}>{profile.display_name || t('profile.me')}</Text>
+        <ProfilePhoto />
         {profile.why_here.length ? (
           <Text style={type.body}>{profile.why_here.map((w) => label('whyHere', w, WHY_HERE_LABELS[w as keyof typeof WHY_HERE_LABELS])).join(' · ')}</Text>
         ) : null}

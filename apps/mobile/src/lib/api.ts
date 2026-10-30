@@ -1971,6 +1971,8 @@ export const api = {
   whyGifts: (wording: 'faith' | 'neutral') => get<WhyGifts>(`/why-gifts?wording=${wording}`),
   answerSurvey: (id: string, answers: SurveyAnswer[]) => post<{ ok: true }>(`/surveys/${id}/responses`, { answers }),
   // Kept on the device so a signed-in member who opens the app with no signal still gets in.
+  setPhoto: (storagePath: string) => put<{ photoUrl: string | null }>('/me/photo', { storagePath }),
+  removePhoto: () => request<{ photoUrl: null }>('DELETE', '/me/photo'),
   me: () => cachedGet<{ profile: Profile; roles: Role[]; community?: Community | null }>('me', '/me'),
   spokenPrayers: (postId: string) => get<SpokenPrayerStatus>(`/posts/${postId}/spoken-prayers`),
   inviteSpokenPrayers: (postId: string, offerTokens: number) => put<{ invited: true; offerTokens: number }>(`/posts/${postId}/spoken-prayers/invite`, { offerTokens }),

@@ -321,7 +321,7 @@ private struct BeanPost<Row: View>: View {
                 if let geo { FrameCanvas(geo: geo, c: c).frame(width: geo.w, height: geo.h).accessibilityHidden(true) }
             }
             .overlay(alignment: .topLeading) {
-                Locket(name: card.author.displayName).scaleEffect(pop).opacity(fade).offset(x: -29, y: -50)
+                Locket(name: card.author.displayName, photo: card.author.photoUrl).scaleEffect(pop).opacity(fade).offset(x: -29, y: -50)
             }
             .overlay(alignment: .topTrailing) {
                 if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 44).scaleEffect(fruit).offset(x: 20, y: -24) }
@@ -604,6 +604,8 @@ private struct LeafBack: View {
 /// The poster's initial in an oval gold locket hanging from a little loop (70% larger than first drawn).
 private struct Locket: View {
     let name: String
+    /// The member's own photo, when they've added one under Me.
+    var photo: String? = nil
     var body: some View {
         VStack(spacing: -5) {
             Circle().stroke(Bean.locket, lineWidth: 3.4).frame(width: 15, height: 15)
@@ -611,12 +613,27 @@ private struct Locket: View {
             ZStack {
                 Ellipse().fill(Bean.locket).overlay(Ellipse().stroke(Bean.ink, lineWidth: 3))
                 Ellipse().fill(Bean.locketFace).overlay(Ellipse().stroke(Bean.ink, lineWidth: 2.2)).padding(8.5)
-                Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-                    .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
+                if let photo, let url = URL(string: photo) {
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        initial
+                    }
+                    .frame(width: 61, height: 71)
+                    .clipShape(Ellipse())
+                    .overlay(Ellipse().stroke(Bean.ink, lineWidth: 2.2))
+                } else {
+                    initial
+                }
             }
             .frame(width: 78, height: 88)
         }
         .accessibilityHidden(true)
+    }
+
+    private var initial: some View {
+        Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
+            .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
     }
 }
 
