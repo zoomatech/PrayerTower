@@ -264,8 +264,15 @@ struct VineLeaf<Content: View>: View {
             .background {
                 ZStack {
                     // The rest of the stack, peeking out behind, dimmer the further back.
+                    // Each one a whole card, overlapping like a loaded deck.
                     ForEach(Array(stride(from: min(stacked, 3), to: 0, by: -1)), id: \.self) { k in
-                        frame(drawn).opacity(0.6 - Double(k) * 0.15).offset(x: CGFloat(k) * 9, y: CGFloat(k) * 9)
+                        ZStack {
+                            Color(look.backdrop ?? look.leafBox(wording)).padding(14)
+                            RoundedRectangle(cornerRadius: 12).fill(box.opacity(0.35)).padding(.horizontal, depth == 0 ? 18 : 14).padding(.vertical, 24)
+                            frame(drawn)
+                        }
+                        .opacity(1 - Double(k) * 0.22)
+                        .offset(x: CGFloat(k) * 12, y: CGFloat(k) * 12)
                     }
                     frame(drawn)
                 }
@@ -314,17 +321,17 @@ struct VineLeaf<Content: View>: View {
     }
 
     /// The short curved stem from the stalk to this leaf.
-    /// Neon's comment connector: a tube down from the post's box that bends smoothly into the
-    /// comment's box, fading from the post's blue into the comment's red.
+    /// Neon's comment connector: a red tube down from the post's box that bends smoothly into the
+    /// comment's box.
     private var drop: some View {
         Canvas { ctx, size in
-            let x = 72.0 + Double(depth - 1) * 40, r = 12.0, y = 18 + 30.0
+            let x: CGFloat = 72 + CGFloat(depth - 1) * 40, r: CGFloat = 12, y: CGFloat = 48
             var p = Path()
             p.move(to: CGPoint(x: x, y: 0))
             p.addLine(to: CGPoint(x: x, y: y - r))
             p.addQuadCurve(to: CGPoint(x: x + r, y: y), control: CGPoint(x: x, y: y))
             p.addLine(to: CGPoint(x: indent + 4, y: y))
-            NeonGlassLook(color: Color(look.branch), from: Color(look.stem), fade: (CGPoint(x: x, y: 0), CGPoint(x: x, y: y)), white: 0.45).stroke(p, width: 6, in: ctx)
+            NeonGlassLook(color: Color(look.branch), white: 0.45).stroke(p, width: 6, in: ctx)
         }
         .frame(width: indent + 26)
     }

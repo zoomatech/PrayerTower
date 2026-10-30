@@ -153,7 +153,9 @@ enum TronIcon {
 
     static func shape(_ d: String, in r: CGRect) -> Path {
         var p = Path()
-        let parts = d.split(separator: " ")
+        // "M12 3": the command letter sits against its first number, so split them apart first.
+        let spaced = d.replacingOccurrences(of: "M", with: "M ").replacingOccurrences(of: "L", with: "L ").replacingOccurrences(of: "Z", with: " Z ")
+        let parts = spaced.split(separator: " ")
         var i = 0
         func point() -> CGPoint {
             let x = Double(parts[i]) ?? 0, y = Double(parts[i + 1]) ?? 0

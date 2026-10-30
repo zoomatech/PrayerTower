@@ -99,10 +99,12 @@ public enum SampleServer {
             ("GET", "^/posts/[^/]+/comments$", """
             {"comments":[{"id":"sample-c1","parentId":null,"body":"Holding you and your mother up today.","isUpdate":false,"createdAt":"2026-10-29T09:00:00Z","isMine":false,"author":{"id":"sample-sam","displayName":"Sam","handle":null,"anonymous":false}},
               {"id":"sample-c2","parentId":null,"body":"Hoping for steady hands for the surgeons.","isUpdate":false,"createdAt":"2026-10-29T09:05:00Z","isMine":false,"author":{"id":"sample-ana","displayName":"Ana","handle":null,"anonymous":false}},
-              {"id":"sample-c3","parentId":"sample-c2","body":"Amen to that.","isUpdate":false,"createdAt":"2026-10-29T09:07:00Z","isMine":false,"author":{"id":"sample-owen","displayName":"Owen","handle":null,"anonymous":false}},
+              {"id":"sample-c3","parentId":"sample-c1","body":"Amen to that.","isUpdate":false,"createdAt":"2026-10-29T09:07:00Z","isMine":false,"author":{"id":"sample-owen","displayName":"Owen","handle":null,"anonymous":false}},
               {"id":"sample-c4","parentId":null,"body":"So grateful you shared this.","isUpdate":false,"createdAt":"2026-10-29T09:10:00Z","isMine":false,"author":{"id":"sample-nora","displayName":"Nora","handle":null,"anonymous":false}},
               {"id":"sample-c5","parentId":null,"body":"Lighting a candle for her tonight.","isUpdate":false,"createdAt":"2026-10-29T09:20:00Z","isMine":false,"author":{"id":"sample-teresa","displayName":"Teresa","handle":null,"anonymous":false}},
-              {"id":"sample-c6","parentId":null,"body":"We will bring a meal on Wednesday.","isUpdate":false,"createdAt":"2026-10-29T09:30:00Z","isMine":false,"author":{"id":"sample-luis","displayName":"Luis","handle":null,"anonymous":false}}]}
+              {"id":"sample-c6","parentId":null,"body":"We will bring a meal on Wednesday.","isUpdate":false,"createdAt":"2026-10-29T09:30:00Z","isMine":false,"author":{"id":"sample-luis","displayName":"Luis","handle":null,"anonymous":false}},
+              {"id":"sample-c7","parentId":"sample-c1","body":"Same here, all week.","isUpdate":false,"createdAt":"2026-10-29T09:40:00Z","isMine":false,"author":{"id":"sample-nora","displayName":"Nora","handle":null,"anonymous":false}},
+              {"id":"sample-c8","parentId":"sample-c3","body":"Thank you both so much.","isUpdate":false,"createdAt":"2026-10-29T09:50:00Z","isMine":false,"author":{"id":"sample-ruth","displayName":"Ruth","handle":null,"anonymous":false}}]}
             """),
             ("PUT", "^/comments/[^/]+/heart$", #"{"hearted":true}"#),
             ("GET", "^/posts/[^/]+/prayers$", #"{"count":4,"people":[{"id":"sample-sam","displayName":"Sam"}]}"#),

@@ -16,7 +16,7 @@ import Testing
         let feed = try await api.feed()
         #expect(feed.posts.count == 2)
         #expect(try await api.post("sample-p1").author.displayName == "Ruth")
-        #expect(try await api.comments(postId: "sample-p1").count == 6)
+        #expect(try await api.comments(postId: "sample-p1").count == 8)
         #expect(try await api.prayers(postId: "sample-p1").count == 4)
         #expect(try await api.commitments().commitments.count == 1)
         #expect(try await api.conversations().count == 1)
