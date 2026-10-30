@@ -17,7 +17,9 @@ struct AuditSamplesView: View {
             "leafSoft": .string("#EEF3FA"), "tendril": .string("#9FC3E8"), "branch": .string("#8FA6BD"), "stemWidth": .number(2),
         ]),
         FeedTheme(slug: "neon-cinderella", name: "Neon Cinderella", layout: "vine", tokens: [
-            "vineStyle": .string("neon"), "backdrop": .string("#0B0820"), "leaf": .string("#8FB3FF"), "stemWidth": .number(3), "scenery": .string("fairytale"),
+            "vineStyle": .string("neon"), "backdrop": .string("#0B0820"), "stem": .string("#FF5FD2"), "stemGlow": .bool(true), "stemWidth": .number(3),
+            "branch": .string("#FFD36E"), "leaf": .string("#8FB3FF"), "leafSoft": .string("#F3EDFF"), "tendril": .string("#FFD36E"),
+            "leafShape": .string("star"), "scenery": .string("fairytale"), "leafEvery": .number(4),
         ]),
         FeedTheme(slug: "blossom-garden", name: "Blossom Garden", layout: "vine", tokens: ["vineStyle": .string("floral"), "stemWidth": .number(3)]),
         FeedTheme(slug: "christmas-star", name: "Christmas Star", layout: "vine", tokens: [
@@ -26,7 +28,9 @@ struct AuditSamplesView: View {
         ]),
         FeedTheme(slug: "wall", name: "Wall", layout: "wall", tokens: ["backdrop": .string("#101418")]),
         FeedTheme(slug: "prayer-tower", name: "Prayer Tower", layout: "tower", tokens: [:]),
-        FeedTheme(slug: "neon-circuit", name: "Neon Circuit", layout: "circuit", tokens: [:]),
+        FeedTheme(slug: "neon-circuit", name: "Neon Circuit", layout: "circuit", tokens: [
+            "backdrop": .string("#05070D"), "wire": .string("#00E5FF"), "burst": .string("#FFFFFF"), "screen": .string("#FF2BD6"), "tilt": .number(10),
+        ]),
         FeedTheme(slug: "swipe", name: "Swipe to pray", layout: "carousel", tokens: [:]),
         FeedTheme(slug: "flip", name: "Flip", layout: "flip", tokens: [:]),
     ]

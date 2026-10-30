@@ -169,6 +169,7 @@ struct FeedView: View {
                     if try await model.store.api.prayingNowOrQueue(postId: card.id) == nil { pending = await OfflineStore.shared.pending().count }
                 }
             }
+        case .thumbsUp: Task { await run(card, action) { _ = try await model.store.api.thumbsUp(postId: card.id) } }
         case .wellWishes: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "well_wishes") } }
         case .encouragement: encouraging = card
         case .share: sharing = card

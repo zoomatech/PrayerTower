@@ -1,6 +1,6 @@
 // Kindness features on every skin: with every switch on, the feed and a request page are
 // opened in each of the 13 year-round skins. Every card keeps ONE row of action icons
-// (Steve, 2026-10-29) with at most six icons, nothing scrolls sideways, and axe finds no
+// (Steve, 2026-10-29) with at most seven icons (thumbs up joined on 2026-10-30), nothing scrolls sideways, and axe finds no
 // WCAG A/AA violation. Set SKIN_SHOTS to a folder to keep a screenshot of each.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
@@ -62,7 +62,7 @@ test('every skin keeps one icon row and passes axe with the kindness tools on', 
         );
         for (const [i, r] of rows.entries()) {
           if (r.spread > 4) problems.push(`${here}: card ${i + 1} wraps its icons onto a second row`);
-          if (r.icons > 6) problems.push(`${here}: card ${i + 1} shows ${r.icons} icons`);
+          if (r.icons > 7) problems.push(`${here}: card ${i + 1} shows ${r.icons} icons`);
         }
         // No second row of emoji anywhere on the page: meanings ride on the action icons.
         const trays = await page.getByRole('group', { name: 'Say it with an emoji' }).count();

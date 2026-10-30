@@ -126,13 +126,26 @@ struct Stalk: View {
                 ctx.stroke(wave(0, 3), with: .color(Color(look.ink ?? look.branch)), style: .init(lineWidth: w + 2))
                 ctx.stroke(wave(0, 3), with: .color(Color(look.stem)), style: .init(lineWidth: w))
             case .neon:
-                // Straight glowing rods: a wide faint bloom, a halo and a thin white core.
+                // One neon tube in a long, gentle curve: a radiant glow round glass that is
+                // deeper colored at its edges and close to white in the middle.
                 var rod = Path()
                 rod.move(to: CGPoint(x: x, y: 0))
-                rod.addLine(to: CGPoint(x: x, y: size.height))
-                ctx.stroke(rod, with: .color(Color(look.stem).opacity(0.25)), lineWidth: w * 5)
-                ctx.stroke(rod, with: .color(Color(look.stem).opacity(0.7)), lineWidth: w * 2)
-                ctx.stroke(rod, with: .color(.white), lineWidth: max(1, w / 2))
+                var ry = 0.0
+                while ry < size.height {
+                    ry += 6
+                    rod.addLine(to: CGPoint(x: x + 5 * sin(ry / 170), y: ry))
+                }
+                let tube: CGFloat = max(5, CGFloat(w) * 1.6)
+                let stem = Color(look.stem)
+                let round = StrokeStyle(lineWidth: tube, lineCap: .round, lineJoin: .round)
+                var glow = ctx
+                glow.addFilter(.blur(radius: tube * 2.2))
+                glow.stroke(rod, with: .color(stem.opacity(0.55)), style: StrokeStyle(lineWidth: tube * 3, lineCap: .round))
+                ctx.stroke(rod, with: .color(stem), style: round)
+                ctx.stroke(rod, with: .color(.black.opacity(0.3)), style: round)
+                ctx.stroke(rod, with: .color(stem), style: StrokeStyle(lineWidth: tube * 0.72, lineCap: .round, lineJoin: .round))
+                ctx.stroke(rod, with: .color(.white.opacity(0.55)), style: StrokeStyle(lineWidth: tube * 0.45, lineCap: .round, lineJoin: .round))
+                ctx.stroke(rod, with: .color(.white.opacity(0.95)), style: StrokeStyle(lineWidth: max(1, tube * 0.2), lineCap: .round, lineJoin: .round))
             case .gate:
                 // Fine lines of silver light.
                 for dx in [-2.0, 2.0] {
@@ -161,7 +174,7 @@ struct Stalk: View {
         }
         // The glow's blur reads as smudged text beside the accessibility sizes' giant letters.
         .shadow(color: glow ? Color(look.stem).opacity(0.8) : .clear, radius: glow ? 8 : 0)
-        .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.tendril)) } }
+        .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.stem)) } }
     }
 }
 
@@ -217,10 +230,7 @@ struct VineLeaf<Content: View>: View {
         switch look.vineStyle {
         case .neon:
             // A real tube: colored glass glowing round a thin white-hot core.
-            ZStack {
-                CutCorners().stroke(Color(look.stem), lineWidth: 2.5).neonTube(Color(look.stem))
-                CutCorners().stroke(.white.opacity(0.9), lineWidth: 0.8)
-            }
+            NeonGlass(shape: NeonFrame(), color: Color(look.stem), width: 5)
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)
@@ -248,6 +258,21 @@ struct VineLeaf<Content: View>: View {
         Canvas { ctx, size in
             var p = Path()
             let reach = depth == 0 ? 40.0 : 68.0
+            if look.vineStyle == .neon {
+                // No plant: a straight tube at a hard right angle off the rod, with a white node
+                // where it joins (the neon `stem` in vine-flow.tsx).
+                let y = size.height * 0.3
+                p.move(to: CGPoint(x: 20, y: y))
+                p.addLine(to: CGPoint(x: reach, y: y))
+                let color = Color(look.stem)
+                for (c, w) in [(color.opacity(0.14), 12.0), (color.opacity(0.35), 6.0), (color, 2.0), (Color.white.opacity(0.85), 0.8)] {
+                    ctx.stroke(p, with: .color(c), style: .init(lineWidth: w, lineCap: .butt))
+                }
+                let node = Path(ellipseIn: CGRect(x: 16, y: y - 4, width: 8, height: 8))
+                ctx.fill(node, with: .color(.white))
+                ctx.stroke(node, with: .color(color), lineWidth: 2)
+                return
+            }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
             p.addQuadCurve(to: CGPoint(x: reach, y: size.height * 0.42), control: CGPoint(x: 22, y: size.height * 0.4))
             ctx.stroke(p, with: .color(Color(look.lit ? look.stem : look.branch)), style: .init(lineWidth: max(1.5, look.stemWidth / 3), lineCap: .round))
@@ -590,15 +615,12 @@ struct CircuitFeed<Row: View>: View {
                         // Only the screen's glass and frame lean; the words stay flat, so none are
                         // squeezed or cut off at an angle.
                         .background {
-                            // The glowing frame underneath, the glass over its inner glow so the words
-                            // sit on a plain screen, then a crisp rim on top.
+                            // A plain screen for the words, framed by one neon tube bent in smooth curves.
                             ZStack {
-                                RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen))
-                                    .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
                                     .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
-                                    .padding(2)
-                                RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 1)
+                                    .padding(3)
+                                NeonGlass(shape: RoundedRectangle(cornerRadius: 16, style: .continuous), color: Color(look.screen), width: 4)
                                     .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                             }
                             .accessibilityHidden(true)
@@ -615,7 +637,7 @@ struct CircuitFeed<Row: View>: View {
                 }
                 if !hasMore, !cards.isEmpty {
                     VStack(spacing: 8) {
-                        Circle().stroke(Color(look.wire), lineWidth: 2).frame(width: 18, height: 18).neonTube(Color(look.wire)).accessibilityHidden(true)
+                        NeonGlass(shape: Circle(), color: Color(look.wire), width: 3).frame(width: 18, height: 18).accessibilityHidden(true)
                         Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).backdropPlate(look.backdrop)
                     }
                     .padding(.trailing, 40)

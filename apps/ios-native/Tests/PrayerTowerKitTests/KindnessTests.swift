@@ -18,7 +18,7 @@ private let allActions = CardAction.allCases.map(\.rawValue)
     @Test func keepsOneRowInTheServersOrderAndSkipsUnknownActions() {
         let row = ActionRow.items(actions: ["praying_now", "share", "something_new", "well_wishes"], features: Features(values: [:]), tree: tree, wording: .faith)
         #expect(row.map(\.action) == [.prayingNow, .share, .wellWishes])
-        #expect(row.map(\.icon) == ["💜", "↗", "🤍"])
+        #expect(row.map(\.icon) == ["💜", "↗", "❤️"])
         #expect(row.allSatisfy { $0.meanings == nil })
     }
 
@@ -35,8 +35,8 @@ private let allActions = CardAction.allCases.map(\.rawValue)
     @Test func usesOpenCirclesWordsInNeutralWording() {
         let both = Features(values: ["meaningReactions": true, "meaningIconRow": true])
         let row = ActionRow.items(actions: allActions, features: both, tree: tree, wording: .neutral)
-        #expect(row.map(\.name) == ["Thinking of You", "Promise to Check In", "Encourage", "Well Wishes", "Share", "Gift Tokens"])
-        #expect(row.first?.meaningWords(.neutral) == "🙏 Thinking of you · Holding you up")
+        #expect(row.map(\.name) == ["Thumbs Up", "Thinking of You", "Promise to Check In", "Encourage", "Well Wishes", "Share", "Gift Tokens"])
+        #expect(row.first { $0.action == .prayingNow }?.meaningWords(.neutral) == "🙏 Thinking of you · Holding you up")
         #expect(Wording(Community(slug: "open-circle", name: "Open Circle", wording: "neutral")) == .neutral)
         #expect(Wording(nil) == .faith)
     }

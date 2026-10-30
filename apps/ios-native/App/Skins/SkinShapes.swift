@@ -75,21 +75,12 @@ enum PenCurl {
     }
 }
 
-/// A frame with cut corners, like a bent neon tube (Neon Cinderella).
-struct CutCorners: Shape {
-    var cut: Double = 12
+/// A neon frame bent from one tube: long straight runs meeting in wide, smooth curves, with no
+/// corners or ornaments (Steve, 2026-10-30: "elegant curves only").
+struct NeonFrame: Shape {
+    var radius: Double = 26
     func path(in r: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: r.minX + cut, y: r.minY))
-        p.addLine(to: CGPoint(x: r.maxX - cut, y: r.minY))
-        p.addLine(to: CGPoint(x: r.maxX, y: r.minY + cut))
-        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - cut))
-        p.addLine(to: CGPoint(x: r.maxX - cut, y: r.maxY))
-        p.addLine(to: CGPoint(x: r.minX + cut, y: r.maxY))
-        p.addLine(to: CGPoint(x: r.minX, y: r.maxY - cut))
-        p.addLine(to: CGPoint(x: r.minX, y: r.minY + cut))
-        p.closeSubpath()
-        return p
+        RoundedRectangle(cornerRadius: min(radius, min(r.width, r.height) / 2), style: .continuous).path(in: r)
     }
 }
 
@@ -184,9 +175,32 @@ struct Mark: View {
 }
 
 extension View {
-    /// The tube look shared by the neon styles: a faint wide bloom, a brighter halo and a thin white core.
+    /// A soft radiant glow around something already drawn as neon glass.
     func neonTube(_ color: Color) -> some View {
-        self.shadow(color: color.opacity(0.9), radius: 3).shadow(color: color.opacity(0.5), radius: 10).shadow(color: color.opacity(0.25), radius: 22)
+        self.shadow(color: color.opacity(0.7), radius: 6).shadow(color: color.opacity(0.35), radius: 18)
+    }
+}
+
+/// Real neon glass (Steve, 2026-10-30): close to white in the middle, deeper shades of the color
+/// toward the edge of the glass, and a radiant glow around the whole tube.
+struct NeonGlass<S: Shape>: View {
+    let shape: S
+    let color: Color
+    var width: CGFloat = 5
+
+    var body: some View {
+        ZStack {
+            // The glow the gas throws round the tube.
+            shape.stroke(color.opacity(0.45), style: .init(lineWidth: width * 3, lineCap: .round, lineJoin: .round)).blur(radius: width * 2.4)
+            shape.stroke(color.opacity(0.6), style: .init(lineWidth: width * 1.6, lineCap: .round, lineJoin: .round)).blur(radius: width * 0.8)
+            // The glass: a deeper shade at its edges, the full color, a paler band, then the white-hot core.
+            shape.stroke(color, style: .init(lineWidth: width, lineCap: .round, lineJoin: .round))
+            shape.stroke(Color.black.opacity(0.3), style: .init(lineWidth: width, lineCap: .round, lineJoin: .round))
+            shape.stroke(color, style: .init(lineWidth: width * 0.72, lineCap: .round, lineJoin: .round))
+            shape.stroke(Color.white.opacity(0.55), style: .init(lineWidth: width * 0.45, lineCap: .round, lineJoin: .round)).blur(radius: width * 0.08)
+            shape.stroke(Color.white.opacity(0.95), style: .init(lineWidth: max(1, width * 0.2), lineCap: .round, lineJoin: .round))
+        }
+        .compositingGroup()
     }
 }
 
