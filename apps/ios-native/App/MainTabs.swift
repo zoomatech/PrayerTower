@@ -58,11 +58,6 @@ struct MainTabs: View {
         .task { await model.loadSettings() }
         .fullScreenCover(isPresented: Binding(get: { model.showTour }, set: { model.showTour = $0 })) { TourView() }
         .onChange(of: model.openPost) { _, id in if id != nil { tab = 0 } }
-        // Siri Shortcuts (App/Shortcuts.swift): a tab, or a screen over the tabs.
-        .onChange(of: model.openTab) { _, t in if let t { tab = t; model.openTab = nil } }
-        .sheet(isPresented: Binding(get: { model.openRoute != nil }, set: { if !$0 { model.openRoute = nil } })) {
-            if let route = model.openRoute { NavigationStack { RouteView(route: route) } }
-        }
         // Store screenshots (scripts/mac-screenshots-native.sh): open the asked-for screen.
         .onAppear {
             guard let screen = SampleServer.screen() else { return }

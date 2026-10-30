@@ -50,7 +50,6 @@ struct MeView: View {
                         }
                     }
                 }
-                ShortcutsSection()
                 ConversationPrefsSection()
                 ToolsSection()
                 ExtrasSection()
@@ -162,7 +161,8 @@ struct MeView: View {
     private func stat(_ value: String, _ label: String) -> some View {
         let big = typeSize.isAccessibilitySize
         return VStack(alignment: big ? .leading : .center, spacing: 2) {
-            Text(value).font(.title3.bold()).lineLimit(big ? nil : 2).minimumScaleFactor(big ? 1 : 0.6)
+            // Never shrunk below the member's text size (the accessibility audit counts that as clipped).
+            Text(value).font(.title3.bold()).lineLimit(nil).fixedSize(horizontal: false, vertical: true)
             Text(label).font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(big ? .leading : .center)
         }
         .frame(maxWidth: .infinity, alignment: big ? .leading : .center)

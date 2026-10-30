@@ -9,6 +9,13 @@ final class AccessibilityAuditTests: XCTestCase {
                         "Wall", "Prayer Tower", "Neon Circuit", "Swipe to pray", "Flip"]
     static let sizes = ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"]
 
+    /// Names the element in the log so the issue can be found; every issue still fails the test.
+    static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
+        let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
+        print("AUDIT \(place): \(issue.compactDescription) on \(what)")
+        return false
+    }
+
     override func setUp() {
         continueAfterFailure = true
     }
@@ -18,7 +25,7 @@ final class AccessibilityAuditTests: XCTestCase {
             let app = XCUIApplication()
             app.launchArguments = ["-UIPreferredContentSizeCategoryName", size]
             app.launch()
-            try app.performAccessibilityAudit()
+            try app.performAccessibilityAudit { issue in Self.log(issue, "Sign-in at \(size)") }
             app.terminate()
         }
     }
@@ -33,7 +40,7 @@ final class AccessibilityAuditTests: XCTestCase {
                     let link = app.buttons[name]
                     for _ in 0..<5 where !link.isHittable { app.collectionViews.firstMatch.swipeUp() }
                     link.tap()
-                    XCTAssertNoThrow(try app.performAccessibilityAudit(), "\(name) at \(size)")
+                    XCTAssertNoThrow(try app.performAccessibilityAudit { issue in Self.log(issue, "\(name) at \(size)") }, "\(name) at \(size)")
                     app.navigationBars.buttons.element(boundBy: 0).tap()
                 }
             }

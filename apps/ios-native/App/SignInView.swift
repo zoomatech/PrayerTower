@@ -41,7 +41,7 @@ struct SignInView: View {
     var body: some View {
         Form {
             Section {
-                Text("🕊").font(.system(size: 44)).accessibilityHidden(true)
+                Text("🕊").font(.largeTitle).accessibilityHidden(true)
                 Text(w.server("Prayer Tower")).font(.largeTitle.bold())
                 Text(w("signIn.tagline")).foregroundStyle(.secondary)
             }
