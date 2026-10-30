@@ -39,7 +39,8 @@ export function encodeRobot36(gray: Uint8Array, rate = 48_000, amplitude = 0.5):
   }
   parts.push([ones % 2 ? 1100 : 1300, 30], [SYNC, 30]);
   const pixel = (row: number) => (t: number) => {
-    const x = Math.min(WIDTH - 1, Math.floor((t / Y_MS) * WIDTH));
+    // At a rate where a part doesn't start on a whole sample (44.1 kHz), t can be a hair below 0.
+    const x = Math.max(0, Math.min(WIDTH - 1, Math.floor((t / Y_MS) * WIDTH)));
     return BLACK + ((WHITE - BLACK) * gray[row * WIDTH + x]!) / 255;
   };
   for (let y = 0; y < HEIGHT; y++) {

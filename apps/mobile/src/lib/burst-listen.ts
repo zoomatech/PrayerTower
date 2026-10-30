@@ -69,32 +69,39 @@ const SSTV_KEEP_SECONDS = 45;
 const SSTV_RATE = 12_000;
 
 /**
- * Prayer panels sent as SSTV pictures (Robot 36): keeps the last 45 seconds at 12 kHz and
- * finds a whole picture in them, each picture once.
+ * Prayer panels sent as SSTV pictures (Robot 36): keeps the last 45 seconds at about 12 kHz and
+ * finds a whole picture in them, each picture once. The microphone's rate is divided by a whole
+ * number (48 kHz by 4, 44.1 kHz by 3 to 14.7 kHz, 16 kHz and below kept as they are), as the
+ * station's decoder does: a fractional step would put a little timing jitter on every sample,
+ * which the frequency reading turns into hundreds of hertz of noise.
  */
 export class SstvListener {
-  private buf = new Float32Array(SSTV_KEEP_SECONDS * SSTV_RATE);
+  /** Microphone samples averaged into one kept sample. */
+  private readonly k: number;
+  /** The kept samples' rate. */
+  private readonly keptRate: number;
+  private readonly buf: Float32Array;
   private filled = 0;
-  /** Samples taken in so far (at 12 kHz). */
+  /** Samples kept so far. */
   private taken = 0;
-  /** End of the last picture read, in samples since listening started. */
+  /** End of the last picture read, in kept samples since listening started. */
   private readUpTo = 0;
-  private carry = 0;
   private acc = 0;
   private accN = 0;
 
-  constructor(readonly rate: number) {}
+  constructor(readonly rate: number) {
+    this.k = Math.max(1, Math.floor(rate / SSTV_RATE));
+    this.keptRate = rate / this.k;
+    this.buf = new Float32Array(Math.ceil(SSTV_KEEP_SECONDS * this.keptRate));
+  }
 
-  /** Add microphone samples (mono): averaged down to 12 kHz. */
+  /** Add microphone samples (mono). A sample that isn't a number counts as silence. */
   push(samples: Float32Array) {
-    const step = this.rate / SSTV_RATE;
     for (let i = 0; i < samples.length; i++) {
-      this.acc += samples[i]!;
-      this.accN++;
-      this.carry += 1;
-      if (this.carry >= step) {
-        this.carry -= step;
-        this.add(this.acc / this.accN);
+      const v = samples[i]!;
+      this.acc += Number.isFinite(v) ? v : 0;
+      if (++this.accN === this.k) {
+        this.add(this.acc / this.k);
         this.acc = 0;
         this.accN = 0;
       }
@@ -104,8 +111,9 @@ export class SstvListener {
   private add(v: number) {
     // Full: drop the oldest second at once.
     if (this.filled === this.buf.length) {
-      this.buf.copyWithin(0, SSTV_RATE);
-      this.filled -= SSTV_RATE;
+      const second = Math.floor(this.keptRate);
+      this.buf.copyWithin(0, second);
+      this.filled -= second;
     }
     this.buf[this.filled++] = v;
     this.taken++;
@@ -113,9 +121,9 @@ export class SstvListener {
 
   /** A panel whose picture ended since the last one read, or null. */
   read(): { panel: PanelRead | null; end: number } | null {
-    if (this.filled < 38 * SSTV_RATE) return null;
+    if (this.filled < 38 * this.keptRate) return null;
     const startAt = this.taken - this.filled;
-    const found = readSstv(this.buf.subarray(0, this.filled), SSTV_RATE);
+    const found = readSstv(this.buf.subarray(0, this.filled), this.keptRate);
     if (!found) return null;
     const end = startAt + found.end;
     if (end <= this.readUpTo) return null;

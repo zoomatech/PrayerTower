@@ -169,6 +169,12 @@ describe('SSTV Robot 36', () => {
     expect(decodeRobot36(onAir(audio.subarray(0, Math.floor(audio.length / 2)), 0.01), RATE)).toBeNull();
   });
 
+  it.each([8_000, 11_025, 22_050, 44_100])('encodes at %i Hz too (parts that start between samples), and reads back', (rate) => {
+    const a = encodeRobot36(picture.gray, rate);
+    expect(a.every(Number.isFinite)).toBe(true);
+    expect(prayersOf(decodePanelImage(decodeRobot36(onAir(a, 0.05), rate)!.gray, WIDTH, HEIGHT))).toEqual(sent);
+  });
+
   it('decodes at the listener apps’ other common rate', () => {
     const at44 = resample(onAir(audio, 0.05), RATE, 44_100);
     expect(prayersOf(decodePanelImage(decodeRobot36(at44, 44_100)!.gray, WIDTH, HEIGHT))).toEqual(sent);

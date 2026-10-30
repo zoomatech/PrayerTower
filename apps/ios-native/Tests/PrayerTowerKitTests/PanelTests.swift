@@ -73,6 +73,32 @@ private func picture(_ cells: [UInt8], scale: Int = 5, margin: Int = 30, upsideD
         #expect(frame.preset == "sstv-robot36" && frame.callSign == "N0CALL")
     }
 
+    /// Microphones and headsets run at other rates (Bluetooth 8 or 16 kHz, a Mac at 44.1 kHz).
+    @Test(arguments: [8_000, 11_025, 16_000, 44_100, 48_000])
+    func theListenerReadsAtOtherMicrophoneRates(_ rate: Int) throws {
+        let f = try PanelFixture.load()
+        let url = try #require(Bundle.module.url(forResource: f.sstv, withExtension: nil, subdirectory: "Fixtures/panel"))
+        let wav = try #require(WAV.read(try Data(contentsOf: url)))
+        // Linear interpolation from the recording's 12 kHz to `rate`.
+        let n = Int(Double(wav.samples.count) * Double(rate) / Double(wav.rate))
+        let audio = (0..<n).map { i -> Float in
+            let t = Double(i) * Double(wav.rate) / Double(rate)
+            let j = min(Int(t), wav.samples.count - 2)
+            let a = Float(t - Double(j))
+            return wav.samples[j] * (1 - a) + wav.samples[j + 1] * a
+        }
+        var l = SstvListener(rate: rate)
+        l.push([.nan, .infinity, 0])
+        var at = 0
+        while at < audio.count {
+            l.push(Array(audio[at..<min(at + 1000, audio.count)]))
+            at += 1000
+        }
+        l.push([Float](repeating: 0, count: rate))
+        let heard = l.read()
+        #expect(heard?.panel?.prayers == f.prayers)
+    }
+
     @Test func drawsAPanelThatReadsBack() throws {
         let (cells, count) = PrayerPanel.draw(PanelDemo.prayers, callSign: "kd9xyz")
         #expect(count == PanelDemo.prayers.count)
