@@ -38,6 +38,8 @@ public struct SignalEntry: Codable, Sendable, Equatable, Identifiable {
     /// prayer | thanksgiving | ceaseless | auto
     public let kind: String
     public let amplified: Bool
+    /// Copies that went out (an amplified prayer goes out many times in one burst).
+    public let copies: Int?
     public let queuedAt: String
     public let sentAt: String?
     public let callSign: String?
@@ -45,6 +47,8 @@ public struct SignalEntry: Codable, Sendable, Equatable, Identifiable {
     public let heardCount: Int
     /// The same code a listener sees on the Listen screen once it went out.
     public let signalCode: String?
+    /// The strongest report a listener node sent, in dB.
+    public let bestSnrDb: Double?
 
     /// The code spaced out, so VoiceOver reads it letter by letter.
     public var spokenCode: String? { signalCode.map { $0.map(String.init).joined(separator: " ") } }
@@ -141,7 +145,7 @@ public enum Radio {
 private struct RadioPrayerWrapper: Decodable { let radioPrayer: RadioPrayer }
 private struct RadioSend: Encodable { let idempotencyKey: String; let amplify: Bool }
 private struct Trail: Decodable { let trail: [RadioTrailEntry] }
-private struct Signals: Decodable { let signals: [SignalEntry] }
+private struct Signals: Decodable { let signals: [SignalEntry]; let journey: Bool? }
 private struct OneSchedule: Decodable { let schedule: ScheduledSpend }
 private struct KeepOnAirState: Decodable { let keepOnAir: Bool }
 
@@ -153,7 +157,12 @@ extension APIClient {
     /// Empty when nothing was sent yet; a 404 while the switch is off.
     public func radioTrail(postId: String) async throws -> [RadioTrailEntry] { try await (get("/posts/\(postId)/radio-trail") as Trail).trail }
     /// A 404 while My signal queue is off.
-    public func signalQueue() async throws -> [SignalEntry] { try await (get("/me/signal-queue") as Signals).signals }
+    public func signalQueue() async throws -> [SignalEntry] { try await signalQueueWithJourney().signals }
+    /// The queue, and whether Signal journey (how far each sent wave has gone) is on.
+    public func signalQueueWithJourney() async throws -> (signals: [SignalEntry], journey: Bool) {
+        let r: Signals = try await get("/me/signal-queue")
+        return (r.signals, r.journey ?? false)
+    }
     public func setKeepOnAir(postId: String, on: Bool) async throws -> Bool {
         try await (send(body(request("PUT", "/posts/\(postId)/keep-on-air"), ["on": on])) as KeepOnAirState).keepOnAir
     }

@@ -12,15 +12,30 @@ public struct ListenConfig: Codable, Sendable, Equatable {
     public let enabled: Bool
     public let receipts: Bool
     public let prayingToo: Bool?
+    /// The listener may have decoded prayers read aloud with the device's own speech (Admin → Radio).
+    public let readAloud: Bool?
+    /// The prayer panel is on: the listener may read panels sent as SSTV pictures (Admin → Radio).
+    public let panel: Bool?
 
-    public init(enabled: Bool, receipts: Bool, prayingToo: Bool? = nil) {
+    public init(enabled: Bool, receipts: Bool, prayingToo: Bool? = nil, readAloud: Bool? = nil, panel: Bool? = nil) {
         self.enabled = enabled
         self.receipts = receipts
         self.prayingToo = prayingToo
+        self.readAloud = readAloud
+        self.panel = panel
     }
 
-    /// Sample data: open, with reports shown but never sent.
-    public static let sample = ListenConfig(enabled: true, receipts: true)
+    /// Sample data: open, with reports shown but never sent, and reading aloud and SSTV pictures offered.
+    public static let sample = ListenConfig(enabled: true, receipts: true, readAloud: true, panel: true)
+}
+
+/// What the Listen screen reads aloud from new frames: each prayer once, in order (an amplified
+/// prayer comes several times in one burst).
+public enum ReadAloud {
+    public static func lines(_ frames: [HeardFrame]) -> [String] {
+        var seen = Set<String>()
+        return frames.flatMap { $0.prayers ?? [] }.filter { seen.insert($0).inserted }
+    }
 }
 
 private struct Matched: Decodable { let matched: Int }

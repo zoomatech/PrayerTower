@@ -28,6 +28,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
 | Fair air (every request on the air once; a daily cap per member) | Admin → Radio → Every request on the air once, Radio sends per member a day | [Fair air](#fair-air) |
 | My signal queue and signal codes (a member's own radio prayers; the same code on the Listen screen) | Admin → Radio → My signal queue | [My signal queue](#my-signal-queue) |
+| Signal journey (how far each sent wave has gone, the places it passed, the strongest report) | Admin → Radio → Signal journey | [Signal journey](#signal-journey) |
 | Where it was heard (receivers that decoded each radio prayer, shown to the sender and asker) | Admin → Radio → Where it was heard | [Where it was heard](#where-it-was-heard) |
 | Scheduled radio sends (a request goes out by radio, or amplified, at a set time) | Admin → Radio → Scheduled radio sends | [Scheduled radio sends](#scheduled-radio-sends) |
 | Prayer without ceasing (kept requests go out again when the air is quiet) | Admin → Radio → Prayer without ceasing | [Prayer without ceasing](#prayer-without-ceasing) |
@@ -40,7 +41,11 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Weekly station report (bursts, prayers delivered, listener coverage, problems) | Admin → Radio → Station report | [Weekly station report](#weekly-station-report) |
 | Band plan (on HF, the band for each burst picked from NOAA space weather) | Admin → Radio → Band plan, plus `BAND_PLAN=server` | [Band plan](#band-plan) |
 | Urgent prayers (sent first in the next window, repeated, robust preset, confirmed by a listener) | Admin → Radio → Urgent prayers | [Urgent prayers](#urgent-prayers) |
+| Sent by radio (members see when it went out and how many heard it, with a small map; one opt-in notice) | Admin → Radio → Sent by radio | [Sent by radio](#sent-by-radio) |
+| Read aloud (the Listen screen reads decoded prayers with the device's own voice) | Admin → Radio → Sent by radio | [Read aloud](#read-aloud) |
+| Name privacy (names taken out for members who choose it) | Admin → Radio → Sent by radio | [Privacy on the air](#privacy-on-the-air) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
+| Prayer panel (prayers as one picture to show, print or send as SSTV; listener apps read it with the camera or from SSTV audio) | Admin → Radio → Prayer panel and SSTV, plus `BURST_MODE=sstv` to send | [Prayer panel and SSTV](#prayer-panel-and-sstv) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
 | Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
 | Store-and-forward relay | `RELAY=on` on a listener node with a transmitter | [RADIO_BURST.md](RADIO_BURST.md#store-and-forward-relay) |
@@ -270,6 +275,10 @@ fastest preset that the weakest listener can still decode. Off by default.
 
    Set the receiver's sound card in `LISTEN_RECORD_CMD` (the card name from
    `arecord -l`). From an HF (SSB) receiver, also set `LISTEN_SEARCH_HZ=50`.
+   If the station sends prayer panels as SSTV pictures (`BURST_MODE=sstv`), set
+   `LISTEN_SSTV=on` so the node reads them too and reports them as heard. Its
+   "dB" for a picture is how cleanly the picture came through (the gap between
+   black and white over the noise), not a burst SNR.
    For a Pi that sets itself up on first boot, change `--hamlib` to
    `--listener-only` in `pi/user-data`.
 3. On the station, in `/etc/prayer-tower-station.env`:
@@ -505,6 +514,20 @@ Two settings in Admin → Radio, both off by default.
 From the first prototype's Signal Queue tab. Off until an admin turns on **My signal queue** in Admin → Radio.
 
 While it is on, members have **My signal queue** on their profile: their own radio prayers, newest first, each waiting, going out, sent or not sent, amplified or not, with the call sign and preset it went out on and how many receivers reported it. Each one that went out has a signal code such as `Q7MK-4XPL-9RT2`: 60 bits of the fingerprint of the exact text sent (the same fingerprint the station reports and listeners send back), written in 32 letters and digits with no I, O, 0 or 1. The Listen screen shows the same code under each prayer it decodes, so a sender and a listener can match a transmission without either learning who the other is. Re-sends from [prayer without ceasing](#prayer-without-ceasing) are left out of the list.
+
+## Signal journey
+
+From the HAM Operators notebook page ("dots of prayer float from earth ... the line of the radio waves journey through space") and the radio-tower dashboard idea ("signal strength, frequency and light-years reached"). Off until an admin turns on **Signal journey** in Admin → Radio. It shows only inside [My signal queue](#my-signal-queue), so that switch must be on too.
+
+While it is on, each radio prayer in My signal queue that went out shows **How far it has gone**: how far its wave front is from Earth now ("10 light-minutes out, 179.9 million km from Earth"), worked out from the time it was sent and the speed of light, and updated every second while the screen is open. Under it is a track from Earth to Proxima Centauri on a log scale, with dots drifting out along it (held still when Reduce Motion is on), the places already passed, the next one and how long until the wave reaches it. An amplified prayer also shows how many copies went out in its burst. When [Where it was heard](#where-it-was-heard) kept reports from listener nodes, the strongest one is shown in dB; no node names appear here.
+
+The places, nearest first: the Moon (384,400 km, about 1.3 light-seconds), the Sun (1 astronomical unit, about 8.3 light-minutes), Neptune (30.07 AU, about 4.2 light-hours), the heliopause where Voyager 1 left the Sun's wind (about 121 AU), Voyager 1 itself (about one light-day out in late 2026), one light-year, and Proxima Centauri (4.2465 light-years). Planets move, so these are average or fixed distances.
+
+The same code runs on the server (packages/shared `signalJourney`), in the Expo app (components/signal-journey.tsx) and in the native app (PrayerTowerKit `SignalJourney`, App/RadioViews.swift).
+
+Note for the legal department: the journey is drawn from the time a prayer was sent and the speed of light. Whether a given wave actually leaves the Earth depends on the band: VHF and UHF (6 m and up) pass through the ionosphere, while HF is mostly reflected back (Queue-to-PSK31 Build Paper, "Radio basics"). The screen does not claim that any particular wave reached any place.
+
+Sources: speed of light 299,792.458 km/s, exact by the SI definition of the metre ([BIPM, SI Brochure](https://www.bipm.org/en/publications/si-brochure)); astronomical unit 149,597,870,700 m ([IAU 2012 Resolution B2](https://www.iau.org/static/resolutions/IAU2012_English.pdf)); light-year 9,460,730,472,580.8 km ([IAU, measuring the universe](https://www.iau.org/public/themes/measuring/)); Moon mean distance 384,400 km and Neptune 30.07 AU ([NASA planetary fact sheets](https://nssdc.gsfc.nasa.gov/planetary/factsheet/)); Voyager 1 crossed the heliopause in August 2012 at about 121 AU ([NASA, Voyager](https://science.nasa.gov/mission/voyager/)) and reaches one light-day from Earth around November 2026 ([BBC Sky at Night](https://www.skyatnightmagazine.com/news/nasa-voyager-1-light-day)); Proxima Centauri 4.2465 light-years ([NASA, Proxima Centauri](https://science.nasa.gov/exoplanet-catalog/proxima-centauri-b/)).
 
 ## Where it was heard
 
@@ -753,6 +776,62 @@ takes the mark off one still waiting; it keeps its place in the ordinary queue.
 The operator console lists the last two days of urgent prayers: waiting, sent
 and waiting for a listener, or confirmed.
 
+## Sent by radio
+
+Off by default. Admin → Radio → **Show members when it was sent and heard**.
+The member who sent a radio prayer, and the person who asked, then see on the
+request: "Sent by radio at 9:30 PM, heard by 4 listeners", how many times it
+went out, and a small map. The map shows the station and the listener nodes that
+heard the latest send, drawn on the device with no map service. Only nodes
+placed on the [coverage map](#coverage-map) appear, rounded to about a city.
+Phones and listening pages are only counted. "Heard by" counts each node once,
+plus each phone report (from [Where it was heard](#where-it-was-heard) when it
+is on, otherwise from receipts). Nobody else sees it.
+
+Members choose **Tell me once after each radio send**, on the request or in
+Notification settings. They then get one notice about half an hour after each
+send, once the listeners' reports are in: "Sent at 9:30 PM CDT, heard by 4
+listeners." This comes from the `radio_followup` job, every 10 minutes, for
+sends of the last day, each once. It is in the Prayers group, so it follows the
+member's push and quiet-hours settings. Re-sends from prayer without ceasing are
+left out.
+
+## Read aloud
+
+Off by default. Admin → Radio → **Offer reading aloud on the Listen screen**.
+The Listen screen (iPhone, Mac and the app) then offers **Read prayers aloud**,
+off until the listener turns it on. Each prayer decoded from then on is read
+once with the device's own voice: Apple's speech synthesizer on iPhone and Mac,
+and expo-speech in the app. An amplified prayer that comes several times in one
+burst is read once. Nothing leaves the device. On an iPhone, while reading aloud
+is offered, the Listen screen records and plays at once so the voice can be
+heard.
+
+## Privacy on the air
+
+The words a radio prayer carries are made once, when the station takes it, and
+kept as what was sent. The listening page, the cast log, receipts and every
+listener see exactly those words. The rules, from `apps/server/src/modules/radio/privacy.ts`:
+
+- **Always:** email addresses, web links, phone numbers (seven digits or more)
+  and @handles are taken out.
+- **Always:** an anonymous request never carries its author's name or handle.
+- **Always:** sensitive requests, laments the author did not release, removed
+  or hidden requests, and requests waiting for a moderator never go out.
+  Comments, private messages and prayer-circle posts are never radio prayers.
+- **Always:** a confession goes on the air only when the person who wrote it
+  sends it.
+- **With Admin → Radio → Take names out for members who choose it on:** for an
+  anonymous request, or a member who turned on **Keep names off the radio** in
+  Notification settings, names are replaced with "someone". This covers the
+  author's own name, and any capitalized word in mid-sentence that is not an
+  everyday, family or faith word, so "Pray for Tom Baker's surgery at Memorial
+  with Dr. Okafor" goes out as "Pray for someone's surgery at someone with Dr.
+  someone". It errs toward taking a word out.
+
+`apps/server/test/radio-loop-privacy.test.ts` checks these end to end, through
+the station's claim to what the burst carries and what the cast log shows.
+
 ## Security
 
 What protects the station, and the few things an operator decides.
@@ -780,6 +859,23 @@ listener nodes report the IDs they hear so the prayers count as heard.
 Details and the packet format: [RADIO_BURST.md](RADIO_BURST.md#packet-fallback).
 
 ![Packet fallback switch](images/radio/packet-fallback.png)
+
+## Prayer panel and SSTV
+
+The station can send prayers as SSTV pictures: each a prayer panel, a dense
+black-and-white picture that holds a batch of prayers. Any SSTV program shows
+it, and the Prayer Tower listener apps read the prayers back from the audio or
+from a photo of the screen.
+
+1. Turn on Admin → Radio → **Prayer panel and SSTV**.
+2. In `/etc/prayer-tower-station.env` set `BURST_MODE=sstv`. To practise with
+   nothing keyed, also set `SSTV_SEND=simulate`: each picture goes to a WAV file
+   in the bursts folder, and the log says what a receiver reads back.
+3. `sudo systemctl restart prayer-tower-station`. Sound card and PTT are set up as for `BURST_MODE=audio`.
+
+A panel takes about 37 seconds on the air, and the CW station ID (`STATION_ID=cw`)
+follows it when one is due. Members can also show or print the
+latest panel from the app. Details: [RADIO_BURST.md](RADIO_BURST.md#prayer-panel).
 
 ## Diagnose a weak signal
 
@@ -868,6 +964,8 @@ For the legal department: signals aimed at the sky (the dish and sky target) sho
 
 ## Sources
 
+- AVSpeechSynthesizer and AVAudioSession categories (`.record` silences playback; `.playAndRecord` with `.defaultToSpeaker`): [Apple, AVSpeechSynthesizer](https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer), [AVAudioSession.Category](https://developer.apple.com/documentation/avfaudio/avaudiosession/category)
+- expo-speech (`speak`, `stop`, on-device text to speech): [Expo, Speech](https://docs.expo.dev/versions/latest/sdk/speech/)
 - NOAA SWPC JSON products (`f107_cm_flux.json`, `planetary_k_index_1m.json`): [NOAA SWPC data service](https://services.swpc.noaa.gov/json/)
 - Sunspot number from the 10.7 cm flux: [Space Weather Services (BOM), "The 10.7 cm solar radio flux"](https://www.sws.bom.gov.au/Educational/2/2/5)
 - MUF about three times the critical frequency for a long hop: [Wikipedia, "Maximum usable frequency"](https://en.wikipedia.org/wiki/Maximum_usable_frequency); best working frequency about 80-85% of MUF: [Electronics Notes, "MUF, LUF and FOT"](https://www.electronics-notes.com/articles/antennas-propagation/ionospheric/maximum-lowest-critical-optimum-usable-working-frequency.php)

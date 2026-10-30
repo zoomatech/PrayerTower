@@ -26,10 +26,10 @@ afterAll(async () => {
 describe('listening page', () => {
   it('is a 404 until Admin → Radio turns it on, then serves the decoder', async () => {
     expect((await app.inject({ method: 'GET', url: '/listen' })).statusCode).toBe(404);
-    expect((await as(admin).get('/radio/listen')).json()).toEqual({ enabled: false, receipts: false, prayingToo: false });
+    expect((await as(admin).get('/radio/listen')).json()).toEqual({ enabled: false, receipts: false, prayingToo: false, readAloud: false, panel: false });
     expect((await as(admin).patch('/admin/radio-settings', { listenPage: true })).json().settings.listen_page_enabled).toBe(true);
     // The app's Listen screen follows the same switch.
-    expect((await as(admin).get('/radio/listen')).json()).toEqual({ enabled: true, receipts: false, prayingToo: false });
+    expect((await as(admin).get('/radio/listen')).json()).toEqual({ enabled: true, receipts: false, prayingToo: false, readAloud: false, panel: false });
     expect((await app.inject({ method: 'GET', url: '/radio/listen' })).statusCode).toBe(401);
     const page = await app.inject({ method: 'GET', url: '/listen' });
     expect(page.statusCode).toBe(200);

@@ -328,6 +328,15 @@ export function adminRoutes(app: FastifyInstance, db: Db, storage: SupabaseClien
     await signalQueue.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
     return { enabled: await signalQueue.enabled(db) };
   });
+  app.get('/admin/signal-journey', async (req) => {
+    await requireAdmin(req);
+    return { enabled: await signalQueue.journeyEnabled(db) };
+  });
+  app.patch('/admin/signal-journey', async (req) => {
+    await requireAdmin(req);
+    await signalQueue.setJourneyEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await signalQueue.journeyEnabled(db) };
+  });
   app.get('/admin/heard-trail', async (req) => {
     await requireAdmin(req);
     return { enabled: await trail.enabled(db) };

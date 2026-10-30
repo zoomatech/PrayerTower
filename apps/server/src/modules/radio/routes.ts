@@ -4,6 +4,8 @@ import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import * as radio from './index.js';
+import * as followup from './followup.js';
+import * as panel from './panel.js';
 import * as prayingToo from './praying-too.js';
 import * as signalQueue from './signal-queue.js';
 import * as receipts from './receipts.js';
@@ -27,11 +29,18 @@ export function radioRoutes(app: FastifyInstance, db: Db) {
   app.get('/radio/listen', async (req) => {
     requireUser(req);
     const s = await radio.stationSettings(db);
-    return { enabled: s.listen_page_enabled, receipts: s.listen_page_enabled && (await receipts.enabled(db)), prayingToo: s.listen_page_enabled && (await prayingToo.enabled(db)) };
+    return {
+      enabled: s.listen_page_enabled,
+      receipts: s.listen_page_enabled && (await receipts.enabled(db)),
+      prayingToo: s.listen_page_enabled && (await prayingToo.enabled(db)),
+      readAloud: s.listen_page_enabled && (await followup.loopSettings(db)).readAloud,
+      panel: s.listen_page_enabled && (await panel.enabled(db)),
+    };
   });
 
   // My signal queue (signal-queue.ts): 404 while the switch is off.
-  app.get('/me/signal-queue', async (req) => ({ signals: await signalQueue.mine(db, requireUser(req)) }));
+  // `journey`: also show how far each sent wave has gone (Signal journey, off by default).
+  app.get('/me/signal-queue', async (req) => ({ signals: await signalQueue.mine(db, requireUser(req)), journey: await signalQueue.journeyEnabled(db) }));
 
   app.get('/me/radio-prayers', async (req) => {
     const userId = requireUser(req);

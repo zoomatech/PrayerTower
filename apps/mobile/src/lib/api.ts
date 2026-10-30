@@ -270,8 +270,12 @@ export interface Features {
   scheduledRadio: boolean;
   /** "Where it was heard": the receivers that decoded a radio prayer. */
   heardTrail: boolean;
+  radioFollowup: boolean;
+  radioPanel: boolean;
   /** My signal queue, and signal codes on the Listen screen. */
   signalQueue: boolean;
+  /** Signal journey on My signal queue: how far each sent wave has gone. */
+  signalJourney: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -1153,6 +1157,26 @@ export interface RadioTrailEntry {
   phones: number;
 }
 
+/** "Sent by radio at 9:30 PM, heard by 4 listeners" on a request (server radio/followup.ts). */
+export interface RadioSummary {
+  optedIn: boolean;
+  latest: { sentAt: string; callSign: string | null; heardBy: number; places: { name: string; lat: number; lon: number; snrDb: number }[] } | null;
+  sends: number;
+  station: { lat: number; lon: number } | null;
+}
+
+/** The member's own radio choices; null while the admin's switch for it is off. */
+export interface RadioPrefs {
+  followup: boolean | null;
+  namesPrivate: boolean | null;
+}
+
+export interface RadioLoop {
+  followup: boolean;
+  readAloud: boolean;
+  namePrivacy: boolean;
+}
+
 /** One of my radio prayers (My signal queue). */
 export interface SignalEntry {
   id: string;
@@ -1161,12 +1185,16 @@ export interface SignalEntry {
   status: 'waiting' | 'sending' | 'sent' | 'not_sent';
   kind: string;
   amplified: boolean;
+  /** Copies that went out (an amplified prayer goes out many times in one burst). */
+  copies?: number;
   queuedAt: string;
   sentAt: string | null;
   callSign: string | null;
   preset: string | null;
   heardCount: number;
   signalCode: string | null;
+  /** The strongest report a listener node sent, in dB. */
+  bestSnrDb?: number | null;
 }
 
 export interface ScheduledSpend {
@@ -2113,8 +2141,12 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
   precheck: (text: string, context?: 'lament' | 'lamentReply') => post<Precheck>('/moderation/precheck', { text, context }).catch((): Precheck => ({ warn: false })),
-  signalQueue: () => get<{ signals: SignalEntry[] }>('/me/signal-queue'),
+  signalQueue: () => get<{ signals: SignalEntry[]; journey?: boolean }>('/me/signal-queue'),
   radioTrail: (id: string) => get<{ trail: RadioTrailEntry[] }>(`/posts/${id}/radio-trail`),
+  radioSummary: (id: string) => get<RadioSummary>(`/posts/${id}/radio-summary`),
+  radioPanel: () => get<{ callSign: string; prayers: string[]; at: string | null }>('/radio/panel'),
+  radioPrefs: () => get<RadioPrefs>('/me/radio-prefs'),
+  updateRadioPrefs: (patch: { followup?: boolean; namesPrivate?: boolean }) => request<RadioPrefs>('PATCH', '/me/radio-prefs', patch),
   setKeepOnAir: (id: string, on: boolean) => request<{ keepOnAir: boolean }>('PUT', `/posts/${id}/keep-on-air`, { on }),
   setLament: (id: string, patch: { lament?: boolean; radio?: boolean }) => request<{ lament: boolean; lamentRadio: boolean }>('PUT', `/posts/${id}/lament`, patch),
   appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
@@ -2247,7 +2279,13 @@ export const api = {
     setRadioFairAir: (patch: { everyRequest?: boolean; dailyCap?: number | null }) => request<{ everyRequest: boolean; dailyCap: number | null }>('PATCH', '/admin/radio-fair-air', patch),
     signalQueueSetting: () => get<{ enabled: boolean }>('/admin/signal-queue'),
     setSignalQueue: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/signal-queue', { enabled }),
+    signalJourneySetting: () => get<{ enabled: boolean }>('/admin/signal-journey'),
+    setSignalJourney: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/signal-journey', { enabled }),
     heardTrail: () => get<{ enabled: boolean }>('/admin/heard-trail'),
+    radioLoop: () => get<RadioLoop>('/admin/radio-loop'),
+    radioPanel: () => get<{ enabled: boolean }>('/admin/radio-panel'),
+    setRadioPanel: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-panel', { enabled }),
+    updateRadioLoop: (patch: Partial<RadioLoop>) => request<RadioLoop>('PATCH', '/admin/radio-loop', patch),
     setHeardTrail: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/heard-trail', { enabled }),
     scheduledRadio: () => get<{ enabled: boolean }>('/admin/scheduled-radio'),
     setScheduledRadio: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/scheduled-radio', { enabled }),
@@ -2512,8 +2550,8 @@ export const api = {
   endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
-  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/radio/listen'),
-  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/listen/config'),
+  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean; panel?: boolean }>('/radio/listen'),
+  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean; panel?: boolean }>('/listen/config'),
   listenPraying: (report: { callSign: string; hashes: string[] }) => post<{ matched: number }>('/listen/praying', report),
   /** "On the air" receipts: fingerprints of prayers heard on the Listen screen, never the words. */
   listenHeard: (report: { callSign: string; preset: string; snrDb: number; hashes: string[] }) => post<{ matched: number }>('/listen/heard', report),

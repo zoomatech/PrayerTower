@@ -4,6 +4,8 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import { notFound } from '../../errors.js';
 import * as radio from '../radio/index.js';
+import * as followup from '../radio/followup.js';
+import * as panel from '../radio/panel.js';
 import * as prayingToo from '../radio/praying-too.js';
 import * as receipts from '../radio/receipts.js';
 import * as setup from '../radio/setup.js';
@@ -13,7 +15,15 @@ export async function listenerMode(db: Db) {
   const { rows } = await db.query<{ on: boolean }>('select listener_mode_enabled as on from public.token_settings');
   const s = await radio.stationSettings(db);
   const enabled = rows[0]!.on && s.listen_page_enabled;
-  return { enabled, receipts: enabled && (await receipts.enabled(db)), prayingToo: enabled && (await prayingToo.enabled(db)) };
+  return {
+    enabled,
+    receipts: enabled && (await receipts.enabled(db)),
+    prayingToo: enabled && (await prayingToo.enabled(db)),
+    // The Listen screen may read decoded prayers aloud with the device's own speech (followup.ts).
+    readAloud: enabled && (await followup.loopSettings(db)).readAloud,
+    // Read prayer panels with the camera and from SSTV pictures (radio/panel.ts).
+    panel: enabled && (await panel.enabled(db)),
+  };
 }
 
 export async function setListenerMode(db: Db, on: boolean) {

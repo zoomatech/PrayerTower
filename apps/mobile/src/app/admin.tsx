@@ -14,6 +14,8 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { ListenerSignupSection, QslCardsSection, StationReportSection } from '@/components/listener-admin';
 import { BandPlanSection, UrgentRadioSection } from '@/components/radio-plan-admin';
+import { RadioPanelToggle } from '@/components/prayer-panel';
+import { RadioLoopSection } from '@/components/radio-summary';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings, type Sponsor, type SponsorKind, type LibrarySettings } from '@/lib/api';
@@ -391,7 +393,10 @@ function Admin() {
             <CeaselessSection />
             <ScheduledRadioToggle />
             <HeardTrailToggle />
+            <RadioLoopSection />
+            <RadioPanelToggle />
             <SignalQueueToggle />
+            <SignalJourneyToggle />
             <FairAirSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
@@ -835,6 +840,21 @@ function SignalQueueToggle() {
   if (on === null) return null;
   return (
     <Toggle label={t('admin.signalQueue')} hint={t('admin.signalQueueHint')} value={on} onChange={(v) => api.admin.setSignalQueue(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
+  );
+}
+
+/** Signal journey on My signal queue (radio/signal-queue.ts), off by default. */
+function SignalJourneyToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.signalJourneySetting().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.signalJourney')} hint={t('admin.signalJourneyHint')} value={on} onChange={(v) => api.admin.setSignalJourney(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
   );
 }
 

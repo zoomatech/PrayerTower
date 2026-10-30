@@ -14,6 +14,8 @@ import { resample } from './wav.js';
 import { demodulate as demodulatePackets } from '../packet/afsk.js';
 import { parseStatus, type PacketStatus } from '../packet/message.js';
 import { finiteSamples } from './samples.js';
+import { decodePanelImage, encodePanel, GRID_H, GRID_W } from '../panel/panel.js';
+import { decodeRobot36 } from '../panel/sstv.js';
 
 const latin1 = (s: string) => Uint8Array.from(s, (ch) => ch.charCodeAt(0));
 let primer: Uint8Array | null = null;
@@ -98,3 +100,32 @@ export function decodePackets(samples: Float32Array, rate: number): (PacketStatu
 
 /** Decode replay and diagnostics for a recording (diagnose.ts): level, clipping, hum, SNR margins and advice. */
 export { diagnose, report as diagnosisReport } from './diagnose.js';
+
+// The prayer panel and SSTV (../panel): drawing a panel to show or print, reading one from a
+// picture (a camera photo, a screenshot), and finding one in SSTV Robot 36 audio.
+
+export interface PanelRead {
+  callSign: string;
+  /** The prayers, or null for a codec the apps can't unpack. */
+  prayers: string[] | null;
+  corrected: boolean;
+}
+
+/** As many of the prayers (folded to ASCII) as fit one panel: GRID_W x GRID_H cells, 1 black. */
+export function drawPanel(prayers: readonly string[], callSign: string): { cells: Uint8Array; count: number; width: number; height: number } {
+  const p = encodePanel(prayers, callSign);
+  return { ...p, width: GRID_W, height: GRID_H };
+}
+
+/** Read a panel in a grayscale picture (0 black .. 255 white); null when there is none to read. */
+export function readPanel(gray: Uint8Array, width: number, height: number): PanelRead | null {
+  const f = decodePanelImage(gray, width, height);
+  return f ? { callSign: f.callSign, prayers: unpack(f.batch), corrected: f.corrected } : null;
+}
+
+/** Find an SSTV Robot 36 picture in the audio and read the panel in it; where it started and ended, in samples. */
+export function readSstv(samples: Float32Array, rate: number): { panel: PanelRead | null; gray: Uint8Array; start: number; end: number } | null {
+  const pic = decodeRobot36(finiteSamples(samples), rate);
+  if (!pic) return null;
+  return { panel: readPanel(pic.gray, 320, 240), gray: pic.gray, start: pic.start, end: pic.end };
+}

@@ -56,8 +56,25 @@ public enum SampleServer {
         """
     }
 
-    static var routes: [(method: String, pattern: String, body: String)] {
-        let ruth = card("sample-p1", "Ruth", mine: false, "Please pray for my mother's surgery on Tuesday.")
+    /// Words the sample says, in each edition's voice: Open Circle's screenshots never say "pray".
+    struct Lines {
+        let ruth, vow, excerpt, thanks, noticeTitle, noticeBody, tier, nextTier: String
+        static func of(_ edition: Edition) -> Lines {
+            edition == .openCircle
+                ? Lines(ruth: "Please keep my mother in mind before her surgery on Tuesday.", vow: "I will check in on Ruth's mother.",
+                        excerpt: "Please keep my mother in mind", thanks: "Thank you for being there!", noticeTitle: "Sam is thinking of you",
+                        noticeBody: "Sam is holding your request in mind.", tier: "Regular", nextTier: "Steady")
+                : Lines(ruth: "Please pray for my mother's surgery on Tuesday.", vow: "I will pray for Ruth's mother.",
+                        excerpt: "Please pray for my mother's surgery", thanks: "Thank you for praying!", noticeTitle: "Sam prayed for you",
+                        noticeBody: "Sam prayed for your request.", tier: "Faithful", nextTier: "Steadfast")
+        }
+    }
+
+    static var routes: [(method: String, pattern: String, body: String)] { routes(.current) }
+
+    static func routes(_ edition: Edition) -> [(method: String, pattern: String, body: String)] {
+        let l = Lines.of(edition)
+        let ruth = card("sample-p1", "Ruth", mine: false, l.ruth)
         let mine = card("sample-p2", "Sample Member", mine: true, "Asking for strength for my new job.")
         return [
             ("GET", "^/radio/listen$", #"{"enabled":true,"receipts":true}"#),
@@ -75,15 +92,18 @@ public enum SampleServer {
             """),
             ("GET", "^/posts/[^/]+/prayers$", #"{"count":4,"people":[{"id":"sample-sam","displayName":"Sam"}]}"#),
             ("GET", "^/me/commitments$", """
-            {"commitments":[{"id":"sample-k1","post_id":"sample-p1","frequency":"daily","vow_text":"I will pray for Ruth's mother.","status":"active",
-              "next_reminder_at":"2026-10-30T09:00:00Z","committed_count":7,"completed_count":2,"ends_at":null,"post_excerpt":"Please pray for my mother's surgery"}],"note":""}
+            {"commitments":[{"id":"sample-k1","post_id":"sample-p1","frequency":"daily","vow_text":"\(l.vow)","status":"active",
+              "next_reminder_at":"2026-10-30T09:00:00Z","committed_count":7,"completed_count":2,"ends_at":null,"post_excerpt":"\(l.excerpt)"}],"note":""}
             """),
+            ("GET", "^/me/commitments/review$", #"{"prayers":9,"checkins":5,"people":3,"active":1,"kept":2,"message":"You kept your promises this week."}"#),
+            ("GET", "^/me/tier$", #"{"tier":{"tier":"faithful","label":"\#(l.tier)"},"prayers":42,"next":{"tier":"steadfast","label":"\#(l.nextTier)","prayersNeeded":8},"upkeep":null}"#),
+            ("GET", "^/me/tokens$", #"{"balance":12,"priestly":{"balance":1,"towardNext":4,"prayersPerToken":10}}"#),
             ("GET", "^/me/conversations$", """
             {"conversations":[{"id":"sample-m1","kind":"direct","postId":null,"title":"Sam","topic":null,"isPublic":false,"isRequest":false,"isOwner":false,
-              "memberCount":2,"lastMessage":"Thank you for praying!","lastMessageAt":"2026-10-29T10:00:00Z","unread":1}]}
+              "memberCount":2,"lastMessage":"\(l.thanks)","lastMessageAt":"2026-10-29T10:00:00Z","unread":1}]}
             """),
             ("GET", "^/me/notifications$", """
-            {"notifications":[{"id":"sample-n1","kind":"prayed_for","title":"Sam prayed for you","body":"Sam prayed for your request.","data":{},
+            {"notifications":[{"id":"sample-n1","kind":"prayed_for","title":"\(l.noticeTitle)","body":"\(l.noticeBody)","data":{},
               "read_at":null,"created_at":"2026-10-29T10:00:00Z"}]}
             """),
         ]

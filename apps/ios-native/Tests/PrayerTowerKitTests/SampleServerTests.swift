@@ -21,6 +21,10 @@ import Testing
         #expect(try await api.commitments().commitments.count == 1)
         #expect(try await api.conversations().count == 1)
         #expect(try await api.notifications().count == 1)
+        // My Promises and Me load these too; a missing one shows an error in the store screenshots.
+        #expect(try await api.weeklyReview().kept == 2)
+        #expect(try await api.tier().prayers == 42)
+        #expect(try await api.tokens().balance == 12)
     }
 
     @Test func unknownReadsAreNotFoundAndWritesSucceed() {
@@ -34,5 +38,14 @@ import Testing
         #expect(SampleServer.skin(["app", "-PTSkin", "golden-wood"]) == nil)
         #expect(SampleServer.tab(for: "post") == (0, true))
         #expect(SampleServer.tab(for: "me").tab == 4)
+    }
+
+    @Test func openCircleSampleNeverSaysPray() {
+        // Field names and codes ("prayers":, "praying_now") are not words people read.
+        let shown = SampleServer.routes(.openCircle).map(\.body).joined()
+            .replacingOccurrences(of: #""pray\w*"\s*:"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #""(praying_now|prayer_request|prayed_for)""#, with: "", options: .regularExpression)
+        #expect(shown.range(of: "pray", options: .caseInsensitive) == nil)
+        #expect(SampleServer.routes(.prayerTower).map(\.body).joined().contains("Thank you for praying!"))
     }
 }

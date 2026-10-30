@@ -66,10 +66,13 @@ for PATTERN in "${DEVICES[@]}"; do
   xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100
   xcrun simctl install "$UDID" "$BUILT"
   mkdir -p "$OUT/$NAME"
+  # A first launch to warm up (the first one after install is slow), so no screen is caught loading.
+  xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData > /dev/null
+  sleep 15
   for SCREEN in "${SCREENS[@]}"; do
     xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1 || true
     xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData -PTScreen "$SCREEN" > /dev/null
-    sleep 4
+    sleep 6
     if xcrun simctl io "$UDID" screenshot "$OUT/$NAME/$SCREEN.png" > "$LOGS/shot.txt" 2>&1; then
       echo "Saved $NAME/$SCREEN.png"; SAVED=$((SAVED + 1))
     else
@@ -80,13 +83,30 @@ for PATTERN in "${DEVICES[@]}"; do
     for SKIN in "${SKINS[@]}"; do
       xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1 || true
       xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData -PTScreen feed -PTSkin "$SKIN" > /dev/null
-      sleep 4
+      sleep 6
       if xcrun simctl io "$UDID" screenshot "$OUT/$NAME/skin-$SKIN.png" > "$LOGS/shot.txt" 2>&1; then
         echo "Saved $NAME/skin-$SKIN.png"; SAVED=$((SAVED + 1))
       else
         echo "Screenshot failed: $NAME/skin-$SKIN: $(tail -1 "$LOGS/shot.txt")"
       fi
     done
+    # QA=1: the same screens in Dark Mode and at the largest accessibility text size, for checking
+    # (store-screenshots/native-qa/, never uploaded to the store).
+    if [ "${QA:-0}" = 1 ]; then
+      QADIR="$ROOT/store-screenshots/native-qa/$EDITION/$NAME"
+      mkdir -p "$QADIR"
+      for LOOK in dark large; do
+        if [ "$LOOK" = dark ]; then xcrun simctl ui "$UDID" appearance dark
+        else xcrun simctl ui "$UDID" appearance light; xcrun simctl ui "$UDID" content_size accessibility-extra-extra-extra-large; fi
+        for SCREEN in "${SCREENS[@]}"; do
+          xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1 || true
+          xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData -PTScreen "$SCREEN" > /dev/null
+          sleep 6
+          xcrun simctl io "$UDID" screenshot "$QADIR/$LOOK-$SCREEN.png" > "$LOGS/shot.txt" 2>&1 && echo "Saved QA $NAME/$LOOK-$SCREEN.png"
+        done
+      done
+      xcrun simctl ui "$UDID" content_size large
+    fi
   fi
   xcrun simctl shutdown "$UDID"
   xcrun simctl delete "$UDID"

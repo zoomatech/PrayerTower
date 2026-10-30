@@ -29,6 +29,8 @@ import * as security from '../security/index.js';
 import * as kindNorms from '../kind-norms/index.js';
 import * as safety from '../safety/index.js';
 import * as signalQueue from '../radio/signal-queue.js';
+import * as followup from '../radio/followup.js';
+import * as panel from '../radio/panel.js';
 import * as trail from '../radio/trail.js';
 import * as schedules from '../schedules/index.js';
 import * as ceaseless from '../radio/ceaseless.js';
@@ -270,8 +272,14 @@ export async function features(q: Queryable) {
     scheduledRadio: await schedules.radioEnabled(q),
     /** "Where it was heard": the receivers that decoded a radio prayer (radio/trail.ts). */
     heardTrail: await trail.enabled(q),
+    /** "Sent by radio, heard by N listeners" on a request, with a small map (radio/followup.ts). */
+    radioFollowup: await followup.enabled(q),
+    /** The prayer panel: the latest prayers as one picture to show or print (radio/panel.ts). */
+    radioPanel: await panel.enabled(q),
     /** My signal queue and signal codes on the Listen screen (radio/signal-queue.ts). */
     signalQueue: await signalQueue.enabled(q),
+    /** Signal journey on My signal queue: how far each sent wave has gone (radio/signal-queue.ts). */
+    signalJourney: await signalQueue.journeyEnabled(q),
     /** Kind norms: the kindness promise, the first-replies reminder, resting threads, "This helped" (modules/kind-norms, Admin → Kind norms). */
     ...(await kindNorms.features(q)),
   };

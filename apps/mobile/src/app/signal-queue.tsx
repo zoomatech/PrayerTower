@@ -2,10 +2,12 @@
 // first prototype's Signal Queue tab: the member's own radio prayers, with where
 // each one is and, once it went out, its signal code. A listener who decodes the
 // same prayer sees the same code on the Listen screen. Off with the admin's switch.
+// With Signal journey on, each one that went out also shows how far its wave has gone.
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { SignalJourney } from '@/components/signal-journey';
 import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, ApiError, type SignalEntry } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -17,10 +19,11 @@ export default function SignalQueueScreen() {
   const { t } = useLocale();
   const [items, setItems] = useState<SignalEntry[] | null>(null);
   const [off, setOff] = useState(false);
+  const [journey, setJourney] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => {
     api.signalQueue().then(
-      (r) => (setItems(r.signals), setError(null)),
+      (r) => (setItems(r.signals), setJourney(r.journey === true), setError(null)),
       (e) => (e instanceof ApiError && e.status === 404 ? setOff(true) : setError((e as Error).message)),
     );
   }, []);
@@ -43,6 +46,7 @@ export default function SignalQueueScreen() {
             <Text style={type.small}>
               {t(`signalQueue.status.${s.status}`)}
               {s.amplified ? ` · ${t('signalQueue.amplified')}` : ''}
+              {s.amplified && s.copies ? ` · ${t('signalQueue.copies', { count: s.copies })}` : ''}
               {s.kind === 'thanksgiving' ? ` · ${t('signalQueue.thanksgiving')}` : ''}
               {s.kind === 'auto' ? ` · ${t('signalQueue.auto')}` : ''}
               {` · ${when(s.sentAt ?? s.queuedAt)}`}
@@ -55,6 +59,7 @@ export default function SignalQueueScreen() {
               </Text>
             ) : null}
             {s.heardCount ? <Text style={type.small}>{t('signalQueue.heard', { count: s.heardCount })}</Text> : null}
+            {journey && s.status === 'sent' && s.sentAt ? <SignalJourney sentAt={s.sentAt} bestSnrDb={s.bestSnrDb} /> : null}
           </View>
         ))}
       </ScrollView>

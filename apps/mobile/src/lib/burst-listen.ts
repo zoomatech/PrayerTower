@@ -2,9 +2,10 @@
 // tested. The same rolling window as the /listen web page: keep the last
 // 24 seconds of microphone audio, decode it every couple of seconds, and hand
 // back only frames that end after the last one shown.
-import { decodeAudio, fingerprint, type HeardFrame } from './burst-decoder.generated';
+import { decodeAudio, fingerprint, readSstv, type HeardFrame, type PanelRead } from './burst-decoder.generated';
 
-export type { HeardFrame };
+export type { HeardFrame, PanelRead };
+export { drawPanel, readPanel } from './burst-decoder.generated';
 export { channelReport } from './burst-decoder.generated';
 
 const KEEP_SECONDS = 24;
@@ -58,6 +59,76 @@ export class BurstListener {
       this.dropped += first.length;
     }
     return fresh;
+  }
+}
+
+/** The preset name a prayer panel heard as SSTV goes by, as the station reports it. */
+export const SSTV_PRESET = 'sstv-robot36';
+/** A Robot 36 picture is 37 seconds; keep a little more so one is always whole in the window. */
+const SSTV_KEEP_SECONDS = 45;
+const SSTV_RATE = 12_000;
+
+/**
+ * Prayer panels sent as SSTV pictures (Robot 36): keeps the last 45 seconds at about 12 kHz and
+ * finds a whole picture in them, each picture once. The microphone's rate is divided by a whole
+ * number (48 kHz by 4, 44.1 kHz by 3 to 14.7 kHz, 16 kHz and below kept as they are), as the
+ * station's decoder does: a fractional step would put a little timing jitter on every sample,
+ * which the frequency reading turns into hundreds of hertz of noise.
+ */
+export class SstvListener {
+  /** Microphone samples averaged into one kept sample. */
+  private readonly k: number;
+  /** The kept samples' rate. */
+  private readonly keptRate: number;
+  private readonly buf: Float32Array;
+  private filled = 0;
+  /** Samples kept so far. */
+  private taken = 0;
+  /** End of the last picture read, in kept samples since listening started. */
+  private readUpTo = 0;
+  private acc = 0;
+  private accN = 0;
+
+  constructor(readonly rate: number) {
+    this.k = Math.max(1, Math.floor(rate / SSTV_RATE));
+    this.keptRate = rate / this.k;
+    this.buf = new Float32Array(Math.ceil(SSTV_KEEP_SECONDS * this.keptRate));
+  }
+
+  /** Add microphone samples (mono). A sample that isn't a number counts as silence. */
+  push(samples: Float32Array) {
+    for (let i = 0; i < samples.length; i++) {
+      const v = samples[i]!;
+      this.acc += Number.isFinite(v) ? v : 0;
+      if (++this.accN === this.k) {
+        this.add(this.acc / this.k);
+        this.acc = 0;
+        this.accN = 0;
+      }
+    }
+  }
+
+  private add(v: number) {
+    // Full: drop the oldest second at once.
+    if (this.filled === this.buf.length) {
+      const second = Math.floor(this.keptRate);
+      this.buf.copyWithin(0, second);
+      this.filled -= second;
+    }
+    this.buf[this.filled++] = v;
+    this.taken++;
+  }
+
+  /** A panel whose picture ended since the last one read, or null. */
+  read(): { panel: PanelRead | null; end: number } | null {
+    if (this.filled < 38 * this.keptRate) return null;
+    const startAt = this.taken - this.filled;
+    const found = readSstv(this.buf.subarray(0, this.filled), this.keptRate);
+    if (!found) return null;
+    const end = startAt + found.end;
+    if (end <= this.readUpTo) return null;
+    this.readUpTo = end;
+    return { panel: found.panel, end };
   }
 }
 

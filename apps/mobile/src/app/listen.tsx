@@ -8,6 +8,7 @@
 import { signalCode } from '@prayer-tower/shared';
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioStream, type AudioStreamBuffer } from 'expo-audio';
 import { router } from 'expo-router';
+import * as Speech from 'expo-speech';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -15,7 +16,7 @@ import { Button, ErrorText, Loading, Screen, Toggle } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { addHeard, clearHeard, loadHeard, type HeardPrayer } from '@/lib/heard-log';
-import { BurstListener, prayerHash, receiptHashes, toMono, type HeardFrame } from '@/lib/burst-listen';
+import { BurstListener, prayerHash, receiptHashes, SSTV_PRESET, SstvListener, toMono, type HeardFrame } from '@/lib/burst-listen';
 import { flushPraying, tapPraying, tappedHashes } from '@/lib/praying-too';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
@@ -30,7 +31,7 @@ export default function ListenScreen() {
   const { session } = useAuth();
   const features = useFeatures();
   const [saved, setSaved] = useState<HeardPrayer[]>([]);
-  const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean; prayingToo?: boolean } | null>(null);
+  const [config, setConfig] = useState<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean; panel?: boolean } | null>(null);
   const [praying, setPraying] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
@@ -38,7 +39,23 @@ export default function ListenScreen() {
   const [meter, setMeter] = useState(0);
   const [tell, setTell] = useState(true);
   const [hf, setHf] = useState(false);
+  // Read decoded prayers aloud with the device's own speech (offered while the admin's switch is on).
+  const [aloud, setAloud] = useState(false);
+  const aloudRef = useRef(false);
+  useEffect(() => {
+    aloudRef.current = aloud && !!config?.readAloud;
+    if (!aloudRef.current) void Speech.stop();
+  }, [aloud, config?.readAloud]);
   const listener = useRef<BurstListener | null>(null);
+  // Prayer panels sent as SSTV pictures (offered while the admin's switch is on), off until turned on.
+  const [sstv, setSstv] = useState(false);
+  const sstvListener = useRef<SstvListener | null>(null);
+  const sstvRef = useRef(false);
+  const lastSstv = useRef(0);
+  useEffect(() => {
+    sstvRef.current = sstv && !!config?.panel;
+    if (!sstvRef.current) sstvListener.current = null;
+  }, [sstv, config?.panel]);
   const tellRef = useRef(tell);
   useEffect(() => {
     tellRef.current = tell;
@@ -46,7 +63,9 @@ export default function ListenScreen() {
 
   const onBuffer = useCallback((b: AudioStreamBuffer) => {
     if (!listener.current) listener.current = new BurstListener(b.sampleRate);
-    listener.current.push(toMono(b.data, b.channels, 'float32'));
+    const mono = toMono(b.data, b.channels, 'float32');
+    listener.current.push(mono);
+    if (sstvRef.current) (sstvListener.current ??= new SstvListener(b.sampleRate)).push(mono);
   }, []);
   const { stream } = useAudioStream({ sampleRate: 48_000, channels: 1, encoding: 'float32', onBuffer });
 
@@ -85,11 +104,20 @@ export default function ListenScreen() {
       if (!l) return;
       setMeter(l.meter);
       const fresh = l.decode(hf ? 50 : 0).map((f, i) => ({ ...f, key: `${Date.now()}-${i}`, at: new Date(), told: false }));
+      // A whole SSTV picture with a prayer panel in it, read once.
+      // Looking for a picture takes a moment, so only every six seconds.
+      const now = Date.now();
+      const pic = sstvListener.current && now - lastSstv.current >= 6000 ? ((lastSstv.current = now), sstvListener.current.read()) : null;
+      if (pic?.panel?.prayers) {
+        fresh.push({ callSign: pic.panel.callSign, preset: SSTV_PRESET, snrDb: 0, corrected: pic.panel.corrected, prayers: pic.panel.prayers, codec: 3, start: 0, end: pic.end, key: `sstv-${pic.end}`, at: new Date(), told: false });
+      }
       if (!fresh.length) return;
       setHeard((all) => [...fresh.reverse(), ...all]);
       fresh.forEach((f) => void report(f));
       const prayers = fresh.flatMap((f) => (f.prayers ?? []).map((text) => ({ text, callSign: f.callSign, at: f.at.toISOString(), hash: prayerHash(text) })));
       if (prayers.length) void addHeard(prayers).then(setSaved);
+      // An amplified prayer comes several times in one burst; it is read once.
+      if (aloudRef.current) [...new Set(prayers.map((p) => p.text))].forEach((text) => Speech.speak(text, { language: 'en-US' }));
     }, hf ? DECODE_EVERY_MS * 2 : DECODE_EVERY_MS);
     return () => clearInterval(timer);
   }, [listening, report, hf]);
@@ -110,8 +138,14 @@ export default function ListenScreen() {
     setMeter(0);
     void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
   }, [stream]);
-  // Stop the microphone when leaving the screen.
-  useEffect(() => () => void (stream.isStreaming && stream.stop()), [stream]);
+  // Stop the microphone and any reading when leaving the screen.
+  useEffect(
+    () => () => {
+      if (stream.isStreaming) stream.stop();
+      void Speech.stop();
+    },
+    [stream],
+  );
 
   return (
     <Screen>
@@ -138,11 +172,14 @@ export default function ListenScreen() {
             </View>
             <Toggle label={t('listen.hf')} hint={t('listen.hfHint')} value={hf} onChange={setHf} />
             {config.receipts ? <Toggle label={t('listen.tell')} hint={t('listen.tellHint')} value={tell} onChange={setTell} /> : null}
+            {config.readAloud ? <Toggle label={t('readAloud.toggle')} hint={t('readAloud.hint')} value={aloud} onChange={setAloud} /> : null}
+            {config.panel ? <Toggle label={t('panel.sstv')} hint={t('panel.sstvHint')} value={sstv} onChange={setSstv} /> : null}
+            {config.panel ? <Button small variant="secondary" label={t('panel.title')} onPress={() => router.push('/prayer-panel')} /> : null}
             {heard.map((f) => (
               <View key={f.key} style={styles.card}>
                 <Text style={type.heading}>{t('listen.from', { callSign: f.callSign, time: f.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' }) })}</Text>
                 <Text style={type.small}>
-                  {t('listen.meta', { preset: f.preset, snr: f.snrDb.toFixed(1) })}
+                  {f.preset === SSTV_PRESET ? t('panel.sstvMeta') : t('listen.meta', { preset: f.preset, snr: f.snrDb.toFixed(1) })}
                   {f.corrected ? `, ${t('listen.corrected')}` : ''}
                 </Text>
                 {f.prayers ? f.prayers.map((p, i) => <Text key={i} style={type.body}>• {p}</Text>) : <Text style={type.body}>{t('listen.otherCodec', { codec: f.codec })}</Text>}
