@@ -7,6 +7,7 @@ import type { Db } from '../../db.js';
 import { badRequest, forbidden } from '../../errors.js';
 import * as accounts from '../accounts/index.js';
 import * as followup from './followup.js';
+import * as panel from './panel.js';
 
 const LoopPatch = z.object({ followup: z.boolean().optional(), readAloud: z.boolean().optional(), namePrivacy: z.boolean().optional() });
 const PrefsPatch = z.object({ followup: z.boolean().optional(), namesPrivate: z.boolean().optional() });
@@ -24,6 +25,18 @@ export function radioLoopRoutes(app: FastifyInstance, db: Db) {
     await admin(requireUser(req));
     return followup.updateLoopSettings(db, LoopPatch.parse(req.body));
   });
+
+  // The prayer panel (panel.ts): the switch, and the latest prayers as a panel for members.
+  app.get('/admin/radio-panel', async (req) => {
+    await admin(requireUser(req));
+    return { enabled: await panel.enabled(db) };
+  });
+  app.patch('/admin/radio-panel', async (req) => {
+    await admin(requireUser(req));
+    await panel.setEnabled(db, z.object({ enabled: z.boolean() }).parse(req.body).enabled);
+    return { enabled: await panel.enabled(db) };
+  });
+  app.get('/radio/panel', async (req) => panel.latest(db, requireUser(req)));
 
   // "Sent by radio at 9:30 PM, heard by 4 listeners", for the sender and the asker: 404 while off.
   app.get<{ Params: { id: string } }>('/posts/:id/radio-summary', async (req) => followup.forPost(db, requireUser(req), req.params.id));

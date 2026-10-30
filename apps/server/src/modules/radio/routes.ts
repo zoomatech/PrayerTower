@@ -5,6 +5,7 @@ import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import * as radio from './index.js';
 import * as followup from './followup.js';
+import * as panel from './panel.js';
 import * as prayingToo from './praying-too.js';
 import * as signalQueue from './signal-queue.js';
 import * as receipts from './receipts.js';
@@ -33,6 +34,7 @@ export function radioRoutes(app: FastifyInstance, db: Db) {
       receipts: s.listen_page_enabled && (await receipts.enabled(db)),
       prayingToo: s.listen_page_enabled && (await prayingToo.enabled(db)),
       readAloud: s.listen_page_enabled && (await followup.loopSettings(db)).readAloud,
+      panel: s.listen_page_enabled && (await panel.enabled(db)),
     };
   });
 

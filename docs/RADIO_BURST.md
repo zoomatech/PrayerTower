@@ -374,6 +374,56 @@ about -50 dBFS, hard-clipped, under 60 Hz hum and a DC offset, and with about
 5 dB of twist either way (a missing or doubled FM emphasis stage). A dropout
 of broken samples loses only the packet it hits.
 
+## Prayer panel
+
+A batch of prayers packed into one black-and-white picture: a dense panel of
+80 x 60 cells that can be shown on a screen, printed, or sent over the radio as
+an ordinary SSTV picture. Any listener app reads it back, with the camera or
+from the SSTV audio. The sample prayers fit 18 to a panel.
+
+- Off by default: Admin → Radio → **Prayer panel and SSTV**. While off,
+  `GET /radio/panel` is a 404 and the server refuses panel claims
+  (`409 panel_off`).
+- **Show or print.** Members open the prayer panel (from Prayers on the air, or
+  the Listen screen) to see the latest prayers that went out as one panel. On
+  the web there is a Print button; the iPhone and the Mac print it too.
+- **Send by radio.** `BURST_MODE=sstv` claims a batch as burst mode does,
+  filters and folds it, packs it into as many panels as it takes, and sends
+  each as an SSTV Robot 36 picture (about 37 seconds) through the sound card
+  with the usual PTT. Each prayer is logged with preset `sstv-robot36`. Any
+  SSTV program (MMSSTV, QSSTV, Robot36 on a phone) shows the picture.
+- **Read it.** The Expo app and the native iPhone and Mac apps read a panel from
+  a camera photo or a picture, any of four ways up and at a slant. The Listen
+  screen's **Also read SSTV pictures** reads panels from the radio's audio.
+  Everything runs on the device.
+
+The format (`apps/station/src/panel/panel.ts`):
+
+- Ring 0 is a white quiet zone, rings 1-2 a solid black frame; inside are
+  74 x 54 data cells, one bit each (black = 1), row by row, high bit first:
+  499 bytes.
+- The bytes are the burst frame's Reed-Solomon header (preset id 240), then the
+  batch (codec 0 or 3, whichever is smaller, plus its CRC-32) in interleaved
+  Reed-Solomon blocks with 32 parity bytes each, all XORed with a fixed
+  xorshift32 sequence (seed `0x50414e4c`) so no area is plain black or white.
+- A reader finds the frame's outer corners (Otsu threshold, largest dark
+  shape), maps the grid through them with a perspective transform, samples
+  each cell at five points, and tries the four orientations.
+
+SSTV (`panel/sstv.ts`) follows the Dayton Paper's Robot 36 timings: VIS code 8,
+then 240 lines of 150 ms (sync 1200 Hz 9 ms, porch 1500 Hz 3 ms, Y 88 ms from
+1500 Hz black to 2300 Hz white, separator, porch, chroma 44 ms). The panel is
+drawn 4 pixels a cell, so it fills the 320 x 240 picture; the chroma scans
+carry the neutral 1900 Hz and the decoder reads only Y. The decoder finds the
+line syncs, fits a line through them (which allows a sound card's clock a
+little fast or slow), and corrects a radio tuned up to about 100 Hz off.
+
+Tests (`apps/station/test/panel.test.ts`): Reed-Solomon correction, a
+simulated camera photo (upside down, at a slant, uneven light, noise, blur),
+SSTV through noise, 60 Hz off, 0.05% clock drift, at 44.1 kHz, and the
+station's whole send loop. The native apps are tested on the station's own
+panel and a noisy SSTV recording (`scripts/build-panel-fixtures.ts`).
+
 ## Compression v2 (codec 4)
 
 Off by default: set `BURST_CODEC_V2=on` in the station's settings **after**
@@ -756,6 +806,10 @@ receiver choices, not part of the format.
   convolutional code, OFDM with differential PSK or QAM with pilots). Compression is used to shorten transmissions, not to
   obscure their meaning; anyone can decode them with the published tool.
 - The call sign travels in every frame header in plain ASCII.
+- SSTV prayer panels: the call sign is in each panel's header, but an SSTV
+  picture is not a station ID by voice or CW; the station's usual ID
+  (`STATION_ID`) still applies around them. Robot 36 is a standard, openly
+  documented picture mode.
 - See [RADIO_STATION.md](RADIO_STATION.md) for the station's other rules
   (content filter, privacy, frequencies).
 

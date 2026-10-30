@@ -44,6 +44,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Read aloud (the Listen screen reads decoded prayers with the device's own voice) | Admin → Radio → Sent by radio | [Read aloud](#read-aloud) |
 | Name privacy (names taken out for members who choose it) | Admin → Radio → Sent by radio | [Privacy on the air](#privacy-on-the-air) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
+| Prayer panel (prayers as one picture to show, print or send as SSTV; listener apps read it with the camera or from SSTV audio) | Admin → Radio → Prayer panel and SSTV, plus `BURST_MODE=sstv` to send | [Prayer panel and SSTV](#prayer-panel-and-sstv) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
 | Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
 | Store-and-forward relay | `RELAY=on` on a listener node with a transmitter | [RADIO_BURST.md](RADIO_BURST.md#store-and-forward-relay) |
@@ -839,6 +840,20 @@ listener nodes report the IDs they hear so the prayers count as heard.
 Details and the packet format: [RADIO_BURST.md](RADIO_BURST.md#packet-fallback).
 
 ![Packet fallback switch](images/radio/packet-fallback.png)
+
+## Prayer panel and SSTV
+
+The station can send prayers as SSTV pictures: each a prayer panel, a dense
+black-and-white picture that holds a batch of prayers. Any SSTV program shows
+it, and the Prayer Tower listener apps read the prayers back from the audio or
+from a photo of the screen.
+
+1. Turn on Admin → Radio → **Prayer panel and SSTV**.
+2. In `/etc/prayer-tower-station.env` set `BURST_MODE=sstv`.
+3. `sudo systemctl restart prayer-tower-station`. Sound card and PTT are set up as for `BURST_MODE=audio`.
+
+A panel takes about 37 seconds on the air. Members can also show or print the
+latest panel from the app. Details: [RADIO_BURST.md](RADIO_BURST.md#prayer-panel).
 
 ## Diagnose a weak signal
 

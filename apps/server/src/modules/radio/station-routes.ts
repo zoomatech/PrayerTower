@@ -18,6 +18,7 @@ import * as setup from './setup.js';
 import * as sky from './sky.js';
 import * as coverage from './coverage.js';
 import * as packet from './packet.js';
+import * as panel from './panel.js';
 
 export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string | null) {
   /**
@@ -60,10 +61,12 @@ export function stationRoutes(app: FastifyInstance, db: Db, stationKey: string |
   // Burst mode: several prayers at once (at most the admin's radio_batch_max); 204 when there are none.
   app.post('/station/claim-batch', async (req, reply) => {
     const node = await requireStation(req);
-    const { max, mode } = z.object({ max: z.number().int().min(1).max(500).default(50), mode: z.enum(['burst', 'packet']).default('burst') }).parse(req.body ?? {});
+    const { max, mode } = z.object({ max: z.number().int().min(1).max(500).default(50), mode: z.enum(['burst', 'packet', 'panel']).default('burst') }).parse(req.body ?? {});
     await ops.beat(db, 'station');
     // A packet station waits until the packet fallback is switched on (packet.ts).
     if (mode === 'packet' && !(await packet.enabled(db))) throw new AppError(409, 'packet_off', 'The packet fallback is switched off (Admin → Radio)');
+    // An SSTV station waits until the prayer panel is switched on (panel.ts).
+    if (mode === 'panel' && !(await panel.enabled(db))) throw new AppError(409, 'panel_off', 'The prayer panel is switched off (Admin → Radio)');
     const batch = await withTx(db, (tx) => radio.claimBatch(tx, max, node));
     if (!batch.length) return reply.code(204).send();
     return { radioPrayers: batch };

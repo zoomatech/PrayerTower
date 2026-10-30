@@ -62,11 +62,18 @@ struct ListenView: View {
                         Toggle(w("readAloud.toggle"), isOn: $m.aloud)
                         Text(w("readAloud.hint")).font(.footnote)
                     }
+                    // Prayer panels sent as SSTV pictures (PrayerPanelView), while the admin's switch is on.
+                    if c.panel == true {
+                        Toggle(w("panel.sstv"), isOn: $m.sstv)
+                        Text(w("panel.sstvHint")).font(.footnote)
+                        NavigationLink(w("panel.title")) { PrayerPanelView(api: api, words: w) }
+                    }
                 }
                 ForEach(m.heard) { h in
                     Section {
                         Text(w("listen.from", ["callSign": h.frame.callSign, "time": h.at.formatted(date: .omitted, time: .standard)])).font(.headline)
-                        Text(w("listen.meta", ["preset": h.frame.preset, "snr": String(format: "%.1f", h.frame.snrDb)]) + (h.frame.corrected ? ", \(w("listen.corrected"))" : ""))
+                        Text((h.frame.preset == PrayerPanel.sstvPreset ? w("panel.sstvMeta") : w("listen.meta", ["preset": h.frame.preset, "snr": String(format: "%.1f", h.frame.snrDb)]))
+                             + (h.frame.corrected ? ", \(w("listen.corrected"))" : ""))
                             .font(.footnote)
                         if let prayers = h.frame.prayers {
                             ForEach(Array(prayers.enumerated()), id: \.offset) { Text("• \($0.element)") }
@@ -96,10 +103,28 @@ struct AudioInput: Identifiable, Hashable {
 /// Keeps the rolling window and decodes it off the main thread (BurstListener in PrayerTowerKit).
 actor ListenWorker {
     private var listener: BurstListener?
+    /// Prayer panels sent as SSTV pictures, while the listener has that on.
+    private var sstv: SstvListener?
+    private var sstvOn = false
 
     func push(_ samples: [Float], rate: Int) {
         if listener?.rate != rate { listener = BurstListener(rate: rate) }
         listener?.push(samples)
+        if sstvOn {
+            if sstv?.inputRate != rate { sstv = SstvListener(rate: rate) }
+            sstv?.push(samples)
+        }
+    }
+
+    func setSstv(_ on: Bool) {
+        sstvOn = on
+        if !on { sstv = nil }
+    }
+
+    /// A whole SSTV picture with a panel in it, read once.
+    func readSstv() -> HeardFrame? {
+        guard let r = sstv?.read(), let panel = r.panel else { return nil }
+        return .sstv(panel, end: r.end)
     }
 
     func decode(searchHz: Int) -> (frames: [HeardFrame], meter: Float) {
@@ -125,6 +150,10 @@ final class ListenModel {
     var heard: [Heard] = []
     var hf = false
     var tell = true
+    /// Also read prayer panels sent as SSTV pictures (offered while the admin's switch is on).
+    var sstv = false {
+        didSet { let on = sstv && config?.panel == true; let w = worker; Task { await w.setSstv(on) } }
+    }
     /// Read decoded prayers aloud with the device's own voice (offered while the admin's switch is on).
     var aloud = false {
         didSet { if !aloud { speech.stopSpeaking(at: .immediate) } }
@@ -166,6 +195,7 @@ final class ListenModel {
             let (stream, feed) = AsyncStream.makeStream(of: [Float].self, bufferingPolicy: .bufferingNewest(200))
             self.feed = feed
             worker = ListenWorker()
+            await worker.setSstv(sstv && config?.panel == true)
             Self.tap(input, format: format, into: feed)
             try engine.start()
             let rate = Int(format.sampleRate)
@@ -180,6 +210,14 @@ final class ListenModel {
                         let (frames, meter) = await worker.decode(searchHz: hf ? 50 : 0)
                         self.meter = meter
                         self.add(frames)
+                    }
+                },
+                // Looking for an SSTV picture takes a moment, so only every six seconds.
+                Task { [weak self] in
+                    while !Task.isCancelled {
+                        try? await Task.sleep(for: .seconds(6))
+                        guard let self, !Task.isCancelled else { return }
+                        if self.sstv, let f = await worker.readSstv() { self.add([f]) }
                     }
                 },
             ]
