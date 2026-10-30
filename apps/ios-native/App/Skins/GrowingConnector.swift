@@ -169,3 +169,61 @@ enum ConnectorTiming {
     static func frame(_ p: CGFloat) -> CGFloat { min(1, max(0, (p - 0.2) / 0.55)) }
     static func text(_ p: CGFloat) -> CGFloat { max(0, (p - 0.75) / 0.25) }
 }
+
+/// Sparkling lights riding the neon here and there (Steve, 2026-10-30): a few bright points of
+/// light that travel along a tube at their own speeds, each twinkling in and out at random. Still
+/// under Reduce Motion and in the snapshot tests.
+struct NeonSparks<S: Shape>: View {
+    let shape: S
+    let color: Color
+    /// The tube's width, which sets the room left round the shape for the glow, as `ConnectorOutline`.
+    var width: CGFloat = 8
+    var count = 2
+    /// True for a closed outline (a box), false for a single straight run (a rod).
+    var loop = true
+    @Environment(\.accessibilityReduceMotion) private var still
+    @State private var seed = Double.random(in: 0..<1000)
+
+    var body: some View {
+        if still || GrowingIn<EmptyView>.frozen {
+            EmptyView()
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
+                Canvas { ctx, size in
+                    let t = tl.date.timeIntervalSinceReferenceDate
+                    let rect = CGRect(origin: .zero, size: size).insetBy(dx: width * 6, dy: width * 6)
+                    // Lights travel 90 to 190 points a second, each a short dash, whatever the tube's length.
+                    let length = max(1, loop ? 2 * (rect.width + rect.height) : rect.height)
+                    let dash = 14 / length
+                    for i in 0..<count {
+                        let k = seed + Double(i) * 37.7
+                        let speed = (90 + k.truncatingRemainder(dividingBy: 100)) / length
+                        let along = (t * speed + k).truncatingRemainder(dividingBy: 1)
+                        // Each light shows for part of its run, fading in and out, so they come and go at random.
+                        let twinkle = sin((t * (0.6 + Double(i) * 0.23) + k) * .pi)
+                        guard twinkle > 0.2 else { continue }
+                        let spot = shape.trim(from: along, to: min(1, along + dash)).path(in: rect)
+                        var glow = ctx
+                        glow.addFilter(.blur(radius: width * 0.9))
+                        glow.stroke(spot, with: .color(color.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 2.2, lineCap: .round))
+                        ctx.stroke(spot, with: .color(.white.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 0.8, lineCap: .round))
+                    }
+                }
+            }
+            .padding(-width * 6)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+    }
+}
+
+/// A straight vertical line down a view at `x`, for lights riding a rod.
+struct VerticalLine: Shape {
+    let x: CGFloat
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX + x, y: r.minY))
+        p.addLine(to: CGPoint(x: r.minX + x, y: r.maxY))
+        return p
+    }
+}
