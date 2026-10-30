@@ -116,7 +116,7 @@ async function faithDemo() {
   const travel = await request(ids.james, 'Pray for safe travel as I drive to see my parents this weekend.');
   const grandson = await request(ids.ruth, 'Pray for my grandson as he starts at a new school.');
   const neighbor = await request(ids.carol, 'Pray for my neighbor, who lives alone and has been unwell.');
-  await call(ids.carol, 'POST', '/posts', { postType: 'praise', body: '[Demo] Thank you all for praying. My sister is home from the hospital.' });
+  const praise = await call<Post>(ids.carol, 'POST', '/posts', { postType: 'praise', body: '[Demo] Thank you all for praying. My sister is home from the hospital.' });
 
   // Everyone prays for everyone else's requests, enough to count as a settled member.
   const requests = [
@@ -134,6 +134,22 @@ async function faithDemo() {
   await call(ids.ethel, 'POST', `/posts/${mother.post.id}/commitments`, { frequency: 'daily', durationDays: 7, vowText: 'I will pray for your mother every morning this week.' });
   await call(ids.ruth, 'POST', `/posts/${mother.post.id}/comments`, { body: '[Demo] Praying for strength and good news.' });
   await call(ids.carol, 'POST', `/posts/${roof.post.id}/comments`, { body: '[Demo] Praying you find the right people.' });
+
+  // Sample comments and replies, so the feed skins have threads to draw: several comments
+  // on one post (a stack to flip through), replies to a comment, and a reply to a reply.
+  const comment = (u: string, post: Post, body: string, parentId?: string) =>
+    call<{ comment: { id: string } }>(u, 'POST', `/posts/${post.post.id}/comments`, { body: `[Demo] ${body}`, ...(parentId ? { parentId } : {}) });
+  await comment(ids.james, praise, 'Praise God! So glad she is home.');
+  await comment(ids.ruth, praise, 'We kept her in prayer all week at Bible study.');
+  const near = await comment(ids.pastor, praise, 'The Lord is near to the brokenhearted. Thank you for telling us how He answered.');
+  await comment(ids.carol, praise, 'Amen, Pastor. He carried us.', near.comment.id);
+  const ethel = await comment(ids.ethel, praise, 'Wonderful news, Carol!');
+  const card = await comment(ids.carol, praise, 'Thank you, Ethel. Your card meant so much.', ethel.comment.id);
+  await comment(ids.ethel, praise, 'Anytime. Hugs to your sister.', card.comment.id);
+  await comment(ids.ruth, praise, 'Amen to that.', ethel.comment.id);
+  await comment(ids.james, mother, 'I will pray on Monday morning when she goes in.');
+  const doctors = await comment(ids.ethel, mother, 'Praying for her doctors and nurses too.');
+  await comment(ids.carol, mother, 'Thank you all. I will tell her.', doctors.comment.id);
 
   const thread = await call<{ conversationId: string }>(ids.ethel, 'POST', `/posts/${mother.post.id}/messages`, {
     body: '[Demo] I am praying for your mother every morning this week.',

@@ -16,6 +16,7 @@ import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
+import { CommentStack } from './circuit-comments';
 import { feedListTuning } from './list-tuning';
 import { glow, isDark, textOn } from './motifs';
 
@@ -72,7 +73,7 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
   const rowRef = useRef<Row>(null);
   const { drawn, onLayout: drawOnLayout } = useDrawIn(rowRef, 1600);
   const [row, setRow] = useState({ w: 0, h: 0 });
-  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [box, setBox] = useState({ y: 0, w: 0, h: 0 });
   const room = GLOW_REACH + 4;
   return (
     <View
@@ -108,7 +109,7 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
       {row.h ? (
         <Animated.View
           pointerEvents="none"
-          style={[styles.tapClip, { top: row.h / 2 - room, width: drawn.interpolate({ inputRange: [0, 0.3, 0.45, 1], outputRange: [0, 0, TAP_END + 22 + room, TAP_END + 22 + room] }) }]}>
+          style={[styles.tapClip, { top: box.y + box.h / 2 - room, width: drawn.interpolate({ inputRange: [0, 0.3, 0.45, 1], outputRange: [0, 0, TAP_END + 22 + room, TAP_END + 22 + room] }) }]}>
           <Svg aria-hidden width={TAP_END + 22 + room} height={room * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             {/* The connector takes its box's color, shading gradually to the wire's blue where it meets the wire. */}
             <GlassTube d={`M ${WIRE_X} ${room} L ${TAP_END + 22} ${room}`} color={tokens.screen} width={4} blend={{ to: tokens.wire, x1: WIRE_X + 26, x2: WIRE_X + 4 }} />
@@ -127,8 +128,8 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
           { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
         ]}
         onLayout={(e) => {
-          const { width, height } = e.nativeEvent.layout;
-          if (Math.abs(width - box.w) > 1 || Math.abs(height - box.h) > 1) setBox({ w: width, h: height });
+          const { y, width, height } = e.nativeEvent.layout;
+          if (Math.abs(width - box.w) > 1 || Math.abs(height - box.h) > 1 || Math.abs(y - box.y) > 1) setBox({ y, w: width, h: height });
         }}>
         {/* The screen's frame: one glass tube bent into a rectangle with elegantly rounded corners.
             Scrolling down, its top is drawn first and its bottom, still mostly off screen, last. */}
@@ -147,6 +148,8 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
           <View style={styles.glass}>{children}</View>
         </Animated.View>
       </Animated.View>
+      {/* Its comments branch from it, a loaded stack to flip through. */}
+      <CommentStack card={card} tokens={tokens} start={TAP_END + 6} />
     </View>
   );
 }
@@ -164,7 +167,8 @@ export function CircuitLayout({ cards, theme, pinnedId, renderCard, header, refr
         keyExtractor={(c) => c.id}
         renderItem={({ item, index }) => (
           <ScreenRow card={item} index={index} tokens={tokens} pinned={item.id === pinnedId} reduced={reduced}>
-            {renderCard(item)}
+            {/* Its comments show in the stack below, so the card doesn't repeat one. */}
+            {renderCard(item.counts.comments > 0 ? { ...item, topComment: null } : item)}
           </ScreenRow>
         )}
         ListHeaderComponent={header ? isDark(tokens.backdrop) ? <View style={styles.headerPanel}>{header}</View> : header : undefined}

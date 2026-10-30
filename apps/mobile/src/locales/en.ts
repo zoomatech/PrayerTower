@@ -2267,6 +2267,10 @@ const en = {
   },
   circuit: {
     end: 'End of the line. Pull down to power up new posts.',
+    prev: 'Previous comment',
+    next: 'Next comment',
+    position: 'Comment %{n} of %{total}',
+    more: '%{n} more replies',
   },
   wall: {
     swipe: 'Swipe up for the next post',

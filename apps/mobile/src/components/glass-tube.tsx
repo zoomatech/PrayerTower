@@ -23,10 +23,10 @@ export const GLOW_REACH = 14;
 const GLOW = [GLOW_REACH * 2, 21, 16, 12, 8, 4];
 
 /**
- * `blend` makes the tube change color gradually along a straight horizontal run: `color` at
- * x1, shading over to `blend.to` at x2 (a red box's connector turning blue at the wire).
+ * `blend` makes the tube change color gradually along a straight run: `color` at (x1, y1),
+ * shading over to `blend.to` at (x2, y2) (a red box's connector turning blue at the wire).
  */
-export function GlassTube({ d, color, width = 5, blend }: { d: string; color: string; width?: number; blend?: { to: string; x1: number; x2: number } }) {
+export function GlassTube({ d, color, width = 5, blend }: { d: string; color: string; width?: number; blend?: { to: string; x1?: number; x2?: number; y1?: number; y2?: number } }) {
   const id = `tube${useId().replace(/[^A-Za-z0-9]/g, '')}`;
   const a = tubeShades(color);
   const b = blend ? tubeShades(blend.to) : a;
@@ -44,7 +44,7 @@ export function GlassTube({ d, color, width = 5, blend }: { d: string; color: st
       {blend ? (
         <Defs>
           {layers.map(([name, from, to]) => (
-            <LinearGradient key={name} id={`${id}${name}`} gradientUnits="userSpaceOnUse" x1={blend.x1} y1={0} x2={blend.x2} y2={0}>
+            <LinearGradient key={name} id={`${id}${name}`} gradientUnits="userSpaceOnUse" x1={blend.x1 ?? 0} y1={blend.y1 ?? 0} x2={blend.x2 ?? 0} y2={blend.y2 ?? 0}>
               <Stop offset="0" stopColor={from} />
               <Stop offset="1" stopColor={to} />
             </LinearGradient>
