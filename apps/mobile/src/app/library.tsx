@@ -6,7 +6,9 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { sharePassage } from '@/components/daily-passage';
+import { ListenPassage } from '@/components/listen-passage';
 import { noteFill, PassageMark, useLibraryNotes } from '@/components/passage-mark';
+import { StudyStart } from '@/components/study-start';
 import { Button, Chip, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api, type LibraryCollectionId, type LibraryHit, type LibraryOverview } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -111,6 +113,8 @@ export default function LibraryScreen() {
             {collection === 'bible-kjv' && features.libraryWords ? (
               <Button small variant="ghost" label={t('library.study.study')} a11yLabel={t('library.study.studyOne', { ref: h.ref })} onPress={() => router.push(`/word-study?ref=${encodeURIComponent(h.ref)}`)} />
             ) : null}
+            {collection ? <ListenPassage collection={collection} passageKey={h.key} text={h.text} citation={h.citation} /> : null}
+            {collection ? <StudyStart of={{ collection, key: h.key }} citation={h.citation} /> : null}
             {notes.enabled && collection ? <PassageMark collection={collection} passageKey={h.key} citation={h.citation} mark={notes.marks[h.key]} circles={notes.circles} onSaved={notes.saved} /> : null}
           </View>
         ))}

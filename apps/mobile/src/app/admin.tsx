@@ -1822,6 +1822,8 @@ function LibrarySection() {
           <Toggle label={t('library.adminWords')} hint={t('library.adminWordsHint')} value={on.wordsEnabled} onChange={(wordsEnabled) => save({ wordsEnabled })} />
           <Toggle label={t('library.adminNotes')} hint={t('library.adminNotesHint')} value={on.notesEnabled} onChange={(notesEnabled) => save({ notesEnabled })} />
           <Toggle label={t('library.adminOffline')} hint={t('library.adminOfflineHint')} value={on.offlineEnabled} onChange={(offlineEnabled) => save({ offlineEnabled })} />
+          <Toggle label={t('library.adminListen')} hint={t('library.adminListenHint')} value={on.listenEnabled} onChange={(listenEnabled) => save({ listenEnabled })} />
+          <Toggle label={t('library.adminStudies')} hint={t('library.adminStudiesHint')} value={on.studiesEnabled} onChange={(studiesEnabled) => save({ studiesEnabled })} />
         </>
       ) : null}
       {note ? <Text style={type.small}>{note}</Text> : null}
