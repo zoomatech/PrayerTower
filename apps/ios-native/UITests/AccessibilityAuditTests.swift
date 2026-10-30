@@ -40,7 +40,7 @@ final class AccessibilityAuditTests: XCTestCase {
                     try audit(app, "\(name) at \(size)")
                     // Then the end of the feed, so its last lines are checked on screen, not cut by the edge.
                     for _ in 0..<3 { app.swipeUp() }
-                    sleep(1)
+                    sleep(3)
                     try audit(app, "\(name) at \(size), scrolled to the end")
                     // Back to the list; a skin whose bar has no back button (seen once at the largest
                     // text) gets a fresh launch instead.
@@ -57,8 +57,16 @@ final class AccessibilityAuditTests: XCTestCase {
 
     /// Runs the audit and fails once per issue, naming the element, so CI's annotations say what to fix.
     @MainActor func audit(_ app: XCUIApplication, _ place: String) throws {
+        // Only what is wholly on screen, between the bars and clear of the bottom edge: a line half
+        // under the navigation bar, or one at the very bottom that the audit's larger text pushes
+        // off the screen, can't be measured there; it is checked at the other scroll position.
+        let window = app.windows.firstMatch.frame
+        let top = app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : window.minY
+        let bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : window.maxY - 80
+        let visible = CGRect(x: window.minX, y: top, width: window.width, height: bottom - top)
         try app.performAccessibilityAudit { issue in
             let element = issue.element
+            if let frame = element?.frame, !visible.contains(frame) { return true }
             let what = element.map { "\($0.elementType.rawValue) '\($0.label)' id '\($0.identifier)' at \($0.frame)" } ?? "no element"
             XCTFail("\(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
             return true

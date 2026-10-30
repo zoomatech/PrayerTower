@@ -45,12 +45,15 @@ struct DecorativeGlyph: View {
     let glyph: String
     var size: CGFloat = 28
     var color: Color = .primary
+    /// Grows with Dynamic Type like the words around it.
+    @ScaledMetric private var scale: CGFloat = 1
 
     var body: some View {
+        let side = size * scale
         Canvas { ctx, box in
-            ctx.draw(Text(glyph).font(.system(size: size)).foregroundStyle(color), at: CGPoint(x: box.width / 2, y: box.height / 2))
+            ctx.draw(Text(glyph).font(.system(size: side)).foregroundStyle(color), at: CGPoint(x: box.width / 2, y: box.height / 2))
         }
-        .frame(width: size * 1.3, height: size * 1.3)
+        .frame(width: side * 1.3, height: side * 1.3)
         .accessibilityHidden(true)
     }
 }
