@@ -182,10 +182,22 @@ function frameCorners(gray: Uint8Array, width: number, height: number, threshold
       if (x > maxX) maxX = x;
       if (y < minY) minY = y;
       if (y > maxY) maxY = y;
-      if (x + y < sTl) (sTl = x + y), (tl = [x, y]);
-      if (x - y > sTr) (sTr = x - y), (tr = [x + 1, y]);
-      if (x + y > sBr) (sBr = x + y), (br = [x + 1, y + 1]);
-      if (y - x > sBl) (sBl = y - x), (bl = [x, y + 1]);
+      if (x + y < sTl) {
+        sTl = x + y;
+        tl = [x, y];
+      }
+      if (x - y > sTr) {
+        sTr = x - y;
+        tr = [x + 1, y];
+      }
+      if (x + y > sBr) {
+        sBr = x + y;
+        br = [x + 1, y + 1];
+      }
+      if (y - x > sBl) {
+        sBl = y - x;
+        bl = [x, y + 1];
+      }
       for (const q of [p - 1, p + 1, p - width, p + width]) {
         if (q < 0 || q >= width * height || seen[q]) continue;
         if ((q === p - 1 && x === 0) || (q === p + 1 && x === width - 1)) continue;

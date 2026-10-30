@@ -49,7 +49,8 @@ describe('prayer panel', () => {
     await station(`/station/radio-prayers/${mine.id}/result`, { ok: true, callSign: 'N0CALL', preset: 'sstv-robot36', sentHash: '0'.repeat(32) });
     const p = (await as(member).get('/radio/panel')).json();
     expect(p.callSign).toBe('N0CALL');
-    expect(p.prayers[0]).toBe(mine.text);
+    // Newest first; other tests share the database, so only that it's there.
+    expect(p.prayers).toContain(mine.text);
     expect((await as(member).get('/features')).json().features.radioPanel).toBe(true);
     await radio.updateStationSettings(db, { listen_page_enabled: true });
     expect((await as(member).get('/radio/listen')).json().panel).toBe(true);
