@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Queryable } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
-import { citation, collection, COLLECTIONS, dataDir, features, offered, TITLES, type CollectionId } from './index.js';
+import { citation, collection, COLLECTIONS, dataDir, features, offered, passageKey, TITLES, type CollectionId } from './index.js';
 
 type SideSpec = { collection: CollectionId; ref?: string; find?: string; workId?: string; count?: number; label?: string; cite?: string };
 type ThemeSpec = { id: string; title: string; intro: string; sides: SideSpec[] };
@@ -26,6 +26,8 @@ export function excerpt(id: CollectionId, from: number, count: number, cite?: st
     ref,
     text: taken.map((p) => p.text).join('\n\n'),
     citation: citation(id, ref, work),
+    // Highlights and notes attach to the first passage.
+    key: passageKey(first),
   };
 }
 

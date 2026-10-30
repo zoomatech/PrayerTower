@@ -59,6 +59,7 @@ struct ParallelThemeView: View {
     @State private var theme: ParallelTheme?
     @State private var error: String?
     @State private var sharing: SharedPassage?
+    @State private var marks = LibraryMarks()
     private var w: Words { model.words }
 
     var body: some View {
@@ -82,7 +83,10 @@ struct ParallelThemeView: View {
             .padding()
         }
         .navigationTitle(theme?.title ?? w("library.parallels"))
-        .task { await load() }
+        .task {
+            await load()
+            try? await marks.load(model)
+        }
         .sheet(item: $sharing) { ComposeView(start: $0.post) }
     }
 
@@ -97,10 +101,13 @@ struct ParallelThemeView: View {
                     Button(w("library.share")) { sharing = SharedPassage(post: Library.shared(s.excerpt.text, citation: s.excerpt.citation)) }
                         .accessibilityLabel(w("library.shareOne", ["citation": s.excerpt.citation]))
                 }
+                if model.features["libraryNotes"], let key = s.excerpt.key {
+                    PassageMarkRow(collection: s.excerpt.collection, key: key, citation: s.excerpt.citation, marks: marks)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color.softBackground, in: RoundedRectangle(cornerRadius: 12))
+            .background(s.excerpt.key.flatMap { noteFill(marks.marks[$0]?.color) } ?? Color.softBackground, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -198,6 +205,7 @@ struct PlanDayView: View {
     @State private var data: LibraryPlanDay?
     @State private var error: String?
     @State private var sharing: SharedPassage?
+    @State private var marks = LibraryMarks()
     private var w: Words { model.words }
 
     var body: some View {
@@ -222,6 +230,9 @@ struct PlanDayView: View {
                         Button(w("library.share")) { sharing = SharedPassage(post: Library.shared(String(data.reading.text.prefix(1500)), citation: data.reading.citation)) }
                             .accessibilityLabel(w("library.shareOne", ["citation": data.reading.citation]))
                     }
+                    if model.features["libraryNotes"], let key = data.reading.key {
+                        PassageMarkRow(collection: data.reading.collection, key: key, citation: data.reading.citation, marks: marks)
+                    }
                     HStack {
                         if data.day > 1 { Button(w("library.planPrevious")) { day -= 1 }.buttonStyle(.bordered) }
                         if data.day < data.plan.days { Button(w("library.planNext")) { day += 1 }.buttonStyle(.bordered) }
@@ -234,6 +245,7 @@ struct PlanDayView: View {
         }
         .navigationTitle(data?.plan.title ?? w("library.plans"))
         .task(id: day) { await load() }
+        .task { try? await marks.load(model) }
         .sheet(item: $sharing) { ComposeView(start: $0.post) }
     }
 

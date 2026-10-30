@@ -57,6 +57,33 @@ Admin → Text search → **Reading plans** (`plans_enabled`, feature `libraryPl
 
 Routes: `GET /library/plans`, `PUT|DELETE /library/plans/:id/follow` (`{ circleId?, reminders? }`), `GET /library/plans/:id/days/:day`, `POST /library/plans/:id/days/:day/read`.
 
+### Word study (off by default)
+
+Admin → Text search → **Word study** (`words_enabled`, feature `libraryWords`). Offered only where the King James Bible is (never Open Circle).
+
+- A **Study the words** button on each King James verse (search results, My highlights and notes) opens the verse word by word. Tagged words are buttons showing the transliterated root; tapping one opens its **Strong's number**: the Hebrew or Greek word, transliteration, pronunciation, Strong's definition and derivation, how the KJV renders it, and every verse that uses it (in Bible order, 20 at a time, each with the English words used for it there).
+- Data: `kjv-strongs.json.gz` (31,102 verses as tokens: a plain string, or `[word, ["H7225"]]`) and `strongs-dictionary.json.gz` (8,674 Hebrew and 5,624 Greek entries), built by `python3 scripts/library-strongs.py` from `sources/kjv-strongs/` and `sources/strongs/`. Output is Unicode NFC. The tagged text is eBible.org's KJV 2006 edition, which spells a few words differently from the Gutenberg KJV in about 226 verses; the verse references line up exactly.
+- Routes: `GET /library/words?ref=Genesis 1:1`, `GET /library/words/:id?offset&limit` (`H1`–`H8674`, `G1`–`G5624`).
+
+### Highlights and notes (off by default)
+
+Admin → Text search → **Highlights and notes** (`notes_enabled`, feature `libraryNotes`). Me → **My highlights and notes**.
+
+- A **Highlight or note** button on every passage: search results in any collection, parallels, plan days. A mark is a colour (yellow, green, blue, pink), a note (up to 2,000 characters), or both; clearing both removes it. A plan day's mark is on its first passage.
+- **Private by default**. A note (never a colour alone) can be shared with one of the member's prayer circles; members of that circle see it under My highlights and notes → **Shared in …**, with who wrote it. Leaving a circle hides your notes from it.
+- A passage is named by its key: the first 32 hex characters of sha256(work id, reference, text), sent with every search hit and excerpt. If a collection is rebuilt and a passage's words change, its old marks keep their saved quote and citation.
+- Open Circle never sees Bible or Apocrypha marks, and cannot mark them.
+- Table `library_notes` (migration `20261029233000_library_words_notes_offline.sql`), in the member's data export.
+- Routes: `GET /library/notes?collection`, `PUT /library/notes` (`{ collection, key, color?, note?, circleId? }`; a field left out is kept, `null` clears it), `DELETE /library/notes/:id`, `GET /library/notes/circle/:circleId`.
+
+### Offline texts (off by default, native app)
+
+Admin → Text search → **Offline texts** (`offline_enabled`, feature `libraryOffline`). In the iPhone, iPad and Mac app: Me → **Offline texts**, also at the top of Search the texts.
+
+- Lists the collections the member's community is offered, with size and passage count; **Download** keeps a copy in Application Support (`OfflineTexts/`) until the member removes it. A copy whose version (a hash of the file) differs from the server's shows **Update**. A copy of a collection no longer offered is removed when the list loads.
+- With no signal, Search the texts searches the downloaded copy: passages holding every word first, then at least half the words. It says so on screen, because old word forms and synonyms are not matched offline. Word study and marks need a connection.
+- Routes: `GET /library/offline`, `GET /library/offline/:id` (the collection file, gzipped JSON with `Content-Encoding: gzip`).
+
 Winstons Syndicate's scripture package (relationship search, "David slew Goliath", and fuzzy remembered-story search) is still being built there. It will come to Prayer Tower later as an **Ask the Bible** feature (Steve, 2026-10-29), so it is not ported here.
 
 ## How the search works
@@ -82,6 +109,8 @@ The relationship and fuzzy searches stay in Winstons Syndicate until Ask the Bib
 | `apocrypha-kjv.json.gz` | The 15 books of the King James Apocrypha, 5,709 verses: 1 and 2 Esdras, Tobit, Judith, the Greek additions to Esther, Wisdom, Sirach, Baruch, the Epistle of Jeremiah, the Song of the Three Holy Children, Susanna, Bel and the Dragon, the Prayer of Manasses, 1 and 2 Maccabees. Faith communities only | Project Gutenberg eBook #124, <https://www.gutenberg.org/ebooks/124> (KJV 1611, public domain) |
 | `world-classics.json.gz` | 7 works, 3,722 passages: Tao Te Ching (James Legge, 1891), the Analects (Legge, 1893), the Dhammapada (F. Max Müller, 1881), the Bhagavad Gita, *The Song Celestial* (Edwin Arnold, 1885), Hesiod, the Homeric Hymns and Homerica (Hugh G. Evelyn-White, Loeb 1914), the Iliad (Samuel Butler, 1898), the Odyssey (Butler, 1900) | Project Gutenberg eBooks #216, #3330, #2017, #2388, #348, #2199, #1727 (all published before 1931) |
 | `kjv-synonyms.txt.gz` | Synonym table | Moby Thesaurus (public domain) |
+| `kjv-strongs.json.gz` | KJV with Strong's numbers on each word, 31,102 verses | eBible.org `eng-kjv2006` USFM, licence "Public Domain" (<https://ebible.org/find/details.php?id=eng-kjv2006>) |
+| `strongs-dictionary.json.gz` | Strong's Hebrew (1894) and Greek (1890) dictionaries | OpenScriptures `StrongHebrewG.xml` and `strongsgreek.xml`, both marked public domain |
 
 Only works marked `public_domain` are loaded. Winstons Syndicate's "Ancient Texts Predating Gilgamesh & The Bible" note is marked `unverified` there and is left out.
 
