@@ -8,12 +8,13 @@ import { describe, expect, it } from 'vitest';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TSX = path.join(here, '../../../node_modules/.bin/tsx');
 const MAIN = path.join(here, '../src/main.ts');
+const LISTENER = path.join(here, '../src/listener-main.ts');
 const BASE = { PRAYER_TOWER_API_URL: 'https://prayer.example', STATION_API_KEY: 'k', CALL_SIGN: 'KD9XYZ' };
 
 /** Runs the station with only these settings and returns how it stopped. */
-function start(env: Record<string, string | undefined>) {
-  const clean = Object.fromEntries(Object.entries({ ...BASE, ...env }).filter(([, v]) => v !== undefined)) as Record<string, string>;
-  const r = spawnSync(TSX, [MAIN], { env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', ...clean }, encoding: 'utf8', timeout: 30_000 });
+function start(env: Record<string, string | undefined>, file = MAIN, base: Record<string, string> = BASE) {
+  const clean = Object.fromEntries(Object.entries({ ...base, ...env }).filter(([, v]) => v !== undefined)) as Record<string, string>;
+  const r = spawnSync(TSX, [file], { env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', ...clean }, encoding: 'utf8', timeout: 30_000 });
   return { code: r.status, out: `${r.stdout}${r.stderr}` };
 }
 
@@ -38,6 +39,21 @@ describe('station start-up checks', () => {
     ['a packet call sign AX.25 cannot carry', { BURST_MODE: 'packet', CALL_SIGN: 'KD9XYZ/P' }, 'needs a call sign AX.25 can carry'],
   ])('stops on %s', (_name, env, message) => {
     const r = start(env);
+    expect(r.code).not.toBe(0);
+    expect(r.out).toContain(message);
+  }, 40_000);
+});
+
+describe('listener node start-up checks', () => {
+  const NODE = { PRAYER_TOWER_API_URL: 'https://prayer.example', NODE_KEY: 'k', LISTEN_RECORD_CMD: 'false' };
+  it.each([
+    ['a missing server address', { PRAYER_TOWER_API_URL: undefined }, 'Set PRAYER_TOWER_API_URL'],
+    ['a plain http server address', { PRAYER_TOWER_API_URL: 'http://prayer.example' }, 'must start with https://'],
+    ['a missing node key', { NODE_KEY: undefined }, 'Set NODE_KEY'],
+    ['a frequency search out of range', { LISTEN_SEARCH_HZ: '500' }, 'LISTEN_SEARCH_HZ must be a number'],
+    ['a decode interval of zero', { LISTEN_DECODE_SECONDS: '0' }, 'LISTEN_DECODE_SECONDS must be a number'],
+  ])('stops on %s', (_name, env, message) => {
+    const r = start(env, LISTENER, NODE);
     expect(r.code).not.toBe(0);
     expect(r.out).toContain(message);
   }, 40_000);
