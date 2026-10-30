@@ -49,9 +49,9 @@ struct ConnectorOutline<S: Shape, L: ConnectorLook>: View, Animatable {
     let shape: S
     let look: L
     var width: CGFloat = 5
-    var progress: CGFloat = 1
+    nonisolated var progress: CGFloat = 1
     /// Lets SwiftUI step `progress` frame by frame, so the outline visibly draws itself in.
-    var animatableData: CGFloat {
+    nonisolated var animatableData: CGFloat {
         get { progress }
         set { progress = newValue }
     }
