@@ -124,6 +124,9 @@ elif [ "$platform" = mac ]; then
   grep -q "station ID (CW)" "$logs/station.log" || fail "no station ID after the burst"
 
   step "Health check"
+  # Installing again restarts rigctld. If the old one still holds its port, the new one exits
+  # and launchd waits its 30 s throttle before trying again: give it that long to answer.
+  for _ in $(seq 1 45); do nc -z 127.0.0.1 4532 2> /dev/null && break; sleep 1; done
   bash "$base/station/run.sh" health || fail "the health check failed"
 
   step "Uninstall"

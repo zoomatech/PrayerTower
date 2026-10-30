@@ -7,11 +7,13 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 
 import { Button, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, type PrayerCast } from '@/lib/api';
+import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 
 export default function PrayerCastScreen() {
   const { t, n } = useLocale();
+  const features = useFeatures();
   const [data, setData] = useState<PrayerCast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,6 +41,7 @@ export default function PrayerCastScreen() {
           {t('cast.intro')}
         </Text>
         {canListen ? <Button label={t('cast.listen')} onPress={() => router.push('/listen')} /> : null}
+        {features.radioPanel ? <Button variant="secondary" label={t('panel.title')} onPress={() => router.push('/prayer-panel')} /> : null}
         <ErrorText error={error} onRetry={data ? undefined : load} />
         {!data && !error ? <Loading /> : null}
         {data ? (

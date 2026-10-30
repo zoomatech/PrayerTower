@@ -194,7 +194,7 @@ describe('every radio feature, every switch on, both editions', () => {
   });
 
   it('public pages and the signed-out listener mode, with Open Circle wording on its host and path', async () => {
-    expect((await app.inject({ method: 'GET', url: '/listen/config' })).json()).toEqual({ enabled: true, receipts: true, prayingToo: true, readAloud: false });
+    expect((await app.inject({ method: 'GET', url: '/listen/config' })).json()).toEqual({ enabled: true, receipts: true, prayingToo: true, readAloud: false, panel: false });
     const pt = await app.inject({ method: 'GET', url: '/listen' });
     expect(pt.statusCode).toBe(200);
     expect(pt.body).toContain('Listen to a prayer burst');

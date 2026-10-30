@@ -44,6 +44,7 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Read aloud (the Listen screen reads decoded prayers with the device's own voice) | Admin → Radio → Sent by radio | [Read aloud](#read-aloud) |
 | Name privacy (names taken out for members who choose it) | Admin → Radio → Sent by radio | [Privacy on the air](#privacy-on-the-air) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
+| Prayer panel (prayers as one picture to show, print or send as SSTV; listener apps read it with the camera or from SSTV audio) | Admin → Radio → Prayer panel and SSTV, plus `BURST_MODE=sstv` to send | [Prayer panel and SSTV](#prayer-panel-and-sstv) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
 | Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
 | Store-and-forward relay | `RELAY=on` on a listener node with a transmitter | [RADIO_BURST.md](RADIO_BURST.md#store-and-forward-relay) |
@@ -273,6 +274,10 @@ fastest preset that the weakest listener can still decode. Off by default.
 
    Set the receiver's sound card in `LISTEN_RECORD_CMD` (the card name from
    `arecord -l`). From an HF (SSB) receiver, also set `LISTEN_SEARCH_HZ=50`.
+   If the station sends prayer panels as SSTV pictures (`BURST_MODE=sstv`), set
+   `LISTEN_SSTV=on` so the node reads them too and reports them as heard. Its
+   "dB" for a picture is how cleanly the picture came through (the gap between
+   black and white over the noise), not a burst SNR.
    For a Pi that sets itself up on first boot, change `--hamlib` to
    `--listener-only` in `pi/user-data`.
 3. On the station, in `/etc/prayer-tower-station.env`:
@@ -839,6 +844,23 @@ listener nodes report the IDs they hear so the prayers count as heard.
 Details and the packet format: [RADIO_BURST.md](RADIO_BURST.md#packet-fallback).
 
 ![Packet fallback switch](images/radio/packet-fallback.png)
+
+## Prayer panel and SSTV
+
+The station can send prayers as SSTV pictures: each a prayer panel, a dense
+black-and-white picture that holds a batch of prayers. Any SSTV program shows
+it, and the Prayer Tower listener apps read the prayers back from the audio or
+from a photo of the screen.
+
+1. Turn on Admin → Radio → **Prayer panel and SSTV**.
+2. In `/etc/prayer-tower-station.env` set `BURST_MODE=sstv`. To practise with
+   nothing keyed, also set `SSTV_SEND=simulate`: each picture goes to a WAV file
+   in the bursts folder, and the log says what a receiver reads back.
+3. `sudo systemctl restart prayer-tower-station`. Sound card and PTT are set up as for `BURST_MODE=audio`.
+
+A panel takes about 37 seconds on the air, and the CW station ID (`STATION_ID=cw`)
+follows it when one is due. Members can also show or print the
+latest panel from the app. Details: [RADIO_BURST.md](RADIO_BURST.md#prayer-panel).
 
 ## Diagnose a weak signal
 

@@ -3,7 +3,8 @@
 //   FLDIGI_URL (default http://127.0.0.1:7362/RPC2), MODEM (BPSK31), POLL_SECONDS (10),
 //   TX_TIMEOUT_SECONDS (180), MAX_PIECE_CHARS (500), BLOCKLIST_FILE (one word per line, added to the default list)
 // Burst mode (docs/RADIO_BURST.md), off unless BURST_MODE is set:
-//   BURST_MODE (off | audio | fldigi | simulate | packet: IDs and counts as 1200-baud APRS packets, PACKET_PATH), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
+//   BURST_MODE (off | audio | fldigi | simulate | packet: IDs and counts as 1200-baud APRS packets, PACKET_PATH |
+//   sstv: prayer panels as SSTV Robot 36 pictures; SSTV_SEND=simulate writes them to WAV files, nothing keyed), BURST_PRESET (fm-standard), BURST_MAX_PRAYERS (50),
 //   BURST_MAX_FRAME_SECONDS (20), BURST_CODEC_V2 (off; on also tries codec 4), BURST_PLAY_CMD ("aplay -q {wav}"; "afplay {wav}" on macOS), BURST_PTT_ON_CMD, BURST_PTT_OFF_CMD,
 //   BURST_PTT_DELAY_MS (300), BURST_DIR (bursts/ under the state directory), BURST_FLDIGI_MODEM (8PSK1000F)
 // BURST_PRESET=auto picks a preset before each burst from a receiver's channel report:
@@ -40,6 +41,7 @@ import { DishFollower, rotctldClient } from './rotator.js';
 import { StationId } from './station-id.js';
 import { runSetupTestOnce } from './setup-test.js';
 import { runPacketOnce } from './packet/worker.js';
+import { runSstvOnce } from './panel/worker.js';
 import { stationChecks } from './status.js';
 import { checkApiUrl } from './secure-url.js';
 
@@ -74,9 +76,15 @@ const cfg = {
 };
 const pollMs = int('POLL_SECONDS', '10', 1, 3600) * 1000;
 const burstMode = env('BURST_MODE', 'off');
-if (!['off', 'audio', 'fldigi', 'simulate', 'packet'].includes(burstMode)) throw new Error('BURST_MODE must be off, audio, fldigi, simulate or packet');
+if (!['off', 'audio', 'fldigi', 'simulate', 'packet', 'sstv'].includes(burstMode)) throw new Error('BURST_MODE must be off, audio, fldigi, simulate, packet or sstv');
 // Packet fallback: plays through the sound card like audio mode (packet/worker.ts).
 const packetMode = burstMode === 'packet';
+// Prayer panels as SSTV pictures: also through the sound card (panel/worker.ts).
+const sstvMode = burstMode === 'sstv';
+// SSTV_SEND=simulate: practice SSTV pictures with nothing keyed, as BURST_MODE=simulate does for bursts.
+const sstvSend = env('SSTV_SEND', 'audio');
+if (!['audio', 'simulate'].includes(sstvSend)) throw new Error('SSTV_SEND must be audio or simulate');
+const sstvSimulate = sstvMode && sstvSend === 'simulate';
 const usesFldigi = burstMode === 'off' || burstMode === 'fldigi';
 const api = httpApi(checkApiUrl(env('PRAYER_TOWER_API_URL')), env('STATION_API_KEY'));
 const fldigi = fldigiClient(env('FLDIGI_URL', 'http://127.0.0.1:7362/RPC2'));
@@ -134,7 +142,7 @@ if (burstMode !== 'off') {
   if (simHf !== undefined && !(simHf in HF_CHANNELS)) throw new Error(`BURST_SIM_HF must be one of ${Object.keys(HF_CHANNELS).join(', ')}`);
   const auto = env('BURST_PRESET', 'fm-standard') === 'auto';
   const tx =
-    burstMode === 'simulate'
+    burstMode === 'simulate' || sstvSimulate
       ? simulateTransmitter(dir, console.log, {
           snrDb: simSnr === undefined ? undefined : Number(simSnr),
           reportFile: /^https?:/.test(reportSource) ? undefined : reportSource,
@@ -201,7 +209,7 @@ const reportStatus = async () => {
   if (Date.now() - lastStatus < STATUS_EVERY_MS) return;
   lastStatus = Date.now();
   try {
-    const checks: { name: string; ok: boolean; detail: string }[] = await stationChecks({ audio: burstMode === 'audio' || packetMode, rig });
+    const checks: { name: string; ok: boolean; detail: string }[] = await stationChecks({ audio: burstMode === 'audio' || packetMode || (sstvMode && !sstvSimulate), rig });
     // The operator console's ID timer (STATION_ID=cw).
     if (stationId) checks.push({ name: 'station_id', ok: true, detail: stationId.statusDetail() });
     if (dish) checks.push({ name: 'rotator', ok: !dish.lastError, detail: dish.statusDetail() });
@@ -255,6 +263,8 @@ while (!stopping) {
   try {
     const idle = packetMode && burst
       ? (await runPacketOnce(api, burst.tx, { callSign, maxPrayers: burst.cfg.maxPrayers, blocklist: cfg.blocklist, path: packetPath, frequencyHz: cfg.frequencyHz })).kind === 'idle'
+      : sstvMode && burst
+        ? (await runSstvOnce(api, burst.tx, { callSign, maxPrayers: burst.cfg.maxPrayers, blocklist: cfg.blocklist, frequencyHz: cfg.frequencyHz })).kind === 'idle'
       : burst
         ? (await runBurstOnce(api, burst.tx, burst.cfg)).kind === 'idle'
         : (await runOnce(api, fldigi, cfg)) === 'idle';
