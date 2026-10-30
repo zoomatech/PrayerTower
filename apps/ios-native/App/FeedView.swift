@@ -35,6 +35,8 @@ struct FeedView: View {
                 if let theme, theme.kind != .column {
                     SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id }, loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] })
                         .skinBars(Skin.backdrop(theme))
+                        // A small title in the middle, clear of the Home icon in the top left corner.
+                        .navigationBarTitleDisplayMode(.inline)
                 } else if wide {
                     grid
                 } else {

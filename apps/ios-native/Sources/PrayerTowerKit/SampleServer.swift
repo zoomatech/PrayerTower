@@ -180,7 +180,7 @@ extension SampleServer {
         return #"""
         {"id":"sample-g\#(i)","author":{"id":"u\#(i % names.count)","displayName":"\#(anonymous ? "Someone" : name)","handle":null,"anonymous":\#(anonymous)},\#
         "isMine":\#(i == 1),"postType":"\#(type)","urgency":\#(i % 11 == 2 ? 2 : 0),"preview":"\#(body)","body":"\#(body)","crisis":false,\#
-        "isSensitive":false,"counts":{"prayingNow":\#(i % 4),"prayers":\#(3 + i % 17),"commitments":\#(i % 3),"comments":\#(i % 5)},\#
+        "isSensitive":false,"counts":{"prayingNow":\#(i % 4),"prayers":\#(3 + i % 17),"commitments":\#(i % 3),"comments":9},\#
         "createdAt":"2026-10-29T08:\#(minutes):00Z","actions":["praying_now","thumbs_up","well_wishes","encouragement","share","commit","gift_tokens"],\#
         "state":"\#(answered ? "answered" : "open")","answeredAt":\#(answered ? #""2026-10-29T10:00:00Z""# : "null"),"testimony":null,\#
         "background":null,"media":[],"leafComments":\#(leaf),"answers":null,"storyId":null}
