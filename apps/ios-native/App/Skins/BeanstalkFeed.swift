@@ -29,6 +29,8 @@ private enum Bean {
     static let heart = Color(RGB(hex: "#B23A22")!)
     static let stem = Color(RGB(hex: "#5E9440")!)
     static let leaves = [Color(RGB(hex: "#B6D77A")!), Color(RGB(hex: "#D7EBB0")!), Color(RGB(hex: "#9CC862")!)]
+    /// The leaf veins: the stalk's green made 10% lighter (Steve, 2026-10-30).
+    static let vein = Color(RGB(hex: "#6E9F53")!)
     static let button = Color(RGB(hex: "#D7EBB0")!)
     static let sub = Color(RGB(hex: "#5C4A33")!)
     // A little darker than the design's #2F4F86, for 4.5:1 on the darkest leaf (WCAG AA).
@@ -568,7 +570,7 @@ private struct BeanLeafView: View {
         let left: Bool = leaf.side < 0
         let fs: Double = leaf.level == 1 ? 14 : (leaf.level == 2 ? 12.5 : 12)
         let nameFs: Double = leaf.level == 1 ? 13.5 : (leaf.level == 2 ? 12 : 11.5)
-        let minH: Double = leaf.level == 1 ? 100 : (leaf.level == 2 ? 84 : 66)
+        let minH: Double = leaf.level == 1 ? 110 : (leaf.level == 2 ? 92 : 73)
         let small: Bool = leaf.level > 1
         let fit = Beanstalk.fit(leaf.note.body, max: Beanstalk.chars(width: leaf.lw * 0.64, font: fs, lines: small ? 1 : 2))
         let more: Bool = leaf.replies > 0 && leaf.level < 3
@@ -580,8 +582,10 @@ private struct BeanLeafView: View {
         let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
         Button { onTap(fit.cut) } label: {
             VStack(spacing: 0) {
-                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1)
-                Text(fit.text).font(BeanFont.body(fs)).lineLimit(small ? 1 : 2)
+                // Never truncated by the layout: the words are already shortened to fit, and the leaf
+                // grows taller with larger text rather than cutting them off.
+                Text(leaf.note.author).font(BeanFont.bold(nameFs)).fixedSize(horizontal: false, vertical: true)
+                Text(fit.text).font(BeanFont.body(fs)).fixedSize(horizontal: false, vertical: true)
                 if !hint.isEmpty, !small { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).padding(.top, 2) }
             }
             .foregroundStyle(Bean.text)
@@ -592,8 +596,7 @@ private struct BeanLeafView: View {
             .padding(.trailing, padR)
             .frame(width: leaf.lw)
             // A reply keeps a real leaf's shape, half as tall as it is wide, so it never balloons.
-            .frame(minHeight: small ? nil : minH)
-            .frame(height: small ? (leaf.lw * 0.52).rounded() : nil)
+            .frame(minHeight: small ? (leaf.lw * 0.52).rounded() : minH)
             .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
         .buttonStyle(.plain)
@@ -663,23 +666,23 @@ private struct LeafCluster: View {
     private var nodes: [Node] {
         let lead = width - 14
         if !big {
-            return [Node(y: 8, side: 1, stalk: 14, size: 58, droop: -24, text: false),
-                    Node(y: 34, side: -1, stalk: 14, size: 52, droop: 10, text: false),
-                    Node(y: 58, side: 1, stalk: 12, size: 46, droop: 30, text: false)]
+            return [Node(y: 9, side: 1, stalk: 14, size: 64, droop: -24, text: false),
+                    Node(y: 37, side: -1, stalk: 14, size: 57, droop: 10, text: false),
+                    Node(y: 64, side: 1, stalk: 12, size: 51, droop: 30, text: false)]
         }
         // Upper leaves reach up and out, lower ones droop, like a shoot seen from the side.
-        return [Node(y: 26, side: 1, stalk: 18, size: 84, droop: -14, text: false),
-                Node(y: 26, side: -1, stalk: 12, size: lead, droop: 3, text: true),
-                Node(y: 76, side: 1, stalk: 16, size: 62, droop: 2, text: false),
-                Node(y: 124, side: 1, stalk: 16, size: 72, droop: 28, text: false),
-                Node(y: 136, side: -1, stalk: 16, size: 58, droop: 30, text: false),
-                Node(y: 176, side: -1, stalk: 14, size: 44, droop: 40, text: false)]
+        return [Node(y: 29, side: 1, stalk: 18, size: 92, droop: -14, text: false),
+                Node(y: 29, side: -1, stalk: 12, size: lead, droop: 3, text: true),
+                Node(y: 84, side: 1, stalk: 16, size: 68, droop: 2, text: false),
+                Node(y: 136, side: 1, stalk: 16, size: 79, droop: 28, text: false),
+                Node(y: 150, side: -1, stalk: 16, size: 64, droop: 30, text: false),
+                Node(y: 194, side: -1, stalk: 14, size: 48, droop: 40, text: false)]
     }
 
     var body: some View {
         let W = width
         let all = nodes
-        let tall: Double = big ? 220 : 90
+        let tall: Double = big ? 242 : 99
         Button {
             rustles += 1
             Task {
@@ -705,11 +708,13 @@ private struct LeafCluster: View {
                 ForEach(Array(all.enumerated()), id: \.offset) { i, n in
                     let left = n.side < 0
                     let h = (n.size * (n.text ? 0.58 : 0.5)).rounded()
+                    let minOnly = n.text
                     let ex = W + vine(n.y) + n.side * n.stalk
                     let ey = n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(n.droop * .pi / 180)
                     let anchor: UnitPoint = left ? .trailing : .leading
                     blade(n, flip: left, fill: Bean.leaves[(i + seed) % Bean.leaves.count])
-                        .frame(width: n.size, height: h)
+                        .frame(width: n.size, height: minOnly ? nil : h)
+                        .frame(minHeight: minOnly ? h : nil)
                         // Each leaf swings on its own stalk, out of step with the rest.
                         .rustle(rustles, by: Double(i % 3 + 2) * (i % 2 == 0 ? 1 : -1), anchor: anchor)
                         .rotationEffect(.degrees(n.side * n.droop), anchor: anchor)
@@ -727,9 +732,10 @@ private struct LeafCluster: View {
             LeafBack(flip: flip, fill: fill, line: 2)
             if n.text, let first {
                 VStack(spacing: 1) {
-                    Text(first.author).font(BeanFont.bold(13)).lineLimit(1)
-                    // The whole first line of the top comment, as wide as the leaf allows.
-                    Text(first.body).font(BeanFont.body(12.5)).lineLimit(2).truncationMode(.tail)
+                    Text(first.author).font(BeanFont.bold(13)).fixedSize(horizontal: false, vertical: true)
+                    // The opening of the top comment, shortened to fit at a word, never cut by the layout.
+                    Text(Beanstalk.fit(first.body, max: Beanstalk.chars(width: n.size * 0.9, font: 12.5, lines: 2)).text)
+                        .font(BeanFont.body(12.5)).fixedSize(horizontal: false, vertical: true)
                 }
                 .foregroundStyle(Bean.text)
                 .multilineTextAlignment(.center)
@@ -766,8 +772,11 @@ private struct LeafBack: View {
     var body: some View {
         ZStack {
             DesignLeaf(flip: flip).fill(fill)
+            // From the leaf's own green at its edges to a brighter, paler green in the middle (Steve, 2026-10-30).
+            DesignLeaf(flip: flip).fill(EllipticalGradient(colors: [Color(RGB(hex: "#F4FBE4")!).opacity(0.85), Color(RGB(hex: "#F4FBE4")!).opacity(0)],
+                                                           center: .center, startRadiusFraction: 0, endRadiusFraction: 0.55))
             DesignLeaf(flip: flip).stroke(Bean.vineInk, lineWidth: line)
-            DesignLeaf(flip: flip, veins: true, big: big).stroke(Bean.stem.opacity(0.55), style: .init(lineWidth: 1.2, lineCap: .round))
+            DesignLeaf(flip: flip, veins: true, big: big).stroke(Bean.vein.opacity(0.55), style: .init(lineWidth: 1.2, lineCap: .round))
         }
     }
 }

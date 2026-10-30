@@ -234,7 +234,8 @@ public enum BeanDraw {
     public static func hanging(w: Double, top: [Beanstalk.Note], kids: [String: [Beanstalk.Note]], cv: LeafState, seed: Int, bend: Double = 0) -> Hanging {
         let deg = Double.pi / 180
         let cx = w / 2
-        let lw = max(170, (w * 0.5).rounded())
+        // 10% larger than first drawn (Steve, 2026-10-30).
+        let lw = (max(170, w * 0.5) * 1.1).rounded()
         let angles = [22.0, 15, 27]
         let per = Beanstalk.perPage
         let pages = 1, page = 0
@@ -258,7 +259,7 @@ public enum BeanDraw {
                 let gi = page * per + k
                 let side = k % 2 == 1 ? 1 : -1
                 let sd = Double(side)
-                let y = max(prevY + 70, 30, (sideBottom[side] ?? 0) + 30)
+                let y = max(prevY + 77, 30, (sideBottom[side] ?? 0) + 33)
                 prevY = y
                 let tipX = cx + sway(y + 26) + sd * 16, tipY = y + 26
                 let a = angles[k % angles.count]
@@ -266,9 +267,9 @@ public enum BeanDraw {
                 stems += [.move(vX, y), .curve(vX + sd * 8, y + 8, tipX - sd * 6, tipY - 10, tipX, tipY)]
                 let reps = kids[c.id] ?? []
                 let open = cv.open == gi && !reps.isEmpty
-                leaves.append(Leaf(note: c, level: 1, path: [gi], x: (side < 0 ? tipX - lw : tipX).rounded(), y: (tipY - 50).rounded(), lw: lw, side: side, ang: sd * a, fill: (k + seed) % 3, replies: reps.count, open: open, k: k))
+                leaves.append(Leaf(note: c, level: 1, path: [gi], x: (side < 0 ? tipX - lw : tipX).rounded(), y: (tipY - 55).rounded(), lw: lw, side: side, ang: sd * a, fill: (k + seed) % 3, replies: reps.count, open: open, k: k))
                 let ccX = tipX + sd * (lw / 2) * cos(a * deg), ccY = tipY + (lw / 2) * sin(a * deg)
-                var bottom = ccY + 58
+                var bottom = ccY + 64
                 if open {
                     // Replies are small leaves of a true leaf's proportions (half as tall as wide).
                     let rw = (lw * 0.6).rounded(), rh = (rw * 0.52).rounded()
@@ -304,8 +305,8 @@ public enum BeanDraw {
         var pgY = 0.0
         if cluster {
             // Room for the clump and the next post's locket below it.
-            pgY = 100
-            H = 270
+            pgY = 110
+            H = 300
         } else if more {
             pgY = H + 20
             H += 90
