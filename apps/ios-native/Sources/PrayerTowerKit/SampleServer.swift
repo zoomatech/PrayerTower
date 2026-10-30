@@ -67,15 +67,15 @@ public enum SampleServer {
 
     /// Words the sample says, in each edition's voice: Open Circle's screenshots never say "pray".
     struct Lines {
-        let ruth, vow, excerpt, thanks, noticeTitle, noticeBody, tier, nextTier: String
+        let ruth, vow, excerpt, thanks, noticeTitle, noticeBody, tier, nextTier, circleAbout: String
         static func of(_ edition: Edition) -> Lines {
             edition == .openCircle
                 ? Lines(ruth: "Please keep my mother in mind before her surgery on Tuesday.", vow: "I will check in on Ruth's mother.",
                         excerpt: "Please keep my mother in mind", thanks: "Thank you for being there!", noticeTitle: "Sam is thinking of you",
-                        noticeBody: "Sam is holding your request in mind.", tier: "Regular", nextTier: "Steady")
+                        noticeBody: "Sam is holding your request in mind.", tier: "Regular", nextTier: "Steady", circleAbout: "We keep each other in mind every week.")
                 : Lines(ruth: "Please pray for my mother's surgery on Tuesday.", vow: "I will pray for Ruth's mother.",
                         excerpt: "Please pray for my mother's surgery", thanks: "Thank you for praying!", noticeTitle: "Sam prayed for you",
-                        noticeBody: "Sam prayed for your request.", tier: "Faithful", nextTier: "Steadfast")
+                        noticeBody: "Sam prayed for your request.", tier: "Faithful", nextTier: "Steadfast", circleAbout: "We pray for each other every week.")
         }
     }
 
@@ -113,7 +113,7 @@ public enum SampleServer {
               "memberCount":2,"lastMessage":"\(l.thanks)","lastMessageAt":"2026-10-29T10:00:00Z","unread":1}]}
             """),
             ("GET", "^/me/prayer-stats$", stats),
-            ("GET", "^/me/circles$", #"{"enabled":true,"circles":[{"id":"sample-c1","name":"Tuesday small group","about":"We pray for each other every week.","isOwner":true,"members":8,"lastPostAt":"2026-10-28T18:00:00Z"},{"id":"sample-c2","name":"Family","about":null,"isOwner":false,"members":5,"lastPostAt":null}]}"#),
+            ("GET", "^/me/circles$", #"{"enabled":true,"circles":[{"id":"sample-c1","name":"Tuesday small group","about":"\#(l.circleAbout)","isOwner":true,"members":8,"lastPostAt":"2026-10-28T18:00:00Z"},{"id":"sample-c2","name":"Family","about":null,"isOwner":false,"members":5,"lastPostAt":null}]}"#),
             ("GET", "^/me/feed-themes$", #"{"themes":[],"current":null,"theme":null}"#),
             ("GET", "^/me/notifications$", """
             {"notifications":[{"id":"sample-n1","kind":"prayed_for","title":"\(l.noticeTitle)","body":"\(l.noticeBody)","data":{},
