@@ -4,8 +4,10 @@
 // right, that draw themselves from the bottom middle up both sides to a flower at the
 // top, with leaves and tendrils along them. Below each post a two-strand stalk grows
 // down to the next post, and the post's comments hang off it on big tilted leaves,
-// three at a time, left and right by turns; ‹ 1–3 of N › swaps in the next three.
-// A leaf with replies sprouts them as smaller leaves below it (three levels); a leaf
+// left and right by turns. More than three wait as an uncountable cluster of leaves
+// that rustles open into five when tapped; a smaller cluster below brings out five more.
+// A leaf with replies sprouts them, as holly berries that grow into smaller leaves
+// below it (three levels); a leaf
 // whose words are cut off opens as one big leaf with the whole comment and its replies.
 // Each post grows in (the card springs up, the vine draws, the leaves unfurl) whenever
 // it scrolls into view, and resets when it leaves, so scrolling back redraws it.
@@ -288,7 +290,7 @@ export interface HangingLeaf {
   fill: string;
   replies: number;
   open: boolean;
-  /** Which of the first three it is, for the unfurl stagger. */
+  /** Where it is in the latest five to come out, for the unfurl stagger; below 0 for those already out. */
   k: number;
 }
 
@@ -301,6 +303,7 @@ export interface Hanging {
   l1: number;
   l2: number;
   deco: string;
+  /** More comments wait in a smaller cluster below the leaves, hanging at pgY. */
   pager: boolean;
   pgY: number;
   /** Where the closed cluster of leaves hangs, when the comments are still clustered. */
@@ -330,7 +333,8 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
   const clumped = top.length > CLUMP_OVER && !cv.spread;
   const pages = Math.max(1, Math.ceil(top.length / PER_PAGE));
   const page = Math.min(cv.page, pages - 1);
-  const shown = clumped ? [] : top.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
+  // Spread, five leaves hang; each tap on the smaller cluster below them rustles out five more.
+  const shown = clumped ? [] : top.slice(0, (page + 1) * PER_PAGE);
   const leaves: HangingLeaf[] = [];
   const subs: HangingLeaf[] = [];
   let stems = '';
@@ -353,18 +357,18 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
     sideBottom['-1'] = 0;
     sideBottom['1'] = 0;
     shown.forEach((c, k) => {
-      const gi = page * PER_PAGE + k;
+      const gi = k;
       const side = (k % 2 ? 1 : -1) as -1 | 1;
       const y = Math.max(prevY + 70, 30, sideBottom[side]! + 30);
       prevY = y;
       const tipX = cx + sway(y + 26) + side * 16;
       const tipY = y + 26;
-      const a = A[k]!;
+      const a = A[k % A.length]!;
       const vX = vx(y);
       stems += `M${f(vX)} ${f(y)} C${f(vX + side * 8)} ${f(y + 8)} ${f(tipX - side * 6)} ${f(tipY - 10)} ${f(tipX)} ${f(tipY)} `;
       const reps = kids.get(c.id) ?? [];
       const open = cv.open === gi && reps.length > 0;
-      leaves.push({ comment: c, level: 1, path: [gi], x: Math.round(side < 0 ? tipX - lw : tipX), y: Math.round(tipY - 50), lw, side, ang: side * a, fill: LEAF_FILLS[(k + seed) % 3]!, replies: reps.length, open, k });
+      leaves.push({ comment: c, level: 1, path: [gi], x: Math.round(side < 0 ? tipX - lw : tipX), y: Math.round(tipY - 50), lw, side, ang: side * a, fill: LEAF_FILLS[(k + seed) % 3]!, replies: reps.length, open, k: k - page * PER_PAGE });
       const ccX = tipX + side * (lw / 2) * Math.cos(a * DEG);
       const ccY = tipY + (lw / 2) * Math.sin(a * DEG);
       let bottom = ccY + 58;
@@ -400,12 +404,12 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
     });
   };
   place();
-  const pager = !clumped && top.length > PER_PAGE;
+  const pager = !clumped && top.length > shown.length;
   let H = top.length === 0 ? 96 : clumped ? 270 : Math.round(maxB + 20);
   let pgY = 0;
   if (pager) {
-    pgY = H;
-    H += 60;
+    pgY = H + 50;
+    H += 130;
   }
   if (bend) {
     ({ sway, vx } = layout(H));
@@ -725,7 +729,7 @@ const CLUMP_W = 250;
 const CLUMP_H = 200;
 
 /** The closed cluster: an uncountable bunch of leaves. A tap rustles it, then it spreads out into five. */
-function Clump({ x, y, total, t, onSpread }: { x: number; y: number; total: number; t: Animated.Value; onSpread: () => void }) {
+function Clump({ x, y, total, t, onSpread, small = false, at = 1100 }: { x: number; y: number; total: number; t: Animated.Value; onSpread: () => void; small?: boolean; at?: number }) {
   const { t: tr } = useLocale();
   const reduced = useReducedMotion();
   const rustle = useRef(new Animated.Value(0)).current;
@@ -744,7 +748,7 @@ function Clump({ x, y, total, t, onSpread }: { x: number; y: number; total: numb
   const shiver = (i: number) =>
     rustle.interpolate({ inputRange: [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1], outputRange: ['0deg', `${i % 2 ? 9 : -9}deg`, `${i % 2 ? -7 : 7}deg`, `${i % 2 ? 8 : -6}deg`, `${i % 2 ? -5 : 6}deg`, `${i % 2 ? 4 : -4}deg`, `${i % 2 ? -2 : 2}deg`, '0deg'] });
   return (
-    <Animated.View style={[styles.clumpAt, { left: x - CLUMP_W / 2, top: y - CLUMP_H / 2, opacity: span(t, 1100, 400, 0, 1), transform: [{ scale: span(t, 1100, 500, 0.4, 1, EASE.unfurl) }] }]}>
+    <Animated.View style={[styles.clumpAt, { left: x - CLUMP_W / 2, top: y - CLUMP_H / 2, opacity: span(t, at, 400, 0, 1), transform: [{ scale: span(t, at, 500, small ? 0.25 : 0.4, small ? 0.55 : 1, EASE.unfurl) }] }]}>
       <Pressable onPress={press} accessibilityRole="button" accessibilityLabel={tr('beanstalk.cluster', { count: total })} accessibilityHint={tr('beanstalk.clusterHint')} style={styles.clumpPress}>
         {CLUMP.map(([ang, len], i) => (
           // Each leaf's wide base sits on the stem in the middle; its tip points outward.
@@ -757,33 +761,7 @@ function Clump({ x, y, total, t, onSpread }: { x: number; y: number; total: numb
             </Animated.View>
           </Animated.View>
         ))}
-        <Text style={styles.clumpHint}>{tr('beanstalk.clusterTap')}</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-/** The ‹ 1–5 of N › control under the leaves: it shows there are more, and brings in the next five. */
-function Pager({ page, pages, total, onPage, opacity, top, shift }: { page: number; pages: number; total: number; onPage: (p: number) => void; opacity: Animated.AnimatedInterpolation<number> | number; top: number; shift: number }) {
-  const { t } = useLocale();
-  const from = page * PER_PAGE + 1;
-  const to = Math.min(total, from + PER_PAGE - 1);
-  return (
-    <Animated.View style={[styles.pager, { top, opacity, transform: [{ translateX: shift }] }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('beanstalk.prev')} disabled={page <= 0} onPress={() => onPage(page - 1)} style={[styles.pgBtn, page <= 0 && styles.pgOff]}>
-        <Svg width={16} height={16} aria-hidden>
-          <Path d="M10 3 L 4 8 L 10 13" fill="none" stroke={BEANSTALK.ink} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      </Pressable>
-      <View style={styles.pgLabel}>
-        <Text style={styles.pgText}>
-          {t('beanstalk.range', { from, to, total })}
-        </Text>
-      </View>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('beanstalk.next')} disabled={page >= pages - 1} onPress={() => onPage(page + 1)} style={[styles.pgBtn, page >= pages - 1 && styles.pgOff]}>
-        <Svg width={16} height={16} aria-hidden>
-          <Path d="M6 3 L 12 8 L 6 13" fill="none" stroke={BEANSTALK.ink} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
+        <Text style={[styles.clumpHint, small && styles.clumpHintSmall]}>{tr(small ? 'beanstalk.clusterMore' : 'beanstalk.clusterTap')}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -984,14 +962,14 @@ const Post = memo(function Post({
         </Svg>
         {hang.leaves.map((leaf) =>
           leaf.level === 1 ? (
-            // The first time, on the post's clock after the stalk has grown; a new page on its own.
-            <Leaf key={leaf.comment.id} leaf={leaf} t={cyc > 0 ? pageT : t} at={cyc > 0 ? leaf.k * 100 : 1100 + leaf.k * 180} onTap={onTap} />
+            // The first time, on the post's clock after the stalk has grown; new ones on their own; those already out stay out.
+            <Leaf key={leaf.comment.id} leaf={leaf} t={cyc > 0 && leaf.k >= 0 ? pageT : t} at={cyc > 0 && leaf.k >= 0 ? leaf.k * 100 : 1100 + Math.max(leaf.k, 0) * 180} onTap={onTap} />
           ) : (
             <Leaf key={leaf.comment.id} leaf={leaf} t={openT} at={0} onTap={onTap} />
           ),
         )}
         {hang.clump ? <Clump x={hang.clump.x} y={hang.clump.y} total={total} t={t} onSpread={() => onPage(0)} /> : null}
-        {hang.pager ? <Pager page={hang.page} pages={hang.pages} total={total} onPage={onPage} opacity={span(t, 1500, 300, 0, 1)} top={hang.pgY} shift={next - shift} /> : null}
+        {hang.pager ? <Clump key={`more${hang.page}`} small x={width / 2 + (next - shift)} y={hang.pgY} total={total} t={cyc > 0 ? pageT : t} at={cyc > 0 ? 500 : 1500} onSpread={() => onPage(hang.page + 1)} /> : null}
       </View>
       <Reader comment={reading} kids={kids} onClose={closeReader} />
     </View>
@@ -1202,34 +1180,13 @@ const styles = StyleSheet.create({
   clumpAt: { position: 'absolute', width: 250, height: 200, zIndex: 2 },
   clumpPress: { flex: 1 },
   clumpLeaf: { position: 'absolute' },
+  clumpHintSmall: { fontSize: 22, bottom: -14 },
   clumpHint: { position: 'absolute', left: 0, right: 0, bottom: -4, textAlign: 'center', fontFamily: 'Alegreya_400Regular_Italic', fontSize: 13, color: BEANSTALK.link },
   leafBody: { justifyContent: 'center', alignItems: 'center', paddingTop: 16, paddingBottom: 18 },
   flip: { transform: [{ scaleX: -1 }] },
   leafName: { fontFamily: FONT.bold, color: COMMENT_TEXT, textAlign: 'center' },
   leafText: { fontFamily: FONT.body, color: COMMENT_TEXT, textAlign: 'center' },
   leafHint: { fontFamily: FONT.boldItalic, fontSize: 12, color: BEANSTALK.link, marginTop: 2, textAlign: 'center' },
-  pager: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, zIndex: 3 },
-  pgBtn: {
-    minWidth: 44,
-    minHeight: 44,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BEANSTALK.button,
-    borderWidth: 2.5,
-    borderColor: BEANSTALK.ink,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 22,
-    borderBottomRightRadius: 4,
-    borderBottomLeftRadius: 22,
-    shadowColor: BEANSTALK.ink,
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
-  pgOff: { opacity: 0.35 },
-  pgLabel: { backgroundColor: BEANSTALK.cream, borderWidth: 2, borderColor: BEANSTALK.ink, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  pgText: { fontFamily: FONT.bold, fontSize: 14, color: BEANSTALK.ink },
   verse: { alignSelf: 'center', padding: space.md, borderRadius: 18, borderWidth: 3, borderColor: BEANSTALK.ink, backgroundColor: BEANSTALK.cream, gap: 4 },
   verseText: { fontFamily: FONT.italic, fontSize: 16, lineHeight: 23, color: COMMENT_TEXT },
   verseRef: { fontFamily: FONT.body, fontSize: 13, color: BEANSTALK.sub },

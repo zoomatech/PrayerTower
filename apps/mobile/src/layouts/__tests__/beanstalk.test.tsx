@@ -80,10 +80,11 @@ describe('Beanstalk leaves', () => {
     expect(spread.clump).toBeNull();
     expect(spread.leaves.map((l) => l.comment.id)).toEqual(['g', 'f', 'e', 'd', 'c']);
     expect(spread.leaves.map((l) => l.side)).toEqual([-1, 1, -1, 1, -1]);
-    // More than five: the pager shows there are more.
+    // More than five: a smaller cluster below shows there are more, and brings out the next five.
     expect(spread.pager).toBe(true);
-    expect(spread.pages).toBe(2);
-    expect(hanging(360, top, kids, { page: 1, open: null, open2: null, spread: true }, 0).leaves.map((l) => l.comment.id)).toEqual(['b', 'a']);
+    const more = hanging(360, top, kids, { page: 1, open: null, open2: null, spread: true }, 0);
+    expect(more.leaves.map((l) => l.comment.id)).toEqual(['g', 'f', 'e', 'd', 'c', 'b', 'a']);
+    expect(more.pager).toBe(false);
     const open = hanging(360, top, kids, { page: 0, open: 0, open2: 0, spread: true }, 0);
     expect(open.leaves.map((l) => `${l.comment.id}:${l.level}`)).toEqual(['g:1', 'f:1', 'e:1', 'd:1', 'c:1', 'r1:2', 'rr:3', 'r2:2', 'r3:2']);
     expect(open.H).toBeGreaterThan(spread.H);
