@@ -555,7 +555,7 @@ private struct CommentLevel: View {
     @State private var open: Bool
     @Environment(AppModel.self) private var model
 
-    /// Replies under a comment come out already open when their cluster is opened.
+    /// Replies stay a closed cluster of their own until tapped (Steve, 2026-10-30).
     init(card: Card, all: [Comment], parent: String?, depth: Int, look: VineLook, wording: Wording, onOpen: ((Card) -> Void)?, open: Bool = false) {
         self.card = card
         self.all = all
@@ -582,7 +582,7 @@ private struct CommentLevel: View {
                                 }
                                 // Replies: at most three levels deep (Steve, 2026-10-29).
                                 if depth < 3 {
-                                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen, open: true))
+                                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
                                 }
                             }
                             // The red tube runs on down past this comment and its replies to the next one,
