@@ -859,7 +859,7 @@ private struct BeanReader: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(note.author).font(BeanFont.bold(16))
+                    Text(note.author).font(BeanFont.bold(17))
                     Text(note.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
                 }
                 replies(note.id, level: 1)
@@ -898,7 +898,7 @@ private struct BeanReader: View {
     private func replies(_ id: String, level: Int) -> AnyView {
         AnyView(ForEach(kids[id] ?? []) { r in
             VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(BeanFont.bold(16))
+                Text(r.author).font(BeanFont.bold(17))
                 Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
