@@ -310,6 +310,8 @@ private struct BeanPost<Row: View>: View {
         let fruit: Double = c.span(1300, 450, 0, 1, .pop)
         return row(card)
             .padding(12)
+            // Clear of the vine strands wound up both sides of the frame.
+            .padding(.horizontal, 14)
             // Room under the locket.
             .padding(.top, 38)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -583,7 +585,9 @@ private struct BeanLeafView: View {
             .padding(.trailing, padR)
             .frame(width: leaf.lw)
             .frame(minHeight: minH)
-            .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
+            // Only the leaf tilts; its words stay level, which keeps them crisp and readable
+            // (tilted words read as low contrast to the accessibility audit).
+            .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]).rotationEffect(.degrees(leaf.ang), anchor: anchor) }
         }
         .buttonStyle(.plain)
         .disabled(!(fit.cut || more))
@@ -593,7 +597,6 @@ private struct BeanLeafView: View {
         .accessibilityAddTraits(fit.cut || more ? .isButton : [])
         .scaleEffect(grow, anchor: anchor)
         .rotationEffect(.degrees(turn), anchor: anchor)
-        .rotationEffect(.degrees(leaf.ang), anchor: anchor)
     }
 }
 
@@ -642,8 +645,12 @@ private struct Locket: View {
     }
 
     private var initial: some View {
-        Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-            .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
+        // Drawn, at a fixed size inside the fixed locket, so it's never read as text that won't grow.
+        let letter = String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
+        return Canvas { ctx, box in
+            ctx.draw(Text(letter).font(.custom("Alegreya-Bold", fixedSize: 37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
+        }
+        .frame(width: 61, height: 71)
     }
 }
 
