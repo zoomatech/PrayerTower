@@ -400,7 +400,9 @@ from the SSTV audio. The sample prayers fit 18 to a panel.
 - **Read it.** The Expo app and the native iPhone and Mac apps read a panel from
   a camera photo or a picture, any of four ways up and at a slant. The Listen
   screen's **Also read SSTV pictures** reads panels from the radio's audio.
-  Everything runs on the device.
+  Everything runs on the device. A listener node with `LISTEN_SSTV=on` reads
+  them as well and reports the prayers heard (preset `sstv-robot36`, with the
+  picture's own signal-to-noise in place of a burst SNR).
 
 The format (`apps/station/src/panel/panel.ts`):
 

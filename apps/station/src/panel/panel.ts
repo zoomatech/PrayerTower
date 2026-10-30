@@ -253,6 +253,28 @@ function sampleCells(gray: Uint8Array, width: number, height: number, corners: P
 }
 
 /**
+ * How cleanly a picture came through, in dB: the gap between its dark and light levels over
+ * their spread (Otsu split). A clean panel is about 30 dB or more; one that only just reads is
+ * nearer 6. Listener nodes report it for an SSTV picture, which has no burst SNR to measure.
+ */
+export function pictureSnrDb(gray: Uint8Array): number {
+  const t = otsu(gray);
+  const sum = [0, 0];
+  const sq = [0, 0];
+  const n = [0, 0];
+  for (let i = 0; i < gray.length; i++) {
+    const k = gray[i]! > t ? 1 : 0;
+    sum[k]! += gray[i]!;
+    sq[k]! += gray[i]! ** 2;
+    n[k]!++;
+  }
+  if (!n[0] || !n[1]) return 0;
+  const mean = [sum[0]! / n[0]!, sum[1]! / n[1]!] as const;
+  const spread = Math.sqrt((sq[0]! - n[0]! * mean[0] ** 2 + sq[1]! - n[1]! * mean[1] ** 2) / (n[0]! + n[1]!));
+  return Math.round(10 * 20 * Math.log10((mean[1] - mean[0]) / Math.max(spread, 0.5))) / 10;
+}
+
+/**
  * Find and read a panel in a grayscale picture: an SSTV picture, a screenshot, or a camera
  * photo with the whole panel in view (reasonably square on, any of four orientations).
  */

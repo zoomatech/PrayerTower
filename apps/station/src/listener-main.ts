@@ -5,6 +5,7 @@
 //   LISTEN_SOURCE (soundcard; rtlsdr: an RTL-SDR dongle through rtl_fm, with LISTEN_SDR_FREQ and the rest in sdr.ts)
 //   LISTEN_SEARCH_HZ (0; 50 for an HF SSB receiver), LISTEN_DECODE_SECONDS (6),
 //   LISTEN_RECEIPTS (on: report decoded prayers' fingerprints, for acknowledgements and receipts), LISTEN_REPORT_FILE (also write the report here for a station on this machine)
+//   LISTEN_SSTV (off; on: also read prayer panels sent as SSTV pictures, docs/RADIO_BURST.md "Prayer panel")
 //   LISTEN_SIGN (off; on: sign each report with the key instead of sending it, docs "Signed listener reports")
 //   NODE_LOCATION (unset: share nothing): "lat,lon" or "lat,lon,Place" for Admin → Radio's coverage map, rounded to about a city
 //   RELAY (off; on: re-send decoded bursts, docs/RADIO_BURST.md "Store-and-forward relay"): RELAY_CALL_SIGN, RELAY_FROM,
@@ -70,7 +71,7 @@ if (relayCfg) {
   console.log(`[relay] on (${mode}) as ${relayCfg.callSign}, relaying ${relayCfg.from.join(', ')}, up to ${relayCfg.maxHops} hop(s)`);
 }
 
-const dec = new RollingDecoder();
+const dec = new RollingDecoder({ sstv: process.env.LISTEN_SSTV === 'on' });
 const command = sdr ? rtlFmCommand(sdr) : process.env.LISTEN_RECORD_CMD || defaultRecordCommand();
 const recorder = startRecorder(command, dec);
 console.log(`[listener] listening (${command}), decoding every ${everyMs / 1000}s${cfg.searchHz ? `, ±${cfg.searchHz} Hz search` : ''}`);

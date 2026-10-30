@@ -274,6 +274,10 @@ fastest preset that the weakest listener can still decode. Off by default.
 
    Set the receiver's sound card in `LISTEN_RECORD_CMD` (the card name from
    `arecord -l`). From an HF (SSB) receiver, also set `LISTEN_SEARCH_HZ=50`.
+   If the station sends prayer panels as SSTV pictures (`BURST_MODE=sstv`), set
+   `LISTEN_SSTV=on` so the node reads them too and reports them as heard. Its
+   "dB" for a picture is how cleanly the picture came through (the gap between
+   black and white over the noise), not a burst SNR.
    For a Pi that sets itself up on first boot, change `--hamlib` to
    `--listener-only` in `pi/user-data`.
 3. On the station, in `/etc/prayer-tower-station.env`:
