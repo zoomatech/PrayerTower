@@ -104,6 +104,7 @@ public enum RadioSwitch: String, CaseIterable, Sendable, Identifiable {
     case heardTrail = "heard-trail"
     case scheduledRadio = "scheduled-radio"
     case signalQueue = "signal-queue"
+    case signalJourney = "signal-journey"
     case console = "radio-console"
     case operatorAlerts = "radio-operator-alerts"
     case operatorLog = "operator-log"
@@ -112,12 +113,13 @@ public enum RadioSwitch: String, CaseIterable, Sendable, Identifiable {
 
     public var id: String { rawValue }
     /// Only for a station transmitter, as the Expo screen.
-    public var stationOnly: Bool { ![.heardTrail, .scheduledRadio, .signalQueue].contains(self) }
+    public var stationOnly: Bool { ![.heardTrail, .scheduledRadio, .signalQueue, .signalJourney].contains(self) }
     public var label: String {
         switch self {
         case .heardTrail: "admin.heardTrail"
         case .scheduledRadio: "admin.scheduledRadio"
         case .signalQueue: "admin.signalQueue"
+        case .signalJourney: "admin.signalJourney"
         case .console: "admin.radioConsoleOn"
         case .operatorAlerts: "admin.operatorAlerts"
         case .operatorLog: "admin.operatorLogOn"
@@ -130,6 +132,7 @@ public enum RadioSwitch: String, CaseIterable, Sendable, Identifiable {
         case .heardTrail: "admin.heardTrailHint"
         case .scheduledRadio: "admin.scheduledRadioHint"
         case .signalQueue: "admin.signalQueueHint"
+        case .signalJourney: "admin.signalJourneyHint"
         case .console: "admin.radioConsoleHint"
         case .operatorAlerts: "admin.operatorAlertsHint"
         case .operatorLog: "admin.operatorLogHint"

@@ -39,7 +39,8 @@ export function radioRoutes(app: FastifyInstance, db: Db) {
   });
 
   // My signal queue (signal-queue.ts): 404 while the switch is off.
-  app.get('/me/signal-queue', async (req) => ({ signals: await signalQueue.mine(db, requireUser(req)) }));
+  // `journey`: also show how far each sent wave has gone (Signal journey, off by default).
+  app.get('/me/signal-queue', async (req) => ({ signals: await signalQueue.mine(db, requireUser(req)), journey: await signalQueue.journeyEnabled(db) }));
 
   app.get('/me/radio-prayers', async (req) => {
     const userId = requireUser(req);

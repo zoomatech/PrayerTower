@@ -203,6 +203,7 @@ struct ScheduleRadioSheet: View {
 struct SignalQueueView: View {
     @Environment(AppModel.self) private var model
     @State private var items: [SignalEntry]?
+    @State private var journey = false
     @State private var off = false
     @State private var error: String?
 
@@ -237,12 +238,16 @@ struct SignalQueueView: View {
                     .accessibilityLabel(w("signalQueue.codeLabel", ["code": spoken]))
             }
             if s.heardCount > 0 { Text(w("signalQueue.heard", count: s.heardCount)).font(.footnote) }
+            if journey, s.status == "sent", let sent = s.sentAt.flatMap(Keying.date) {
+                SignalJourneyView(sentAt: sent, bestSnrDb: s.bestSnrDb, words: w)
+            }
         }
     }
 
     private func details(_ s: SignalEntry) -> String {
         var parts = [w("signalQueue.status.\(s.status)")]
         if s.amplified { parts.append(w("signalQueue.amplified")) }
+        if s.amplified, let copies = s.copies { parts.append(w("signalQueue.copies", count: copies)) }
         if s.kind == "thanksgiving" { parts.append(w("signalQueue.thanksgiving")) }
         if s.kind == "auto" { parts.append(w("signalQueue.auto")) }
         parts.append(shortTime(s.sentAt ?? s.queuedAt))
@@ -252,12 +257,82 @@ struct SignalQueueView: View {
 
     private func load() async {
         do {
-            items = try await model.store.api.signalQueue()
+            (items, journey) = try await model.store.api.signalQueueWithJourney()
             error = nil
         } catch let e as APIError where e.status == 404 {
             off = true
         } catch {
             self.error = error.localizedDescription
         }
+    }
+}
+
+/// Signal journey (docs/STATION_OPERATOR_GUIDE.md): how far one sent wave has gone, on a log-scale track from
+/// Earth to Proxima Centauri, with dots drifting out along it unless Reduce Motion is on.
+struct SignalJourneyView: View {
+    let sentAt: Date
+    let bestSnrDb: Double?
+    let words: Words
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: reduceMotion ? 1 : 1.0 / 30)) { context in
+            content(SignalJourney.at(sentAt: sentAt, now: context.date), phase: reduceMotion ? nil : context.date.timeIntervalSinceReferenceDate)
+        }
+    }
+
+    private func place(_ key: String) -> String { words("signalQueue.journey.place.\(key)") }
+
+    private func time(_ seconds: Double) -> String {
+        let (u, c) = SignalJourney.unit(seconds)
+        let n = c >= 10 ? c.rounded() : (c * 10).rounded() / 10
+        let s = n == n.rounded() ? String(Int(n)) : String(n)
+        // Days and years have one and other forms; `count:` would print a whole number, so pick the form here.
+        let key = "signalQueue.journey.time.\(u)" + (u == "day" || u == "year" ? (n == 1 ? ".one" : ".other") : "")
+        return words(key, ["count": s])
+    }
+
+    private func big(_ km: Double) -> String {
+        let one = { (v: Double) in ((v * 10).rounded() / 10).formatted(.number.locale(Locale(identifier: "en_US"))) }
+        if km >= 1e12 { return words("signalQueue.journey.big.trillion", ["n": one(km / 1e12)]) }
+        if km >= 1e9 { return words("signalQueue.journey.big.billion", ["n": one(km / 1e9)]) }
+        if km >= 1e6 { return words("signalQueue.journey.big.million", ["n": one(km / 1e6)]) }
+        return Int(km.rounded()).formatted(.number.locale(Locale(identifier: "en_US")))
+    }
+
+    @ViewBuilder private func content(_ j: SignalJourney.Point, phase: Double?) -> some View {
+        let w = words
+        let value = j.lightValue == j.lightValue.rounded() ? String(Int(j.lightValue)) : String(j.lightValue)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(w("signalQueue.journey.title")).font(.subheadline.bold())
+            Text(w("signalQueue.journey.now", ["value": value, "unit": w("signalQueue.journey.unit.\(j.lightUnit)", count: j.lightValue == 1 ? 1 : 2), "km": big(j.km)]))
+                .font(.footnote)
+            Canvas { ctx, size in
+                let mid = size.height / 2
+                let front = SignalJourney.track(j.km) * size.width
+                ctx.fill(Path(CGRect(x: 0, y: mid - 1, width: size.width, height: 2)), with: .color(.secondary.opacity(0.3)))
+                ctx.fill(Path(CGRect(x: 0, y: mid - 1, width: front, height: 2)), with: .color(.accentColor))
+                for l in SignalJourney.landmarks {
+                    let x = SignalJourney.track(l.km) * size.width
+                    ctx.fill(Path(ellipseIn: CGRect(x: x - 3, y: mid - 3, width: 6, height: 6)), with: .color(j.passed.contains(l.key) ? .accentColor : .secondary.opacity(0.4)))
+                }
+                ctx.fill(Path(ellipseIn: CGRect(x: -6, y: mid - 6, width: 12, height: 12)), with: .color(.accentColor))
+                if let phase {
+                    for i in 0..<3 {
+                        let f = (phase / 4 + Double(i) / 3).truncatingRemainder(dividingBy: 1)
+                        ctx.fill(Path(ellipseIn: CGRect(x: f * front - 2, y: mid - 2, width: 4, height: 4)), with: .color(.accentColor.opacity(f > 0.85 ? 0.3 : 1)))
+                    }
+                }
+                ctx.stroke(Path(ellipseIn: CGRect(x: front - 5, y: mid - 5, width: 10, height: 10)), with: .color(.accentColor), lineWidth: 2)
+            }
+            .frame(height: 24)
+            .accessibilityElement()
+            .accessibilityAddTraits(.isImage)
+            .accessibilityLabel(j.next.map { w("signalQueue.journey.pictureLabel", ["percent": "\(Int(($0.fraction * 100).rounded()))", "place": place($0.key)]) } ?? w("signalQueue.journey.beyond"))
+            if !j.passed.isEmpty { Text(w("signalQueue.journey.passed", ["places": j.passed.map(place).joined(separator: ", ")])).font(.footnote) }
+            Text(j.next.map { w("signalQueue.journey.next", ["place": place($0.key), "time": time($0.inSeconds)]) } ?? w("signalQueue.journey.beyond")).font(.footnote)
+            if let snr = bestSnrDb { Text(w("signalQueue.journey.strongest", ["snr": snr == snr.rounded() ? String(Int(snr)) : String(snr)])).font(.footnote) }
+        }
+        .padding(.top, 4)
     }
 }

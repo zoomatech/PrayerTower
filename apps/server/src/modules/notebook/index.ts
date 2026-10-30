@@ -278,6 +278,8 @@ export async function features(q: Queryable) {
     radioPanel: await panel.enabled(q),
     /** My signal queue and signal codes on the Listen screen (radio/signal-queue.ts). */
     signalQueue: await signalQueue.enabled(q),
+    /** Signal journey on My signal queue: how far each sent wave has gone (radio/signal-queue.ts). */
+    signalJourney: await signalQueue.journeyEnabled(q),
     /** Kind norms: the kindness promise, the first-replies reminder, resting threads, "This helped" (modules/kind-norms, Admin → Kind norms). */
     ...(await kindNorms.features(q)),
   };
