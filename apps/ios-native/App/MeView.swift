@@ -50,7 +50,6 @@ struct MeView: View {
                         }
                     }
                 }
-                ShortcutsSection()
                 ConversationPrefsSection()
                 ToolsSection()
                 ExtrasSection()
