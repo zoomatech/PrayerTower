@@ -231,7 +231,10 @@ public enum BeanDraw {
 
     /// The stalk below a post and the leaves on it (the design's layoutComments and vineDown).
     /// `bend` moves the stalk sideways down its length, to where the next post sits.
-    public static func hanging(w: Double, top: [Beanstalk.Note], kids: [String: [Beanstalk.Note]], cv: LeafState, seed: Int, bend: Double = 0) -> Hanging {
+    /// `room` is how far past each side of the frame the screen still has space: no leaf goes past it,
+    /// so none is ever cut off at the screen's edge.
+    public static func hanging(w: Double, top: [Beanstalk.Note], kids: [String: [Beanstalk.Note]], cv: LeafState, seed: Int, bend: Double = 0,
+                               room: (left: Double, right: Double) = (.infinity, .infinity)) -> Hanging {
         let deg = Double.pi / 180
         let cx = w / 2
         // 10% larger than first drawn (Steve, 2026-10-30).
@@ -247,6 +250,8 @@ public enum BeanDraw {
         var maxB = 60.0
         var H0 = 400.0
         func sway(_ y: Double) -> Double { bend * smooth(y / H0) }
+        // A leaf slides in toward the stalk rather than past the screen's edge.
+        func inside(_ x: Double, _ width: Double) -> Double { max(-room.left + 6, min(x, w + room.right - 6 - width)) }
         func vx(_ y: Double) -> Double { cx + 7 * sin(y / 30) + sway(y) }
         func place() {
             leaves = []
@@ -267,7 +272,7 @@ public enum BeanDraw {
                 stems += [.move(vX, y), .curve(vX + sd * 8, y + 8, tipX - sd * 6, tipY - 10, tipX, tipY)]
                 let reps = kids[c.id] ?? []
                 let open = cv.open == gi && !reps.isEmpty
-                leaves.append(Leaf(note: c, level: 1, path: [gi], x: (side < 0 ? tipX - lw : tipX).rounded(), y: (tipY - 55).rounded(), lw: lw, side: side, ang: sd * a, fill: (k + seed) % 3, replies: reps.count, open: open, k: k))
+                leaves.append(Leaf(note: c, level: 1, path: [gi], x: inside(side < 0 ? tipX - lw : tipX, lw).rounded(), y: (tipY - 55).rounded(), lw: lw, side: side, ang: sd * a, fill: (k + seed) % 3, replies: reps.count, open: open, k: k))
                 let ccX = tipX + sd * (lw / 2) * cos(a * deg), ccY = tipY + (lw / 2) * sin(a * deg)
                 var bottom = ccY + 64
                 if open {
@@ -280,7 +285,7 @@ public enum BeanDraw {
                         let reps2 = kids[r.id] ?? []
                         let open2 = cv.open2 == m && !reps2.isEmpty
                         let ra = 12.0
-                        subs.append(Leaf(note: r, level: 2, path: [gi, m], x: (side < 0 ? baseX - rw : baseX).rounded(), y: (baseY - rh / 2).rounded(), lw: rw, side: side, ang: sd * ra, fill: (k + m + seed + 1) % 3, replies: reps2.count, open: open2, k: m))
+                        subs.append(Leaf(note: r, level: 2, path: [gi, m], x: inside(side < 0 ? baseX - rw : baseX, rw).rounded(), y: (baseY - rh / 2).rounded(), lw: rw, side: side, ang: sd * ra, fill: (k + m + seed + 1) % 3, replies: reps2.count, open: open2, k: m))
                         let rcX = baseX + sd * (rw / 2) * cos(ra * deg), rcY = baseY + (rw / 2) * sin(ra * deg)
                         cur = rcY + rh / 2 + 12
                         if open2 {
@@ -288,7 +293,7 @@ public enum BeanDraw {
                             for (z, q) in reps2.prefix(per).enumerated() {
                                 let bX = side < 0 ? rcX + qw / 2 : rcX - qw / 2, bY = cur + 4
                                 stems += [.move(rcX, rcY + 22), .curve(rcX, bY - 14, bX - sd * 3, bY - 10, bX, bY)]
-                                subs.append(Leaf(note: q, level: 3, path: [gi, m, z], x: (side < 0 ? bX - qw : bX).rounded(), y: (bY - qh / 2).rounded(), lw: qw, side: side, ang: sd * 9, fill: (k + m + z + seed + 2) % 3, replies: 0, open: false, k: z))
+                                subs.append(Leaf(note: q, level: 3, path: [gi, m, z], x: inside(side < 0 ? bX - qw : bX, qw).rounded(), y: (bY - qh / 2).rounded(), lw: qw, side: side, ang: sd * 9, fill: (k + m + z + seed + 2) % 3, replies: 0, open: false, k: z))
                                 cur = bY + (qw / 2) * sin(9 * deg) + qh / 2 + 12
                             }
                         }

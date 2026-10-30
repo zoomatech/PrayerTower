@@ -130,7 +130,7 @@ struct BeanstalkFeed<Row: View>: View {
                         LazyVStack(spacing: 0) {
                             Color.clear.frame(height: 76).id("beanstalk-top")
                             ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
-                                BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i],
+                                BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i], margin: (lane - width) / 2,
                                          viewport: Double(geo.size.height), words: words, row: row, load: loadComments)
                                     .task { if card.id == cards.last?.id { await onEnd() } }
                             }
@@ -230,6 +230,8 @@ private struct BeanPost<Row: View>: View {
     /// Where this post sits, and where the next one does, off the centre line.
     let shift: Double
     let next: Double
+    /// The lane's space on each side of the frame, before the post's own shift.
+    let margin: Double
     let viewport: Double
     let words: Words
     let row: (Card) -> Row
@@ -248,7 +250,7 @@ private struct BeanPost<Row: View>: View {
         let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
         let tree = Beanstalk.tree(notes)
         let total: Int = all != nil ? tree.top.count : max(tree.top.count, card.counts.comments)
-        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift)
+        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift, room: (margin + shift, margin - shift))
         let live: Bool = !still && isLive(Date())
         let vp: Double = viewport
         TimelineView(.animation(paused: !live)) { tl in
