@@ -18,7 +18,7 @@
 import { COMMENT_TEXT, type Card, type Comment } from '@prayer-tower/shared';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, ClipPath, Defs, Ellipse, Image as SvgImage, Path } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, Path } from 'react-native-svg';
 
 import { Alegreya_400Regular } from '@expo-google-fonts/alegreya/400Regular';
 import { Alegreya_400Regular_Italic } from '@expo-google-fonts/alegreya/400Regular_Italic';
@@ -309,7 +309,7 @@ export interface Hanging {
   pager: boolean;
   pgY: number;
   /** Where the closed cluster of leaves hangs, when the comments are still clustered. */
-  clump: { x: number; y: number } | null;
+  clump: { x: number; y: number; side: number } | null;
   page: number;
   pages: number;
 }
@@ -408,7 +408,7 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
   };
   place();
   const pager = !clumped && top.length > shown.length;
-  let H = top.length === 0 ? 96 : Math.round(maxB + (clumped ? 110 : 20));
+  let H = top.length === 0 ? 96 : Math.round(maxB + (clumped ? 200 : 20));
   let pgY = 0;
   if (pager) {
     pgY = H + 50;
@@ -428,7 +428,7 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
   };
   // The bunch behind a closed cluster grows from the node where the top comment's stem meets its leaf.
   const lead = leaves[0];
-  const clump: Hanging['clump'] = clumped && lead ? { x: lead.side < 0 ? lead.x + lead.lw : lead.x, y: lead.y + 50 } : null;
+  const clump: Hanging['clump'] = clumped && lead ? { x: lead.side < 0 ? lead.x + lead.lw : lead.x, y: lead.y + 50, side: lead.side } : null;
   const s1 = strand(7, 0);
   const s2 = strand(5.5, Math.PI);
   let deco = '';
@@ -708,22 +708,22 @@ function Berries({ t, at, left, minH }: { t: Animated.Value; at: number; left: b
 }
 
 /**
- * A bunch of leaves as they grow on a real vine: hanging from one node at uneven angles and
- * sizes, mostly to one side, overlapping, too many to count. Side, droop below level (degrees),
- * length (×), drop down the node.
+ * A cluster of leaves as they grow on a real vine (Steve, 2026-10-30): a short stem hangs from
+ * the node, and each leaf joins it at a node of its own by its stalk (petiole), left and right
+ * by turns, spreading outward so no two leaves on the stem overlap; the last leaf ends the stem.
+ * The stem leans out from the vine to the side of the leaf it hangs under (`lean`).
+ * Side (0 ends the stem), angle below level (degrees), blade length (×).
  */
 const BUNCH = [
-  [-1, 34, 0.92, 14],
-  [-1, 58, 0.8, 26],
-  [1, 30, 0.74, 10],
-  [-1, 12, 0.86, 30],
-  [-1, 76, 0.66, 40],
-  [1, 62, 0.6, 32],
-  [-1, 44, 0.72, 48],
+  [-1, 22, 0.62],
+  [1, 28, 0.6],
+  [-1, 40, 0.56],
+  [1, 50, 0.5],
+  [0, 90, 0.46],
 ] as const;
 
 /** The leaves bunched behind a closed cluster, or the smaller bunch that brings out five more. A tap rustles them. */
-function Bunch({ x, y, size, t, at, go, onDone, label, hint }: { x: number; y: number; size: number; t: Animated.Value; at: number; go: number; onDone: () => void; label?: string; hint?: string }) {
+function Bunch({ x, y, size, lean = 0, t, at, go, onDone, label, hint }: { x: number; y: number; size: number; lean?: number; t: Animated.Value; at: number; go: number; onDone: () => void; label?: string; hint?: string }) {
   const { t: tr } = useLocale();
   const reduced = useReducedMotion();
   const rustle = useRef(new Animated.Value(0)).current;
@@ -742,27 +742,48 @@ function Bunch({ x, y, size, t, at, go, onDone, label, hint }: { x: number; y: n
   useEffect(() => {
     if (go) start();
   }, [go]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Each leaf shivers on its own, a little out of step with the others.
+  // Each leaf shivers on its stalk, a little out of step with the others.
   const shiver = (i: number) =>
     rustle.interpolate({ inputRange: [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1], outputRange: ['0deg', `${i % 2 ? 9 : -9}deg`, `${i % 2 ? -7 : 7}deg`, `${i % 2 ? 8 : -6}deg`, `${i % 2 ? -5 : 6}deg`, `${i % 2 ? 4 : -4}deg`, `${i % 2 ? -2 : 2}deg`, '0deg'] });
   const L = 170 * size;
-  const box = { w: L * 2 + 20, h: L * 1.3 + 50 };
+  // Nodes far enough apart that leaves on the same side clear each other.
+  const gap = Math.round(L * 0.24);
+  const reach = L * 0.8;
+  const out = gap * 0.35 * Math.abs(lean);
+  const box = { w: Math.round(reach * 2 + 20 + out * BUNCH.length), h: Math.round(gap * BUNCH.length + L * 0.6 + 30) };
+  const cx = lean < 0 ? box.w - reach - 10 : lean > 0 ? reach + 10 : box.w / 2;
+  const nodes = BUNCH.map((_, i) => ({ x: cx + lean * out * (i + 1) + (i % 2 ? 3 : -3) * size, y: 8 + gap * (i + 0.7) }));
+  const last = nodes[nodes.length - 1]!;
+  const stem = `M${cx} 0 C ${cx} ${gap}, ${cx + lean * out * 2} ${last.y * 0.5}, ${last.x} ${last.y}`;
   return (
-    <Animated.View style={[styles.bunchAt, { left: x - box.w / 2, top: y - 10, width: box.w, height: box.h, opacity: span(t, at, 400, 0, 1) }]} pointerEvents="box-none">
+    <Animated.View style={[styles.bunchAt, { left: x - cx, top: y - 10, width: box.w, height: box.h, opacity: span(t, at, 400, 0, 1) }]} pointerEvents="box-none">
       <Pressable onPress={start} disabled={!label} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={tr('beanstalk.clusterHint')} style={StyleSheet.absoluteFill}>
-        {BUNCH.map(([side, droop, len, drop], i) => {
-          const w = L * len;
+        <Svg aria-hidden width={box.w} height={box.h} style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Path d={stem} fill="none" stroke={BEANSTALK.vineInk} strokeWidth={Math.max(3, 6 * size)} strokeLinecap="round" />
+          <Path d={stem} fill="none" stroke={BEANSTALK.stem} strokeWidth={Math.max(1.5, 3.5 * size)} strokeLinecap="round" />
+        </Svg>
+        {BUNCH.map(([side, angle, len], i) => {
+          const blade = L * len;
+          const stalk = Math.round(blade * 0.3);
+          const w = stalk + blade;
+          const h = blade / 2;
           const left = side < 0;
+          const n = nodes[i]!;
           const origin = left ? '100% 50%' : '0% 50%';
+          const turn = side === 0 ? angle - lean * 35 : side * angle;
           return (
             <Animated.View
               key={i}
               pointerEvents="none"
-              style={[styles.bunchLeaf, { left: left ? box.w / 2 - w : box.w / 2, top: 10 + drop * size - w / 4, width: w, height: w / 2, transformOrigin: origin, transform: [{ rotate: `${side * droop}deg` }, { scale: span(t, at + i * 60, 450, 0.2, 1, EASE.unfurl) }] }]}>
+              style={[styles.bunchLeaf, { left: left ? n.x - w : n.x, top: n.y - h / 2, width: w, height: h, transformOrigin: origin, transform: [{ rotate: `${turn}deg` }, { scale: span(t, at + i * 80, 450, 0.2, 1, EASE.unfurl) }] }]}>
               <Animated.View style={{ flex: 1, transformOrigin: origin, transform: [{ rotate: shiver(i) }] }}>
-                <Svg aria-hidden width="100%" height="100%" style={left ? styles.flip : null} viewBox="0 0 200 100" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                  <Path d={LEAF_PATH} fill={LEAF_FILLS[(i + 1) % 3]!} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
-                  <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
+                <Svg aria-hidden width={w} height={h} style={left ? styles.flip : null} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Path d={`M0 ${h / 2} Q ${stalk / 2} ${h / 2 - 3 * size} ${stalk + 2} ${h / 2}`} fill="none" stroke={BEANSTALK.vineInk} strokeWidth={Math.max(2.5, 4 * size)} strokeLinecap="round" />
+                  <Path d={`M0 ${h / 2} Q ${stalk / 2} ${h / 2 - 3 * size} ${stalk + 2} ${h / 2}`} fill="none" stroke={BEANSTALK.stem} strokeWidth={Math.max(1, 2 * size)} strokeLinecap="round" />
+                  <G transform={`translate(${stalk} 0) scale(${blade / 200} ${h / 100})`}>
+                    <Path d={LEAF_PATH} fill={LEAF_FILLS[(i + 1) % 3]!} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
+                    <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
+                  </G>
                 </Svg>
               </Animated.View>
             </Animated.View>
@@ -975,7 +996,7 @@ const Post = memo(function Post({
             <Leaf key={leaf.comment.id} leaf={leaf} t={openT} at={0} onTap={onTap} />
           ),
         )}
-        {hang.clump ? <Bunch x={hang.clump.x} y={hang.clump.y} size={0.8} t={t} at={1000} go={go} onDone={spread} label={tr('beanstalk.cluster', { count: total })} hint={tr('beanstalk.clusterTap')} /> : null}
+        {hang.clump ? <Bunch x={hang.clump.x} y={hang.clump.y} size={0.7} lean={hang.clump.side} t={t} at={1000} go={go} onDone={spread} label={tr('beanstalk.cluster', { count: total })} hint={tr('beanstalk.clusterTap')} /> : null}
         {hang.pager ? <Bunch key={`more${hang.page}`} x={width / 2 + (next - shift)} y={hang.pgY - 30} size={0.45} t={cyc > 0 ? pageT : t} at={cyc > 0 ? 500 : 1500} go={0} onDone={more} label={tr('beanstalk.clusterMore')} hint={tr('beanstalk.clusterMore')} /> : null}
       </View>
       <Reader comment={reading} kids={kids} onClose={closeReader} />
