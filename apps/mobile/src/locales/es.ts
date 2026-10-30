@@ -524,7 +524,13 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     branchEmpty: 'Tu rama aún está vacía. Comparte una petición y crecerá aquí.',
     branchLink: 'Ver tu rama',
   },
+  beanstalk: en.beanstalk,
   profile: {
+    photoAdd: 'Añade tu foto',
+    photoChange: 'Cambiar foto',
+    photoRemove: 'Quitar foto',
+    photoAlt: 'Tu foto de perfil',
+    photoHint: 'Aparece en el óvalo de tus publicaciones.',
     community: 'Comunidad',
     communityHint: 'Elige la comunidad donde publicas y cuyas publicaciones ves. Puedes cambiarla cuando quieras.',
     communitySaved: 'Ahora estás en %{name}.',

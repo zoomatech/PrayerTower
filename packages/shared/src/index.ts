@@ -182,6 +182,8 @@ export interface Identity {
   displayName: string;
   handle: string | null;
   anonymous: boolean;
+  /** The member's own profile photo (a short-lived signed URL), on post cards; null or absent shows initials. */
+  photoUrl?: string | null;
 }
 
 export interface Comment {
@@ -243,6 +245,8 @@ export interface Card {
   storyId?: string | null;
   /** The author chose quiet counts: others see no prayer numbers on this post. */
   countsQuiet?: boolean;
+  /** Someone has gifted the poster tokens, regular or Priestly: fruit on the vine skins. */
+  gifted?: boolean;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
@@ -403,6 +407,8 @@ export interface FeedPage {
 export interface Profile {
   id: string;
   display_name: string;
+  /** The member's own photo, as a signed URL (GET /me); null until they add one. */
+  photo_url?: string | null;
   handle: string | null;
   bio: string;
   why_here: string[];
