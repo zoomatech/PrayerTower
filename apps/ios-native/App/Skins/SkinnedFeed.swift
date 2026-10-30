@@ -233,12 +233,15 @@ struct VineLeaf<Content: View>: View {
     let depth: Int
     /// Shown inside the frame, under the post's box: neon's icons (Steve, 2026-10-30).
     var below: AnyView? = nil
-    /// How many more cards wait behind this one in a stack, drawn as frames peeking out behind it.
-    var stacked: Int = 0
+    /// The cards waiting behind this one in a stack, nearest first: each peeks out below it with its first line.
+    var behind: [String] = []
     @ViewBuilder let content: () -> Content
     @Environment(\.dynamicTypeSize) private var size
     /// Neon indents a comment under its post, joined by a tube that comes down and turns into it.
     private var tucked: Bool { look.vineStyle == .neon && depth > 0 }
+    /// How far each card behind in a stack shows below the one in front.
+    static var peek: CGFloat { 26 }
+    private var backdrop: Color { look.backdrop.map { Color($0) } ?? Color.pageBackground }
     /// Each level of reply sits further in, under its parent.
     private var indent: CGFloat { 104 + CGFloat(depth - 1) * 40 }
 
@@ -263,21 +266,25 @@ struct VineLeaf<Content: View>: View {
             .padding(.vertical, below == nil ? (depth == 0 ? 40 : 26) : 24)
             .background {
                 ZStack {
-                    // The rest of the stack, peeking out behind, dimmer the further back.
-                    // Each one a whole card, overlapping like a loaded deck.
-                    ForEach(Array(stride(from: min(stacked, 3), to: 0, by: -1)), id: \.self) { k in
-                        ZStack {
-                            Color(look.backdrop ?? look.leafBox(wording)).padding(14)
-                            RoundedRectangle(cornerRadius: 12).fill(box.opacity(0.35)).padding(.horizontal, depth == 0 ? 18 : 14).padding(.vertical, 24)
+                    // The rest of the stack: whole cards overlapping like a loaded deck, each showing
+                    // its first line below the one in front (Steve, 2026-10-30). The furthest is drawn first.
+                    ForEach(Array(behind.prefix(3).enumerated()).reversed(), id: \.offset) { k, line in
+                        ZStack(alignment: .bottomLeading) {
+                            RoundedRectangle(cornerRadius: 12).fill(backdrop)
                             frame(drawn)
+                            Text(line).font(.caption.bold()).lineLimit(1).foregroundStyle(.white)
+                                .shadow(color: Color(look.branch), radius: 3)
+                                .padding(.horizontal, 20).padding(.bottom, 6)
+                                .opacity(ConnectorTiming.text(drawn))
                         }
-                        .opacity(1 - Double(k) * 0.22)
-                        .offset(x: CGFloat(k) * 12, y: CGFloat(k) * 12)
+                        .offset(y: CGFloat(k + 1) * Self.peek)
                     }
+                    RoundedRectangle(cornerRadius: 12).fill(behind.isEmpty ? .clear : backdrop)
                     frame(drawn)
                 }
                 .accessibilityHidden(true)
             }
+            .padding(.bottom, CGFloat(min(behind.count, 3)) * Self.peek)
             .environment(\.colorScheme, .light)
             .padding(.leading, depth == 0 ? 36 : tucked ? indent : 64)
             .padding(.trailing, 8)
@@ -448,7 +455,7 @@ private struct CommentLevel: View {
             let i = min(shown, here.count - 1)
             let c = here[i]
             VStack(alignment: .leading, spacing: 18) {
-                VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i)), stacked: here.count - 1 - i) {
+                VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i)), behind: here.dropFirst(i + 1).prefix(3).map { "\($0.author.displayName): \($0.body)" }) {
                     LeafCommentText(comment: LeafComment(id: c.id, body: c.body, author: c.author, createdAt: c.createdAt), look: look)
                 }
                 .id(c.id)
