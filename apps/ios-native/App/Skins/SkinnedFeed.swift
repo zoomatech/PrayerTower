@@ -154,27 +154,6 @@ struct Stalk: View {
                 rod.addLine(to: CGPoint(x: x, y: size.height))
                 let tube: CGFloat = max(8, CGFloat(w) * 2.5)
                 NeonGlassLook(color: Color(look.stem)).stroke(rod, width: tube, in: ctx)
-                if !look.fairytale {
-                    // Tron's circuitry: short traces off the rod in the second color, each a straight
-                    // run that bends down in a small smooth curve, then runs on.
-                    let trace = NeonGlassLook(color: Color(look.branch))
-                    var ty = 70.0
-                    var k = 0
-                    while ty < size.height {
-                        let reach = k % 2 == 0 ? 34.0 : 22.0
-                        var t = Path()
-                        t.move(to: CGPoint(x: x + tube / 2, y: ty))
-                        t.addLine(to: CGPoint(x: x + reach - 8, y: ty))
-                        t.addQuadCurve(to: CGPoint(x: x + reach, y: ty + 8), control: CGPoint(x: x + reach, y: ty))
-                        t.addLine(to: CGPoint(x: x + reach, y: ty + 30))
-                        trace.stroke(t, width: 3, in: ctx)
-                        // Each trace ends at a solder pad, as on a circuit board, so it ends somewhere.
-                        let pad = Path(roundedRect: CGRect(x: x + reach - 4, y: ty + 30, width: 8, height: 8), cornerRadius: 2)
-                        trace.stroke(pad, width: 2.5, in: ctx)
-                        ty += k % 2 == 0 ? 110 : 170
-                        k += 1
-                    }
-                }
             case .gate:
                 // Fine lines of silver light.
                 for dx in [-2.0, 2.0] {
