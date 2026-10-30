@@ -16,6 +16,8 @@ import SwiftUI
 // of the centre line (never more than 15%). The geometry is BeanDraw in PrayerTowerKit.
 
 private enum Bean {
+    /// How long a post takes to grow in, in ms: the design's 2 s, until its last leaf is out.
+    static let grow: Double = 2300
     static let page = Color(RGB(hex: "#EFE4C6")!)
     static let cream = Color(RGB(hex: "#FFF7E2")!)
     static let ink = Color(RGB(hex: "#2A2118")!)
@@ -89,6 +91,26 @@ private struct Clock {
     func span(_ at: Double, _ dur: Double, _ from: Double, _ to: Double, _ e: Ease = .linear) -> Double {
         let t: Double = min(1, max(0, (ms - at) / dur))
         return from + (to - from) * e(t)
+    }
+}
+
+/// Beanstalk's connector look (the shared `ConnectorLook`): a vine strand, a band of `color`
+/// `core` points wide inside a dark ink outline `width` points wide.
+private struct VineStrandLook: ConnectorLook {
+    let color: Color
+    let core: CGFloat
+    var join: CGLineJoin = .round
+
+    /// The thick strand of the stalk and the frame vine.
+    static let main = VineStrandLook(color: Bean.strand, core: 5.5)
+    /// The thin strand twisting round it.
+    static let second = VineStrandLook(color: Bean.strandLight, core: 3)
+    /// A leaf's stem off the stalk.
+    static let stem = VineStrandLook(color: Bean.stem, core: 3.2, join: .miter)
+
+    func stroke(_ path: Path, width: CGFloat, in ctx: GraphicsContext) {
+        ctx.stroke(path, with: .color(Bean.vineInk), style: .init(lineWidth: width, lineCap: .round, lineJoin: join))
+        ctx.stroke(path, with: .color(color), style: .init(lineWidth: core, lineCap: .round, lineJoin: join))
     }
 }
 
@@ -232,7 +254,8 @@ private struct BeanPost<Row: View>: View {
     let words: Words
     let row: (Card) -> Row
     let load: ((Card) async -> [Comment])?
-    @State private var grownAt: Date?
+    /// In view by the design's rule; the shared `GrowingIn` grows the post on it.
+    @State private var grown = false
     @State private var pageAt: Date?
     @State private var openAt: Date?
     @State private var settled = 0
@@ -249,10 +272,15 @@ private struct BeanPost<Row: View>: View {
         let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift)
         let live: Bool = !still && isLive(Date())
         let vp: Double = viewport
-        TimelineView(.animation(paused: !live)) { tl in
-            VStack(spacing: 0) {
-                framed(clock(grownAt, tl.date, full: 2000))
-                hanging(hang, tree: (tree.top, tree.kids), total: total, c: clock(grownAt, tl.date, full: 2000), page: clock(pageAt, tl.date, full: 700), open: clock(openAt, tl.date, full: 450))
+        // The shared growing-connector routine in Beanstalk's style: the design's linear clock in
+        // milliseconds, run on until the last leaf has unfurled (1820 + 450).
+        GrowingIn(animation: .linear(duration: Bean.grow / 1000), shown: grown) { p in
+            let c = Clock(ms: Double(p) * Bean.grow)
+            TimelineView(.animation(paused: !live)) { tl in
+                VStack(spacing: 0) {
+                    framed(c)
+                    hanging(hang, tree: (tree.top, tree.kids), total: total, c: c, page: clock(pageAt, tl.date, full: 700), open: clock(openAt, tl.date, full: 450))
+                }
             }
         }
         .frame(width: width)
@@ -269,27 +297,27 @@ private struct BeanPost<Row: View>: View {
             if end <= 0 || top >= vp { return -1 }
             return 0
         } action: { state in
-            if state == 1 && grownAt == nil {
-                grownAt = .now
+            if state == 1 && !grown {
+                grown = true
                 pageAt = nil
                 openAt = nil
             }
-            if state == -1 { grownAt = nil }
+            if state == -1 { grown = false }
         }
         // Re-renders once each drawing has finished, so the frame clock stops.
-        .task(id: [grownAt, pageAt, openAt]) {
+        .task(id: [pageAt, openAt]) {
             try? await Task.sleep(for: .seconds(2.2))
             settled += 1
         }
-        .task(id: grownAt != nil) {
-            guard grownAt != nil, all == nil, card.counts.comments > 0, let load else { return }
+        .task(id: grown) {
+            guard grown, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
         .sheet(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words) { reading = nil } }
     }
 
     private func isLive(_ now: Date) -> Bool {
-        for start in [grownAt, pageAt, openAt] {
+        for start in [pageAt, openAt] {
             if let start, now.timeIntervalSince(start) < 2.1 { return true }
         }
         return false
@@ -450,15 +478,12 @@ private struct StalkCanvas: View {
             let grow: Double = c.span(500, 750, 0, 1, .easeIn)
             let s1 = path(h.s1).trimmedPath(from: 0, to: grow)
             let s2 = path(h.s2).trimmedPath(from: 0, to: grow)
-            ctx.stroke(s2, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round, lineJoin: .round))
-            ctx.stroke(s2, with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            ctx.stroke(s1, with: .color(Bean.vineInk), style: .init(lineWidth: 9.5, lineCap: .round, lineJoin: .round))
-            ctx.stroke(s1, with: .color(Bean.strand), style: .init(lineWidth: 5.5, lineCap: .round, lineJoin: .round))
+            VineStrandLook.second.stroke(s2, width: 6.5, in: ctx)
+            VineStrandLook.main.stroke(s1, width: 9.5, in: ctx)
             var stems = ctx
             stems.opacity = c.span(1050, 300, 0, 1)
             let st = path(h.stems)
-            stems.stroke(st, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round))
-            stems.stroke(st, with: .color(Bean.stem), style: .init(lineWidth: 3.2, lineCap: .round))
+            VineStrandLook.stem.stroke(st, width: 6.5, in: stems)
             var deco = ctx
             deco.opacity = c.span(900, 300, 0, 1)
             let d = path(h.deco)
@@ -483,13 +508,11 @@ private struct FrameCanvas: View {
             let g2: Double = c.span(120, 1350, 0, 1, .vine)
             for d in geo.s2 {
                 let p = path(d).trimmedPath(from: 0, to: g2)
-                ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round, lineJoin: .round))
-                ctx.stroke(p, with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                VineStrandLook.second.stroke(p, width: 6.5, in: ctx)
             }
             for d in geo.s1 {
                 let p = path(d).trimmedPath(from: 0, to: g1)
-                ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 9.5, lineCap: .round, lineJoin: .round))
-                ctx.stroke(p, with: .color(Bean.strand), style: .init(lineWidth: 5.5, lineCap: .round, lineJoin: .round))
+                VineStrandLook.main.stroke(p, width: 9.5, in: ctx)
             }
             // Leaves in five groups, one after another round the frame.
             let starts: [Double] = [200, 420, 660, 900, 1120]

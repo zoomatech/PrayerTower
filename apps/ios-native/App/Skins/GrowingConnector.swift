@@ -123,9 +123,14 @@ private struct BothHalves: Shape {
 }
 
 /// Grows its content in when it comes into view (`progress` 0 to 1) and resets when it leaves, so it
-/// grows again. Still under Reduce Motion and in the snapshot tests.
+/// grows again. Still under Reduce Motion and in the snapshot tests. A skin chooses how long it takes,
+/// how it eases, and, with `shown`, its own rule for when it counts as in view (otherwise, on appear).
 struct GrowingIn<Content: View>: View {
     var duration: Double = 1.4
+    /// The growth's easing; ease-out by default.
+    var animation: Animation? = nil
+    /// The skin's own "in view" signal; nil grows on appear and resets on disappear.
+    var shown: Bool? = nil
     @ViewBuilder let content: (CGFloat) -> Content
     @Environment(\.accessibilityReduceMotion) private var still
     @State private var progress: CGFloat = 0
@@ -134,12 +139,17 @@ struct GrowingIn<Content: View>: View {
     static var frozen: Bool { NSClassFromString("XCTestCase") != nil }
 
     var body: some View {
-        Stepped(progress: progress, content: content)
-            .onAppear {
-                if still || Self.frozen { progress = 1; return }
-                withAnimation(.easeOut(duration: duration)) { progress = 1 }
+        Stepped(progress: still || Self.frozen ? 1 : progress, content: content)
+            .onAppear { if shown ?? true { grow() } }
+            .onDisappear { progress = 0 }
+            .onChange(of: shown) { _, now in
+                if now == true { grow() } else if now == false { progress = 0 }
             }
-            .onDisappear { if !(still || Self.frozen) { progress = 0 } }
+    }
+
+    private func grow() {
+        if still || Self.frozen { progress = 1; return }
+        withAnimation(animation ?? .easeOut(duration: duration)) { progress = 1 }
     }
 }
 
