@@ -1,5 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
+import { cards } from '../src/modules/posts/index.js';
+import { awardBonus, gift } from '../src/modules/tokens/index.js';
 import { as, createUser, db } from './helpers.js';
 
 afterAll(() => db.end());
@@ -19,5 +21,23 @@ describe('vine scripture leaves', () => {
     expect(((await as(member).get('/scripture-leaves')).json().leaves as { id: string }[]).some((l) => l.id === id)).toBe(true);
     await as(admin).patch(`/admin/scripture-leaves/${id}`, { active: false });
     expect(((await as(member).get('/scripture-leaves')).json().leaves as { id: string }[]).some((l) => l.id === id)).toBe(false);
+  });
+});
+
+describe('fruit on the vine', () => {
+  it('marks a post once someone has gifted its poster tokens, regular or Priestly', async () => {
+    const poster = await createUser('Vine Fruit Poster');
+    const other = await createUser('Vine Fruit Other');
+    const giver = await createUser('Vine Fruit Giver');
+    const a = (await as(poster).post('/posts', { postType: 'prayer_request', body: 'Pray for my garden to grow this spring.' })).json().post.id as string;
+    const b = (await as(other).post('/posts', { postType: 'prayer_request', body: 'Pray for my new job interview on Monday.' })).json().post.id as string;
+    const gifted = async () => Object.fromEntries((await cards(db, [a, b], giver)).map((c) => [c.id, c.gifted]));
+    expect(await gifted()).toEqual({ [a]: false, [b]: false });
+    await awardBonus(db, giver, `fruit-${giver}`, 1, 'priestly');
+    await gift(db, giver, poster, 1, 'fruit-priestly', 'priestly');
+    expect(await gifted()).toEqual({ [a]: true, [b]: false });
+    await awardBonus(db, giver, `fruit-r-${giver}`, 1);
+    await gift(db, giver, other, 1, 'fruit-regular');
+    expect(await gifted()).toEqual({ [a]: true, [b]: true });
   });
 });

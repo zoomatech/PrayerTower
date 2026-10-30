@@ -2,14 +2,18 @@
 // picture, read back from noisy SSTV audio (noise, a radio tuned off, a sound card's clock
 // running fast) and from a simulated camera photo (tilted, turned over, unevenly lit, soft,
 // grainy). A panel that can't be read says nothing; it never prints a prayer that wasn't sent.
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { decodeBatch } from '../src/burst/codec.js';
-import { resample } from '../src/burst/wav.js';
+import { fromWav, resample } from '../src/burst/wav.js';
 import { decodeCells, decodePanelImage, encodePanel, GRID_H, GRID_W, maxBatchBytes, panelImage } from '../src/panel/panel.js';
 import { decodeRobot36, encodeRobot36, HEIGHT, WIDTH } from '../src/panel/sstv.js';
 import { runSstvOnce, SSTV_PRESET } from '../src/panel/worker.js';
 import { fingerprint } from '../src/burst/sha256.js';
-import type { BurstTransmitter } from '../src/burst/transmit.js';
+import { simulateTransmitter, type BurstTransmitter } from '../src/burst/transmit.js';
+import { StationId } from '../src/station-id.js';
 import type { StationApi } from '../src/worker.js';
 import { SAMPLE_PRAYERS } from './fixtures/sample-prayers.js';
 
@@ -165,6 +169,12 @@ describe('SSTV Robot 36', () => {
     expect(decodeRobot36(onAir(audio.subarray(0, Math.floor(audio.length / 2)), 0.01), RATE)).toBeNull();
   });
 
+  it.each([8_000, 11_025, 22_050, 44_100])('encodes at %i Hz too (parts that start between samples), and reads back', (rate) => {
+    const a = encodeRobot36(picture.gray, rate);
+    expect(a.every(Number.isFinite)).toBe(true);
+    expect(prayersOf(decodePanelImage(decodeRobot36(onAir(a, 0.05), rate)!.gray, WIDTH, HEIGHT))).toEqual(sent);
+  });
+
   it('decodes at the listener apps’ other common rate', () => {
     const at44 = resample(onAir(audio, 0.05), RATE, 44_100);
     expect(prayersOf(decodePanelImage(decodeRobot36(at44, 44_100)!.gray, WIDTH, HEIGHT))).toEqual(sent);
@@ -197,6 +207,32 @@ describe('BURST_MODE=sstv on the station', () => {
     expect(heard).toEqual(claimed.map((c) => c.text));
     expect(s.reports).toHaveLength(claimed.length);
     expect(s.reports[0]).toEqual({ id: 'p0', r: { ok: true, callSign: 'N0CALL', pieces: 1, preset: SSTV_PRESET, sentHash: fingerprint(claimed[0]!.text), frequencyHz: undefined } });
+  });
+
+  it('asks for the station ID after each picture, and in practice mode writes and reads each picture back', async () => {
+    const s = station([{ id: 'a', text: SAMPLE_PRAYERS[0]! }]);
+    const opts: unknown[] = [];
+    s.tx.sendAudio = async (_a, _r, o) => void opts.push(o);
+    await runSstvOnce(s.api, s.tx, { callSign: 'N0CALL', maxPrayers: 10, blocklist: [] }, () => undefined);
+    expect(opts).toEqual([{ label: 'sstv', stationId: true }]);
+
+    const dir = mkdtempSync(path.join(tmpdir(), 'pt-sstv-'));
+    try {
+      const logs: string[] = [];
+      const tx = simulateTransmitter(dir, (m) => logs.push(m), { stationId: new StationId('N0CALL', 600_000, { wpm: 20, toneHz: 800 }) });
+      const p = station(SAMPLE_PRAYERS.slice(0, 3).map((text, i) => ({ id: `s${i}`, text })));
+      await runSstvOnce(p.api, tx, { callSign: 'N0CALL', maxPrayers: 10, blocklist: [] }, (m) => logs.push(m));
+      expect(logs.join('\n')).toMatch(/station ID \(CW\) after the picture/);
+      expect(logs.join('\n')).toMatch(/a receiver reads 3 prayer\(s\) from the picture \(de N0CALL\)/);
+      const wav = readdirSync(dir).filter((f) => f.startsWith('sstv-'));
+      expect(wav).toHaveLength(1);
+      // The ID makes the recording longer than the picture, and the picture still reads.
+      const rec = fromWav(readFileSync(path.join(dir, wav[0]!)));
+      expect(rec.samples.length).toBeGreaterThan(encodeRobot36(new Uint8Array(WIDTH * HEIGHT), RATE).length);
+      expect(prayersOf(decodePanelImage(decodeRobot36(rec.samples, rec.sampleRate)!.gray, WIDTH, HEIGHT))).toEqual(SAMPLE_PRAYERS.slice(0, 3));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('keeps a prayer the content filter refuses off the air', async () => {

@@ -15,6 +15,8 @@ struct SkinnedFeed<Row: View>: View {
     var onPray: (Card) -> Void = { _ in }
     /// Opens a post with all its comments (the vine's "more comments" leaf).
     var onOpen: ((Card) -> Void)?
+    /// A post's comments, for the Beanstalk's leaves; nil uses the newest few the feed sent.
+    var loadComments: ((Card) async -> [Comment])?
 
     var body: some View {
         // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
@@ -23,7 +25,12 @@ struct SkinnedFeed<Row: View>: View {
 
     @ViewBuilder private var layouts: some View {
         switch theme.kind {
-        case .vine: VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, onOpen: onOpen)
+        case .vine:
+            if VineLook(theme).vineStyle == .beanstalk {
+                BeanstalkFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, loadComments: loadComments)
+            } else {
+                VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, onOpen: onOpen)
+            }
         case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), row: row, onEnd: onEnd)
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hasMore: hasMore, row: row, onEnd: onEnd)
@@ -53,6 +60,9 @@ struct VineFeed<Row: View>: View {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     VStack(alignment: .leading, spacing: 18) {
                         VineLeaf(look: look, wording: wording, depth: 0) { row(card) }
+                            .overlay(alignment: .topTrailing) {
+                                if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
+                            }
                         ForEach(card.leafComments ?? []) { c in
                             VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
                         }
@@ -590,6 +600,8 @@ struct CircuitFeed<Row: View>: View {
                             }
                             .accessibilityHidden(true)
                         }
+                        // Text in the card's own scheme: light words on a dark screen, never the system's dark ones.
+                        .environment(\.colorScheme, BackdropText(on: look.backdrop).light ? .dark : .light)
                         .padding(.leading, 18)
                         .padding(.trailing, 40)
                         .overlay(alignment: .trailing) {

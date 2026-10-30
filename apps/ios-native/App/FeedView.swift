@@ -33,7 +33,7 @@ struct FeedView: View {
         NavigationStack {
             Group {
                 if let theme, theme.kind != .column {
-                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id })
+                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id }, loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] })
                         .skinBars(Skin.backdrop(theme))
                 } else if wide {
                     grid
@@ -140,7 +140,6 @@ struct FeedView: View {
             pending = await OfflineStore.shared.pending().count
             dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
             posts = page.posts
-            SpotlightIndex.update(page.posts)
             // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
             theme = SampleServer.skin().flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
             nextPage = page.nextPage
@@ -241,7 +240,7 @@ struct CardRow: View {
                 }
             }
             ActionRowView(
-                items: ActionRow.items(actions: card.actions ?? (card.isMine ? [] : ["praying_now"]), features: model.features, tree: model.tree, wording: model.wording),
+                items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
                 wording: model.wording,
                 active: active,
                 onAction: onAction,

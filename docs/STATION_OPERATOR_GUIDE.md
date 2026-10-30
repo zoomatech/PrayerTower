@@ -274,6 +274,10 @@ fastest preset that the weakest listener can still decode. Off by default.
 
    Set the receiver's sound card in `LISTEN_RECORD_CMD` (the card name from
    `arecord -l`). From an HF (SSB) receiver, also set `LISTEN_SEARCH_HZ=50`.
+   If the station sends prayer panels as SSTV pictures (`BURST_MODE=sstv`), set
+   `LISTEN_SSTV=on` so the node reads them too and reports them as heard. Its
+   "dB" for a picture is how cleanly the picture came through (the gap between
+   black and white over the noise), not a burst SNR.
    For a Pi that sets itself up on first boot, change `--hamlib` to
    `--listener-only` in `pi/user-data`.
 3. On the station, in `/etc/prayer-tower-station.env`:
@@ -849,10 +853,13 @@ it, and the Prayer Tower listener apps read the prayers back from the audio or
 from a photo of the screen.
 
 1. Turn on Admin → Radio → **Prayer panel and SSTV**.
-2. In `/etc/prayer-tower-station.env` set `BURST_MODE=sstv`.
+2. In `/etc/prayer-tower-station.env` set `BURST_MODE=sstv`. To practise with
+   nothing keyed, also set `SSTV_SEND=simulate`: each picture goes to a WAV file
+   in the bursts folder, and the log says what a receiver reads back.
 3. `sudo systemctl restart prayer-tower-station`. Sound card and PTT are set up as for `BURST_MODE=audio`.
 
-A panel takes about 37 seconds on the air. Members can also show or print the
+A panel takes about 37 seconds on the air, and the CW station ID (`STATION_ID=cw`)
+follows it when one is due. Members can also show or print the
 latest panel from the app. Details: [RADIO_BURST.md](RADIO_BURST.md#prayer-panel).
 
 ## Diagnose a weak signal

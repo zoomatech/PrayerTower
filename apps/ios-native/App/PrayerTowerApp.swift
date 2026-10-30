@@ -1,11 +1,10 @@
-import CoreSpotlight
 import PrayerTowerKit
 import PrayerTowerSession
 import SwiftUI
 
 @main
 struct PrayerTowerApp: App {
-    @State private var model = AppModel.shared
+    @State private var model = AppModel(store: AppModel.makeStore())
     @Environment(\.scenePhase) private var phase
 
     var body: some Scene {
@@ -16,10 +15,6 @@ struct PrayerTowerApp: App {
                 .task { await model.start() }
                 // Back in the foreground: send anything done while offline.
                 .onChange(of: phase) { _, now in if now == .active { Task { await model.store.api.sendQueued() } } }
-                // A tap on one of the member's requests in Spotlight.
-                .onContinueUserActivity(CSSearchableItemActionType) { activity in
-                    if let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String { model.openPost = Shortcuts.postId(fromIdentifier: id) }
-                }
                 .onOpenURL { url in
                     if let code = Invite.code(from: url) { model.invite = code } else { model.openPost = PrayNow.postId(from: url) }
                 }
@@ -62,12 +57,6 @@ final class AppModel {
     var feedStyle: String?
 
     init(store: SessionStore) { self.store = store }
-
-    /// The one model, shared with Siri Shortcuts (App/Shortcuts.swift).
-    static let shared = AppModel(store: AppModel.makeStore())
-    /// A screen or tab a shortcut asked to open.
-    var openRoute: AppRoute?
-    var openTab: Int?
 
     static func makeStore() -> SessionStore {
         if SampleServer.isOn() {

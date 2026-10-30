@@ -416,36 +416,41 @@ public struct SstvListener: Sendable {
     private var buf: [Float] = []
     private var taken = 0
     private var readUpTo = 0
-    private var carry = 0.0
     private var acc: Float = 0
     private var accN = 0
+    /// Microphone samples averaged into one kept sample: a whole number, as the station's decoder
+    /// (a fractional step jitters every sample's timing, which the frequency reading turns into noise).
+    private let k: Int
+    /// The kept samples' rate: 48 kHz / 4, 44.1 kHz / 3 = 14.7 kHz, 16 kHz and below as they are.
+    public let keptRate: Int
 
-    public init(rate: Int) { inputRate = rate }
+    public init(rate: Int) {
+        inputRate = rate
+        k = max(1, rate / Self.rate)
+        keptRate = max(1, rate / k)
+    }
 
-    /// Add microphone samples (mono): averaged down to 12 kHz.
+    /// Add microphone samples (mono). A sample that isn't a number counts as silence.
     public mutating func push(_ samples: [Float]) {
-        let step = Double(inputRate) / Double(Self.rate)
         for s in samples {
             acc += s.isFinite ? s : 0
             accN += 1
-            carry += 1
-            if carry >= step {
-                carry -= step
-                buf.append(acc / Float(accN))
+            if accN == k {
+                buf.append(acc / Float(k))
                 taken += 1
                 acc = 0
                 accN = 0
             }
         }
-        let keep = Self.keepSeconds * Self.rate
-        if buf.count > keep { buf.removeFirst(((buf.count - keep) / Self.rate + 1) * Self.rate) }
+        let keep = Self.keepSeconds * keptRate
+        if buf.count > keep { buf.removeFirst(((buf.count - keep) / keptRate + 1) * keptRate) }
     }
 
     /// A panel whose picture ended since the last one read, or nil.
     public mutating func read() -> (panel: PanelRead?, end: Int)? {
-        guard buf.count >= 38 * Self.rate else { return nil }
+        guard buf.count >= 38 * keptRate else { return nil }
         let startAt = taken - buf.count
-        guard let found = Robot36.readPanel(buf, rate: Self.rate) else { return nil }
+        guard let found = Robot36.readPanel(buf, rate: keptRate) else { return nil }
         let end = startAt + found.end
         guard end > readUpTo else { return nil }
         readUpTo = end

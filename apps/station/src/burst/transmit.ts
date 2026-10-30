@@ -25,14 +25,25 @@ export interface SentBurst {
   decoded: number | null;
 }
 
+export interface SendAudioOptions {
+  /** The WAV file's name ("tone" when not given). */
+  label?: string;
+  /** Follow the audio with the CW station ID when one is due (STATION_ID=cw). */
+  stationId?: boolean;
+}
+
 export interface BurstTransmitter {
   readonly mode: 'audio' | 'fldigi' | 'simulate';
   /** Send the batches in one key-up; resolves when the radio is back in receive. */
   send(batches: Uint8Array[], preset: BurstPreset, callSign: string): Promise<SentBurst>;
   /** Unkey now (after an error). */
   stop(): Promise<void>;
-  /** Play raw audio in one key-up (the setup wizard's test tone, setup-test.ts). Absent: this mode can't. */
-  sendAudio?(audio: Float32Array, sampleRate: number): Promise<void>;
+  /**
+   * Play raw audio in one key-up: the setup wizard's test tone (setup-test.ts), or an SSTV prayer
+   * panel (panel/worker.ts), which names itself `picture` and takes the station ID after it, as a
+   * burst does. Absent: this mode can't.
+   */
+  sendAudio?(audio: Float32Array, sampleRate: number, opts?: SendAudioOptions): Promise<void>;
 }
 
 /** Run a shell command; {wav} is replaced by the quoted file path. Rejects on a non-zero exit or timeout. */
@@ -125,8 +136,9 @@ export function audioTransmitter(o: AudioOptions): BurstTransmitter {
       return { frames: burst.frames, seconds: burst.seconds, bytes: burst.bytes, decoded: null };
     },
     stop: unkey,
-    async sendAudio(audio, sampleRate) {
-      await keyAndPlay(writeWav(o.dir, { audio, sampleRate }, 'tone'), audio.length / sampleRate);
+    async sendAudio(audio, sampleRate, opts = {}) {
+      const out = opts.stationId ? withId(audio, o.stationId, sampleRate) : audio;
+      await keyAndPlay(writeWav(o.dir, { audio: out, sampleRate }, opts.label ?? 'tone'), out.length / sampleRate);
     },
   };
 }
@@ -164,8 +176,11 @@ export function simulateTransmitter(
       return { frames: burst.frames, seconds: burst.seconds, bytes: burst.bytes, decoded: count };
     },
     async stop() {},
-    async sendAudio(audio, sampleRate) {
-      log(`[simulate] test tone written to ${writeWav(dir, { audio, sampleRate }, 'tone')} (${(audio.length / sampleRate).toFixed(1)} s); nothing keyed`);
+    async sendAudio(audio, sampleRate, o = {}) {
+      const out = o.stationId ? withId(audio, opts.stationId, sampleRate) : audio;
+      if (out.length > audio.length) log('[simulate] station ID (CW) after the picture');
+      const what = o.label ?? 'test tone';
+      log(`[simulate] ${what} written to ${writeWav(dir, { audio: out, sampleRate }, o.label ?? 'tone')} (${(out.length / sampleRate).toFixed(1)} s); nothing keyed`);
     },
   };
 }
