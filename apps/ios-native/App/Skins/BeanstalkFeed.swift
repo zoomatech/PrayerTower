@@ -582,10 +582,9 @@ private struct BeanLeafView: View {
         let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
         Button { onTap(fit.cut) } label: {
             VStack(spacing: 0) {
-                // Never truncated by the layout: the words are already shortened to fit, and the leaf
-                // grows taller with larger text rather than cutting them off.
-                Text(leaf.note.author).font(BeanFont.bold(nameFs)).fixedSize(horizontal: false, vertical: true)
-                Text(fit.text).font(BeanFont.body(fs)).fixedSize(horizontal: false, vertical: true)
+                // The words are shortened to fit; larger text shrinks to fit the leaf, never stretching it.
+                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1).minimumScaleFactor(0.6)
+                Text(fit.text).font(BeanFont.body(fs)).lineLimit(small ? 1 : 2).minimumScaleFactor(0.6)
                 if !hint.isEmpty, !small { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).padding(.top, 2) }
             }
             .foregroundStyle(Bean.text)
@@ -596,7 +595,8 @@ private struct BeanLeafView: View {
             .padding(.trailing, padR)
             .frame(width: leaf.lw)
             // A reply keeps a real leaf's shape, half as tall as it is wide, so it never balloons.
-            .frame(minHeight: small ? (leaf.lw * 0.52).rounded() : minH)
+            // A true leaf's proportions at a fixed size: the words never stretch it (Steve, 2026-10-30).
+            .frame(height: small ? (leaf.lw * 0.52).rounded() : minH)
             .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
         .buttonStyle(.plain)
@@ -708,13 +708,12 @@ private struct LeafCluster: View {
                 ForEach(Array(all.enumerated()), id: \.offset) { i, n in
                     let left = n.side < 0
                     let h = (n.size * (n.text ? 0.58 : 0.5)).rounded()
-                    let minOnly = n.text
                     let ex = W + vine(n.y) + n.side * n.stalk
                     let ey = n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(n.droop * .pi / 180)
                     let anchor: UnitPoint = left ? .trailing : .leading
                     blade(n, flip: left, fill: Bean.leaves[(i + seed) % Bean.leaves.count])
-                        .frame(width: n.size, height: minOnly ? nil : h)
-                        .frame(minHeight: minOnly ? h : nil)
+                        // Always a true leaf's proportions: the words never stretch it (Steve, 2026-10-30).
+                        .frame(width: n.size, height: h)
                         // Each leaf swings on its own stalk, out of step with the rest.
                         .rustle(rustles, by: Double(i % 3 + 2) * (i % 2 == 0 ? 1 : -1), anchor: anchor)
                         .rotationEffect(.degrees(n.side * n.droop), anchor: anchor)
@@ -732,10 +731,11 @@ private struct LeafCluster: View {
             LeafBack(flip: flip, fill: fill, line: 2)
             if n.text, let first {
                 VStack(spacing: 1) {
-                    Text(first.author).font(BeanFont.bold(13)).fixedSize(horizontal: false, vertical: true)
-                    // The opening of the top comment, shortened to fit at a word, never cut by the layout.
+                    Text(first.author).font(BeanFont.bold(13)).lineLimit(1).minimumScaleFactor(0.6)
+                    // The opening of the top comment, shortened to fit at a word; larger text shrinks to
+                    // fit the leaf rather than stretching it.
                     Text(Beanstalk.fit(first.body, max: Beanstalk.chars(width: n.size * 0.9, font: 12.5, lines: 2)).text)
-                        .font(BeanFont.body(12.5)).fixedSize(horizontal: false, vertical: true)
+                        .font(BeanFont.body(12.5)).lineLimit(2).minimumScaleFactor(0.6)
                 }
                 .foregroundStyle(Bean.text)
                 .multilineTextAlignment(.center)
