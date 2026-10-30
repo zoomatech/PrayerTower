@@ -64,4 +64,13 @@ import Testing
         #expect(SampleServer.tab(for: "post") == (0, true))
         #expect(SampleServer.tab(for: "me").tab == 4)
     }
+
+    @Test func openCircleSampleNeverSaysPray() {
+        // Field names and codes ("prayers":, "praying_now") are not words people read.
+        let shown = SampleServer.routes(.openCircle).map(\.body).joined()
+            .replacingOccurrences(of: #""pray\w*"\s*:"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #""(praying_now|prayer_request|prayed_for)""#, with: "", options: .regularExpression)
+        #expect(shown.range(of: "pray", options: .caseInsensitive) == nil)
+        #expect(SampleServer.routes(.prayerTower).map(\.body).joined().contains("Thank you for praying!"))
+    }
 }
