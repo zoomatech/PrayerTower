@@ -93,7 +93,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref || github.ref }}
+      # A snapshot that differs from its reference writes its new picture here (xcodebuild hands
+      # TEST_RUNNER_ variables to the tests); a matching one writes nothing.
       - run: bash scripts/mac-build-native.sh
+        env:
+          TEST_RUNNER_SNAPSHOT_ARTIFACTS: ${{ runner.temp }}/snapshot-diffs
       # A snapshot test with no reference image records one and fails once. On a PR from this repo,
       # commit the new images to the branch so they show in the PR's diff for review (the job logs
       # and artifacts can't be fetched everywhere). Only new files: a changed screen still fails.
@@ -123,12 +127,14 @@ jobs:
         run: |
           f=$(ls -d build-logs/native-*/performance.txt 2>/dev/null | tail -1)
           if [ -s "$f" ]; then { echo '### Native app performance'; echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      # Only the pictures that differ from their references, only when the job fails, kept a day.
       - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         with:
-          name: ios-snapshots
-          path: apps/ios-native/SnapshotTests/__Snapshots__
+          name: ios-snapshot-diffs
+          path: ${{ runner.temp }}/snapshot-diffs
           if-no-files-found: ignore
+          retention-days: 1
       - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:
