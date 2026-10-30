@@ -30,7 +30,7 @@ struct CommitmentsView: View {
                 }
                 if let error {
                     Section {
-                        Text(error).foregroundStyle(.red)
+                        Text(error).foregroundStyle(Color.danger)
                         Button(w("common.tryAgain")) { Task { await load() } }
                     }
                 }
@@ -180,7 +180,7 @@ struct CommitSheet: View {
                         .keyboardType(.numberPad)
                         .onChange(of: days) { _, new in days = String(new.filter(\.isNumber).prefix(3)) }
                 }
-                if let error { Section { Text(error).foregroundStyle(.red) } }
+                if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             }
             .navigationTitle(w("actions.commitTitle"))
             .navigationBarTitleDisplayMode(.inline)

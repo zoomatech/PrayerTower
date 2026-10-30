@@ -20,10 +20,10 @@ struct FreshDaysSection: View {
             Text("Save up to three days of your own, like a birthday or a day you began again. On that day, Me offers a fresh start. Only you see them.")
                 .font(.footnote).foregroundStyle(Color.subtle)
             ForEach(days) { d in
-                HStack {
-                    Text("\(d.label) · \(when(d))")
-                    Spacer()
+                AdaptiveStack {
+                    Text("\(d.label) · \(when(d))").frame(maxWidth: .infinity, alignment: .leading)
                     Button("Remove", role: .destructive) { Task { await run { try await model.store.api.removeFreshDay(d.id) } } }
+                        .foregroundStyle(Color.danger)
                         .accessibilityLabel("Remove \(d.label)")
                 }
             }
@@ -41,7 +41,7 @@ struct FreshDaysSection: View {
                 }
                 .disabled(!FreshDayRules.isValid(month: parts.month, day: parts.day, label: label))
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .task { await run { try await model.store.api.freshDays() } }
     }

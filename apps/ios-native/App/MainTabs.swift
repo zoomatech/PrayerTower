@@ -113,7 +113,7 @@ struct FeedStyleSection: View {
                         }
                         .accessibilityAddTraits(current == t.slug ? .isSelected : [])
                     }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if let error { Text(error).foregroundStyle(Color.danger) }
                 }
             }
         }

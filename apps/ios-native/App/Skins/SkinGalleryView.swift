@@ -15,7 +15,7 @@ struct SkinGalleryView: View {
                 Text("Every feed skin you can use, including ones members made. Like your favorites, and tap “Use this skin” to wear one.")
                 if let error {
                     HStack {
-                        Text(error).foregroundStyle(.red)
+                        Text(error).foregroundStyle(Color.danger)
                         Button("Try again") { Task { await run { try await model.store.api.skinGallery() } } }
                     }
                 }

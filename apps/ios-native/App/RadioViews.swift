@@ -52,7 +52,7 @@ struct RadioSection: View {
                             Text(w("keepOnAir.hint"))
                         }
                     }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if let error { Text(error).foregroundStyle(Color.danger) }
                 }
             }
             if o.trail, !trail.isEmpty {
@@ -171,7 +171,7 @@ struct ScheduleRadioSheet: View {
                             .pickerStyle(.segmented)
                         }
                     }
-                    if let error { Section { Text(error).foregroundStyle(.red) } }
+                    if let error { Section { Text(error).foregroundStyle(Color.danger) } }
                     Section {
                         Button(w("scheduleRadio.submit")) { Task { await submit() } }.disabled(busy || at == nil)
                     }
@@ -213,7 +213,7 @@ struct SignalQueueView: View {
             Section { Text(w(off ? "signalQueue.off" : "signalQueue.intro")) }
             if let error {
                 Section {
-                    Text(error).foregroundStyle(.red)
+                    Text(error).foregroundStyle(Color.danger)
                     Button(w("common.tryAgain")) { Task { await load() } }
                 }
             }

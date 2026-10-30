@@ -108,7 +108,7 @@ struct ComposeView: View {
                         }
                     }
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(w("common.cancel")) { dismiss() } }

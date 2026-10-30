@@ -33,7 +33,7 @@ struct LibraryView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if model.features["libraryOffline"] {
                 Section { NavigationLink(w("library.offlineTitle")) { OfflineTextsView() } }
             }
@@ -52,12 +52,12 @@ struct LibraryView: View {
                     }
                     Section {
                         if mode == .who {
-                            Text(w("library.whoHint")).font(.footnote).foregroundStyle(.secondary)
+                            Text(w("library.whoHint")).font(.footnote).foregroundStyle(Color.subtle)
                             Picker(w("library.whoScope"), selection: $scope) {
                                 ForEach(VerseSearchScope.allCases, id: \.self) { Text($0.title).tag($0) }
                             }
                         }
-                        if mode == .story { Text(w("library.storyHint")).font(.footnote).foregroundStyle(.secondary) }
+                        if mode == .story { Text(w("library.storyHint")).font(.footnote).foregroundStyle(Color.subtle) }
                         if mode == .words, overview.collections.count > 1 {
                             Picker(w("library.title"), selection: Binding(get: { collection ?? "" }, set: { choose($0) })) {
                                 ForEach(overview.collections) { Text($0.title).tag($0.id) }
@@ -72,7 +72,7 @@ struct LibraryView: View {
                         Button(w("library.search")) { go() }
                             .disabled(words.trimmingCharacters(in: .whitespaces).isEmpty || busy)
                         if mode == .story, let preparing {
-                            Text(w("library.preparing", ["step": preparing])).font(.footnote).foregroundStyle(.secondary)
+                            Text(w("library.preparing", ["step": preparing])).font(.footnote).foregroundStyle(Color.subtle)
                         }
                     }
                 }
@@ -85,7 +85,7 @@ struct LibraryView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(h.verse.id).font(.headline)
                             Text(h.verse.text).textSelection(.enabled)
-                            Text(h.explanation).font(.caption).foregroundStyle(.secondary)
+                            Text(h.explanation).font(.caption).foregroundStyle(Color.subtle)
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -97,7 +97,7 @@ struct LibraryView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(found.verse.id).font(.headline)
                             Text(found.verse.text).textSelection(.enabled)
-                            Text(found.explanation).font(.caption).foregroundStyle(.secondary)
+                            Text(found.explanation).font(.caption).foregroundStyle(Color.subtle)
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -297,26 +297,26 @@ struct LibraryAdminSection: View {
                     Toggle(isOn: Binding(get: { on.wordsEnabled == true }, set: { save(LibrarySettings(wordsEnabled: $0)) })) {
                         VStack(alignment: .leading) {
                             Text(w("library.adminWords"))
-                            Text(w("library.adminWordsHint")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("library.adminWordsHint")).font(.caption).foregroundStyle(Color.subtle)
                         }
                     }
                     Toggle(isOn: Binding(get: { on.notesEnabled == true }, set: { save(LibrarySettings(notesEnabled: $0)) })) {
                         VStack(alignment: .leading) {
                             Text(w("library.adminNotes"))
-                            Text(w("library.adminNotesHint")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("library.adminNotesHint")).font(.caption).foregroundStyle(Color.subtle)
                         }
                     }
                     Toggle(isOn: Binding(get: { on.offlineEnabled == true }, set: { save(LibrarySettings(offlineEnabled: $0)) })) {
                         VStack(alignment: .leading) {
                             Text(w("library.adminOffline"))
-                            Text(w("library.adminOfflineHint")).font(.caption).foregroundStyle(.secondary)
+                            Text(w("library.adminOfflineHint")).font(.caption).foregroundStyle(Color.subtle)
                         }
                     }
                 }
             } else if error == nil {
                 ProgressView()
             }
-            if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+            if let error { Text(error).font(.footnote).foregroundStyle(Color.danger) }
         } header: {
             Text(w("library.adminTitle"))
         }

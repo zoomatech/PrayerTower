@@ -34,7 +34,7 @@ struct EventsView: View {
     var body: some View {
         List {
             Section { Text(w("events.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section {
                 if creating { form } else { Button(w("events.hostAn")) { creating = true } }
             }
@@ -154,12 +154,12 @@ struct EventDetailView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let e = event {
                 Section {
                     Text(w("enums.eventKind.\(e.kind)")).font(.caption).foregroundStyle(Color.subtle)
                     Text(e.title).font(.title2.bold())
-                    if e.cancelled { Text(w("events.cancelled")).foregroundStyle(.red).bold() }
+                    if e.cancelled { Text(w("events.cancelled")).foregroundStyle(Color.danger).bold() }
                     Text("\(e.live ? w("events.happening") : whenText(e.startsAt)) · \(w("events.minutesShort", ["count": String(e.durationMinutes)]))")
                         .bold().foregroundStyle(.tint)
                     if !e.description.isEmpty { Text(e.description) }
@@ -267,7 +267,7 @@ struct CareView: View {
     var body: some View {
         List {
             Section { Text(w("care.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if crisis { Section { CrisisBox() } }
             if let options {
                 Section {

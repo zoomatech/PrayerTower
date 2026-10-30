@@ -32,7 +32,7 @@ struct EncouragerSection: View {
                         Button(w("practices.encVolunteer")) { Task { await run { try await model.store.api.setVolunteer(true) } } }.disabled(!agree || busy)
                     }
                     if let note { Text(note).font(.footnote) }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if let error { Text(error).foregroundStyle(Color.danger) }
                 } header: {
                     Text(w("practices.encTitle"))
                 }

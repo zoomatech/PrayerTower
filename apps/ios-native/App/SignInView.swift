@@ -49,7 +49,7 @@ struct SignInView: View {
             case .forgot: forgot
             default: account
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let notice { Text(notice) }
         }
         .task { config = (try? await model.store.api.signupConfig()) ?? SignupConfig(inviteOnly: true) }
@@ -224,7 +224,7 @@ struct CodeView: View {
                         .textContentType(.oneTimeCode)
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if useBackup {
                 Button("Use this code") { Task { await run { try await model.store.useBackupCode(backup) } } }
                     .disabled(busy || !BackupCode.looksComplete(backup))

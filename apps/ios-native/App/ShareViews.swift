@@ -32,7 +32,7 @@ struct ShareSheet: View {
                 }
                 Section(w("actions.askTitle")) { askPeople }
                 Section { OutsideShareRow(card: card) }
-                if let error { Section { Text(error).foregroundStyle(.red) } }
+                if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             }
             .navigationTitle(w("post.share"))
             .navigationBarTitleDisplayMode(.inline)
@@ -151,7 +151,7 @@ struct ShareChoiceSection: View {
                     if state.level == "card" { Text(w("growth.shareCardHint")).font(.footnote) }
                     if !state.cardAllowed { Text(w("growth.shareCardCrisis")).font(.footnote) }
                     if let note { Text(note).font(.footnote) }
-                    if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+                    if let error { Text(error).font(.footnote).foregroundStyle(Color.danger) }
                 } header: {
                     Text(w("growth.shareChoice"))
                 } footer: {
@@ -208,7 +208,7 @@ struct GuestShareSection: View {
                     }
                     if model.features["prayerChain"] { Button(w("growth.chainSend")) { toChain() } }
                     if let note { Text(note).font(.footnote) }
-                    if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+                    if let error { Text(error).font(.footnote).foregroundStyle(Color.danger) }
                 }
             }
         }
@@ -300,7 +300,7 @@ struct AnsweredStorySection: View {
                     Button(w("common.cancel")) { text = nil }
                 }
                 .buttonStyle(.borderless)
-                if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+                if let error { Text(error).font(.footnote).foregroundStyle(Color.danger) }
             } else {
                 Button(w("answeredStory.open")) { text = "" }
             }

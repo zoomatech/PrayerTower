@@ -98,7 +98,7 @@ struct BranchView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("vine.branchTitle"))
         .task { await load() }
@@ -145,7 +145,7 @@ struct SquireBoardView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("squire.title"))
         .task { await run($error) { board = try await model.store.api.squireBoard() } }
@@ -203,7 +203,7 @@ struct PodcastsView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("podcasts.title"))
         .task { await run($error) { shows = try await model.store.api.podcasts() } }
@@ -268,7 +268,7 @@ struct LiveView: View {
                     .buttonStyle(.borderless)
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("live.title"))
         .task { await load() }
@@ -348,7 +348,7 @@ struct ReadingPlanView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("readingPlan.title"))
         .task { await load() }
@@ -422,7 +422,7 @@ struct ChurchView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("church.title"))
         .task { await load() }
@@ -491,7 +491,7 @@ struct ChurchReviewView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("churchReview.title"))
         .task(id: status) { await load() }
@@ -575,7 +575,7 @@ struct WitnessView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("profile.witness"))
         .task(id: filter) { await load() }

@@ -78,6 +78,9 @@ extension Color {
     /// Links and buttons: system blue is about 4:1 on white; these keep 4.5:1 or more on the page
     /// and grouped backgrounds in both modes.
     static let accessibleAccent = adaptive(light: "#0061CC", dark: "#409CFF")
+    /// Errors and destructive buttons: system red is about 3.6:1 on white; these keep 4.5:1 or more
+    /// on the page and grouped backgrounds in both modes.
+    static let danger = adaptive(light: "#B3261E", dark: "#FF6B63")
 }
 
 private struct RGBA {

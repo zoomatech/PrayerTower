@@ -64,7 +64,7 @@ struct ConversationPrefsSection: View {
                         ForEach(Talk.packs, id: \.self) { Text(w("talk.packs.\($0).name")).tag($0) }
                     }
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             } header: {
                 Text(w("talk.prefsTitle"))
             } footer: {

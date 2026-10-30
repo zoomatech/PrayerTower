@@ -10,7 +10,7 @@ struct ParallelsView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let list {
                 if !list.enabled {
                     Text(w("library.parallelsOff"))
@@ -65,7 +65,7 @@ struct ParallelThemeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
                 if let theme {
                     Text(theme.intro)
                     Text(w("library.parallelsCount", count: theme.sides.count)).font(.caption).foregroundStyle(Color.subtle)
@@ -130,7 +130,7 @@ struct ReadingPlansView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let plans {
                 if !plans.enabled {
                     Text(w("library.plansOff"))
@@ -211,7 +211,7 @@ struct PlanDayView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
                 if let data {
                     Text(w("library.planDayOf", ["day": String(data.day), "days": String(data.plan.days)])).font(.caption).foregroundStyle(Color.subtle)
                     Text(data.reading.citation).font(.headline)

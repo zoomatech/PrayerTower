@@ -25,7 +25,7 @@ struct MessagesView: View {
                 }
                 if let error {
                     Section {
-                        Text(error).foregroundStyle(.red)
+                        Text(error).foregroundStyle(Color.danger)
                         Button(w("common.tryAgain")) { Task { await load() } }
                     }
                 }
@@ -114,7 +114,7 @@ struct ConversationScreen: View {
                     ForEach(view?.messages ?? []) { m in bubble(m).id(m.id).listRowSeparator(.hidden) }
                 }
                 if let c = view?.conversation {
-                    if let error { Section { Text(error).foregroundStyle(.red) } }
+                    if let error { Section { Text(error).foregroundStyle(Color.danger) } }
                     if c.awaitingReply { Section { Text(w("conversation.waiting")).font(.footnote) } }
                     if c.canWrite { Section { composer(c) } }
                     if !c.isRequest { Section { tools(c) } }
@@ -325,7 +325,7 @@ struct InviteSheet: View {
                     }
                     .accessibilityAddTraits(picked.contains(p.id) ? .isSelected : [])
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .overlay { if people == nil && error == nil { ProgressView() } }
             .navigationTitle(w("conversation.inviteTitle"))
@@ -371,7 +371,7 @@ struct GroupsView: View {
     var body: some View {
         List {
             Section { Text(w("groups.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section {
                 if creating {
                     TextField(w("groups.namePlaceholder"), text: $title)

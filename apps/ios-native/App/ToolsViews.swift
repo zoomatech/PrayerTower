@@ -89,7 +89,7 @@ struct PrayerListView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("prayerList.title"))
         .task { await change { try await model.store.api.prayerList() } }
@@ -153,7 +153,7 @@ struct PrayerMinuteView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("growth.minuteTitle"))
         .task {
@@ -209,7 +209,7 @@ struct PrayerChainView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("growth.chainTitle"))
         .task { await run($error) { people = try await model.store.api.prayerChain() } }
@@ -252,7 +252,7 @@ struct PrayerCastView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("profile.prayerCast"))
         .task { await run($error) { cast = try await model.store.api.prayerCast() } }
@@ -292,7 +292,7 @@ struct PowerPrayerSection: View {
                 }
                 .disabled(busy)
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .task {
             status = try? await model.store.api.powerPrayerStatus()
@@ -367,7 +367,7 @@ struct PoolsView: View {
                     if let r = ledger.returned, r > 0 { Text(w("pools.ledgerReturned", count: r)) }
                 }
             }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
         }
         .navigationTitle(w("profile.pools"))
         .task { await load() }
@@ -461,7 +461,7 @@ struct NewPoolSheet: View {
                         TextField(w("pools.matchCap"), text: $cap).keyboardType(.numberPad)
                     } footer: { Text(w("pools.shareBack")) }
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .navigationTitle(w("pools.start"))
             .toolbar {
@@ -537,7 +537,7 @@ struct GiveView: View {
                 } footer: { Text(w("give.fees")) }
             }
             if let notice { Text(notice) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if !gifts.isEmpty {
                 Section(w("give.history")) {
                     ForEach(gifts) { g in
@@ -595,7 +595,7 @@ struct WhyGiftsView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(why?.title ?? w("whyGifts.link"))
         .task { await run($error) { why = try await model.store.api.whyGifts(model.wording) } }
@@ -646,7 +646,7 @@ struct MacroNeedsView: View {
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || text.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             if let notice { Text(notice) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("profile.macroNeeds"))
         .task { await load() }

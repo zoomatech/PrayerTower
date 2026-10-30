@@ -32,7 +32,7 @@ struct CirclesView: View {
                     TextField("Invite code", text: $code).textInputAutocapitalization(.characters).autocorrectionDisabled()
                     Button("Join") { Task { await join() } }.disabled(code.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .navigationTitle("Circles")
             .navigationDestination(for: String.self) { CircleDetailView(id: $0) }
@@ -105,7 +105,7 @@ struct CircleDetailView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(view?.circle.name ?? "Circle")
         .refreshable { await load() }
@@ -194,7 +194,7 @@ struct CirclePostView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+            if let error { Text(error).foregroundStyle(Color.danger).font(.footnote) }
         }
     }
 

@@ -317,7 +317,7 @@ struct OfflineBanner: View {
                     Text("\(w("offline.notice")) \(w("offline.saved", ["when": savedAt.formatted(date: .abbreviated, time: .shortened)]))").bold()
                 }
                 if pending > 0 { Text(pending == 1 ? w("offline.waitingOne") : w("offline.waitingMany", count: pending)) }
-                ForEach(dropped, id: \.self) { Text(w("offline.notSent", ["what": $0])).foregroundStyle(.red) }
+                ForEach(dropped, id: \.self) { Text(w("offline.notSent", ["what": $0])).foregroundStyle(Color.danger) }
                 HStack {
                     if savedAt != nil { Button(w("offline.retry"), action: onRetry) }
                     if !dropped.isEmpty { Button(w("offline.ok"), action: onDismiss) }

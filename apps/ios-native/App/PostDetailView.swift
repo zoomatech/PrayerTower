@@ -231,7 +231,7 @@ struct PostDetailView: View {
         KindCloudView(text: text)
         ReplyHelpersView(lastFromOther: replyTo?.body ?? card.body, empty: replyTo == nil && comments.isEmpty, text: $text, postType: replyTo == nil ? card.postType : nil)
         if card.isMine && replyTo == nil { Toggle(w("post.postUpdate"), isOn: $asUpdate) }
-        if let error, self.card != nil { Text(error).font(.footnote).foregroundStyle(.red) }
+        if let error, self.card != nil { Text(error).font(.footnote).foregroundStyle(Color.danger) }
         Button(w("post.comment")) { Task { await send() } }
             .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }

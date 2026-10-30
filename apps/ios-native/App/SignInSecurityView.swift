@@ -43,7 +43,7 @@ struct TwoStepSection: View {
                     Button("Turn on two-step sign-in") { Task { await start() } }
                 }
                 if let notice { Text(notice) }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             } header: {
                 Text("Two-step sign-in")
             }
@@ -110,7 +110,7 @@ struct BackupCodesSection: View {
                 Button((remaining ?? 0) > 0 ? "Make new codes" : "Make backup codes") { Task { await make() } }
                 if (remaining ?? 0) > 0 { Text("Making new codes stops the old ones from working.").font(.footnote) }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         } header: {
             Text("Backup codes")
         }
@@ -152,7 +152,7 @@ struct PasskeysSection: View {
             }
             Button("Add a passkey") { Task { await add() } }
             if let notice { Text(notice) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         } header: {
             Text("Passkeys")
         }

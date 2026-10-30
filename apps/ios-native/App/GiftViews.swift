@@ -59,7 +59,7 @@ struct GiftSheet: View {
                         }
                     }
                 }
-                if let error { Section { Text(error).foregroundStyle(.red) } }
+                if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             }
             .navigationTitle(CardAction.giftTokens.name(model.wording))
             .navigationBarTitleDisplayMode(.inline)
@@ -121,7 +121,7 @@ struct ScheduledGiftsView: View {
     var body: some View {
         List {
             Section { Text(w("scheduled.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if items?.isEmpty == true { Section { Text(w("scheduled.empty")).foregroundStyle(Color.subtle) } }
             ForEach(items ?? []) { s in
                 VStack(alignment: .leading, spacing: 6) {
@@ -210,7 +210,7 @@ struct NotificationSettingsView: View {
                     Text(quiet.timeZone).font(.footnote).foregroundStyle(Color.subtle)
                 }
             }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
         }
         .navigationTitle(w("notifySettings.title"))
         .navigationBarTitleDisplayMode(.inline)
