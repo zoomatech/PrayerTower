@@ -148,7 +148,7 @@ struct Stalk: View {
             }
         }
         .shadow(color: look.stemGlow ? Color(look.stem).opacity(0.8) : .clear, radius: look.stemGlow ? 8 : 0)
-        .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.tendril)) } }
+        .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.stem)) } }
     }
 }
 
@@ -230,6 +230,21 @@ struct VineLeaf<Content: View>: View {
         Canvas { ctx, size in
             var p = Path()
             let reach = depth == 0 ? 40.0 : 68.0
+            if look.vineStyle == .neon {
+                // No plant: a straight tube at a hard right angle off the rod, with a white node
+                // where it joins (the neon `stem` in vine-flow.tsx).
+                let y = size.height * 0.3
+                p.move(to: CGPoint(x: 20, y: y))
+                p.addLine(to: CGPoint(x: reach, y: y))
+                let color = Color(look.stem)
+                for (c, w) in [(color.opacity(0.14), 12.0), (color.opacity(0.35), 6.0), (color, 2.0), (Color.white.opacity(0.85), 0.8)] {
+                    ctx.stroke(p, with: .color(c), style: .init(lineWidth: w, lineCap: .butt))
+                }
+                let node = Path(ellipseIn: CGRect(x: 16, y: y - 4, width: 8, height: 8))
+                ctx.fill(node, with: .color(.white))
+                ctx.stroke(node, with: .color(color), lineWidth: 2)
+                return
+            }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
             p.addQuadCurve(to: CGPoint(x: reach, y: size.height * 0.42), control: CGPoint(x: 22, y: size.height * 0.4))
             ctx.stroke(p, with: .color(Color(look.lit ? look.stem : look.branch)), style: .init(lineWidth: max(1.5, look.stemWidth / 3), lineCap: .round))
