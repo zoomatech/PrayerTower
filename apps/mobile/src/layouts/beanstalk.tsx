@@ -17,7 +17,7 @@
 // stalk curves naturally between them. Reduced motion shows it all at once.
 import { COMMENT_TEXT, type Card, type Comment } from '@prayer-tower/shared';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, Path } from 'react-native-svg';
 
 import { Alegreya_400Regular } from '@expo-google-fonts/alegreya/400Regular';
@@ -32,6 +32,7 @@ import { Button } from '@/components/ui';
 import { CardNoType, CardSurface } from '@/components/post-card';
 import { VineFruit } from '@/components/vine-flow';
 import { api } from '@/lib/api';
+import { DrawBusContext, makeDrawBus, SEEN_EIGHTH, useDrawIn, type Row } from '@/lib/draw-in';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { space } from '@/lib/theme';
@@ -489,62 +490,15 @@ function span(t: Animated.Value, at: number, ms: number, from: number, to: numbe
   return t.interpolate({ inputRange: [at, at + ms], outputRange: [from, to], easing, extrapolate: 'clamp' });
 }
 
-type Box = React.ComponentRef<typeof View>;
-
-/** Scroll events, for the drawings that grow as they scroll into view. */
-type ScrollBus = { sub: (f: () => void) => () => void; emit: () => void };
-function makeBus(): ScrollBus {
-  const subs = new Set<() => void>();
-  return {
-    sub: (fn) => {
-      subs.add(fn);
-      return () => subs.delete(fn);
-    },
-    emit: () => subs.forEach((fn) => fn()),
-  };
-}
-
 /**
- * The design's IntersectionObserver: grown once 8% of the post is on screen (less the
- * bottom 4%), ungrown once it is wholly off, so it grows again each time it comes back.
+ * The shared draw-in (lib/draw-in) in Beanstalk's style: the design's 2-second linear clock,
+ * grown once 8% of the post is on screen (less the bottom 4%), ungrown once it is wholly off,
+ * so it grows again each time it comes back.
  */
-function useGrown(bus: ScrollBus, ref: React.RefObject<Box | null>) {
+function useClock(ref: React.RefObject<Row | null>) {
   const [grown, setGrown] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      ref.current?.measureInWindow((_x, y, _w, h) => {
-        if (!h) return;
-        const view = Dimensions.get('window').height;
-        const bottom = view * 0.96;
-        const seen = Math.min(y + h, bottom) - Math.max(y, 0);
-        if (seen >= h * 0.08 || seen >= 0.08 * bottom) setGrown(true);
-        else if (y + h <= 0 || y >= view) setGrown(false);
-      });
-    const first = setTimeout(check, 60);
-    const off = bus.sub(check);
-    return () => {
-      clearTimeout(first);
-      off();
-    };
-  }, [bus, ref]);
-  return grown;
-}
-
-function useClock(grown: boolean) {
-  const reduced = useReducedMotion();
-  const t = useRef(new Animated.Value(reduced ? CLOCK : 0)).current;
-  useEffect(() => {
-    if (reduced) return t.setValue(CLOCK);
-    if (!grown) {
-      t.stopAnimation();
-      return t.setValue(0);
-    }
-    t.setValue(0);
-    const run = Animated.timing(t, { toValue: CLOCK, duration: CLOCK, easing: Easing.linear, useNativeDriver: false });
-    run.start();
-    return () => run.stop();
-  }, [grown, reduced, t]);
-  return t;
+  const { drawn } = useDrawIn(ref, { duration: CLOCK, easing: EASE.linear, to: CLOCK, seen: SEEN_EIGHTH, firstCheck: 60, onShow: setGrown });
+  return { t: drawn, grown };
 }
 
 /** A short clock of its own, for leaves that unfurl when they appear (a new page, a reply). */
@@ -874,7 +828,6 @@ const Post = memo(function Post({
   shift,
   next,
   first,
-  bus,
   renderCard,
 }: {
   card: Card;
@@ -884,13 +837,11 @@ const Post = memo(function Post({
   shift: number;
   next: number;
   first: boolean;
-  bus: ScrollBus;
   renderCard: FeedLayoutProps['renderCard'];
 }) {
   const { t: tr } = useLocale();
-  const here = useRef<Box>(null);
-  const grown = useGrown(bus, here);
-  const t = useClock(grown);
+  const here = useRef<Row>(null);
+  const { t, grown } = useClock(here);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [all, setAll] = useState<Comment[] | null>(null);
   const [cv, setCv] = useState<LeafState>({ page: 0, open: null, open2: null, spread: false });
@@ -1043,7 +994,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
   // Drawn with the system font until these arrive.
   useFonts({ Alegreya_400Regular, Alegreya_400Regular_Italic, Alegreya_600SemiBold, Alegreya_700Bold, Alegreya_700Bold_Italic, HennyPenny_400Regular });
   const [lane, setLane] = useState(0);
-  const bus = useRef(makeBus()).current;
+  const bus = useMemo(() => makeDrawBus(), []);
   const list = useRef<FlatList<Item>>(null);
   const [verses, setVerses] = useState<Verse[]>([]);
   const nudgeBird = useRef<() => void>(() => undefined);
@@ -1091,7 +1042,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
   const renderItem = useCallback(
     ({ item }: { item: Item }) =>
       item.kind === 'post' ? (
-        <Post card={item.card} index={item.index} width={width} shift={item.shift} next={item.next} first={item.index === 0} bus={bus} renderCard={renderCard} />
+        <Post card={item.card} index={item.index} width={width} shift={item.shift} next={item.next} first={item.index === 0} renderCard={renderCard} />
       ) : (
         <View>
           <View style={[styles.verse, { width, transform: [{ translateX: item.shift }] }]} accessibilityRole="text">
@@ -1104,7 +1055,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
           <Stalk width={width} h={60} shift={item.shift} />
         </View>
       ),
-    [width, bus, renderCard],
+    [width, renderCard],
   );
 
   const banner = (
@@ -1126,43 +1077,45 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
   );
 
   return (
-    <View style={styles.fill} onLayout={(e) => setLane(Math.min(e.nativeEvent.layout.width, 760))}>
-      {banner}
-      <FlatList
-        ref={list}
-        data={items}
-        keyExtractor={(it) => (it.kind === 'post' ? it.card.id : it.key)}
-        renderItem={renderItem}
-        extraData={width}
-        ListHeaderComponent={header ? <View style={styles.headerPanel}>{header}</View> : <View style={styles.feedTop} />}
-        ListFooterComponent={
-          atEnd && cards.length > 0 ? (
-            <View style={styles.ground}>
-              <View style={styles.groundArt} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <View style={styles.hill1} />
-                <View style={styles.hill2} />
-                <View style={styles.groundStalk} />
-                <View style={styles.soil} />
+    <DrawBusContext.Provider value={bus}>
+      <View style={styles.fill} onLayout={(e) => setLane(Math.min(e.nativeEvent.layout.width, 760))}>
+        {banner}
+        <FlatList
+          ref={list}
+          data={items}
+          keyExtractor={(it) => (it.kind === 'post' ? it.card.id : it.key)}
+          renderItem={renderItem}
+          extraData={width}
+          ListHeaderComponent={header ? <View style={styles.headerPanel}>{header}</View> : <View style={styles.feedTop} />}
+          ListFooterComponent={
+            atEnd && cards.length > 0 ? (
+              <View style={styles.ground}>
+                <View style={styles.groundArt} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <View style={styles.hill1} />
+                  <View style={styles.hill2} />
+                  <View style={styles.groundStalk} />
+                  <View style={styles.soil} />
+                </View>
+                <Text style={styles.groundTitle}>{t('beanstalk.ground')}</Text>
+                <Text style={styles.groundSub}>{wording === 'neutral' ? t('vine.tip') : t('beanstalk.groundSub')}</Text>
+                <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />
               </View>
-              <Text style={styles.groundTitle}>{t('beanstalk.ground')}</Text>
-              <Text style={styles.groundSub}>{wording === 'neutral' ? t('vine.tip') : t('beanstalk.groundSub')}</Text>
-              <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />
-            </View>
-          ) : undefined
-        }
-        contentContainerStyle={styles.content}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.5}
-        {...feedListTuning}
-        maxToRenderPerBatch={2}
-        onScroll={onScroll}
-        // Every frame, so a post starts growing the moment it scrolls onto the screen.
-        scrollEventThrottle={16}
-      />
-      {theme?.animations?.idleBird === false ? null : <IdleBird tokens={tokens} register={registerBird} />}
-    </View>
+            ) : undefined
+          }
+          contentContainerStyle={styles.content}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          {...feedListTuning}
+          maxToRenderPerBatch={2}
+          onScroll={onScroll}
+          // Every frame, so a post starts growing the moment it scrolls onto the screen.
+          scrollEventThrottle={16}
+        />
+        {theme?.animations?.idleBird === false ? null : <IdleBird tokens={tokens} register={registerBird} />}
+      </View>
+    </DrawBusContext.Provider>
   );
 }
 
