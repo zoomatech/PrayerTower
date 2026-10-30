@@ -43,4 +43,29 @@ final class MainScreensWalk: XCTestCase {
         tab("Feed")
         XCTAssertTrue(shows("Asking for strength for my new job."))
     }
+
+    /// Apple's accessibility audit (contrast, Dynamic Type, hit areas, labels…) on every tab and a
+    /// request. Every issue is collected and listed, so one run shows them all.
+    func testEveryScreenPassesTheAccessibilityAudit() throws {
+        XCTAssertTrue(shows("Please pray for my mother's surgery"))
+        var issues: [String] = []
+        func audit(_ screen: String) throws {
+            try app.performAccessibilityAudit { issue in
+                let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
+                issues.append("\(screen): \(issue.compactDescription) on \(what)")
+                return true
+            }
+        }
+        try audit("Feed")
+        for name in ["My Promises", "Messages", "Notices", "Me"] {
+            tab(name)
+            sleep(1)
+            try audit(name)
+        }
+        tab("Feed")
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Please pray for my mother's surgery")).firstMatch.tap()
+        XCTAssertTrue(shows("Holding you and your mother up today."))
+        try audit("Request")
+        XCTAssertTrue(issues.isEmpty, "Accessibility audit:\n" + issues.joined(separator: "\n"))
+    }
 }
