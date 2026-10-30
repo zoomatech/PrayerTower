@@ -13,7 +13,7 @@
 // from the frame and its leaves unfurl. Reduced motion shows it all at once.
 import { COMMENT_TEXT, type Card, type Comment } from '@prayer-tower/shared';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
 
 import { Button } from '@/components/ui';
@@ -96,7 +96,7 @@ export function bigLeaf(W: number, H: number) {
   return `M ${W / 2} 0 C ${W * 1.02} ${H * 0.12}, ${W * 1.02} ${H * 0.86}, ${W / 2} ${H} C ${W * -0.02} ${H * 0.86}, ${W * -0.02} ${H * 0.12}, ${W / 2} 0 Z`;
 }
 
-interface Edge {
+export interface Edge {
   x: number;
   y: number;
   /** Outward normal. */
@@ -164,22 +164,41 @@ function curlAt(x: number, y: number, a: number, size: number) {
   return `M ${x} ${y} L ${pts.join(' L ')}`;
 }
 
-/** The vine wound round a post's frame: two strands, small leaves and curls. */
-export function frameVine(w: number, h: number, pad: number) {
-  const edge = roundedRectEdge(pad, pad, w - pad * 2, h - pad * 2, 22, 4);
-  // As in the video: two strands twisting slowly round each other along the edge,
-  // a leaf about every 44 points turned outward, and a curl here and there.
-  const strand = (sign: 1 | -1) =>
-    'M ' + edge.map((e) => {
-      const off = sign * 2.6 * Math.sin((e.s / 64) * 2 * Math.PI);
-      return `${(e.x + e.nx * off).toFixed(1)} ${(e.y + e.ny * off).toFixed(1)}`;
-    }).join(' L ') + ' Z';
+/**
+ * The vine wound round a post's frame: two strands, leaves and curls. `p` (0–1) is how
+ * much is drawn: as in the video it starts at the top left corner and grows both ways
+ * round the frame (along the top and down the left side), meeting at the bottom right.
+ */
+export function frameVine(w: number, h: number, pad: number, p = 1) {
+  const r = 22;
+  const edge = roundedRectEdge(pad, pad, w - pad * 2, h - pad * 2, r, 4);
+  const n = edge.length;
+  const total = n * 4;
+  // The top left corner: the middle of its arc, counted clockwise from the top middle.
+  const k0 = Math.round((total - (w / 2 - pad - r) - (Math.PI * r) / 4) / 4) % n;
+  const m = p >= 1 ? n : Math.floor((p * n) / 2);
+  const shown = (i: number) => {
+    const d = Math.abs(i - k0);
+    return Math.min(d, n - d) <= m;
+  };
+  const at = (e: Edge, sign: number) => {
+    const off = sign * 2.6 * Math.sin((e.s / 64) * 2 * Math.PI);
+    return `${(e.x + e.nx * off).toFixed(1)} ${(e.y + e.ny * off).toFixed(1)}`;
+  };
+  // Each strand, in order from one growing end to the other.
+  const strand = (sign: number) => {
+    if (m <= 0) return '';
+    if (m >= n / 2) return 'M ' + edge.map((e) => at(e, sign)).join(' L ') + ' Z';
+    const pts: string[] = [];
+    for (let k = -m; k <= m; k++) pts.push(at(edge[(k0 + k + n) % n]!, sign));
+    return 'M ' + pts.join(' L ');
+  };
   const leaves: string[] = [];
   const ribs: string[] = [];
   const curls: string[] = [];
   edge.forEach((e, i) => {
     // None right by the flower at the top middle.
-    if (e.s < 16 || edge.length - i < 4) return;
+    if (e.s < 16 || n - i < 4 || !shown(i)) return;
     if (i % 11 === 5) {
       const a = Math.atan2(e.ny, e.nx) + (i % 22 === 5 ? 0.6 : -0.6);
       const x = e.x + e.nx * 2;
@@ -189,7 +208,7 @@ export function frameVine(w: number, h: number, pad: number) {
     }
     if (i % 44 === 27) curls.push(curlAt(e.x + e.nx * 7, e.y + e.ny * 7, Math.atan2(e.ny, e.nx) + 0.4, 6.5));
   });
-  return { a: strand(1), b: strand(-1), leaves: leaves.join(' '), ribs: ribs.join(' '), curls: curls.join(' ') };
+  return { a: strand(1), b: strand(-1), leaves: leaves.join(' '), ribs: ribs.join(' '), curls: curls.join(' '), flower: shown(0) };
 }
 
 /** A five-petal flower centered on (x, y). */
@@ -344,13 +363,21 @@ const LeafRow = memo(function LeafRow({
 });
 
 /** ‹ 1–3 of N › on the stalk, just above the post. */
-function Cycle({ page, total, onPage, show }: { page: number; total: number; onPage: (p: number) => void; show: boolean }) {
+function Cycle({ page, total, onPage, show, delay = 0 }: { page: number; total: number; onPage: (p: number) => void; show: boolean; delay?: number }) {
   const { t } = useLocale();
+  const reduced = useReducedMotion();
+  // It fades in once the leaves have unfurled.
+  const fade = useRef(new Animated.Value(reduced ? 1 : 0)).current;
+  useEffect(() => {
+    if (!show) return;
+    if (reduced) return fade.setValue(1);
+    Animated.timing(fade, { toValue: 1, duration: 350, delay, useNativeDriver: true }).start();
+  }, [show, reduced, delay, fade]);
   const last = Math.ceil(total / PER_PAGE) - 1;
   const from = page * PER_PAGE + 1;
   const to = Math.min(total, from + PER_PAGE - 1);
   return (
-    <View style={[styles.cycle, { opacity: show ? 1 : 0 }]}>
+    <Animated.View style={[styles.cycle, { opacity: fade }]}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('beanstalk.prev')} disabled={page <= 0} onPress={() => onPage(page - 1)} style={[styles.cycleBtn, styles.cyclePrev, page <= 0 && styles.cycleOff]}>
         <Text style={styles.cycleArrow}>‹</Text>
       </Pressable>
@@ -360,18 +387,18 @@ function Cycle({ page, total, onPage, show }: { page: number; total: number; onP
       <Pressable accessibilityRole="button" accessibilityLabel={t('beanstalk.next')} disabled={page >= last} onPress={() => onPage(page + 1)} style={[styles.cycleBtn, styles.cycleNext, page >= last && styles.cycleOff]}>
         <Text style={styles.cycleArrow}>›</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 
-/** The braided stalk through one piece of the feed. It grows up from the post when first seen. */
+/** The braided stalk through one piece of the feed. As in the video it grows down from the post above when it scrolls into view. */
 function Stalk({ lane, h, show, sw }: { lane: number; h: number; show: boolean; sw: number }) {
   const reduced = useReducedMotion();
   const up = useRef(new Animated.Value(reduced ? 1 : 0)).current;
   useEffect(() => {
     if (!show) return;
     if (reduced) return up.setValue(1);
-    Animated.timing(up, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    Animated.timing(up, { toValue: 1, duration: 650, easing: Easing.inOut(Easing.quad), useNativeDriver: false }).start();
   }, [show, reduced, up]);
   if (!lane || !h) return null;
   const cx = lane / 2;
@@ -393,13 +420,33 @@ function Stalk({ lane, h, show, sw }: { lane: number; h: number; show: boolean; 
 }
 
 /** A post in its vine-wound frame. */
-function Framed({ fruit, name, children }: { fruit?: string; name: string; children: React.ReactNode }) {
+function Framed({ fruit, name, bus, children }: { fruit?: string; name: string; bus: ScrollBus; children: React.ReactNode }) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const pad = 14;
-  const vine = useMemo(() => (size.w ? frameVine(size.w + pad * 2, size.h + pad * 2, pad) : null), [size]);
+  const ref = useRef<Box>(null);
+  const inView = useInView(bus, ref);
+  const reduced = useReducedMotion();
+  // How much of the frame's vine is drawn: it winds round the post once the post scrolls into view.
+  const [p, setP] = useState(reduced ? 1 : 0);
+  useEffect(() => {
+    if (!inView || p >= 1) return;
+    if (reduced) return setP(1);
+    const t0 = Date.now();
+    let frame = 0;
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - t0) / 850);
+      setP(1 - (1 - t) * (1 - t));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView, reduced]);
+  const vine = useMemo(() => (size.w && p > 0 ? frameVine(size.w + pad * 2, size.h + pad * 2, pad, p) : null), [size, p]);
   const surface = useMemo(() => ({ backgroundColor: BEANSTALK.cream, borderColor: BEANSTALK.frameInk, borderWidth: 3, borderRadius: 22, padding: space.md, paddingTop: 30 }), []);
   return (
     <View
+      ref={ref}
       style={styles.framed}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
@@ -417,12 +464,16 @@ function Framed({ fruit, name, children }: { fruit?: string; name: string; child
           <Path d={vine.b} stroke={BEANSTALK.strandDark} strokeWidth={4.5} fill="none" strokeLinejoin="round" />
           <Path d={vine.a} stroke={BEANSTALK.ink} strokeWidth={5.5} fill="none" strokeLinejoin="round" />
           <Path d={vine.a} stroke={BEANSTALK.strandLight} strokeWidth={3} fill="none" strokeLinejoin="round" />
-          <Path d={flower((size.w + pad * 2) / 2, pad, 9)} fill={BEANSTALK.petal} stroke={BEANSTALK.ink} strokeWidth={1.2} />
-          <Circle cx={(size.w + pad * 2) / 2} cy={pad} r={3.6} fill={BEANSTALK.heart} stroke={BEANSTALK.ink} strokeWidth={1} />
+          {vine.flower ? (
+            <>
+              <Path d={flower((size.w + pad * 2) / 2, pad, 9)} fill={BEANSTALK.petal} stroke={BEANSTALK.ink} strokeWidth={1.2} />
+              <Circle cx={(size.w + pad * 2) / 2} cy={pad} r={3.6} fill={BEANSTALK.heart} stroke={BEANSTALK.ink} strokeWidth={1} />
+            </>
+          ) : null}
         </Svg>
       ) : null}
       <Locket name={name} />
-      {fruit ? (
+      {fruit && p >= 1 ? (
         <View style={styles.fruit}>
           <VineFruit label={fruit} size={44} />
         </View>
@@ -504,38 +555,45 @@ function Reader({ comment, kids, onClose }: { comment: Comment | null; kids: Map
 // ---------------------------------------------------------------------------
 // The feed
 
-type Seen = { has: (id: string) => boolean; add: (id: string) => void; sub: (id: string, f: () => void) => () => void };
-function makeSeen(): Seen {
-  const ids = new Set<string>();
-  const subs = new Map<string, Set<() => void>>();
+type Box = React.ComponentRef<typeof View>;
+
+/** Scroll events, for the drawings that start when they scroll into view. */
+type ScrollBus = { sub: (f: () => void) => () => void; emit: () => void };
+function makeBus(): ScrollBus {
+  const subs = new Set<() => void>();
   return {
-    has: (id) => ids.has(id),
-    add: (id) => {
-      if (ids.has(id)) return;
-      ids.add(id);
-      subs.get(id)?.forEach((f) => f());
+    sub: (f) => {
+      subs.add(f);
+      return () => subs.delete(f);
     },
-    sub: (id, f) => {
-      const set = subs.get(id) ?? new Set();
-      set.add(f);
-      subs.set(id, set);
-      return () => set.delete(f);
-    },
+    emit: () => subs.forEach((f) => f()),
   };
 }
-function useSeen(store: Seen, id: string) {
+
+/** True from the moment the view's top comes onto the screen (checked as the member scrolls). */
+function useInView(bus: ScrollBus, ref: React.RefObject<Box | null>) {
   const reduced = useReducedMotion();
-  const [seen, setSeen] = useState(() => store.has(id));
+  const [seen, setSeen] = useState(false);
   useEffect(() => {
-    if (store.has(id)) return setSeen(true);
-    return store.sub(id, () => setSeen(true));
-  }, [store, id]);
+    if (seen) return;
+    const check = () =>
+      ref.current?.measureInWindow((_x, y, _w, h) => {
+        if (h > 0 && y < Dimensions.get('window').height - 40 && y + h > 0) setSeen(true);
+      });
+    const first = setTimeout(check, 50);
+    const off = bus.sub(check);
+    return () => {
+      clearTimeout(first);
+      off();
+    };
+  }, [bus, ref, seen]);
   return seen || reduced;
 }
 
-const Section = memo(function Section({ card, lane, seen: store, sw, renderCard }: { card: Card; lane: number; seen: Seen; sw: number; renderCard: FeedLayoutProps['renderCard'] }) {
+const Section = memo(function Section({ card, lane, bus, sw, renderCard }: { card: Card; lane: number; bus: ScrollBus; sw: number; renderCard: FeedLayoutProps['renderCard'] }) {
   const { t } = useLocale();
-  const seen = useSeen(store, card.id);
+  const here = useRef<Box>(null);
+  const seen = useInView(bus, here);
   const [all, setAll] = useState<Comment[] | null>(null);
   const [page, setPage] = useState(0);
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -590,7 +648,7 @@ const Section = memo(function Section({ card, lane, seen: store, sw, renderCard 
   const shown = useMemo(() => (card.counts.comments > 0 ? { ...card, topComment: null } : card), [card]);
 
   return (
-    <View style={styles.section} onLayout={(e) => setH(e.nativeEvent.layout.height)}>
+    <View ref={here} style={styles.section} onLayout={(e) => setH(e.nativeEvent.layout.height)}>
       <Stalk lane={lane} h={h} show={seen} sw={sw} />
       {/* Nearest the post first; the cluster climbs up the stalk. */}
       <View style={styles.cluster}>
@@ -602,13 +660,13 @@ const Section = memo(function Section({ card, lane, seen: store, sw, renderCard 
             replies={(kids.get(r.comment.id) ?? []).length}
             show={seen}
             // The first time, after the stalk has grown up past them; later, at once.
-            delay={fresh ? 500 + i * 160 : i * 60}
+            delay={fresh ? 380 + (rows.length - 1 - i) * 170 : i * 60}
             onTap={onTap}
           />
         ))}
       </View>
-      {total > PER_PAGE ? <Cycle page={page} total={total} onPage={onPage} show={seen} /> : null}
-      <Framed fruit={card.gifted ? t('vine.fruit') : undefined} name={card.author.displayName}>{renderCard(shown)}</Framed>
+      {total > PER_PAGE ? <Cycle page={page} total={total} onPage={onPage} show={seen} delay={fresh ? 380 + rows.length * 170 : 0} /> : null}
+      <Framed fruit={card.gifted ? t('vine.fruit') : undefined} name={card.author.displayName} bus={bus}>{renderCard(shown)}</Framed>
       <Reader comment={reading} kids={kids} onClose={closeReader} />
     </View>
   );
@@ -626,7 +684,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
   const tokens = useMemo(() => vineTokens(theme), [theme]);
   const { wording, t } = useLocale();
   const [lane, setLane] = useState(0);
-  const seen = useRef(makeSeen()).current;
+  const bus = useRef(makeBus()).current;
   const list = useRef<FlatList<Item>>(null);
   const [verses, setVerses] = useState<Verse[]>([]);
   const nudgeBird = useRef<() => void>(() => undefined);
@@ -656,24 +714,20 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
     return out;
   }, [cards, verses, tokens.leafEvery]);
 
-  // Each post's stalk and leaves grow the first time it scrolls into view.
-  const onViewable = useRef(({ viewableItems }: { viewableItems: { item?: unknown; isViewable: boolean }[] }) => {
-    for (const v of viewableItems) if ((v.item as Item | null)?.kind === 'post') seen.add((v.item as { card: Card }).card.id);
-  }).current;
-  const viewability = useRef({ itemVisiblePercentThreshold: 8 }).current;
-
   const onScroll = useCallback(() => {
+    // Stalks, leaves and frames that have just come onto the screen start drawing.
+    bus.emit();
     const now = Date.now();
     if (now - lastScroll.current > 1000) {
       lastScroll.current = now;
       nudgeBird.current();
     }
-  }, []);
+  }, [bus]);
 
   const renderItem = useCallback(
     ({ item }: { item: Item }) =>
       item.kind === 'post' ? (
-        <Section card={item.card} lane={lane} seen={seen} sw={tokens.stemWidth} renderCard={renderCard} />
+        <Section card={item.card} lane={lane} bus={bus} sw={tokens.stemWidth} renderCard={renderCard} />
       ) : (
         <View style={styles.section}>
           <Stalk lane={lane} h={160} show sw={tokens.stemWidth} />
@@ -686,7 +740,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
           </View>
         </View>
       ),
-    [lane, seen, tokens.stemWidth, renderCard],
+    [lane, bus, tokens.stemWidth, renderCard],
   );
 
   const banner = (
@@ -732,12 +786,11 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
         onRefresh={onRefresh}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
-        onViewableItemsChanged={onViewable}
-        viewabilityConfig={viewability}
         {...feedListTuning}
         maxToRenderPerBatch={2}
         onScroll={onScroll}
-        scrollEventThrottle={250}
+        // Every frame, so drawing starts the moment something scrolls onto the screen.
+        scrollEventThrottle={16}
       />
       {theme?.animations?.idleBird === false ? null : <IdleBird tokens={tokens} register={registerBird} />}
     </View>
@@ -764,8 +817,8 @@ const styles = StyleSheet.create({
   climb: { backgroundColor: '#D7EBB4', borderWidth: 2, borderColor: BEANSTALK.frameInk, borderRadius: 999, paddingHorizontal: space.md, paddingVertical: 6 },
   climbText: { fontFamily: SERIF, fontWeight: '700', color: BEANSTALK.frameInk },
   section: { paddingTop: 26, position: 'relative' },
-  stalk: { position: 'absolute', left: 0, bottom: 0, overflow: 'hidden' },
-  stalkSvg: { position: 'absolute', left: 0, bottom: 0 },
+  stalk: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
+  stalkSvg: { position: 'absolute', left: 0, top: 0 },
   cluster: { flexDirection: 'column-reverse', paddingBottom: 34 },
   leaf: { position: 'absolute' },
   leafText: { position: 'absolute', top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },

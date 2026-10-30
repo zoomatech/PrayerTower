@@ -43,6 +43,17 @@ describe('Beanstalk drawing', () => {
     expect(vine.curls.length).toBeGreaterThan(0);
   });
 
+  it('draws the frame vine from the top left corner both ways round, closing it at the end', () => {
+    expect(frameVine(320, 220, 10, 0).a).toBe('');
+    const half = frameVine(320, 220, 10, 0.5);
+    expect(half.a).not.toMatch(/Z$/);
+    // The flower at the top middle comes before the bottom right is reached.
+    expect(half.flower).toBe(true);
+    expect(frameVine(320, 220, 10, 0.1).flower).toBe(false);
+    expect(half.leaves.length).toBeLessThan(frameVine(320, 220, 10, 1).leaves.length);
+    expect(frameVine(320, 220, 10, 1).a).toMatch(/Z$/);
+  });
+
   it('keeps the leaf text and the reply link readable on the leaves (4.5:1)', () => {
     for (const leaf of [BEANSTALK.leaf, BEANSTALK.leafPale]) {
       expect(contrastRatio(COMMENT_TEXT, leaf)).toBeGreaterThanOrEqual(4.5);
