@@ -373,9 +373,9 @@ struct SharedPassage: Identifiable {
     let post: NewPost
 }
 
-/// The device's one hybrid Bible search, as Winstons Syndicate's (HybridBibleSearch), with Apple's sentence embedding as
-/// a second meaning search: the five translations, the EmbeddingGemma model (IBM granite small as its fallback) and both
-/// indexes are downloaded and made once, into Application Support/Bible Search, and only loaded after that.
+/// The device's one hybrid Bible search, as Winstons Syndicate's (HybridBibleSearch): the five translations, the
+/// EmbeddingGemma model (IBM granite small as its fallback) and the index are downloaded and made once, into
+/// Application Support/Bible Search, and only loaded after that.
 enum LibraryScripture {
     static let shared = Holder()
 
@@ -386,22 +386,15 @@ enum LibraryScripture {
         func search(_ phrase: String, report: @escaping @Sendable (FuzzyBibleSearch.State) -> Void) async throws -> [HybridBibleSearch.Found] {
             if hybrid == nil {
                 let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                let folder = support.appendingPathComponent("Bible Search")
-                let fuzzy = FuzzyBibleSearch(folder: folder) { model, at in try await OnnxEmbedder(model: model, folder: at) }
-                let apple = FuzzyBibleSearch(folder: folder) { _, _ in
-                    guard let apple = AppleSentenceEmbedder() else { throw FuzzyBibleSearch.NoEmbedder() }
-                    return apple
+                let fuzzy = FuzzyBibleSearch(folder: support.appendingPathComponent("Bible Search")) { model, folder in
+                    try await OnnxEmbedder(model: model, folder: folder)
                 }
-                hybrid = HybridBibleSearch(library: try VerseLibrary.loadBundled(), fuzzy: fuzzy, apple: apple)
+                hybrid = HybridBibleSearch(library: try VerseLibrary.loadBundled(), fuzzy: fuzzy)
             }
             let hybrid = hybrid!
             if !started {
                 started = true
-                // Apple's first (no download, minutes), then Gemma's; each search joins as soon as it is ready.
-                Task.detached(priority: .utility) {
-                    await hybrid.apple?.prepare(models: [.appleSentence], report: report)
-                    await hybrid.fuzzy.prepare(report: report)
-                }
+                Task.detached(priority: .utility) { await hybrid.fuzzy.prepare(report: report) }
             } else if case let .preparing(step) = await hybrid.fuzzy.state {
                 report(.preparing(step))
             }
