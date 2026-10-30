@@ -103,12 +103,13 @@ public struct ActionItem: Sendable, Equatable, Identifiable {
 
 public enum ActionRow {
     /// The row for one card: the card's own actions in the server's order, never more than one row,
-    /// except that Praying Now is always leftmost with Thumbs Up right beside it (Steve, 2026-10-30).
+    /// without Encourage, and with Praying Now always leftmost with Thumbs Up right beside it (Steve, 2026-10-30).
     /// Meanings join the icons only when `meaningReactions` and `meaningIconRow` are both on.
     public static func items(actions: [String], features: Features, tree: [MeaningEmoji], wording: Wording) -> [ActionItem] {
         let on = features["meaningReactions"] && features["meaningIconRow"]
         let first: [CardAction] = [.prayingNow, .thumbsUp]
-        let own = actions.compactMap(CardAction.init(rawValue:))
+        // No Encourage (the paper airplane): members don't send messages from a post (Steve, 2026-10-30).
+        let own = actions.compactMap(CardAction.init(rawValue:)).filter { $0 != .encouragement }
         let ordered = first.filter(own.contains) + own.filter { !first.contains($0) }
         return ordered.map { a in
             ActionItem(action: a, icon: a.icon, name: a.name(wording), meanings: on ? tree.first { $0.key == a.meaningEmoji } : nil)

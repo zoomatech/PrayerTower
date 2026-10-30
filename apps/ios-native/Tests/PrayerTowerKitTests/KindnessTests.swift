@@ -35,7 +35,7 @@ private let allActions = CardAction.allCases.map(\.rawValue)
     @Test func usesOpenCirclesWordsInNeutralWording() {
         let both = Features(values: ["meaningReactions": true, "meaningIconRow": true])
         let row = ActionRow.items(actions: allActions, features: both, tree: tree, wording: .neutral)
-        #expect(row.map(\.name) == ["Thinking of You", "Thumbs Up", "Promise to Check In", "Encourage", "Well Wishes", "Share", "Gift Tokens"])
+        #expect(row.map(\.name) == ["Thinking of You", "Thumbs Up", "Promise to Check In", "Well Wishes", "Share", "Gift Tokens"])
         #expect(row.first { $0.action == .prayingNow }?.meaningWords(.neutral) == "🙏 Thinking of you · Holding you up")
         #expect(Wording(Community(slug: "open-circle", name: "Open Circle", wording: "neutral")) == .neutral)
         #expect(Wording(nil) == .faith)

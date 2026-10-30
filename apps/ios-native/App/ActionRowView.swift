@@ -53,18 +53,33 @@ struct ActionRowView: View {
     }
 
     /// The icon drawn in Steve's post mockups (App/ActionIcons, the same art as the Expo app's
-    /// assets/images/actions). Open Circle keeps its emoji for the two prayer actions, religious signs there.
+    /// assets/images/actions), except Share, which is the standard share icon (Steve, 2026-10-30).
+    /// Open Circle keeps its emoji for the two prayer actions, religious signs there. On a neon
+    /// backdrop (`glow`), each is a techy neon button: a standard icon lit as neon in a glass frame.
     @ViewBuilder private func glyph(_ item: ActionItem) -> some View {
         let emojiOnly = wording == .neutral && (item.action == .prayingNow || item.action == .commit)
-        if !emojiOnly, let art = Self.art("action-\(item.action.rawValue)") {
-            if let glow {
-                art.renderingMode(.template).resizable().scaledToFit().frame(width: size, height: size)
-                    .foregroundStyle(glow).shadow(color: glow, radius: 6).accessibilityHidden(true)
-            } else {
-                art.resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true)
-            }
+        if let glow {
+            NeonButtonGlyph(symbol: Self.standardSymbol(item.action), color: glow, size: size)
+        } else if item.action == .share {
+            Image(systemName: "square.and.arrow.up").font(.system(size: size * 0.75, weight: .semibold)).foregroundStyle(Color.accessibleAccent)
+                .frame(width: size, height: size).accessibilityHidden(true)
+        } else if !emojiOnly, let art = Self.art("action-\(item.action.rawValue)") {
+            art.resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true)
         } else {
             Text(item.icon).font(size > 28 ? .title : .title3)
+        }
+    }
+
+    /// The standard icon for each action, for the neon buttons.
+    static func standardSymbol(_ action: CardAction) -> String {
+        switch action {
+        case .prayingNow: "hands.and.sparkles.fill"
+        case .thumbsUp: "hand.thumbsup.fill"
+        case .commit: "mountain.2.fill"
+        case .encouragement: "paperplane.fill"
+        case .wellWishes: "heart.fill"
+        case .share: "square.and.arrow.up"
+        case .giftTokens: "gift.fill"
         }
     }
 
@@ -74,5 +89,27 @@ struct ActionRowView: View {
         #else
         NSImage(named: name).map { Image(nsImage: $0) }
         #endif
+    }
+}
+
+/// A techy neon button: a standard icon lit like neon (a white-hot core glowing in the skin's
+/// color) inside a small glass-tube frame with elegant rounded corners, Tron style.
+struct NeonButtonGlyph: View {
+    let symbol: String
+    let color: Color
+    var size: CGFloat = 40
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.5, weight: .semibold))
+            .foregroundStyle(.white)
+            .shadow(color: color, radius: 2)
+            .shadow(color: color, radius: 5)
+            .shadow(color: color.opacity(0.8), radius: 10)
+            .frame(width: size + 4, height: size)
+            .background {
+                ConnectorOutline(shape: NeonFrame(radius: 9), look: NeonGlassLook(color: color, white: 0.6), width: 3)
+            }
+            .accessibilityHidden(true)
     }
 }
