@@ -161,20 +161,25 @@ struct BeanstalkFeed<Row: View>: View {
             }
             .frame(width: 34, height: 34)
             .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(words("beanstalk.title")).font(BeanFont.title(23)).foregroundStyle(Bean.ink)
-                    .accessibilityAddTraits(.isHeader)
-                Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
+            // The words wrap rather than being cut off, and at the accessibility sizes the button
+            // drops below them (AdaptiveStack) so the title has the whole width.
+            AdaptiveStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(words("beanstalk.title")).font(BeanFont.title(23)).foregroundStyle(Bean.ink)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: climb) {
+                    Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(Bean.button, in: .capsule)
+                        .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(words("beanstalk.climbHint"))
             }
-            Spacer()
-            Button(action: climb) {
-                Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Bean.button, in: .capsule)
-                    .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(words("beanstalk.climbHint"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -561,10 +566,15 @@ private struct BeanLeafView: View {
         let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
         Button { onTap(fit.cut) } label: {
             VStack(spacing: 0) {
-                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1)
-                Text(fit.text).font(BeanFont.body(fs)).lineLimit(2)
+                Text(leaf.note.author).font(BeanFont.bold(nameFs))
+                Text(fit.text).font(BeanFont.body(fs))
                 if !hint.isEmpty { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).padding(.top, 2) }
             }
+            // Every line the leaf shows is shown whole (the leaf grows instead), on a plain patch of the
+            // leaf's own green so its veins and outline never run under the letters.
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(4)
+            .background(Bean.leaves[leaf.fill], in: .rect(cornerRadius: 8))
             .foregroundStyle(Bean.text)
             .multilineTextAlignment(.center)
             .padding(.top, 16)

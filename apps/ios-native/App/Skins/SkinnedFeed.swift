@@ -168,10 +168,13 @@ struct Stalk: View {
 /// A spark with a fading tail running down Neon Cinderella's rod, again and again.
 struct Spark: View {
     let color: Color
+    /// Held still inside the snapshot tests (XCTest is loaded in the app there), so each picture matches its reference.
+    static let frozen = NSClassFromString("XCTestCase") != nil
     var body: some View {
-        TimelineView(.animation) { t in
+        TimelineView(.animation(paused: Self.frozen)) { t in
             GeometryReader { geo in
-                let y = (t.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4) * min(geo.size.height, 2400)
+                let phase = Self.frozen ? 0.1 : t.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4
+                let y = phase * min(geo.size.height, 2400)
                 Capsule()
                     .fill(LinearGradient(colors: [color.opacity(0), color, .white], startPoint: .top, endPoint: .bottom))
                     .frame(width: 4, height: 40)
