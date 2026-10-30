@@ -68,7 +68,6 @@ The native feed reads the member's skin from `GET /feed` (`theme`) and draws it 
 - **Tap targets:** small text buttons and the compose swatches have 44 by 44 pt tap areas (`tapTarget()`).
 - **VoiceOver:** every drawing is hidden; icons are labeled; rows that open a post are real buttons.
 - **Reduce Motion:** the spark, bursts, climber, swipe tilt and page fold stop.
-- **Audit tests:** `UITests/AccessibilityAuditTests.swift` runs Xcode's accessibility audit (`performAccessibilityAudit`, iOS 17) on the sign-in screen and on every feed layout (from the debug-only `AuditSamplesView`), at the default size and at the largest accessibility size. `scripts/mac-build-native.sh` runs them when the Mac has an iPhone simulator, and only compiles them otherwise.
 
 ## Port order
 

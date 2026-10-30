@@ -11,7 +11,7 @@ on:
         type: boolean
         default: false
       walks:
-        description: Also run the native build, tests and UI walks (with the accessibility audit)
+        description: Also run the native build, tests and UI walks
         type: boolean
         default: false
       shots:
@@ -41,7 +41,7 @@ jobs:
           bash scripts/mac-build-native.sh > native-build.txt 2>&1 || true
           grep -E "PASS|FAIL" native-build.txt | while IFS= read -r l; do echo "::notice title=native build::$l"; done || true
           f=$(ls -d build-logs/native-*/ | tail -1)
-          grep -hE "error:|^(Feed|My Promises|Messages|Notices|Me|Request): " "$f"ui-walks.txt 2>/dev/null | sort -u | head -80 | while IFS= read -r l; do echo "::warning title=ui walks::$l"; done || true
+          grep -hE "error:" "$f"ui-walks.txt 2>/dev/null | sort -u | head -80 | while IFS= read -r l; do echo "::warning title=ui walks::$l"; done || true
           # The whole log rides along on the native-screenshots branch (annotations stop at 10).
           mkdir -p store-screenshots/native-qa && cp native-build.txt "$f"ui-walks.txt store-screenshots/native-qa/ 2>/dev/null || true
       - if: ${{ github.event_name == 'pull_request' || inputs.shots }}

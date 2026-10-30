@@ -3,12 +3,12 @@ import PrayerTowerKit
 import SwiftUI
 
 /// Debug builds only: every feed layout and the darkest and lightest built-in skins with sample
-/// requests, no server needed, so the UI tests (UITests/AccessibilityAuditTests.swift) can run
-/// Xcode's accessibility audit on each. Opened with the launch argument -PTAuditSamples.
+/// requests, no server needed, for the skin screenshots. Opened with the launch argument
+/// -PTAuditSamples.
 struct AuditSamplesView: View {
     static let launchArgument = "-PTAuditSamples"
 
-    /// Names match the buttons the UI tests tap; tokens follow the supabase/migrations seeds.
+    /// Tokens follow the supabase/migrations seeds.
     static let skins: [FeedTheme] = [
         FeedTheme(slug: "beanstalk", name: "Beanstalk", layout: "vine", tokens: ["vineStyle": .string("beanstalk"), "stemWidth": .number(12)]),
         FeedTheme(slug: "golden-wood", name: "Golden Wood", layout: "vine", tokens: ["vineStyle": .string("ink"), "ink": .string("#3A2E1F"), "backdrop": .string("#F4ECD8")]),
