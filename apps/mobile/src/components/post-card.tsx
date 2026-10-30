@@ -38,7 +38,8 @@ const TIER_NAMES: Record<string, string> = { prayer_scout: 'Prayer Scout', praye
 // help, not a hand with a gift (Steve, 2026-10-30). Open Circle keeps its emoji for the two prayer actions, which are religious signs there.
 const ACTION_ART: Partial<Record<CardAction, ImageSourcePropType>> = {
   praying_now: require('../../assets/images/actions/praying_now.png'),
-  commit: require('../../assets/images/actions/commit.png'),
+  // Commit to Pray shows the radio antenna with broadcast waves (Steve, 2026-10-30), not the mountain.
+  commit: require('../../assets/images/actions/broadcast.png'),
   encouragement: require('../../assets/images/actions/encouragement.png'),
   well_wishes: require('../../assets/images/actions/well_wishes.png'),
   share: require('../../assets/images/actions/share.png'),
