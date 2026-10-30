@@ -20,6 +20,9 @@ private enum Bean {
     static let strandLight = Color(RGB(hex: "#86C25A")!)
     static let leaf = Color(RGB(hex: "#A9D27B")!)
     static let leafPale = Color(RGB(hex: "#CFE6A6")!)
+    static let leafBright = Color(RGB(hex: "#8CC657")!)
+    static let locket = Color(RGB(hex: "#C9A227")!)
+    static let locketFace = Color(RGB(hex: "#EDB09A")!)
     static let vein = Color(RGB(hex: "#6E9F47")!)
     static let petal = Color(RGB(hex: "#F2C14E")!)
     static let heart = Color(RGB(hex: "#C0392B")!)
@@ -186,16 +189,40 @@ private struct BeanSection<Row: View>: View {
     private var framed: some View {
         row(card)
             .padding(12)
+            .padding(.top, 18)
             .background(Bean.cream, in: .rect(cornerRadius: 22))
             .overlay(RoundedRectangle(cornerRadius: 22).stroke(Bean.frameInk, lineWidth: 3))
+            // The dark drop shadow under the post, as in the video.
+            .background(RoundedRectangle(cornerRadius: 22).fill(Bean.frameInk).offset(x: 6, y: 6))
             .padding(14)
             .overlay { FrameVine().accessibilityHidden(true) }
+            // The poster in an oval locket over the top left corner; fruit over the top right one.
+            .overlay(alignment: .topLeading) { Locket(name: card.author.displayName).offset(x: -10, y: -20) }
             .overlay(alignment: .topTrailing) {
-                if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 40).padding(.trailing, 20).offset(y: -44) }
+                if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 44).offset(x: 6, y: -10) }
             }
             .frame(maxWidth: 600)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
+    }
+}
+
+/// The poster's initial in an oval gold locket hanging from a little loop.
+private struct Locket: View {
+    let name: String
+    var body: some View {
+        VStack(spacing: -3) {
+            Circle().stroke(Bean.locket, lineWidth: 2).frame(width: 9, height: 9)
+                .background(Circle().stroke(Bean.ink, lineWidth: 4))
+            ZStack {
+                Ellipse().fill(Bean.locket).overlay(Ellipse().stroke(Bean.ink, lineWidth: 2))
+                Ellipse().fill(Bean.locketFace).overlay(Ellipse().stroke(Bean.ink, lineWidth: 1.5)).padding(5)
+                Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
+                    .font(.system(size: 22, weight: .bold, design: .serif)).foregroundStyle(Bean.frameInk)
+            }
+            .frame(width: 46, height: 52)
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -360,29 +387,33 @@ private struct FrameVine: View {
             func strand(_ sign: Double) -> Path {
                 var p = Path()
                 for (i, e) in edge.enumerated() {
-                    let wave: Double = sin(e.s / 34 * 2 * Double.pi)
-                    let off: Double = 1 + sign * 3.2 * wave
+                    let wave: Double = sin(e.s / 64 * 2 * Double.pi)
+                    let off: Double = sign * 2.6 * wave
                     let pt = CGPoint(x: e.x + e.nx * off, y: e.y + e.ny * off)
                     if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
                 }
                 p.closeSubpath()
                 return p
             }
-            var leaves = Path(), curls = Path()
+            var leaves = Path(), ribs = Path(), curls = Path()
             for (i, e) in edge.enumerated() {
-                if i % 8 == 4 {
-                    let turn: Double = i % 16 == 4 ? 0.7 : -0.7
+                // None right by the flower at the top middle.
+                if e.s < 16 || edge.count - i < 4 { continue }
+                if i % 11 == 5 {
+                    let turn: Double = i % 22 == 5 ? 0.6 : -0.6
                     let a: Double = atan2(e.ny, e.nx) + turn
-                    let x: Double = e.x + e.nx * 3, y: Double = e.y + e.ny * 3, c: Double = cos(a), s: Double = sin(a)
+                    let x: Double = e.x + e.nx * 2, y: Double = e.y + e.ny * 2, c: Double = cos(a), s: Double = sin(a)
                     func pt(_ u: Double, _ v: Double) -> CGPoint { CGPoint(x: x + u * c - v * s, y: y + u * s + v * c) }
                     leaves.move(to: pt(0, 0))
-                    leaves.addQuadCurve(to: pt(14, 0), control: pt(6.3, -5.5))
-                    leaves.addQuadCurve(to: pt(0, 0), control: pt(6.3, 5.5))
+                    leaves.addCurve(to: pt(22, 0), control1: pt(4.4, -6.5), control2: pt(15, -6.2))
+                    leaves.addCurve(to: pt(0, 0), control1: pt(15, 6.2), control2: pt(4.4, 6.5))
                     leaves.closeSubpath()
+                    ribs.move(to: pt(0, 0))
+                    ribs.addLine(to: pt(18, 0))
                 }
-                if i % 42 == 21 {
+                if i % 44 == 27 {
                     let a: Double = atan2(e.ny, e.nx) + 0.4
-                    let x: Double = e.x + e.nx * 4 + cos(a) * 6, y: Double = e.y + e.ny * 4 + sin(a) * 6
+                    let x: Double = e.x + e.nx * 7 + cos(a) * 6, y: Double = e.y + e.ny * 7 + sin(a) * 6
                     curls.move(to: CGPoint(x: x - cos(a) * 6, y: y - sin(a) * 6))
                     var t = 0.0
                     while t <= 3.6 * Double.pi {
@@ -393,13 +424,14 @@ private struct FrameVine: View {
                     }
                 }
             }
-            ctx.fill(leaves, with: .color(Bean.strandLight))
-            ctx.stroke(leaves, with: .color(Bean.ink), lineWidth: 1.3)
-            ctx.stroke(curls, with: .color(Bean.strandDark), style: .init(lineWidth: 2, lineCap: .round))
-            for (sign, color) in [(-1.0, Bean.strandDark), (1.0, Bean.strandLight)] {
-                ctx.stroke(strand(sign), with: .color(Bean.ink), lineWidth: 6)
-                ctx.stroke(strand(sign), with: .color(color), lineWidth: 3.5)
-            }
+            ctx.stroke(curls, with: .color(Bean.strandDark), style: .init(lineWidth: 2.2, lineCap: .round))
+            ctx.fill(leaves, with: .color(Bean.leafBright))
+            ctx.stroke(leaves, with: .color(Bean.ink), lineWidth: 1.4)
+            ctx.stroke(ribs, with: .color(Bean.strandDark), lineWidth: 1)
+            ctx.stroke(strand(-1), with: .color(Bean.ink), style: .init(lineWidth: 7, lineJoin: .round))
+            ctx.stroke(strand(-1), with: .color(Bean.strandDark), style: .init(lineWidth: 4.5, lineJoin: .round))
+            ctx.stroke(strand(1), with: .color(Bean.ink), style: .init(lineWidth: 5.5, lineJoin: .round))
+            ctx.stroke(strand(1), with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineJoin: .round))
             // The flower at the top middle.
             let fx: Double = w / 2, fy: Double = pad
             for k in 0..<5 {

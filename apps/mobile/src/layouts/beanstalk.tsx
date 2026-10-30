@@ -14,7 +14,7 @@
 import { COMMENT_TEXT, type Card, type Comment } from '@prayer-tower/shared';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
 
 import { Button } from '@/components/ui';
 import { CardSurface } from '@/components/post-card';
@@ -38,6 +38,9 @@ export const BEANSTALK = {
   strandLight: '#86C25A',
   leaf: '#A9D27B',
   leafPale: '#CFE6A6',
+  leafBright: '#8CC657',
+  locket: '#C9A227',
+  locketFace: '#EDB09A',
   vein: '#6E9F47',
   petal: '#F2C14E',
   heart: '#C0392B',
@@ -147,7 +150,7 @@ function sprigAt(x: number, y: number, a: number, len: number, wid: number) {
   const c = Math.cos(a);
   const s = Math.sin(a);
   const p = (u: number, v: number) => `${(x + u * c - v * s).toFixed(1)} ${(y + u * s + v * c).toFixed(1)}`;
-  return `M ${p(0, 0)} Q ${p(len * 0.45, -wid)}, ${p(len, 0)} Q ${p(len * 0.45, wid)}, ${p(0, 0)} Z`;
+  return `M ${p(0, 0)} C ${p(len * 0.2, -wid)}, ${p(len * 0.68, -wid * 0.95)}, ${p(len, 0)} C ${p(len * 0.68, wid * 0.95)}, ${p(len * 0.2, wid)}, ${p(0, 0)} Z`;
 }
 
 /** A tendril curling away along angle `a`. */
@@ -164,21 +167,29 @@ function curlAt(x: number, y: number, a: number, size: number) {
 /** The vine wound round a post's frame: two strands, small leaves and curls. */
 export function frameVine(w: number, h: number, pad: number) {
   const edge = roundedRectEdge(pad, pad, w - pad * 2, h - pad * 2, 22, 4);
+  // As in the video: two strands twisting slowly round each other along the edge,
+  // a leaf about every 44 points turned outward, and a curl here and there.
   const strand = (sign: 1 | -1) =>
     'M ' + edge.map((e) => {
-      const off = 1 + sign * 3.2 * Math.sin((e.s / 34) * 2 * Math.PI);
+      const off = sign * 2.6 * Math.sin((e.s / 64) * 2 * Math.PI);
       return `${(e.x + e.nx * off).toFixed(1)} ${(e.y + e.ny * off).toFixed(1)}`;
     }).join(' L ') + ' Z';
   const leaves: string[] = [];
+  const ribs: string[] = [];
   const curls: string[] = [];
   edge.forEach((e, i) => {
-    if (i % 8 === 4) {
-      const a = Math.atan2(e.ny, e.nx) + (i % 16 === 4 ? 0.7 : -0.7);
-      leaves.push(sprigAt(e.x + e.nx * 3, e.y + e.ny * 3, a, 14, 5.5));
+    // None right by the flower at the top middle.
+    if (e.s < 16 || edge.length - i < 4) return;
+    if (i % 11 === 5) {
+      const a = Math.atan2(e.ny, e.nx) + (i % 22 === 5 ? 0.6 : -0.6);
+      const x = e.x + e.nx * 2;
+      const y = e.y + e.ny * 2;
+      leaves.push(sprigAt(x, y, a, 22, 6.5));
+      ribs.push(`M ${x.toFixed(1)} ${y.toFixed(1)} L ${(x + Math.cos(a) * 18).toFixed(1)} ${(y + Math.sin(a) * 18).toFixed(1)}`);
     }
-    if (i % 42 === 21) curls.push(curlAt(e.x + e.nx * 4, e.y + e.ny * 4, Math.atan2(e.ny, e.nx) + 0.4, 6));
+    if (i % 44 === 27) curls.push(curlAt(e.x + e.nx * 7, e.y + e.ny * 7, Math.atan2(e.ny, e.nx) + 0.4, 6.5));
   });
-  return { a: strand(1), b: strand(-1), leaves: leaves.join(' '), curls: curls.join(' ') };
+  return { a: strand(1), b: strand(-1), leaves: leaves.join(' '), ribs: ribs.join(' '), curls: curls.join(' ') };
 }
 
 /** A five-petal flower centered on (x, y). */
@@ -382,11 +393,11 @@ function Stalk({ lane, h, show, sw }: { lane: number; h: number; show: boolean; 
 }
 
 /** A post in its vine-wound frame. */
-function Framed({ fruit, children }: { fruit?: string; children: React.ReactNode }) {
+function Framed({ fruit, name, children }: { fruit?: string; name: string; children: React.ReactNode }) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const pad = 14;
   const vine = useMemo(() => (size.w ? frameVine(size.w + pad * 2, size.h + pad * 2, pad) : null), [size]);
-  const surface = useMemo(() => ({ backgroundColor: BEANSTALK.cream, borderColor: BEANSTALK.frameInk, borderWidth: 3, borderRadius: 22, padding: space.md }), []);
+  const surface = useMemo(() => ({ backgroundColor: BEANSTALK.cream, borderColor: BEANSTALK.frameInk, borderWidth: 3, borderRadius: 22, padding: space.md, paddingTop: 30 }), []);
   return (
     <View
       style={styles.framed}
@@ -394,24 +405,44 @@ function Framed({ fruit, children }: { fruit?: string; children: React.ReactNode
         const { width, height } = e.nativeEvent.layout;
         if (Math.abs(width - size.w) > 1 || Math.abs(height - size.h) > 1) setSize({ w: width, h: height });
       }}>
+      {/* The dark drop shadow under the post, as in the video. */}
+      <View style={styles.shadow} />
       <CardSurface.Provider value={surface}>{children}</CardSurface.Provider>
       {vine ? (
         <Svg aria-hidden pointerEvents="none" style={[styles.frameSvg, { left: -pad, top: -pad }]} width={size.w + pad * 2} height={size.h + pad * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Path d={vine.leaves} fill={BEANSTALK.strandLight} stroke={BEANSTALK.ink} strokeWidth={1.3} />
-          <Path d={vine.curls} stroke={BEANSTALK.strandDark} strokeWidth={2} fill="none" strokeLinecap="round" />
-          <Path d={vine.b} stroke={BEANSTALK.ink} strokeWidth={6} fill="none" />
-          <Path d={vine.b} stroke={BEANSTALK.strandDark} strokeWidth={3.5} fill="none" />
-          <Path d={vine.a} stroke={BEANSTALK.ink} strokeWidth={6} fill="none" />
-          <Path d={vine.a} stroke={BEANSTALK.strandLight} strokeWidth={3.5} fill="none" />
+          <Path d={vine.curls} stroke={BEANSTALK.strandDark} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+          <Path d={vine.leaves} fill={BEANSTALK.leafBright} stroke={BEANSTALK.ink} strokeWidth={1.4} strokeLinejoin="round" />
+          <Path d={vine.ribs} stroke={BEANSTALK.strandDark} strokeWidth={1} fill="none" />
+          <Path d={vine.b} stroke={BEANSTALK.ink} strokeWidth={7} fill="none" strokeLinejoin="round" />
+          <Path d={vine.b} stroke={BEANSTALK.strandDark} strokeWidth={4.5} fill="none" strokeLinejoin="round" />
+          <Path d={vine.a} stroke={BEANSTALK.ink} strokeWidth={5.5} fill="none" strokeLinejoin="round" />
+          <Path d={vine.a} stroke={BEANSTALK.strandLight} strokeWidth={3} fill="none" strokeLinejoin="round" />
           <Path d={flower((size.w + pad * 2) / 2, pad, 9)} fill={BEANSTALK.petal} stroke={BEANSTALK.ink} strokeWidth={1.2} />
           <Circle cx={(size.w + pad * 2) / 2} cy={pad} r={3.6} fill={BEANSTALK.heart} stroke={BEANSTALK.ink} strokeWidth={1} />
         </Svg>
       ) : null}
+      <Locket name={name} />
       {fruit ? (
         <View style={styles.fruit}>
-          <VineFruit label={fruit} size={40} />
+          <VineFruit label={fruit} size={44} />
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** The poster in an oval locket on a little loop, over the frame's top left corner. */
+function Locket({ name }: { name: string }) {
+  const initial = (name.trim()[0] ?? '?').toUpperCase();
+  return (
+    <View style={styles.locket} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={50} height={64}>
+        <Circle cx={25} cy={6} r={4.5} fill="none" stroke={BEANSTALK.ink} strokeWidth={4} />
+        <Circle cx={25} cy={6} r={4.5} fill="none" stroke={BEANSTALK.locket} strokeWidth={2} />
+        <Ellipse cx={25} cy={37} rx={23} ry={26} fill={BEANSTALK.locket} stroke={BEANSTALK.ink} strokeWidth={2} />
+        <Ellipse cx={25} cy={37} rx={18} ry={21} fill={BEANSTALK.locketFace} stroke={BEANSTALK.ink} strokeWidth={1.5} />
+      </Svg>
+      <Text style={styles.locketText}>{initial}</Text>
     </View>
   );
 }
@@ -577,7 +608,7 @@ const Section = memo(function Section({ card, lane, seen: store, sw, renderCard 
         ))}
       </View>
       {total > PER_PAGE ? <Cycle page={page} total={total} onPage={onPage} show={seen} /> : null}
-      <Framed fruit={card.gifted ? t('vine.fruit') : undefined}>{renderCard(shown)}</Framed>
+      <Framed fruit={card.gifted ? t('vine.fruit') : undefined} name={card.author.displayName}>{renderCard(shown)}</Framed>
       <Reader comment={reading} kids={kids} onClose={closeReader} />
     </View>
   );
@@ -735,7 +766,7 @@ const styles = StyleSheet.create({
   section: { paddingTop: 26, position: 'relative' },
   stalk: { position: 'absolute', left: 0, bottom: 0, overflow: 'hidden' },
   stalkSvg: { position: 'absolute', left: 0, bottom: 0 },
-  cluster: { flexDirection: 'column-reverse', paddingBottom: 14 },
+  cluster: { flexDirection: 'column-reverse', paddingBottom: 34 },
   leaf: { position: 'absolute' },
   leafText: { position: 'absolute', top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   leafName: { fontFamily: SERIF, fontWeight: '700', color: COMMENT_TEXT, textAlign: 'center' },
@@ -752,7 +783,11 @@ const styles = StyleSheet.create({
   framed: { marginHorizontal: 14, marginVertical: 14, alignSelf: 'center', width: '92%', maxWidth: 600 },
   frameSvg: { position: 'absolute' },
   // Hangs off the frame's vine, by the top right corner.
-  fruit: { position: 'absolute', top: -44, right: 20, zIndex: 3 },
+  // Over the frame's top right corner.
+  fruit: { position: 'absolute', top: -24, right: -20, zIndex: 3 },
+  shadow: { position: 'absolute', left: 6, top: 6, right: -6, bottom: -6, borderRadius: 22, backgroundColor: BEANSTALK.frameInk },
+  locket: { position: 'absolute', left: -24, top: -34, width: 50, height: 64, zIndex: 3 },
+  locketText: { position: 'absolute', top: 22, left: 0, right: 0, textAlign: 'center', fontFamily: SERIF, fontSize: 22, fontWeight: '700', color: BEANSTALK.frameInk },
   verse: { alignSelf: 'center', width: '70%', marginVertical: space.xl, padding: space.md, borderRadius: 18, borderWidth: 2.5, borderColor: BEANSTALK.frameInk, backgroundColor: BEANSTALK.cream, gap: 4 },
   verseText: { fontFamily: SERIF, fontSize: 15, lineHeight: 21, fontStyle: 'italic', color: COMMENT_TEXT },
   verseRef: { fontSize: 13, color: '#5A4A36' },
