@@ -253,7 +253,7 @@ struct VineLeaf<Content: View>: View {
         case .neon:
             // A real tube: colored glass glowing round a thin white-hot core.
             // Posts glow in the main color, their comments in the second (Tron's blue and red).
-            TopDownFrame(look: NeonGlassLook(color: Color(depth == 0 || look.fairytale ? look.stem : look.branch)), width: 8, progress: ConnectorTiming.frame(drawn))
+            TopDownFrame(look: NeonGlassLook(color: Color(depth == 0 || look.fairytale ? look.stem : look.branch), cap: .butt), width: 8, progress: ConnectorTiming.frame(drawn))
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)

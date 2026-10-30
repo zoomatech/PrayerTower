@@ -42,6 +42,8 @@ struct AppSection: Identifiable, Hashable {
 struct MainTabs: View {
     @Environment(AppModel.self) private var model
     @State private var tab = 0
+    /// Changed by Home, so the feed starts again from its top screen.
+    @State private var home = UUID()
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var width
     private var sidebar: Bool { width == .regular }
@@ -83,6 +85,9 @@ struct MainTabs: View {
                         screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
                     }
                 }
+                // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
+                // menu right below it, so there's always a way back to the feed.
+                .overlay(alignment: .topLeading) { homeAndMenu.padding(.leading, 8).padding(.top, 2) }
             }
         }
         // ⌘1–⌘6 jump between sections with a hardware keyboard (iPad, Mac).
@@ -104,6 +109,49 @@ struct MainTabs: View {
         }
     }
 
+    /// Home (back to the top of the feed) and, right below it, the menu of every section.
+    private var homeAndMenu: some View {
+        VStack(spacing: 6) {
+            Button {
+                tab = 0
+                home = UUID()
+            } label: {
+                Image(systemName: "house.fill").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Home")
+            Menu {
+                ForEach(menuSections) { s in
+                    Button { go(s.tag) } label: { s.label }
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Menu")
+        }
+        .foregroundStyle(Color.accessibleAccent)
+        .background(.regularMaterial, in: .rect(cornerRadius: 14))
+    }
+
+    /// Every section, Messages and Notices included (on iPhone they open from Me).
+    private var menuSections: [AppSection] {
+        var all = sections
+        if !sidebar {
+            all.insert(AppSection(tag: 2, title: model.words("tabs.messages"), icon: "bubble.left.and.bubble.right"), at: min(2, all.count))
+            all.insert(AppSection(tag: 5, title: model.words("tabs.notices"), icon: "bell"), at: min(3, all.count))
+        }
+        return all
+    }
+
+    private func go(_ tag: Int) {
+        if tag == 0 { home = UUID() }
+        if !sidebar, tag == 2 || tag == 5 {
+            tab = 4
+            model.meOpens = tag
+        } else {
+            tab = tag
+        }
+    }
+
     @ViewBuilder private func screen(_ tag: Int) -> some View {
         switch tag {
         case 1: CommitmentsView()
@@ -111,7 +159,7 @@ struct MainTabs: View {
         case 3: CirclesView()
         case 4: MeView()
         case 5: NotificationsView()
-        default: FeedView()
+        default: FeedView().id(home)
         }
     }
 

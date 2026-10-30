@@ -14,9 +14,11 @@ protocol ConnectorLook {
 /// toward the edge of the glass, and a radiant glow around the whole tube.
 struct NeonGlassLook: ConnectorLook {
     let color: Color
+    /// Square ends where two drawn halves meet, so the join is seamless; round ends otherwise.
+    var cap: CGLineCap = .round
 
     func stroke(_ path: Path, width: CGFloat, in ctx: GraphicsContext) {
-        func line(_ w: CGFloat) -> StrokeStyle { StrokeStyle(lineWidth: w, lineCap: .round, lineJoin: .round) }
+        func line(_ w: CGFloat) -> StrokeStyle { StrokeStyle(lineWidth: w, lineCap: cap, lineJoin: .round) }
         // The glow the gas throws round the tube.
         var glow = ctx
         glow.addFilter(.blur(radius: width * 2.2))
@@ -34,19 +36,24 @@ struct NeonGlassLook: ConnectorLook {
 }
 
 /// A shape outlined in a connector look, lit from its start round to `progress` (0 to 1), so it can draw itself in.
-struct ConnectorOutline<S: Shape, L: ConnectorLook>: View {
+struct ConnectorOutline<S: Shape, L: ConnectorLook>: View, Animatable {
     let shape: S
     let look: L
     var width: CGFloat = 5
     var progress: CGFloat = 1
+    /// Lets SwiftUI step `progress` frame by frame, so the outline visibly draws itself in.
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
 
     var body: some View {
         Canvas { ctx, size in
-            let path = shape.trim(from: 0, to: progress).path(in: CGRect(origin: .zero, size: size).insetBy(dx: width * 3, dy: width * 3))
+            let path = shape.trim(from: 0, to: progress).path(in: CGRect(origin: .zero, size: size).insetBy(dx: width * 6, dy: width * 6))
             look.stroke(path, width: width, in: ctx)
         }
         // Room round the outline for the look's glow, so it never stops at a hard edge.
-        .padding(-width * 3)
+        .padding(-width * 6)
     }
 }
 
