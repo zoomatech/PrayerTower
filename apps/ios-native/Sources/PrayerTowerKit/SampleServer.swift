@@ -61,7 +61,7 @@ public enum SampleServer {
         """
         {"id":"\(id)","author":{"id":"sample-\(name.lowercased())","displayName":"\(name)","handle":null,"anonymous":false},"isMine":\(mine),"postType":"prayer_request",
          "urgency":0,"preview":"\(text)","body":"\(text)","crisis":false,"counts":{"prayingNow":1,"prayers":4,"commitments":1,"comments":5},
-         "createdAt":"2026-10-29T08:00:00Z","state":"open","actions":["thumbs_up","praying_now","well_wishes","encouragement","share","commit","gift_tokens"]}
+         "createdAt":"2026-10-29T08:00:00Z","state":"open","actions":["praying_now","thumbs_up","well_wishes","encouragement","share","commit","gift_tokens"]}
         """
     }
 
@@ -177,7 +177,7 @@ extension SampleServer {
         {"id":"sample-g\#(i)","author":{"id":"u\#(i % names.count)","displayName":"\#(anonymous ? "Someone" : name)","handle":null,"anonymous":\#(anonymous)},\#
         "isMine":\#(i == 1),"postType":"\#(type)","urgency":\#(i % 11 == 2 ? 2 : 0),"preview":"\#(body)","body":"\#(body)","crisis":false,\#
         "isSensitive":false,"counts":{"prayingNow":\#(i % 4),"prayers":\#(3 + i % 17),"commitments":\#(i % 3),"comments":\#(i % 5)},\#
-        "createdAt":"2026-10-29T08:\#(minutes):00Z","actions":["pray","commit","comment","share","gift","save"],\#
+        "createdAt":"2026-10-29T08:\#(minutes):00Z","actions":["praying_now","thumbs_up","well_wishes","encouragement","share","commit","gift_tokens"],\#
         "state":"\#(answered ? "answered" : "open")","answeredAt":\#(answered ? #""2026-10-29T10:00:00Z""# : "null"),"testimony":null,\#
         "background":null,"media":[],"leafComments":\#(leaf),"answers":null,"storyId":null}
         """#

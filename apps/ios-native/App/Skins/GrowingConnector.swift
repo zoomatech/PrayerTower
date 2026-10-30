@@ -67,15 +67,13 @@ struct ConnectorOutline<S: Shape, L: ConnectorLook>: View, Animatable {
 }
 
 /// One of a box's two tubes, both starting at its top left corner, where the branch from the stalk
-/// comes in: one runs along the top and down the right side, the other down the left and along the
-/// bottom. They meet at the bottom right corner with a small gap, as a real neon tube's ends do at a
-/// bend, never in the middle of a run (Steve, 2026-10-30).
+/// comes in: one runs along the top and down the right side, the other down the left, along the
+/// bottom and round the bottom right corner. They meet end to end, so the box is one unbroken tube
+/// with no gap anywhere (Steve, 2026-10-30).
 struct BoxHalf: Shape {
     /// 1 for the top-and-right tube, -1 for the left-and-bottom tube.
     let side: CGFloat
     var radius: CGFloat = 12
-    /// The gap the two ends leave at the bottom right corner.
-    var gap: CGFloat = 3
 
     func path(in r: CGRect) -> Path {
         let c = min(radius, min(r.width, r.height) / 4)
@@ -85,11 +83,12 @@ struct BoxHalf: Shape {
             p.addQuadCurve(to: CGPoint(x: r.minX + c, y: r.minY), control: CGPoint(x: r.minX, y: r.minY))
             p.addLine(to: CGPoint(x: r.maxX - c, y: r.minY))
             p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + c), control: CGPoint(x: r.maxX, y: r.minY))
-            p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - c - gap))
+            p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - c))
         } else {
             p.addLine(to: CGPoint(x: r.minX, y: r.maxY - c))
             p.addQuadCurve(to: CGPoint(x: r.minX + c, y: r.maxY), control: CGPoint(x: r.minX, y: r.maxY))
-            p.addLine(to: CGPoint(x: r.maxX - c - gap, y: r.maxY))
+            p.addLine(to: CGPoint(x: r.maxX - c, y: r.maxY))
+            p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.maxY - c), control: CGPoint(x: r.maxX, y: r.maxY))
         }
         return p
     }
@@ -148,8 +147,10 @@ extension View {
     }
 }
 
-/// The shared timing of one post's connector: the branch shoots out first, then the frame draws round.
+/// The shared timing of one post's connector: the branch shoots out first, then the frame draws
+/// round, then the card's text fades in once the line around it is drawn (Steve, 2026-10-30).
 enum ConnectorTiming {
-    static func branch(_ p: CGFloat) -> CGFloat { min(1, p * 4) }
-    static func frame(_ p: CGFloat) -> CGFloat { max(0, (p - 0.25) / 0.75) }
+    static func branch(_ p: CGFloat) -> CGFloat { min(1, p * 5) }
+    static func frame(_ p: CGFloat) -> CGFloat { min(1, max(0, (p - 0.2) / 0.55)) }
+    static func text(_ p: CGFloat) -> CGFloat { max(0, (p - 0.75) / 0.25) }
 }

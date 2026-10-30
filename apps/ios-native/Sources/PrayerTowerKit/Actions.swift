@@ -3,9 +3,9 @@ import Foundation
 /// The six actions on a card (`ACTION_ORDER` in packages/shared). Every design shows them as ONE
 /// row of icons (Steve, 2026-10-29); the name shows on a long press or pointer hover.
 public enum CardAction: String, CaseIterable, Sendable, Codable {
-    /// Leftmost, "the most used icon" (Steve, 2026-10-30).
-    case thumbsUp = "thumbs_up"
+    /// Leftmost, "the single most important button" (Steve, 2026-10-30), with Thumbs Up beside it.
     case prayingNow = "praying_now"
+    case thumbsUp = "thumbs_up"
     case commit
     case encouragement
     case wellWishes = "well_wishes"
@@ -102,11 +102,15 @@ public struct ActionItem: Sendable, Equatable, Identifiable {
 }
 
 public enum ActionRow {
-    /// The row for one card: the card's own actions in the server's order, never more than one row.
+    /// The row for one card: the card's own actions in the server's order, never more than one row,
+    /// except that Praying Now is always leftmost with Thumbs Up right beside it (Steve, 2026-10-30).
     /// Meanings join the icons only when `meaningReactions` and `meaningIconRow` are both on.
     public static func items(actions: [String], features: Features, tree: [MeaningEmoji], wording: Wording) -> [ActionItem] {
         let on = features["meaningReactions"] && features["meaningIconRow"]
-        return actions.compactMap(CardAction.init(rawValue:)).map { a in
+        let first: [CardAction] = [.prayingNow, .thumbsUp]
+        let own = actions.compactMap(CardAction.init(rawValue:))
+        let ordered = first.filter(own.contains) + own.filter { !first.contains($0) }
+        return ordered.map { a in
             ActionItem(action: a, icon: a.icon, name: a.name(wording), meanings: on ? tree.first { $0.key == a.meaningEmoji } : nil)
         }
     }
