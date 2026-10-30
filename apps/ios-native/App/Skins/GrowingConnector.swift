@@ -105,10 +105,25 @@ struct TopDownFrame<L: ConnectorLook>: View {
     var progress: CGFloat = 1
 
     var body: some View {
-        ZStack {
-            ConnectorOutline(shape: BoxHalf(side: -1, radius: radius), look: look, width: width, progress: progress)
-            ConnectorOutline(shape: BoxHalf(side: 1, radius: radius), look: look, width: width, progress: progress)
-        }
+        // Both tubes in one drawing, so where they meet the glass joins without a seam.
+        ConnectorOutline(shape: BothHalves(radius: radius, drawn: progress), look: look, width: width)
+    }
+}
+
+/// A box's two tubes, each lit from the top left corner as far as `drawn`.
+private struct BothHalves: Shape {
+    let radius: CGFloat
+    var drawn: CGFloat
+
+    nonisolated var animatableData: CGFloat {
+        get { drawn }
+        set { drawn = newValue }
+    }
+
+    func path(in r: CGRect) -> Path {
+        var p = BoxHalf(side: -1, radius: radius).trim(from: 0, to: drawn).path(in: r)
+        p.addPath(BoxHalf(side: 1, radius: radius).trim(from: 0, to: drawn).path(in: r))
+        return p
     }
 }
 
@@ -192,9 +207,9 @@ struct NeonSparks<S: Shape>: View {
                 Canvas { ctx, size in
                     let t = tl.date.timeIntervalSinceReferenceDate
                     let rect = CGRect(origin: .zero, size: size).insetBy(dx: width * 6, dy: width * 6)
-                    // Lights travel 90 to 190 points a second, each a short dash, whatever the tube's length.
+                    // Lights travel 90 to 190 points a second, each a short bright point, whatever the tube's length.
                     let length = max(1, loop ? 2 * (rect.width + rect.height) : rect.height)
-                    let dash = 14 / length
+                    let dash = 7 / length
                     for i in 0..<count {
                         let k = seed + Double(i) * 37.7
                         let speed = (90 + k.truncatingRemainder(dividingBy: 100)) / length
@@ -205,7 +220,7 @@ struct NeonSparks<S: Shape>: View {
                         let spot = shape.trim(from: along, to: min(1, along + dash)).path(in: rect)
                         var glow = ctx
                         glow.addFilter(.blur(radius: width * 0.9))
-                        glow.stroke(spot, with: .color(color.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 2.2, lineCap: .round))
+                        glow.stroke(spot, with: .color(color.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 1.6, lineCap: .round))
                         ctx.stroke(spot, with: .color(.white.opacity(twinkle)), style: StrokeStyle(lineWidth: width * 0.8, lineCap: .round))
                     }
                 }

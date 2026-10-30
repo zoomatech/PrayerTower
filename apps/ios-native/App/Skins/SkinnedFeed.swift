@@ -241,6 +241,7 @@ struct VineLeaf<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             content()
                 .opacity(ConnectorTiming.text(drawn))
+                .frame(maxWidth: look.vineStyle == .neon ? .infinity : nil, alignment: .leading)
                 .padding(depth == 0 ? 14 : 10)
                 .background(box, in: .rect(cornerRadius: 12))
                 .overlay {
@@ -273,7 +274,8 @@ struct VineLeaf<Content: View>: View {
             .padding(.bottom, CGFloat(min(behind.count, 3)) * Self.peek)
             .environment(\.colorScheme, .light)
             .padding(.leading, depth == 0 ? 36 : tucked ? indent : 64)
-            .padding(.trailing, 8)
+            // Neon leaves room on the right for the tube's glow before the screen's edge.
+            .padding(.trailing, look.vineStyle == .neon ? 18 : 8)
             .overlay(alignment: .leading) {
                 if tucked {
                     // From the post's box above (over the gap between them), down and round into this box.
@@ -291,9 +293,13 @@ struct VineLeaf<Content: View>: View {
             // A real tube: colored glass glowing round a thin white-hot core.
             // Posts glow in the main color, their comments in the second (Tron's blue and red).
             ZStack {
-                TopDownFrame(look: NeonGlassLook(color: Color(depth == 0 || look.fairytale ? look.stem : look.branch), cap: .butt), width: 8, progress: ConnectorTiming.frame(drawn))
+                TopDownFrame(look: NeonGlassLook(color: look.neon(depth), cap: .butt), width: 8, progress: ConnectorTiming.frame(drawn))
+                // Soldered circuit touches off the box, out into the clear space above and below it.
+                if depth == 0, !look.fairytale {
+                    ConnectorOutline(shape: CircuitTouches(), look: NeonGlassLook(color: Color(look.branch), white: 0.5), width: 3, progress: drawn >= 1 ? 1 : 0)
+                }
                 // Once the frame has drawn, now and then a light rides round it.
-                if drawn >= 1 { NeonSparks(shape: NeonFrame(radius: 12), color: Color(depth == 0 || look.fairytale ? look.stem : look.branch), width: 8, count: 1) }
+                if drawn >= 1 { NeonSparks(shape: NeonFrame(radius: 12), color: look.neon(depth), width: 8, count: 1) }
             }
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
@@ -330,7 +336,7 @@ struct VineLeaf<Content: View>: View {
                 p.addLine(to: CGPoint(x: reach, y: y))
                 let boxColor = Color(depth == 0 || look.fairytale ? look.stem : look.branch)
                 // From the stalk's color, gradually into the box's, solid in the box's color where it meets the box (blue to red for a comment).
-                NeonGlassLook(color: boxColor, from: Color(look.stem), fade: (CGPoint(x: 20, y: y), CGPoint(x: 20 + (reach - 20) * 0.6, y: y)), white: 0.45).stroke(p, width: 6, in: ctx)
+                NeonGlassLook(color: boxColor, cap: .butt, from: Color(look.stem), fade: (CGPoint(x: 20, y: y), CGPoint(x: 20 + (reach - 20) * 0.6, y: y)), white: 0.45).stroke(p, width: 6, in: ctx)
                 return
             }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
@@ -389,6 +395,14 @@ struct LeafCommentText: View {
     }
 }
 
+extension VineLook {
+    /// Neon's color for a box at `depth`: posts blue, comments red, replies to comments violet (Steve, 2026-10-30).
+    func neon(_ depth: Int) -> Color {
+        if depth == 0 || fairytale { return Color(stem) }
+        return depth == 1 ? Color(branch) : Color(red: 0.69, green: 0.30, blue: 1)
+    }
+}
+
 /// Neon's comment connector: a red tube down from the box above (over the gap between them) that
 /// bends smoothly into the comment's box, `y` points below the comment's top.
 struct NeonDrop: View {
@@ -407,13 +421,38 @@ struct NeonDrop: View {
         Canvas { ctx, size in
             let x: CGFloat = indent - 32, r: CGFloat = 12, y = self.y + Self.gap
             var p = Path()
-            p.move(to: CGPoint(x: x, y: 0))
+            // From inside the tube of the box above, so it joins it, to the edge of this box.
+            p.move(to: CGPoint(x: x, y: 2))
             p.addLine(to: CGPoint(x: x, y: y - r))
             p.addQuadCurve(to: CGPoint(x: x + r, y: y), control: CGPoint(x: x, y: y))
-            p.addLine(to: CGPoint(x: indent + 4, y: y))
-            NeonGlassLook(color: Color(look.branch), white: 0.45).stroke(p, width: 6, in: ctx)
+            p.addLine(to: CGPoint(x: indent + 2, y: y))
+            NeonGlassLook(color: look.neon(depth), cap: .butt, white: 0.45).stroke(p, width: 6, in: ctx)
         }
         .frame(width: indent + 26)
+    }
+}
+
+/// Small circuit traces off a post's box, each ending at a solder pad: one up from the top edge
+/// near the right, one down from the bottom edge near the right, clear of the comment tube and icons.
+struct CircuitTouches: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        func pad(_ c: CGPoint) { p.addRoundedRect(in: CGRect(x: c.x - 3.5, y: c.y - 3.5, width: 7, height: 7), cornerSize: CGSize(width: 1.5, height: 1.5)) }
+        // Up from the top, then a bend to the right.
+        let a = CGPoint(x: r.maxX - 64, y: r.minY)
+        p.move(to: a)
+        p.addLine(to: CGPoint(x: a.x, y: a.y - 6))
+        p.addQuadCurve(to: CGPoint(x: a.x + 6, y: a.y - 12), control: CGPoint(x: a.x, y: a.y - 12))
+        p.addLine(to: CGPoint(x: a.x + 22, y: a.y - 12))
+        pad(CGPoint(x: a.x + 26, y: a.y - 12))
+        // Down from the bottom, then a bend to the left.
+        let b = CGPoint(x: r.maxX - 40, y: r.maxY)
+        p.move(to: b)
+        p.addLine(to: CGPoint(x: b.x, y: b.y + 6))
+        p.addQuadCurve(to: CGPoint(x: b.x - 6, y: b.y + 12), control: CGPoint(x: b.x, y: b.y + 12))
+        p.addLine(to: CGPoint(x: b.x - 26, y: b.y + 12))
+        pad(CGPoint(x: b.x - 30, y: b.y + 12))
+        return p
     }
 }
 
@@ -428,7 +467,7 @@ private struct NeonRun: View {
             var p = Path()
             p.move(to: CGPoint(x: x, y: 0))
             p.addLine(to: CGPoint(x: x, y: size.height))
-            NeonGlassLook(color: Color(look.branch), cap: .butt, white: 0.45).stroke(p, width: 6, in: ctx)
+            NeonGlassLook(color: look.neon(depth), cap: .butt, white: 0.45).stroke(p, width: 6, in: ctx)
         }
         .frame(width: x + 30)
         .padding(.top, -NeonDrop.gap)
@@ -446,7 +485,7 @@ private struct FaceDownCard: View {
     let depth: Int
 
     var body: some View {
-        let color = Color(look.branch)
+        let color = look.neon(depth)
         let backdrop = look.backdrop.map { Color($0) } ?? Color.pageBackground
         ZStack(alignment: .leading) {
             ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.5), width: 5)
@@ -568,7 +607,7 @@ private struct CommentLevel: View {
 
     /// A comment's own icons: a heart and reply.
     private func icons(_ c: Comment, _ i: Int) -> some View {
-        let color = Color(look.branch)
+        let color = look.neon(depth)
         return HStack(spacing: 18) {
             Button {
                 let on = !hearted.contains(c.id)
