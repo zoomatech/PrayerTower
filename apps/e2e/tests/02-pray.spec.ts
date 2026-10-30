@@ -46,7 +46,9 @@ test.describe.serial('ask, pray, commit and message', () => {
     await expect(page.getByText('Your message is waiting for them')).toBeVisible();
 
     const carol = await as(browser, 'carol');
-    await carol.getByText('Messages').first().click();
+    // Messages opens from the Me menu, not the tab bar.
+    await carol.getByRole('tab', { name: 'Me', exact: true }).click();
+    await carol.getByTestId('open-messages').click();
     await carol.getByText('Requests and invites').waitFor();
     await carol.getByText('Demo Ethel', { exact: true }).first().click();
     await carol.getByRole('button', { name: 'Accept' }).click();
