@@ -39,9 +39,15 @@ final class AccessibilityAuditTests: XCTestCase {
                     sleep(1)
                     try audit(app, "\(name) at \(size)")
                     // Then the end of the feed, so its last lines are checked on screen, not cut by the edge.
-                    // Slow swipes, so the feed isn't still gliding when the audit takes its picture.
-                    for _ in 0..<3 { app.swipeUp(velocity: .slow) }
-                    sleep(3)
+                    // Press-and-drag, which stops dead when the finger lifts: a swipe leaves the feed
+                    // gliding, and the audit's picture then no longer matches where the words are.
+                    let window = app.windows.firstMatch
+                    for _ in 0..<3 {
+                        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+                            .press(forDuration: 0.1, thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)),
+                                   withVelocity: .slow, thenHoldForDuration: 0.5)
+                    }
+                    sleep(2)
                     try audit(app, "\(name) at \(size), scrolled to the end")
                     // Back to the list; a skin whose bar has no back button (seen once at the largest
                     // text) gets a fresh launch instead.
