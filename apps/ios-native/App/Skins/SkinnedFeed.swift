@@ -72,7 +72,11 @@ struct VineFeed<Row: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color(look.tipColor))
                     .backdropPlate(look.backdrop)
-                    .padding(.leading, 44)
+                    // On a backdrop, a solid backing of the backdrop's own color, so a glowing stalk
+                    // close by never lights up behind the words; and clear of the stalk.
+                    .padding(look.backdrop == nil ? 0 : 8)
+                    .background { if let b = look.backdrop { RoundedRectangle(cornerRadius: 10).fill(Color(b)) } }
+                    .padding(.leading, 56)
                     .padding(.bottom, 160)
             }
             .padding(.vertical, 20)
@@ -435,7 +439,7 @@ struct TowerFeed<Row: View>: View {
                     .task { if card.id == cards.last?.id { await onEnd() } }
                 }
                 if !hasMore, !cards.isEmpty {
-                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).onBackdrop(look.backdrop).padding(.horizontal, 34).padding(.top, 24).padding(.bottom, 160)
+                    Label(LayoutWords(wording).towerTop, systemImage: "flag.fill").font(.headline).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).onBackdrop(look.backdrop).padding(.horizontal, 34).padding(.top, 24).padding(.bottom, 160)
                 }
             }
             .scrollTargetLayout()
@@ -563,13 +567,18 @@ struct CircuitFeed<Row: View>: View {
                         // Only the screen's glass and frame lean; the words stay flat, so none are
                         // squeezed or cut off at an angle.
                         .background {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen))
-                                        .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
-                                }
-                                .accessibilityHidden(true)
+                            // The glowing frame underneath, the glass over its inner glow so the words
+                            // sit on a plain screen, then a crisp rim on top.
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen))
+                                    .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
+                                    .padding(2)
+                                RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 1)
+                                    .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                            }
+                            .accessibilityHidden(true)
                         }
                         .padding(.leading, 18)
                         .padding(.trailing, 40)

@@ -125,11 +125,31 @@ struct Scallop: Shape {
 
 /// A small flower or star mark, drawn before comment words on Blossom Garden and Neon Cinderella
 /// (`LeafMark` in layouts/motifs.tsx): five petals round a center, or a glowing four-point star.
+/// Four points meeting in a narrow waist: Christmas Star's comment mark.
+struct FourPointStar: Shape {
+    func path(in r: CGRect) -> Path {
+        let c = CGPoint(x: r.midX, y: r.midY), w = r.width * 0.14
+        var p = Path()
+        p.move(to: CGPoint(x: c.x, y: r.minY))
+        p.addLine(to: CGPoint(x: c.x + w, y: c.y - w))
+        p.addLine(to: CGPoint(x: r.maxX, y: c.y))
+        p.addLine(to: CGPoint(x: c.x + w, y: c.y + w))
+        p.addLine(to: CGPoint(x: c.x, y: r.maxY))
+        p.addLine(to: CGPoint(x: c.x - w, y: c.y + w))
+        p.addLine(to: CGPoint(x: r.minX, y: c.y))
+        p.addLine(to: CGPoint(x: c.x - w, y: c.y - w))
+        p.closeSubpath()
+        return p
+    }
+}
+
 struct Mark: View {
     let shape: LeafShape
     let color: Color
     let center: Color
     var size: Double = 18
+    @ScaledMetric private var scale: CGFloat = 1
+    private var side: CGFloat { CGFloat(size) * min(scale, 1.5) }
 
     var body: some View {
         Group {
@@ -152,9 +172,9 @@ struct Mark: View {
                 }
                 .frame(width: size, height: size)
             case .star:
-                // A symbol, not a text glyph, so it scales with the words and is never read as text.
-                Image(systemName: "sparkle").font(.callout).foregroundStyle(color).neonTube(color)
-                    .frame(minWidth: size, minHeight: size).accessibilityHidden(true)
+                // A drawn four-point star (no text glyph or symbol, which the audit reads as text),
+                // growing with the words beside it.
+                FourPointStar().fill(color).frame(width: side, height: side).shadow(color: color.opacity(0.8), radius: 3)
             default:
                 EmptyView()
             }
