@@ -60,7 +60,7 @@ public enum SampleServer {
     static func card(_ id: String, _ name: String, mine: Bool, _ text: String) -> String {
         """
         {"id":"\(id)","author":{"id":"sample-\(name.lowercased())","displayName":"\(name)","handle":null,"anonymous":false},"isMine":\(mine),"postType":"prayer_request",
-         "urgency":0,"preview":"\(text)","body":"\(text)","crisis":false,"counts":{"prayingNow":1,"prayers":4,"commitments":1,"comments":1},
+         "urgency":0,"preview":"\(text)","body":"\(text)","crisis":false,"counts":{"prayingNow":1,"prayers":4,"commitments":1,"comments":5},
          "createdAt":"2026-10-29T08:00:00Z","state":"open","actions":["praying_now","well_wishes","encouragement","share","commit","gift_tokens"]}
         """
     }
@@ -97,8 +97,12 @@ public enum SampleServer {
             ("GET", "^/posts/sample-p1$", #"{"post":\#(ruth)}"#),
             ("GET", "^/posts/sample-p2$", #"{"post":\#(mine)}"#),
             ("GET", "^/posts/[^/]+/comments$", """
-            {"comments":[{"id":"sample-c1","parentId":null,"body":"Holding you and your mother up today.","isUpdate":false,"createdAt":"2026-10-29T09:00:00Z","isMine":false,
-              "author":{"id":"sample-sam","displayName":"Sam","handle":null,"anonymous":false}}]}
+            {"comments":[{"id":"sample-c1","parentId":null,"body":"Holding you and your mother up today.","isUpdate":false,"createdAt":"2026-10-29T09:00:00Z","isMine":false,"author":{"id":"sample-sam","displayName":"Sam","handle":null,"anonymous":false}},
+              {"id":"sample-c2","parentId":null,"body":"Hoping for steady hands for the surgeons.","isUpdate":false,"createdAt":"2026-10-29T09:05:00Z","isMine":false,"author":{"id":"sample-ana","displayName":"Ana","handle":null,"anonymous":false}},
+              {"id":"sample-c3","parentId":"sample-c2","body":"Amen to that.","isUpdate":false,"createdAt":"2026-10-29T09:07:00Z","isMine":false,"author":{"id":"sample-owen","displayName":"Owen","handle":null,"anonymous":false}},
+              {"id":"sample-c4","parentId":null,"body":"So grateful you shared this.","isUpdate":false,"createdAt":"2026-10-29T09:10:00Z","isMine":false,"author":{"id":"sample-nora","displayName":"Nora","handle":null,"anonymous":false}},
+              {"id":"sample-c5","parentId":null,"body":"Lighting a candle for her tonight.","isUpdate":false,"createdAt":"2026-10-29T09:20:00Z","isMine":false,"author":{"id":"sample-teresa","displayName":"Teresa","handle":null,"anonymous":false}},
+              {"id":"sample-c6","parentId":null,"body":"We will bring a meal on Wednesday.","isUpdate":false,"createdAt":"2026-10-29T09:30:00Z","isMine":false,"author":{"id":"sample-luis","displayName":"Luis","handle":null,"anonymous":false}}]}
             """),
             ("GET", "^/posts/[^/]+/prayers$", #"{"count":4,"people":[{"id":"sample-sam","displayName":"Sam"}]}"#),
             ("GET", "^/me/commitments$", """
