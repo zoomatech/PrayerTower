@@ -22,9 +22,17 @@ struct SwipeFeed<Row: View>: View {
             VStack(spacing: 16) {
                 if deck.index < cards.count {
                     let card = cards[deck.index]
-                    // The card scrolls when the words outgrow it; the bar flashes to say so.
-                    ScrollView { row(card).padding(16) }
+                    // The card scrolls when the words outgrow it; the bar flashes to say so, and the
+                    // words fade out at the card's foot instead of being sliced by its edge. The extra
+                    // bottom padding keeps the last line clear of the fade once scrolled to the end.
+                    ScrollView { row(card).padding(16).padding(.bottom, 24) }
                         .scrollIndicatorsFlash(onAppear: true)
+                        .mask {
+                            VStack(spacing: 0) {
+                                Rectangle()
+                                LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom).frame(height: 40)
+                            }
+                        }
                         .background(.regularMaterial, in: .rect(cornerRadius: 18))
                         .offset(x: drag.width)
                         .rotationEffect(.degrees(still ? 0 : drag.width / 30))
