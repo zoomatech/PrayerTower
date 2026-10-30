@@ -19,7 +19,6 @@
 // not to swipe (and for screen readers). Reduced motion turns the movement off.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COMMENT_TEXT, type Card, type FeedTheme } from '@prayer-tower/shared';
-import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 
@@ -28,6 +27,7 @@ import { Battlements, Climber, StoneTablet, StoneWall, tabletCardSurface } from 
 import { Button, Chip } from '@/components/ui';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
+import { useFeedHooks, useNearEnd } from '@/skins/feed-hooks';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -80,6 +80,7 @@ function Pillar({ tokens, shift, side }: { tokens: TowerTokens; shift: Animated.
 
 /** A request carved on a stone tablet, with its newest comments on smaller sub-tablets below it. */
 function TabletFloor({ card, tokens, renderCard }: { card: Card; tokens: TowerTokens; renderCard: FeedLayoutProps['renderCard'] }) {
+  const { openPost } = useFeedHooks();
   const { t } = useLocale();
   const surface = useMemo(() => tabletCardSurface(tokens.stone), [tokens.stone]);
   const comments = card.leafComments ?? [];
@@ -93,7 +94,7 @@ function TabletFloor({ card, tokens, renderCard }: { card: Card; tokens: TowerTo
           key={c.id}
           accessibilityRole="button"
           accessibilityHint={t('vine.openComment')}
-          onPress={() => router.push(`/post/${card.id}?comment=${c.id}`)}
+          onPress={() => openPost(card.id, c.id)}
           style={[styles.sub, { marginLeft: 18 + (k % 2) * 22, marginRight: 18 + ((k + 1) % 2) * 22 }]}>
           {/* A short iron chain hangs each sub-tablet from the one above. */}
           <View style={[styles.chain, { borderColor: tokens.mortar }]} />
@@ -106,7 +107,7 @@ function TabletFloor({ card, tokens, renderCard }: { card: Card; tokens: TowerTo
         </Pressable>
       ))}
       {comments.length && card.counts.comments > comments.length ? (
-        <Button small variant="ghost" label={t('vine.moreComments', { count: card.counts.comments - comments.length })} onPress={() => router.push(`/post/${card.id}`)} />
+        <Button small variant="ghost" label={t('vine.moreComments', { count: card.counts.comments - comments.length })} onPress={() => openPost(card.id)} />
       ) : null}
     </View>
   );
@@ -145,9 +146,7 @@ export function TowerLayout({ cards, theme, pinnedId, renderCard, header, refres
   const current = floors[Math.min(index, floors.length - 1)];
 
   // Ask for more requests two floors before running out.
-  useEffect(() => {
-    if (!atEnd && index >= floors.length - 2) onEndReached();
-  }, [index, floors.length, atEnd, onEndReached]);
+  useNearEnd(index, floors.length, atEnd, onEndReached, 2);
 
   const go = (step: -1 | 1) => {
     const next = Math.max(0, Math.min(floors.length - 1, index + step));

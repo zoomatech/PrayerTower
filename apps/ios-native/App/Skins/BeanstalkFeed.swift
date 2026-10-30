@@ -110,9 +110,8 @@ struct BeanstalkFeed<Row: View>: View {
     let look: VineLook
     let cards: [Card]
     let wording: Wording
+    let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
-    var loadComments: ((Card) async -> [Comment])?
 
     var body: some View {
         let words = Words(wording)
@@ -129,8 +128,8 @@ struct BeanstalkFeed<Row: View>: View {
                             Color.clear.frame(height: 76).id("beanstalk-top")
                             ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                                 BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i],
-                                         viewport: Double(geo.size.height), words: words, row: row, load: loadComments)
-                                    .task { if card.id == cards.last?.id { await onEnd() } }
+                                         viewport: Double(geo.size.height), words: words, row: row, load: hooks.loadComments)
+                                    .loadsMore(after: card, in: cards, hooks)
                             }
                             ground(words)
                         }
@@ -364,14 +363,7 @@ private struct BeanPost<Row: View>: View {
             return
         }
         guard leaf.replies > 0, leaf.level < 3 else { return }
-        var next = cv
-        if leaf.level == 1 {
-            next.open = cv.open == leaf.path[0] ? nil : leaf.path[0]
-            next.open2 = nil
-        } else {
-            next.open2 = cv.open2 == leaf.path[1] ? nil : leaf.path[1]
-        }
-        cv = next
+        cv.toggleReplies(level: leaf.level, index: leaf.path[leaf.level == 1 ? 0 : 1])
         openAt = .now
     }
 

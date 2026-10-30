@@ -10,6 +10,7 @@ import { Button } from '@/components/ui';
 import { Tr, useT } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { colors, space, type } from '@/lib/theme';
+import { useNearEnd } from '@/skins/feed-hooks';
 
 import type { FeedLayoutProps } from './index';
 
@@ -25,9 +26,7 @@ export function CarouselLayout({ cards, pinnedId, renderCard, header, refreshing
   const card: Card | undefined = cards[index];
 
   // Fetch the next page before the deck runs out.
-  useEffect(() => {
-    if (index >= cards.length - 3 && !atEnd) onEndReached();
-  }, [index, cards.length, atEnd, onEndReached]);
+  useNearEnd(index, cards.length, atEnd, onEndReached, 3);
 
   // A refresh starts the deck over.
   useEffect(() => {

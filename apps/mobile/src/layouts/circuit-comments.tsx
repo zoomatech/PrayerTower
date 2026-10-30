@@ -6,21 +6,18 @@
 // its own card with its own row of icons. The tubes draw themselves in as they scroll
 // into view (lib/draw-in.ts).
 import type { Card, Comment } from '@prayer-tower/shared';
-import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Image, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 
 import { GlassTube, GLOW_REACH, roundedBox, tubeShades } from '@/components/glass-tube';
 import { boxRuns, Sparkles } from '@/components/sparkles';
-import { commentTree } from '@/layouts/beanstalk';
-import { api } from '@/lib/api';
 import { useDrawIn, type Row } from '@/lib/draw-in';
-import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
-import { shareLink } from '@/lib/links';
 import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
+import { useFeedHooks } from '@/skins/feed-hooks';
+import { clusterSlice, useCommentActions, useCommentCluster, usePostComments } from '@/skins/comments';
 
 
 type Tokens = { backdrop: string; wire: string; screen: string };
@@ -46,36 +43,19 @@ const ART = {
   share: require('../../assets/images/actions/share.png'),
 };
 
-/** One comment's row of icons: reply, "this helped" and share. */
+/** One comment's row of icons: reply, "this helped" and share (what they do: skins/comments.ts). */
 function Icons({ postId, comment }: { postId: string; comment: Comment }) {
-  const { t } = useLocale();
-  const { thisHelped, shareConsent } = useFeatures();
-  const [helped, setHelped] = useState(!!comment.helped);
-  const icon = (key: keyof typeof ART, label: string, onPress: () => void, on = false) => (
-    <Pressable key={key} onPress={onPress} accessibilityRole="button" aria-label={label} aria-pressed={key === 'helped' ? on : undefined} style={[styles.icon, on && styles.iconOn]} hitSlop={6}>
+  const { reply, helped, share } = useCommentActions(postId, comment);
+  const icon = (key: keyof typeof ART, b: { name: string; press: () => void; on?: boolean }) => (
+    <Pressable key={key} onPress={b.press} accessibilityRole="button" aria-label={b.name} aria-pressed={key === 'helped' ? !!b.on : undefined} style={[styles.icon, b.on && styles.iconOn]} hitSlop={6}>
       <Image source={ART[key]} style={styles.iconArt} />
     </Pressable>
   );
   return (
     <View style={styles.icons}>
-      {icon('reply', t('post.reply'), () => router.push({ pathname: '/post/[id]', params: { id: postId, comment: comment.id } }))}
-      {thisHelped && !comment.isMine
-        ? icon(
-            'helped',
-            t('kindNorms.helped'),
-            () => {
-              const next = !helped;
-              setHelped(next);
-              api.setHelped(comment.id, next).catch(() => setHelped(!next));
-            },
-            helped,
-          )
-        : null}
-      {!shareConsent || comment.isMine
-        ? icon('share', t('post.share'), () =>
-            Share.share({ message: t('post.shareComment', { body: comment.body, name: comment.author.displayName, url: shareLink(`/post/${postId}`, { comment: comment.id }) }) }).catch(() => undefined),
-          )
-        : null}
+      {icon('reply', reply)}
+      {helped ? icon('helped', helped) : null}
+      {share ? icon('share', share) : null}
     </View>
   );
 }
@@ -227,8 +207,9 @@ function Replies({ postId, parent, kids, tokens }: { postId: string; parent: Com
 }
 
 function MoreLink({ postId, at, color, label }: { postId: string; at: string; n: number; color: string; label: string }) {
+  const { openPost } = useFeedHooks();
   return (
-    <Text style={[styles.more, { color: tubeShades(color).inner }]} accessibilityRole="link" onPress={() => router.push({ pathname: '/post/[id]', params: { id: postId, ...(at ? { comment: at } : {}) } })}>
+    <Text style={[styles.more, { color: tubeShades(color).inner }]} accessibilityRole="link" onPress={() => openPost(postId, at || undefined)}>
       {label}
     </Text>
   );
@@ -236,22 +217,7 @@ function MoreLink({ postId, at, color, label }: { postId: string; at: string; n:
 
 /** The post's comments as a cluster branching from it. Nothing when it has none. */
 export function CommentStack({ card, tokens, start }: { card: Card; tokens: Tokens; start: number }) {
-  const [all, setAll] = useState<Comment[] | null>(null);
-  const count = card.counts.comments ?? 0;
-  useEffect(() => {
-    if (count <= 0) return;
-    let live = true;
-    api
-      .comments(card.id)
-      .then((r) => live && setAll(r.comments))
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [card.id, count]);
-  // Until the comments arrive, the newest few the feed already sent.
-  const fallback = useMemo(() => (card.leafComments ?? []).map((c) => ({ ...c, parentId: c.parentId ?? null })), [card.leafComments]);
-  const { top, kids } = useMemo(() => commentTree(all ?? fallback), [all, fallback]);
+  const { top, kids } = usePostComments(card);
   if (!top.length) return null;
   return (
     <View style={{ marginLeft: start + INDENT }} testID={`circuit-comments-${card.id}`}>
@@ -267,11 +233,9 @@ export function CommentStack({ card, tokens, start }: { card: Card; tokens: Toke
  */
 function Cluster({ postId, list, kids, tokens, color, at }: { postId: string; list: Comment[]; kids: Map<string, Comment[]>; tokens: Tokens; color: string; at: string }) {
   const { t } = useLocale();
-  const [open, setOpen] = useState(false);
-  const shown = open ? list.slice(0, OPENED) : list.slice(0, 1);
-  const behind = open ? 0 : Math.min(list.length - 1, RECESSION);
-  const more = open ? list.length - shown.length : 0;
-  const toggle = () => setOpen((o) => !o);
+  const { state, toggle } = useCommentCluster();
+  const open = state.spread;
+  const { shown, behind, more } = clusterSlice(list, open, OPENED, RECESSION);
   return (
     <View style={styles.cluster}>
       {shown.map((c, i) => (

@@ -205,6 +205,18 @@ public enum BeanDraw {
             self.open = open
             self.open2 = open2
         }
+
+        /// Opens or closes a comment's replies (level 1) or a reply's replies (level 2), by index.
+        /// Opening another comment closes the reply that was open. The same rule as the Expo
+        /// app's useCommentCluster (apps/mobile/src/skins/comments.ts), for every skin.
+        public mutating func toggleReplies(level: Int, index: Int) {
+            if level == 1 {
+                open = open == index ? nil : index
+                open2 = nil
+            } else {
+                open2 = open2 == index ? nil : index
+            }
+        }
     }
 
     public struct Hanging: Sendable {

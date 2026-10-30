@@ -39,13 +39,13 @@ struct AuditSamplesView: View {
         NavigationStack {
             List(Self.skins, id: \.slug) { skin in
                 NavigationLink(skin.name) {
-                    SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
+                    SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, row: { card in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(card.author.displayName).font(.subheadline.bold())
                             Text(card.body)
                         }
                         .accessibilityElement(children: .combine)
-                    }, onEnd: {})
+                    })
                     .navigationTitle(skin.name)
                     .navigationBarTitleDisplayMode(.inline)
                     // The same bars as the feed, so the title stays readable on a dark skin.

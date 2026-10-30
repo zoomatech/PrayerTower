@@ -92,4 +92,17 @@ import Testing
         #expect(first.0 == 180 && first.1 == 0)
         #expect(last.0 == 220 && last.1 == bent.H)
     }
+
+    @Test func repliesOpenAndCloseTheSameWayInEverySkin() {
+        var cv = BeanDraw.LeafState()
+        cv.toggleReplies(level: 1, index: 2)
+        #expect(cv.open == 2 && cv.open2 == nil)
+        cv.toggleReplies(level: 2, index: 0)
+        #expect(cv.open2 == 0)
+        // Opening another comment closes the reply that was open.
+        cv.toggleReplies(level: 1, index: 3)
+        #expect(cv.open == 3 && cv.open2 == nil)
+        cv.toggleReplies(level: 1, index: 3)
+        #expect(cv.open == nil)
+    }
 }
