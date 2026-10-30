@@ -12,7 +12,7 @@ const SCREENS = [
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/give', '/why-gifts', '/scheduled', '/signal-queue',
   '/prayer-minute', '/prayer-chain', '/skin-idea', '/skin-gallery', '/squire-board', '/prayer-list', '/reading-plan', '/library', '/parallels', '/reading-plans', '/word-study', '/my-notes', '/church', '/two-step',
   '/account-security', '/ai-chat', '/listen', '/listen-on-air', '/announcements', '/churches', '/onboarding', '/remembered', '/waitlist', '/invites',
-  '/tour', '/delete-account',
+  '/tour', '/delete-account', '/prayer-panel',
   '/meaning-words', '/kindness-research', '/crosspost', '/safety', '/circles',
 ];
 
