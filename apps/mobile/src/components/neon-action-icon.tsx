@@ -1,7 +1,7 @@
 /**
  * The post's action icons as neon, for the Neon Circuit skin (Steve, 2026-10-30: "techy neon buttons BELOW the post,
- * a neon representation of standard icons", "MORE TRON LIKE"). Straight segments and cut corners, each in a cut-corner
- * frame, drawn three times: a wide faint bloom, a colored tube and a thin white-hot core.
+ * a neon representation of standard icons", "MORE TRON LIKE"). Straight segments, each in a rectangle with small rounded
+ * corners, drawn three times: a wide faint bloom, a colored tube and a thin white-hot core.
  */
 import type { CardAction } from '@prayer-tower/shared';
 import Svg, { G, Path } from 'react-native-svg';
@@ -19,7 +19,8 @@ const SHAPES: Partial<Record<CardAction, string[]>> = {
   gift_tokens: ['M2 12h3v8H2z', 'M5 19h10l7-5-1-1.5-6 3.5', 'M5 14l4-2h6l1 1.5-1 1.5h-5'],
 };
 
-const FRAME = 'M5 -2H19L26 5V19L19 26H5L-2 19V5Z';
+// A rectangle with small rounded corners, no decorative corners (Steve's Tron look).
+const FRAME = 'M1 -2H23A3 3 0 0 1 26 1V23A3 3 0 0 1 23 26H1A3 3 0 0 1 -2 23V1A3 3 0 0 1 1 -2Z';
 
 export const hasNeonIcon = (action: CardAction) => !!SHAPES[action];
 
