@@ -33,6 +33,8 @@ jobs:
           grep -E "PASS|FAIL" native-build.txt | while IFS= read -r l; do echo "::notice title=native build::$l"; done || true
           f=$(ls -d build-logs/native-*/ | tail -1)
           grep -hE "error:|^(Feed|My Promises|Messages|Notices|Me|Request): " "$f"ui-walks.txt 2>/dev/null | sort -u | head -80 | while IFS= read -r l; do echo "::warning title=ui walks::$l"; done || true
+          # The whole log rides along on the native-screenshots branch (annotations stop at 10).
+          mkdir -p store-screenshots/native-qa && cp native-build.txt "$f"ui-walks.txt store-screenshots/native-qa/ 2>/dev/null || true
       - shell: bash
         run: mkdir -p build-logs/screenshots-run && QA=${{ inputs.qa && 1 || 0 }} bash scripts/mac-screenshots-native.sh prayertower 2>&1 | tee build-logs/screenshots-run/prayertower.txt
       - shell: bash
