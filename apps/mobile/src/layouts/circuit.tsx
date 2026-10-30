@@ -7,9 +7,10 @@
 import type { Card, FeedTheme } from '@prayer-tower/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native';
-import Svg from 'react-native-svg';
+import Svg, { Circle, G } from 'react-native-svg';
 
-import { Rod, tubeShades } from '@/components/vine-flow';
+import { GlassTube, GLOW_REACH, roundedBox, tubeShades } from '@/components/glass-tube';
+import { DrawBusContext, makeDrawBus, useDrawIn, type Row } from '@/lib/draw-in';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -18,7 +19,11 @@ import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
 import { glow, isDark, textOn } from './motifs';
 
-const DEFAULTS = { backdrop: '#05070D', wire: '#00E5FF', burst: '#FFFFFF', screen: '#FF2BD6', tilt: 10 };
+// Tron colors (Steve, 2026-10-30): strong electric blue and red on near-black.
+const DEFAULTS = { backdrop: '#02040A', wire: '#1E9BFF', burst: '#FFFFFF', screen: '#FF2A1F', tilt: 10 };
+/** Where the wire runs, and where its tap meets the screen. */
+const WIRE_X = 12;
+const TAP_END = 44;
 type CircuitTokens = typeof DEFAULTS;
 
 export function circuitTokens(theme: FeedTheme | null): CircuitTokens {
@@ -62,40 +67,86 @@ function Burst({ tokens, delay }: { tokens: CircuitTokens; delay: number }) {
 
 function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: Card; index: number; tokens: CircuitTokens; pinned: boolean; reduced: boolean; children: React.ReactNode }) {
   const left = index % 2 === 0;
-  // Glass neon tubes (Steve, 2026-10-30): near-white in the middle, deeper color toward
-  // the edge of the glass, a radiant glow around it, and smooth curves, no corners.
-  const wire = tubeShades(tokens.wire);
-  const screen = tubeShades(tokens.screen);
+  // Every line is a neon glass tube (components/glass-tube.tsx). The wire builds down into this
+  // row as it comes into view, then the tap reaches out and the screen's tube frame lights.
+  const rowRef = useRef<Row>(null);
+  const { drawn, onLayout: drawOnLayout } = useDrawIn(rowRef, 1600);
+  const [row, setRow] = useState({ w: 0, h: 0 });
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const room = GLOW_REACH + 4;
   return (
-    <View style={styles.row} testID={`screen-${card.id}`}>
-      {/* The wire, the curved tube from it into this screen, and the bursts on it. */}
-      <View style={[styles.wire, { backgroundColor: wire.edge, ...glow(tokens.wire, 14) }]}>
-        <View style={[styles.wireBody, { backgroundColor: wire.inner }]} />
-        <View style={[styles.wireCore, { backgroundColor: wire.core }]} />
-        {reduced ? null : <Burst tokens={tokens} delay={(index % 4) * 650} />}
-      </View>
-      <View style={styles.tap} pointerEvents="none">
-        <Svg aria-hidden width={60} height={60} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Rod d="M 11 10 C 11 34, 22 44, 44 44" color={tokens.wire} width={4} />
-        </Svg>
-      </View>
-      <View
+    <View
+      ref={rowRef}
+      style={styles.row}
+      testID={`screen-${card.id}`}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        if (Math.abs(width - row.w) > 1 || Math.abs(height - row.h) > 1) setRow({ w: width, h: height });
+        drawOnLayout();
+      }}>
+      {/* The wire down this row, and its tap into the screen. */}
+      {row.h ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.wireClip, { width: WIRE_X + room + TAP_END, height: drawn.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, row.h, row.h] }) }]}>
+          <Svg aria-hidden width={WIRE_X + room + TAP_END} height={row.h} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <GlassTube d={`M ${WIRE_X} 0 L ${WIRE_X} ${row.h}`} color={tokens.wire} width={5} />
+            {/* Circuit traces off the wire: short runs with 45° bends, each ending in a via. */}
+            {[0.18, 0.78].map((t, i) => {
+              const y = row.h * t;
+              const end = { x: WIRE_X + 22, y: y + (i ? -10 : 10) };
+              return (
+                <G key={t}>
+                  <GlassTube d={`M ${WIRE_X} ${y} L ${WIRE_X + 12} ${y} L ${end.x} ${end.y}`} color={tokens.wire} width={2.2} />
+                  <Circle cx={end.x} cy={end.y} r={3} fill={tokens.backdrop} stroke={tubeShades(tokens.wire).inner} strokeWidth={1.6} />
+                </G>
+              );
+            })}
+          </Svg>
+        </Animated.View>
+      ) : null}
+      {row.h ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.tapClip, { top: row.h / 2 - room, width: drawn.interpolate({ inputRange: [0, 0.3, 0.45, 1], outputRange: [0, 0, TAP_END + 22 + room, TAP_END + 22 + room] }) }]}>
+          <Svg aria-hidden width={TAP_END + 22 + room} height={room * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            {/* The connector takes its box's color, shading gradually to the wire's blue where it meets the wire. */}
+            <GlassTube d={`M ${WIRE_X} ${room} L ${TAP_END + 22} ${room}`} color={tokens.screen} width={4} blend={{ to: tokens.wire, x1: WIRE_X + 26, x2: WIRE_X + 4 }} />
+          </Svg>
+        </Animated.View>
+      ) : null}
+      {reduced || !row.h ? null : (
+        // Current runs only once the wire is drawn.
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: drawn.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 0, 1] }) }]} pointerEvents="none">
+          <Burst tokens={tokens} delay={(index % 4) * 650} />
+        </Animated.View>
+      )}
+      <Animated.View
         style={[
           styles.screen,
-          { borderColor: screen.edge, ...glow(tokens.screen, 20) },
           { transform: [{ perspective: 900 }, { rotateY: `${left ? tokens.tilt : -tokens.tilt}deg` }] },
-        ]}>
-        <View style={[styles.ring, { borderColor: screen.inner, borderRadius: radius.lg - 3 }]}>
-          <View style={[styles.ring, { borderColor: screen.core, borderRadius: radius.lg - 5 }]}>
-            <View style={[styles.ring, { borderColor: screen.inner, borderRadius: radius.lg - 7 }]}>
-              <View style={[styles.ringEdge, { borderColor: screen.edge }]}>
-                {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
-                <View style={styles.glass}>{children}</View>
-              </View>
-            </View>
-          </View>
-        </View>
-      </View>
+        ]}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          if (Math.abs(width - box.w) > 1 || Math.abs(height - box.h) > 1) setBox({ w: width, h: height });
+        }}>
+        {/* The screen's frame: one glass tube bent into a rectangle with elegantly rounded corners.
+            Scrolling down, its top is drawn first and its bottom, still mostly off screen, last. */}
+        {box.w ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.frameClip, { left: -room, top: -room, width: box.w + room * 2, height: drawn.interpolate({ inputRange: [0, 0.4, 0.8, 1], outputRange: [0, 0, box.h + room * 2, box.h + room * 2] }) }]}>
+            <Svg aria-hidden width={box.w + room * 2} height={box.h + room * 2} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <GlassTube d={roundedBox(box.w + room * 2, box.h + room * 2, 16, room + 3)} color={tokens.screen} width={6} />
+            </Svg>
+          </Animated.View>
+        ) : null}
+        {/* The card's words fade in only once the tube round it is drawn. */}
+        <Animated.View style={{ opacity: drawn.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0, 0, 1] }) }}>
+          {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}
+          <View style={styles.glass}>{children}</View>
+        </Animated.View>
+      </Animated.View>
     </View>
   );
 }
@@ -104,7 +155,9 @@ export function CircuitLayout({ cards, theme, pinnedId, renderCard, header, refr
   const { t } = useLocale();
   const tokens = useMemo(() => circuitTokens(theme), [theme]);
   const reduced = useReducedMotion();
+  const drawBus = useMemo(() => makeDrawBus(), []);
   return (
+    <DrawBusContext.Provider value={drawBus}>
     <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="circuit-layout">
       <FlatList
         data={cards}
@@ -129,26 +182,28 @@ export function CircuitLayout({ cards, theme, pinnedId, renderCard, header, refr
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         {...feedListTuning}
+        onScroll={drawBus.emit}
+        scrollEventThrottle={50}
+        // Rows already on screen when the feed opens or grows draw in too.
+        onLayout={drawBus.emit}
+        onContentSizeChange={drawBus.emit}
       />
     </View>
+    </DrawBusContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { padding: space.md, paddingBottom: 120 },
-  // The screen's frame is one glass tube: deep color at both edges, near white in the middle.
-  ring: { borderWidth: 1.5 },
-  ringEdge: { borderWidth: 2, borderRadius: radius.lg - 9, padding: 5, backgroundColor: '#0E1220' },
   headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm, marginBottom: space.md },
   row: { position: 'relative', paddingVertical: space.md },
   // The live wire runs down the left edge of every row, so together the rows form one line.
-  wire: { position: 'absolute', left: 8, top: 0, bottom: 0, width: 6 },
-  wireBody: { position: 'absolute', left: 1, top: 0, bottom: 0, width: 4 },
-  wireCore: { position: 'absolute', left: 2.25, top: 0, bottom: 0, width: 1.5 },
-  burst: { position: 'absolute', left: -1, width: 8, height: 18, borderRadius: 4 },
-  tap: { position: 'absolute', top: '50%', left: 0, marginTop: -44 },
-  screen: { marginLeft: 44, borderWidth: 2, borderRadius: radius.lg },
+  frameClip: { position: 'absolute', overflow: 'hidden' },
+  wireClip: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
+  tapClip: { position: 'absolute', left: 0, overflow: 'hidden' },
+  burst: { position: 'absolute', left: WIRE_X - 4, width: 8, height: 18, borderRadius: 4 },
+  screen: { marginLeft: TAP_END + 6, borderRadius: radius.lg, padding: 8 },
   glass: { borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surface },
   pinned: { ...type.small, fontWeight: '700', marginBottom: 4 },
   end: { alignItems: 'center', gap: space.sm, paddingTop: space.md },
