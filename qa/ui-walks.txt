@@ -8,16 +8,16 @@ Resolve Package Graph
 
 
 Resolved source packages:
-  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.13.1
-  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.8.0
-  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.1.1
-  swift-atomics: https://github.com/apple/swift-atomics.git @ 1.3.1
   swift-crypto: https://github.com/apple/swift-crypto.git @ 4.5.2
-  Supabase: https://github.com/supabase/supabase-swift.git @ 2.55.5
-  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.7.3
   opentelemetry-swift-core: https://github.com/open-telemetry/opentelemetry-swift-core.git @ 2.6.0
   swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.4.3
   PrayerTowerKit: /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.7.3
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.55.5
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.13.1
+  swift-atomics: https://github.com/apple/swift-atomics.git @ 1.3.1
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.1.1
+  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.8.0
 
 --- xcodebuild: WARNING: Using the first of multiple matching destinations:
 { platform:iOS Simulator, arch:arm64, id:15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D, OS:18.5, name:iPhone 16 Pro }
@@ -123,8 +123,8 @@ ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/X
 
 ReadFileContents /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/docc/features.json
 
-Build description signature: 6a32a07cef26982dba51966ac932def3
-Build description path: /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/XCBuildData/6a32a07cef26982dba51966ac932def3.xcbuilddata
+Build description signature: fb505b6e02f8ed770f3fc95b2ff6d8a4
+Build description path: /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/XCBuildData/fb505b6e02f8ed770f3fc95b2ff6d8a4.xcbuilddata
 ClangStatCache /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/PrayerTowerNative.xcodeproj
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
@@ -287,14 +287,14 @@ SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-na
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
-SwiftEmitModule normal arm64 Emitting\ module\ for\ PrayerTowerNativeUITests (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
-
-SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+SwiftCompile normal arm64 Compiling\ MainScreensWalk.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
-SwiftCompile normal arm64 Compiling\ MainScreensWalk.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
-SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+SwiftEmitModule normal arm64 Emitting\ module\ for\ PrayerTowerNativeUITests (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+
+SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
@@ -360,6 +360,11 @@ ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/deriv
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/App/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerCrosspost.appex -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerWidgets.appex -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerKit_PrayerTowerKit.bundle -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/swift-crypto_Crypto.bundle -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Info.plist
 
+CopySwiftLibs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerNative.debug.dylib --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Frameworks --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/SystemExtensions --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
 ValidateEmbeddedBinary /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerWidgets.appex (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/embeddedBinaryValidationUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerWidgets.appex -info-plist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Info.plist
@@ -367,11 +372,6 @@ ValidateEmbeddedBinary /Users/runner/work/PrayerTower/PrayerTower/build-logs/der
 ValidateEmbeddedBinary /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerCrosspost.appex (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/embeddedBinaryValidationUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerCrosspost.appex -info-plist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Info.plist
-
-CopySwiftLibs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerNative.debug.dylib --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Frameworks --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/SystemExtensions --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
-Ignoring --strip-bitcode because --sign was not passed
 
 Ld /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/PrayerTowerNativeUITests normal (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -388,8 +388,8 @@ ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/deriv
 ExtractAppIntentsMetadata (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name PrayerTowerNativeUITests --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk --xcode-version 16F6 --platform-family iOS --deployment-target 17.0 --bundle-identifier com.zoomatech.prayertower.native.uitests --output /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest --target-triple arm64-apple-ios17.0-simulator --binary-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/PrayerTowerNativeUITests --dependency-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_dependency_info.dat --stringsdata-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2026-10-30 05:36:33.563 appintentsmetadataprocessor[6065:22205] Starting appintentsmetadataprocessor export
-2026-10-30 05:36:33.565 appintentsmetadataprocessor[6065:22205] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-10-30 06:14:30.726 appintentsmetadataprocessor[12815:39277] Starting appintentsmetadataprocessor export
+2026-10-30 06:14:30.730 appintentsmetadataprocessor[12815:39277] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 CopySwiftLibs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -399,8 +399,8 @@ Ignoring --strip-bitcode because --sign was not passed
 AppIntentsSSUTraining (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Info.plist --temp-dir-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/ssu --bundle-id com.zoomatech.prayertower.native.uitests --product-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest --extracted-metadata-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Metadata.appintents --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests.DependencyMetadataFileList --archive-ssu-assets
-2026-10-30 05:36:33.595 appintentsnltrainingprocessor[6066:22208] Parsing options for appintentsnltrainingprocessor
-2026-10-30 05:36:33.596 appintentsnltrainingprocessor[6066:22208] No AppShortcuts found - Skipping.
+2026-10-30 06:14:30.797 appintentsnltrainingprocessor[12816:39278] Parsing options for appintentsnltrainingprocessor
+2026-10-30 06:14:30.798 appintentsnltrainingprocessor[12816:39278] No AppShortcuts found - Skipping.
 
 MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -464,13 +464,13 @@ SwiftDriver\ Compilation\ Requirements PrayerTowerUIWalks normal arm64 com.apple
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     builtin-Swift-Compilation-Requirements -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name PrayerTowerUIWalks -Onone -enforce-exclusivity\=checked @/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.SwiftFileList -DDEBUG -module-alias Testing\=_Testing_Unavailable -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-generated-files.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-own-target-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative-b18b320b37084903fb4fefae12e54166-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-project-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-Swift.h -working-directory /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native -experimental-emit-module-separately -disable-cmo
 
-Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftmodule
-
 SwiftMergeGeneratedHeaders /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources/PrayerTowerUIWalks-Swift.h /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-Swift.h (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     builtin-swiftHeaderTool -arch arm64 /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-Swift.h -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources/PrayerTowerUIWalks-Swift.h
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftmodule
 
 Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftdoc (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -497,8 +497,8 @@ Ld /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Pr
 ExtractAppIntentsMetadata (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name PrayerTowerUIWalks --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk --xcode-version 16F6 --platform-family iOS --deployment-target 17.0 --bundle-identifier com.zoomatech.prayertower.native.uiwalks --output /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest --target-triple arm64-apple-ios17.0-simulator --binary-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/PrayerTowerUIWalks --dependency-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks_dependency_info.dat --stringsdata-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.SwiftFileList --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2026-10-30 05:36:34.853 appintentsmetadataprocessor[6075:22238] Starting appintentsmetadataprocessor export
-2026-10-30 05:36:34.854 appintentsmetadataprocessor[6075:22238] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-10-30 06:14:32.250 appintentsmetadataprocessor[12827:39308] Starting appintentsmetadataprocessor export
+2026-10-30 06:14:32.253 appintentsmetadataprocessor[12827:39308] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 CopySwiftLibs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -508,16 +508,16 @@ Ignoring --strip-bitcode because --sign was not passed
 AppIntentsSSUTraining (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Info.plist --temp-dir-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/ssu --bundle-id com.zoomatech.prayertower.native.uiwalks --product-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest --extracted-metadata-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Metadata.appintents --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks.DependencyMetadataFileList --archive-ssu-assets
-2026-10-30 05:36:34.870 appintentsnltrainingprocessor[6076:22239] Parsing options for appintentsnltrainingprocessor
-2026-10-30 05:36:34.870 appintentsnltrainingprocessor[6076:22239] No AppShortcuts found - Skipping.
-
-MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app
+2026-10-30 06:14:32.280 appintentsnltrainingprocessor[12828:39309] Parsing options for appintentsnltrainingprocessor
+2026-10-30 06:14:32.282 appintentsnltrainingprocessor[12828:39309] No AppShortcuts found - Skipping.
 
 CopyPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Info.plist /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     builtin-copyPlist --validate --convert xml1 --macro-expansion WRAPPEDPRODUCTNAME PrayerTowerUIWalks-Runner --macro-expansion WRAPPEDPRODUCTBUNDLEIDENTIFIER com.zoomatech.prayertower.native.uiwalks.xctrunner --macro-expansion TESTPRODUCTNAME PrayerTowerUIWalks --macro-expansion TESTPRODUCTBUNDLEIDENTIFIER com.zoomatech.prayertower.native.uiwalks --copy-value UIDeviceFamily /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Info.plist --outdir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app -- /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist
+
+MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app
 
 CopyAndPreserveArchs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PrayerTowerUIWalks-Runner (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -567,919 +567,905 @@ Touch /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /usr/bin/touch -c /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest
 
-2026-10-30 05:37:30.846144+0000 PrayerTowerUIWalks-Runner[6786:25892] [Default] Running tests...
-Test Suite 'All tests' started at 2026-10-30 05:37:44.755.
-Test Suite 'PrayerTowerUIWalks.xctest' started at 2026-10-30 05:37:44.755.
-Test Suite 'MainScreensWalk' started at 2026-10-30 05:37:44.755.
-Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit]' started.
-    t =     0.00s Start Test at 2026-10-30 05:37:44.755
-    t =     0.69s Set Up
-    t =     0.69s     Open com.zoomatech.prayertower.native
-    t =     0.69s         Launch com.zoomatech.prayertower.native
-    t =    12.94s             Setting up automation session
-    t =    12.99s             Wait for com.zoomatech.prayertower.native to idle
-    t =    14.01s Waiting 10.0s for Any (First Match) to exist
-    t =    15.06s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =    15.06s         Checking existence of `Any (First Match)`
-    t =    19.92s Waiting 10.0s for "My Promises" Button to exist
-    t =    20.98s     Checking `Expect predicate `existsNoRetry == 1` for object "My Promises" Button`
-    t =    20.98s         Checking existence of `"My Promises" Button`
-    t =    21.19s Tap "My Promises" Button
-    t =    21.19s     Wait for com.zoomatech.prayertower.native to idle
-    t =    21.19s     Find the "My Promises" Button
-    t =    21.26s     Check for interrupting elements affecting "checkmark.circle" Button
-    t =    21.40s     Synthesize event
-    t =    21.81s     Wait for com.zoomatech.prayertower.native to idle
-    t =    25.85s Waiting 10.0s for "Messages" Button to exist
-    t =    26.91s     Checking `Expect predicate `existsNoRetry == 1` for object "Messages" Button`
-    t =    26.91s         Checking existence of `"Messages" Button`
-    t =    27.02s Tap "Messages" Button
-    t =    27.02s     Wait for com.zoomatech.prayertower.native to idle
-    t =    27.02s     Find the "Messages" Button
-    t =    27.54s     Check for interrupting elements affecting "bubble.left.and.bubble.right" Button
-    t =    27.63s     Synthesize event
-    t =    27.92s     Wait for com.zoomatech.prayertower.native to idle
-    t =    31.97s Waiting 10.0s for "Notices" Button to exist
-    t =    33.00s     Checking `Expect predicate `existsNoRetry == 1` for object "Notices" Button`
-    t =    33.00s         Checking existence of `"Notices" Button`
-    t =    33.76s Tap "Notices" Button
-    t =    33.76s     Wait for com.zoomatech.prayertower.native to idle
-    t =    33.77s     Find the "Notices" Button
-    t =    34.75s     Check for interrupting elements affecting "bell" Button
-    t =    35.33s     Synthesize event
-    t =    35.86s     Wait for com.zoomatech.prayertower.native to idle
-    t =    39.27s Waiting 10.0s for "Me" Button to exist
-    t =    40.31s     Checking `Expect predicate `existsNoRetry == 1` for object "Me" Button`
-    t =    40.31s         Checking existence of `"Me" Button`
-    t =    40.36s Tap "Me" Button
-    t =    40.36s     Wait for com.zoomatech.prayertower.native to idle
-    t =    40.37s     Find the "Me" Button
-    t =    40.44s     Check for interrupting elements affecting "person.crop.circle" Button
-    t =    40.48s     Synthesize event
-    t =    40.76s     Wait for com.zoomatech.prayertower.native to idle
-    t =    45.76s Waiting 10.0s for "Feed" Button to exist
-    t =    46.80s     Checking `Expect predicate `existsNoRetry == 1` for object "Feed" Button`
-    t =    46.80s         Checking existence of `"Feed" Button`
-    t =    46.91s Tap "Feed" Button
-    t =    46.91s     Wait for com.zoomatech.prayertower.native to idle
-    t =    46.91s     Find the "Feed" Button
-    t =    46.99s     Check for interrupting elements affecting "list.bullet" Button
-    t =    47.08s     Synthesize event
-    t =    47.40s     Wait for com.zoomatech.prayertower.native to idle
-    t =    47.94s Tap Any (First Match)
-    t =    47.94s     Wait for com.zoomatech.prayertower.native to idle
-    t =    48.00s     Find the Any (First Match)
-    t =    48.24s     Check for interrupting elements affecting "Ruth, Please pray for my mother's surgery on Tuesday., 4 praying" Button
-    t =    48.43s     Synthesize event
-    t =    48.76s     Wait for com.zoomatech.prayertower.native to idle
-    t =    49.23s Waiting 10.0s for Any (First Match) to exist
-    t =    50.25s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =    50.25s         Checking existence of `Any (First Match)`
-    t =    54.41s Find the Any (Descendant with identity binding to AX element pid: 7174, elementOrHash.elementID: 105553169855936.518)
-    t =    54.46s Find the "Comment" Button
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift:75: error: -[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit] : XCTAssertTrue failed - Accessibility audit:
-Me: Contrast failed on screen. Contrast failed for element
-Me: Contrast failed on screen. Contrast failed for element
-Me: Contrast failed on screen. Contrast failed for element
-Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
-Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
-Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
-Request: Contrast failed on screen. Contrast failed for element
-    t =    56.00s Tear Down
-Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit]' failed (66.298 seconds).
-Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryTabOpens]' started.
-    t =     0.00s Start Test at 2026-10-30 05:38:51.054
-    t =     0.06s Set Up
-    t =     0.06s     Open com.zoomatech.prayertower.native
-    t =     0.06s         Launch com.zoomatech.prayertower.native
-    t =     0.06s             Terminate com.zoomatech.prayertower.native:7174
-    t =     2.08s             Setting up automation session
-    t =     2.86s             Wait for com.zoomatech.prayertower.native to idle
-    t =     3.99s Waiting 10.0s for Any (First Match) to exist
-    t =     5.04s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =     5.04s         Checking existence of `Any (First Match)`
-    t =     5.17s Waiting 10.0s for "My Promises" Button to exist
-    t =     6.22s     Checking `Expect predicate `existsNoRetry == 1` for object "My Promises" Button`
-    t =     6.22s         Checking existence of `"My Promises" Button`
-    t =     6.26s Tap "My Promises" Button
-    t =     6.26s     Wait for com.zoomatech.prayertower.native to idle
-    t =     6.26s     Find the "My Promises" Button
-    t =     6.29s     Check for interrupting elements affecting "checkmark.circle" Button
-    t =     6.33s     Synthesize event
-    t =     6.62s     Wait for com.zoomatech.prayertower.native to idle
-    t =     7.15s Waiting 10.0s for Any (First Match) to exist
-    t =     8.20s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =     8.20s         Checking existence of `Any (First Match)`
-    t =     8.41s Waiting 10.0s for "Messages" Button to exist
-    t =     9.47s     Checking `Expect predicate `existsNoRetry == 1` for object "Messages" Button`
-    t =     9.47s         Checking existence of `"Messages" Button`
-    t =     9.51s Tap "Messages" Button
-    t =     9.51s     Wait for com.zoomatech.prayertower.native to idle
-    t =     9.51s     Find the "Messages" Button
-    t =     9.55s     Check for interrupting elements affecting "bubble.left.and.bubble.right" Button
-    t =     9.60s     Synthesize event
-    t =     9.90s     Wait for com.zoomatech.prayertower.native to idle
-    t =    10.47s Waiting 10.0s for Any (First Match) to exist
-    t =    11.50s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =    11.50s         Checking existence of `Any (First Match)`
-    t =    11.58s Waiting 10.0s for "Notices" Button to exist
-    t =    12.62s     Checking `Expect predicate `existsNoRetry == 1` for object "Notices" Button`
-    t =    12.62s         Checking existence of `"Notices" Button`
-    t =    12.65s Tap "Notices" Button
-    t =    12.65s     Wait for com.zoomatech.prayertower.native to idle
-    t =    12.66s     Find the "Notices" Button
-    t =    12.69s     Check for interrupting elements affecting "bell" Button
-    t =    12.72s     Synthesize event
-    t =    13.02s     Wait for com.zoomatech.prayertower.native to idle
-    t =    13.53s Waiting 10.0s for Any (First Match) to exist
-    t =    14.55s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =    14.55s         Checking existence of `Any (First Match)`
-    t =    14.65s Waiting 10.0s for "Me" Button to exist
-    t =    15.68s     Checking `Expect predicate `existsNoRetry == 1` for object "Me" Button`
-    t =    15.68s         Checking existence of `"Me" Button`
-    t =    15.71s Tap "Me" Button
-    t =    15.71s     Wait for com.zoomatech.prayertower.native to idle
-    t =    15.71s     Find the "Me" Button
-    t =    15.76s     Check for interrupting elements affecting "person.crop.circle" Button
-    t =    15.79s     Synthesize event
-    t =    16.08s     Wait for com.zoomatech.prayertower.native to idle
-    t =    16.17s Find the "Me" Button
-    t =    16.58s Waiting 10.0s for "Feed" Button to exist
-    t =    17.62s     Checking `Expect predicate `existsNoRetry == 1` for object "Feed" Button`
-    t =    17.62s         Checking existence of `"Feed" Button`
-    t =    17.69s Tap "Feed" Button
-    t =    17.69s     Wait for com.zoomatech.prayertower.native to idle
-    t =    17.70s     Find the "Feed" Button
-    t =    17.78s     Check for interrupting elements affecting "list.bullet" Button
-    t =    17.82s     Synthesize event
-    t =    18.10s     Wait for com.zoomatech.prayertower.native to idle
-    t =    18.60s Waiting 10.0s for Any (First Match) to exist
-    t =    19.68s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =    19.68s         Checking existence of `Any (First Match)`
-    t =    19.75s Tear Down
-Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryTabOpens]' passed (21.443 seconds).
-Test Case '-[PrayerTowerUIWalks.MainScreensWalk testFeedOpensARequestWithItsComments]' started.
-    t =     0.00s Start Test at 2026-10-30 05:39:12.497
-    t =     0.05s Set Up
-    t =     0.05s     Open com.zoomatech.prayertower.native
-    t =     0.05s         Launch com.zoomatech.prayertower.native
-    t =     0.05s             Terminate com.zoomatech.prayertower.native:8671
-    t =     1.74s             Setting up automation session
-    t =     3.08s             Wait for com.zoomatech.prayertower.native to idle
-    t =     4.26s Waiting 10.0s for Any (First Match) to exist
-    t =     5.30s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =     5.31s         Checking existence of `Any (First Match)`
-    t =     5.51s Tap Any (First Match)
-    t =     5.51s     Wait for com.zoomatech.prayertower.native to idle
-    t =     5.52s     Find the Any (First Match)
-    t =     5.61s     Check for interrupting elements affecting "Ruth, Please pray for my mother's surgery on Tuesday., 4 praying" Button
-    t =     5.72s     Synthesize event
-    t =     6.03s     Wait for com.zoomatech.prayertower.native to idle
-    t =     6.43s Waiting 10.0s for Any (First Match) to exist
-    t =     7.46s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =     7.46s         Checking existence of `Any (First Match)`
-    t =     7.72s Waiting 10.0s for Any (First Match) to exist
-    t =     8.77s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
-    t =     8.77s         Checking existence of `Any (First Match)`
-    t =     8.92s Tear Down
-Test Case '-[PrayerTowerUIWalks.MainScreensWalk testFeedOpensARequestWithItsComments]' passed (9.284 seconds).
-Test Suite 'MainScreensWalk' failed at 2026-10-30 05:39:21.782.
-	 Executed 3 tests, with 1 failure (0 unexpected) in 97.025 (97.027) seconds
-Test Suite 'PrayerTowerUIWalks.xctest' failed at 2026-10-30 05:39:21.782.
-	 Executed 3 tests, with 1 failure (0 unexpected) in 97.025 (97.027) seconds
-Test Suite 'All tests' failed at 2026-10-30 05:39:21.783.
-	 Executed 3 tests, with 1 failure (0 unexpected) in 97.025 (97.028) seconds
-2026-10-30 05:39:23.747506+0000 PrayerTowerNativeUITests-Runner[9818:34600] [Default] Running tests...
-2026-10-30 05:39:23.766624+0000 PrayerTowerNativeUITests-Runner[9818:34615] [General] Failed to send CA Event for app launch measurements for ca_event_type: 0 event_name: com.apple.app_launch_measurement.FirstFramePresentationMetric
+2026-10-30 06:17:12.430077+0000 PrayerTowerUIWalks-Runner[14203:44405] [Default] Running tests...
     t =      nans Interface orientation changed to Portrait
-Test Suite 'All tests' started at 2026-10-30 05:39:26.345.
-Test Suite 'PrayerTowerNativeUITests.xctest' started at 2026-10-30 05:39:26.346.
-Test Suite 'AccessibilityAuditTests' started at 2026-10-30 05:39:26.346.
+Test Suite 'All tests' started at 2026-10-30 06:17:41.305.
+Test Suite 'PrayerTowerUIWalks.xctest' started at 2026-10-30 06:17:41.306.
+Test Suite 'MainScreensWalk' started at 2026-10-30 06:17:41.307.
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit]' started.
+    t =     0.00s Start Test at 2026-10-30 06:17:41.307
+    t =     1.43s Set Up
+    t =     1.47s     Open com.zoomatech.prayertower.native
+    t =     1.47s         Launch com.zoomatech.prayertower.native
+    t =    10.76s             Setting up automation session
+    t =    13.05s             Wait for com.zoomatech.prayertower.native to idle
+    t =    15.68s Waiting 10.0s for Any (First Match) to exist
+    t =    16.77s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    16.77s         Checking existence of `Any (First Match)`
+    t =    23.11s Waiting 10.0s for "My Promises" Button to exist
+    t =    24.19s     Checking `Expect predicate `existsNoRetry == 1` for object "My Promises" Button`
+    t =    24.19s         Checking existence of `"My Promises" Button`
+    t =    24.74s Tap "My Promises" Button
+    t =    24.74s     Wait for com.zoomatech.prayertower.native to idle
+    t =    24.87s     Find the "My Promises" Button
+    t =    25.01s     Check for interrupting elements affecting "checkmark.circle" Button
+    t =    25.16s     Synthesize event
+    t =    25.89s     Wait for com.zoomatech.prayertower.native to idle
+    t =    31.91s Waiting 10.0s for "Messages" Button to exist
+    t =    32.94s     Checking `Expect predicate `existsNoRetry == 1` for object "Messages" Button`
+    t =    32.94s         Checking existence of `"Messages" Button`
+    t =    33.07s Tap "Messages" Button
+    t =    33.07s     Wait for com.zoomatech.prayertower.native to idle
+    t =    33.08s     Find the "Messages" Button
+    t =    33.17s     Check for interrupting elements affecting "bubble.left.and.bubble.right" Button
+    t =    33.26s     Synthesize event
+    t =    33.59s     Wait for com.zoomatech.prayertower.native to idle
+    t =    41.31s Waiting 10.0s for "Notices" Button to exist
+    t =    42.36s     Checking `Expect predicate `existsNoRetry == 1` for object "Notices" Button`
+    t =    42.37s         Checking existence of `"Notices" Button`
+    t =    42.64s Tap "Notices" Button
+    t =    42.64s     Wait for com.zoomatech.prayertower.native to idle
+    t =    42.66s     Find the "Notices" Button
+    t =    42.93s     Check for interrupting elements affecting "bell" Button
+    t =    43.22s     Synthesize event
+    t =    43.69s     Wait for com.zoomatech.prayertower.native to idle
+    t =    49.69s Waiting 10.0s for "Me" Button to exist
+    t =    50.75s     Checking `Expect predicate `existsNoRetry == 1` for object "Me" Button`
+    t =    50.75s         Checking existence of `"Me" Button`
+    t =    50.84s Tap "Me" Button
+    t =    50.84s     Wait for com.zoomatech.prayertower.native to idle
+    t =    50.85s     Find the "Me" Button
+    t =    50.93s     Check for interrupting elements affecting "person.crop.circle" Button
+    t =    50.99s     Synthesize event
+    t =    51.34s     Wait for com.zoomatech.prayertower.native to idle
+    t =    62.54s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169969504.304)
+    t =    62.65s Find the "Show my prayer stats" StaticText
+    t =    62.75s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169969504.304)
+    t =    62.84s Find the "Show my prayer stats" StaticText
+    t =    62.96s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169969504.304)
+    t =    63.03s Find the "Show my prayer stats" StaticText
+    t =    63.21s Find the "Show my prayer stats" StaticText
+    t =    63.32s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169958784.305)
+    t =    63.42s Find the "Days prayed and people prayed for, on this page only. There are no rankings." StaticText
+    t =    63.51s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169958784.305)
+    t =    63.66s Find the "Days prayed and people prayed for, on this page only. There are no rankings." StaticText
+    t =    64.03s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169958784.305)
+    t =    64.15s Find the "Days prayed and people prayed for, on this page only. There are no rankings." StaticText
+    t =    64.23s Find the "Days prayed and people prayed for, on this page only. There are no rankings." StaticText
+    t =    64.34s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169994272.306)
+    t =    64.42s Find the "Weekly email" StaticText
+    t =    64.52s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169994272.306)
+    t =    64.60s Find the "Weekly email" StaticText
+    t =    64.74s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169994272.306)
+    t =    64.81s Find the "Weekly email" StaticText
+    t =    64.90s Find the "Weekly email" StaticText
+    t =    64.95s Waiting 10.0s for "Feed" Button to exist
+    t =    66.00s     Checking `Expect predicate `existsNoRetry == 1` for object "Feed" Button`
+    t =    66.00s         Checking existence of `"Feed" Button`
+    t =    66.18s Tap "Feed" Button
+    t =    66.18s     Wait for com.zoomatech.prayertower.native to idle
+    t =    66.18s     Find the "Feed" Button
+    t =    66.38s     Check for interrupting elements affecting "list.bullet" Button
+    t =    66.50s     Synthesize event
+    t =    66.91s     Wait for com.zoomatech.prayertower.native to idle
+    t =    66.97s Tap Any (First Match)
+    t =    66.97s     Wait for com.zoomatech.prayertower.native to idle
+    t =    67.63s     Find the Any (First Match)
+    t =    68.19s     Check for interrupting elements affecting "Ruth, Please pray for my mother's surgery on Tuesday., 4 praying" Button
+    t =    68.46s     Synthesize event
+    t =    68.79s     Wait for com.zoomatech.prayertower.native to idle
+    t =    68.98s Waiting 10.0s for Any (First Match) to exist
+    t =    70.06s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    70.06s         Checking existence of `Any (First Match)`
+    t =    81.08s Find the Any (Descendant with identity binding to AX element pid: 14831, elementOrHash.elementID: 105553169987008.514)
+    t =    81.19s Find the "Comment" Button
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift:76: error: -[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit] : XCTAssertTrue failed - Accessibility audit:
+Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Contrast failed on XCUIElementType(rawValue: 48) 'Show my prayer stats'. Contrast failed for element
+Me: Contrast failed on XCUIElementType(rawValue: 48) 'Days prayed and people prayed for, on this page only. There are no rankings.'. Contrast failed for element
+Me: Contrast failed on XCUIElementType(rawValue: 48) 'Weekly email'. Contrast failed for element
+Request: Contrast failed on screen. Contrast failed for element
+    t =    82.29s Tear Down
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit]' failed (92.856 seconds).
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryTabOpens]' started.
+    t =     0.01s Start Test at 2026-10-30 06:19:14.174
+    t =     0.22s Set Up
+    t =     0.22s     Open com.zoomatech.prayertower.native
+    t =     0.22s         Launch com.zoomatech.prayertower.native
+    t =     0.22s             Terminate com.zoomatech.prayertower.native:14831
+    t =     3.75s             Setting up automation session
+    t =     6.44s             Wait for com.zoomatech.prayertower.native to idle
+    t =     8.45s Waiting 10.0s for Any (First Match) to exist
+    t =     9.49s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =     9.49s         Checking existence of `Any (First Match)`
+    t =     9.86s Waiting 10.0s for "My Promises" Button to exist
+    t =    10.91s     Checking `Expect predicate `existsNoRetry == 1` for object "My Promises" Button`
+    t =    10.91s         Checking existence of `"My Promises" Button`
+    t =    11.00s Tap "My Promises" Button
+    t =    11.00s     Wait for com.zoomatech.prayertower.native to idle
+    t =    11.00s     Find the "My Promises" Button
+    t =    11.10s     Check for interrupting elements affecting "checkmark.circle" Button
+    t =    11.20s     Synthesize event
+    t =    11.56s     Wait for com.zoomatech.prayertower.native to idle
+    t =    12.11s Waiting 10.0s for Any (First Match) to exist
+    t =    13.16s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    13.16s         Checking existence of `Any (First Match)`
+    t =    13.61s Waiting 10.0s for "Messages" Button to exist
+    t =    14.63s     Checking `Expect predicate `existsNoRetry == 1` for object "Messages" Button`
+    t =    14.63s         Checking existence of `"Messages" Button`
+    t =    14.76s Tap "Messages" Button
+    t =    14.76s     Wait for com.zoomatech.prayertower.native to idle
+    t =    14.77s     Find the "Messages" Button
+    t =    14.82s     Check for interrupting elements affecting "bubble.left.and.bubble.right" Button
+    t =    14.88s     Synthesize event
+    t =    15.36s     Wait for com.zoomatech.prayertower.native to idle
+    t =    15.88s Waiting 10.0s for Any (First Match) to exist
+    t =    16.93s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    16.93s         Checking existence of `Any (First Match)`
+    t =    17.67s Waiting 10.0s for "Notices" Button to exist
+    t =    18.71s     Checking `Expect predicate `existsNoRetry == 1` for object "Notices" Button`
+    t =    18.71s         Checking existence of `"Notices" Button`
+    t =    18.98s Tap "Notices" Button
+    t =    18.98s     Wait for com.zoomatech.prayertower.native to idle
+    t =    18.99s     Find the "Notices" Button
+    t =    21.10s     Check for interrupting elements affecting "bell" Button
+    t =    21.87s     Synthesize event
+    t =    22.36s     Wait for com.zoomatech.prayertower.native to idle
+    t =    23.01s Waiting 10.0s for Any (First Match) to exist
+    t =    24.02s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    24.03s         Checking existence of `Any (First Match)`
+    t =    26.88s Waiting 10.0s for "Me" Button to exist
+    t =    27.95s     Checking `Expect predicate `existsNoRetry == 1` for object "Me" Button`
+    t =    27.95s         Checking existence of `"Me" Button`
+    t =    28.09s Tap "Me" Button
+    t =    28.09s     Wait for com.zoomatech.prayertower.native to idle
+    t =    28.12s     Find the "Me" Button
+    t =    28.26s     Check for interrupting elements affecting "person.crop.circle" Button
+    t =    28.36s     Synthesize event
+    t =    28.72s     Wait for com.zoomatech.prayertower.native to idle
+    t =    29.17s Find the "Me" Button
+    t =    30.66s Waiting 10.0s for "Feed" Button to exist
+    t =    31.68s     Checking `Expect predicate `existsNoRetry == 1` for object "Feed" Button`
+    t =    31.68s         Checking existence of `"Feed" Button`
+    t =    31.95s Tap "Feed" Button
+    t =    31.95s     Wait for com.zoomatech.prayertower.native to idle
+    t =    31.95s     Find the "Feed" Button
+    t =    32.10s     Check for interrupting elements affecting "list.bullet" Button
+    t =    32.28s     Synthesize event
+    t =    32.67s     Wait for com.zoomatech.prayertower.native to idle
+    t =    33.25s Waiting 10.0s for Any (First Match) to exist
+    t =    34.29s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    34.30s         Checking existence of `Any (First Match)`
+    t =    34.70s Tear Down
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryTabOpens]' passed (35.066 seconds).
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testFeedOpensARequestWithItsComments]' started.
+    t =     0.00s Start Test at 2026-10-30 06:19:49.233
+    t =     0.17s Set Up
+    t =     0.18s     Open com.zoomatech.prayertower.native
+    t =     0.18s         Launch com.zoomatech.prayertower.native
+    t =     0.18s             Terminate com.zoomatech.prayertower.native:16653
+    t =     5.52s             Setting up automation session
+    t =     8.43s             Wait for com.zoomatech.prayertower.native to idle
+    t =    26.72s Waiting 10.0s for Any (First Match) to exist
+    t =    27.74s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    27.74s         Checking existence of `Any (First Match)`
+    t =    28.07s Tap Any (First Match)
+    t =    28.07s     Wait for com.zoomatech.prayertower.native to idle
+    t =    28.09s     Find the Any (First Match)
+    t =    28.30s     Check for interrupting elements affecting "Ruth, Please pray for my mother's surgery on Tuesday., 4 praying" Button
+    t =    28.52s     Synthesize event
+    t =    28.86s     Wait for com.zoomatech.prayertower.native to idle
+    t =    29.32s Waiting 10.0s for Any (First Match) to exist
+    t =    30.36s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    30.36s         Checking existence of `Any (First Match)`
+    t =    30.64s Waiting 10.0s for Any (First Match) to exist
+    t =    31.70s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    31.70s         Checking existence of `Any (First Match)`
+    t =    32.11s Tear Down
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testFeedOpensARequestWithItsComments]' passed (32.349 seconds).
+Test Suite 'MainScreensWalk' failed at 2026-10-30 06:20:21.583.
+	 Executed 3 tests, with 1 failure (0 unexpected) in 160.271 (160.277) seconds
+Test Suite 'PrayerTowerUIWalks.xctest' failed at 2026-10-30 06:20:21.588.
+	 Executed 3 tests, with 1 failure (0 unexpected) in 160.271 (160.281) seconds
+Test Suite 'All tests' failed at 2026-10-30 06:20:21.588.
+	 Executed 3 tests, with 1 failure (0 unexpected) in 160.271 (160.283) seconds
+2026-10-30 06:20:25.638367+0000 PrayerTowerNativeUITests-Runner[18192:55882] [Default] Running tests...
+    t =      nans Interface orientation changed to Portrait
+Test Suite 'All tests' started at 2026-10-30 06:20:31.053.
+Test Suite 'PrayerTowerNativeUITests.xctest' started at 2026-10-30 06:20:31.054.
+Test Suite 'AccessibilityAuditTests' started at 2026-10-30 06:20:31.054.
 Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin]' started.
-    t =     0.00s Start Test at 2026-10-30 05:39:26.346
-    t =     0.03s Set Up
-    t =     0.05s Open com.zoomatech.prayertower.native
-    t =     0.05s     Launch com.zoomatech.prayertower.native
-2026-10-30 05:39:26.462389+0000 PrayerTowerNativeUITests-Runner[9818:34617] [General] Failed to send CA Event for app launch measurements for ca_event_type: 1 event_name: com.apple.app_launch_measurement.ExtendedLaunchMetrics
-    t =     0.73s         Setting up automation session
-    t =     1.73s         Wait for com.zoomatech.prayertower.native to idle
-    t =     3.01s Beanstalk at UICTContentSizeCategoryL
-    t =     3.01s     Find the "Beanstalk" Button
-    t =     3.15s     Find the "Beanstalk" Button
-    t =     3.19s     Find the "Beanstalk" Button
-    t =     3.23s     Find the "Beanstalk" Button
-    t =     3.27s     Find the "Beanstalk" Button
-    t =     3.32s     Tap "Beanstalk" Button
-    t =     3.32s         Wait for com.zoomatech.prayertower.native to idle
-    t =     3.32s         Find the "Beanstalk" Button
-    t =     3.35s         Check for interrupting elements affecting "Beanstalk" Button
-    t =     3.38s         Synthesize event
-    t =     3.69s         Wait for com.zoomatech.prayertower.native to idle
-    t =     6.61s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169759552.135)
-    t =     6.65s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-    t =     6.67s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-AUDIT Beanstalk at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'You have reached the tip of the vine. Rest a moment, or come back later to see it grow.'. Contrast failed for element
-    t =     6.70s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169759552.135)
-    t =     6.72s     Checking existence of `"You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText`
-    t =     6.74s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =     6.98s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169750592.137)
-    t =     7.00s     Find the "Please pray for my mom's surgery on Friday." StaticText
-    t =     7.04s     Find the "Please pray for my mom's surgery on Friday." StaticText
-AUDIT Beanstalk at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Contrast failed for element
-    t =     7.08s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169750592.137)
-    t =     7.11s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
-    t =     7.13s     Find the "Please pray for my mom's surgery on Friday." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =     7.20s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169755552.139)
-    t =     7.25s     Find the "Praying for her and for you." StaticText
-    t =     7.27s     Find the "Praying for her and for you." StaticText
-AUDIT Beanstalk at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Praying for her and for you.'. Contrast failed for element
-    t =     7.29s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169755552.139)
-    t =     7.36s     Checking existence of `"Praying for her and for you." StaticText`
-    t =     7.38s     Find the "Praying for her and for you." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =     7.42s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169758112.141)
-    t =     7.44s     Find the "Thankful: the new job came through!" StaticText
-    t =     7.49s     Find the "Thankful: the new job came through!" StaticText
-AUDIT Beanstalk at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Contrast failed for element
-    t =     7.51s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169758112.141)
-    t =     7.54s     Checking existence of `"Thankful: the new job came through!" StaticText`
-    t =     7.56s     Find the "Thankful: the new job came through!" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =     7.61s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169758912.143)
-    t =     7.69s     Find the "So glad to hear it!" StaticText
-    t =     7.71s     Find the "So glad to hear it!" StaticText
-AUDIT Beanstalk at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'So glad to hear it!'. Contrast failed for element
-    t =     7.73s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169758912.143)
-    t =     7.76s     Checking existence of `"So glad to hear it!" StaticText`
-    t =     7.77s     Find the "So glad to hear it!" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-AUDIT Beanstalk at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
-AUDIT Beanstalk at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
-AUDIT Beanstalk at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
-AUDIT Beanstalk at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
-    t =     8.21s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169759552.135)
-    t =     8.30s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-    t =     8.37s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-AUDIT Beanstalk at UICTContentSizeCategoryL: Dynamic Type font sizes are partially unsupported on XCUIElementType(rawValue: 48) 'You have reached the tip of the vine. Rest a moment, or come back later to see it grow.'. User will not be able to change the font size of this element
-    t =     8.39s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169759552.135)
-    t =     8.41s     Checking existence of `"You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText`
-    t =     8.43s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are partially unsupported
-    t =     8.47s     Tap Button (Element at index 0)
-    t =     8.47s         Wait for com.zoomatech.prayertower.native to idle
-    t =     8.57s         Find the Button (Element at index 0)
-    t =     8.63s         Check for interrupting elements affecting "Skins" Button
-    t =     8.70s         Synthesize event
-    t =     8.99s         Wait for com.zoomatech.prayertower.native to idle
-    t =     9.35s Golden Wood at UICTContentSizeCategoryL
-    t =     9.36s     Find the "Golden Wood" Button
-    t =     9.42s     Find the "Golden Wood" Button
-    t =     9.48s     Find the "Golden Wood" Button
-    t =     9.54s     Find the "Golden Wood" Button
-    t =     9.59s     Find the "Golden Wood" Button
-    t =     9.66s     Tap "Golden Wood" Button
-    t =     9.66s         Wait for com.zoomatech.prayertower.native to idle
-    t =     9.66s         Find the "Golden Wood" Button
-    t =     9.72s         Check for interrupting elements affecting "Golden Wood" Button
-    t =     9.76s         Synthesize event
-    t =    10.05s         Wait for com.zoomatech.prayertower.native to idle
-    t =    12.32s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169866240.178)
-    t =    12.35s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-    t =    12.37s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-AUDIT Golden Wood at UICTContentSizeCategoryL: Dynamic Type font sizes are partially unsupported on XCUIElementType(rawValue: 48) 'You have reached the tip of the vine. Rest a moment, or come back later to see it grow.'. User will not be able to change the font size of this element
-    t =    12.39s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169866240.178)
-    t =    12.42s     Checking existence of `"You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText`
-    t =    12.44s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are partially unsupported
-    t =    12.48s     Tap Button (Element at index 0)
-    t =    12.48s         Wait for com.zoomatech.prayertower.native to idle
-    t =    12.48s         Find the Button (Element at index 0)
-    t =    12.51s         Check for interrupting elements affecting "Skins" Button
-    t =    12.53s         Synthesize event
-    t =    12.83s         Wait for com.zoomatech.prayertower.native to idle
-    t =    13.18s Moonlit Gate at UICTContentSizeCategoryL
-    t =    13.18s     Find the "Moonlit Gate" Button
-    t =    13.25s     Find the "Moonlit Gate" Button
-    t =    13.32s     Find the "Moonlit Gate" Button
-    t =    13.40s     Find the "Moonlit Gate" Button
-    t =    13.46s     Find the "Moonlit Gate" Button
-    t =    13.51s     Tap "Moonlit Gate" Button
-    t =    13.51s         Wait for com.zoomatech.prayertower.native to idle
-    t =    13.51s         Find the "Moonlit Gate" Button
-    t =    13.57s         Check for interrupting elements affecting "Moonlit Gate" Button
-    t =    13.60s         Synthesize event
-    t =    13.89s         Wait for com.zoomatech.prayertower.native to idle
-    t =    16.14s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4306153984.215)
-    t =    16.16s     Find the "Moonlit Gate" StaticText
-    t =    16.17s     Find the "Moonlit Gate" StaticText
+    t =     0.00s Start Test at 2026-10-30 06:20:31.055
+    t =     0.14s Set Up
+    t =     0.15s Open com.zoomatech.prayertower.native
+    t =     0.15s     Launch com.zoomatech.prayertower.native
+    t =     5.65s         Setting up automation session
+    t =     5.70s         Wait for com.zoomatech.prayertower.native to idle
+    t =     6.71s Beanstalk at UICTContentSizeCategoryL
+    t =     6.71s     Find the "Beanstalk" Button
+    t =     7.11s     Find the "Beanstalk" Button
+    t =     7.19s     Find the "Beanstalk" Button
+    t =     7.28s     Find the "Beanstalk" Button
+    t =     7.36s     Find the "Beanstalk" Button
+    t =     7.45s     Tap "Beanstalk" Button
+    t =     7.46s         Wait for com.zoomatech.prayertower.native to idle
+    t =     7.46s         Find the "Beanstalk" Button
+    t =     7.50s         Check for interrupting elements affecting "Beanstalk" Button
+    t =     7.59s         Synthesize event
+    t =     7.90s         Wait for com.zoomatech.prayertower.native to idle
+    t =    12.08s     Tap Button (Element at index 0)
+    t =    12.08s         Wait for com.zoomatech.prayertower.native to idle
+    t =    12.09s         Find the Button (Element at index 0)
+    t =    12.29s         Check for interrupting elements affecting "Skins" Button
+    t =    12.38s         Synthesize event
+    t =    12.74s         Wait for com.zoomatech.prayertower.native to idle
+    t =    13.21s Golden Wood at UICTContentSizeCategoryL
+    t =    13.21s     Find the "Golden Wood" Button
+    t =    13.77s     Find the "Golden Wood" Button
+    t =    14.03s     Find the "Golden Wood" Button
+    t =    14.60s     Find the "Golden Wood" Button
+    t =    14.99s     Find the "Golden Wood" Button
+    t =    15.33s     Tap "Golden Wood" Button
+    t =    15.33s         Wait for com.zoomatech.prayertower.native to idle
+    t =    15.34s         Find the "Golden Wood" Button
+    t =    15.52s         Check for interrupting elements affecting "Golden Wood" Button
+    t =    15.70s         Synthesize event
+    t =    16.15s         Wait for com.zoomatech.prayertower.native to idle
+    t =    19.43s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169851936.211)
+    t =    19.49s     Find the "Jordan" StaticText
+    t =    19.55s     Find the "Jordan" StaticText
+    t =    19.61s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169851936.211)
+    t =    19.71s     Find the "Jordan" StaticText
+    t =    19.83s     Find the "Jordan" StaticText
+AUDIT Golden Wood at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Jordan'. Contrast failed for element
+    t =    19.96s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169851936.211)
+    t =    20.04s     Checking existence of `"Jordan" StaticText`
+    t =    20.10s     Find the "Jordan" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    20.67s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169846816.213)
+    t =    20.75s     Find the "Sam" StaticText
+    t =    20.79s     Find the "Sam" StaticText
+    t =    20.85s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169846816.213)
+    t =    20.97s     Find the "Sam" StaticText
+    t =    21.13s     Find the "Sam" StaticText
+AUDIT Golden Wood at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Sam'. Contrast failed for element
+    t =    21.27s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169846816.213)
+    t =    21.40s     Checking existence of `"Sam" StaticText`
+    t =    21.45s     Find the "Sam" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    21.58s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169878944.215)
+    t =    21.69s     Find the "Riley" StaticText
+    t =    21.79s     Find the "Riley" StaticText
+    t =    22.29s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169878944.215)
+    t =    22.49s     Find the "Riley" StaticText
+    t =    22.72s     Find the "Riley" StaticText
+AUDIT Golden Wood at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Riley'. Contrast failed for element
+    t =    22.84s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169878944.215)
+    t =    22.99s     Checking existence of `"Riley" StaticText`
+    t =    23.09s     Find the "Riley" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    23.26s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169880384.217)
+    t =    23.46s     Find the "Ana" StaticText
+    t =    23.62s     Find the "Ana" StaticText
+    t =    23.79s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169880384.217)
+    t =    24.10s     Find the "Ana" StaticText
+    t =    24.17s     Find the "Ana" StaticText
+AUDIT Golden Wood at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Ana'. Contrast failed for element
+    t =    24.25s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169880384.217)
+    t =    24.38s     Checking existence of `"Ana" StaticText`
+    t =    24.46s     Find the "Ana" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+AUDIT Golden Wood at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+AUDIT Golden Wood at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+AUDIT Golden Wood at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+    t =    24.71s     Tap Button (Element at index 0)
+    t =    24.71s         Wait for com.zoomatech.prayertower.native to idle
+    t =    24.71s         Find the Button (Element at index 0)
+    t =    24.88s         Check for interrupting elements affecting "Skins" Button
+    t =    25.19s         Synthesize event
+    t =    25.58s         Wait for com.zoomatech.prayertower.native to idle
+    t =    26.05s Moonlit Gate at UICTContentSizeCategoryL
+    t =    26.05s     Find the "Moonlit Gate" Button
+    t =    26.39s     Find the "Moonlit Gate" Button
+    t =    26.61s     Find the "Moonlit Gate" Button
+    t =    26.88s     Find the "Moonlit Gate" Button
+    t =    27.32s     Find the "Moonlit Gate" Button
+    t =    27.62s     Tap "Moonlit Gate" Button
+    t =    27.62s         Wait for com.zoomatech.prayertower.native to idle
+    t =    27.63s         Find the "Moonlit Gate" Button
+    t =    27.85s         Check for interrupting elements affecting "Moonlit Gate" Button
+    t =    27.96s         Synthesize event
+    t =    28.28s         Wait for com.zoomatech.prayertower.native to idle
+    t =    31.28s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4349393056.247)
+    t =    31.35s     Find the "Moonlit Gate" StaticText
+    t =    31.39s     Find the "Moonlit Gate" StaticText
+    t =    31.45s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4349393056.247)
+    t =    31.54s     Find the "Moonlit Gate" StaticText
+    t =    31.60s     Find the "Moonlit Gate" StaticText
 AUDIT Moonlit Gate at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Moonlit Gate'. Contrast failed for element
-    t =    16.19s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4306153984.215)
-    t =    16.21s     Checking existence of `"Moonlit Gate" StaticText`
-    t =    16.23s     Find the "Moonlit Gate" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    16.26s     Tap Button (Element at index 0)
-    t =    16.26s         Wait for com.zoomatech.prayertower.native to idle
-    t =    16.27s         Find the Button (Element at index 0)
-    t =    16.28s         Check for interrupting elements affecting "Skins" Button
-    t =    16.30s         Synthesize event
-    t =    16.59s         Wait for com.zoomatech.prayertower.native to idle
-    t =    16.94s Neon Cinderella at UICTContentSizeCategoryL
-    t =    16.94s     Find the "Neon Cinderella" Button
-    t =    16.99s     Find the "Neon Cinderella" Button
-    t =    17.04s     Find the "Neon Cinderella" Button
-    t =    17.09s     Find the "Neon Cinderella" Button
-    t =    17.16s     Find the "Neon Cinderella" Button
-    t =    17.21s     Tap "Neon Cinderella" Button
-    t =    17.21s         Wait for com.zoomatech.prayertower.native to idle
-    t =    17.21s         Find the "Neon Cinderella" Button
-    t =    17.25s         Check for interrupting elements affecting "Neon Cinderella" Button
-    t =    17.28s         Synthesize event
-    t =    17.57s         Wait for com.zoomatech.prayertower.native to idle
-    t =    20.26s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302698560.259)
-    t =    20.29s     Find the "Neon Cinderella" StaticText
-    t =    20.31s     Find the "Neon Cinderella" StaticText
+    t =    31.69s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4349393056.247)
+    t =    31.78s     Checking existence of `"Moonlit Gate" StaticText`
+    t =    31.82s     Find the "Moonlit Gate" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+AUDIT Moonlit Gate at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+AUDIT Moonlit Gate at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+    t =    31.94s     Tap Button (Element at index 0)
+    t =    31.94s         Wait for com.zoomatech.prayertower.native to idle
+    t =    31.94s         Find the Button (Element at index 0)
+    t =    32.07s         Check for interrupting elements affecting "Skins" Button
+    t =    32.14s         Synthesize event
+    t =    32.48s         Wait for com.zoomatech.prayertower.native to idle
+    t =    32.88s Neon Cinderella at UICTContentSizeCategoryL
+    t =    32.88s     Find the "Neon Cinderella" Button
+    t =    33.09s     Find the "Neon Cinderella" Button
+    t =    33.33s     Find the "Neon Cinderella" Button
+    t =    33.49s     Find the "Neon Cinderella" Button
+    t =    33.76s     Find the "Neon Cinderella" Button
+    t =    33.99s     Tap "Neon Cinderella" Button
+    t =    33.99s         Wait for com.zoomatech.prayertower.native to idle
+    t =    33.99s         Find the "Neon Cinderella" Button
+    t =    34.14s         Check for interrupting elements affecting "Neon Cinderella" Button
+    t =    34.37s         Synthesize event
+    t =    34.72s         Wait for com.zoomatech.prayertower.native to idle
+    t =    39.37s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4349119408.290)
+    t =    39.48s     Find the "Neon Cinderella" StaticText
+    t =    39.54s     Find the "Neon Cinderella" StaticText
+    t =    39.58s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4349119408.290)
+    t =    39.63s     Find the "Neon Cinderella" StaticText
+    t =    39.77s     Find the "Neon Cinderella" StaticText
 AUDIT Neon Cinderella at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Neon Cinderella'. Contrast failed for element
-    t =    20.33s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302698560.259)
-    t =    20.35s     Checking existence of `"Neon Cinderella" StaticText`
-    t =    20.37s     Find the "Neon Cinderella" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    20.43s     Tap Button (Element at index 0)
-    t =    20.43s         Wait for com.zoomatech.prayertower.native to idle
-    t =    20.43s         Find the Button (Element at index 0)
-    t =    20.45s         Check for interrupting elements affecting "Skins" Button
-    t =    20.48s         Synthesize event
-    t =    20.78s         Wait for com.zoomatech.prayertower.native to idle
-    t =    21.16s Blossom Garden at UICTContentSizeCategoryL
-    t =    21.16s     Find the "Blossom Garden" Button
-    t =    21.24s     Find the "Blossom Garden" Button
-    t =    21.29s     Find the "Blossom Garden" Button
-    t =    21.36s     Find the "Blossom Garden" Button
-    t =    21.42s     Find the "Blossom Garden" Button
-    t =    21.47s     Tap "Blossom Garden" Button
-    t =    21.47s         Wait for com.zoomatech.prayertower.native to idle
-    t =    21.47s         Find the "Blossom Garden" Button
-    t =    21.53s         Check for interrupting elements affecting "Blossom Garden" Button
-    t =    21.57s         Synthesize event
-    t =    21.88s         Wait for com.zoomatech.prayertower.native to idle
-    t =    24.04s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169906528.308)
-    t =    24.06s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-    t =    24.07s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-AUDIT Blossom Garden at UICTContentSizeCategoryL: Dynamic Type font sizes are partially unsupported on XCUIElementType(rawValue: 48) 'You have reached the tip of the vine. Rest a moment, or come back later to see it grow.'. User will not be able to change the font size of this element
-    t =    24.09s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169906528.308)
-    t =    24.10s     Checking existence of `"You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText`
-    t =    24.11s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are partially unsupported
-    t =    24.16s     Tap Button (Element at index 0)
-    t =    24.16s         Wait for com.zoomatech.prayertower.native to idle
-    t =    24.16s         Find the Button (Element at index 0)
-    t =    24.18s         Check for interrupting elements affecting "Skins" Button
-    t =    24.19s         Synthesize event
-    t =    24.49s         Wait for com.zoomatech.prayertower.native to idle
-    t =    24.84s Christmas Star at UICTContentSizeCategoryL
-    t =    24.84s     Find the "Christmas Star" Button
-    t =    24.89s     Find the "Christmas Star" Button
-    t =    24.94s     Find the "Christmas Star" Button
-    t =    24.99s     Find the "Christmas Star" Button
-    t =    25.04s     Find the "Christmas Star" Button
-    t =    25.10s     Tap "Christmas Star" Button
-    t =    25.10s         Wait for com.zoomatech.prayertower.native to idle
-    t =    25.10s         Find the "Christmas Star" Button
-    t =    25.14s         Check for interrupting elements affecting "Christmas Star" Button
-    t =    25.17s         Synthesize event
-    t =    25.46s         Wait for com.zoomatech.prayertower.native to idle
-    t =    27.73s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302698560.345)
-    t =    27.75s     Find the "Christmas Star" StaticText
-    t =    27.77s     Find the "Christmas Star" StaticText
+    t =    39.82s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4349119408.290)
+    t =    39.87s     Checking existence of `"Neon Cinderella" StaticText`
+    t =    39.91s     Find the "Neon Cinderella" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    40.02s     Tap Button (Element at index 0)
+    t =    40.03s         Wait for com.zoomatech.prayertower.native to idle
+    t =    40.03s         Find the Button (Element at index 0)
+    t =    40.13s         Check for interrupting elements affecting "Skins" Button
+    t =    40.20s         Synthesize event
+    t =    40.54s         Wait for com.zoomatech.prayertower.native to idle
+    t =    40.94s Blossom Garden at UICTContentSizeCategoryL
+    t =    40.94s     Find the "Blossom Garden" Button
+    t =    41.14s     Find the "Blossom Garden" Button
+    t =    41.26s     Find the "Blossom Garden" Button
+    t =    41.35s     Find the "Blossom Garden" Button
+    t =    41.44s     Find the "Blossom Garden" Button
+    t =    41.53s     Tap "Blossom Garden" Button
+    t =    41.53s         Wait for com.zoomatech.prayertower.native to idle
+    t =    41.55s         Find the "Blossom Garden" Button
+    t =    41.65s         Check for interrupting elements affecting "Blossom Garden" Button
+    t =    41.72s         Synthesize event
+    t =    42.02s         Wait for com.zoomatech.prayertower.native to idle
+    t =    44.53s     Tap Button (Element at index 0)
+    t =    44.53s         Wait for com.zoomatech.prayertower.native to idle
+    t =    44.54s         Find the Button (Element at index 0)
+    t =    44.58s         Check for interrupting elements affecting "Skins" Button
+    t =    44.63s         Synthesize event
+    t =    44.95s         Wait for com.zoomatech.prayertower.native to idle
+    t =    45.32s Christmas Star at UICTContentSizeCategoryL
+    t =    45.32s     Find the "Christmas Star" Button
+    t =    45.42s     Find the "Christmas Star" Button
+    t =    45.53s     Find the "Christmas Star" Button
+    t =    45.64s     Find the "Christmas Star" Button
+    t =    45.72s     Find the "Christmas Star" Button
+    t =    45.84s     Tap "Christmas Star" Button
+    t =    45.84s         Wait for com.zoomatech.prayertower.native to idle
+    t =    45.84s         Find the "Christmas Star" Button
+    t =    45.90s         Check for interrupting elements affecting "Christmas Star" Button
+    t =    45.95s         Synthesize event
+    t =    46.26s         Wait for com.zoomatech.prayertower.native to idle
+    t =    49.09s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4350309520.375)
+    t =    49.20s     Find the "Christmas Star" StaticText
+    t =    49.27s     Find the "Christmas Star" StaticText
+    t =    49.36s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4350309520.375)
+    t =    49.40s     Find the "Christmas Star" StaticText
+    t =    49.44s     Find the "Christmas Star" StaticText
 AUDIT Christmas Star at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Christmas Star'. Contrast failed for element
-    t =    27.78s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302698560.345)
-    t =    27.80s     Checking existence of `"Christmas Star" StaticText`
-    t =    27.81s     Find the "Christmas Star" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    27.84s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169889024.353)
-    t =    27.85s     Find the "✦" StaticText
-    t =    27.87s     Find the "✦" StaticText
-AUDIT Christmas Star at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) '✦'. Contrast failed for element
-    t =    27.88s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169889024.353)
-    t =    27.90s     Checking existence of `"✦" StaticText`
-    t =    27.91s     Find the "✦" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    27.94s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169882464.358)
-    t =    27.96s     Find the "✦" StaticText
-    t =    27.98s     Find the "✦" StaticText
-AUDIT Christmas Star at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) '✦'. Contrast failed for element
-    t =    27.99s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169882464.358)
-    t =    28.01s     Checking existence of `"✦" StaticText`
-    t =    28.02s     Find the "✦" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    28.05s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169889024.353)
-    t =    28.07s     Find the "✦" StaticText
-    t =    28.09s     Find the "✦" StaticText
-AUDIT Christmas Star at UICTContentSizeCategoryL: Dynamic Type font sizes are unsupported on XCUIElementType(rawValue: 48) '✦'. User will not be able to change the font size of this element
-    t =    28.10s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169889024.353)
-    t =    28.12s     Checking existence of `"✦" StaticText`
-    t =    28.13s     Find the "✦" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
-    t =    28.16s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169882464.358)
-    t =    28.17s     Find the "✦" StaticText
-    t =    28.19s     Find the "✦" StaticText
-AUDIT Christmas Star at UICTContentSizeCategoryL: Dynamic Type font sizes are unsupported on XCUIElementType(rawValue: 48) '✦'. User will not be able to change the font size of this element
-    t =    28.20s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169882464.358)
-    t =    28.22s     Checking existence of `"✦" StaticText`
-    t =    28.23s     Find the "✦" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
-    t =    28.26s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169888704.350)
-    t =    28.28s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-    t =    28.29s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-AUDIT Christmas Star at UICTContentSizeCategoryL: Dynamic Type font sizes are partially unsupported on XCUIElementType(rawValue: 48) 'You have reached the tip of the vine. Rest a moment, or come back later to see it grow.'. User will not be able to change the font size of this element
-    t =    28.31s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169888704.350)
-    t =    28.32s     Checking existence of `"You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText`
-    t =    28.33s     Find the "You have reached the tip of the vine. Rest a moment, or come back later to see it grow." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are partially unsupported
-    t =    28.37s     Tap Button (Element at index 0)
-    t =    28.37s         Wait for com.zoomatech.prayertower.native to idle
-    t =    28.37s         Find the Button (Element at index 0)
-    t =    28.38s         Check for interrupting elements affecting "Skins" Button
-    t =    28.43s         Synthesize event
-    t =    28.73s         Wait for com.zoomatech.prayertower.native to idle
-    t =    29.07s Wall at UICTContentSizeCategoryL
-    t =    29.07s     Find the "Wall" Button
-    t =    29.13s     Find the "Wall" Button
-    t =    29.17s     Find the "Wall" Button
-    t =    29.21s     Find the "Wall" Button
-    t =    29.26s     Find the "Wall" Button
-    t =    29.31s     Tap "Wall" Button
-    t =    29.31s         Wait for com.zoomatech.prayertower.native to idle
-    t =    29.31s         Find the "Wall" Button
-    t =    29.34s         Check for interrupting elements affecting "Wall" Button
-    t =    29.37s         Synthesize event
-    t =    29.66s         Wait for com.zoomatech.prayertower.native to idle
-    t =    31.72s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302729776.389)
-    t =    31.74s     Find the "Wall" StaticText
-    t =    31.75s     Find the "Wall" StaticText
+    t =    49.48s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4350309520.375)
+    t =    49.53s     Checking existence of `"Christmas Star" StaticText`
+    t =    49.58s     Find the "Christmas Star" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    49.66s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169875424.383)
+    t =    49.76s     Find the "✦" StaticText
+    t =    49.84s     Find the "✦" StaticText
+    t =    49.97s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169875104.388)
+    t =    50.04s     Find the "✦" StaticText
+    t =    50.14s     Find the "✦" StaticText
+    t =    50.23s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169875424.383)
+    t =    50.29s     Find the "✦" StaticText
+    t =    50.33s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169875104.388)
+    t =    50.38s     Find the "✦" StaticText
+    t =    50.45s     Tap Button (Element at index 0)
+    t =    50.45s         Wait for com.zoomatech.prayertower.native to idle
+    t =    50.45s         Find the Button (Element at index 0)
+    t =    50.54s         Check for interrupting elements affecting "Skins" Button
+    t =    50.62s         Synthesize event
+    t =    50.92s         Wait for com.zoomatech.prayertower.native to idle
+    t =    51.32s Wall at UICTContentSizeCategoryL
+    t =    51.32s     Find the "Wall" Button
+    t =    51.51s     Find the "Wall" Button
+    t =    51.64s     Find the "Wall" Button
+    t =    51.87s     Find the "Wall" Button
+    t =    52.20s     Find the "Wall" Button
+    t =    52.50s     Tap "Wall" Button
+    t =    52.50s         Wait for com.zoomatech.prayertower.native to idle
+    t =    52.51s         Find the "Wall" Button
+    t =    52.83s         Check for interrupting elements affecting "Wall" Button
+    t =    52.98s         Synthesize event
+    t =    53.32s         Wait for com.zoomatech.prayertower.native to idle
+    t =    55.98s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4691750208.419)
+    t =    56.67s     Find the "Wall" StaticText
+    t =    56.73s     Find the "Wall" StaticText
+    t =    56.75s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4691750208.419)
+    t =    56.82s     Find the "Wall" StaticText
+    t =    56.88s     Find the "Wall" StaticText
 AUDIT Wall at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Wall'. Contrast failed for element
-    t =    31.77s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302729776.389)
-    t =    31.78s     Checking existence of `"Wall" StaticText`
-    t =    31.79s     Find the "Wall" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    31.82s     Tap Button (Element at index 0)
-    t =    31.82s         Wait for com.zoomatech.prayertower.native to idle
-    t =    31.82s         Find the Button (Element at index 0)
-    t =    31.84s         Check for interrupting elements affecting "Skins" Button
-    t =    31.86s         Synthesize event
-    t =    32.15s         Wait for com.zoomatech.prayertower.native to idle
-    t =    32.50s Prayer Tower at UICTContentSizeCategoryL
-    t =    32.50s     Find the "Prayer Tower" Button
-    t =    32.56s     Find the "Prayer Tower" Button
-    t =    32.60s     Find the "Prayer Tower" Button
-    t =    32.64s     Find the "Prayer Tower" Button
-    t =    32.69s     Find the "Prayer Tower" Button
-    t =    32.73s     Tap "Prayer Tower" Button
-    t =    32.73s         Wait for com.zoomatech.prayertower.native to idle
-    t =    32.73s         Find the "Prayer Tower" Button
-    t =    32.76s         Check for interrupting elements affecting "Prayer Tower" Button
-    t =    32.79s         Synthesize event
-    t =    33.09s         Wait for com.zoomatech.prayertower.native to idle
-    t =    35.48s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169843456.431)
-    t =    35.50s     Find the "🚩 You reached the top of the tower." StaticText
-    t =    35.51s     Find the "🚩 You reached the top of the tower." StaticText
-AUDIT Prayer Tower at UICTContentSizeCategoryL: Dynamic Type font sizes are partially unsupported on XCUIElementType(rawValue: 48) '🚩 You reached the top of the tower.'. User will not be able to change the font size of this element
-    t =    35.54s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169843456.431)
-    t =    35.55s     Checking existence of `"🚩 You reached the top of the tower." StaticText`
-    t =    35.56s     Find the "🚩 You reached the top of the tower." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are partially unsupported
-    t =    35.59s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169854656.435)
-    t =    35.60s     Find the "🧗" StaticText
-    t =    35.62s     Find the "🧗" StaticText
-AUDIT Prayer Tower at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) '🧗'. Text of this element may be clipped at larger Dynamic Type sizes.
-    t =    35.63s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169854656.435)
-    t =    35.65s     Checking existence of `"🧗" StaticText`
-    t =    35.66s     Find the "🧗" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
-    t =    35.70s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169843456.431)
-    t =    35.71s     Find the "🚩 You reached the top of the tower." StaticText
-    t =    35.73s     Find the "🚩 You reached the top of the tower." StaticText
+    t =    56.92s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4691750208.419)
+    t =    57.06s     Checking existence of `"Wall" StaticText`
+    t =    57.10s     Find the "Wall" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    57.26s     Tap Button (Element at index 0)
+    t =    57.26s         Wait for com.zoomatech.prayertower.native to idle
+    t =    57.26s         Find the Button (Element at index 0)
+    t =    57.31s         Check for interrupting elements affecting "Skins" Button
+    t =    57.40s         Synthesize event
+    t =    57.72s         Wait for com.zoomatech.prayertower.native to idle
+    t =    58.12s Prayer Tower at UICTContentSizeCategoryL
+    t =    58.12s     Find the "Prayer Tower" Button
+    t =    58.26s     Find the "Prayer Tower" Button
+    t =    58.54s     Find the "Prayer Tower" Button
+    t =    58.66s     Find the "Prayer Tower" Button
+    t =    58.73s     Find the "Prayer Tower" Button
+    t =    58.83s     Tap "Prayer Tower" Button
+    t =    58.83s         Wait for com.zoomatech.prayertower.native to idle
+    t =    58.84s         Find the "Prayer Tower" Button
+    t =    59.01s         Check for interrupting elements affecting "Prayer Tower" Button
+    t =    59.15s         Synthesize event
+    t =    59.47s         Wait for com.zoomatech.prayertower.native to idle
+    t =    62.42s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169750592.464)
+    t =    62.48s     Find the "🧗" StaticText
+    t =    62.52s     Find the "🧗" StaticText
+    t =    62.54s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169750912.465)
+    t =    62.57s     Find the "Jordan" StaticText
+    t =    62.60s     Find the "Jordan" StaticText
+    t =    62.65s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169750912.465)
+    t =    62.67s     Find the "Jordan" StaticText
+    t =    62.71s     Find the "Jordan" StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Jordan'. Contrast failed for element
+    t =    62.73s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169750912.465)
+    t =    62.75s     Checking existence of `"Jordan" StaticText`
+    t =    62.77s     Find the "Jordan" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    62.85s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169748192.466)
+    t =    62.90s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    62.94s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    62.97s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169748192.466)
+    t =    63.02s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    63.07s     Find the "Please pray for my mom's surgery on Friday." StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Contrast failed for element
+    t =    63.11s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169748192.466)
+    t =    63.21s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
+    t =    63.24s     Find the "Please pray for my mom's surgery on Friday." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    63.41s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169748032.467)
+    t =    63.45s     Find the "Sam" StaticText
+    t =    63.48s     Find the "Sam" StaticText
+    t =    63.50s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169748032.467)
+    t =    63.57s     Find the "Sam" StaticText
+    t =    63.62s     Find the "Sam" StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Sam'. Contrast failed for element
+    t =    63.65s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169748032.467)
+    t =    63.72s     Checking existence of `"Sam" StaticText`
+    t =    63.75s     Find the "Sam" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    63.81s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169871680.468)
+    t =    63.85s     Find the "Praying for her and for you." StaticText
+    t =    63.90s     Find the "Praying for her and for you." StaticText
+    t =    63.93s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169871680.468)
+    t =    63.96s     Find the "Praying for her and for you." StaticText
+    t =    64.00s     Find the "Praying for her and for you." StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Praying for her and for you.'. Contrast failed for element
+    t =    64.02s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169871680.468)
+    t =    64.09s     Checking existence of `"Praying for her and for you." StaticText`
+    t =    64.12s     Find the "Praying for her and for you." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    64.19s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169861920.469)
+    t =    64.22s     Find the "Riley" StaticText
+    t =    64.24s     Find the "Riley" StaticText
+    t =    64.27s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169861920.469)
+    t =    64.30s     Find the "Riley" StaticText
+    t =    64.33s     Find the "Riley" StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Riley'. Contrast failed for element
+    t =    64.36s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169861920.469)
+    t =    64.40s     Checking existence of `"Riley" StaticText`
+    t =    64.42s     Find the "Riley" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    64.47s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169866080.471)
+    t =    64.49s     Find the "Ana" StaticText
+    t =    64.52s     Find the "Ana" StaticText
+    t =    64.54s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169866080.471)
+    t =    64.60s     Find the "Ana" StaticText
+    t =    64.64s     Find the "Ana" StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Ana'. Contrast failed for element
+    t =    64.67s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169866080.471)
+    t =    64.71s     Checking existence of `"Ana" StaticText`
+    t =    64.73s     Find the "Ana" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    64.86s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169874720.472)
+    t =    64.92s     Find the "So glad to hear it!" StaticText
+    t =    64.96s     Find the "So glad to hear it!" StaticText
+    t =    65.00s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169874720.472)
+    t =    65.04s     Find the "So glad to hear it!" StaticText
+    t =    65.07s     Find the "So glad to hear it!" StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'So glad to hear it!'. Contrast failed for element
+    t =    65.11s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169874720.472)
+    t =    65.17s     Checking existence of `"So glad to hear it!" StaticText`
+    t =    65.19s     Find the "So glad to hear it!" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Potentially inaccessible text on screen. This element appears to display text that should be represented using the accessibility API.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Potentially inaccessible text
+    t =    65.37s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169755872.462)
+    t =    65.48s     Find the "🚩 You reached the top of the tower." StaticText
+    t =    65.53s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169755872.462)
+    t =    65.55s     Find the "🚩 You reached the top of the tower." StaticText
+    t =    65.58s     Find the "🚩 You reached the top of the tower." StaticText
 AUDIT Prayer Tower at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) '🚩 You reached the top of the tower.'. Text of this element may be clipped at larger Dynamic Type sizes.
-    t =    35.74s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169843456.431)
-    t =    35.76s     Checking existence of `"🚩 You reached the top of the tower." StaticText`
-    t =    35.77s     Find the "🚩 You reached the top of the tower." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
-    t =    35.80s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169854656.435)
-    t =    35.81s     Find the "🧗" StaticText
-    t =    35.83s     Find the "🧗" StaticText
-AUDIT Prayer Tower at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) '🧗'. Contrast failed for element
-    t =    35.84s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169854656.435)
-    t =    35.86s     Checking existence of `"🧗" StaticText`
-    t =    35.87s     Find the "🧗" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    35.90s     Tap Button (Element at index 0)
-    t =    35.90s         Wait for com.zoomatech.prayertower.native to idle
-    t =    35.90s         Find the Button (Element at index 0)
-    t =    35.92s         Check for interrupting elements affecting "Skins" Button
-    t =    35.93s         Synthesize event
-    t =    36.23s         Wait for com.zoomatech.prayertower.native to idle
-    t =    36.57s Neon Circuit at UICTContentSizeCategoryL
-    t =    36.57s     Find the "Neon Circuit" Button
-    t =    36.64s     Find the "Neon Circuit" Button
-    t =    36.68s     Find the "Neon Circuit" Button
-    t =    36.73s     Find the "Neon Circuit" Button
-    t =    36.80s     Find the "Neon Circuit" Button
-    t =    36.85s     Tap "Neon Circuit" Button
-    t =    36.85s         Wait for com.zoomatech.prayertower.native to idle
-    t =    36.85s         Find the "Neon Circuit" Button
-    t =    36.89s         Check for interrupting elements affecting "Neon Circuit" Button
-    t =    36.92s         Synthesize event
-    t =    37.23s         Wait for com.zoomatech.prayertower.native to idle
-    t =    40.06s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169927456.470)
-    t =    40.10s     Find the "Please pray for my mom's surgery on Friday." StaticText
-    t =    40.13s     Find the "Please pray for my mom's surgery on Friday." StaticText
-AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Text of this element may be clipped at larger Dynamic Type sizes.
-    t =    40.16s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169927456.470)
-    t =    40.21s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
-    t =    40.23s     Find the "Please pray for my mom's surgery on Friday." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
-    t =    40.32s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169926496.471)
-    t =    40.38s     Find the "Jordan" StaticText
-    t =    40.41s     Find the "Jordan" StaticText
-AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Jordan'. Text of this element may be clipped at larger Dynamic Type sizes.
-    t =    40.44s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169926496.471)
-    t =    40.48s     Checking existence of `"Jordan" StaticText`
-    t =    40.50s     Find the "Jordan" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
-    t =    40.57s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169888704.472)
-    t =    40.60s     Find the "Thankful: the new job came through!" StaticText
-    t =    40.64s     Find the "Thankful: the new job came through!" StaticText
-AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Text of this element may be clipped at larger Dynamic Type sizes.
-    t =    40.67s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169888704.472)
-    t =    40.73s     Checking existence of `"Thankful: the new job came through!" StaticText`
-    t =    40.75s     Find the "Thankful: the new job came through!" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
-    t =    40.83s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302976400.466)
-    t =    40.90s     Find the "Neon Circuit" StaticText
-    t =    40.94s     Find the "Neon Circuit" StaticText
+    t =    65.61s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169755872.462)
+    t =    65.64s     Checking existence of `"🚩 You reached the top of the tower." StaticText`
+    t =    65.66s     Find the "🚩 You reached the top of the tower." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    65.74s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169750592.464)
+    t =    65.77s     Find the "🧗" StaticText
+    t =    65.79s     Tap Button (Element at index 0)
+    t =    65.79s         Wait for com.zoomatech.prayertower.native to idle
+    t =    65.79s         Find the Button (Element at index 0)
+    t =    65.82s         Check for interrupting elements affecting "Skins" Button
+    t =    65.87s         Synthesize event
+    t =    66.20s         Wait for com.zoomatech.prayertower.native to idle
+    t =    66.67s Neon Circuit at UICTContentSizeCategoryL
+    t =    66.67s     Find the "Neon Circuit" Button
+    t =    66.76s     Find the "Neon Circuit" Button
+    t =    66.87s     Find the "Neon Circuit" Button
+    t =    66.95s     Find the "Neon Circuit" Button
+    t =    67.06s     Find the "Neon Circuit" Button
+    t =    67.18s     Tap "Neon Circuit" Button
+    t =    67.18s         Wait for com.zoomatech.prayertower.native to idle
+    t =    67.18s         Find the "Neon Circuit" Button
+    t =    67.24s         Check for interrupting elements affecting "Neon Circuit" Button
+    t =    67.30s         Synthesize event
+    t =    67.61s         Wait for com.zoomatech.prayertower.native to idle
+    t =    71.22s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4350354304.497)
+    t =    71.27s     Find the "Neon Circuit" StaticText
+    t =    71.35s     Find the "Neon Circuit" StaticText
+    t =    71.39s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4350354304.497)
+    t =    71.43s     Find the "Neon Circuit" StaticText
+    t =    71.48s     Find the "Neon Circuit" StaticText
 AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Neon Circuit'. Contrast failed for element
-    t =    40.97s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 4302976400.466)
-    t =    41.00s     Checking existence of `"Neon Circuit" StaticText`
-    t =    41.02s     Find the "Neon Circuit" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    41.11s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169927456.470)
-    t =    41.15s     Find the "Please pray for my mom's surgery on Friday." StaticText
-    t =    41.18s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    71.57s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 4350354304.497)
+    t =    71.61s     Checking existence of `"Neon Circuit" StaticText`
+    t =    71.63s     Find the "Neon Circuit" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    71.82s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169848576.502)
+    t =    71.89s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    71.98s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    72.03s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169848576.502)
+    t =    72.07s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    72.13s     Find the "Please pray for my mom's surgery on Friday." StaticText
 AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Contrast failed for element
-    t =    41.24s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169927456.470)
-    t =    41.27s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
-    t =    41.30s     Find the "Please pray for my mom's surgery on Friday." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    41.38s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169889184.473)
-    t =    41.42s     Find the "Riley" StaticText
-    t =    41.45s     Find the "Riley" StaticText
+    t =    72.22s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169848576.502)
+    t =    72.27s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
+    t =    72.31s     Find the "Please pray for my mom's surgery on Friday." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    72.55s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169856896.503)
+    t =    72.65s     Find the "Riley" StaticText
+    t =    72.70s     Find the "Riley" StaticText
+    t =    72.75s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169856896.503)
+    t =    72.85s     Find the "Riley" StaticText
+    t =    72.90s     Find the "Riley" StaticText
 AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Riley'. Contrast failed for element
-    t =    41.47s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169889184.473)
-    t =    41.51s     Checking existence of `"Riley" StaticText`
-    t =    41.53s     Find the "Riley" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    41.60s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169888704.472)
-    t =    41.63s     Find the "Thankful: the new job came through!" StaticText
-    t =    41.66s     Find the "Thankful: the new job came through!" StaticText
+    t =    72.94s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169856896.503)
+    t =    72.99s     Checking existence of `"Riley" StaticText`
+    t =    73.06s     Find the "Riley" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    73.25s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169844576.504)
+    t =    73.35s     Find the "Thankful: the new job came through!" StaticText
+    t =    73.40s     Find the "Thankful: the new job came through!" StaticText
+    t =    73.49s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169844576.504)
+    t =    73.53s     Find the "Thankful: the new job came through!" StaticText
+    t =    73.59s     Find the "Thankful: the new job came through!" StaticText
 AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Contrast failed for element
-    t =    41.69s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169888704.472)
-    t =    41.76s     Checking existence of `"Thankful: the new job came through!" StaticText`
-    t =    41.78s     Find the "Thankful: the new job came through!" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    41.86s     Tap Button (Element at index 0)
-    t =    41.86s         Wait for com.zoomatech.prayertower.native to idle
-    t =    41.87s         Find the Button (Element at index 0)
-    t =    41.92s         Check for interrupting elements affecting "Skins" Button
-    t =    41.96s         Synthesize event
-    t =    42.27s         Wait for com.zoomatech.prayertower.native to idle
-    t =    42.64s Swipe to pray at UICTContentSizeCategoryL
-    t =    42.64s     Find the "Swipe to pray" Button
-    t =    42.70s     Find the "Swipe to pray" Button
-    t =    42.75s     Find the "Swipe to pray" Button
-    t =    42.81s     Find the "Swipe to pray" Button
-    t =    42.85s     Find the "Swipe to pray" Button
-    t =    42.90s     Tap "Swipe to pray" Button
-    t =    42.90s         Wait for com.zoomatech.prayertower.native to idle
-    t =    42.90s         Find the "Swipe to pray" Button
-    t =    42.94s         Check for interrupting elements affecting "Swipe to pray" Button
-    t =    42.98s         Synthesize event
-    t =    43.28s         Wait for com.zoomatech.prayertower.native to idle
-    t =    45.49s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169930496.501)
-    t =    45.50s     Find the "‹ Next" Button
-    t =    45.52s     Find the "‹ Next" Button
-AUDIT Swipe to pray at UICTContentSizeCategoryL: Contrast nearly passed on XCUIElementType(rawValue: 9) '‹ Next'. Contrast is not high enough for element unless font size is larger.
-    t =    45.54s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169930496.501)
-    t =    45.56s     Checking existence of `"‹ Next" Button`
-    t =    45.57s     Find the "‹ Next" Button
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast nearly passed
-    t =    45.59s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169930656.502)
-    t =    45.61s     Find the "Pray ›" Button
-    t =    45.62s     Find the "Pray ›" Button
-AUDIT Swipe to pray at UICTContentSizeCategoryL: Contrast nearly passed on XCUIElementType(rawValue: 9) 'Pray ›'. Contrast is not high enough for element unless font size is larger.
-    t =    45.63s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169930656.502)
-    t =    45.65s     Checking existence of `"Pray ›" Button`
-    t =    45.66s     Find the "Pray ›" Button
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast nearly passed
-    t =    45.69s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169929856.503)
-    t =    45.72s     Find the "1 of 2" StaticText
-    t =    45.74s     Find the "1 of 2" StaticText
-AUDIT Swipe to pray at UICTContentSizeCategoryL: Contrast nearly passed on XCUIElementType(rawValue: 48) '1 of 2'. Contrast is not high enough for element unless font size is larger.
-    t =    45.75s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169929856.503)
-    t =    45.77s     Checking existence of `"1 of 2" StaticText`
-    t =    45.78s     Find the "1 of 2" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast nearly passed
-    t =    45.80s     Tap Button (Element at index 0)
-    t =    45.80s         Wait for com.zoomatech.prayertower.native to idle
-    t =    45.81s         Find the Button (Element at index 0)
-    t =    45.82s         Check for interrupting elements affecting "Skins" Button
-    t =    45.84s         Synthesize event
-    t =    46.14s         Wait for com.zoomatech.prayertower.native to idle
-    t =    46.49s Flip at UICTContentSizeCategoryL
-    t =    46.49s     Find the "Flip" Button
-    t =    46.54s     Find the "Flip" Button
-    t =    46.58s     Find the "Flip" Button
-    t =    46.63s     Find the "Flip" Button
-    t =    46.67s     Find the "Flip" Button
-    t =    46.72s     Tap "Flip" Button
-    t =    46.72s         Wait for com.zoomatech.prayertower.native to idle
-    t =    46.72s         Find the "Flip" Button
-    t =    46.75s         Check for interrupting elements affecting "Flip" Button
-    t =    46.79s         Synthesize event
-    t =    47.07s         Wait for com.zoomatech.prayertower.native to idle
-    t =    49.15s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169835712.527)
-    t =    49.17s     Find the "1 of 2 · Swipe up to turn the page" StaticText
-    t =    49.18s     Find the "1 of 2 · Swipe up to turn the page" StaticText
-AUDIT Flip at UICTContentSizeCategoryL: Contrast nearly passed on XCUIElementType(rawValue: 48) '1 of 2 · Swipe up to turn the page'. Contrast is not high enough for element unless font size is larger.
-    t =    49.19s     Find the Any (Descendant with identity binding to AX element pid: 9826, elementOrHash.elementID: 105553169835712.527)
-    t =    49.21s     Checking existence of `"1 of 2 · Swipe up to turn the page" StaticText`
-    t =    49.23s     Find the "1 of 2 · Swipe up to turn the page" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast nearly passed
-    t =    49.27s     Tap Button (Element at index 0)
-    t =    49.27s         Wait for com.zoomatech.prayertower.native to idle
-    t =    49.28s         Find the Button (Element at index 0)
-    t =    49.29s         Check for interrupting elements affecting "Skins" Button
-    t =    49.31s         Synthesize event
-    t =    49.61s         Wait for com.zoomatech.prayertower.native to idle
-    t =    49.95s Terminate com.zoomatech.prayertower.native:9826
-    t =    51.00s Open com.zoomatech.prayertower.native
-    t =    51.00s     Launch com.zoomatech.prayertower.native
-    t =    51.30s         Setting up automation session
-    t =    52.34s         Wait for com.zoomatech.prayertower.native to idle
-    t =    53.59s Beanstalk at UICTContentSizeCategoryAccessibilityXXXL
-    t =    53.59s     Find the "Beanstalk" Button
-    t =    53.72s     Find the "Beanstalk" Button
-    t =    53.76s     Find the "Beanstalk" Button
-    t =    53.81s     Find the "Beanstalk" Button
-    t =    53.91s     Find the "Beanstalk" Button
-    t =    53.97s     Tap "Beanstalk" Button
-    t =    53.97s         Wait for com.zoomatech.prayertower.native to idle
-    t =    53.97s         Find the "Beanstalk" Button
-    t =    54.01s         Check for interrupting elements affecting "Beanstalk" Button
-    t =    54.04s         Synthesize event
-    t =    54.33s         Wait for com.zoomatech.prayertower.native to idle
-    t =    56.61s     Tap Button (Element at index 0)
-    t =    56.61s         Wait for com.zoomatech.prayertower.native to idle
-    t =    56.61s         Find the Button (Element at index 0)
-    t =    56.66s         Check for interrupting elements affecting "Skins" Button
-    t =    56.72s         Synthesize event
-    t =    57.01s         Wait for com.zoomatech.prayertower.native to idle
-    t =    57.38s Golden Wood at UICTContentSizeCategoryAccessibilityXXXL
-    t =    57.38s     Find the "Golden Wood" Button
-    t =    57.44s     Find the "Golden Wood" Button
-    t =    57.49s     Find the "Golden Wood" Button
-    t =    57.55s     Find the "Golden Wood" Button
-    t =    57.60s     Find the "Golden Wood" Button
-    t =    57.65s     Tap "Golden Wood" Button
-    t =    57.65s         Wait for com.zoomatech.prayertower.native to idle
-    t =    57.66s         Find the "Golden Wood" Button
-    t =    57.69s         Check for interrupting elements affecting "Golden Wood" Button
-    t =    57.72s         Synthesize event
-    t =    58.01s         Wait for com.zoomatech.prayertower.native to idle
-    t =    60.12s     Tap Button (Element at index 0)
-    t =    60.12s         Wait for com.zoomatech.prayertower.native to idle
-    t =    60.12s         Find the Button (Element at index 0)
-    t =    60.15s         Check for interrupting elements affecting "Skins" Button
-    t =    60.17s         Synthesize event
-    t =    60.46s         Wait for com.zoomatech.prayertower.native to idle
-    t =    60.82s Moonlit Gate at UICTContentSizeCategoryAccessibilityXXXL
-    t =    60.82s     Find the "Moonlit Gate" Button
-    t =    60.87s     Find the "Moonlit Gate" Button
-    t =    60.93s     Find the "Moonlit Gate" Button
-    t =    60.97s     Find the "Moonlit Gate" Button
-    t =    61.01s     Find the "Moonlit Gate" Button
-    t =    61.05s     Tap "Moonlit Gate" Button
-    t =    61.05s         Wait for com.zoomatech.prayertower.native to idle
-    t =    61.07s         Find the "Moonlit Gate" Button
-    t =    61.10s         Check for interrupting elements affecting "Moonlit Gate" Button
-    t =    61.13s         Synthesize event
-    t =    61.43s         Wait for com.zoomatech.prayertower.native to idle
-    t =    63.50s     Find the Any (Descendant with identity binding to AX element pid: 12358, elementOrHash.elementID: 4329952928.188)
-    t =    63.53s     Find the "Moonlit Gate" StaticText
-    t =    63.55s     Find the "Moonlit Gate" StaticText
+    t =    73.64s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169844576.504)
+    t =    73.76s     Checking existence of `"Thankful: the new job came through!" StaticText`
+    t =    73.82s     Find the "Thankful: the new job came through!" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    74.06s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169844576.504)
+    t =    74.17s     Find the "Thankful: the new job came through!" StaticText
+    t =    74.21s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169844576.504)
+    t =    74.25s     Find the "Thankful: the new job came through!" StaticText
+    t =    74.34s     Find the "Thankful: the new job came through!" StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    74.38s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169844576.504)
+    t =    74.43s     Checking existence of `"Thankful: the new job came through!" StaticText`
+    t =    74.47s     Find the "Thankful: the new job came through!" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    74.79s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169848576.502)
+    t =    75.14s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    75.24s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169848576.502)
+    t =    75.36s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    75.41s     Find the "Please pray for my mom's surgery on Friday." StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    75.45s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169848576.502)
+    t =    75.62s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
+    t =    75.72s     Find the "Please pray for my mom's surgery on Friday." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    75.96s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169847296.501)
+    t =    76.22s     Find the "Jordan" StaticText
+    t =    76.32s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169847296.501)
+    t =    76.51s     Find the "Jordan" StaticText
+    t =    76.61s     Find the "Jordan" StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Jordan'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    76.71s     Find the Any (Descendant with identity binding to AX element pid: 18283, elementOrHash.elementID: 105553169847296.501)
+    t =    76.78s     Checking existence of `"Jordan" StaticText`
+    t =    76.92s     Find the "Jordan" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    77.14s     Tap Button (Element at index 0)
+    t =    77.14s         Wait for com.zoomatech.prayertower.native to idle
+    t =    77.15s         Find the Button (Element at index 0)
+    t =    77.28s         Check for interrupting elements affecting "Skins" Button
+    t =    77.36s         Synthesize event
+    t =    77.71s         Wait for com.zoomatech.prayertower.native to idle
+    t =    77.79s Swipe to pray at UICTContentSizeCategoryL
+    t =    77.79s     Find the "Swipe to pray" Button
+    t =    78.06s     Find the "Swipe to pray" Button
+    t =    78.40s     Find the "Swipe to pray" Button
+    t =    78.55s     Find the "Swipe to pray" Button
+    t =    78.64s     Find the "Swipe to pray" Button
+    t =    78.75s     Tap "Swipe to pray" Button
+    t =    78.75s         Wait for com.zoomatech.prayertower.native to idle
+    t =    78.75s         Find the "Swipe to pray" Button
+    t =    78.83s         Check for interrupting elements affecting "Swipe to pray" Button
+    t =    78.92s         Synthesize event
+    t =    79.22s         Wait for com.zoomatech.prayertower.native to idle
+    t =    82.16s     Tap Button (Element at index 0)
+    t =    82.16s         Wait for com.zoomatech.prayertower.native to idle
+    t =    82.16s         Find the Button (Element at index 0)
+    t =    82.19s         Check for interrupting elements affecting "Skins" Button
+    t =    82.25s         Synthesize event
+    t =    82.56s         Wait for com.zoomatech.prayertower.native to idle
+    t =    82.96s Flip at UICTContentSizeCategoryL
+    t =    82.96s     Find the "Flip" Button
+    t =    83.07s     Find the "Flip" Button
+    t =    83.15s     Find the "Flip" Button
+    t =    83.23s     Find the "Flip" Button
+    t =    83.33s     Find the "Flip" Button
+    t =    83.39s     Tap "Flip" Button
+    t =    83.39s         Wait for com.zoomatech.prayertower.native to idle
+    t =    83.40s         Find the "Flip" Button
+    t =    83.47s         Check for interrupting elements affecting "Flip" Button
+    t =    83.55s         Synthesize event
+    t =    83.85s         Wait for com.zoomatech.prayertower.native to idle
+    t =    86.35s     Tap Button (Element at index 0)
+    t =    86.35s         Wait for com.zoomatech.prayertower.native to idle
+    t =    86.35s         Find the Button (Element at index 0)
+    t =    86.39s         Check for interrupting elements affecting "Skins" Button
+    t =    86.42s         Synthesize event
+    t =    86.74s         Wait for com.zoomatech.prayertower.native to idle
+    t =    87.11s Terminate com.zoomatech.prayertower.native:18283
+    t =    88.19s Open com.zoomatech.prayertower.native
+    t =    88.19s     Launch com.zoomatech.prayertower.native
+    t =    89.49s         Setting up automation session
+    t =    90.72s         Wait for com.zoomatech.prayertower.native to idle
+    t =    92.24s Beanstalk at UICTContentSizeCategoryAccessibilityXXXL
+    t =    92.24s     Find the "Beanstalk" Button
+    t =    92.49s     Find the "Beanstalk" Button
+    t =    92.56s     Find the "Beanstalk" Button
+    t =    92.66s     Find the "Beanstalk" Button
+    t =    92.83s     Find the "Beanstalk" Button
+    t =    92.89s     Tap "Beanstalk" Button
+    t =    92.89s         Wait for com.zoomatech.prayertower.native to idle
+    t =    92.89s         Find the "Beanstalk" Button
+    t =    92.94s         Check for interrupting elements affecting "Beanstalk" Button
+    t =    93.02s         Synthesize event
+    t =    93.34s         Wait for com.zoomatech.prayertower.native to idle
+    t =    96.15s     Tap Button (Element at index 0)
+    t =    96.15s         Wait for com.zoomatech.prayertower.native to idle
+    t =    96.16s         Find the Button (Element at index 0)
+    t =    96.19s         Check for interrupting elements affecting "Skins" Button
+    t =    96.23s         Synthesize event
+    t =    96.55s         Wait for com.zoomatech.prayertower.native to idle
+    t =    97.03s Golden Wood at UICTContentSizeCategoryAccessibilityXXXL
+    t =    97.03s     Find the "Golden Wood" Button
+    t =    97.40s     Find the "Golden Wood" Button
+    t =    97.54s     Find the "Golden Wood" Button
+    t =    97.69s     Find the "Golden Wood" Button
+    t =    97.86s     Find the "Golden Wood" Button
+    t =    97.94s     Tap "Golden Wood" Button
+    t =    97.94s         Wait for com.zoomatech.prayertower.native to idle
+    t =    97.95s         Find the "Golden Wood" Button
+    t =    98.04s         Check for interrupting elements affecting "Golden Wood" Button
+    t =    98.10s         Synthesize event
+    t =    98.42s         Wait for com.zoomatech.prayertower.native to idle
+    t =   100.96s     Tap Button (Element at index 0)
+    t =   100.96s         Wait for com.zoomatech.prayertower.native to idle
+    t =   100.96s         Find the Button (Element at index 0)
+    t =   101.04s         Check for interrupting elements affecting "Skins" Button
+    t =   101.09s         Synthesize event
+    t =   101.40s         Wait for com.zoomatech.prayertower.native to idle
+    t =   101.86s Moonlit Gate at UICTContentSizeCategoryAccessibilityXXXL
+    t =   101.86s     Find the "Moonlit Gate" Button
+    t =   102.14s     Find the "Moonlit Gate" Button
+    t =   102.39s     Find the "Moonlit Gate" Button
+    t =   102.64s     Find the "Moonlit Gate" Button
+    t =   102.73s     Find the "Moonlit Gate" Button
+    t =   102.85s     Tap "Moonlit Gate" Button
+    t =   102.86s         Wait for com.zoomatech.prayertower.native to idle
+    t =   102.86s         Find the "Moonlit Gate" Button
+    t =   102.91s         Check for interrupting elements affecting "Moonlit Gate" Button
+    t =   103.01s         Synthesize event
+    t =   103.35s         Wait for com.zoomatech.prayertower.native to idle
+    t =   106.01s     Find the Any (Descendant with identity binding to AX element pid: 20870, elementOrHash.elementID: 4349934384.158)
+    t =   106.10s     Find the "Moonlit Gate" StaticText
+    t =   106.15s     Find the "Moonlit Gate" StaticText
+    t =   106.19s     Find the Any (Descendant with identity binding to AX element pid: 20870, elementOrHash.elementID: 4349934384.158)
+    t =   106.26s     Find the "Moonlit Gate" StaticText
+    t =   106.33s     Find the "Moonlit Gate" StaticText
 AUDIT Moonlit Gate at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Moonlit Gate'. Contrast failed for element
-    t =    63.57s     Find the Any (Descendant with identity binding to AX element pid: 12358, elementOrHash.elementID: 4329952928.188)
-    t =    63.59s     Checking existence of `"Moonlit Gate" StaticText`
-    t =    63.60s     Find the "Moonlit Gate" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    63.64s     Tap Button (Element at index 0)
-    t =    63.64s         Wait for com.zoomatech.prayertower.native to idle
-    t =    63.64s         Find the Button (Element at index 0)
-    t =    63.67s         Check for interrupting elements affecting "Skins" Button
-    t =    63.70s         Synthesize event
-    t =    64.00s         Wait for com.zoomatech.prayertower.native to idle
-    t =    64.35s Neon Cinderella at UICTContentSizeCategoryAccessibilityXXXL
-    t =    64.35s     Find the "Neon Cinderella" Button
-    t =    64.41s     Find the "Neon Cinderella" Button
-    t =    64.45s     Find the "Neon Cinderella" Button
-    t =    64.49s     Find the "Neon Cinderella" Button
-    t =    64.55s     Find the "Neon Cinderella" Button
-    t =    64.59s     Tap "Neon Cinderella" Button
-    t =    64.59s         Wait for com.zoomatech.prayertower.native to idle
-    t =    64.59s         Find the "Neon Cinderella" Button
-    t =    64.62s         Check for interrupting elements affecting "Neon Cinderella" Button
-    t =    64.66s         Synthesize event
-    t =    64.97s         Wait for com.zoomatech.prayertower.native to idle
-    t =    67.36s     Find the Any (Descendant with identity binding to AX element pid: 12358, elementOrHash.elementID: 4329952928.243)
-    t =    67.39s     Find the "Neon Cinderella" StaticText
-    t =    67.41s     Find the "Neon Cinderella" StaticText
+    t =   106.37s     Find the Any (Descendant with identity binding to AX element pid: 20870, elementOrHash.elementID: 4349934384.158)
+    t =   106.45s     Checking existence of `"Moonlit Gate" StaticText`
+    t =   106.47s     Find the "Moonlit Gate" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =   106.54s     Tap Button (Element at index 0)
+    t =   106.55s         Wait for com.zoomatech.prayertower.native to idle
+    t =   106.55s         Find the Button (Element at index 0)
+    t =   106.62s         Check for interrupting elements affecting "Skins" Button
+    t =   106.69s         Synthesize event
+    t =   106.99s         Wait for com.zoomatech.prayertower.native to idle
+    t =   107.39s Neon Cinderella at UICTContentSizeCategoryAccessibilityXXXL
+    t =   107.39s     Find the "Neon Cinderella" Button
+    t =   107.59s     Find the "Neon Cinderella" Button
+    t =   107.68s     Find the "Neon Cinderella" Button
+    t =   107.75s     Find the "Neon Cinderella" Button
+    t =   107.81s     Find the "Neon Cinderella" Button
+    t =   107.91s     Tap "Neon Cinderella" Button
+    t =   107.91s         Wait for com.zoomatech.prayertower.native to idle
+    t =   107.92s         Find the "Neon Cinderella" Button
+    t =   108.06s         Check for interrupting elements affecting "Neon Cinderella" Button
+    t =   108.18s         Synthesize event
+    t =   108.59s         Wait for com.zoomatech.prayertower.native to idle
+    t =   111.83s     Find the Any (Descendant with identity binding to AX element pid: 20870, elementOrHash.elementID: 4701833088.198)
+    t =   111.98s     Find the "Neon Cinderella" StaticText
+    t =   112.11s     Find the "Neon Cinderella" StaticText
+    t =   112.23s     Find the Any (Descendant with identity binding to AX element pid: 20870, elementOrHash.elementID: 4701833088.198)
+    t =   112.41s     Find the "Neon Cinderella" StaticText
+    t =   112.49s     Find the "Neon Cinderella" StaticText
 AUDIT Neon Cinderella at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Neon Cinderella'. Contrast failed for element
-    t =    67.44s     Find the Any (Descendant with identity binding to AX element pid: 12358, elementOrHash.elementID: 4329952928.243)
-    t =    67.45s     Checking existence of `"Neon Cinderella" StaticText`
-    t =    67.47s     Find the "Neon Cinderella" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
-    t =    67.51s     Tap Button (Element at index 0)
-    t =    67.51s         Wait for com.zoomatech.prayertower.native to idle
-    t =    67.51s         Find the Button (Element at index 0)
-    t =    67.53s         Check for interrupting elements affecting "Skins" Button
-    t =    67.56s         Synthesize event
-    t =    67.87s         Wait for com.zoomatech.prayertower.native to idle
-    t =    68.23s Blossom Garden at UICTContentSizeCategoryAccessibilityXXXL
-    t =    68.23s     Find the "Blossom Garden" Button
-    t =    68.29s     Find the "Blossom Garden" Button
-    t =    68.34s     Find the "Blossom Garden" Button
-    t =    68.39s     Find the "Blossom Garden" Button
-    t =    68.44s     Find the "Blossom Garden" Button
-    t =    68.49s     Tap "Blossom Garden" Button
-    t =    68.49s         Wait for com.zoomatech.prayertower.native to idle
-    t =    68.49s         Find the "Blossom Garden" Button
-    t =    68.53s         Check for interrupting elements affecting "Blossom Garden" Button
-    t =    68.56s         Synthesize event
-    t =    68.85s         Wait for com.zoomatech.prayertower.native to idle
-    t =    70.94s     Tap Button (Element at index 0)
-    t =    70.94s         Wait for com.zoomatech.prayertower.native to idle
-    t =    70.94s         Find the Button (Element at index 0)
-    t =    70.96s         Check for interrupting elements affecting "Skins" Button
-    t =    71.00s         Synthesize event
-    t =    71.29s         Wait for com.zoomatech.prayertower.native to idle
-    t =    71.64s Christmas Star at UICTContentSizeCategoryAccessibilityXXXL
-    t =    71.64s     Find the "Christmas Star" Button
-    t =    71.70s     Find the "Christmas Star" Button
-    t =    71.76s     Find the "Christmas Star" Button
-    t =    71.82s     Find the "Christmas Star" Button
-    t =    71.88s     Find the "Christmas Star" Button
-    t =    71.93s     Tap "Christmas Star" Button
-    t =    71.93s         Wait for com.zoomatech.prayertower.native to idle
-    t =    71.93s         Find the "Christmas Star" Button
-    t =    71.98s         Check for interrupting elements affecting "Christmas Star" Button
-    t =    72.01s         Synthesize event
-    t =    72.31s         Wait for com.zoomatech.prayertower.native to idle
+    t =   112.52s     Find the Any (Descendant with identity binding to AX element pid: 20870, elementOrHash.elementID: 4701833088.198)
+    t =   112.59s     Checking existence of `"Neon Cinderella" StaticText`
+    t =   112.62s     Find the "Neon Cinderella" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =   112.69s     Tap Button (Element at index 0)
+    t =   112.69s         Wait for com.zoomatech.prayertower.native to idle
+    t =   112.70s         Find the Button (Element at index 0)
+    t =   112.74s         Check for interrupting elements affecting "Skins" Button
+    t =   112.80s         Synthesize event
+    t =   113.13s         Wait for com.zoomatech.prayertower.native to idle
+    t =   113.56s Blossom Garden at UICTContentSizeCategoryAccessibilityXXXL
+    t =   113.56s     Find the "Blossom Garden" Button
+    t =   114.05s     Find the "Blossom Garden" Button
+    t =   114.58s     Find the "Blossom Garden" Button
+    t =   115.70s     Find the "Blossom Garden" Button
+    t =   116.92s     Find the "Blossom Garden" Button
+    t =   117.05s     Tap "Blossom Garden" Button
+    t =   117.05s         Wait for com.zoomatech.prayertower.native to idle
+    t =   117.06s         Find the "Blossom Garden" Button
+    t =   117.15s         Check for interrupting elements affecting "Blossom Garden" Button
+    t =   117.25s         Synthesize event
+    t =   117.58s         Wait for com.zoomatech.prayertower.native to idle
+    t =   120.01s     Tap Button (Element at index 0)
+    t =   120.02s         Wait for com.zoomatech.prayertower.native to idle
+    t =   120.02s         Find the Button (Element at index 0)
+    t =   120.23s         Check for interrupting elements affecting "Skins" Button
+    t =   120.84s         Synthesize event
+    t =   121.22s         Wait for com.zoomatech.prayertower.native to idle
+    t =   121.62s Christmas Star at UICTContentSizeCategoryAccessibilityXXXL
+    t =   121.63s     Find the "Christmas Star" Button
+    t =   121.84s     Find the "Christmas Star" Button
+    t =   121.93s     Find the "Christmas Star" Button
+    t =   122.02s     Find the "Christmas Star" Button
+    t =   122.34s     Find the "Christmas Star" Button
+    t =   122.81s     Tap "Christmas Star" Button
+    t =   122.82s         Wait for com.zoomatech.prayertower.native to idle
+    t =   122.82s         Find the "Christmas Star" Button
+    t =   123.00s         Check for interrupting elements affecting "Christmas Star" Button
+    t =   123.13s         Synthesize event
+    t =   123.44s         Wait for com.zoomatech.prayertower.native to idle
 AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
 AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
 AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
 AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
 AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
 AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
 AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:43: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
-    t =    74.51s     Tap Button (Element at index 0)
-    t =    74.51s         Wait for com.zoomatech.prayertower.native to idle
-    t =    74.51s         Find the Button (Element at index 0)
-    t =    75.54s             Find the Button (Element at index 0) (retry 1)
-    t =    76.57s             Find the Button (Element at index 0) (retry 2)
-    t =    76.60s     Requesting snapshot of accessibility hierarchy for app with pid 12358
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:44: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Failed to tap Button (Element at index 0): No matches found for Descendants matching type Button from input {(
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =   126.25s     Tap Button (Element at index 0)
+    t =   126.25s         Wait for com.zoomatech.prayertower.native to idle
+    t =   126.32s         Find the Button (Element at index 0)
+    t =   127.46s             Find the Button (Element at index 0) (retry 1)
+    t =   128.52s             Find the Button (Element at index 0) (retry 2)
+    t =   128.58s     Requesting snapshot of accessibility hierarchy for app with pid 20870
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:58: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Failed to tap Button (Element at index 0): No matches found for Descendants matching type Button from input {(
     NavigationBar, identifier: 'Skins'
 )}
-    t =    76.65s Tear Down
-Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin]' failed (76.879 seconds).
+    t =   128.67s Tear Down
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin]' failed (129.043 seconds).
 Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen]' started.
-    t =     0.00s Start Test at 2026-10-30 05:40:43.226
-    t =     0.03s Set Up
-    t =     0.03s Open com.zoomatech.prayertower.native
-    t =     0.03s     Launch com.zoomatech.prayertower.native
-    t =     0.03s         Terminate com.zoomatech.prayertower.native:12358
-    t =     2.49s         Setting up automation session
-    t =     3.39s         Wait for com.zoomatech.prayertower.native to idle
-    t =     6.68s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169793184.11)
-    t =     6.71s Find the "🕊" StaticText
-    t =     6.73s Find the "🕊" StaticText
-AUDIT Sign-in at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) '🕊'. Contrast failed for element
-    t =     6.75s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169793184.11)
-    t =     6.77s Checking existence of `"🕊" StaticText`
-    t =     6.78s Find the "🕊" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast failed
-    t =     6.83s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169804064.4)
-    t =     6.85s Find the "Real people praying for you, by name, right now." StaticText
-    t =     6.87s Find the "Real people praying for you, by name, right now." StaticText
-AUDIT Sign-in at UICTContentSizeCategoryL: Contrast nearly passed on XCUIElementType(rawValue: 48) 'Real people praying for you, by name, right now.'. Contrast is not high enough for element unless font size is larger.
-    t =     6.89s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169804064.4)
-    t =     6.91s Checking existence of `"Real people praying for you, by name, right now." StaticText`
-    t =     6.92s Find the "Real people praying for you, by name, right now." StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast nearly passed
-    t =     6.96s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169794144.7)
-    t =     6.98s Find the "Sign in" Button
-    t =     7.00s Find the "Sign in" Button
-AUDIT Sign-in at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 9) 'Sign in'. Contrast failed for element
-    t =     7.02s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169794144.7)
-    t =     7.04s Checking existence of `"Sign in" Button`
-    t =     7.05s Find the "Sign in" Button
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast failed
-    t =     7.09s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169804704.8)
-    t =     7.11s Find the "Forgot your password?" Button
-    t =     7.14s Find the "Forgot your password?" Button
-AUDIT Sign-in at UICTContentSizeCategoryL: Contrast nearly passed on XCUIElementType(rawValue: 9) 'Forgot your password?'. Contrast is not high enough for element unless font size is larger.
-    t =     7.15s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169804704.8)
-    t =     7.17s Checking existence of `"Forgot your password?" Button`
-    t =     7.19s Find the "Forgot your password?" Button
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast nearly passed
-AUDIT Sign-in at UICTContentSizeCategoryL: Contrast nearly passed on screen. Contrast is not high enough for element unless font size is larger.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast nearly passed
-    t =     7.23s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169804704.8)
-    t =     7.25s Find the "Forgot your password?" Button
-    t =     7.28s Find the "Forgot your password?" Button
-AUDIT Sign-in at UICTContentSizeCategoryL: Dynamic Type font sizes are partially unsupported on XCUIElementType(rawValue: 9) 'Forgot your password?'. User will not be able to change the font size of this element
-    t =     7.30s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169804704.8)
-    t =     7.32s Checking existence of `"Forgot your password?" Button`
-    t =     7.33s Find the "Forgot your password?" Button
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Dynamic Type font sizes are partially unsupported
-    t =     7.37s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169793184.11)
-    t =     7.39s Find the "🕊" StaticText
-    t =     7.40s Find the "🕊" StaticText
-AUDIT Sign-in at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) '🕊'. Text of this element may be clipped at larger Dynamic Type sizes.
-    t =     7.43s Find the Any (Descendant with identity binding to AX element pid: 13543, elementOrHash.elementID: 105553169793184.11)
-    t =     7.45s Checking existence of `"🕊" StaticText`
-    t =     7.47s Find the "🕊" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Text clipped
-    t =     7.50s Terminate com.zoomatech.prayertower.native:13543
-    t =    15.56s Open com.zoomatech.prayertower.native
-    t =    15.56s     Launch com.zoomatech.prayertower.native
-    t =    15.78s         Setting up automation session
-    t =    16.80s         Wait for com.zoomatech.prayertower.native to idle
-    t =    19.98s Find the Any (Descendant with identity binding to AX element pid: 14164, elementOrHash.elementID: 105553169811648.8)
-    t =    20.01s Find the "🕊" StaticText
-    t =    20.03s Find the "🕊" StaticText
-AUDIT Sign-in at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) '🕊'. Contrast failed for element
-    t =    20.04s Find the Any (Descendant with identity binding to AX element pid: 14164, elementOrHash.elementID: 105553169811648.8)
-    t =    20.07s Checking existence of `"🕊" StaticText`
-    t =    20.08s Find the "🕊" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast failed
-    t =    20.11s Find the Any (Descendant with identity binding to AX element pid: 14164, elementOrHash.elementID: 105553169812608.9)
-    t =    20.13s Find the "Sign in" Button
-    t =    20.15s Find the "Sign in" Button
-AUDIT Sign-in at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 9) 'Sign in'. Contrast failed for element
-    t =    20.16s Find the Any (Descendant with identity binding to AX element pid: 14164, elementOrHash.elementID: 105553169812608.9)
-    t =    20.18s Checking existence of `"Sign in" Button`
-    t =    20.19s Find the "Sign in" Button
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Contrast failed
-    t =    20.22s Find the Any (Descendant with identity binding to AX element pid: 14164, elementOrHash.elementID: 105553169811648.8)
-    t =    20.24s Find the "🕊" StaticText
-    t =    20.26s Find the "🕊" StaticText
-AUDIT Sign-in at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on XCUIElementType(rawValue: 48) '🕊'. Text of this element may be clipped at larger Dynamic Type sizes.
-    t =    20.28s Find the Any (Descendant with identity binding to AX element pid: 14164, elementOrHash.elementID: 105553169811648.8)
-    t =    20.29s Checking existence of `"🕊" StaticText`
-    t =    20.31s Find the "🕊" StaticText
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:28: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen] : Text clipped
-    t =    20.34s Terminate com.zoomatech.prayertower.native:14164
-    t =    21.34s Tear Down
-Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen]' failed (21.367 seconds).
-Test Suite 'AccessibilityAuditTests' failed at 2026-10-30 05:41:04.593.
-	 Executed 2 tests, with 56 failures (0 unexpected) in 98.246 (98.247) seconds
-Test Suite 'PrayerTowerNativeUITests.xctest' failed at 2026-10-30 05:41:04.593.
-	 Executed 2 tests, with 56 failures (0 unexpected) in 98.246 (98.247) seconds
-Test Suite 'All tests' failed at 2026-10-30 05:41:04.594.
-	 Executed 2 tests, with 56 failures (0 unexpected) in 98.246 (98.248) seconds
-2026-10-30 05:41:24.802 xcodebuild[5897:21574] [MT] IDETestOperationsObserverDebug: 289.899 elapsed -- Testing started completed.
-2026-10-30 05:41:24.802 xcodebuild[5897:21574] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
-2026-10-30 05:41:24.802 xcodebuild[5897:21574] [MT] IDETestOperationsObserverDebug: 289.899 sec, +289.899 sec -- end
+    t =     0.00s Start Test at 2026-10-30 06:22:40.100
+    t =     0.08s Set Up
+    t =     0.08s Open com.zoomatech.prayertower.native
+    t =     0.08s     Launch com.zoomatech.prayertower.native
+    t =     0.08s         Terminate com.zoomatech.prayertower.native:20870
+    t =     4.50s         Setting up automation session
+    t =     6.29s         Wait for com.zoomatech.prayertower.native to idle
+    t =    10.64s Find the Any (Descendant with identity binding to AX element pid: 21784, elementOrHash.elementID: 105553169819648.10)
+    t =    10.70s Find the "🕊" StaticText
+    t =    10.74s Find the "🕊" StaticText
+    t =    10.79s Find the Any (Descendant with identity binding to AX element pid: 21784, elementOrHash.elementID: 105553169819808.7)
+    t =    10.85s Find the "Sign in" Button
+    t =    10.90s Find the Any (Descendant with identity binding to AX element pid: 21784, elementOrHash.elementID: 105553169819648.10)
+    t =    10.95s Find the "🕊" StaticText
+    t =    10.97s Terminate com.zoomatech.prayertower.native:21784
+    t =    12.02s Open com.zoomatech.prayertower.native
+    t =    12.02s     Launch com.zoomatech.prayertower.native
+    t =    12.72s         Setting up automation session
+    t =    14.32s         Wait for com.zoomatech.prayertower.native to idle
+    t =    18.77s Find the Any (Descendant with identity binding to AX element pid: 21915, elementOrHash.elementID: 105553169774176.7)
+    t =    18.87s Find the "🕊" StaticText
+    t =    18.91s Find the "🕊" StaticText
+    t =    18.93s Find the Any (Descendant with identity binding to AX element pid: 21915, elementOrHash.elementID: 105553169763136.8)
+    t =    18.97s Find the "Sign in" Button
+    t =    18.99s Find the Any (Descendant with identity binding to AX element pid: 21915, elementOrHash.elementID: 105553169774176.7)
+    t =    19.04s Find the "🕊" StaticText
+    t =    19.06s Terminate com.zoomatech.prayertower.native:21915
+    t =    20.07s Tear Down
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen]' passed (20.110 seconds).
+Test Suite 'AccessibilityAuditTests' failed at 2026-10-30 06:23:00.211.
+	 Executed 2 tests, with 43 failures (0 unexpected) in 149.153 (149.156) seconds
+Test Suite 'PrayerTowerNativeUITests.xctest' failed at 2026-10-30 06:23:00.214.
+	 Executed 2 tests, with 43 failures (0 unexpected) in 149.153 (149.159) seconds
+Test Suite 'All tests' failed at 2026-10-30 06:23:00.218.
+	 Executed 2 tests, with 43 failures (0 unexpected) in 149.153 (149.164) seconds
+2026-10-30 06:23:41.032 xcodebuild[12418:38149] [MT] IDETestOperationsObserverDebug: 548.669 elapsed -- Testing started completed.
+2026-10-30 06:23:41.033 xcodebuild[12418:38149] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-30 06:23:41.033 xcodebuild[12418:38149] [MT] IDETestOperationsObserverDebug: 548.669 sec, +548.669 sec -- end
 
 Test session results, code coverage, and logs:
-	/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Logs/Test/Test-PrayerTowerNative-2026.10.30_05-36-26-+0000.xcresult
+	/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Logs/Test/Test-PrayerTowerNative-2026.10.30_06-14-15-+0000.xcresult
 
 Failing tests:
 	MainScreensWalk.testEveryScreenPassesTheAccessibilityAudit()
@@ -1488,12 +1474,6 @@ Failing tests:
 	AccessibilityAuditTests.testEverySkin()
 	AccessibilityAuditTests.testEverySkin()
 	AccessibilityAuditTests.testEverySkin()
-	AccessibilityAuditTests.testEverySkin()
-	AccessibilityAuditTests.testEverySkin()
-	AccessibilityAuditTests.testSignInScreen()
-	AccessibilityAuditTests.testSignInScreen()
-	AccessibilityAuditTests.testSignInScreen()
-	AccessibilityAuditTests.testSignInScreen()
 
 ** TEST FAILED **
 
