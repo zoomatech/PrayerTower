@@ -14,6 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { ListenerSignupSection, QslCardsSection, StationReportSection } from '@/components/listener-admin';
 import { BandPlanSection, UrgentRadioSection } from '@/components/radio-plan-admin';
+import { RadioPanelToggle } from '@/components/prayer-panel';
 import { RadioLoopSection } from '@/components/radio-summary';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
@@ -393,6 +394,7 @@ function Admin() {
             <ScheduledRadioToggle />
             <HeardTrailToggle />
             <RadioLoopSection />
+            <RadioPanelToggle />
             <SignalQueueToggle />
             <FairAirSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}

@@ -39,6 +39,7 @@ targets:
         # iPad: every orientation, so it can run side by side with other apps (Split View).
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this phone.
+        NSCameraUsageDescription: The camera reads a panel shown on another screen or on paper. The picture stays on this phone.
         # Widget and Live Activity taps open prayertower:///post/<id>.
         CFBundleURLTypes:
           - CFBundleURLName: com.zoomatech.prayertower.native
@@ -105,6 +106,7 @@ targets:
         # iPad: every orientation, so it can run side by side with other apps (Split View).
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSMicrophoneUsageDescription: Listen decodes radio bursts from the microphone or an audio input. The sound stays on this phone.
+        NSCameraUsageDescription: The camera reads a panel shown on another screen or on paper. The picture stays on this phone.
         CFBundleURLTypes:
           - CFBundleURLName: com.zoomatech.opencircle.native
             CFBundleURLSchemes: [opencircle]
@@ -366,6 +368,8 @@ targets:
         com.apple.security.network.client: true
         # Listener mode (Shared/ListenView.swift) reads an audio input.
         com.apple.security.device.audio-input: true
+        # The prayer panel reader (Shared/PrayerPanelView.swift) opens a picture the operator picks.
+        com.apple.security.files.user-selected.read-only: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.console
