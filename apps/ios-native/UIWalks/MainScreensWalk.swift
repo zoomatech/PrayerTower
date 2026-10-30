@@ -58,7 +58,7 @@ final class MainScreensWalk: XCTestCase {
                 if text.contains("nearly passed") || text.contains("partially unsupported") { return true }
                 if issue.auditType == .contrast, issue.element?.isEnabled == false { return true }
                 let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
-                issues.append("\(screen): \(issue.compactDescription) on \(what)")
+                issues.append("\(screen): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
                 return true
             }
         }
