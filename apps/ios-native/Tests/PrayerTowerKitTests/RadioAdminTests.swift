@@ -31,7 +31,7 @@ import FoundationNetworking
     }
 
     @Test func stationOnlySwitchesFollowTheTransmitter() {
-        #expect(RadioSwitch.allCases.filter { !$0.stationOnly } == [.heardTrail, .scheduledRadio, .signalQueue, .signalJourney])
+        #expect(RadioSwitch.allCases.filter { !$0.stationOnly } == [.heardTrail, .scheduledRadio, .signalQueue])
         for s in RadioSwitch.allCases {
             #expect(Words(.faith)(s.label) != s.label, "\(s.label)")
             #expect(Words(.faith)(s.hint) != s.hint, "\(s.hint)")

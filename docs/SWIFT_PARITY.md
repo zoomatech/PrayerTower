@@ -101,7 +101,7 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
 | Expo route | Status |
 | --- | --- |
 | `listen`, `listen-on-air`, `operator-console`, `radio-requests`, `signal-queue`, amplify / radio send | 📻 radio thread (`RadioViews.swift`, `PrayerTowerConsole`) |
-| Admin → Radio: radio settings, burst size, listen page, receipts, on-air page, Priestly fund settings, station health and acks, station alerts, listener and station nodes with SNR, recent bursts, and the radio switches (heard trail, scheduled radio, signal queue, signal journey, operator console, fair air, ceaseless, beacon, sky, schedule, operator log, followups, listener mode, packet, digest) | 📻 radio thread |
+| Admin → Radio: radio settings, burst size, listen page, receipts, on-air page, Priestly fund settings, station health and acks, station alerts, listener and station nodes with SNR, recent bursts, and the radio switches (heard trail, scheduled radio, signal queue, operator console, fair air, ceaseless, beacon, sky, schedule, operator log, followups, listener mode, packet, digest) | 📻 radio thread |
 | `kindness-research`, `meaning-words`, `mend/[id]`, `skin-gallery`, `skin-idea`, kind norms, kindness weather | 💛 kindness thread (`Skins/`, `KindCloudView`) |
 
 ## Editions

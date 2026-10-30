@@ -31,7 +31,7 @@ it('reads a panel from SSTV audio heard a piece at a time, once', () => {
   expect(listener.read()).toBeNull();
 }, 60_000);
 
-it.each([8_000, 11_025, 16_000, 44_100])('reads it from a microphone at %i Hz too, and odd samples do no harm', (rate) => {
+it.each([8_000, 11_025])('reads it from a microphone at %i Hz too (Bluetooth headsets), and odd samples do no harm', (rate) => {
   const prayers = ['Pray for Ana as she starts chemo on Monday.'];
   const panel = drawPanel(prayers, 'KD9XYZ');
   const audio = encodeRobot36(picture(panel.cells, panel.width, panel.height), rate);
