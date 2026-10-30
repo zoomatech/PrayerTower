@@ -10,5 +10,6 @@ const URGENT_FIRST = `(p.urgency >= ${URGENT_LEVEL}) desc, `;
 
 /** Free automatic sends (fair air's every-request sends, ceaseless re-sends) go after members' own prayers. */
 export function queueOrder(s: { radio_urgent_first: boolean; radio_order: string }): string {
-  return `(r.kind in ('auto', 'ceaseless')), ${s.radio_urgent_first ? URGENT_FIRST : ''}${s.radio_order === 'need' ? NEED_ORDER : 'r.id'}`;
+  // Prayers flagged urgent (urgent.ts) go before everything.
+  return `r.urgent desc, (r.kind in ('auto', 'ceaseless')), ${s.radio_urgent_first ? URGENT_FIRST : ''}${s.radio_order === 'need' ? NEED_ORDER : 'r.id'}`;
 }

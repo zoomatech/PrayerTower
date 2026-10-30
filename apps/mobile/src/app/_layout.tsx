@@ -99,6 +99,8 @@ function RootStack() {
           <Stack.Screen name="library" />
           <Stack.Screen name="parallels" />
           <Stack.Screen name="reading-plans" />
+          <Stack.Screen name="word-study" />
+          <Stack.Screen name="my-notes" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="crosspost" />

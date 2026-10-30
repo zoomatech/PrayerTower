@@ -3,8 +3,11 @@ import { z } from 'zod';
 import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import * as library from './index.js';
+import * as notes from './notes.js';
+import * as offline from './offline.js';
 import * as parallels from './parallels.js';
 import * as plans from './plans.js';
+import * as words from './words.js';
 
 // Scripture and ancient writings search (off by default).
 export function libraryRoutes(app: FastifyInstance, db: Db) {
@@ -28,5 +31,21 @@ export function libraryRoutes(app: FastifyInstance, db: Db) {
   app.post('/library/plans/:id/days/:day/read', async (req) => {
     const p = PlanDay.parse(req.params);
     return plans.markRead(db, requireUser(req), p.id, p.day);
+  });
+  // Word study on the King James Bible (Strong's numbers).
+  app.get('/library/words', async (req) => words.verse(db, requireUser(req), words.VerseQuery.parse(req.query).ref));
+  app.get('/library/words/:id', async (req) => words.entry(db, requireUser(req), words.EntryParams.parse(req.params).id, words.EntryQuery.parse(req.query)));
+  // Highlights and notes.
+  app.get('/library/notes', async (req) => notes.list(db, requireUser(req), notes.ListQuery.parse(req.query)));
+  app.put('/library/notes', async (req) => notes.save(db, requireUser(req), notes.SaveInput.parse(req.body)));
+  app.delete('/library/notes/:id', async (req) => notes.remove(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
+  app.get('/library/notes/circle/:id', async (req) => notes.circle(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
+  // Offline texts for the native app.
+  app.get('/library/offline', async (req) => offline.list(db, requireUser(req)));
+  app.get('/library/offline/:id', async (req, reply) => {
+    const id = z.object({ id: z.enum(library.COLLECTIONS) }).parse(req.params).id;
+    const f = await offline.download(db, requireUser(req), id);
+    // The file is already gzipped JSON: sent as is, and the client unzips it.
+    return reply.header('content-type', 'application/json').header('content-encoding', 'gzip').header('etag', `"${f.version}"`).send(f.bytes);
   });
 }

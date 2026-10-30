@@ -174,6 +174,10 @@ export interface Features {
   /** Parallels across texts and reading plans from the library (docs/LIBRARY_SEARCH.md). */
   libraryParallels: boolean;
   libraryPlans: boolean;
+  /** Word study on the King James Bible, highlights and notes, offline texts (docs/LIBRARY_SEARCH.md). */
+  libraryWords: boolean;
+  libraryNotes: boolean;
+  libraryOffline: boolean;
   /** Growth ideas (docs/GROWTH.md). */
   guestPrayer: boolean;
   prayerChain: boolean;
@@ -822,6 +826,65 @@ export interface RadioConsole {
   /** Prayer without ceasing: kept requests re-sent when the air is quiet. Null while off. */
   ceaseless: { enabled: boolean; gapMinutes: number; inRotation: number; sentLastDay: number } | null;
   relays: { node: string; reportedAt: string; callSign: string; relayedLastHour: number; secondsLastHour: number; budgetSeconds: number; skipped: Record<string, number> }[];
+  /** The band plan's pick now and the next 24 hours; null while off (optional for older servers). */
+  band?: BandOutlook | null;
+  /** Urgent prayers; null while off. */
+  urgent?: UrgentRadio | null;
+}
+
+/** Admin → Radio → Band plan (server radio/band-plan.ts). */
+export interface RadioBand {
+  label: string;
+  freqHz: number;
+  mode: 'fm' | 'usb';
+  preset?: string;
+}
+export interface SpaceWeather {
+  sfi: number;
+  kp: number;
+  fluxAt: string;
+  fetchedAt: string;
+}
+export interface BandPick {
+  band: RadioBand;
+  reason: 'hf' | 'only' | 'vhf' | 'no-data';
+  mufMhz: number | null;
+  workingMhz: number | null;
+}
+export interface BandOutlook {
+  now: BandPick | null;
+  spaceWeather: SpaceWeather | null;
+  hours: { at: string; band: string | null; mufMhz: number | null; onAir: boolean }[];
+}
+export interface BandPlan {
+  enabled: boolean;
+  bands: RadioBand[];
+  spaceWeather: SpaceWeather | null;
+  outlook: BandOutlook | null;
+}
+
+/** Admin → Radio → Urgent prayers (server radio/urgent.ts). */
+export interface UrgentPrayer {
+  id: string;
+  postId: string;
+  text: string;
+  status: string;
+  repeats: number;
+  flaggedAt: string;
+  transmittedAt: string | null;
+  confirmedAt: string | null;
+  heardCount: number;
+  retries: number;
+}
+export interface UrgentRadio {
+  enabled: boolean;
+  repeats: number;
+  preset: string;
+  confirmMinutes: number;
+  maxRetries: number;
+  presetNow: string | null;
+  nextWindowAt: string | null;
+  prayers: UrgentPrayer[];
 }
 
 export type SkyTarget = 'zenith' | 'moon' | 'alpha_centauri' | 'custom';
@@ -1572,13 +1635,43 @@ export type ReadingPlanToday =
     };
 export type LibraryOverview = { enabled: false } | { enabled: true; collections: { id: LibraryCollectionId; title: string; faith: boolean }[] };
 export type LibraryCollectionId = 'bible-kjv' | 'apocrypha-kjv' | 'ancient-writings' | 'oldest-texts' | 'world-classics';
-export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string };
+export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string; key: string };
 export type LibraryDaily =
   | { enabled: false }
   | { enabled: true; day: string; share: boolean; passage: { collection: LibraryCollectionId; ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string } };
-export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean };
+export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean; wordsEnabled: boolean; notesEnabled: boolean; offlineEnabled: boolean };
 /** Passages from one place in a collection, with their citation. */
-export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string };
+export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string; key: string };
+/** A King James verse word by word; tagged words carry Strong's numbers (H… Hebrew, G… Greek). */
+export type WordVerse = { ref: string; citation: string; key: string; words: { text: string; strongs: string[] }[]; roots: Record<string, { lemma: string; translit: string }> };
+export type WordEntry = {
+  id: string;
+  language: 'Hebrew' | 'Greek';
+  lemma: string;
+  translit: string;
+  pron: string;
+  derivation: string;
+  definition: string;
+  kjv: string;
+  total: number;
+  verses: { ref: string; text: string; as: string[]; citation: string; key: string }[];
+};
+export type NoteColor = 'yellow' | 'green' | 'blue' | 'pink';
+/** A member's highlight and/or note on a passage; private unless shared with one of their circles. */
+export type LibraryNote = {
+  id: string;
+  collection: LibraryCollectionId;
+  workId: string;
+  ref: string;
+  key: string;
+  quote: string;
+  citation: string;
+  color: NoteColor | null;
+  note: string | null;
+  circle: { id: string; name: string } | null;
+  updatedAt: string;
+};
+export type CircleLibraryNote = LibraryNote & { author: string; mine: boolean };
 export type ParallelThemes = { enabled: false } | { enabled: true; themes: { id: string; title: string; intro: string; texts: string[] }[] };
 export type ParallelTheme = { id: string; title: string; intro: string; sides: (LibraryExcerpt & { label: string | null })[] };
 export type PlanProgress = { read: number; next: number | null; finished: boolean; reminders: boolean; circle: { id: string; name: string } | null };
@@ -2174,6 +2267,12 @@ export const api = {
     qslCards: () => get<{ enabled: boolean; cards: QslCard[] }>('/admin/qsl-cards'),
     setQslCards: (enabled: boolean) => request<{ enabled: boolean; cards: QslCard[] }>('PATCH', '/admin/qsl-cards', { enabled }),
     stationReport: () => get<StationReportOverview>('/admin/station-report'),
+    bandPlan: () => get<BandPlan>('/admin/band-plan'),
+    updateBandPlan: (patch: { enabled?: boolean; bands?: RadioBand[] }) => request<BandPlan>('PATCH', '/admin/band-plan', patch),
+    urgentRadio: () => get<UrgentRadio>('/admin/urgent-radio'),
+    updateUrgentRadio: (patch: Partial<Pick<UrgentRadio, 'enabled' | 'repeats' | 'preset' | 'confirmMinutes' | 'maxRetries'>>) => request<UrgentRadio>('PATCH', '/admin/urgent-radio', patch),
+    flagUrgent: (postId: string) => request<{ id: string; nextWindowAt: string | null }>('POST', '/admin/urgent-radio', { postId }),
+    unflagUrgent: (id: string) => request<UrgentRadio>('DELETE', `/admin/urgent-radio/${id}`),
     updateStationReport: (patch: { enabled?: boolean; email?: boolean }) => request<StationReportOverview>('PATCH', '/admin/station-report', patch),
     setRadioNodesEnabled: (patch: { enabled?: boolean; multiStation?: boolean; signaturesRequired?: boolean }) => request<{ enabled: boolean; multiStation: boolean; signaturesRequired: boolean }>('PATCH', '/admin/radio-nodes', patch),
     addRadioNode: (name: string, role: RadioNode['role'] = 'listener') => request<{ node: RadioNode; key: string }>('POST', '/admin/radio-nodes', { name, role }),
@@ -2357,6 +2456,13 @@ export const api = {
   unfollowPlan: (id: string) => request<ReadingPlans>('DELETE', `/library/plans/${encodeURIComponent(id)}/follow`),
   planDay: (id: string, day: number) => get<ReadingPlanDay>(`/library/plans/${encodeURIComponent(id)}/days/${day}`),
   readPlanDay: (id: string, day: number) => request<ReadingPlanDay>('POST', `/library/plans/${encodeURIComponent(id)}/days/${day}/read`, {}),
+  wordVerse: (ref: string) => get<WordVerse>(`/library/words?ref=${encodeURIComponent(ref)}`),
+  wordEntry: (id: string, offset = 0, limit = 20) => get<WordEntry>(`/library/words/${encodeURIComponent(id)}?offset=${offset}&limit=${limit}`),
+  libraryNotes: (collection?: LibraryCollectionId) => get<{ notes: LibraryNote[] }>(`/library/notes${collection ? `?collection=${collection}` : ''}`),
+  saveLibraryNote: (input: { collection: LibraryCollectionId; key: string; color?: NoteColor | null; note?: string | null; circleId?: string | null }) =>
+    request<{ note: LibraryNote | null }>('PUT', '/library/notes', input),
+  deleteLibraryNote: (id: string) => request<{ removed: true }>('DELETE', `/library/notes/${id}`),
+  circleLibraryNotes: (circleId: string) => get<{ notes: CircleLibraryNote[] }>(`/library/notes/circle/${circleId}`),
   searchLibrary: (input: { q: string; collection: LibraryCollectionId; offset?: number; limit?: number }) =>
     get<LibraryResults>(`/library/search?${new URLSearchParams({ q: input.q, collection: input.collection, offset: String(input.offset ?? 0), limit: String(input.limit ?? 20) })}`),
   markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),

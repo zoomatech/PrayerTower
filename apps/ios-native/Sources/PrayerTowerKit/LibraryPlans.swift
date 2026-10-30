@@ -12,6 +12,8 @@ public struct LibraryExcerpt: Codable, Sendable, Equatable {
     public let ref: String
     public let text: String
     public let citation: String
+    /// The first passage's lasting name, for highlights and notes.
+    public var key: String? = nil
 }
 
 public struct ParallelThemes: Decodable, Sendable, Equatable {

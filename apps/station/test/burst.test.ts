@@ -526,6 +526,28 @@ describe('burst station loop', () => {
     expect(bursts).toEqual([expect.objectContaining({ callSign: 'N0CALL', mode: 'simulate', preset: 'fm-standard', prayers: 4, frames: 1, decoded: 4, ok: true })]);
   });
 
+  it('sends an urgent batch on the preset the server named, and a band plan preset otherwise', async () => {
+    const lines: string[] = [];
+    const urgentApi = fakeApi([{ id: 'u', text: 'Pray for the crew trapped in the mine.', repeats: 3, urgent: true, preset: 'fm-robust-fec' }]);
+    const band = async () => ({ preset: presetByName('fm-fast'), frequencyHz: 146_520_000 });
+    await runBurstOnce(urgentApi.api, simulateTransmitter(mkdtempSync(path.join(tmpdir(), 'burst-')), quiet), { ...cfg, beforeBurst: band }, (m) => lines.push(m));
+    expect(urgentApi.reports[0]).toMatchObject({ id: 'u', ok: true, preset: 'fm-robust-fec', frequencyHz: 146_520_000 });
+    expect(urgentApi.bursts[0]).toMatchObject({ preset: 'fm-robust-fec', prayers: 3, decoded: 3 });
+    expect(lines).toContain('[burst] urgent: 1 prayer(s) on fm-robust-fec');
+
+    const plain = fakeApi([{ id: 'p', text: 'Pray for peace.' }]);
+    await runBurstOnce(plain.api, simulateTransmitter(mkdtempSync(path.join(tmpdir(), 'burst-')), quiet), { ...cfg, beforeBurst: band }, quiet);
+    expect(plain.reports[0]).toMatchObject({ preset: 'fm-fast', frequencyHz: 146_520_000 });
+
+    // A preset this station doesn't know, or a band plan that fails, falls back to the station's own.
+    const odd = fakeApi([{ id: 'o', text: 'Pray for rain.', urgent: true, preset: 'fm-warp-9' }]);
+    const failing = async () => Promise.reject(new Error('server down'));
+    await runBurstOnce(odd.api, simulateTransmitter(mkdtempSync(path.join(tmpdir(), 'burst-')), quiet), { ...cfg, beforeBurst: failing }, (m) => lines.push(m));
+    expect(odd.reports[0]).toMatchObject({ preset: 'fm-standard' });
+    expect(lines.some((l) => l.includes('band plan: server down'))).toBe(true);
+    expect(lines.some((l) => l.includes('"fm-warp-9"'))).toBe(true);
+  });
+
   it('amplifies 1,000 times in under a second of air time (fm-fast)', async () => {
     const lines: string[] = [];
     const { api, bursts } = fakeApi([{ id: 'amp', text: 'Pray for peace in our town.', repeats: 1000 }]);

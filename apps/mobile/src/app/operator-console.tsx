@@ -9,6 +9,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { StationReportSection } from '@/components/listener-admin';
+import { BandOutlookCard, UrgentList } from '@/components/radio-plan-admin';
 import { staffOnly } from '@/components/staff-only';
 import { Button, Chip, Empty, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, ApiError, type RadioConsole } from '@/lib/api';
@@ -197,6 +198,20 @@ function OperatorConsole() {
             </Text>
           </View>
         ))}
+
+        {data.urgent ? (
+          <>
+            <Text style={type.heading}>{t('urgentRadio.title')}</Text>
+            <UrgentList data={data.urgent} onChange={() => void load()} />
+          </>
+        ) : null}
+
+        {data.band ? (
+          <>
+            <Text style={type.heading}>{t('bandPlan.title')}</Text>
+            <BandOutlookCard outlook={data.band} />
+          </>
+        ) : null}
 
         {data.relays.length ? (
           <>

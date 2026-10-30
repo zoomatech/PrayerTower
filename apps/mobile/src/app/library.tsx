@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { sharePassage } from '@/components/daily-passage';
+import { noteFill, PassageMark, useLibraryNotes } from '@/components/passage-mark';
 import { Button, Chip, ErrorText, Field, Loading, Screen } from '@/components/ui';
 import { api, type LibraryCollectionId, type LibraryHit, type LibraryOverview } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -17,6 +18,7 @@ const PAGE = 20;
 export default function LibraryScreen() {
   const t = useT();
   const features = useFeatures();
+  const notes = useLibraryNotes();
   const [overview, setOverview] = useState<LibraryOverview | null>(null);
   const [collection, setCollection] = useState<LibraryCollectionId | null>(null);
   const [words, setWords] = useState('');
@@ -96,7 +98,7 @@ export default function LibraryScreen() {
         ) : null}
         {hits ? <Text style={type.small}>{hits.length ? t('library.results', { count: total }) : t('library.none')}</Text> : null}
         {hits?.map((h, i) => (
-          <View key={`${h.work.id}:${h.ref}:${i}`} style={styles.card}>
+          <View key={`${h.work.id}:${h.ref}:${i}`} style={[styles.card, notes.marks[h.key]?.color ? { backgroundColor: noteFill[notes.marks[h.key]!.color!] } : null]}>
             <Text style={type.heading}>{collection === 'bible-kjv' ? h.ref : h.work.title}</Text>
             {collection !== 'bible-kjv' && h.ref ? <Text style={type.small}>{h.ref}</Text> : null}
             <Text style={type.body} selectable>
@@ -106,6 +108,10 @@ export default function LibraryScreen() {
             {features.libraryShare ? (
               <Button small variant="secondary" label={t('library.share')} a11yLabel={t('library.shareOne', { citation: h.citation })} onPress={() => sharePassage(h.text, h.citation)} />
             ) : null}
+            {collection === 'bible-kjv' && features.libraryWords ? (
+              <Button small variant="ghost" label={t('library.study.study')} a11yLabel={t('library.study.studyOne', { ref: h.ref })} onPress={() => router.push(`/word-study?ref=${encodeURIComponent(h.ref)}`)} />
+            ) : null}
+            {notes.enabled && collection ? <PassageMark collection={collection} passageKey={h.key} citation={h.citation} mark={notes.marks[h.key]} circles={notes.circles} onSaved={notes.saved} /> : null}
           </View>
         ))}
         {hits && hits.length < total ? <Button small variant="secondary" label={t('library.more')} disabled={busy} onPress={() => run(hits.length)} /> : null}

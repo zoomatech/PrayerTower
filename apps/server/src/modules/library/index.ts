@@ -2,6 +2,7 @@
 // Each collection is one gzipped JSON file in apps/server/data/library: its works and their passages, in order.
 // Adding a text (say, the Instructions of Shuruppak) is adding a collection file and listing it in COLLECTIONS.
 // The Bible is never offered in a community with neutral wording (Open Circle); the ancient writings are.
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,12 +50,16 @@ export function collection(id: CollectionId): Collection {
   return made;
 }
 
+type Settings = Record<'enabled' | 'shareEnabled' | 'dailyEnabled' | 'parallelsEnabled' | 'plansEnabled' | 'wordsEnabled' | 'notesEnabled' | 'offlineEnabled', boolean>;
+const OFF: Settings = { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false, wordsEnabled: false, notesEnabled: false, offlineEnabled: false };
+
 export async function settings(q: Queryable) {
-  const { rows } = await q.query<{ enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean }>(
+  const { rows } = await q.query<Settings>(
     `select enabled, share_enabled as "shareEnabled", daily_enabled as "dailyEnabled", parallels_enabled as "parallelsEnabled",
-            plans_enabled as "plansEnabled" from public.library_settings`,
+            plans_enabled as "plansEnabled", words_enabled as "wordsEnabled", notes_enabled as "notesEnabled",
+            offline_enabled as "offlineEnabled" from public.library_settings`,
   );
-  return rows[0] ?? { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false };
+  return rows[0] ?? OFF;
 }
 
 const enabled = async (q: Queryable) => (await settings(q)).enabled;
@@ -65,13 +70,17 @@ export const SettingsPatch = z.object({
   dailyEnabled: z.boolean().optional(),
   parallelsEnabled: z.boolean().optional(),
   plansEnabled: z.boolean().optional(),
+  wordsEnabled: z.boolean().optional(),
+  notesEnabled: z.boolean().optional(),
+  offlineEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
   await q.query(
     `update public.library_settings set enabled = coalesce($1, enabled), share_enabled = coalesce($2, share_enabled),
-       daily_enabled = coalesce($3, daily_enabled), parallels_enabled = coalesce($4, parallels_enabled), plans_enabled = coalesce($5, plans_enabled)`,
-    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null],
+       daily_enabled = coalesce($3, daily_enabled), parallels_enabled = coalesce($4, parallels_enabled), plans_enabled = coalesce($5, plans_enabled),
+       words_enabled = coalesce($6, words_enabled), notes_enabled = coalesce($7, notes_enabled), offline_enabled = coalesce($8, offline_enabled)`,
+    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null, p.wordsEnabled ?? null, p.notesEnabled ?? null, p.offlineEnabled ?? null],
   );
   return settings(q);
 }
@@ -85,6 +94,9 @@ export async function features(q: Queryable) {
     libraryDaily: s.enabled && s.dailyEnabled,
     libraryParallels: s.enabled && s.parallelsEnabled,
     libraryPlans: s.enabled && s.plansEnabled,
+    libraryWords: s.enabled && s.wordsEnabled,
+    libraryNotes: s.enabled && s.notesEnabled,
+    libraryOffline: s.enabled && s.offlineEnabled,
   };
 }
 
@@ -94,6 +106,24 @@ export function citation(id: CollectionId, ref: string, work: Work) {
   if (id === 'apocrypha-kjv') return `${ref} (King James Apocrypha)`;
   const where = ref && ref !== work.title ? `${work.title}, ${ref}` : work.title;
   return work.author ? `${where} (${work.author})` : where;
+}
+
+/** A passage's lasting name for highlights and notes: a fingerprint of its work, reference and words. */
+export function passageKey(p: Passage) {
+  return createHash('sha256').update(`${p.workId}\n${p.ref}\n${p.text}`).digest('hex').slice(0, 32);
+}
+
+const keyed = new Map<CollectionId, Map<string, number>>();
+
+/** The passage with this key in a collection, or undefined. */
+export function byKey(id: CollectionId, key: string) {
+  let map = keyed.get(id);
+  if (!map) {
+    map = new Map(collection(id).index.passages.map((p, i) => [passageKey(p), i]));
+    keyed.set(id, map);
+  }
+  const at = map.get(key);
+  return at === undefined ? undefined : { index: at, passage: collection(id).index.passages[at]! };
 }
 
 /** The collections this member may search. */
@@ -140,7 +170,14 @@ export async function search(q: Queryable, userId: string, input: z.infer<typeof
       const p = c.index.passages[index]!;
       const work = c.works.get(p.workId)!;
       // A Bible verse's reference already names its book; an ancient passage is credited to its work.
-      return { ref: p.ref, text: p.text, complete, work: { id: work.id, title: work.title, author: work.author }, citation: citation(input.collection, p.ref, work) };
+      return {
+        ref: p.ref,
+        text: p.text,
+        complete,
+        work: { id: work.id, title: work.title, author: work.author },
+        citation: citation(input.collection, p.ref, work),
+        key: passageKey(p),
+      };
     }),
   };
 }
