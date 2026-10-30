@@ -8,40 +8,40 @@ Resolve Package Graph
 
 
 Resolved source packages:
-  swift-certificates: https://github.com/apple/swift-certificates.git @ 1.21.1
-  yyjson: https://github.com/ibireme/yyjson.git @ 0.12.0
-  swift-atomics: https://github.com/apple/swift-atomics.git @ 1.3.1
-  Jinja: https://github.com/huggingface/swift-jinja.git @ 2.5.2
-  swift-service-context: https://github.com/apple/swift-service-context.git @ 1.3.0
-  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.1.1
-  swift-system: https://github.com/apple/swift-system.git @ 1.8.1
-  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.13.1
-  swift-transformers: https://github.com/huggingface/swift-transformers @ 1.3.5
-  swift-nio-extras: https://github.com/apple/swift-nio-extras.git @ 1.35.2
-  opentelemetry-swift-core: https://github.com/open-telemetry/opentelemetry-swift-core.git @ 2.6.0
-  swift-collections: https://github.com/apple/swift-collections.git @ 1.6.0
-  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.7.3
-  swift-nio-http2: https://github.com/apple/swift-nio-http2.git @ 1.46.0
-  EventSource: https://github.com/mattt/EventSource.git @ 1.5.1
   swift-numerics: https://github.com/apple/swift-numerics.git @ 1.1.1
-  swift-nio-ssl: https://github.com/apple/swift-nio-ssl.git @ 2.37.5
-  swift-http-structured-headers: https://github.com/apple/swift-http-structured-headers.git @ 1.7.0
-  swift-nio: https://github.com/apple/swift-nio.git @ 2.104.0
-  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.8.0
-  swift-huggingface: https://github.com/huggingface/swift-huggingface.git @ 1.0.0
+  swift-crypto: https://github.com/apple/swift-crypto.git @ 4.5.2
+  swift-certificates: https://github.com/apple/swift-certificates.git @ 1.21.1
   swift-distributed-tracing: https://github.com/apple/swift-distributed-tracing.git @ 1.5.0
-  swift-async-algorithms: https://github.com/apple/swift-async-algorithms.git @ 1.1.7
-  onnxruntime: https://github.com/microsoft/onnxruntime-swift-package-manager @ 1.24.2
-  Supabase: https://github.com/supabase/supabase-swift.git @ 2.55.5
   swift-nio-transport-services: https://github.com/apple/swift-nio-transport-services.git @ 1.28.0
-  swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.4.3
+  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.8.0
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.55.5
+  Xet: https://github.com/huggingface/swift-xet.git @ 1.1.0
+  swift-transformers: https://github.com/huggingface/swift-transformers @ 1.3.5
+  swift-async-algorithms: https://github.com/apple/swift-async-algorithms.git @ 1.1.7
+  swift-nio: https://github.com/apple/swift-nio.git @ 2.104.0
+  PrayerTowerKit: /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+  swift-algorithms: https://github.com/apple/swift-algorithms.git @ 1.2.1
+  onnxruntime: https://github.com/microsoft/onnxruntime-swift-package-manager @ 1.24.2
+  Jinja: https://github.com/huggingface/swift-jinja.git @ 2.5.2
+  swift-nio-extras: https://github.com/apple/swift-nio-extras.git @ 1.35.2
+  EventSource: https://github.com/mattt/EventSource.git @ 1.5.1
+  swift-http-structured-headers: https://github.com/apple/swift-http-structured-headers.git @ 1.7.0
+  swift-collections: https://github.com/apple/swift-collections.git @ 1.6.0
+  opentelemetry-swift-core: https://github.com/open-telemetry/opentelemetry-swift-core.git @ 2.6.0
+  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.7.3
+  swift-huggingface: https://github.com/huggingface/swift-huggingface.git @ 1.0.0
+  swift-atomics: https://github.com/apple/swift-atomics.git @ 1.3.1
   async-http-client: https://github.com/swift-server/async-http-client @ 1.36.2
   swift-service-lifecycle: https://github.com/swift-server/swift-service-lifecycle.git @ 2.12.1
-  swift-algorithms: https://github.com/apple/swift-algorithms.git @ 1.2.1
   swift-log: https://github.com/apple/swift-log.git @ 1.15.1
-  PrayerTowerKit: /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-  Xet: https://github.com/huggingface/swift-xet.git @ 1.1.0
-  swift-crypto: https://github.com/apple/swift-crypto.git @ 4.5.2
+  yyjson: https://github.com/ibireme/yyjson.git @ 0.12.0
+  swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.4.3
+  swift-nio-ssl: https://github.com/apple/swift-nio-ssl.git @ 2.37.5
+  swift-system: https://github.com/apple/swift-system.git @ 1.8.1
+  swift-service-context: https://github.com/apple/swift-service-context.git @ 1.3.0
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.1.1
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.13.1
+  swift-nio-http2: https://github.com/apple/swift-nio-http2.git @ 1.46.0
 
 --- xcodebuild: WARNING: Using the first of multiple matching destinations:
 { platform:iOS Simulator, arch:arm64, id:15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D, OS:18.5, name:iPhone 16 Pro }
@@ -210,8 +210,8 @@ ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/X
 
 ReadFileContents /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/docc/features.json
 
-Build description signature: 0b9f3307c88e461c39ae32daf81d64c0
-Build description path: /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/XCBuildData/0b9f3307c88e461c39ae32daf81d64c0.xcbuilddata
+Build description signature: 5b733b7a25a2da33796e5d4b823d5f6b
+Build description path: /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/XCBuildData/5b733b7a25a2da33796e5d4b823d5f6b.xcbuilddata
 ClangStatCache /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/PrayerTowerNative.xcodeproj
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
@@ -223,14 +223,6 @@ ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/deriv
 ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/swift-crypto.build/Debug-iphonesimulator/swift-crypto_Crypto.build/empty-swift-crypto_Crypto.plist (in target 'swift-crypto_Crypto' from project 'swift-crypto')
     cd /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SourcePackages/checkouts/swift-crypto
     builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/swift-crypto.build/Debug-iphonesimulator/swift-crypto_Crypto.build/empty-swift-crypto_Crypto.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle/Info.plist
-
-ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.bundle/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.build/empty-PrayerTowerKit_PrayerTowerScripture.plist (in target 'PrayerTowerKit_PrayerTowerScripture' from project 'PrayerTowerKit')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.build/empty-PrayerTowerKit_PrayerTowerScripture.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.bundle/Info.plist
-
-ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.bundle/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.build/empty-PrayerTowerKit_PrayerTowerKit.plist (in target 'PrayerTowerKit_PrayerTowerKit' from project 'PrayerTowerKit')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.build/empty-PrayerTowerKit_PrayerTowerKit.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.bundle/Info.plist
 
 WriteAuxiliaryFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/empty-PrayerTowerUIWalks.plist (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -332,13 +324,13 @@ WriteAuxiliaryFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     write-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-all-non-framework-target-headers.hmap
 
-WriteAuxiliaryFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    write-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList
-
 WriteAuxiliaryFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_const_extract_protocols.json (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     write-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    write-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList
 
 WriteAuxiliaryFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftConstValuesFileList (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -359,6 +351,14 @@ MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build
 MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest
+
+ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.bundle/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.build/empty-PrayerTowerKit_PrayerTowerScripture.plist (in target 'PrayerTowerKit_PrayerTowerScripture' from project 'PrayerTowerKit')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.build/empty-PrayerTowerKit_PrayerTowerScripture.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.bundle/Info.plist
+
+ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.bundle/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.build/empty-PrayerTowerKit_PrayerTowerKit.plist (in target 'PrayerTowerKit_PrayerTowerKit' from project 'PrayerTowerKit')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.build/empty-PrayerTowerKit_PrayerTowerKit.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.bundle/Info.plist
 
 Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerWidgets.appex/PrayerTowerKit_PrayerTowerKit.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.bundle (in target 'PrayerTowerWidgets' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -382,15 +382,14 @@ SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-na
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
-SwiftEmitModule normal arm64 Emitting\ module\ for\ PrayerTowerNativeUITests (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
-
-SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+SwiftCompile normal arm64 Compiling\ MainScreensWalk.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
-SwiftCompile normal arm64 Compiling\ MainScreensWalk.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+SwiftEmitModule normal arm64 Emitting\ module\ for\ PrayerTowerNativeUITests (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
 
-SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
@@ -401,18 +400,12 @@ Failed frontend command:
 SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:14:46: error: main actor-isolated property 'elementType' can not be referenced from a nonisolated context
-        let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
-                                             ^
-/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework/Headers/XCUIElementAttributes.h:50:38: note: property declared here
-@property (readonly) XCUIElementType elementType;
-                                     ^
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:14:65: error: main actor-isolated property 'label' can not be referenced from a nonisolated context
-        let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
-                                                                ^
-/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework/Headers/XCUIElementAttributes.h:47:38: note: property declared here
-@property (readonly, copy) NSString *label;
-                                     ^
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:15:47: error: sending 'issue' risks causing data races
+        let what = MainActor.assumeIsolated { issue.element.map { "\($0.elementType) '\($0.label)'" } } ?? "screen"
+                                            ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:15:47: note: task-isolated 'issue' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses
+        let what = MainActor.assumeIsolated { issue.element.map { "\($0.elementType) '\($0.label)'" } } ?? "screen"
+                                              ^~~~~
 
 SwiftDriverJobDiscovery normal arm64 Emitting module for PrayerTowerNativeUITests (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
 
@@ -422,11 +415,10 @@ SwiftDriver\ Compilation\ Requirements PrayerTowerNativeUITests normal arm64 com
 
 
 Test session results, code coverage, and logs:
-	/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Logs/Test/Test-PrayerTowerNative-2026.10.30_07-15-16-+0000.xcresult
+	/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Logs/Test/Test-PrayerTowerNative-2026.10.30_08-10-33-+0000.xcresult
 
 Testing failed:
-	Main actor-isolated property 'elementType' can not be referenced from a nonisolated context
-	Main actor-isolated property 'label' can not be referenced from a nonisolated context
+	Sending 'issue' risks causing data races
 	Testing cancelled because the build failed.
 
 ** TEST FAILED **

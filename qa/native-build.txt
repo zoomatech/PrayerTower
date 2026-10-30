@@ -2,15 +2,14 @@
 Shared tests       PASS   Test run with 264 tests
 Xcode project      PASS   PrayerTowerNative.xcodeproj
 iPhone app         PASS   iOS Simulator (id=15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D)
-UI walks           FAIL   /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261030-070844/ui-walks.txt
+UI walks           FAIL   /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261030-080429/ui-walks.txt
 Open Circle app    PASS   iOS Simulator (id=15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D)
 Mac app            PASS   macOS
 Mac console        PASS   macOS
 
 First errors:
 	Testing cancelled because the build failed.
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:14:46: error: main actor-isolated property 'elementType' can not be referenced from a nonisolated context
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:14:65: error: main actor-isolated property 'label' can not be referenced from a nonisolated context
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:15:47: error: sending 'issue' risks causing data races
 Testing failed:
 The following build commands failed:
-Logs: /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261030-070844
+Logs: /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261030-080429
