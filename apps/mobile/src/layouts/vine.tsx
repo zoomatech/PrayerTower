@@ -20,7 +20,7 @@ import { Button } from '@/components/ui';
 import { BlurredLeaves } from '@/components/comment-tree';
 import { CardSurface } from '@/components/post-card';
 import { GateArch } from '@/components/gate-arch';
-import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
+import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineFruit, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
@@ -145,6 +145,11 @@ function Fruit({ card, pinned, tokens, side, from, gap, fresh, children }: { car
               }
             : { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
+        {card.gifted ? (
+          <View style={styles.fruit}>
+            <VineFruit label={t('vine.fruit')} />
+          </View>
+        ) : null}
         <LeafFrame side={side} look={tokens} bare mark={mark}>
           <CardSurface.Provider value={surface}>
           <View style={styles.tags}>
@@ -188,7 +193,7 @@ function ScriptureLeaf({ leaf, tokens, from }: { leaf: Leaf; tokens: VineTokens;
  * The idle bird: when the screen sits still, a bud labeled "Ad" swells on the
  * vine, a bird flies in, snips it and leaves a speech bubble. Once per visit.
  */
-function IdleBird({ tokens, register }: { tokens: VineTokens; register: (nudge: () => void) => void }) {
+export function IdleBird({ tokens, register }: { tokens: VineTokens; register: (nudge: () => void) => void }) {
   const { wording, t } = useLocale();
   // The wait restarts each time the member scrolls. Kept here, not in the feed, so a scroll
   // re-renders only the bird and never the whole list of leaves.
@@ -401,6 +406,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  fruit: { position: 'absolute', top: 6, right: 10, zIndex: 2 },
   content: { padding: space.lg, paddingBottom: 120 },
   headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm, marginBottom: space.md },
   ripeness: { width: 14, height: 14, borderRadius: radius.pill, borderWidth: 2 },

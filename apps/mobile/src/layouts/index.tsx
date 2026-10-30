@@ -10,7 +10,8 @@ import { CircuitLayout } from './circuit';
 import { ColumnLayout } from './column';
 import { FlipLayout } from './flip';
 import { TowerLayout } from './tower';
-import { VineLayout } from './vine';
+import { BeanstalkLayout } from './beanstalk';
+import { VineLayout, vineTokens } from './vine';
 import { WallLayout } from './wall';
 
 export interface FeedLayoutProps {
@@ -37,9 +38,14 @@ export type FeedLayout = (props: FeedLayoutProps) => ReactElement;
 // styles members can opt into. The Wall and the vine skins (Beanstalk, Golden
 // Wood, Moonlit Gate) and the Prayer Tower climb are offered only while
 // Admin → Feed skins is on.
+/** The Beanstalk skin has its own drawing (layouts/beanstalk.tsx); the other vine skins share the vine. */
+function VineOrBeanstalk(props: FeedLayoutProps) {
+  return vineTokens(props.theme).vineStyle === 'beanstalk' ? <BeanstalkLayout {...props} /> : <VineLayout {...props} />;
+}
+
 const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   column: ColumnLayout,
-  vine: VineLayout,
+  vine: VineOrBeanstalk,
   flip: FlipLayout,
   carousel: CarouselLayout,
   wall: WallLayout,

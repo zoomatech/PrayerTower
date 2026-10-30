@@ -243,6 +243,8 @@ export interface Card {
   storyId?: string | null;
   /** The author chose quiet counts: others see no prayer numbers on this post. */
   countsQuiet?: boolean;
+  /** Someone has gifted the poster tokens, regular or Priestly: fruit on the vine skins. */
+  gifted?: boolean;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
