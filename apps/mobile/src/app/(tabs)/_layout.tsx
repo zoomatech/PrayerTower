@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: 'center', gap: 2 },
   icon: { fontSize: 20 },
-  label: { fontSize: 12, color: colors.textMuted },
+  // Full text color: over a dark skin the 75% bar is grey, where the muted color fails contrast.
+  label: { fontSize: 12, color: colors.text },
   labelActive: { color: colors.primary, fontWeight: '700' },
 });
