@@ -60,7 +60,8 @@ fi
 [ -f Config.xcconfig ] || cp Config.example.xcconfig Config.xcconfig
 # The cross-posting Safari extension inside each app: apps/extension built for Safari, per edition.
 for EDITION in prayertower opencircle; do
-  if DIST="$(node "$ROOT/apps/extension/scripts/build.mjs" "$EDITION" --safari 2> "$LOGS/crosspost-$EDITION.txt")"; then
+  # An empty answer is a failure too, never a silent copy of nothing.
+  if DIST="$(node "$ROOT/apps/extension/scripts/build.mjs" "$EDITION" --safari 2> "$LOGS/crosspost-$EDITION.txt")" && [ -n "$DIST" ] && [ -d "$DIST" ]; then
     rm -rf "Crosspost/$EDITION" && cp -R "$DIST" "Crosspost/$EDITION"
   else
     record "Safari extension" FAIL "$LOGS/crosspost-$EDITION.txt"
@@ -94,6 +95,8 @@ if [ -n "$SIM" ]; then
     record "UI walks" FAIL "$LOGS/ui-walks.txt"
     grep -E "error:|failed" "$LOGS/ui-walks.txt" | sort -u | head -20 >> "$LOGS/errors.txt"
   fi
+  # The performance numbers: launch time, and scrolling hitches, CPU and memory on a 1,000-post feed.
+  grep -E "measured \[" "$LOGS/ui-walks.txt" | sed -E 's/.*measured/measured/' > "$LOGS/performance.txt" || true
   xcrun simctl shutdown "$SIM" > /dev/null 2>&1 || true
 else
   record "UI walks" FAIL "no iPhone Simulator installed"
@@ -131,5 +134,6 @@ fi
 echo
 printf '%s\n' "${RESULTS[@]}"
 [ -s "$LOGS/errors.txt" ] && { echo; echo "First errors:"; cat "$LOGS/errors.txt"; }
+[ -s "$LOGS/performance.txt" ] && { echo; echo "Performance:"; cat "$LOGS/performance.txt"; }
 echo "Logs: $LOGS"
 exit $FAILED

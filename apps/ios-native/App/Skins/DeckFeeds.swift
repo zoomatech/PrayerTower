@@ -22,7 +22,17 @@ struct SwipeFeed<Row: View>: View {
             VStack(spacing: 16) {
                 if deck.index < cards.count {
                     let card = cards[deck.index]
-                    ScrollView { row(card).padding(16) }
+                    // The card scrolls when the words outgrow it; the bar flashes to say so, and the
+                    // words fade out at the card's foot instead of being sliced by its edge. The extra
+                    // bottom padding keeps the last line clear of the fade once scrolled to the end.
+                    ScrollView { row(card).padding(16).padding(.bottom, 24) }
+                        .scrollIndicatorsFlash(onAppear: true)
+                        .mask {
+                            VStack(spacing: 0) {
+                                Rectangle()
+                                LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom).frame(height: 40)
+                            }
+                        }
                         .background(.regularMaterial, in: .rect(cornerRadius: 18))
                         .offset(x: drag.width)
                         .rotationEffect(.degrees(still ? 0 : drag.width / 30))
@@ -40,11 +50,11 @@ struct SwipeFeed<Row: View>: View {
                         .accessibilityAction(named: words.pray) { confirming = card }
                         .accessibilityAction(named: words.next) { next() }
                     AdaptiveStack {
-                        Button("‹ \(words.next)") { next() }.buttonStyle(.bordered)
+                        Button("‹ \(words.next)") { next() }.buttonStyle(.bordered).tint(.primary)
                         Spacer(minLength: 0)
                         Button("\(words.pray) ›") { confirming = card }.buttonStyle(.borderedProminent)
                     }
-                    Text("\(deck.index + 1) of \(cards.count)").font(.caption).foregroundStyle(.secondary)
+                    Text("\(deck.index + 1) of \(cards.count)").font(.caption).foregroundStyle(Color.subtle)
                 } else if hasMore {
                     ProgressView(words.loadingMore)
                 } else {
@@ -91,7 +101,7 @@ struct FlipFeed<Row: View>: View {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     VStack(spacing: 12) {
                         ScrollView { row(card).padding(20) }.scrollBounceBehavior(.basedOnSize)
-                        Text(words.folio(i, of: cards.count)).font(.caption).foregroundStyle(.secondary).padding(.bottom, 12)
+                        Text(words.folio(i, of: cards.count)).font(.caption).foregroundStyle(Color.subtle).padding(.bottom, 12)
                     }
                     .containerRelativeFrame([.horizontal, .vertical])
                     .scrollTransition { content, phase in
@@ -105,7 +115,7 @@ struct FlipFeed<Row: View>: View {
                 if !hasMore {
                     VStack(spacing: 8) {
                         Text(words.lastPage).font(.title3.bold())
-                        Text(words.allSeen).multilineTextAlignment(.center).foregroundStyle(.secondary)
+                        Text(words.allSeen).multilineTextAlignment(.center).foregroundStyle(Color.subtle)
                     }
                     .padding(32)
                     .containerRelativeFrame([.horizontal, .vertical])

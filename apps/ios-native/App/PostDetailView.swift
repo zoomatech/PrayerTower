@@ -180,7 +180,7 @@ struct PostDetailView: View {
     @ViewBuilder private func prayedList(_ p: Prayers) -> some View {
         Text(w("post.prayed", count: p.count)).font(.subheadline.bold())
         if !p.people.isEmpty {
-            Text(p.people.map(\.displayName).joined(separator: ", ")).font(.footnote).foregroundStyle(.secondary)
+            Text(p.people.map(\.displayName).joined(separator: ", ")).font(.footnote).foregroundStyle(Color.subtle)
         }
     }
 
@@ -194,7 +194,7 @@ struct PostDetailView: View {
 
     @ViewBuilder private var commentList: some View {
         if comments.isEmpty {
-            Text(w("post.noComments")).foregroundStyle(.secondary)
+            Text(w("post.noComments")).foregroundStyle(Color.subtle)
         }
         ForEach(comments) { item in
             let c = item.comment
@@ -231,7 +231,7 @@ struct PostDetailView: View {
         KindCloudView(text: text)
         ReplyHelpersView(lastFromOther: replyTo?.body ?? card.body, empty: replyTo == nil && comments.isEmpty, text: $text, postType: replyTo == nil ? card.postType : nil)
         if card.isMine && replyTo == nil { Toggle(w("post.postUpdate"), isOn: $asUpdate) }
-        if let error, self.card != nil { Text(error).font(.footnote).foregroundStyle(.red) }
+        if let error, self.card != nil { Text(error).font(.footnote).foregroundStyle(Color.danger) }
         Button(w("post.comment")) { Task { await send() } }
             .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
@@ -418,12 +418,8 @@ struct MediaView: View {
             if media.kind == "video" {
                 VideoPlayer(player: AVPlayer(url: url)).frame(height: 240).clipShape(.rect(cornerRadius: 12))
             } else {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    Color.secondary.opacity(0.1).frame(height: 200)
-                }
-                .clipShape(.rect(cornerRadius: 12))
+                CachedPhoto(path: media.storagePath, url: url)
+                    .clipShape(.rect(cornerRadius: 12))
                 .accessibilityLabel("Photo")
             }
         }
