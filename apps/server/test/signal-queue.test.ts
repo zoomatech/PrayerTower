@@ -80,6 +80,7 @@ describe('signal journey', () => {
   it('measures how far a wave has gone, in light units, with the landmarks it passed', () => {
     const t0 = Date.UTC(2026, 9, 30);
     expect(signalJourney(t0, t0 - 5000)).toMatchObject({ seconds: 0, km: 0, passed: [], next: { key: 'moon' } });
+    expect(signalJourney(Number.NaN, t0)).toMatchObject({ seconds: 0, km: 0, light: { value: 0, unit: 'second' }, next: { key: 'moon', fraction: 0 } });
     const one = signalJourney(t0, t0 + 1000);
     expect(one.km).toBeCloseTo(LIGHT_KM_S, 3);
     expect(one.light).toEqual({ value: 1, unit: 'second' });

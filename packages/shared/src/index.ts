@@ -853,7 +853,8 @@ export interface SignalJourney {
 
 /** Where a wave that left at `sentAt` is at `now` (both in ms since 1970). */
 export function signalJourney(sentAt: number, now: number): SignalJourney {
-  const seconds = Math.max(0, (now - sentAt) / 1000);
+  // A time that doesn't parse (NaN) counts as just sent rather than breaking the numbers.
+  const seconds = Number.isFinite(now - sentAt) ? Math.max(0, (now - sentAt) / 1000) : 0;
   const km = seconds * LIGHT_KM_S;
   const units = [
     ['year', 365.25 * 86_400],
