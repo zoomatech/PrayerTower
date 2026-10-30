@@ -188,9 +188,12 @@ struct NeonGlass<S: Shape>: View {
     let shape: S
     let color: Color
     var width: CGFloat = 5
+    /// How much of the tube is lit, from its start round to its end, so it can draw itself in.
+    var progress: CGFloat = 1
 
     var body: some View {
-        ZStack {
+        let shape = self.shape.trim(from: 0, to: progress)
+        return ZStack {
             // The glow the gas throws round the tube.
             shape.stroke(color.opacity(0.45), style: .init(lineWidth: width * 3, lineCap: .round, lineJoin: .round)).blur(radius: width * 2.4)
             shape.stroke(color.opacity(0.6), style: .init(lineWidth: width * 1.6, lineCap: .round, lineJoin: .round)).blur(radius: width * 0.8)

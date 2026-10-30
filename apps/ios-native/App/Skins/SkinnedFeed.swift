@@ -104,8 +104,23 @@ struct Stalk: View {
     @Environment(\.accessibilityReduceMotion) private var still
     @Environment(\.dynamicTypeSize) private var size
     private var glow: Bool { look.stemGlow && !size.isAccessibilitySize }
+    /// Neon's rod builds downward from the top when the feed opens, as the vines grow.
+    @State private var grown: CGFloat = 0
 
     var body: some View {
+        rod
+            .mask(alignment: .top) {
+                GeometryReader { g in
+                    Rectangle().frame(height: look.vineStyle == .neon ? g.size.height * grown : g.size.height)
+                }
+            }
+            .onAppear {
+                if look.vineStyle != .neon || still || Spark.frozen { grown = 1; return }
+                withAnimation(.easeIn(duration: 2.5)) { grown = 1 }
+            }
+    }
+
+    private var rod: some View {
         Canvas { ctx, size in
             let x = 20.0, w = look.stemWidth
             func wave(_ phase: Double, _ amp: Double) -> Path {
@@ -204,6 +219,9 @@ struct VineLeaf<Content: View>: View {
     let depth: Int
     @ViewBuilder let content: () -> Content
     @Environment(\.dynamicTypeSize) private var size
+    @Environment(\.accessibilityReduceMotion) private var still
+    /// How much of a neon box's tube has drawn itself: 0 to 1 as it comes into view, back to 0 when it leaves.
+    @State private var drawn: CGFloat = 0
 
     var body: some View {
         let box = Color(look.leafBox(wording))
@@ -220,6 +238,13 @@ struct VineLeaf<Content: View>: View {
             .padding(.leading, depth == 0 ? 36 : 64)
             .padding(.trailing, 8)
             .overlay(alignment: .leading) { twig.accessibilityHidden(true) }
+            .onAppear {
+                guard look.vineStyle == .neon else { return }
+                if still || Spark.frozen { drawn = 1; return }
+                // Like the vines: the branch shoots out from the rod, then the tube bends round the box.
+                withAnimation(.easeOut(duration: 1.4)) { drawn = 1 }
+            }
+            .onDisappear { if look.vineStyle == .neon && !(still || Spark.frozen) { drawn = 0 } }
     }
 
     /// What houses the box: a leaf, a neon frame, an arched doorway or a petal frame.
@@ -227,7 +252,7 @@ struct VineLeaf<Content: View>: View {
         switch look.vineStyle {
         case .neon:
             // A real tube: colored glass glowing round a thin white-hot core.
-            NeonGlass(shape: NeonFrame(), color: Color(look.stem), width: 8)
+            NeonGlass(shape: NeonFrame(), color: Color(look.stem), width: 8, progress: max(0, (drawn - 0.25) / 0.75))
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)
@@ -282,6 +307,10 @@ struct VineLeaf<Content: View>: View {
             }
         }
         .frame(width: depth == 0 ? 44 : 72)
+        // A neon branch shoots out from the rod first, before its box draws.
+        .mask(alignment: .leading) {
+            Rectangle().frame(width: look.vineStyle == .neon ? (depth == 0 ? 44 : 72) * min(1, drawn * 4) : nil)
+        }
     }
 }
 
