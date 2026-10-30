@@ -27,7 +27,7 @@ public enum BeanDraw {
         return l
     }
 
-    static func smooth(_ t: Double) -> Double {
+    public static func smooth(_ t: Double) -> Double {
         let c = min(1, max(0, t))
         return c * c * (3 - 2 * c)
     }

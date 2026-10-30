@@ -357,14 +357,19 @@ private struct BeanPost<Row: View>: View {
             // More than three comments: an uncountable cluster of leaves that rustles and spreads out
             // to five when tapped; past five, a smaller cluster at the bottom reveals the next ones.
             if h.cluster || h.more {
-                LeafCluster(big: h.cluster, seed: index, first: h.cluster ? tree.top.first : nil, width: (width * 0.5).rounded(), words: words) {
+                let top: Double = h.cluster ? 66 : 36
+                LeafCluster(big: h.cluster, seed: index, first: h.cluster ? tree.top.first : nil, width: (width * 0.5).rounded(), vine: { (y: Double) -> Double in
+                    // The stalk's own sway and wiggle at this height, less the cluster's own shift.
+                    let Y = h.pgY - top + y
+                    return 7 * sin(Y / 30) + bend * BeanDraw.smooth(Y / max(1, h.H)) - bend * (h.pgY / max(1, h.H))
+                }, words: words) {
                     var next = cv
                     if next.spread { next.shown += Beanstalk.spreadCount } else { next.spread = true }
                     cv = next
                     pageAt = .now
                 }
                 .frame(width: width)
-                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - (h.cluster ? 66 : 36))
+                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - top)
                 .opacity(c.span(1100, 300, 0, 1))
             }
         }
@@ -644,6 +649,8 @@ private struct LeafCluster: View {
     let first: Beanstalk.Note?
     /// A hanging leaf's width; the cluster is twice that, centred on the stalk.
     let width: Double
+    /// Where the vine actually is at a height in the cluster, off its centre line: it sways and wiggles.
+    var vine: (Double) -> Double = { _ in 0 }
     let words: Words
     let spread: () -> Void
     @State private var rustles = 0
@@ -661,12 +668,12 @@ private struct LeafCluster: View {
                     Node(y: 58, side: 1, stalk: 12, size: 46, droop: 30, text: false)]
         }
         // Upper leaves reach up and out, lower ones droop, like a shoot seen from the side.
-        return [Node(y: 26, side: 1, stalk: 18, size: 74, droop: -14, text: false),
+        return [Node(y: 26, side: 1, stalk: 18, size: 84, droop: -14, text: false),
                 Node(y: 26, side: -1, stalk: 12, size: lead, droop: 3, text: true),
-                Node(y: 70, side: 1, stalk: 18, size: 70, droop: 0, text: false),
-                Node(y: 124, side: 1, stalk: 16, size: 62, droop: 28, text: false),
-                Node(y: 136, side: -1, stalk: 16, size: 66, droop: 30, text: false),
-                Node(y: 176, side: -1, stalk: 14, size: 52, droop: 40, text: false)]
+                Node(y: 76, side: 1, stalk: 16, size: 62, droop: 2, text: false),
+                Node(y: 124, side: 1, stalk: 16, size: 72, droop: 28, text: false),
+                Node(y: 136, side: -1, stalk: 16, size: 58, droop: 30, text: false),
+                Node(y: 176, side: -1, stalk: 14, size: 44, droop: 40, text: false)]
     }
 
     var body: some View {
@@ -685,10 +692,11 @@ private struct LeafCluster: View {
                 Canvas { ctx, _ in
                     for n in all {
                         let a = n.droop * .pi / 180
+                        let vx = W + vine(n.y)
                         var p = Path()
-                        p.move(to: CGPoint(x: W, y: n.y))
-                        p.addQuadCurve(to: CGPoint(x: W + n.side * n.stalk, y: n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(a)),
-                                       control: CGPoint(x: W + n.side * n.stalk * 0.5, y: n.y - 3))
+                        p.move(to: CGPoint(x: vx, y: n.y))
+                        p.addQuadCurve(to: CGPoint(x: vx + n.side * n.stalk, y: n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(a)),
+                                       control: CGPoint(x: vx + n.side * n.stalk * 0.5, y: n.y - 3))
                         ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 4.5, lineCap: .round))
                         ctx.stroke(p, with: .color(Bean.stem), style: .init(lineWidth: 2.5, lineCap: .round))
                     }
@@ -697,7 +705,7 @@ private struct LeafCluster: View {
                 ForEach(Array(all.enumerated()), id: \.offset) { i, n in
                     let left = n.side < 0
                     let h = (n.size * (n.text ? 0.58 : 0.5)).rounded()
-                    let ex = W + n.side * n.stalk
+                    let ex = W + vine(n.y) + n.side * n.stalk
                     let ey = n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(n.droop * .pi / 180)
                     let anchor: UnitPoint = left ? .trailing : .leading
                     blade(n, flip: left, fill: Bean.leaves[(i + seed) % Bean.leaves.count])
@@ -725,8 +733,8 @@ private struct LeafCluster: View {
                 }
                 .foregroundStyle(Bean.text)
                 .multilineTextAlignment(.center)
-                .padding(.leading, n.size * (flip ? 0.12 : 0.16))
-                .padding(.trailing, n.size * (flip ? 0.16 : 0.12))
+                .padding(.leading, n.size * (flip ? 0.2 : 0.16))
+                .padding(.trailing, n.size * (flip ? 0.16 : 0.2))
             }
         }
     }
