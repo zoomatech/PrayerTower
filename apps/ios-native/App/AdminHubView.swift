@@ -29,7 +29,7 @@ struct AdminHubView: View {
     var body: some View {
         Form {
             if let saved { Text(saved).foregroundStyle(.tint) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             metricsSection
             if !weeks.isEmpty { weeksSection }
             if tokens != nil { tokensSection }
@@ -321,7 +321,7 @@ struct AdminBoardView: View {
         Form {
             if let intro = board.intro { Section { Text(w(intro)) } }
             if let note { Text(note).foregroundStyle(.tint) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let settings {
                 Section {
                     ForEach(board.toggles, id: \.patch) { t in

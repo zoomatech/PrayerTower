@@ -85,7 +85,7 @@ struct OnboardingView: View {
                     Toggle(isOn: $traumaOptOut) { Text(w("settings.traumaOptOut")); Text(w("settings.traumaOptOutHint")) }
                     Toggle(isOn: $anonymous) { Text(w("settings.anonymous")); Text(w("settings.anonymousHint")) }
                 }
-                if let error { Section { Text(error).foregroundStyle(.red) } }
+                if let error { Section { Text(error).foregroundStyle(Color.danger) } }
                 Button(w("onboarding.start")) { Task { await save() } }.disabled(busy)
             }
             .onAppear {
@@ -196,8 +196,8 @@ struct NotificationsView: View {
     private var content: some View {
         Group {
             List {
-                if let error { Text(error).foregroundStyle(.red) }
-                if items?.isEmpty == true { Text(w("notices.empty")).foregroundStyle(.secondary) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
+                if items?.isEmpty == true { Text(w("notices.empty")).foregroundStyle(Color.subtle) }
                 ForEach(items ?? []) { n in
                     VStack(alignment: .leading, spacing: 6) {
                         // A notice with nowhere to go is plain text, not a dimmed button VoiceOver reads as unavailable.
@@ -232,7 +232,7 @@ struct NotificationsView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(n.title).font(n.read_at == nil ? .body.bold() : .body)
             Text(n.body)
-            Text(shortDateTime(n.created_at)).font(.footnote).foregroundStyle(.secondary)
+            Text(shortDateTime(n.created_at)).font(.footnote).foregroundStyle(Color.subtle)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -285,7 +285,7 @@ struct AppealView: View {
                 TextField(w("appeal.reason"), text: $message, axis: .vertical)
                     .lineLimit(3...10)
                     .onChange(of: message) { _, new in if new.count > 1000 { message = String(new.prefix(1000)) } }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
                 Button(w("appeal.send")) {
                     Task {
                         busy = true
@@ -326,7 +326,7 @@ struct FeedbackView: View {
                     sent = false
                     if new.count > 2000 { text = String(new.prefix(2000)) }
                 }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if sent { Text(w("feedback.sent")).foregroundStyle(.tint) }
             Button(w("actions.send")) { Task { await send() } }
                 .disabled(busy || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -404,7 +404,7 @@ struct SafetyCenterView: View {
     var body: some View {
         List {
             Section { Text(w("safetyCenter.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section(w("safetyCenter.toolsTitle")) {
                 ForEach(SafetyCenter.tools, id: \.self) { k in
                     VStack(alignment: .leading, spacing: 2) {
@@ -479,7 +479,7 @@ struct PersonView: View {
 
     var body: some View {
         List {
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let p = page?.person {
                 Section {
                     Text(p.displayName).font(.title2.bold())
@@ -519,7 +519,7 @@ struct PersonView: View {
                     }
                 }
                 Section {
-                    if page?.posts.isEmpty == true { Text(w("person.noPosts", ["name": p.displayName])).foregroundStyle(.secondary) }
+                    if page?.posts.isEmpty == true { Text(w("person.noPosts", ["name": p.displayName])).foregroundStyle(Color.subtle) }
                     ForEach(page?.posts ?? []) { c in
                         Button { opened = c.id } label: {
                             VStack(alignment: .leading, spacing: 4) {
@@ -569,8 +569,8 @@ struct RememberedView: View {
     var body: some View {
         List {
             Section { Text(w("practices.rememberedIntro")) }
-            if let error { Text(error).foregroundStyle(.red) }
-            if items?.isEmpty == true { Text(w("practices.rememberedEmpty")).foregroundStyle(.secondary) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
+            if items?.isEmpty == true { Text(w("practices.rememberedEmpty")).foregroundStyle(Color.subtle) }
             ForEach(items ?? []) { i in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(w("practices.rememberedAnswered", ["date": longDate(i.answeredAt)])).font(.footnote)
@@ -604,8 +604,8 @@ struct HighlightsView: View {
     var body: some View {
         List {
             Section { Text(w("highlightsKind.intro")) }
-            if let error { Text(error).foregroundStyle(.red) }
-            if h?.enabled == true && h?.weeks.isEmpty == true { Text(w("highlightsKind.empty")).foregroundStyle(.secondary) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
+            if h?.enabled == true && h?.weeks.isEmpty == true { Text(w("highlightsKind.empty")).foregroundStyle(Color.subtle) }
             ForEach(h?.weeks ?? []) { week in
                 Section(w("highlightsKind.weekOf", ["date": longDate(week.week)])) {
                     ForEach(week.items) { Text("“\($0.text)”").italic() }
@@ -663,7 +663,7 @@ struct HelpStoriesView: View {
 
     var body: some View {
         List {
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if !mine.isEmpty {
                 Section {
                     ForEach(mine) { s in
@@ -688,11 +688,11 @@ struct HelpStoriesView: View {
                 if shown.enabled {
                     Section {
                         Text(w("helpStories.intro"))
-                        if shown.stories.isEmpty { Text(w("helpStories.none")).foregroundStyle(.secondary) }
+                        if shown.stories.isEmpty { Text(w("helpStories.none")).foregroundStyle(Color.subtle) }
                         ForEach(shown.stories) { Text($0.body) }
                     }
                 } else if mine.isEmpty {
-                    Text(w("helpStories.off")).foregroundStyle(.secondary)
+                    Text(w("helpStories.off")).foregroundStyle(Color.subtle)
                 }
             }
         }
@@ -727,7 +727,7 @@ struct AccountSecurityView: View {
     var body: some View {
         Form {
             if let current = model.store.email { Text(w("accountSecurity.signedInAs", ["email": current])) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let notice { Text(notice) }
             NewPasswordSection(password: $password, again: $again) {
                 Task {
@@ -777,7 +777,7 @@ struct NewPasswordSection: View {
             SecureField(w("accountSecurity.newPassword"), text: $password).textContentType(.newPassword)
             SecureField(w("accountSecurity.passwordAgain"), text: $again).textContentType(.newPassword)
             Text(w("accountSecurity.passwordHint", ["count": "8"])).font(.footnote)
-            if !again.isEmpty && again != password { Text(w("accountSecurity.mismatch")).foregroundStyle(.red) }
+            if !again.isEmpty && again != password { Text(w("accountSecurity.mismatch")).foregroundStyle(Color.danger) }
             Button(w("accountSecurity.savePassword"), action: save).disabled(password.count < 8 || password != again)
         }
     }

@@ -5,6 +5,8 @@ import Foundation
 /// reply's replies one size smaller, three levels in all. Long words are cut with "..".
 public enum Beanstalk {
     public static let perPage = 3
+    /// How many comments a tapped cluster spreads out to, and how many more each tap after reveals.
+    public static let spreadCount = 5
     /// Comment, reply, reply to a reply: the third level is the last.
     public static let maxLevel = 2
 

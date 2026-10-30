@@ -10,6 +10,7 @@ struct PrayerTowerApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(Color.accessibleAccent)
                 .environment(model)
                 .task { await model.start() }
                 // Back in the foreground: send anything done while offline.

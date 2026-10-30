@@ -35,9 +35,10 @@ public final class SessionStore: Sendable {
     }
 
     /// For the UI walks (launched with -PTSampleData): no server, no account, no network.
-    public static func sampleData() -> SessionStore {
+    /// With -PTSamplePosts N, the feed holds N posts (the performance tests).
+    public static func sampleData(posts: Int? = SampleServer.posts()) -> SessionStore {
         SessionStore(supabaseURL: SampleServer.baseURL, publishableKey: "", apiURL: SampleServer.baseURL,
-                     storage: MemoryStorage(), apiSession: SampleServer.session(), sample: true)
+                     storage: MemoryStorage(), apiSession: SampleServer.session(posts: posts), sample: true)
     }
 
     /// The state for the session saved on this device (on app start).
