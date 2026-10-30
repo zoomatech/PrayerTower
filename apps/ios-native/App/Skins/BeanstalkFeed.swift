@@ -337,7 +337,7 @@ private struct BeanPost<Row: View>: View {
         let pop: Double = c.span(100, 600, 0.4, 1, .card)
         let fruit: Double = c.span(1300, 450, 0, 1, .pop)
         return row(card)
-            .padding(12)
+            .padding(15)
             // Room under the locket.
             .padding(.top, 38)
             .frame(maxWidth: .infinity, alignment: .leading)
