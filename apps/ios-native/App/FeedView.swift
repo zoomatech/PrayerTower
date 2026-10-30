@@ -33,7 +33,7 @@ struct FeedView: View {
         NavigationStack {
             Group {
                 if let theme, theme.kind != .column {
-                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id })
+                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id }, loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] })
                         .skinBars(Skin.backdrop(theme))
                 } else if wide {
                     grid

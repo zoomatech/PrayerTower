@@ -515,6 +515,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     branchEmpty: 'Tu rama aún está vacía. Comparte una petición y crecerá aquí.',
     branchLink: 'Ver tu rama',
   },
+  beanstalk: en.beanstalk,
   profile: {
     community: 'Comunidad',
     communityHint: 'Elige la comunidad donde publicas y cuyas publicaciones ves. Puedes cambiarla cuando quieras.',
