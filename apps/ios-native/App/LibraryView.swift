@@ -1,9 +1,13 @@
 import PrayerTowerKit
+import PrayerTowerScripture
 import SwiftUI
 
 /// Scripture and ancient writings search, as the Expo app's library.tsx. Off unless an admin
 /// turns it on; the server decides which collections this member's community offers.
+/// Where the Bible is offered, two more searches run on the phone, ported from Winstons Syndicate
+/// (PrayerTowerScripture): "Who did what" (relationship search) and "A story I remember" (fuzzy search).
 struct LibraryView: View {
+    enum Mode: Hashable { case words, who, story }
     @Environment(AppModel.self) private var model
     @State private var overview: LibraryOverview?
     @State private var collection: String?
@@ -18,7 +22,14 @@ struct LibraryView: View {
     @State private var marks = LibraryMarks()
     /// The last search ran on a downloaded copy because the server couldn't be reached.
     @State private var searchedOffline = false
+    @State private var mode = Mode.words
+    @State private var scope = VerseSearchScope.automatic
+    @State private var verseHits: [VerseSearchHit]?
+    @State private var stories: [HybridBibleSearch.Found]?
+    /// What the meaning search's setup is doing, the first time only: "Downloading BSB", "Indexing KJV: 1200 of 9586 groups".
+    @State private var preparing: String?
     private var w: Words { model.words }
+    private var bibleOffered: Bool { overview?.collections.contains { $0.id == Library.bible } ?? false }
 
     var body: some View {
         List {
@@ -30,8 +41,24 @@ struct LibraryView: View {
                 if !overview.enabled {
                     Text(w("library.closed"))
                 } else {
+                    if bibleOffered {
+                        Picker("", selection: $mode) {
+                            Text(w("library.modeWords")).tag(Mode.words)
+                            Text(w("library.modeWho")).tag(Mode.who)
+                            Text(w("library.modeStory")).tag(Mode.story)
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: mode) { verseHits = nil; stories = nil; error = nil }
+                    }
                     Section {
-                        if overview.collections.count > 1 {
+                        if mode == .who {
+                            Text(w("library.whoHint")).font(.footnote).foregroundStyle(.secondary)
+                            Picker(w("library.whoScope"), selection: $scope) {
+                                ForEach(VerseSearchScope.allCases, id: \.self) { Text($0.title).tag($0) }
+                            }
+                        }
+                        if mode == .story { Text(w("library.storyHint")).font(.footnote).foregroundStyle(.secondary) }
+                        if mode == .words, overview.collections.count > 1 {
                             Picker(w("library.title"), selection: Binding(get: { collection ?? "" }, set: { choose($0) })) {
                                 ForEach(overview.collections) { Text($0.title).tag($0.id) }
                             }
@@ -39,17 +66,44 @@ struct LibraryView: View {
                         }
                         TextField(w("library.placeholder"), text: $words)
                             .submitLabel(.search)
-                            .onSubmit { run(0, words) }
+                            .onSubmit { go() }
                             .onChange(of: words) { _, v in if v.count > 200 { words = String(v.prefix(200)) } }
                             .accessibilityLabel(w("library.words"))
-                        Button(w("library.search")) { run(0, words) }
+                        Button(w("library.search")) { go() }
                             .disabled(words.trimmingCharacters(in: .whitespaces).isEmpty || busy)
+                        if mode == .story, let preparing {
+                            Text(w("library.preparing", ["step": preparing])).font(.footnote).foregroundStyle(.secondary)
+                        }
                     }
                 }
             } else if error == nil {
                 ProgressView()
             }
-            if let hits {
+            if mode == .who, let verseHits {
+                Section {
+                    ForEach(Array(verseHits.prefix(100).enumerated()), id: \.offset) { _, h in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(h.verse.id).font(.headline)
+                            Text(h.verse.text).textSelection(.enabled)
+                            Text(h.explanation).font(.caption).foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                } header: { Text(verseHits.isEmpty ? w("library.none") : w("library.results", count: verseHits.count)) }
+            }
+            if mode == .story, let stories {
+                Section {
+                    ForEach(stories, id: \.verse.id) { found in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(found.verse.id).font(.headline)
+                            Text(found.verse.text).textSelection(.enabled)
+                            Text(found.explanation).font(.caption).foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                } header: { Text(stories.isEmpty ? w("library.none") : w("library.results", count: stories.count)) }
+            }
+            if mode == .words, let hits {
                 Section {
                     ForEach(Array(hits.enumerated()), id: \.offset) { _, h in passage(h) }
                     if hits.count < total {
@@ -113,6 +167,53 @@ struct LibraryView: View {
             }
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+
+    private func go() {
+        switch mode {
+        case .words: run(0, words)
+        case .who: who()
+        case .story: story()
+        }
+    }
+
+    /// "Who did what", on the phone: the phrase read into subject, action and object.
+    private func who() {
+        let phrase = words.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let query = try? RelationQuery.parse(phrase) else { error = w("library.whoParseError"); return }
+        let chosen = scope
+        busy = true
+        error = nil
+        Task {
+            defer { busy = false }
+            do {
+                verseHits = try await Task.detached { try VerseLibrary.loadBundled().search(query, scope: chosen) }.value
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    /// "A story I remember", on the device: Winstons Syndicate's hybrid Bible search (meaning, cascade and word search
+    /// taking turns). The meaning search's setup runs in the background the first time; until it is done the word
+    /// search answers alone, as in Winstons Syndicate.
+    private func story() {
+        let phrase = words.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !phrase.isEmpty else { return }
+        busy = true
+        error = nil
+        Task {
+            defer { busy = false }
+            do {
+                stories = try await LibraryScripture.shared.search(phrase) { state in
+                    Task { @MainActor in
+                        if case let .preparing(step) = state { preparing = step } else { preparing = nil }
+                    }
+                }
+            } catch {
+                self.error = error.localizedDescription
+            }
         }
     }
 
@@ -270,4 +371,41 @@ struct DailyPassageCard: View {
 struct SharedPassage: Identifiable {
     let id = UUID()
     let post: NewPost
+}
+
+/// The device's one hybrid Bible search, as Winstons Syndicate's (HybridBibleSearch), with Apple's sentence embedding as
+/// a second meaning search: the five translations, the EmbeddingGemma model (IBM granite small as its fallback) and both
+/// indexes are downloaded and made once, into Application Support/Bible Search, and only loaded after that.
+enum LibraryScripture {
+    static let shared = Holder()
+
+    actor Holder {
+        private var hybrid: HybridBibleSearch?
+        private var started = false
+
+        func search(_ phrase: String, report: @escaping @Sendable (FuzzyBibleSearch.State) -> Void) async throws -> [HybridBibleSearch.Found] {
+            if hybrid == nil {
+                let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                let folder = support.appendingPathComponent("Bible Search")
+                let fuzzy = FuzzyBibleSearch(folder: folder) { model, at in try await OnnxEmbedder(model: model, folder: at) }
+                let apple = FuzzyBibleSearch(folder: folder) { _, _ in
+                    guard let apple = AppleSentenceEmbedder() else { throw FuzzyBibleSearch.NoEmbedder() }
+                    return apple
+                }
+                hybrid = HybridBibleSearch(library: try VerseLibrary.loadBundled(), fuzzy: fuzzy, apple: apple)
+            }
+            let hybrid = hybrid!
+            if !started {
+                started = true
+                // Apple's first (no download, minutes), then Gemma's; each search joins as soon as it is ready.
+                Task.detached(priority: .utility) {
+                    await hybrid.apple?.prepare(models: [.appleSentence], report: report)
+                    await hybrid.fuzzy.prepare(report: report)
+                }
+            } else if case let .preparing(step) = await hybrid.fuzzy.state {
+                report(.preparing(step))
+            }
+            return await hybrid.search(phrase)
+        }
+    }
 }
