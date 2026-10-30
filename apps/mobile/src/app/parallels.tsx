@@ -7,7 +7,9 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { sharePassage } from '@/components/daily-passage';
+import { ListenPassage } from '@/components/listen-passage';
 import { noteFill, PassageMark, useLibraryNotes } from '@/components/passage-mark';
+import { StudyStart } from '@/components/study-start';
 import { Button, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, type ParallelTheme, type ParallelThemes } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -82,6 +84,8 @@ export default function ParallelsScreen() {
                   {features.libraryShare ? (
                     <Button small variant="ghost" label={t('library.share')} a11yLabel={t('library.shareOne', { citation: s.citation })} onPress={() => sharePassage(s.text, s.citation)} />
                   ) : null}
+                  <ListenPassage collection={s.collection} passageKey={s.key} text={s.text} citation={s.citation} />
+                  <StudyStart of={{ collection: s.collection, key: s.key }} citation={s.citation} />
                   {notes.enabled ? <PassageMark collection={s.collection} passageKey={s.key} citation={s.citation} mark={notes.marks[s.key]} circles={notes.circles} onSaved={notes.saved} /> : null}
                 </View>
               ))}

@@ -85,9 +85,11 @@ public struct LibrarySettings: Codable, Sendable, Equatable {
     public var wordsEnabled: Bool?
     public var notesEnabled: Bool?
     public var offlineEnabled: Bool?
+    public var listenEnabled: Bool?
+    public var studiesEnabled: Bool?
     public init(
         enabled: Bool? = nil, shareEnabled: Bool? = nil, dailyEnabled: Bool? = nil, parallelsEnabled: Bool? = nil, plansEnabled: Bool? = nil,
-        wordsEnabled: Bool? = nil, notesEnabled: Bool? = nil, offlineEnabled: Bool? = nil
+        wordsEnabled: Bool? = nil, notesEnabled: Bool? = nil, offlineEnabled: Bool? = nil, listenEnabled: Bool? = nil, studiesEnabled: Bool? = nil
     ) {
         self.enabled = enabled
         self.shareEnabled = shareEnabled
@@ -97,6 +99,8 @@ public struct LibrarySettings: Codable, Sendable, Equatable {
         self.wordsEnabled = wordsEnabled
         self.notesEnabled = notesEnabled
         self.offlineEnabled = offlineEnabled
+        self.listenEnabled = listenEnabled
+        self.studiesEnabled = studiesEnabled
     }
 }
 
