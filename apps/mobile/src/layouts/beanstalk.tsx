@@ -290,6 +290,8 @@ export interface HangingLeaf {
   fill: string;
   replies: number;
   open: boolean;
+  /** The top comment of a closed cluster: tapping it rustles the cluster open. */
+  cluster?: boolean;
   /** Where it is in the latest five to come out, for the unfurl stagger; below 0 for those already out. */
   k: number;
 }
@@ -334,7 +336,8 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
   const pages = Math.max(1, Math.ceil(top.length / PER_PAGE));
   const page = Math.min(cv.page, pages - 1);
   // Spread, five leaves hang; each tap on the smaller cluster below them rustles out five more.
-  const shown = clumped ? [] : top.slice(0, (page + 1) * PER_PAGE);
+  // Closed, only the top comment hangs, its first line showing, in front of the bunch.
+  const shown = clumped ? top.slice(0, 1) : top.slice(0, (page + 1) * PER_PAGE);
   const leaves: HangingLeaf[] = [];
   const subs: HangingLeaf[] = [];
   let stems = '';
@@ -368,7 +371,7 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
       stems += `M${f(vX)} ${f(y)} C${f(vX + side * 8)} ${f(y + 8)} ${f(tipX - side * 6)} ${f(tipY - 10)} ${f(tipX)} ${f(tipY)} `;
       const reps = kids.get(c.id) ?? [];
       const open = cv.open === gi && reps.length > 0;
-      leaves.push({ comment: c, level: 1, path: [gi], x: Math.round(side < 0 ? tipX - lw : tipX), y: Math.round(tipY - 50), lw, side, ang: side * a, fill: LEAF_FILLS[(k + seed) % 3]!, replies: reps.length, open, k: k - page * PER_PAGE });
+      leaves.push({ comment: c, level: 1, path: [gi], x: Math.round(side < 0 ? tipX - lw : tipX), y: Math.round(tipY - 50), lw, side, ang: side * a, fill: LEAF_FILLS[(k + seed) % 3]!, replies: clumped ? 0 : reps.length, open: open && !clumped, k: k - page * PER_PAGE, cluster: clumped });
       const ccX = tipX + side * (lw / 2) * Math.cos(a * DEG);
       const ccY = tipY + (lw / 2) * Math.sin(a * DEG);
       let bottom = ccY + 58;
@@ -405,7 +408,7 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
   };
   place();
   const pager = !clumped && top.length > shown.length;
-  let H = top.length === 0 ? 96 : clumped ? 270 : Math.round(maxB + 20);
+  let H = top.length === 0 ? 96 : Math.round(maxB + (clumped ? 110 : 20));
   let pgY = 0;
   if (pager) {
     pgY = H + 50;
@@ -423,14 +426,9 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
     pts.push([cx + bend, H]);
     return pts;
   };
-  // The closed cluster hangs on the stalk.
-  let clump: Hanging['clump'] = null;
-  if (clumped) {
-    // Hung on the stalk itself, a little to the left.
-    const y = 125;
-    const vX = cx + sway(y) + 7 * env(y) * Math.sin(y / 30);
-    clump = { x: Math.round(vX - 12), y };
-  }
+  // The bunch behind a closed cluster grows from the node where the top comment's stem meets its leaf.
+  const lead = leaves[0];
+  const clump: Hanging['clump'] = clumped && lead ? { x: lead.side < 0 ? lead.x + lead.lw : lead.x, y: lead.y + 50 } : null;
   const s1 = strand(7, 0);
   const s2 = strand(5.5, Math.PI);
   let deco = '';
@@ -448,7 +446,6 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
 /** The design's leaf, drawn in a 200×100 box: wide at the base (left), a pointed tip (right). */
 export const LEAF_PATH = 'M2 50 C 4 34, 22 10, 66 6 C 112 2, 160 20, 198 60 C 158 82, 110 98, 64 94 C 24 90, 4 66, 2 50 Z';
 const LEAF_VEINS = 'M2 50 C 60 46, 140 48, 198 60 M46 48 C 56 34, 64 22, 74 12 M46 48 C 56 62, 62 76, 70 88 M96 48 C 106 34, 116 22, 128 14 M96 49 C 106 62, 114 74, 124 84 M144 52 C 152 44, 158 36, 168 30 M144 53 C 150 62, 156 68, 164 74';
-const BIG_VEINS = 'M2 50 C 8 50, 10 50, 12 50 M186 57 C 190 58, 194 59, 198 60 M30 30 C 34 24, 38 18, 44 12 M30 72 C 34 78, 38 84, 44 88 M168 40 C 172 36, 176 32, 180 30';
 
 /** Characters that fit on a leaf `W` wide at `fs` points, over `lines` lines. */
 export function leafChars(W: number, fs: number, lines: number) {
@@ -685,12 +682,11 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
 const BERRY_MS = 320;
 const HOLLY = { berry: '#C8102E', shine: '#FF8A8A', ink: '#5A0A12' };
 
-/** Holly berries at a reply's stem: they pop out, then shrink away as the leaf grows from them. */
+/** Holly berries at a reply's stem: they pop out first, and the reply's leaf grows out of them. */
 function Berries({ t, at, left, minH }: { t: Animated.Value; at: number; left: boolean; minH: number }) {
   const pop = span(t, at, BERRY_MS, 0, 1, EASE.pop);
-  const fade = span(t, at + BERRY_MS, 420, 1, 0, EASE.in);
   return (
-    <Animated.View pointerEvents="none" style={[styles.berries, { top: minH / 2 - 15, [left ? 'right' : 'left']: -12, opacity: fade, transform: [{ scale: pop }] }]}>
+    <Animated.View pointerEvents="none" style={[styles.berries, { top: minH / 2 - 15, [left ? 'right' : 'left']: -14, transform: [{ scale: pop }] }]}>
       <Svg aria-hidden width={30} height={30} viewBox="0 0 30 30" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {[
           [10, 11],
@@ -711,63 +707,74 @@ function Berries({ t, at, left, minH }: { t: Animated.Value; at: number; left: b
   );
 }
 
-/** The cluster's leaves, fanned out from one stem in a bunch too thick to count: angle and length. */
-const CLUMP = [
-  [200, 96],
-  [160, 104],
-  [240, 88],
-  [125, 92],
-  [275, 84],
-  [185, 80],
-  [90, 78],
-  [215, 100],
-  [310, 76],
-  [140, 86],
-  [55, 70],
+/**
+ * A bunch of leaves as they grow on a real vine: hanging from one node at uneven angles and
+ * sizes, mostly to one side, overlapping, too many to count. Side, droop below level (degrees),
+ * length (×), drop down the node.
+ */
+const BUNCH = [
+  [-1, 34, 0.92, 14],
+  [-1, 58, 0.8, 26],
+  [1, 30, 0.74, 10],
+  [-1, 12, 0.86, 30],
+  [-1, 76, 0.66, 40],
+  [1, 62, 0.6, 32],
+  [-1, 44, 0.72, 48],
 ] as const;
-const CLUMP_W = 250;
-const CLUMP_H = 200;
 
-/** The closed cluster: an uncountable bunch of leaves. A tap rustles it, then it spreads out into five. */
-function Clump({ x, y, total, t, onSpread, small = false, at = 1100 }: { x: number; y: number; total: number; t: Animated.Value; onSpread: () => void; small?: boolean; at?: number }) {
+/** The leaves bunched behind a closed cluster, or the smaller bunch that brings out five more. A tap rustles them. */
+function Bunch({ x, y, size, t, at, go, onDone, label, hint }: { x: number; y: number; size: number; t: Animated.Value; at: number; go: number; onDone: () => void; label?: string; hint?: string }) {
   const { t: tr } = useLocale();
   const reduced = useReducedMotion();
   const rustle = useRef(new Animated.Value(0)).current;
   const busy = useRef(false);
-  const press = () => {
+  const start = useCallback(() => {
     if (busy.current) return;
-    if (reduced) return onSpread();
+    if (reduced) return onDone();
     busy.current = true;
-    Animated.timing(rustle, { toValue: 1, duration: 520, easing: Easing.linear, useNativeDriver: false }).start(() => {
+    Animated.timing(rustle, { toValue: 1, duration: 560, easing: Easing.linear, useNativeDriver: false }).start(() => {
       busy.current = false;
       rustle.setValue(0);
-      onSpread();
+      onDone();
     });
-  };
+  }, [reduced, onDone, rustle]);
+  // Tapping the top comment's leaf rustles the bunch too.
+  useEffect(() => {
+    if (go) start();
+  }, [go]); // eslint-disable-line react-hooks/exhaustive-deps
   // Each leaf shivers on its own, a little out of step with the others.
   const shiver = (i: number) =>
     rustle.interpolate({ inputRange: [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1], outputRange: ['0deg', `${i % 2 ? 9 : -9}deg`, `${i % 2 ? -7 : 7}deg`, `${i % 2 ? 8 : -6}deg`, `${i % 2 ? -5 : 6}deg`, `${i % 2 ? 4 : -4}deg`, `${i % 2 ? -2 : 2}deg`, '0deg'] });
+  const L = 170 * size;
+  const box = { w: L * 2 + 20, h: L * 1.3 + 50 };
   return (
-    <Animated.View style={[styles.clumpAt, { left: x - CLUMP_W / 2, top: y - CLUMP_H / 2, opacity: span(t, at, 400, 0, 1), transform: [{ scale: span(t, at, 500, small ? 0.25 : 0.4, small ? 0.55 : 1, EASE.unfurl) }] }]}>
-      <Pressable onPress={press} accessibilityRole="button" accessibilityLabel={tr('beanstalk.cluster', { count: total })} accessibilityHint={tr('beanstalk.clusterHint')} style={styles.clumpPress}>
-        {CLUMP.map(([ang, len], i) => (
-          // Each leaf's wide base sits on the stem in the middle; its tip points outward.
-          <Animated.View key={i} pointerEvents="none" style={[styles.clumpLeaf, { left: CLUMP_W / 2, top: CLUMP_H / 2 - len / 4, width: len, height: len / 2, transformOrigin: '0% 50%', transform: [{ rotate: `${ang}deg` }] }]}>
-            <Animated.View style={{ flex: 1, transformOrigin: '0% 50%', transform: [{ rotate: shiver(i) }] }}>
-              <Svg aria-hidden width="100%" height="100%" viewBox="0 0 200 100" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Path d={LEAF_PATH} fill={LEAF_FILLS[i % 3]!} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
-                <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
-              </Svg>
+    <Animated.View style={[styles.bunchAt, { left: x - box.w / 2, top: y - 10, width: box.w, height: box.h, opacity: span(t, at, 400, 0, 1) }]} pointerEvents="box-none">
+      <Pressable onPress={start} disabled={!label} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={tr('beanstalk.clusterHint')} style={StyleSheet.absoluteFill}>
+        {BUNCH.map(([side, droop, len, drop], i) => {
+          const w = L * len;
+          const left = side < 0;
+          const origin = left ? '100% 50%' : '0% 50%';
+          return (
+            <Animated.View
+              key={i}
+              pointerEvents="none"
+              style={[styles.bunchLeaf, { left: left ? box.w / 2 - w : box.w / 2, top: 10 + drop * size - w / 4, width: w, height: w / 2, transformOrigin: origin, transform: [{ rotate: `${side * droop}deg` }, { scale: span(t, at + i * 60, 450, 0.2, 1, EASE.unfurl) }] }]}>
+              <Animated.View style={{ flex: 1, transformOrigin: origin, transform: [{ rotate: shiver(i) }] }}>
+                <Svg aria-hidden width="100%" height="100%" style={left ? styles.flip : null} viewBox="0 0 200 100" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Path d={LEAF_PATH} fill={LEAF_FILLS[(i + 1) % 3]!} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
+                  <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
+                </Svg>
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
-        ))}
-        <Text style={[styles.clumpHint, small && styles.clumpHintSmall]}>{tr(small ? 'beanstalk.clusterMore' : 'beanstalk.clusterTap')}</Text>
+          );
+        })}
+        {hint ? <Text style={[styles.bunchHint, { top: box.h - 22 }]}>{hint}</Text> : null}
       </Pressable>
     </Animated.View>
   );
 }
 
-/** The big leaf: one comment and its replies, in the middle of the screen. */
+/** The whole of a cut-off comment and its replies, on a card in the middle of the screen. */
 function Reader({ comment, kids, onClose }: { comment: Comment | null; kids: Map<string, Comment[]>; onClose: () => void }) {
   const { t } = useLocale();
   const reduced = useReducedMotion();
@@ -804,11 +811,6 @@ function Reader({ comment, kids, onClose }: { comment: Comment | null; kids: Map
                 transform: [{ rotate: grow.interpolate({ inputRange: [0, 1], outputRange: ['-24deg', '0deg'] }) }, { scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }) }],
               },
             ]}>
-            <Svg aria-hidden pointerEvents="none" style={StyleSheet.absoluteFill} viewBox="0 0 200 100" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Path d={LEAF_PATH} fill={BEANSTALK.leafB} stroke={BEANSTALK.vineInk} strokeWidth={3} vectorEffect="non-scaling-stroke" />
-              <Path d={BIG_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
-              <Path d="M2 50 C -3 52, -6 56, -9 62" fill="none" stroke={BEANSTALK.strand} strokeWidth={6} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-            </Svg>
             <ScrollView style={styles.bigScroll} contentContainerStyle={styles.bigInner}>
               <View style={styles.bi}>
                 <Text style={styles.biName}>{comment.author.displayName}</Text>
@@ -873,6 +875,8 @@ const Post = memo(function Post({
   const [cv, setCv] = useState<LeafState>({ page: 0, open: null, open2: null, spread: false });
   const [cyc, setCyc] = useState(0);
   const [reading, setReading] = useState<Comment | null>(null);
+  // Bumped when the top comment of a closed cluster is tapped, to rustle the bunch open.
+  const [go, setGo] = useState(0);
 
   useEffect(() => {
     if (!grown || all || card.counts.comments <= 0) return;
@@ -900,6 +904,7 @@ const Post = memo(function Post({
     (leaf: HangingLeaf, cut: boolean) => {
       // A leaf with replies sprouts them first (holly berries that grow into leaves); a leaf
       // whose words are cut off opens as the big leaf once its replies are out, or straight away.
+      if (leaf.cluster) return setGo((g) => g + 1);
       const sprouts = leaf.replies > 0 && leaf.level < 3;
       if (cut && (!sprouts || leaf.open)) return setReading(leaf.comment);
       if (!sprouts) return;
@@ -907,6 +912,8 @@ const Post = memo(function Post({
     },
     [],
   );
+  const spread = useCallback(() => onPage(0), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const more = useCallback(() => onPage(hang.page + 1), [hang.page]); // eslint-disable-line react-hooks/exhaustive-deps
   const onPage = useCallback((p: number) => {
     setCv({ page: p, open: null, open2: null, spread: true });
     setCyc((n) => n + 1);
@@ -968,8 +975,8 @@ const Post = memo(function Post({
             <Leaf key={leaf.comment.id} leaf={leaf} t={openT} at={0} onTap={onTap} />
           ),
         )}
-        {hang.clump ? <Clump x={hang.clump.x} y={hang.clump.y} total={total} t={t} onSpread={() => onPage(0)} /> : null}
-        {hang.pager ? <Clump key={`more${hang.page}`} small x={width / 2 + (next - shift)} y={hang.pgY} total={total} t={cyc > 0 ? pageT : t} at={cyc > 0 ? 500 : 1500} onSpread={() => onPage(hang.page + 1)} /> : null}
+        {hang.clump ? <Bunch x={hang.clump.x} y={hang.clump.y} size={0.8} t={t} at={1000} go={go} onDone={spread} label={tr('beanstalk.cluster', { count: total })} hint={tr('beanstalk.clusterTap')} /> : null}
+        {hang.pager ? <Bunch key={`more${hang.page}`} x={width / 2 + (next - shift)} y={hang.pgY - 30} size={0.45} t={cyc > 0 ? pageT : t} at={cyc > 0 ? 500 : 1500} go={0} onDone={more} label={tr('beanstalk.clusterMore')} hint={tr('beanstalk.clusterMore')} /> : null}
       </View>
       <Reader comment={reading} kids={kids} onClose={closeReader} />
     </View>
@@ -1177,11 +1184,9 @@ const styles = StyleSheet.create({
   connSvg: { position: 'absolute', left: 0, top: 0 },
   leafAt: { position: 'absolute', zIndex: 2 },
   berries: { position: 'absolute', width: 30, height: 30, zIndex: 3 },
-  clumpAt: { position: 'absolute', width: 250, height: 200, zIndex: 2 },
-  clumpPress: { flex: 1 },
-  clumpLeaf: { position: 'absolute' },
-  clumpHintSmall: { fontSize: 22, bottom: -14 },
-  clumpHint: { position: 'absolute', left: 0, right: 0, bottom: -4, textAlign: 'center', fontFamily: 'Alegreya_400Regular_Italic', fontSize: 13, color: BEANSTALK.link },
+  bunchAt: { position: 'absolute', zIndex: 1 },
+  bunchLeaf: { position: 'absolute' },
+  bunchHint: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontFamily: 'Alegreya_400Regular_Italic', fontSize: 14, color: BEANSTALK.link },
   leafBody: { justifyContent: 'center', alignItems: 'center', paddingTop: 16, paddingBottom: 18 },
   flip: { transform: [{ scaleX: -1 }] },
   leafName: { fontFamily: FONT.bold, color: COMMENT_TEXT, textAlign: 'center' },
@@ -1211,10 +1216,11 @@ const styles = StyleSheet.create({
   groundTitle: { fontFamily: FONT.title, fontSize: 24, marginTop: 20, color: BEANSTALK.ink, textAlign: 'center' },
   groundSub: { fontFamily: FONT.body, fontSize: 16, color: BEANSTALK.sub, textAlign: 'center' },
   bigScrim: { flex: 1, backgroundColor: 'rgba(31,26,20,.55)', alignItems: 'center', justifyContent: 'center' },
-  bigLeaf: { width: '94%', maxWidth: 760, height: '74%', maxHeight: 560 },
-  bigScroll: { position: 'absolute', left: '9%', right: '15%', top: '17%', bottom: '13%' },
-  bigInner: { paddingHorizontal: 10, paddingVertical: 4 },
-  bigClose: { position: 'absolute', right: '14%', top: '8%', width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: BEANSTALK.ink, backgroundColor: '#F3E3B8', alignItems: 'center', justifyContent: 'center' },
+  // The whole comment on a plain cream card with a vine-green edge, sized to its words.
+  bigLeaf: { width: '90%', maxWidth: 520, maxHeight: '70%', backgroundColor: BEANSTALK.cream, borderRadius: 18, borderWidth: 3, borderColor: BEANSTALK.vineInk, paddingTop: 52 },
+  bigScroll: { flexGrow: 0 },
+  bigInner: { paddingHorizontal: 18, paddingBottom: 18 },
+  bigClose: { position: 'absolute', right: 8, top: 8, width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: BEANSTALK.ink, backgroundColor: '#F3E3B8', alignItems: 'center', justifyContent: 'center' },
   bi: { marginBottom: 14 },
   bi0: { fontSize: 19 },
   bi1: { marginLeft: 20, paddingLeft: 12, borderLeftWidth: 4, borderLeftColor: BEANSTALK.stem },

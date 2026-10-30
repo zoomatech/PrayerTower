@@ -70,7 +70,9 @@ describe('Beanstalk leaves', () => {
     const { top, kids } = commentTree(all);
     expect(top.map((x) => x.id)).toEqual(['g', 'f', 'e', 'd', 'c', 'b', 'a']);
     const clumped = hanging(360, top, kids, { page: 0, open: null, open2: null }, 0);
-    expect(clumped.leaves).toHaveLength(0);
+    // Closed: only the top comment hangs, in front of the bunch, and a tap on it rustles the cluster open.
+    expect(clumped.leaves.map((l) => l.comment.id)).toEqual(['g']);
+    expect(clumped.leaves[0]!.cluster).toBe(true);
     expect(clumped.clump).not.toBeNull();
     expect(clumped.pager).toBe(false);
     // Three or fewer hang as leaves straight away.
