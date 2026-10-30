@@ -57,30 +57,37 @@ struct ConnectorOutline<S: Shape, L: ConnectorLook>: View, Animatable {
     }
 }
 
-/// One half of a box with small curved corners, drawn from the middle of its top edge round to the
-/// middle of its bottom edge, so a frame drawing itself in starts on screen and works downward.
+/// One of a box's two tubes, both starting at its top left corner, where the branch from the stalk
+/// comes in: one runs along the top and down the right side, the other down the left and along the
+/// bottom. They meet at the bottom right corner with a small gap, as a real neon tube's ends do at a
+/// bend, never in the middle of a run (Steve, 2026-10-30).
 struct BoxHalf: Shape {
-    /// -1 for the left half, 1 for the right.
+    /// 1 for the top-and-right tube, -1 for the left-and-bottom tube.
     let side: CGFloat
     var radius: CGFloat = 12
+    /// The gap the two ends leave at the bottom right corner.
+    var gap: CGFloat = 3
 
     func path(in r: CGRect) -> Path {
         let c = min(radius, min(r.width, r.height) / 4)
-        let edge = side < 0 ? r.minX : r.maxX
-        let inward: CGFloat = side < 0 ? 1 : -1
         var p = Path()
-        p.move(to: CGPoint(x: r.midX, y: r.minY))
-        p.addLine(to: CGPoint(x: edge + inward * c, y: r.minY))
-        p.addQuadCurve(to: CGPoint(x: edge, y: r.minY + c), control: CGPoint(x: edge, y: r.minY))
-        p.addLine(to: CGPoint(x: edge, y: r.maxY - c))
-        p.addQuadCurve(to: CGPoint(x: edge + inward * c, y: r.maxY), control: CGPoint(x: edge, y: r.maxY))
-        p.addLine(to: CGPoint(x: r.midX, y: r.maxY))
+        p.move(to: CGPoint(x: r.minX, y: r.minY + c))
+        if side > 0 {
+            p.addQuadCurve(to: CGPoint(x: r.minX + c, y: r.minY), control: CGPoint(x: r.minX, y: r.minY))
+            p.addLine(to: CGPoint(x: r.maxX - c, y: r.minY))
+            p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + c), control: CGPoint(x: r.maxX, y: r.minY))
+            p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - c - gap))
+        } else {
+            p.addLine(to: CGPoint(x: r.minX, y: r.maxY - c))
+            p.addQuadCurve(to: CGPoint(x: r.minX + c, y: r.maxY), control: CGPoint(x: r.minX, y: r.maxY))
+            p.addLine(to: CGPoint(x: r.maxX - c - gap, y: r.maxY))
+        }
         return p
     }
 }
 
-/// A box frame that draws itself in from the top, down both sides at once (Steve, 2026-10-30: as the
-/// feed scrolls down, a new box's top shows before its bottom, which is still off screen).
+/// A box frame that draws itself in from its top left corner, along the top and down both sides at
+/// once (Steve, 2026-10-30: as the feed scrolls down, a new box's top shows before its bottom).
 struct TopDownFrame<L: ConnectorLook>: View {
     let look: L
     var radius: CGFloat = 12
