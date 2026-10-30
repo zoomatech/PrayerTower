@@ -77,6 +77,9 @@ struct CircleDetailView: View {
         List {
             if let v = view {
                 if let about = v.circle.about { Section { Text(about) } }
+                if model.features["libraryStudies"] {
+                    Section { NavigationLink(model.words("library.studies")) { StudyListView(circleId: id) } }
+                }
                 if let w = v.welcome, w.show {
                     // Circle welcome: the starter's own words, or the app's default, for first-time posters.
                     Section("Welcome") { Text(w.text ?? "This is a small, kind place. Share what's on your heart, and pray for each other.") }

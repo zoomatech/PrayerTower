@@ -91,6 +91,10 @@ struct LibraryView: View {
             NavigationLink(w("library.study.study")) { WordStudyView(ref: h.ref) }
                 .accessibilityLabel(w("library.study.studyOne", ["ref": h.ref]))
         }
+        if let key = h.key, let collection, !searchedOffline {
+            ListenRow(collection: collection, key: key, text: h.text, citation: h.credit)
+            StudyStartRow(subject: .passage(collection: collection, key: key), citation: h.credit)
+        }
         if model.features["libraryNotes"], let key = h.key, let collection {
             PassageMarkRow(collection: collection, key: key, citation: h.credit, marks: marks)
         }
@@ -209,6 +213,18 @@ struct LibraryAdminSection: View {
                         VStack(alignment: .leading) {
                             Text(w("library.adminOffline"))
                             Text(w("library.adminOfflineHint")).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Toggle(isOn: Binding(get: { on.listenEnabled == true }, set: { save(LibrarySettings(listenEnabled: $0)) })) {
+                        VStack(alignment: .leading) {
+                            Text(w("library.adminListen"))
+                            Text(w("library.adminListenHint")).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Toggle(isOn: Binding(get: { on.studiesEnabled == true }, set: { save(LibrarySettings(studiesEnabled: $0)) })) {
+                        VStack(alignment: .leading) {
+                            Text(w("library.adminStudies"))
+                            Text(w("library.adminStudiesHint")).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }

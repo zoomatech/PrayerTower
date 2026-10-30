@@ -84,6 +84,26 @@ Admin → Text search → **Offline texts** (`offline_enabled`, feature `library
 - With no signal, Search the texts searches the downloaded copy: passages holding every word first, then at least half the words. It says so on screen, because old word forms and synonyms are not matched offline. Word study and marks need a connection.
 - Routes: `GET /library/offline`, `GET /library/offline/:id` (the collection file, gzipped JSON with `Content-Encoding: gzip`).
 
+### Listening (off by default)
+
+Admin → Text search → **Listening** (`listen_enabled`, feature `libraryListen`).
+
+- **Listen** under every passage (search results, parallels, plan days, study rooms) reads it aloud with the device's own voice: `expo-speech` in the Expo app, `AVSpeechSynthesizer` in the native app. Nothing is sent anywhere and it costs nothing.
+- **Find a recording** looks up a public-domain **LibriVox** recording of the place the passage is in and plays it (expo-audio, AVPlayer) with its credit ("Read by … for LibriVox: Bible (KJV) 19: Psalms (version 2), “Chapter 07 - Psalms 21 - 23”. Public domain.", linked to the LibriVox project page). The audio streams from the Internet Archive.
+- Only recordings of **the same translation** as the text shown are used: the whole King James Bible (every chapter of all 66 books), the KJV Apocrypha's Tobit, Wisdom, 1 and 2 Maccabees, the Prayer of Manasses, Susanna, Bel and the Dragon and the Song of the Three Holy Children; Legge's Tao Te Ching, Müller's Dhammapada, Arnold's Song Celestial, Butler's Iliad and Odyssey, and Budge's Gilgamesh Tablet XI. Not used: LibriVox's Analects (Jennings, not Legge), its Book of the Dead (the full Papyrus of Ani, not Budge's 1920 extracts), Meditations and Hesiod (not matched to our passages yet).
+- Data: `recordings.json` (770 recordings, each a chapter range of one work), built by `python3 scripts/library-recordings.py` from the LibriVox API answers in `sources/librivox/` (downloaded on the Mac; the cloud can't reach LibriVox). LibriVox recordings are public domain: <https://librivox.org/pages/public-domain/>.
+- Route: `GET /library/listen?collection&key` → `{ recording: { url, title, project, readers, seconds, credit, projectUrl } | null }`.
+
+### Circle study rooms (off by default)
+
+Admin → Text search → **Study rooms** (`studies_enabled`, feature `libraryStudies`), with prayer circles on. A circle's page → **Study room**.
+
+- **Study with a circle** under any passage or plan day: pick one of your circles and write a question or thought to open the talk.
+- A study is a circle post carrying the passage (columns `study_*` on `circle_posts`, migration `20261030001000_library_listen_studies.sql`), so circle rules apply: only members see it, members get the circle's one quiet heads-up a day, the kind cloud is on every composer, words from people you blocked are left out, and the author or the circle's starter can take a study or a reply down (a person decides, never the app). Studies are kept off the circle's own feed.
+- Replies can be answered one level deep (`circle_replies.parent_id`); an answer to an answer joins the same thread.
+- A study of a collection the viewer's community isn't offered (the Bible, in Open Circle) is left out for them, and can't be started there.
+- Routes: `GET /library/studies?circle`, `POST /library/studies` (`{ circleId, prompt, collection, key }` or `{ circleId, prompt, planId, day }`), `GET|DELETE /library/studies/:id`, `POST /library/studies/:id/replies` (`{ body, parentId? }`), `DELETE /library/study-replies/:id`.
+
 Winstons Syndicate's scripture package (relationship search, "David slew Goliath", and fuzzy remembered-story search) is still being built there. It will come to Prayer Tower later as an **Ask the Bible** feature (Steve, 2026-10-29), so it is not ported here.
 
 ## How the search works
@@ -109,6 +129,7 @@ The relationship and fuzzy searches stay in Winstons Syndicate until Ask the Bib
 | `apocrypha-kjv.json.gz` | The 15 books of the King James Apocrypha, 5,709 verses: 1 and 2 Esdras, Tobit, Judith, the Greek additions to Esther, Wisdom, Sirach, Baruch, the Epistle of Jeremiah, the Song of the Three Holy Children, Susanna, Bel and the Dragon, the Prayer of Manasses, 1 and 2 Maccabees. Faith communities only | Project Gutenberg eBook #124, <https://www.gutenberg.org/ebooks/124> (KJV 1611, public domain) |
 | `world-classics.json.gz` | 7 works, 3,722 passages: Tao Te Ching (James Legge, 1891), the Analects (Legge, 1893), the Dhammapada (F. Max Müller, 1881), the Bhagavad Gita, *The Song Celestial* (Edwin Arnold, 1885), Hesiod, the Homeric Hymns and Homerica (Hugh G. Evelyn-White, Loeb 1914), the Iliad (Samuel Butler, 1898), the Odyssey (Butler, 1900) | Project Gutenberg eBooks #216, #3330, #2017, #2388, #348, #2199, #1727 (all published before 1931) |
 | `kjv-synonyms.txt.gz` | Synonym table | Moby Thesaurus (public domain) |
+| `recordings.json` | 770 LibriVox recordings matched to chapters of the same translations | LibriVox API (`sources/librivox/`), public domain |
 | `kjv-strongs.json.gz` | KJV with Strong's numbers on each word, 31,102 verses | eBible.org `eng-kjv2006` USFM, licence "Public Domain" (<https://ebible.org/find/details.php?id=eng-kjv2006>) |
 | `strongs-dictionary.json.gz` | Strong's Hebrew (1894) and Greek (1890) dictionaries | OpenScriptures `StrongHebrewG.xml` and `strongsgreek.xml`, both marked public domain |
 
