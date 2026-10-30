@@ -396,6 +396,7 @@ function Admin() {
             <RadioLoopSection />
             <RadioPanelToggle />
             <SignalQueueToggle />
+            <SignalJourneyToggle />
             <FairAirSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}
             {radio.radio_transmitter === 'station' ? <RadioFollowupsSection /> : null}
@@ -839,6 +840,21 @@ function SignalQueueToggle() {
   if (on === null) return null;
   return (
     <Toggle label={t('admin.signalQueue')} hint={t('admin.signalQueueHint')} value={on} onChange={(v) => api.admin.setSignalQueue(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
+  );
+}
+
+/** Signal journey on My signal queue (radio/signal-queue.ts), off by default. */
+function SignalJourneyToggle() {
+  const t = useT();
+  const [on, setOn] = useState<boolean | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.signalJourneySetting().then((r) => setOn(r.enabled)).catch(() => undefined);
+    }, []),
+  );
+  if (on === null) return null;
+  return (
+    <Toggle label={t('admin.signalJourney')} hint={t('admin.signalJourneyHint')} value={on} onChange={(v) => api.admin.setSignalJourney(v).then((r) => setOn(r.enabled)).catch(() => undefined)} />
   );
 }
 

@@ -271,6 +271,8 @@ export interface Features {
   radioPanel: boolean;
   /** My signal queue, and signal codes on the Listen screen. */
   signalQueue: boolean;
+  /** Signal journey on My signal queue: how far each sent wave has gone. */
+  signalJourney: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
   feedSkins: boolean;
   commentTree: boolean;
@@ -1180,12 +1182,16 @@ export interface SignalEntry {
   status: 'waiting' | 'sending' | 'sent' | 'not_sent';
   kind: string;
   amplified: boolean;
+  /** Copies that went out (an amplified prayer goes out many times in one burst). */
+  copies?: number;
   queuedAt: string;
   sentAt: string | null;
   callSign: string | null;
   preset: string | null;
   heardCount: number;
   signalCode: string | null;
+  /** The strongest report a listener node sent, in dB. */
+  bestSnrDb?: number | null;
 }
 
 export interface ScheduledSpend {
@@ -2116,7 +2122,7 @@ export const api = {
     post<{ ok: boolean }>(`/moderation/items/${itemId}/decision`, decision),
   /** Would this text likely break the rules? Used to warn before posting; never blocks. */
   precheck: (text: string, context?: 'lament' | 'lamentReply') => post<Precheck>('/moderation/precheck', { text, context }).catch((): Precheck => ({ warn: false })),
-  signalQueue: () => get<{ signals: SignalEntry[] }>('/me/signal-queue'),
+  signalQueue: () => get<{ signals: SignalEntry[]; journey?: boolean }>('/me/signal-queue'),
   radioTrail: (id: string) => get<{ trail: RadioTrailEntry[] }>(`/posts/${id}/radio-trail`),
   radioSummary: (id: string) => get<RadioSummary>(`/posts/${id}/radio-summary`),
   radioPanel: () => get<{ callSign: string; prayers: string[]; at: string | null }>('/radio/panel'),
@@ -2254,6 +2260,8 @@ export const api = {
     setRadioFairAir: (patch: { everyRequest?: boolean; dailyCap?: number | null }) => request<{ everyRequest: boolean; dailyCap: number | null }>('PATCH', '/admin/radio-fair-air', patch),
     signalQueueSetting: () => get<{ enabled: boolean }>('/admin/signal-queue'),
     setSignalQueue: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/signal-queue', { enabled }),
+    signalJourneySetting: () => get<{ enabled: boolean }>('/admin/signal-journey'),
+    setSignalJourney: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/signal-journey', { enabled }),
     heardTrail: () => get<{ enabled: boolean }>('/admin/heard-trail'),
     radioLoop: () => get<RadioLoop>('/admin/radio-loop'),
     radioPanel: () => get<{ enabled: boolean }>('/admin/radio-panel'),
