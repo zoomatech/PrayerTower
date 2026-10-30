@@ -91,6 +91,8 @@ struct VineFeed<Row: View>: View {
 struct Stalk: View {
     let look: VineLook
     @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.dynamicTypeSize) private var size
+    private var glow: Bool { look.stemGlow && !size.isAccessibilitySize }
 
     var body: some View {
         Canvas { ctx, size in
@@ -147,7 +149,8 @@ struct Stalk: View {
                 }
             }
         }
-        .shadow(color: look.stemGlow ? Color(look.stem).opacity(0.8) : .clear, radius: look.stemGlow ? 8 : 0)
+        // The glow's blur reads as smudged text beside the accessibility sizes' giant letters.
+        .shadow(color: glow ? Color(look.stem).opacity(0.8) : .clear, radius: glow ? 8 : 0)
         .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.tendril)) } }
     }
 }

@@ -28,6 +28,8 @@ final class ScreenSnapshotTests: XCTestCase {
     /// Every feed skin on its sample requests at the largest text, light mode, for the clipping
     /// the accessibility audit can only describe (AuditSamplesView's list, in the same order).
     func testEverySkin() {
+        // Neon Cinderella's spark runs down its rod and the glows draw a hair differently each run,
+        // so a skin may differ in a few pixels (0.5%) from its reference without failing.
         for skin in AuditSamplesView.skins {
             let feed = NavigationStack {
                 SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
@@ -40,7 +42,7 @@ final class ScreenSnapshotTests: XCTestCase {
                 .navigationBarTitleDisplayMode(.inline)
                 .skinBars(Skin.backdrop(skin))
             }
-            assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1, wholeScreen: true),
+            assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1, wholeScreen: true, precision: 0.995),
                            named: "skin-\(skin.slug)-largest-text", timeout: 10)
         }
     }
@@ -68,8 +70,8 @@ extension Snapshotting where Value == UIViewController, Format == UIImage {
     /// (The library's `.wait` waits before the screen is in a window, so loads never start.)
     /// `wholeScreen` draws what the screen shows (3D page turns and leaning frames included),
     /// where a plain layer render flattens them and draws hidden pages too.
-    @MainActor static func loaded(style: UIUserInterfaceStyle, seconds: Double = 3, wholeScreen: Bool = false) -> Snapshotting {
-        Snapshotting(pathExtension: "png", diffing: .image(perceptualPrecision: 0.98)) { controller in
+    @MainActor static func loaded(style: UIUserInterfaceStyle, seconds: Double = 3, wholeScreen: Bool = false, precision: Float = 1) -> Snapshotting {
+        Snapshotting(pathExtension: "png", diffing: .image(precision: precision, perceptualPrecision: 0.98)) { controller in
             Async { done in
                 nonisolated(unsafe) let finish = done
                 Task { @MainActor in

@@ -100,10 +100,8 @@ struct SignInView: View {
                 .disabled(busy)
             }
             if mode == .signIn {
-                Button { switchMode(.forgot) } label: {
-                    Text(w("signIn.forgot")).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
-                }
-                .buttonStyle(.borderless)
+                // The same plain row button as the switch below it, which grows with the text.
+                Button(w("signIn.forgot")) { switchMode(.forgot) }
             }
             Button(w(mode == .signIn ? "signIn.toSignUp" : "signIn.toSignIn")) { switchMode(mode == .signIn ? .signUp : .signIn) }
         }
