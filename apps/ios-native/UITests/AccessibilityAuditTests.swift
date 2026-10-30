@@ -71,6 +71,21 @@ final class AccessibilityAuditTests: XCTestCase {
         let top = app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : window.minY
         let bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : window.maxY - 80
         let visible = CGRect(x: window.minX, y: top, width: window.width, height: bottom - top)
+        // An audit that runs out of time is tried once more, then reported for this screen without
+        // stopping the rest of the skins.
+        for attempt in 1...2 {
+            do {
+                try runAudit(app, place, in: visible)
+                return
+            } catch where attempt == 1 {
+                sleep(2)
+            } catch {
+                XCTFail("\(place): the audit didn't finish: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    @MainActor private func runAudit(_ app: XCUIApplication, _ place: String, in visible: CGRect) throws {
         try app.performAccessibilityAudit { issue in
             let element = issue.element
             if let frame = element?.frame, !visible.contains(frame) { return true }
