@@ -1,49 +1,109 @@
+import CoreText
 import PrayerTowerKit
 import SwiftUI
 
-// The Beanstalk (Steve, 2026-10-30), drawn to match the Claude Design video, the same as the
-// Expo app (apps/mobile/src/layouts/beanstalk.tsx): a braided stalk of two twisting strands down
-// the middle; each post in a frame wound with a leafy vine and a flower at its top; above each post
-// its comments hang off the stalk as real leaves, three at a time, with ‹ 1–3 of N › to swap in
-// the next three, which unfurl. Tapping a leaf with replies sprouts smaller reply leaves (three
-// levels, the first three at each); a leaf whose words are cut off grows into one big straight
-// leaf with the whole comment and its replies (close with the X or Esc). As each post scrolls
-// into view its stalk grows up from the frame and its leaves unfurl. Reduce Motion shows it all
-// at once. Fruit hangs on the frame once someone has gifted the poster tokens.
+// The Beanstalk (Steve, 2026-10-30), ported from his Claude Design file "Beanstalk feed"
+// (Main.dc.html), the same as the Expo app (apps/mobile/src/layouts/beanstalk.tsx). Each post sits
+// in a frame wound with two twisting vine strands, mirrored left and right, that draw themselves
+// from the bottom middle up both sides to a flower at the top, with leaves and tendrils along them.
+// Below each post a two-strand stalk grows down to the next post, and the post's comments hang off
+// it on big tilted leaves, three at a time, left and right by turns; ‹ 1–3 of N › swaps in the next
+// three. A leaf with replies sprouts them as smaller leaves (three levels); a leaf whose words are
+// cut off opens as one big leaf with the whole comment and its replies. Each post grows in (the card
+// springs up, the vine draws, the leaves unfurl) whenever it scrolls into view, and resets when it
+// leaves. Steve's additions: the poster in an oval locket over the frame's top left corner, fruit
+// over the top right once someone has gifted the poster tokens, and each post a little left or right
+// of the centre line (never more than 15%). The geometry is BeanDraw in PrayerTowerKit.
 
 private enum Bean {
-    static let backdrop = Color(RGB(hex: "#E9DFBF")!)
-    static let cream = Color(RGB(hex: "#FCF4DC")!)
-    static let ink = Color(RGB(hex: "#22301A")!)
-    static let frameInk = Color(RGB(hex: "#2A1E14")!)
-    static let strandDark = Color(RGB(hex: "#3F8A2C")!)
-    static let strandLight = Color(RGB(hex: "#86C25A")!)
-    static let leaf = Color(RGB(hex: "#A9D27B")!)
-    static let leafPale = Color(RGB(hex: "#CFE6A6")!)
-    static let leafBright = Color(RGB(hex: "#8CC657")!)
-    static let locket = Color(RGB(hex: "#C9A227")!)
-    static let locketFace = Color(RGB(hex: "#EDB09A")!)
-    static let vein = Color(RGB(hex: "#6E9F47")!)
-    static let petal = Color(RGB(hex: "#F2C14E")!)
-    static let heart = Color(RGB(hex: "#C0392B")!)
+    static let page = Color(RGB(hex: "#EFE4C6")!)
+    static let cream = Color(RGB(hex: "#FFF7E2")!)
+    static let ink = Color(RGB(hex: "#2A2118")!)
+    static let vineInk = Color(RGB(hex: "#23301D")!)
+    static let strand = Color(RGB(hex: "#4F8A35")!)
+    static let strandLight = Color(RGB(hex: "#9CC862")!)
+    static let tendril = Color(RGB(hex: "#3F6B2F")!)
+    static let vineLeaf = Color(RGB(hex: "#7FB352")!)
+    static let vineLeafLight = Color(RGB(hex: "#A9CF6A")!)
+    static let petal = Color(RGB(hex: "#F3CF6B")!)
+    static let heart = Color(RGB(hex: "#B23A22")!)
+    static let stem = Color(RGB(hex: "#5E9440")!)
+    static let leaves = [Color(RGB(hex: "#B6D77A")!), Color(RGB(hex: "#D7EBB0")!), Color(RGB(hex: "#9CC862")!)]
+    static let button = Color(RGB(hex: "#D7EBB0")!)
+    static let sub = Color(RGB(hex: "#5C4A33")!)
+    // A little darker than the design's #2F4F86, for 4.5:1 on the darkest leaf (WCAG AA).
     static let link = Color(RGB(hex: "#23407F")!)
     static let text = Color(RGB.commentText)
-    static let button = Color(RGB(hex: "#D7EBB4")!)
+    static let locket = Color(RGB(hex: "#C9A227")!)
+    static let locketFace = Color(RGB(hex: "#F2B9A0")!)
     static let space = "beanstalk"
-    /// How long the vine takes to wind round a post.
-    static let windTime = 0.85
 }
 
-extension View {
-    /// Calls `seen` once the view's top scrolls onto the screen, checked as the member scrolls.
-    func onScrolledIntoView(_ viewport: Double, _ seen: @escaping () -> Void) -> some View {
-        onGeometryChange(for: Bool.self) { g in
-            let f = g.frame(in: .named(Bean.space))
-            return f.height > 0 && Double(f.minY) < viewport - 40 && Double(f.maxY) > 0
-        } action: { inView in
-            if inView { seen() }
+/// The design's fonts, bundled in App/Fonts (SIL Open Font License): Alegreya for words, Henny Penny for the title.
+private enum BeanFont {
+    static let ready: Bool = {
+        for name in ["Alegreya_400Regular", "Alegreya_400Regular_Italic", "Alegreya_600SemiBold", "Alegreya_700Bold", "Alegreya_700Bold_Italic", "HennyPenny_400Regular"] {
+            if let url = Bundle.main.url(forResource: name, withExtension: "ttf") { CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil) }
+        }
+        return true
+    }()
+    static func body(_ size: Double) -> Font { .custom("Alegreya-Regular", size: size) }
+    static func semi(_ size: Double) -> Font { .custom("Alegreya-SemiBold", size: size) }
+    static func bold(_ size: Double) -> Font { .custom("Alegreya-Bold", size: size) }
+    static func boldItalic(_ size: Double) -> Font { .custom("Alegreya-BoldItalic", size: size) }
+    static func title(_ size: Double) -> Font { .custom("HennyPenny-Regular", size: size) }
+}
+
+/// A CSS cubic-bezier easing.
+private struct Ease {
+    let x1: Double, y1: Double, x2: Double, y2: Double
+    static let linear = Ease(x1: 0, y1: 0, x2: 1, y2: 1)
+    static let easeIn = Ease(x1: 0.42, y1: 0, x2: 1, y2: 1)
+    static let vine = Ease(x1: 0.4, y1: 0.15, x2: 0.45, y2: 1)
+    static let card = Ease(x1: 0.2, y1: 1.25, x2: 0.35, y2: 1)
+    static let pop = Ease(x1: 0.3, y1: 1.7, x2: 0.5, y2: 1)
+    static let unfurl = Ease(x1: 0.3, y1: 1.5, x2: 0.5, y2: 1)
+
+    private func bez(_ a: Double, _ b: Double, _ s: Double) -> Double {
+        let u: Double = 1 - s
+        let first: Double = 3 * u * u * s * a
+        let second: Double = 3 * u * s * s * b
+        return first + second + s * s * s
+    }
+
+    func callAsFunction(_ t: Double) -> Double {
+        if t <= 0 { return 0 }
+        if t >= 1 { return 1 }
+        var lo = 0.0, hi = 1.0, s = t
+        for _ in 0..<24 {
+            s = (lo + hi) / 2
+            if bez(x1, x2, s) < t { lo = s } else { hi = s }
+        }
+        return bez(y1, y2, s)
+    }
+}
+
+/// A post's growing clock, in milliseconds since it scrolled into view; every piece reads its own stretch of it.
+private struct Clock {
+    let ms: Double
+    func span(_ at: Double, _ dur: Double, _ from: Double, _ to: Double, _ e: Ease = .linear) -> Double {
+        let t: Double = min(1, max(0, (ms - at) / dur))
+        return from + (to - from) * e(t)
+    }
+}
+
+private func path(_ d: BeanDraw.Drawing) -> Path {
+    var p = Path()
+    for s in d {
+        switch s {
+        case let .move(x, y): p.move(to: CGPoint(x: x, y: y))
+        case let .line(x, y): p.addLine(to: CGPoint(x: x, y: y))
+        case let .curve(a, b, c, e, x, y): p.addCurve(to: CGPoint(x: x, y: y), control1: CGPoint(x: a, y: b), control2: CGPoint(x: c, y: e))
+        case .close: p.closeSubpath()
+        case let .circle(x, y, r): p.addEllipse(in: CGRect(x: x - r, y: y - r, width: 2 * r, height: 2 * r))
         }
     }
+    return p
 }
 
 struct BeanstalkFeed<Row: View>: View {
@@ -56,500 +116,537 @@ struct BeanstalkFeed<Row: View>: View {
 
     var body: some View {
         let words = Words(wording)
+        let _ = BeanFont.ready
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
                 banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
                 GeometryReader { geo in
-                    let lane = min(geo.size.width - 24, 760)
+                    let lane: Double = min(Double(geo.size.width), 760)
+                    let width: Double = BeanDraw.frameWidth(lane)
+                    let shifts: [Double] = cards.enumerated().map { BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            Color.clear.frame(height: 1).id("beanstalk-top")
-                            ForEach(cards) { card in
-                                BeanSection(card: card, lane: lane, viewport: geo.size.height, stemWidth: look.stemWidth, words: words, row: row, load: loadComments)
+                            Color.clear.frame(height: 76).id("beanstalk-top")
+                            ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
+                                BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i],
+                                         viewport: Double(geo.size.height), words: words, row: row, load: loadComments)
                                     .task { if card.id == cards.last?.id { await onEnd() } }
                             }
-                            Text(Skin.tip(look, wording))
-                                .font(.footnote)
-                                .foregroundStyle(Bean.text)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 40)
+                            ground(words)
                         }
                         .frame(maxWidth: .infinity)
                     }
-                    // Sections measure themselves against the visible part of the feed as it scrolls.
+                    // Posts measure themselves against the visible part of the feed as it scrolls.
                     .coordinateSpace(name: Bean.space)
                 }
             }
         }
-        .background(Bean.backdrop)
+        .background(Bean.page)
         .environment(\.colorScheme, .light)
     }
 
     private func banner(_ words: Words, climb: @escaping () -> Void) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "leaf.fill").foregroundStyle(Bean.strandDark).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(words("beanstalk.title")).font(.system(size: 26, weight: .bold, design: .serif)).foregroundStyle(Bean.frameInk)
+            Canvas { ctx, _ in
+                var s = Path()
+                s.move(to: CGPoint(x: 17, y: 32)); s.addCurve(to: CGPoint(x: 12, y: 8), control1: CGPoint(x: 17, y: 22), control2: CGPoint(x: 10, y: 18))
+                s.addCurve(to: CGPoint(x: 20, y: 9), control1: CGPoint(x: 13, y: 3), control2: CGPoint(x: 20, y: 3))
+                s.addCurve(to: CGPoint(x: 16, y: 9), control1: CGPoint(x: 20, y: 13), control2: CGPoint(x: 15, y: 13))
+                ctx.stroke(s, with: .color(Bean.tendril), style: .init(lineWidth: 3, lineCap: .round))
+                var l = Path()
+                l.move(to: CGPoint(x: 17, y: 22)); l.addCurve(to: CGPoint(x: 31, y: 20), control1: CGPoint(x: 22, y: 16), control2: CGPoint(x: 30, y: 16))
+                l.addCurve(to: CGPoint(x: 17, y: 22), control1: CGPoint(x: 26, y: 24), control2: CGPoint(x: 21, y: 24)); l.closeSubpath()
+                ctx.fill(l, with: .color(Color(RGB(hex: "#8DBA5C")!)))
+                ctx.stroke(l, with: .color(Bean.ink), lineWidth: 2)
+            }
+            .frame(width: 34, height: 34)
+            .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(words("beanstalk.title")).font(BeanFont.title(23)).foregroundStyle(Bean.ink)
                     .accessibilityAddTraits(.isHeader)
-                Text(words("beanstalk.subtitle")).font(.system(size: 13, design: .serif)).foregroundStyle(Bean.frameInk.opacity(0.85))
+                Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
             }
             Spacer()
             Button(action: climb) {
-                Text(words("beanstalk.climb")).font(.system(size: 15, weight: .bold, design: .serif)).foregroundStyle(Bean.frameInk)
+                Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
                     .padding(.horizontal, 12).padding(.vertical, 6)
                     .background(Bean.button, in: .capsule)
-                    .overlay(Capsule().stroke(Bean.frameInk, lineWidth: 2))
+                    .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
             }
             .buttonStyle(.plain)
             .accessibilityHint(words("beanstalk.climbHint"))
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
         .background(Bean.cream)
-        .overlay(alignment: .bottom) { Rectangle().fill(Bean.frameInk).frame(height: 4) }
+        .overlay(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 3) }
+        .background(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 4).offset(y: 4) }
+        .zIndex(1)
+    }
+
+    private func ground(_ words: Words) -> some View {
+        VStack(spacing: 4) {
+            GeometryReader { g in
+                let w: Double = Double(g.size.width)
+                ZStack {
+                    Color(RGB(hex: "#A9D3E8")!)
+                    Ellipse().fill(Color(RGB(hex: "#7BA05B")!)).overlay(Ellipse().stroke(Bean.ink, lineWidth: 3))
+                        .frame(width: w * 0.9, height: 210).position(x: w * 0.25, y: 157)
+                    Ellipse().fill(Color(RGB(hex: "#4F7A3A")!)).overlay(Ellipse().stroke(Bean.ink, lineWidth: 3))
+                        .frame(width: w * 0.9, height: 210).position(x: w * 0.8, y: 171)
+                    Rectangle().fill(Bean.stem).overlay(Rectangle().stroke(Bean.ink, lineWidth: 2.5))
+                        .frame(width: 14, height: 128).position(x: w / 2, y: 64)
+                    Rectangle().fill(Color(RGB(hex: "#8A5A2E")!)).overlay(alignment: .top) { Rectangle().fill(Bean.ink).frame(height: 3) }
+                        .frame(width: w, height: 26).position(x: w / 2, y: 137)
+                }
+            }
+            .frame(height: 150)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Bean.ink, lineWidth: 3))
+            .background(RoundedRectangle(cornerRadius: 18).fill(Bean.ink).offset(x: 6, y: 7))
+            .accessibilityHidden(true)
+            Text(words("beanstalk.ground")).font(BeanFont.title(24)).foregroundStyle(Bean.ink).padding(.top, 20)
+            Text(wording == .neutral ? words("vine.tip") : words("beanstalk.groundSub")).font(BeanFont.body(16)).foregroundStyle(Bean.sub)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: 560)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 60)
     }
 }
 
-/// One post: its cluster of leaves climbing the stalk, the ‹ › control and the framed post.
-private struct BeanSection<Row: View>: View {
+/// One post: its vine-wound card, then the stalk down to the next post with its comments on leaves.
+private struct BeanPost<Row: View>: View {
     let card: Card
-    let lane: Double
+    let index: Int
+    let width: Double
+    /// Where this post sits, and where the next one does, off the centre line.
+    let shift: Double
+    let next: Double
     let viewport: Double
-    let stemWidth: Double
     let words: Words
     let row: (Card) -> Row
     let load: ((Card) async -> [Comment])?
+    @State private var grownAt: Date?
+    @State private var pageAt: Date?
+    @State private var openAt: Date?
+    @State private var settled = 0
     @State private var all: [Beanstalk.Note]?
-    @State private var page = 0
-    @State private var open: Set<String> = []
+    @State private var cv = BeanDraw.LeafState()
+    @State private var geo: BeanDraw.FrameVine?
     @State private var reading: Beanstalk.Note?
-    @State private var grown = false
-    @State private var fresh = true
-    /// When the vine round the post started winding, and whether it has finished.
-    @State private var winding: Date?
-    @State private var wound = false
     @Environment(\.accessibilityReduceMotion) private var still
 
     var body: some View {
-        let notes = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
+        let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
         let tree = Beanstalk.tree(notes)
-        let total = all != nil ? tree.top.count : max(tree.top.count, card.counts.comments)
-        let rows = Beanstalk.rows(page: Array(tree.top.dropFirst(page * Beanstalk.perPage).prefix(Beanstalk.perPage)), kids: tree.kids, open: open)
-        let shown = grown || still
-        VStack(spacing: 0) {
-            // Nearest the post at the bottom: the cluster climbs up the stalk.
+        let total: Int = all != nil ? tree.top.count : max(tree.top.count, card.counts.comments)
+        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift)
+        let live: Bool = !still && isLive(Date())
+        let vp: Double = viewport
+        TimelineView(.animation(paused: !live)) { tl in
             VStack(spacing: 0) {
-                ForEach(Array(rows.enumerated().reversed()), id: \.element.id) { i, r in
-                    BeanLeafRow(row: r, lane: lane, replies: tree.kids[r.id]?.count ?? 0, words: words, show: shown,
-                                // Top leaf first, once the stalk has grown down to them.
-                                delay: fresh ? 0.38 + Double(rows.count - 1 - i) * 0.17 : Double(i) * 0.06) { note, cut in tap(note, cut, tree.kids) }
-                }
+                framed(clock(grownAt, tl.date, full: 2000))
+                hanging(hang, total: total, c: clock(grownAt, tl.date, full: 2000), page: clock(pageAt, tl.date, full: 700), open: clock(openAt, tl.date, full: 450))
             }
-            if total > Beanstalk.perPage { cycle(total: total, after: fresh ? 0.38 + Double(rows.count) * 0.17 : 0) }
-            framed
         }
-        .padding(.top, 26)
-        .frame(width: lane)
-        .background(alignment: .top) { BraidStalk(stemWidth: stemWidth, grown: shown).accessibilityHidden(true) }
-        // As in the video: the stalk grows down from the post above when this piece scrolls into view.
-        .onScrolledIntoView(viewport) { if !grown { withAnimation(still ? nil : .easeInOut(duration: 0.65)) { grown = true } } }
-        .task(id: grown) {
-            guard grown, all == nil, card.counts.comments > 0, let load else { return }
+        .frame(width: width)
+        .overlay(alignment: .top) { if index == 0 { Lead().offset(y: -60) } }
+        .offset(x: shift)
+        .frame(maxWidth: .infinity)
+        // The design's IntersectionObserver: grown once 8% is on screen, reset once wholly off, so it grows again.
+        .onGeometryChange(for: Int.self) { g in
+            let f = g.frame(in: .named(Bean.space))
+            let top: Double = Double(f.minY), end: Double = Double(f.maxY), tall: Double = Double(f.height)
+            let bottom: Double = vp * 0.96
+            let seen: Double = min(end, bottom) - max(top, 0)
+            if tall > 0 && (seen >= tall * 0.08 || seen >= 0.08 * bottom) { return 1 }
+            if end <= 0 || top >= vp { return -1 }
+            return 0
+        } action: { state in
+            if state == 1 && grownAt == nil {
+                grownAt = .now
+                pageAt = nil
+                openAt = nil
+            }
+            if state == -1 { grownAt = nil }
+        }
+        // Re-renders once each drawing has finished, so the frame clock stops.
+        .task(id: [grownAt, pageAt, openAt]) {
+            try? await Task.sleep(for: .seconds(2.2))
+            settled += 1
+        }
+        .task(id: grownAt != nil) {
+            guard grownAt != nil, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
         .sheet(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words) { reading = nil } }
     }
 
-    private func tap(_ n: Beanstalk.Note, _ cut: Bool, _ kids: [String: [Beanstalk.Note]]) {
-        fresh = false
-        if cut { reading = n; return }
-        var next = open
-        if next.contains(n.id) {
-            // Closing a leaf folds its replies' replies away too.
-            var stack = [n.id]
-            while let id = stack.popLast() {
-                next.remove(id)
-                stack += (kids[id] ?? []).map(\.id)
-            }
-        } else {
-            next.insert(n.id)
+    private func isLive(_ now: Date) -> Bool {
+        for start in [grownAt, pageAt, openAt] {
+            if let start, now.timeIntervalSince(start) < 2.1 { return true }
         }
-        withAnimation(still ? nil : .spring(response: 0.5, dampingFraction: 0.75)) { open = next }
+        return false
     }
 
-    /// The vine's progress round the post, easing out as it closes.
-    private func drawn(at now: Date) -> Double {
-        guard let winding else { return 0 }
-        let t: Double = min(1, max(0, now.timeIntervalSince(winding) / Bean.windTime))
-        return 1 - (1 - t) * (1 - t)
+    private func clock(_ start: Date?, _ now: Date, full: Double) -> Clock {
+        if still { return Clock(ms: full) }
+        guard let start else { return Clock(ms: 0) }
+        return Clock(ms: now.timeIntervalSince(start) * 1000)
     }
 
-    private func cycle(total: Int, after: Double) -> some View {
-        let last = (total + Beanstalk.perPage - 1) / Beanstalk.perPage - 1
-        let from = page * Beanstalk.perPage + 1
+    private func framed(_ c: Clock) -> some View {
+        let sx: Double = c.span(100, 600, 0.72, 1, .card)
+        let sy: Double = c.span(100, 600, 0.06, 1, .card)
+        let dy: Double = c.span(100, 600, 80, 0, .card)
+        let fade: Double = c.span(100, 200, 0, 1)
+        let pop: Double = c.span(100, 600, 0.4, 1, .card)
+        let fruit: Double = c.span(1300, 450, 0, 1, .pop)
+        return row(card)
+            .padding(12)
+            // Room under the locket.
+            .padding(.top, 38)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Bean.cream)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Bean.ink, lineWidth: 3))
+            .background(RoundedRectangle(cornerRadius: 18).fill(Bean.ink).offset(x: 6, y: 7))
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { s in measured(s) }
+            // The card springs up from the stalk: from low, narrow and flat, to whole.
+            .scaleEffect(x: sx, y: sy, anchor: .bottom)
+            .offset(y: dy)
+            .opacity(fade)
+            .overlay {
+                if let geo { FrameCanvas(geo: geo, c: c).frame(width: geo.w, height: geo.h).accessibilityHidden(true) }
+            }
+            .overlay(alignment: .topLeading) {
+                Locket(name: card.author.displayName).scaleEffect(pop).opacity(fade).offset(x: -29, y: -50)
+            }
+            .overlay(alignment: .topTrailing) {
+                if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 44).scaleEffect(fruit).offset(x: 20, y: -24) }
+            }
+    }
+
+    private func measured(_ s: CGSize) {
+        let w: Double = Double(s.width), h: Double = Double(s.height)
+        guard w > 20, h > 20 else { return }
+        let pad2: Double = 2 * BeanDraw.pad
+        if let geo, abs(geo.w - w - pad2) <= 1, abs(geo.h - h - pad2) <= 1 { return }
+        geo = BeanDraw.frameVine(w: w, h: h)
+    }
+
+    private func hanging(_ h: BeanDraw.Hanging, total: Int, c: Clock, page: Clock, open: Clock) -> some View {
+        let bend: Double = next - shift
+        let paged: Bool = pageAt != nil
+        return ZStack(alignment: .topLeading) {
+            StalkCanvas(h: h, c: c).frame(width: width, height: h.H).accessibilityHidden(true)
+            ForEach(h.leaves) { leaf in
+                // The first time, on the post's clock after the stalk has grown; a new page, or opened replies, on their own.
+                let lc: Clock = leaf.level > 1 ? open : (paged ? page : c)
+                let at: Double = leaf.level > 1 ? 0 : (paged ? Double(leaf.k) * 100 : 1100 + Double(leaf.k) * 180)
+                BeanLeafView(leaf: leaf, c: lc, at: at, words: words) { cut in tap(leaf, cut: cut) }
+                    .offset(x: leaf.x, y: leaf.y)
+            }
+            if h.pager {
+                pager(h, total: total)
+                    .frame(width: width)
+                    .offset(x: bend, y: h.pgY)
+                    .opacity(c.span(1500, 300, 0, 1))
+            }
+        }
+        .frame(width: width, height: h.H, alignment: .topLeading)
+    }
+
+    private func tap(_ leaf: BeanDraw.Leaf, cut: Bool) {
+        if cut {
+            reading = leaf.note
+            return
+        }
+        guard leaf.replies > 0, leaf.level < 3 else { return }
+        var next = cv
+        if leaf.level == 1 {
+            next.open = cv.open == leaf.path[0] ? nil : leaf.path[0]
+            next.open2 = nil
+        } else {
+            next.open2 = cv.open2 == leaf.path[1] ? nil : leaf.path[1]
+        }
+        cv = next
+        openAt = .now
+    }
+
+    private func pager(_ h: BeanDraw.Hanging, total: Int) -> some View {
+        let from = h.page * Beanstalk.perPage + 1
         let to = min(total, from + Beanstalk.perPage - 1)
-        func go(_ p: Int) { fresh = false; open = []; page = p }
+        let first = h.page <= 0, last = h.page >= h.pages - 1
         return HStack(spacing: 8) {
-            Button { go(page - 1) } label: { cycleKey("‹", corner: .topLeading) }
-                .buttonStyle(.plain).disabled(page <= 0).opacity(page <= 0 ? 0.4 : 1)
+            Button { go(h.page - 1) } label: { PagerKey(left: true) }
+                .buttonStyle(.plain).disabled(first).opacity(first ? 0.35 : 1)
                 .accessibilityLabel(words("beanstalk.prev"))
             Text(words("beanstalk.range", ["from": String(from), "to": String(to), "total": String(total)]))
-                .font(.system(size: 15, weight: .bold, design: .serif)).foregroundStyle(Bean.frameInk)
-                .padding(.horizontal, 14).padding(.vertical, 5)
+                .font(BeanFont.bold(14)).foregroundStyle(Bean.ink)
+                .padding(.horizontal, 12).padding(.vertical, 6)
                 .background(Bean.cream, in: .capsule)
-                .overlay(Capsule().stroke(Bean.frameInk, lineWidth: 2.5))
-            Button { go(page + 1) } label: { cycleKey("›", corner: .topTrailing) }
-                .buttonStyle(.plain).disabled(page >= last).opacity(page >= last ? 0.4 : 1)
+                .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+            Button { go(h.page + 1) } label: { PagerKey(left: false) }
+                .buttonStyle(.plain).disabled(last).opacity(last ? 0.35 : 1)
                 .accessibilityLabel(words("beanstalk.next"))
         }
-        .padding(.top, 6)
-        .padding(.bottom, 8)
-        // It fades in once the leaves have unfurled.
-        .opacity(grown || still ? 1 : 0)
-        .animation(still ? nil : .easeOut(duration: 0.35).delay(after), value: grown)
     }
 
-    private func cycleKey(_ arrow: String, corner: UnitPoint) -> some View {
-        let shape = UnevenRoundedRectangle(topLeadingRadius: corner == .topLeading ? 4 : 18, bottomLeadingRadius: 18, bottomTrailingRadius: 18, topTrailingRadius: corner == .topTrailing ? 4 : 18)
-        return Text(arrow).font(.system(size: 22, weight: .heavy)).foregroundStyle(Bean.frameInk)
-            .frame(width: 40, height: 36)
-            .background(Bean.button, in: shape)
-            .overlay(shape.stroke(Bean.frameInk, lineWidth: 2.5))
-    }
-
-    private var framed: some View {
-        row(card)
-            .padding(12)
-            .padding(.top, 18)
-            .background(Bean.cream, in: .rect(cornerRadius: 22))
-            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Bean.frameInk, lineWidth: 3))
-            // The dark drop shadow under the post, as in the video.
-            .background(RoundedRectangle(cornerRadius: 22).fill(Bean.frameInk).offset(x: 6, y: 6))
-            .padding(14)
-            .overlay {
-                TimelineView(.animation(paused: wound || winding == nil)) { t in
-                    FrameVine(progress: wound || still ? 1 : drawn(at: t.date)).accessibilityHidden(true)
-                }
-            }
-            // The poster in an oval locket over the top left corner; fruit over the top right one.
-            .overlay(alignment: .topLeading) { Locket(name: card.author.displayName).offset(x: -10, y: -20) }
-            .overlay(alignment: .topTrailing) {
-                if card.gifted == true && (wound || still) { VineFruit(label: words("vine.fruit"), size: 44).offset(x: 6, y: -10) }
-            }
-            // The post comes in bare; then the vine winds round it from the top left corner.
-            .onScrolledIntoView(viewport) { if winding == nil { winding = .now } }
-            .task(id: winding) {
-                guard winding != nil, !wound else { return }
-                try? await Task.sleep(for: .seconds(still ? 0 : Bean.windTime))
-                wound = true
-            }
-            .frame(maxWidth: 600)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+    private func go(_ p: Int) {
+        cv = BeanDraw.LeafState(page: p)
+        pageAt = .now
     }
 }
 
-/// The poster's initial in an oval gold locket hanging from a little loop.
-private struct Locket: View {
-    let name: String
+/// A ‹ or › key of the pager, a leaf-cornered tile.
+private struct PagerKey: View {
+    let left: Bool
     var body: some View {
-        VStack(spacing: -3) {
-            Circle().stroke(Bean.locket, lineWidth: 2).frame(width: 9, height: 9)
-                .background(Circle().stroke(Bean.ink, lineWidth: 4))
-            ZStack {
-                Ellipse().fill(Bean.locket).overlay(Ellipse().stroke(Bean.ink, lineWidth: 2))
-                Ellipse().fill(Bean.locketFace).overlay(Ellipse().stroke(Bean.ink, lineWidth: 1.5)).padding(5)
-                Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-                    .font(.system(size: 22, weight: .bold, design: .serif)).foregroundStyle(Bean.frameInk)
+        let shape = UnevenRoundedRectangle(topLeadingRadius: 4, bottomLeadingRadius: 22, bottomTrailingRadius: 4, topTrailingRadius: 22)
+        Canvas { ctx, _ in
+            var p = Path()
+            if left {
+                p.move(to: CGPoint(x: 10, y: 3)); p.addLine(to: CGPoint(x: 4, y: 8)); p.addLine(to: CGPoint(x: 10, y: 13))
+            } else {
+                p.move(to: CGPoint(x: 6, y: 3)); p.addLine(to: CGPoint(x: 12, y: 8)); p.addLine(to: CGPoint(x: 6, y: 13))
             }
-            .frame(width: 46, height: 52)
+            ctx.stroke(p, with: .color(Bean.ink), style: .init(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
         }
-        .accessibilityHidden(true)
+        .frame(width: 16, height: 16)
+        .frame(width: 44, height: 44)
+        .background(Bean.button, in: shape)
+        .overlay(shape.stroke(Bean.ink, lineWidth: 2.5))
+        .background(shape.fill(Bean.ink).offset(x: 2, y: 3))
     }
 }
 
-/// The braided stalk through one section, grown down from the top when it scrolls into view.
-private struct BraidStalk: View {
-    let stemWidth: Double
-    let grown: Bool
+/// The stalk below a post, growing down to the next one, with the leaves' stems.
+private struct StalkCanvas: View {
+    let h: BeanDraw.Hanging
+    let c: Clock
 
     var body: some View {
-        Canvas { ctx, size in
-            let h = Double(size.height), cx = Double(size.width) / 2
-            let amp = max(4, stemWidth * 0.42), w = max(4, stemWidth * 0.62)
-            let turns = max(1, (h / 120).rounded())
-            func strand(_ phase: Double) -> Path {
-                var p = Path()
-                var y = 0.0
-                p.move(to: CGPoint(x: cx + amp * sin(phase), y: 0))
-                while y < h {
-                    y = min(h, y + 5)
-                    let angle: Double = y / h * turns * 2 * Double.pi + phase
-                    p.addLine(to: CGPoint(x: cx + amp * sin(angle), y: y))
-                }
-                return p
-            }
-            let a = strand(0), b = strand(.pi)
-            ctx.stroke(b, with: .color(Bean.ink), style: .init(lineWidth: w + 3, lineCap: .round))
-            ctx.stroke(b, with: .color(Bean.strandDark), style: .init(lineWidth: w, lineCap: .round))
-            ctx.stroke(a, with: .color(Bean.ink), style: .init(lineWidth: w + 3, lineCap: .round))
-            ctx.stroke(a, with: .color(Bean.strandLight), style: .init(lineWidth: w, lineCap: .round))
-        }
-        .mask(alignment: .top) {
-            GeometryReader { g in
-                Rectangle().frame(height: grown ? g.size.height : 0).frame(maxHeight: .infinity, alignment: .top)
-            }
+        Canvas { ctx, _ in
+            let grow: Double = c.span(500, 750, 0, 1, .easeIn)
+            let s1 = path(h.s1).trimmedPath(from: 0, to: grow)
+            let s2 = path(h.s2).trimmedPath(from: 0, to: grow)
+            ctx.stroke(s2, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round, lineJoin: .round))
+            ctx.stroke(s2, with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            ctx.stroke(s1, with: .color(Bean.vineInk), style: .init(lineWidth: 9.5, lineCap: .round, lineJoin: .round))
+            ctx.stroke(s1, with: .color(Bean.strand), style: .init(lineWidth: 5.5, lineCap: .round, lineJoin: .round))
+            var stems = ctx
+            stems.opacity = c.span(1050, 300, 0, 1)
+            let st = path(h.stems)
+            stems.stroke(st, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round))
+            stems.stroke(st, with: .color(Bean.stem), style: .init(lineWidth: 3.2, lineCap: .round))
+            var deco = ctx
+            deco.opacity = c.span(900, 300, 0, 1)
+            let d = path(h.deco)
+            deco.fill(d, with: .color(Bean.vineLeaf))
+            deco.stroke(d, with: .color(Bean.vineInk), lineWidth: 1.7)
         }
         .allowsHitTesting(false)
     }
 }
 
-/// A comment leaf: rounded base on the stem, a pointed tip that droops, a midrib and side veins.
-/// Drawn pointing right; `flip` mirrors it for the left side of the stalk.
-private struct BeanLeafShape: Shape {
-    let flip: Bool
+/// The vine round the frame, drawing itself on the post's clock.
+private struct FrameCanvas: View {
+    let geo: BeanDraw.FrameVine
+    let c: Clock
+
+    var body: some View {
+        Canvas { ctx, _ in
+            var tendrils = ctx
+            tendrils.opacity = c.span(1050, 500, 0, 1)
+            tendrils.stroke(path(geo.tendrils), with: .color(Bean.tendril), style: .init(lineWidth: 2.4, lineCap: .round))
+            let g1: Double = c.span(0, 1350, 0, 1, .vine)
+            let g2: Double = c.span(120, 1350, 0, 1, .vine)
+            for d in geo.s2 {
+                let p = path(d).trimmedPath(from: 0, to: g2)
+                ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round, lineJoin: .round))
+                ctx.stroke(p, with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            }
+            for d in geo.s1 {
+                let p = path(d).trimmedPath(from: 0, to: g1)
+                ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 9.5, lineCap: .round, lineJoin: .round))
+                ctx.stroke(p, with: .color(Bean.strand), style: .init(lineWidth: 5.5, lineCap: .round, lineJoin: .round))
+            }
+            // Leaves in five groups, one after another round the frame.
+            let starts: [Double] = [200, 420, 660, 900, 1120]
+            for g in 0..<5 {
+                var lc = ctx
+                lc.opacity = c.span(starts[g], 280, 0, 1)
+                let a = path(geo.la[g])
+                let b = path(geo.lb[g])
+                lc.fill(a, with: .color(Bean.vineLeaf))
+                lc.stroke(a, with: .color(Bean.vineInk), lineWidth: 1.7)
+                lc.fill(b, with: .color(Bean.vineLeafLight))
+                lc.stroke(b, with: .color(Bean.vineInk), lineWidth: 1.7)
+            }
+            // The flower at the top middle pops open once the vine meets there.
+            bloom(ctx, path(geo.flower), at: 1300, dur: 450, fill: Bean.petal, line: 1.8)
+            bloom(ctx, path(geo.heart), at: 1450, dur: 350, fill: Bean.heart, line: 1.5)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func bloom(_ ctx: GraphicsContext, _ p: Path, at: Double, dur: Double, fill: Color, line: Double) {
+        let s: Double = c.span(at, dur, 0, 1, .pop)
+        guard s > 0.001 else { return }
+        let fx: Double = geo.flowerAt.x, fy: Double = geo.flowerAt.y
+        let t = CGAffineTransform(translationX: fx, y: fy).scaledBy(x: s, y: s).translatedBy(x: -fx, y: -fy)
+        let q = p.applying(t)
+        ctx.fill(q, with: .color(fill))
+        ctx.stroke(q, with: .color(Bean.vineInk), lineWidth: line)
+    }
+}
+
+/// The design's leaf, drawn in a 200×100 box: wide at the base, a pointed tip. `flip` puts the base on the right.
+private struct DesignLeaf: Shape {
+    var flip = false
     var veins = false
+    var big = false
+
     func path(in r: CGRect) -> Path {
         let W = Double(r.width), H = Double(r.height), X0 = Double(r.minX), Y0 = Double(r.minY)
         func P(_ x: Double, _ y: Double) -> CGPoint {
-            let px: Double = flip ? W - x * W : x * W
-            return CGPoint(x: X0 + px, y: Y0 + y * H)
+            let u: Double = x / 200 * W
+            let px: Double = flip ? W - u : u
+            return CGPoint(x: X0 + px, y: Y0 + y / 100 * H)
         }
         var p = Path()
+        func curve(_ v: [Double]) { p.addCurve(to: P(v[4], v[5]), control1: P(v[0], v[1]), control2: P(v[2], v[3])) }
         if veins {
-            p.move(to: P(0.06, 0.5))
-            p.addQuadCurve(to: P(1, 0.64), control: P(0.55, 0.44))
-            for t: Double in [0.2, 0.36, 0.52, 0.68, 0.82] {
-                let u: Double = 1 - t
-                let x: Double = u * u * 0.06 + 2 * u * t * 0.55 + t * t
-                let y: Double = u * u * 0.5 + 2 * u * t * 0.44 + t * t * 0.64
-                let reach: Double = sin(Double.pi * min(1, t * 1.15)) * 0.36
-                p.move(to: P(x, y)); p.addQuadCurve(to: P(x + 0.13, y - reach), control: P(x + 0.05, y - reach * 0.5))
-                p.move(to: P(x, y)); p.addQuadCurve(to: P(x + 0.13, y + reach), control: P(x + 0.05, y + reach * 0.5))
+            let small: [[Double]] = [[2, 50, 60, 46, 140, 48, 198, 60], [46, 48, 56, 34, 64, 22, 74, 12], [46, 48, 56, 62, 62, 76, 70, 88], [96, 48, 106, 34, 116, 22, 128, 14],
+                                     [96, 49, 106, 62, 114, 74, 124, 84], [144, 52, 152, 44, 158, 36, 168, 30], [144, 53, 150, 62, 156, 68, 164, 74]]
+            let large: [[Double]] = [[2, 50, 8, 50, 10, 50, 12, 50], [186, 57, 190, 58, 194, 59, 198, 60], [30, 30, 34, 24, 38, 18, 44, 12], [30, 72, 34, 78, 38, 84, 44, 88], [168, 40, 172, 36, 176, 32, 180, 30]]
+            for v in big ? large : small {
+                p.move(to: P(v[0], v[1]))
+                curve(Array(v[2...]))
             }
             return p
         }
-        p.move(to: P(0.06, 0.5))
-        p.addCurve(to: P(0.8, 0.24), control1: P(0.1, 0.06), control2: P(0.55, -0.04))
-        p.addCurve(to: P(1, 0.64), control1: P(0.92, 0.36), control2: P(0.98, 0.5))
-        p.addCurve(to: P(0.45, 0.95), control1: P(0.9, 0.8), control2: P(0.74, 0.98))
-        p.addCurve(to: P(0.06, 0.5), control1: P(0.2, 0.92), control2: P(0.03, 0.76))
+        p.move(to: P(2, 50))
+        curve([4, 34, 22, 10, 66, 6])
+        curve([112, 2, 160, 20, 198, 60])
+        curve([158, 82, 110, 98, 64, 94])
+        curve([24, 90, 4, 66, 2, 50])
         p.closeSubpath()
         return p
     }
 }
 
-private struct BeanLeafRow: View {
-    let row: Beanstalk.Row
-    let lane: Double
-    let replies: Int
+/// One hanging leaf: it unfurls from its stem, tilted as in the design.
+private struct BeanLeafView: View {
+    let leaf: BeanDraw.Leaf
+    let c: Clock
+    let at: Double
     let words: Words
-    let show: Bool
-    let delay: Double
-    let onTap: (Beanstalk.Note, Bool) -> Void
-    @State private var open = false
-    @Environment(\.accessibilityReduceMotion) private var still
+    let onTap: (Bool) -> Void
 
     var body: some View {
-        let scale: Double = [1, 0.76, 0.6][row.level]
-        let W: Double = min(290, lane / 2 - 8) * scale
-        let H: Double = W * 0.5
-        let font: Double = row.level == 0 ? (W > 220 ? 14 : 12.5) : (row.level == 1 ? 11.5 : 10.5)
-        let lines = row.level == 0 ? 2 : 1
-        let fit = Beanstalk.fit(row.note.body, max: Beanstalk.chars(width: W, font: font, lines: lines))
-        let label = fit.cut ? words("beanstalk.readMore") : replies > 0 ? words("beanstalk.replies", count: replies) : ""
-        let actionable = fit.cut || (replies > 0 && row.level < Beanstalk.maxLevel)
-        let out: Double = row.right ? 1 : -1
-        let reach: Double = 20 * Double(row.level)
-        let rowH: Double = H * 0.78 + 4
-        let baseX: Double = lane / 2 + out * reach
-        let stemFrom = CGPoint(x: lane / 2 + out * (reach - 14), y: rowH + 6)
-        let stemBend = CGPoint(x: lane / 2 + out * (reach - 12), y: rowH * 0.7)
-        let leafX: Double = row.right ? baseX - 2 : baseX - W + 2
-        let anchor: UnitPoint = row.right ? .leading : .trailing
-        let tilt: Double = 9 * out, furl: Double = -40 * out
-        let textShift: Double = row.right ? W * 0.04 : -W * 0.04
-        ZStack(alignment: .topLeading) {
-            if row.level > 0 {
-                // Its own stem, off the leaf it answers.
-                Path { p in
-                    p.move(to: stemFrom)
-                    p.addCurve(to: CGPoint(x: baseX, y: rowH / 2), control1: stemBend, control2: CGPoint(x: baseX, y: rowH * 0.7))
-                }
-                .stroke(Bean.strandDark, style: .init(lineWidth: 2.5, lineCap: .round))
-                .accessibilityHidden(true)
+        let left: Bool = leaf.side < 0
+        let fs: Double = leaf.level == 1 ? 14 : (leaf.level == 2 ? 12.5 : 12)
+        let nameFs: Double = leaf.level == 1 ? 13.5 : (leaf.level == 2 ? 12 : 11.5)
+        let minH: Double = leaf.level == 1 ? 100 : (leaf.level == 2 ? 84 : 66)
+        let fit = Beanstalk.fit(leaf.note.body, max: Beanstalk.chars(width: leaf.lw * 0.64, font: fs, lines: 2))
+        let more: Bool = leaf.replies > 0 && leaf.level < 3
+        let hint: String = more ? (leaf.open ? words("beanstalk.fold") : words("beanstalk.replies", count: leaf.replies)) : ""
+        let anchor: UnitPoint = left ? .trailing : .leading
+        let grow: Double = c.span(at, 450, 0, 1, .unfurl)
+        let turn: Double = c.span(at, 450, -14, 0, .unfurl)
+        let padL: Double = leaf.lw * (left ? 0.24 : 0.12)
+        let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
+        Button { onTap(fit.cut) } label: {
+            VStack(spacing: 0) {
+                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1)
+                Text(fit.text).font(BeanFont.body(fs)).lineLimit(2)
+                if !hint.isEmpty { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).padding(.top, 2) }
             }
-            Button { onTap(row.note, fit.cut) } label: {
-                ZStack {
-                    Path { p in p.move(to: CGPoint(x: row.right ? 0 : W, y: H / 2)); p.addLine(to: CGPoint(x: row.right ? W * 0.09 : W * 0.91, y: H / 2)) }
-                        .stroke(Bean.ink, style: .init(lineWidth: 4, lineCap: .round))
-                    BeanLeafShape(flip: !row.right).fill(row.level == 0 && !row.right ? Bean.leafPale : Bean.leaf)
-                    BeanLeafShape(flip: !row.right).stroke(Bean.ink, lineWidth: 2.2)
-                    BeanLeafShape(flip: !row.right, veins: true).stroke(Bean.vein, lineWidth: 1.2)
-                    VStack(spacing: 0) {
-                        Text(row.note.author).font(.system(size: font, weight: .bold, design: .serif)).lineLimit(1)
-                        Text(fit.text).font(.system(size: font, design: .serif)).lineLimit(lines).multilineTextAlignment(.center)
-                        if !label.isEmpty {
-                            Text(label).font(.system(size: font * 0.85, weight: .bold, design: .serif)).italic().foregroundStyle(Bean.link)
-                        }
-                    }
-                    .foregroundStyle(Bean.text)
-                    .frame(width: W * 0.68)
-                    .offset(x: textShift)
-                }
-                .frame(width: W, height: H)
-            }
-            .buttonStyle(.plain)
-            .disabled(!actionable)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(row.note.author): \(row.note.body)")
-            .accessibilityHint(fit.cut ? words("beanstalk.readHint") : actionable ? words("beanstalk.repliesHint") : "")
-            .accessibilityAddTraits(actionable ? .isButton : [])
-            // It unfurls from its stem.
-            .rotationEffect(.degrees(open ? tilt : furl), anchor: anchor)
-            .scaleEffect(open ? 1 : 0.15, anchor: anchor)
-            .opacity(open ? 1 : 0)
-            .offset(x: leafX, y: (rowH - H) / 2)
+            .foregroundStyle(Bean.text)
+            .multilineTextAlignment(.center)
+            .padding(.top, 16)
+            .padding(.bottom, 18)
+            .padding(.leading, padL)
+            .padding(.trailing, padR)
+            .frame(width: leaf.lw)
+            .frame(minHeight: minH)
+            .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
-        .frame(width: lane, height: rowH, alignment: .topLeading)
-        .task(id: show) {
-            guard show, !open else { return }
-            withAnimation(still ? nil : .spring(response: 0.6, dampingFraction: 0.7).delay(delay)) { open = true }
+        .buttonStyle(.plain)
+        .disabled(!(fit.cut || more))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(leaf.note.author): \(leaf.note.body)")
+        .accessibilityHint(fit.cut ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
+        .accessibilityAddTraits(fit.cut || more ? .isButton : [])
+        .scaleEffect(grow, anchor: anchor)
+        .rotationEffect(.degrees(turn), anchor: anchor)
+        .rotationEffect(.degrees(leaf.ang), anchor: anchor)
+    }
+}
+
+private struct LeafBack: View {
+    var flip = false
+    var fill: Color
+    var line = 2.5
+    var big = false
+    var body: some View {
+        ZStack {
+            DesignLeaf(flip: flip).fill(fill)
+            DesignLeaf(flip: flip).stroke(Bean.vineInk, lineWidth: line)
+            DesignLeaf(flip: flip, veins: true, big: big).stroke(Bean.stem.opacity(0.55), style: .init(lineWidth: 1.2, lineCap: .round))
         }
     }
 }
 
-/// The vine wound round a post's frame: two strands, small leaves, curls and a flower at the top.
-/// `progress` (0–1) is how much is drawn: it starts at the top left corner and grows both ways
-/// round the frame, meeting at the bottom right (frameVine in beanstalk.tsx).
-private struct FrameVine: View {
-    let progress: Double
-
+/// The poster's initial in an oval gold locket hanging from a little loop (70% larger than first drawn).
+private struct Locket: View {
+    let name: String
     var body: some View {
-        Canvas { ctx, size in
-            let pad: Double = 14, r: Double = 22
-            let w = Double(size.width), h = Double(size.height)
-            let edge = Self.edge(x: pad, y: pad, w: w - pad * 2, h: h - pad * 2, r: r, step: 4)
-            let n = edge.count
-            guard n > 0, progress > 0 else { return }
-            // The top left corner: the middle of its arc, counted clockwise from the top middle.
-            let along: Double = Double(n) * 4 - (w / 2 - pad - r) - Double.pi * r / 4
-            let k0: Int = Int((along / 4).rounded()) % n
-            let m: Int = progress >= 1 ? n : Int(progress * Double(n) / 2)
-            func shown(_ i: Int) -> Bool {
-                let d = abs(i - k0)
-                return min(d, n - d) <= m
+        VStack(spacing: -5) {
+            Circle().stroke(Bean.locket, lineWidth: 3.4).frame(width: 15, height: 15)
+                .background(Circle().stroke(Bean.ink, lineWidth: 6.8))
+            ZStack {
+                Ellipse().fill(Bean.locket).overlay(Ellipse().stroke(Bean.ink, lineWidth: 3))
+                Ellipse().fill(Bean.locketFace).overlay(Ellipse().stroke(Bean.ink, lineWidth: 2.2)).padding(8.5)
+                Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
+                    .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
             }
-            func strand(_ sign: Double) -> Path {
-                var p = Path()
-                func at(_ e: Edge) -> CGPoint {
-                    let wave: Double = sin(e.s / 64 * 2 * Double.pi)
-                    let off: Double = sign * 2.6 * wave
-                    return CGPoint(x: e.x + e.nx * off, y: e.y + e.ny * off)
-                }
-                if m * 2 >= n {
-                    for (i, e) in edge.enumerated() {
-                        if i == 0 { p.move(to: at(e)) } else { p.addLine(to: at(e)) }
-                    }
-                    p.closeSubpath()
-                    return p
-                }
-                if m <= 0 { return p }
-                for k in -m...m {
-                    let pt = at(edge[(k0 + k + n) % n])
-                    if k == -m { p.move(to: pt) } else { p.addLine(to: pt) }
-                }
-                return p
-            }
-            var leaves = Path(), ribs = Path(), curls = Path()
-            for (i, e) in edge.enumerated() {
-                // None right by the flower at the top middle.
-                if e.s < 16 || n - i < 4 || !shown(i) { continue }
-                if i % 11 == 5 {
-                    let turn: Double = i % 22 == 5 ? 0.6 : -0.6
-                    let a: Double = atan2(e.ny, e.nx) + turn
-                    let x: Double = e.x + e.nx * 2, y: Double = e.y + e.ny * 2, c: Double = cos(a), s: Double = sin(a)
-                    func pt(_ u: Double, _ v: Double) -> CGPoint { CGPoint(x: x + u * c - v * s, y: y + u * s + v * c) }
-                    leaves.move(to: pt(0, 0))
-                    leaves.addCurve(to: pt(22, 0), control1: pt(4.4, -6.5), control2: pt(15, -6.2))
-                    leaves.addCurve(to: pt(0, 0), control1: pt(15, 6.2), control2: pt(4.4, 6.5))
-                    leaves.closeSubpath()
-                    ribs.move(to: pt(0, 0))
-                    ribs.addLine(to: pt(18, 0))
-                }
-                if i % 44 == 27 {
-                    let a: Double = atan2(e.ny, e.nx) + 0.4
-                    let x: Double = e.x + e.nx * 7 + cos(a) * 6, y: Double = e.y + e.ny * 7 + sin(a) * 6
-                    curls.move(to: CGPoint(x: x - cos(a) * 6, y: y - sin(a) * 6))
-                    var t = 0.0
-                    while t <= 3.6 * Double.pi {
-                        let rr: Double = 6 * (1 - t / (4.2 * Double.pi))
-                        let b: Double = a + t + Double.pi
-                        curls.addLine(to: CGPoint(x: x + rr * cos(b), y: y + rr * sin(b)))
-                        t += 0.3
-                    }
-                }
-            }
-            ctx.stroke(curls, with: .color(Bean.strandDark), style: .init(lineWidth: 2.2, lineCap: .round))
-            ctx.fill(leaves, with: .color(Bean.leafBright))
-            ctx.stroke(leaves, with: .color(Bean.ink), lineWidth: 1.4)
-            ctx.stroke(ribs, with: .color(Bean.strandDark), lineWidth: 1)
-            ctx.stroke(strand(-1), with: .color(Bean.ink), style: .init(lineWidth: 7, lineCap: .round, lineJoin: .round))
-            ctx.stroke(strand(-1), with: .color(Bean.strandDark), style: .init(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
-            ctx.stroke(strand(1), with: .color(Bean.ink), style: .init(lineWidth: 5.5, lineCap: .round, lineJoin: .round))
-            ctx.stroke(strand(1), with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            // The flower at the top middle, once the vine reaches it.
-            guard shown(0) else { return }
-            let fx: Double = w / 2, fy: Double = pad
-            for k in 0..<5 {
-                let a: Double = Double(k) * 2 * Double.pi / 5 - Double.pi / 2
-                let px: Double = fx + cos(a) * 8 - 5, py: Double = fy + sin(a) * 8 - 5
-                let petal = Path(ellipseIn: CGRect(x: px, y: py, width: 10, height: 10))
-                ctx.fill(petal, with: .color(Bean.petal))
-                ctx.stroke(petal, with: .color(Bean.ink), lineWidth: 1.2)
-            }
-            let heart = Path(ellipseIn: CGRect(x: fx - 3.6, y: fy - 3.6, width: 7.2, height: 7.2))
-            ctx.fill(heart, with: .color(Bean.heart))
-            ctx.stroke(heart, with: .color(Bean.ink), lineWidth: 1)
+            .frame(width: 78, height: 88)
         }
+        .accessibilityHidden(true)
+    }
+}
+
+/// The stem and leaf that lead the stalk down into the newest post.
+private struct Lead: View {
+    var body: some View {
+        Canvas { ctx, _ in
+            var s = Path()
+            s.move(to: CGPoint(x: 30, y: 0))
+            s.addCurve(to: CGPoint(x: 30, y: 44), control1: CGPoint(x: 42, y: 16), control2: CGPoint(x: 18, y: 30))
+            s.addCurve(to: CGPoint(x: 30, y: 60), control1: CGPoint(x: 36, y: 52), control2: CGPoint(x: 31, y: 57))
+            ctx.stroke(s, with: .color(Bean.vineInk), style: .init(lineWidth: 10, lineCap: .round))
+            ctx.stroke(s, with: .color(Bean.strand), style: .init(lineWidth: 6, lineCap: .round))
+            var l = Path()
+            l.move(to: CGPoint(x: 34, y: 22))
+            l.addCurve(to: CGPoint(x: 58, y: 20), control1: CGPoint(x: 42, y: 12), control2: CGPoint(x: 54, y: 13))
+            l.addCurve(to: CGPoint(x: 34, y: 22), control1: CGPoint(x: 52, y: 28), control2: CGPoint(x: 42, y: 28))
+            l.closeSubpath()
+            l.move(to: CGPoint(x: 34, y: 22))
+            l.addLine(to: CGPoint(x: 54, y: 20))
+            ctx.fill(l, with: .color(Bean.vineLeaf))
+            ctx.stroke(l, with: .color(Bean.vineInk), lineWidth: 1.8)
+        }
+        .frame(width: 60, height: 60)
+        .accessibilityHidden(true)
         .allowsHitTesting(false)
     }
-
-    struct Edge { let x, y, nx, ny, s: Double }
-
-    /// Points every `step` round a rounded rectangle, clockwise from the top middle (roundedRectEdge in beanstalk.tsx).
-    static func edge(x x0: Double, y y0: Double, w: Double, h: Double, r rad: Double, step: Double) -> [Edge] {
-        typealias Seg = (len: Double, at: (Double) -> (Double, Double, Double, Double))
-        func line(_ ax: Double, _ ay: Double, _ bx: Double, _ by: Double, _ nx: Double, _ ny: Double) -> Seg {
-            (hypot(bx - ax, by - ay), { t in (ax + (bx - ax) * t, ay + (by - ay) * t, nx, ny) })
-        }
-        func arc(_ cx: Double, _ cy: Double, _ a0: Double) -> Seg {
-            (Double.pi * rad / 2, { (t: Double) in let a: Double = a0 + t * Double.pi / 2; return (cx + rad * cos(a), cy + rad * sin(a), cos(a), sin(a)) })
-        }
-        let L = x0, T = y0, R = x0 + w, B = y0 + h, mid = x0 + w / 2
-        let segs: [Seg] = [
-            line(mid, T, R - rad, T, 0, -1), arc(R - rad, T + rad, -.pi / 2),
-            line(R, T + rad, R, B - rad, 1, 0), arc(R - rad, B - rad, 0),
-            line(R - rad, B, L + rad, B, 0, 1), arc(L + rad, B - rad, .pi / 2),
-            line(L, B - rad, L, T + rad, -1, 0), arc(L + rad, T + rad, .pi),
-            line(L + rad, T, mid, T, 0, -1),
-        ]
-        let total = segs.reduce(0) { $0 + $1.len }
-        var out: [Edge] = []
-        var s = 0.0
-        while s < total {
-            var rest = s, i = 0
-            while i < segs.count - 1 && rest > segs[i].len { rest -= segs[i].len; i += 1 }
-            let (x, y, nx, ny) = segs[i].at(segs[i].len > 0 ? rest / segs[i].len : 0)
-            out.append(Edge(x: x, y: y, nx: nx, ny: ny, s: s))
-            s += step
-        }
-        return out
-    }
 }
 
-/// One long comment grown into a big straight leaf, with its replies and theirs.
+/// The big leaf: one comment and its replies.
 private struct BeanReader: View {
     let note: Beanstalk.Note
     let kids: [String: [Beanstalk.Note]]
@@ -557,60 +654,54 @@ private struct BeanReader: View {
     let close: () -> Void
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            BigLeaf().fill(Bean.leafPale).overlay(BigLeaf().stroke(Bean.ink, lineWidth: 3)).accessibilityHidden(true)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(note.author).font(.system(size: 17, weight: .bold, design: .serif))
-                    Text(note.body).font(.system(size: 15, design: .serif))
-                    replies(note.id, level: 1)
+        GeometryReader { g in
+            let w: Double = Double(g.size.width)
+            let h: Double = Double(g.size.height)
+            ZStack(alignment: .topLeading) {
+                LeafBack(fill: Bean.leaves[1], line: 3, big: true).accessibilityHidden(true)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(note.author).font(BeanFont.bold(15))
+                            Text(note.body).font(BeanFont.body(19))
+                        }
+                        replies(note.id, level: 1)
+                    }
+                    .foregroundStyle(Bean.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
                 }
-                .foregroundStyle(Bean.text)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: w * 0.76, height: h * 0.70)
+                .offset(x: w * 0.09, y: h * 0.17)
+                Button(action: close) {
+                    Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
+                        .frame(width: 48, height: 48)
+                        .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
+                        .overlay(Circle().stroke(Bean.ink, lineWidth: 3))
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
+                .accessibilityLabel(words("common.close"))
+                .offset(x: w * 0.86 - 48, y: h * 0.08)
             }
-            .padding(.horizontal, 90)
-            .padding(.top, 150).padding(.bottom, 110)
-            Button(action: close) {
-                Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.frameInk)
-                    .frame(width: 40, height: 40)
-                    .background(Bean.cream, in: .circle)
-                    .overlay(Circle().stroke(Bean.frameInk, lineWidth: 2.5))
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(.cancelAction)
-            .accessibilityLabel(words("common.close"))
-            .padding(.top, 50)
-            .padding(.trailing, 50)
         }
-        .frame(maxWidth: 520, maxHeight: 720)
-        .padding(16)
-        .presentationBackground(Color.black.opacity(0.55))
+        .frame(maxWidth: 760, maxHeight: 560)
+        .padding(12)
+        .presentationBackground(Color(RGB(hex: "#1F1A14")!).opacity(0.55))
         .environment(\.colorScheme, .light)
     }
 
     private func replies(_ id: String, level: Int) -> AnyView {
         AnyView(ForEach(kids[id] ?? []) { r in
             VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(.system(size: 15, weight: .bold, design: .serif))
-                Text(r.body).font(.system(size: 15, design: .serif))
+                Text(r.author).font(BeanFont.bold(15))
+                Text(r.body).font(BeanFont.body(17))
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
-            .padding(.leading, 8)
-            .overlay(alignment: .leading) { Rectangle().fill(Bean.strandDark).frame(width: 3) }
-            .padding(.leading, Double(level - 1) * 14)
+            .padding(.leading, 12)
+            .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
+            .padding(.leading, 20)
         })
-    }
-}
-
-/// The reader's big straight leaf: pointed at top and bottom, widest in the middle.
-private struct BigLeaf: Shape {
-    func path(in r: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: r.midX, y: r.minY))
-        p.addCurve(to: CGPoint(x: r.midX, y: r.maxY), control1: CGPoint(x: r.minX + r.width * 1.02, y: r.minY + r.height * 0.12), control2: CGPoint(x: r.minX + r.width * 1.02, y: r.minY + r.height * 0.86))
-        p.addCurve(to: CGPoint(x: r.midX, y: r.minY), control1: CGPoint(x: r.minX - r.width * 0.02, y: r.minY + r.height * 0.86), control2: CGPoint(x: r.minX - r.width * 0.02, y: r.minY + r.height * 0.12))
-        p.closeSubpath()
-        return p
     }
 }
 
@@ -630,7 +721,7 @@ struct VineFruit: View {
             leaf.move(to: CGPoint(x: 17, y: 4)); leaf.addQuadCurve(to: CGPoint(x: 30, y: 5), control: CGPoint(x: 25, y: 0))
             leaf.addQuadCurve(to: CGPoint(x: 17, y: 4), control: CGPoint(x: 23, y: 9))
             ctx.fill(leaf, with: .color(Color(RGB(hex: "#7FB347")!)))
-            ctx.stroke(leaf, with: .color(Bean.ink), lineWidth: 1.2)
+            ctx.stroke(leaf, with: .color(Bean.vineInk), lineWidth: 1.2)
             for (x, y, hex) in [(11.0, 22.0, "#D9452B"), (24.0, 23.0, "#E8762E")] {
                 let fruit = Path(ellipseIn: CGRect(x: x - 8, y: y - 8, width: 16, height: 16))
                 ctx.fill(fruit, with: .color(Color(RGB(hex: hex)!)))

@@ -578,6 +578,9 @@ const en = {
     repliesHint: 'Shows or hides the replies on their own leaves.',
     readMore: 'tap to read',
     readHint: 'Opens the whole comment and its replies on one big leaf.',
+    fold: 'tap to fold replies',
+    ground: "You've reached the ground",
+    groundSub: 'These are the oldest posts. Scroll back up to climb.',
   },
   profile: {
     community: 'Community',
