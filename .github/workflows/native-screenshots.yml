@@ -14,8 +14,17 @@ on:
         description: Also run the native build, tests and UI walks (with the accessibility audit)
         type: boolean
         default: false
+      shots:
+        description: Take the store screenshots (off for a tests-only run, about 30 minutes shorter)
+        type: boolean
+        default: true
   pull_request:
     paths: [scripts/mac-screenshots-native.sh, .github/workflows/native-screenshots.yml, apps/ios-native/App/Skins/**]
+
+# A newer run for the same branch stops the older one.
+concurrency:
+  group: native-screenshots-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   screenshots:
@@ -35,9 +44,11 @@ jobs:
           grep -hE "error:|^(Feed|My Promises|Messages|Notices|Me|Request): " "$f"ui-walks.txt 2>/dev/null | sort -u | head -80 | while IFS= read -r l; do echo "::warning title=ui walks::$l"; done || true
           # The whole log rides along on the native-screenshots branch (annotations stop at 10).
           mkdir -p store-screenshots/native-qa && cp native-build.txt "$f"ui-walks.txt store-screenshots/native-qa/ 2>/dev/null || true
-      - shell: bash
+      - if: ${{ github.event_name == 'pull_request' || inputs.shots }}
+        shell: bash
         run: mkdir -p build-logs/screenshots-run && QA=${{ inputs.qa && 1 || 0 }} bash scripts/mac-screenshots-native.sh prayertower 2>&1 | tee build-logs/screenshots-run/prayertower.txt
-      - shell: bash
+      - if: ${{ github.event_name == 'pull_request' || inputs.shots }}
+        shell: bash
         run: mkdir -p build-logs/screenshots-run && QA=${{ inputs.qa && 1 || 0 }} bash scripts/mac-screenshots-native.sh opencircle 2>&1 | tee build-logs/screenshots-run/opencircle.txt
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
@@ -56,9 +67,12 @@ jobs:
           else
             git worktree add -q --orphan -b native-screenshots "$RUNNER_TEMP/shots"
           fi
-          find "$RUNNER_TEMP/shots" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -R store-screenshots/native/. "$RUNNER_TEMP/shots/"
-          [ -d store-screenshots/native-qa ] && cp -R store-screenshots/native-qa "$RUNNER_TEMP/shots/qa"
+          # A tests-only run keeps the last pictures and replaces only the test logs (qa/).
+          if [ -d store-screenshots/native ]; then
+            find "$RUNNER_TEMP/shots" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+            cp -R store-screenshots/native/. "$RUNNER_TEMP/shots/"
+          fi
+          if [ -d store-screenshots/native-qa ]; then rm -rf "$RUNNER_TEMP/shots/qa"; cp -R store-screenshots/native-qa "$RUNNER_TEMP/shots/qa"; fi
           cd "$RUNNER_TEMP/shots"
           git add -A
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
