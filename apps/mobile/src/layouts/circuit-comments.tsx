@@ -39,8 +39,6 @@ const RECESSION = 4;
 /** A face-down card's height, and its tilt. */
 const SHUT = 50;
 const TILT = '42deg';
-/** Replies shown under each comment before "n more". */
-const REPLIES = 3;
 
 const ART = {
   reply: require('../../assets/images/actions/encouragement.png'),
@@ -217,28 +215,20 @@ function NeonComment({
   );
 }
 
-/** A comment's replies, each branching from it, and theirs from them. */
+/** A comment's replies: a cluster of their own branching from it, closed until tapped. */
 function Replies({ postId, parent, kids, tokens }: { postId: string; parent: Comment; kids: Map<string, Comment[]>; tokens: Tokens }) {
-  const { t } = useLocale();
   const all = kids.get(parent.id) ?? [];
   if (!all.length) return null;
-  const shown = all.slice(0, REPLIES);
-  const more = all.length - shown.length;
   return (
     <View style={styles.level}>
-      {shown.map((c, i) => (
-        <NeonComment key={c.id} postId={postId} comment={c} tokens={tokens} through={i < shown.length - 1} color={VIOLET}>
-          <Replies postId={postId} parent={c} kids={kids} tokens={tokens} />
-        </NeonComment>
-      ))}
-      {more > 0 ? <MoreLink postId={postId} at={parent.id} n={more} tokens={tokens} label={t('circuit.more', { n: more })} /> : null}
+      <Cluster postId={postId} list={all} kids={kids} tokens={tokens} color={VIOLET} at={parent.id} />
     </View>
   );
 }
 
-function MoreLink({ postId, at, tokens, label }: { postId: string; at: string; n: number; tokens: Tokens; label: string }) {
+function MoreLink({ postId, at, color, label }: { postId: string; at: string; n: number; color: string; label: string }) {
   return (
-    <Text style={[styles.more, { color: tubeShades(VIOLET).inner }]} accessibilityRole="link" onPress={() => router.push({ pathname: '/post/[id]', params: { id: postId, ...(at ? { comment: at } : {}) } })}>
+    <Text style={[styles.more, { color: tubeShades(color).inner }]} accessibilityRole="link" onPress={() => router.push({ pathname: '/post/[id]', params: { id: postId, ...(at ? { comment: at } : {}) } })}>
       {label}
     </Text>
   );
@@ -246,9 +236,7 @@ function MoreLink({ postId, at, tokens, label }: { postId: string; at: string; n
 
 /** The post's comments as a cluster branching from it. Nothing when it has none. */
 export function CommentStack({ card, tokens, start }: { card: Card; tokens: Tokens; start: number }) {
-  const { t } = useLocale();
   const [all, setAll] = useState<Comment[] | null>(null);
-  const [open, setOpen] = useState(false);
   const count = card.counts.comments ?? 0;
   useEffect(() => {
     if (count <= 0) return;
@@ -265,25 +253,38 @@ export function CommentStack({ card, tokens, start }: { card: Card; tokens: Toke
   const fallback = useMemo(() => (card.leafComments ?? []).map((c) => ({ ...c, parentId: c.parentId ?? null })), [card.leafComments]);
   const { top, kids } = useMemo(() => commentTree(all ?? fallback), [all, fallback]);
   if (!top.length) return null;
-  // Closed: only the top comment, face down with its first line showing, and the rest of
-  // the cluster as a fading recession of neon lines behind it. Open: the top five, whole.
-  const shown = open ? top.slice(0, OPENED) : top.slice(0, 1);
-  const behind = open ? 0 : Math.min(top.length - 1, RECESSION);
-  const more = open ? top.length - shown.length : 0;
+  return (
+    <View style={{ marginLeft: start + INDENT }} testID={`circuit-comments-${card.id}`}>
+      <Cluster postId={card.id} list={top} kids={kids} tokens={tokens} color={tokens.screen} at="" />
+    </View>
+  );
+}
+
+/**
+ * A cluster of comments, or of one comment's replies. Closed: only the first, face down
+ * with its first line showing, and the rest as a fading recession of neon lines behind it.
+ * Open: the first five, whole, each with its own replies as a closed cluster of their own.
+ */
+function Cluster({ postId, list, kids, tokens, color, at }: { postId: string; list: Comment[]; kids: Map<string, Comment[]>; tokens: Tokens; color: string; at: string }) {
+  const { t } = useLocale();
+  const [open, setOpen] = useState(false);
+  const shown = open ? list.slice(0, OPENED) : list.slice(0, 1);
+  const behind = open ? 0 : Math.min(list.length - 1, RECESSION);
+  const more = open ? list.length - shown.length : 0;
   const toggle = () => setOpen((o) => !o);
   return (
-    <View style={[styles.cluster, { marginLeft: start + INDENT }]} testID={`circuit-comments-${card.id}`}>
+    <View style={styles.cluster}>
       {shown.map((c, i) => (
-        <NeonComment key={c.id} postId={card.id} comment={c} tokens={tokens} through={i < shown.length - 1} foldable open={open} onToggle={toggle}>
-          <Replies postId={card.id} parent={c} kids={kids} tokens={tokens} />
+        <NeonComment key={c.id} postId={postId} comment={c} tokens={tokens} color={color} through={i < shown.length - 1} foldable open={open} onToggle={toggle}>
+          <Replies postId={postId} parent={c} kids={kids} tokens={tokens} />
         </NeonComment>
       ))}
       {behind ? (
-        <Pressable onPress={toggle} accessibilityRole="button" aria-label={t('circuit.cluster', { n: top.length })} testID={`circuit-recession-${card.id}`}>
-          <Recession n={behind} color={tokens.screen} />
+        <Pressable onPress={toggle} accessibilityRole="button" aria-label={t('circuit.cluster', { n: list.length })}>
+          <Recession n={behind} color={color} />
         </Pressable>
       ) : null}
-      {more > 0 ? <MoreLink postId={card.id} at="" n={more} tokens={tokens} label={t('circuit.more', { n: more })} /> : null}
+      {more > 0 ? <MoreLink postId={postId} at={at} n={more} color={color} label={t('circuit.more', { n: more })} /> : null}
     </View>
   );
 }
