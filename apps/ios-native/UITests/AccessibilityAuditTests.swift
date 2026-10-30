@@ -57,7 +57,8 @@ final class AccessibilityAuditTests: XCTestCase {
                     link.tap()
                     // Let the push finish before the audit: mid-slide, text is half faded.
                     _ = app.navigationBars[name].waitForExistence(timeout: 5)
-                    sleep(1)
+                    // Beanstalk's posts grow in over 2 seconds (card, vine, then leaves) as they come into view.
+                    sleep(3)
                     try audit(app, "\(name) at \(size)")
                     // Then the end of the feed, so its last lines are checked on screen, not cut by the edge.
                     // At the default size: at the largest, each card fills the screen, the top pass
@@ -71,7 +72,7 @@ final class AccessibilityAuditTests: XCTestCase {
                                 .press(forDuration: 0.1, thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)),
                                        withVelocity: .slow, thenHoldForDuration: 0.5)
                         }
-                        sleep(2)
+                        sleep(3)
                         // Read the element tree once, so the audit sees where things are after the
                         // scroll rather than where they were.
                         _ = app.debugDescription
