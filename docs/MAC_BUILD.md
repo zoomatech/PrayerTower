@@ -40,7 +40,3 @@ This builds and checks the code. Sending a build to TestFlight is a separate ste
 
 1. Codemagic, iOS simulator builds (unsigned `xcodebuild` with `-sdk iphonesimulator` and `CODE_SIGNING_ALLOWED=NO`): https://docs.codemagic.io/yaml-code-signing/ios-simulator-builds/
 2. Apple Developer Forums, "xcodebuild keeps defaulting to Mac Catalyst" (the `variant:Designed for [iPad,iPhone]` destination as `xcodebuild` lists it): https://developer.apple.com/forums/thread/796553
-
-## On GitHub's Mac instead of Steve's
-
-Steve's Mac has no room for an iPhone Simulator, so its run of `scripts/mac-build-native.sh` reports **UI walks: FAIL (no iPhone Simulator installed)**. The workflow `.github/workflows/native-ui-walks.yml` runs the same script on GitHub's `macos-15` runner, which has the Simulator runtimes: the shared tests, every app build, then the UI walks (`apps/ios-native/UIWalks`) and accessibility audits (`apps/ios-native/UITests`) headless. It runs on pull requests that touch `apps/ios-native/` and from the Actions tab; the pass/fail table is in the job summary and the logs are kept when it fails. Standard GitHub-hosted runners are free for public repositories.
