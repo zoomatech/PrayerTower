@@ -263,6 +263,18 @@ public struct BackdropText: Sendable, Equatable {
 }
 
 public enum Skin {
+    /// The color the whole feed screen sits on in this skin (nil: the system background), so the
+    /// title and tab bar can match it and stay readable on a dark sky.
+    public static func backdrop(_ theme: FeedTheme?) -> RGB? {
+        guard let theme else { return nil }
+        switch theme.kind {
+        case .vine: return VineLook(theme).backdrop
+        case .wall: return WallLook(theme).backdrop
+        case .circuit: return CircuitLook(theme).backdrop
+        case .tower, .carousel, .flip, .column: return nil
+        }
+    }
+
     /// Dark text, muted text and the link color all keep 4.5:1 (WCAG AA) on this color.
     public static func readable(on c: RGB, _ wording: Wording) -> Bool {
         [RGB.commentText, .textMuted, .primary(wording)].allSatisfy { c.contrast($0) >= 4.5 }
