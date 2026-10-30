@@ -113,12 +113,7 @@ struct TopDownFrame<L: ConnectorLook>: View {
 /// A box's two tubes, each lit from the top left corner as far as `drawn`.
 private struct BothHalves: Shape {
     let radius: CGFloat
-    var drawn: CGFloat
-
-    nonisolated var animatableData: CGFloat {
-        get { drawn }
-        set { drawn = newValue }
-    }
+    let drawn: CGFloat
 
     func path(in r: CGRect) -> Path {
         var p = BoxHalf(side: -1, radius: radius).trim(from: 0, to: drawn).path(in: r)
