@@ -243,7 +243,7 @@ struct VineLeaf<Content: View>: View {
     static var peek: CGFloat { 26 }
     private var backdrop: Color { look.backdrop.map { Color($0) } ?? Color.pageBackground }
     /// Each level of reply sits further in, under its parent.
-    private var indent: CGFloat { 104 + CGFloat(depth - 1) * 40 }
+    private var indent: CGFloat { NeonDrop.indent(depth) }
 
     var body: some View {
         // Neon's connector grows in as the post comes into view: the branch, then the frame.
@@ -291,7 +291,7 @@ struct VineLeaf<Content: View>: View {
             .overlay(alignment: .leading) {
                 if tucked {
                     // From the post's box above (over the gap between them), down and round into this box.
-                    drop.buildsDownward(ConnectorTiming.branch(drawn)).padding(.top, -18).accessibilityHidden(true)
+                    NeonDrop(look: look, depth: depth, y: 48).buildsDownward(ConnectorTiming.branch(drawn)).padding(.top, -18).accessibilityHidden(true)
                 } else {
                     twig.shootsOut(ConnectorTiming.branch(drawn)).accessibilityHidden(true)
                 }
@@ -328,21 +328,6 @@ struct VineLeaf<Content: View>: View {
     }
 
     /// The short curved stem from the stalk to this leaf.
-    /// Neon's comment connector: a red tube down from the post's box that bends smoothly into the
-    /// comment's box.
-    private var drop: some View {
-        Canvas { ctx, size in
-            let x: CGFloat = 72 + CGFloat(depth - 1) * 40, r: CGFloat = 12, y: CGFloat = 48
-            var p = Path()
-            p.move(to: CGPoint(x: x, y: 0))
-            p.addLine(to: CGPoint(x: x, y: y - r))
-            p.addQuadCurve(to: CGPoint(x: x + r, y: y), control: CGPoint(x: x, y: y))
-            p.addLine(to: CGPoint(x: indent + 4, y: y))
-            NeonGlassLook(color: Color(look.branch), white: 0.45).stroke(p, width: 6, in: ctx)
-        }
-        .frame(width: indent + 26)
-    }
-
     private var twig: some View {
         Canvas { ctx, size in
             var p = Path()
@@ -414,6 +399,65 @@ struct LeafCommentText: View {
     }
 }
 
+/// Neon's comment connector: a red tube down from the box above (over the gap between them) that
+/// bends smoothly into the comment's box, `y` points below the comment's top.
+struct NeonDrop: View {
+    let look: VineLook
+    let depth: Int
+    let y: CGFloat
+
+    /// Each level of reply sits further in, under its parent.
+    static func indent(_ depth: Int) -> CGFloat { 104 + CGFloat(depth - 1) * 40 }
+
+    var body: some View {
+        let indent = Self.indent(depth)
+        Canvas { ctx, size in
+            let x: CGFloat = indent - 32, r: CGFloat = 12, y = self.y + 18
+            var p = Path()
+            p.move(to: CGPoint(x: x, y: 0))
+            p.addLine(to: CGPoint(x: x, y: y - r))
+            p.addQuadCurve(to: CGPoint(x: x + r, y: y), control: CGPoint(x: x, y: y))
+            p.addLine(to: CGPoint(x: indent + 4, y: y))
+            NeonGlassLook(color: Color(look.branch), white: 0.45).stroke(p, width: 6, in: ctx)
+        }
+        .frame(width: indent + 26)
+    }
+}
+
+/// A comment laid forward on its face at the top of its stack (Steve, 2026-10-30): a neon card
+/// tipped away from you, showing only its first line, with the rest of the stack under it.
+private struct FaceDownCard: View {
+    let line: String
+    let behind: Int
+    let look: VineLook
+    let depth: Int
+
+    var body: some View {
+        let color = Color(look.branch)
+        let backdrop = look.backdrop.map { Color($0) } ?? Color.pageBackground
+        ZStack(alignment: .leading) {
+            ForEach(Array(stride(from: min(behind, 3), to: 0, by: -1)), id: \.self) { k in
+                ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.4), width: 4)
+                    .background(backdrop, in: .rect(cornerRadius: 10))
+                    .opacity(1 - Double(k) * 0.25)
+                    .offset(y: CGFloat(k) * 7)
+            }
+            ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.5), width: 5)
+                .background(backdrop, in: .rect(cornerRadius: 10))
+            Text(line).font(.callout.bold()).lineLimit(1).foregroundStyle(.white)
+                .shadow(color: color, radius: 3)
+                .padding(.horizontal, 16)
+        }
+        .frame(height: 50)
+        .rotation3DEffect(.degrees(40), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.45)
+        .padding(.vertical, 14)
+        .padding(.leading, NeonDrop.indent(depth))
+        .padding(.trailing, 16)
+        .overlay(alignment: .leading) { NeonDrop(look: look, depth: depth, y: 39).padding(.top, -18).accessibilityHidden(true) }
+        .contentShape(.rect)
+    }
+}
+
 /// Neon's comments (Steve, 2026-10-30): a loaded stack you flip through, coming out of the parent
 /// post; a comment's replies come out of it the same way, each with its own icons. Swipe sideways
 /// to flip.
@@ -446,6 +490,8 @@ private struct CommentLevel: View {
     var onOpen: ((Card) -> Void)?
     @State private var shown = 0
     @State private var hearted: Set<String> = []
+    /// Comments turned face up; the rest lie face down until tapped.
+    @State private var opened: Set<String> = []
     @Environment(AppModel.self) private var model
 
     private var here: [Comment] { all.filter { $0.parentId == parent } }
@@ -455,6 +501,18 @@ private struct CommentLevel: View {
             let i = min(shown, here.count - 1)
             let c = here[i]
             VStack(alignment: .leading, spacing: 18) {
+              if !opened.contains(c.id) {
+                // Tapped, it turns face up, draws itself in fully and pushes everything below it down.
+                Button {
+                    withAnimation(.spring(duration: 0.6)) { _ = opened.insert(c.id) }
+                } label: {
+                    FaceDownCard(line: "\(c.author.displayName): \(c.body)", behind: here.count - 1 - i, look: look, depth: depth)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(c.author.displayName): \(c.body)")
+                .accessibilityHint("Opens the comment")
+                .transition(.opacity)
+              } else {
                 VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i)), behind: here.dropFirst(i + 1).prefix(3).map { "\($0.author.displayName): \($0.body)" }) {
                     LeafCommentText(comment: LeafComment(id: c.id, body: c.body, author: c.author, createdAt: c.createdAt), look: look)
                 }
@@ -462,18 +520,25 @@ private struct CommentLevel: View {
                 .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
                 .gesture(DragGesture(minimumDistance: 24).onEnded { g in
                     withAnimation(.easeOut(duration: 0.3)) {
-                        if g.translation.width < -40 { shown = min(here.count - 1, i + 1) }
-                        if g.translation.width > 40 { shown = max(0, i - 1) }
+                        if g.translation.width < -40 { flip(to: min(here.count - 1, i + 1)) }
+                        if g.translation.width > 40 { flip(to: max(0, i - 1)) }
                     }
                 })
-                .accessibilityAction(named: "Next comment") { shown = min(here.count - 1, i + 1) }
-                .accessibilityAction(named: "Previous comment") { shown = max(0, i - 1) }
+                .accessibilityAction(named: "Next comment") { flip(to: min(here.count - 1, i + 1)) }
+                .accessibilityAction(named: "Previous comment") { flip(to: max(0, i - 1)) }
                 // Replies: at most three levels deep (Steve, 2026-10-29).
                 if depth < 3 {
                     AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
                 }
+              }
             }
         }
+    }
+
+    /// Flips to another card of an open stack; it comes face up, as the one before it was.
+    private func flip(to n: Int) {
+        shown = n
+        opened.insert(here[n].id)
     }
 
     /// A comment's own icons: a heart, reply, and where it sits in the stack.
