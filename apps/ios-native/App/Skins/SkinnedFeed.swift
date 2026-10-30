@@ -252,7 +252,7 @@ struct VineLeaf<Content: View>: View {
 
     @ViewBuilder private func leaf(_ drawn: CGFloat) -> some View {
         let box = Color(look.leafBox(wording))
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             content()
                 .opacity(ConnectorTiming.text(drawn))
                 .padding(depth == 0 ? 14 : 10)
@@ -427,6 +427,26 @@ struct NeonDrop: View {
     }
 }
 
+/// The straight stretch of a comment tube that carries on down to the next comment.
+private struct NeonRun: View {
+    let look: VineLook
+    let depth: Int
+
+    var body: some View {
+        let x = NeonDrop.indent(depth) - 32
+        Canvas { ctx, size in
+            var p = Path()
+            p.move(to: CGPoint(x: x, y: 0))
+            p.addLine(to: CGPoint(x: x, y: size.height))
+            NeonGlassLook(color: Color(look.branch), cap: .butt, white: 0.45).stroke(p, width: 6, in: ctx)
+        }
+        .frame(width: x + 30)
+        .padding(.top, -NeonDrop.gap)
+        .padding(.bottom, -NeonDrop.gap)
+        .accessibilityHidden(true)
+    }
+}
+
 /// A closed comment cluster (Steve, 2026-10-30): the top comment's first line on a neon card laid
 /// forward on its face, the others a fading recession of neon lines under it.
 private struct FaceDownCard: View {
@@ -513,7 +533,8 @@ private struct CommentLevel: View {
             Group {
                 if open {
                     VStack(alignment: .leading, spacing: NeonDrop.gap) {
-                        ForEach(Array(here.prefix(5).enumerated()), id: \.element.id) { i, c in
+                        let shown = Array(here.prefix(5))
+                        ForEach(Array(shown.enumerated()), id: \.element.id) { i, c in
                             VStack(alignment: .leading, spacing: NeonDrop.gap) {
                                 VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i))) {
                                     LeafCommentText(comment: LeafComment(id: c.id, body: c.body, author: c.author, createdAt: c.createdAt), look: look)
@@ -522,6 +543,11 @@ private struct CommentLevel: View {
                                 if depth < 3 {
                                     AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
                                 }
+                            }
+                            // The red tube runs on down past this comment and its replies to the next one,
+                            // so every comment hangs from one unbroken line out of the post.
+                            .background(alignment: .topLeading) {
+                                if i < shown.count - 1 { NeonRun(look: look, depth: depth) }
                             }
                         }
                     }
