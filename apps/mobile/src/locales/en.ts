@@ -28,6 +28,9 @@ const en = {
     notificationSettings: 'Notification Settings…',
     tour: 'Prayer Tower Tour',
     feedback: 'Send Feedback…',
+    home: 'Home',
+    open: 'Menu',
+    close: 'Close menu',
   },
   widget: {
     heading: 'Pray now',
