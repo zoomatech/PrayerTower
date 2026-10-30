@@ -30,6 +30,8 @@ private enum Bean {
     static let text = Color(RGB.commentText)
     static let button = Color(RGB(hex: "#D7EBB4")!)
     static let space = "beanstalk"
+    /// How long the vine takes to wind round a post.
+    static let windTime = 0.85
 }
 
 extension View {
@@ -176,12 +178,10 @@ private struct BeanSection<Row: View>: View {
         withAnimation(still ? nil : .spring(response: 0.5, dampingFraction: 0.75)) { open = next }
     }
 
-    private static let windTime = 0.85
-
     /// The vine's progress round the post, easing out as it closes.
     private func drawn(at now: Date) -> Double {
         guard let winding else { return 0 }
-        let t: Double = min(1, max(0, now.timeIntervalSince(winding) / Self.windTime))
+        let t: Double = min(1, max(0, now.timeIntervalSince(winding) / Bean.windTime))
         return 1 - (1 - t) * (1 - t)
     }
 
@@ -241,7 +241,7 @@ private struct BeanSection<Row: View>: View {
             .onScrolledIntoView(viewport) { if winding == nil { winding = .now } }
             .task(id: winding) {
                 guard winding != nil, !wound else { return }
-                try? await Task.sleep(for: .seconds(still ? 0 : Self.windTime))
+                try? await Task.sleep(for: .seconds(still ? 0 : Bean.windTime))
                 wound = true
             }
             .frame(maxWidth: 600)
