@@ -4,6 +4,7 @@ import { requireUser } from '../../auth.js';
 import type { Db } from '../../db.js';
 import { withTx } from '../../db.js';
 import * as radio from './index.js';
+import * as followup from './followup.js';
 import * as prayingToo from './praying-too.js';
 import * as signalQueue from './signal-queue.js';
 import * as receipts from './receipts.js';
@@ -27,7 +28,12 @@ export function radioRoutes(app: FastifyInstance, db: Db) {
   app.get('/radio/listen', async (req) => {
     requireUser(req);
     const s = await radio.stationSettings(db);
-    return { enabled: s.listen_page_enabled, receipts: s.listen_page_enabled && (await receipts.enabled(db)), prayingToo: s.listen_page_enabled && (await prayingToo.enabled(db)) };
+    return {
+      enabled: s.listen_page_enabled,
+      receipts: s.listen_page_enabled && (await receipts.enabled(db)),
+      prayingToo: s.listen_page_enabled && (await prayingToo.enabled(db)),
+      readAloud: s.listen_page_enabled && (await followup.loopSettings(db)).readAloud,
+    };
   });
 
   // My signal queue (signal-queue.ts): 404 while the switch is off.

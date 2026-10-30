@@ -9,6 +9,11 @@ public struct LibraryCollection: Codable, Sendable, Equatable, Identifiable {
     public let id: String
     public let title: String
     public let faith: Bool
+    public init(id: String, title: String, faith: Bool) {
+        self.id = id
+        self.title = title
+        self.faith = faith
+    }
 }
 
 public struct LibraryOverview: Decodable, Sendable, Equatable {
@@ -20,6 +25,10 @@ public struct LibraryOverview: Decodable, Sendable, Equatable {
         enabled = try c.decode(Bool.self, forKey: .enabled)
         collections = try c.decodeIfPresent([LibraryCollection].self, forKey: .collections) ?? []
     }
+    public init(enabled: Bool, collections: [LibraryCollection]) {
+        self.enabled = enabled
+        self.collections = collections
+    }
 }
 
 public struct LibraryHit: Codable, Sendable, Equatable {
@@ -27,6 +36,11 @@ public struct LibraryHit: Codable, Sendable, Equatable {
         public let id: String
         public let title: String
         public let author: String
+        public init(id: String, title: String, author: String) {
+            self.id = id
+            self.title = title
+            self.author = author
+        }
     }
     public let ref: String
     public let text: String
@@ -35,6 +49,17 @@ public struct LibraryHit: Codable, Sendable, Equatable {
     public let work: Work
     /// "Psalms 23:1 (King James Bible)": what a shared passage is credited to.
     public let citation: String?
+    /// The passage's lasting name, for highlights and notes; nil from an older server or an offline copy.
+    public var key: String? = nil
+
+    public init(ref: String, text: String, complete: Bool, work: Work, citation: String?, key: String? = nil) {
+        self.ref = ref
+        self.text = text
+        self.complete = complete
+        self.work = work
+        self.citation = citation
+        self.key = key
+    }
 
     /// The citation, or the work's title from a server too old to send one.
     public var credit: String { citation ?? (ref.isEmpty ? work.title : "\(work.title), \(ref)") }
@@ -49,19 +74,29 @@ public struct LibraryDaily: Decodable, Sendable, Equatable {
     public let passage: LibraryHit?
 }
 
-/// Admin: text search and its extras: sharing, the daily card, parallels and reading plans. Nil fields are left as they are.
+/// Admin: text search and its extras: sharing, the daily card, parallels, reading plans, word study, notes and offline texts.
+/// Nil fields are left as they are.
 public struct LibrarySettings: Codable, Sendable, Equatable {
     public var enabled: Bool?
     public var shareEnabled: Bool?
     public var dailyEnabled: Bool?
     public var parallelsEnabled: Bool?
     public var plansEnabled: Bool?
-    public init(enabled: Bool? = nil, shareEnabled: Bool? = nil, dailyEnabled: Bool? = nil, parallelsEnabled: Bool? = nil, plansEnabled: Bool? = nil) {
+    public var wordsEnabled: Bool?
+    public var notesEnabled: Bool?
+    public var offlineEnabled: Bool?
+    public init(
+        enabled: Bool? = nil, shareEnabled: Bool? = nil, dailyEnabled: Bool? = nil, parallelsEnabled: Bool? = nil, plansEnabled: Bool? = nil,
+        wordsEnabled: Bool? = nil, notesEnabled: Bool? = nil, offlineEnabled: Bool? = nil
+    ) {
         self.enabled = enabled
         self.shareEnabled = shareEnabled
         self.dailyEnabled = dailyEnabled
         self.parallelsEnabled = parallelsEnabled
         self.plansEnabled = plansEnabled
+        self.wordsEnabled = wordsEnabled
+        self.notesEnabled = notesEnabled
+        self.offlineEnabled = offlineEnabled
     }
 }
 

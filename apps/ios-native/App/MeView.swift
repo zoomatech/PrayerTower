@@ -50,6 +50,7 @@ struct MeView: View {
                         }
                     }
                 }
+                ShortcutsSection()
                 ConversationPrefsSection()
                 ToolsSection()
                 ExtrasSection()
@@ -62,6 +63,8 @@ struct MeView: View {
                     if model.features["library"] { NavigationLink(w("library.title")) { LibraryView() } }
                     if model.features["libraryParallels"] { NavigationLink(w("library.parallels")) { ParallelsView() } }
                     if model.features["libraryPlans"] { NavigationLink(w("library.plans")) { ReadingPlansView() } }
+                    if model.features["libraryNotes"] { NavigationLink(w("library.notesTitle")) { MyNotesView() } }
+                    if model.features["libraryOffline"] { NavigationLink(w("library.offlineTitle")) { OfflineTextsView() } }
                 }
                 if model.me?.roles.contains("admin") == true {
                     Section { NavigationLink(w("starter.title")) { AdminKindnessView() } }

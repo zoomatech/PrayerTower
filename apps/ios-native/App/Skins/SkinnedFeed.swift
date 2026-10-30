@@ -195,7 +195,11 @@ struct VineLeaf<Content: View>: View {
     @ViewBuilder private var frame: some View {
         switch look.vineStyle {
         case .neon:
-            CutCorners().stroke(Color(look.stem), lineWidth: 2).neonTube(Color(look.stem))
+            // A real tube: colored glass glowing round a thin white-hot core.
+            ZStack {
+                CutCorners().stroke(Color(look.stem), lineWidth: 2.5).neonTube(Color(look.stem))
+                CutCorners().stroke(.white.opacity(0.9), lineWidth: 0.8)
+            }
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)
@@ -206,7 +210,13 @@ struct VineLeaf<Content: View>: View {
             ZStack {
                 LeafOutline(shape: look.leafShape).fill(Color(look.leaf))
                 LeafVeins().stroke(Color(look.branch).opacity(0.45), lineWidth: 1)
-                if look.vineStyle == .ink { LeafOutline(shape: look.leafShape).stroke(Color(look.ink ?? look.branch), lineWidth: 1.5) }
+                if look.vineStyle == .ink {
+                    // Pen and ink in the manner of Tolkien's own tree drawings: a firm outline and
+                    // fine hatching along the leaf's edges, clipped to the leaf.
+                    PenHatching().stroke(Color(look.ink ?? look.branch).opacity(0.55), lineWidth: 0.8)
+                        .clipShape(LeafOutline(shape: look.leafShape))
+                    LeafOutline(shape: look.leafShape).stroke(Color(look.ink ?? look.branch), lineWidth: 2)
+                }
             }
         }
     }
@@ -219,6 +229,10 @@ struct VineLeaf<Content: View>: View {
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
             p.addQuadCurve(to: CGPoint(x: reach, y: size.height * 0.42), control: CGPoint(x: 22, y: size.height * 0.4))
             ctx.stroke(p, with: .color(Color(look.lit ? look.stem : look.branch)), style: .init(lineWidth: max(1.5, look.stemWidth / 3), lineCap: .round))
+            if look.vineStyle == .ink {
+                // A pen curl off the twig, as in the Expo drawing and Tolkien's trees.
+                ctx.stroke(PenCurl.path(at: CGPoint(x: 26, y: size.height * 0.3), radius: 7), with: .color(Color(look.ink ?? look.branch)), style: .init(lineWidth: 1.4, lineCap: .round))
+            }
         }
         .frame(width: depth == 0 ? 44 : 72)
     }

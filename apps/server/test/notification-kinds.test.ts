@@ -12,7 +12,7 @@ const ALWAYS_SENT = [
   'account_security', 'church_verified', 'church_declined', 'crosspost_reconnect',
   // Staff only.
   'crisis_flag', 'feedback_summary', 'harm_weekly_report', 'job_alert', 'ledger_alert', 'legal_referral',
-  'moderation_handoff', 'oncall_escalation', 'oncall_reminder', 'ops_alert', 'radio_alert', 'radio_alert_cleared', 'radio_request',
+  'moderation_handoff', 'oncall_escalation', 'oncall_reminder', 'ops_alert', 'radio_alert', 'radio_alert_cleared', 'radio_request', 'radio_urgent_confirmed',
 ];
 
 function files(dir: string): string[] {

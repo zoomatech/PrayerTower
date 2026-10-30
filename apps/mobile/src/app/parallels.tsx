@@ -7,6 +7,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { sharePassage } from '@/components/daily-passage';
+import { noteFill, PassageMark, useLibraryNotes } from '@/components/passage-mark';
 import { Button, ErrorText, Loading, Screen } from '@/components/ui';
 import { api, type ParallelTheme, type ParallelThemes } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -16,6 +17,7 @@ import { colors, radius, space, type } from '@/lib/theme';
 export default function ParallelsScreen() {
   const t = useT();
   const features = useFeatures();
+  const notes = useLibraryNotes();
   const params = useLocalSearchParams<{ theme?: string }>();
   const { width } = useWindowDimensions();
   const [list, setList] = useState<ParallelThemes | null>(null);
@@ -70,7 +72,7 @@ export default function ParallelsScreen() {
             <Text style={type.small}>{t('library.parallelsCount', { count: theme.sides.length })}</Text>
             <ScrollView horizontal={!wide} contentContainerStyle={wide ? styles.columns : styles.row}>
               {theme.sides.map((s, i) => (
-                <View key={`${s.collection}:${s.ref}:${i}`} style={[styles.card, styles.side, wide ? styles.column : { width: cardWidth }]}>
+                <View key={`${s.collection}:${s.ref}:${i}`} style={[styles.card, styles.side, wide ? styles.column : { width: cardWidth }, notes.marks[s.key]?.color ? { backgroundColor: noteFill[notes.marks[s.key]!.color!] } : null]}>
                   <Text style={type.small}>{s.collectionTitle}</Text>
                   {s.label ? <Text style={type.heading}>{s.label}</Text> : null}
                   <Text style={type.body} selectable>
@@ -80,6 +82,7 @@ export default function ParallelsScreen() {
                   {features.libraryShare ? (
                     <Button small variant="ghost" label={t('library.share')} a11yLabel={t('library.shareOne', { citation: s.citation })} onPress={() => sharePassage(s.text, s.citation)} />
                   ) : null}
+                  {notes.enabled ? <PassageMark collection={s.collection} passageKey={s.key} citation={s.citation} mark={notes.marks[s.key]} circles={notes.circles} onSaved={notes.saved} /> : null}
                 </View>
               ))}
             </ScrollView>

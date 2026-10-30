@@ -9,6 +9,7 @@ import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import * as notifications from '../notifications/index.js';
 import * as trail from './trail.js';
+import * as urgent from './urgent.js';
 
 export async function enabled(q: Queryable): Promise<boolean> {
   const { rows } = await q.query<{ on: boolean }>('select radio_receipts_enabled as on from public.token_settings');
@@ -16,7 +17,7 @@ export async function enabled(q: Queryable): Promise<boolean> {
 }
 
 /** "2:05 PM UTC", in the member's quiet-hours time zone when they set one. */
-async function timeFor(q: Queryable, userId: string, at: Date): Promise<string> {
+export async function timeFor(q: Queryable, userId: string, at: Date): Promise<string> {
   const { rows } = await q.query<{ tz: string | null }>(`select notification_prefs -> 'quietHours' ->> 'timeZone' as tz from public.profiles where id = $1`, [userId]);
   const format = (timeZone: string) => new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(at);
   try {
@@ -85,6 +86,8 @@ export async function heard(q: Queryable, report: z.infer<typeof HeardReport>, n
   );
   // "Where it was heard" (trail.ts): the node by name, a phone only counted.
   await trail.record(q, rows.map((r) => r.id), report.snrDb, node);
+  // An urgent prayer a listener decoded is confirmed, and whoever flagged it is told (urgent.ts).
+  await urgent.confirmHeard(q, rows.map((r) => r.id));
   // A listener node's report also acknowledges the prayer (acks.ts); senders are told only while receipts are on.
   if (!(await enabled(q))) return rows.length;
   for (const r of rows.filter((x) => x.first && x.kind !== 'ceaseless')) {

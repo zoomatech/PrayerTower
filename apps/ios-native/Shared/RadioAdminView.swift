@@ -208,6 +208,11 @@ struct RadioAdminView: View {
             NavigationLink(w("listeners.on")) { ListenerRequestsView(api: api, words: w) }
             NavigationLink(w("qsl.on")) { ThankYouCardsView(api: api, words: w) }
             NavigationLink(w("stationReport.title")) { StationReportView(api: api, words: w) }
+            // The band plan and urgent prayers (RadioPlanView; each off until switched on).
+            NavigationLink(w("bandPlan.title")) { BandPlanView(api: api, words: w) }
+            NavigationLink(w("urgentRadio.title")) { UrgentRadioView(api: api, words: w) }
+            // "Sent by radio" for members, reading aloud and name privacy (RadioLoopView; each off until switched on).
+            NavigationLink(w("radioFollowup.title")) { RadioLoopAdminView(api: api, words: w) }
             Toggle(isOn: Binding(get: { n.multiStation }, set: { v in saveNodes(multiStation: v) })) {
                 Text(w("admin.multiStationOn"))
                 Text(w("admin.multiStationHint"))

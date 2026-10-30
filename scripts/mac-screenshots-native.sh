@@ -17,6 +17,8 @@ case "$EDITION" in
   *) echo "Unknown edition: $EDITION (prayertower or opencircle)"; exit 2 ;;
 esac
 SCREENS=(feed post promises messages notices me)
+# The feed in each built-in skin (AuditSamplesView.skins), on the iPhone only: skin-<slug>.png.
+SKINS=(beanstalk golden-wood moonlit-gate neon-cinderella blossom-garden christmas-star wall prayer-tower neon-circuit swipe flip)
 # The largest iPhone and iPad sizes App Store Connect asks for (the newest Pro Max is 6.9"); it
 # scales them down for smaller ones.
 DEVICES=("iPhone .* Pro Max" "iPad Pro 13-inch.*")
@@ -64,16 +66,31 @@ for PATTERN in "${DEVICES[@]}"; do
   xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100
   xcrun simctl install "$UDID" "$BUILT"
   mkdir -p "$OUT/$NAME"
+  # A first launch to warm up (the first one after install is slow), so no screen is caught loading.
+  xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData > /dev/null
+  sleep 15
   for SCREEN in "${SCREENS[@]}"; do
     xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1 || true
     xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData -PTScreen "$SCREEN" > /dev/null
-    sleep 4
+    sleep 6
     if xcrun simctl io "$UDID" screenshot "$OUT/$NAME/$SCREEN.png" > "$LOGS/shot.txt" 2>&1; then
       echo "Saved $NAME/$SCREEN.png"; SAVED=$((SAVED + 1))
     else
       echo "Screenshot failed: $NAME/$SCREEN: $(tail -1 "$LOGS/shot.txt")"
     fi
   done
+  if [[ "$NAME" == iPhone* ]]; then
+    for SKIN in "${SKINS[@]}"; do
+      xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1 || true
+      xcrun simctl launch "$UDID" "$BUNDLE" -PTSampleData -PTScreen feed -PTSkin "$SKIN" > /dev/null
+      sleep 6
+      if xcrun simctl io "$UDID" screenshot "$OUT/$NAME/skin-$SKIN.png" > "$LOGS/shot.txt" 2>&1; then
+        echo "Saved $NAME/skin-$SKIN.png"; SAVED=$((SAVED + 1))
+      else
+        echo "Screenshot failed: $NAME/skin-$SKIN: $(tail -1 "$LOGS/shot.txt")"
+      fi
+    done
+  fi
   xcrun simctl shutdown "$UDID"
   xcrun simctl delete "$UDID"
 done

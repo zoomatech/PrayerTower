@@ -7,6 +7,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { sharePassage } from '@/components/daily-passage';
+import { PassageMark, useLibraryNotes } from '@/components/passage-mark';
 import { Button, ErrorText, Loading, Screen, Toggle } from '@/components/ui';
 import { api, type ReadingPlan, type ReadingPlanDay, type ReadingPlans } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
@@ -93,6 +94,7 @@ function PlanCard({ plan: p, circles, onAct }: { plan: ReadingPlan; circles: { i
 function PlanDay({ plan, day }: { plan: string; day: number }) {
   const t = useT();
   const features = useFeatures();
+  const notes = useLibraryNotes();
   const [data, setData] = useState<ReadingPlanDay | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => {
@@ -133,6 +135,7 @@ function PlanDay({ plan, day }: { plan: string; day: number }) {
             {features.libraryShare ? (
               <Button small variant="ghost" label={t('library.share')} a11yLabel={t('library.shareOne', { citation: data.reading.citation })} onPress={() => sharePassage(data.reading.text.slice(0, 1500), data.reading.citation)} />
             ) : null}
+            {notes.enabled ? <PassageMark collection={data.reading.collection} passageKey={data.reading.key} citation={data.reading.citation} mark={notes.marks[data.reading.key]} circles={notes.circles} onSaved={notes.saved} /> : null}
             <View style={styles.row}>
               {data.day > 1 ? <Button small variant="secondary" label={t('library.planPrevious')} onPress={() => go(data.day - 1)} /> : null}
               {data.day < data.plan.days ? <Button small variant="secondary" label={t('library.planNext')} onPress={() => go(data.day + 1)} /> : null}

@@ -12,6 +12,8 @@ import * as moderation from '../moderation/index.js';
 import * as notifications from '../notifications/index.js';
 import * as posts from '../posts/index.js';
 import * as acks from './acks.js';
+import * as privacy from './privacy.js';
+import * as urgent from './urgent.js';
 import * as fairAir from './fair-air.js';
 import * as operatorConsole from './console.js';
 import { queueOrder } from './queue-order.js';
@@ -56,6 +58,8 @@ export async function queue(q: Queryable, userId: string, postId: string, key: s
   if (existing.rows[0]) return existing.rows[0];
   // Sensitive requests never go out (the transmit job would refuse them), so don't take tokens for one.
   if (post.is_sensitive) throw conflict("Sensitive requests aren't sent by radio.");
+  // A confession goes on the air only when the person who wrote it sends it (privacy.ts).
+  if (post.post_type === 'confessional' && post.user_id !== userId) throw conflict('A confession goes on the radio only if the person who wrote it sends it.');
   if (post.is_lament && !post.lament_radio) throw conflict('This is a lament. It goes on the radio only if the person who posted it says so.');
   // 'free' mode: no tokens move; Priestly tokens are donations only.
   if (await moderation.awaitingCrisisReview(q, post.id)) throw conflict('This request is waiting for a moderator to check in with the person who posted it. It can be amplified after that.');
@@ -156,10 +160,12 @@ export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitte
     if (hold) return failAndRefund(q, r.id, `not sent: ${hold}`);
     try {
       let transmitter = '';
-      for (let i = 0; i < r.repeats; i++) ({ transmitter } = await transmit({ id: r.id, postId: r.post_id, body: r.body }));
+      // The same words the station would send (privacy.ts), kept as sent_text.
+      const body = await privacy.airText(q, r.post_id, r.body, (await stationSettings(q)).radio_max_chars);
+      for (let i = 0; i < r.repeats; i++) ({ transmitter } = await transmit({ id: r.id, postId: r.post_id, body }));
       await q.query(
-        `update public.radio_prayers set status = 'transmitted', transmitter = $2, transmitted_at = now() where id = $1`,
-        [r.id, transmitter],
+        `update public.radio_prayers set status = 'transmitted', transmitter = $2, transmitted_at = now(), sent_text = $3 where id = $1`,
+        [r.id, transmitter, body],
       );
     } catch (err) {
       await failAndRefund(q, r.id, String(err));
@@ -264,7 +270,17 @@ const CLAIM_TIMEOUT_MINUTES = 15;
  * a name: only the request text. Skips (and fails) requests that were removed,
  * are marked sensitive, or have moderation still pending.
  */
-export async function claimNext(q: Queryable, nodeId: string | null = null): Promise<{ id: string; text: string; repeats: number } | null> {
+export interface Claimed {
+  id: string;
+  text: string;
+  repeats: number;
+  /** Urgent (urgent.ts): alone in its burst, on this preset. */
+  urgent?: true;
+  preset?: string;
+}
+
+/** `urgentOnly`: the rest of an urgent burst takes only other urgent prayers. */
+export async function claimNext(q: Queryable, nodeId: string | null = null, opts: { urgentOnly?: boolean } = {}): Promise<Claimed | null> {
   const s = await stationSettings(q);
   if (s.radio_transmitter !== 'station') throw conflict('Radio is not in station mode');
   if (s.radio_station_requires_free && (await tokens.settings(q)).radio_funding !== 'free') {
@@ -277,15 +293,17 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
   );
   // Listener acknowledgements: sent prayers nobody heard go back in the queue (acks.ts).
   await acks.requeueUnheard(q);
+  // Urgent prayers no listener confirmed go out again (urgent.ts).
+  await urgent.requeueUnconfirmed(q);
   // Transmission windows and quiet hours (schedule.ts), and the operator console's hold and
   // window override (console.ts): while the station may not transmit, the prayers wait.
   if (!(await operatorConsole.mayTransmit(q))) return null;
   for (let i = 0; i < 20; i++) {
     // Requests a moderator hasn't finished with wait in the queue; they go out once reviewed.
-    const { rows } = await q.query<{ id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number }>(
-      `select r.id, ${SEND_TEXT} as body, p.moderation_status, (p.is_sensitive or (p.is_lament and not p.lament_radio)) as is_sensitive, p.harm_category, r.repeats
+    const { rows } = await q.query<{ id: string; post_id: string; body: string; moderation_status: string; is_sensitive: boolean; harm_category: null; repeats: number; urgent: boolean }>(
+      `select r.id, r.post_id, ${SEND_TEXT} as body, p.moderation_status, (p.is_sensitive or (p.is_lament and not p.lament_radio)) as is_sensitive, p.harm_category, r.repeats, r.urgent
          from public.radio_prayers r join public.posts p on p.id = r.post_id
-        where r.status = 'queued' and p.harm_category is null
+        where r.status = 'queued' and p.harm_category is null${opts.urgentOnly ? ' and r.urgent' : ''}
           and not exists (select 1 from public.moderation_items m
                            where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending')
         order by ${queueOrder(s)} limit 1 for update of r skip locked`,
@@ -297,8 +315,10 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
       await failAndRefund(q, r.id, `not sent: ${skip}`);
       continue;
     }
-    const text = r.body.replace(/\s+/g, ' ').trim().slice(0, s.radio_max_chars);
+    // Contact details and, for a member who chose privacy, names never go on the air (privacy.ts).
+    const text = await privacy.airText(q, r.post_id, r.body, s.radio_max_chars);
     await q.query(`update public.radio_prayers set status = 'sending', claimed_at = now(), claimed_by_node = $2, sent_text = $3 where id = $1`, [r.id, nodeId, text]);
+    if (r.urgent && (await urgent.settings(q)).enabled) return { id: r.id, text, repeats: r.repeats, urgent: true, preset: await urgent.presetNow(q) };
     return { id: r.id, text, repeats: r.repeats };
   }
   return null;
@@ -307,9 +327,10 @@ export async function claimNext(q: Queryable, nodeId: string | null = null): Pro
 /** Burst mode: up to `max` prayers (capped by radio_batch_max), in the order claimNext hands them out. */
 export async function claimBatch(q: Queryable, max: number, nodeId: string | null = null) {
   const limit = Math.max(1, Math.min(max, (await stationSettings(q)).radio_batch_max));
-  const out: { id: string; text: string; repeats: number }[] = [];
+  const out: Claimed[] = [];
   while (out.length < limit) {
-    const next = await claimNext(q, nodeId);
+    // An urgent burst carries only urgent prayers, on their preset.
+    const next = await claimNext(q, nodeId, { urgentOnly: !!out[0]?.urgent });
     if (!next) break;
     out.push(next);
   }
@@ -414,7 +435,7 @@ export async function castLog(q: Queryable, viewerId: string, limit = 50) {
     call_sign: string | null;
     transmitted_at: Date;
   }>(
-    `select r.id, r.post_id, left(regexp_replace(${SEND_TEXT}, '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
+    `select r.id, r.post_id, left(regexp_replace(coalesce(r.sent_text, ${SEND_TEXT}), '\\s+', ' ', 'g'), 280) as text, r.repeats, r.transmitter, r.call_sign, r.transmitted_at
        from public.radio_prayers r join public.posts p on p.id = r.post_id
       where r.status = 'transmitted' and p.moderation_status = 'visible' and not p.is_sensitive
         and p.community_id = public.member_community_id($2)
@@ -428,7 +449,8 @@ export async function castLog(q: Queryable, viewerId: string, limit = 50) {
       where r.status = 'transmitted' and p.community_id = public.member_community_id($1)`,
     [viewerId],
   );
-  return { totals: totals[0]!, cast: rows };
+  // What went out (sent_text, privacy.ts); older records get the contact details taken out here.
+  return { totals: totals[0]!, cast: rows.map((r) => ({ ...r, text: privacy.scrubContact(r.text) })) };
 }
 
 export async function metrics(q: Queryable, since: Date) {

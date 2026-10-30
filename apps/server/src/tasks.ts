@@ -25,6 +25,8 @@ import { periodsFrom, purgeTask } from './modules/retention/index.js';
 import { weeklyResupplyTask } from './modules/tiers/index.js';
 import { weeklyTask as radioDigestTask } from './modules/radio/digest.js';
 import { weeklyTask as stationReportTask } from './modules/radio/station-report.js';
+import { refreshTask as spaceWeatherTask } from './modules/radio/band-plan.js';
+import { followupTask as radioFollowupTask } from './modules/radio/followup.js';
 import { weeklyTask as feedbackSummaryTask } from './modules/pilot-tools/index.js';
 import { ledgerCheckTask } from './modules/tokens/ledger-check.js';
 import { weeklyReportTask as harmWeeklyReportTask } from './modules/moderator-care/index.js';
@@ -104,6 +106,8 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     ),
     radio_digest_weekly: radioDigestTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     station_report_weekly: stationReportTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
+    radio_space_weather: spaceWeatherTask(db, overrides.fetch ?? fetch),
+    radio_followup: radioFollowupTask(db),
     feedback_summary_weekly: feedbackSummaryTask(db, overrides.mailer !== undefined ? overrides.mailer : createMailer(config)),
     token_ledger_check: ledgerCheckTask(db),
     harm_weekly_report: harmWeeklyReportTask(db),
@@ -148,6 +152,9 @@ export const crontab = [
   '0 7 * * 1 radio_digest_weekly ?max=10&fill=1d&jobKey=radio_digest_weekly',
   // Monday 07:10: last week's station report, emailed to admins and radio operators when that is on (only while switched on).
   '10 7 * * 1 station_report_weekly ?max=10&fill=1d&jobKey=station_report_weekly',
+  // Every 3 hours: NOAA space weather for the HF band plan (only while the plan is on with an HF band).
+  '17 */3 * * * radio_space_weather ?max=3&fill=3h&jobKey=radio_space_weather',
+  '*/10 * * * * radio_followup ?max=3&fill=1h&jobKey=radio_followup',
   // Monday 07:30: last week's pilot feedback and errors, to admins (only while switched on).
   '30 7 * * 1 feedback_summary_weekly ?max=10&fill=1d&jobKey=feedback_summary_weekly',
   // Daily 03:30: erase removed content, old notifications and finished queues (see RETENTION_* in config).

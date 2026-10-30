@@ -31,6 +31,12 @@ public enum SampleServer {
         return arguments[i + 1]
     }
 
+    /// A feed skin to draw the sample feed in, for skin screenshots: `-PTSkin <slug>`.
+    public static func skin(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> String? {
+        guard isOn(arguments), let i = arguments.firstIndex(of: "-PTSkin"), i + 1 < arguments.count else { return nil }
+        return arguments[i + 1]
+    }
+
     /// The tab for a screen name (MainTabs tags), and whether to open the sample request.
     public static func tab(for screen: String?) -> (tab: Int, openPost: Bool) {
         switch screen {
@@ -82,6 +88,9 @@ public enum SampleServer {
             {"commitments":[{"id":"sample-k1","post_id":"sample-p1","frequency":"daily","vow_text":"I will pray for Ruth's mother.","status":"active",
               "next_reminder_at":"2026-10-30T09:00:00Z","committed_count":7,"completed_count":2,"ends_at":null,"post_excerpt":"Please pray for my mother's surgery"}],"note":""}
             """),
+            ("GET", "^/me/commitments/review$", #"{"prayers":9,"checkins":5,"people":3,"active":1,"kept":2,"message":"You kept your promises this week."}"#),
+            ("GET", "^/me/tier$", #"{"tier":{"tier":"faithful","label":"Faithful"},"prayers":42,"next":{"tier":"steadfast","label":"Steadfast","prayersNeeded":8},"upkeep":null}"#),
+            ("GET", "^/me/tokens$", #"{"balance":12,"priestly":{"balance":1,"towardNext":4,"prayersPerToken":10}}"#),
             ("GET", "^/me/conversations$", """
             {"conversations":[{"id":"sample-m1","kind":"direct","postId":null,"title":"Sam","topic":null,"isPublic":false,"isRequest":false,"isOwner":false,
               "memberCount":2,"lastMessage":"Thank you for praying!","lastMessageAt":"2026-10-29T10:00:00Z","unread":1}]}

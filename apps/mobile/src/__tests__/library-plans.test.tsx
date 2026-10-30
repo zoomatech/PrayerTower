@@ -23,6 +23,7 @@ const excerpt = (collection: 'bible-kjv' | 'oldest-texts', ref: string, text: st
   ref,
   text,
   citation,
+  key: ref.replace(/\W/g, '').padEnd(32, '0').slice(0, 32),
 });
 
 beforeEach(() => {

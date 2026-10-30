@@ -11,8 +11,8 @@ jest.mock('@/lib/api', () => ({ api: { library: jest.fn(), searchLibrary: jest.f
 let mockFeatures = { libraryShare: false, libraryDaily: false };
 jest.mock('@/lib/features', () => ({ useFeatures: () => mockFeatures }));
 
-const psalm = { ref: 'Psalms 23:1', text: 'The LORD is my shepherd; I shall not want.', complete: true, work: { id: 'kjv-psalms', title: 'Psalms', author: '' }, citation: 'Psalms 23:1 (King James Bible)' };
-const tale = { ref: 'Introduction', text: 'Gilgamesh and Enkidu meet.', complete: false, work: { id: 'gilgamesh-old-babylonian', title: 'An Old Babylonian Version of the Gilgamesh Epic', author: '' }, citation: 'An Old Babylonian Version of the Gilgamesh Epic, Introduction' };
+const psalm = { ref: 'Psalms 23:1', text: 'The LORD is my shepherd; I shall not want.', complete: true, work: { id: 'kjv-psalms', title: 'Psalms', author: '' }, citation: 'Psalms 23:1 (King James Bible)', key: 'a'.repeat(32) };
+const tale = { ref: 'Introduction', text: 'Gilgamesh and Enkidu meet.', complete: false, work: { id: 'gilgamesh-old-babylonian', title: 'An Old Babylonian Version of the Gilgamesh Epic', author: '' }, citation: 'An Old Babylonian Version of the Gilgamesh Epic, Introduction', key: 'b'.repeat(32) };
 
 describe('Search the texts', () => {
   beforeEach(() => {

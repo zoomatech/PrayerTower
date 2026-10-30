@@ -10,6 +10,7 @@ import { CheckBack } from '@/components/check-back';
 import { ThankNoteCard } from '@/components/thank-note';
 import { CommentKindness, useCommentKindness } from '@/components/comment-kindness';
 import { CoolDownCard } from '@/components/cool-down-card';
+import { RadioSummaryCard } from '@/components/radio-summary';
 import { RadioTrail } from '@/components/radio-trail';
 import { ScheduleRadio } from '@/components/schedule-radio';
 import { KeepOnAir } from '@/components/keep-on-air';
@@ -36,6 +37,7 @@ import { MeaningReactions, wordLeafTokens } from '@/components/meaning-reactions
 import { ReplyChoiceGate } from '@/components/reply-choice';
 import { CircleGoal } from '@/components/circle-goal';
 import { Button, Empty, ErrorText, Field, Loading, RulesWarning, Screen, Toggle } from '@/components/ui';
+import { UrgentRadioButton } from '@/components/radio-plan-admin';
 import { api, type PowerPrayerStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useFeature } from '@/lib/community-features';
@@ -105,6 +107,7 @@ export default function PostScreen() {
   const [witnessNote, setWitnessNote] = useState('');
   const [witnessed, setWitnessed] = useState(false);
   const isWitness = roles.some((r) => r === 'witness' || r === 'moderator' || r === 'admin');
+  const isRadioStaff = roles.some((r) => r === 'admin' || r === 'radio_operator');
   const [note, setNote] = useState('');
   const [noteAnonymous, setNoteAnonymous] = useState(false);
 
@@ -395,6 +398,9 @@ export default function PostScreen() {
           )
         ) : null}
 
+        {/* Admins and radio operators: send this request in the next window as an urgent prayer (while that's on). */}
+        {isRadioStaff && card && card.postType === 'prayer_request' && !card.isSensitive && card.state !== 'answered' ? <UrgentRadioButton postId={card.id} /> : null}
+
         {isWitness && card && !card.isMine ? (
           witnessed ? (
             <Text style={type.small}>{t('witness.marked')}</Text>
@@ -497,6 +503,7 @@ export default function PostScreen() {
             onPress={() => sendRadio()}
           />
         ) : null}
+        {card && features.radioFollowup ? <RadioSummaryCard postId={card.id} /> : null}
         {card && features.heardTrail ? <RadioTrail postId={card.id} /> : null}
         {prayable && radioOn && features.scheduledRadio && !(features.lament && card?.lament && !card.lamentRadio) && card ? (
           <ScheduleRadio postId={card.id} canAmplify={!!tokens?.priestly.amplifyRepeats} />

@@ -72,6 +72,8 @@ import { poolRoutes } from './modules/pools/routes.js';
 import { reachRoutes } from './modules/reach/routes.js';
 import { scheduleRoutes } from './modules/schedules/routes.js';
 import { listenerAdminRoutes, listenerPublicRoutes } from './modules/radio/listener-routes.js';
+import { radioLoopRoutes } from './modules/radio/loop-routes.js';
+import { radioPlanRoutes } from './modules/radio/plan-routes.js';
 import { nodeRoutes, stationRoutes } from './modules/radio/station-routes.js';
 import { witnessRoutes } from './modules/witness/routes.js';
 import { churchRoutes } from './modules/churches/routes.js';
@@ -397,6 +399,8 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     coolDownRoutes(authed, db);
     waitlistAdminRoutes(authed, db);
     listenerAdminRoutes(authed, db, listeners);
+    radioPlanRoutes(authed, db);
+    radioLoopRoutes(authed, db);
     acrossRoutes(authed, db);
     legalRoutes(authed, db);
     podcastRoutes(authed, db);
