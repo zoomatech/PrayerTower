@@ -16,6 +16,7 @@ import { createContext, memo, useContext, useState, type ReactNode } from 'react
 import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
 import { api } from '@/lib/api';
+import { useFeature } from '@/lib/community-features';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -38,8 +39,9 @@ const TIER_NAMES: Record<string, string> = { prayer_scout: 'Prayer Scout', praye
 // help, not a hand with a gift (Steve, 2026-10-30). Open Circle keeps its emoji for the two prayer actions, which are religious signs there.
 const ACTION_ART: Partial<Record<CardAction, ImageSourcePropType>> = {
   praying_now: require('../../assets/images/actions/praying_now.png'),
-  // Commit to Pray shows the radio antenna with broadcast waves (Steve, 2026-10-30), not the mountain.
-  commit: require('../../assets/images/actions/broadcast.png'),
+  commit: require('../../assets/images/actions/commit.png'),
+  // The radio antenna with broadcast waves is Prayer Cast (Steve, 2026-10-30).
+  prayer_cast: require('../../assets/images/actions/broadcast.png'),
   encouragement: require('../../assets/images/actions/encouragement.png'),
   well_wishes: require('../../assets/images/actions/well_wishes.png'),
   share: require('../../assets/images/actions/share.png'),
@@ -50,6 +52,7 @@ const ACTION_ICONS: Record<CardAction, string> = {
   thumbs_up: '👍',
   praying_now: '💜',
   commit: '🙏',
+  prayer_cast: '📡',
   encouragement: '✉️',
   well_wishes: '❤️',
   share: '↗',
@@ -96,6 +99,8 @@ export const PostCard = memo(function PostCard({
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
+  // Prayer Cast only where the community has radio.
+  const radioOn = useFeature('radio');
   // Emoji meanings ride on the same row of action icons; on the request's own page the full tree sits below instead.
   const chooser: MeaningChooser = useMeaningChooser(card.id, card.body, !startExpanded);
   const meaningsFor = (action: string) => {
@@ -247,7 +252,7 @@ export const PostCard = memo(function PostCard({
       {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press.
           It sits under the post's box, bigger, not inside the post (Steve, 2026-10-30). */}
       <View style={[styles.actions, frame?.inset ? { marginLeft: frame.inset } : null]} testID="card-actions">
-        {card.actions.map((action) => {
+        {card.actions.filter((a) => a !== 'prayer_cast' || radioOn).map((action) => {
           const active = (action === 'commit' && !!card.myCommitment) || (action === 'thumbs_up' && thumbs.mine);
           return (
             <ActionIcon

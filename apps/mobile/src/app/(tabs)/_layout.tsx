@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DoveIcon } from '@/components/dove-icon';
+import { CornerNav } from '@/components/corner-nav';
 import { useLocale } from '@/lib/i18n';
 import { colors, space } from '@/lib/theme';
 
@@ -27,7 +28,10 @@ export default function TabsLayout() {
   const { t, wording } = useLocale();
   return (
     <Tabs style={styles.root}>
-      <TabSlot style={styles.root} />
+      <View style={styles.main}>
+        <CornerNav />
+        <TabSlot style={styles.root} />
+      </View>
       <TabList asChild>
         <View role="tablist" aria-label={t('tabs.label')} style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
           <TabTrigger name="index" href="/" asChild>
@@ -48,6 +52,7 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  main: { flex: 1, flexDirection: 'row' },
   // 75% opaque, over the screen so it shows faintly through (Steve, 2026-10-30).
   bar: {
     position: 'absolute',

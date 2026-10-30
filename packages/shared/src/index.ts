@@ -139,13 +139,14 @@ export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
 export type CardType = PostType | 'scripture_leaf' | 'feed_end';
 
 /** The labeled action row, in the same order on every card in every layout. */
-export const ACTION_ORDER = ['thumbs_up', 'praying_now', 'commit', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
+export const ACTION_ORDER = ['thumbs_up', 'praying_now', 'commit', 'prayer_cast', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
 export type CardAction = (typeof ACTION_ORDER)[number];
 
 export const ACTION_LABELS: Record<CardAction, string> = {
   thumbs_up: 'Thumbs Up',
   praying_now: 'Praying Now',
   commit: 'Commit to Pray',
+  prayer_cast: 'Prayer Cast',
   encouragement: 'Encourage',
   well_wishes: 'Well Wishes',
   share: 'Share',

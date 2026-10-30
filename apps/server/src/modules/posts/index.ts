@@ -752,7 +752,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
         myCommitment: myCommitment.get(id) ?? null,
         myQuickReactions: myQuick.get(id) ?? [],
         actions: (actionsByCommunity.get(r.community_id) ?? cardActions([])).filter(
-          (a) => !DISCUSSION_TYPES.includes(r.post_type) || (a !== 'praying_now' && a !== 'commit'),
+          (a) => !DISCUSSION_TYPES.includes(r.post_type) || (a !== 'praying_now' && a !== 'commit' && a !== 'prayer_cast'),
         ),
         postType: r.post_type,
         kind: r.kind,
@@ -814,9 +814,9 @@ export type CardType = PostType | 'scripture_leaf' | 'feed_end';
 /**
  * The labeled action row, in the same order on every card in every layout.
  * Thumbs up is leftmost, "the most used icon" (Steve, 2026-10-30).
- * Prayer Cast stays out until the broadcast ships.
+ * Prayer Cast (the radio antenna) sends the request out as a radio prayer (Steve, 2026-10-30).
  */
-export const ACTION_ORDER = ['thumbs_up', 'praying_now', 'commit', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
+export const ACTION_ORDER = ['thumbs_up', 'praying_now', 'commit', 'prayer_cast', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
 export type CardAction = (typeof ACTION_ORDER)[number];
 
 function cardActions(enabledReactions: string[]): CardAction[] {

@@ -372,7 +372,7 @@ describe('themed feed cards', () => {
     const card = feed.posts.find((p: { id: string }) => p.id === post.id);
     expect(card).toMatchObject({ cardType: 'prayer_request', myCommitment: { frequency: 'daily' } });
     expect(card.branchKey).toMatch(/^[0-9a-f]{16}$/);
-    expect(card.actions).toEqual(['thumbs_up', 'praying_now', 'commit', 'well_wishes', 'share', 'gift_tokens']);
+    expect(card.actions).toEqual(['thumbs_up', 'praying_now', 'commit', 'prayer_cast', 'well_wishes', 'share', 'gift_tokens']);
     const anon = await newRequest(poster, 'Anonymous one.', { isAnonymous: true });
     expect((await as(viewer).get(`/posts/${anon.id}`)).json().post.branchKey).toBeNull();
   });
