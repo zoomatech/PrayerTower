@@ -347,15 +347,23 @@ private struct BeanPost<Row: View>: View {
             ForEach(h.leaves) { leaf in
                 // The first time, on the post's clock after the stalk has grown; a new page, or opened replies, on their own.
                 let lc: Clock = leaf.level > 1 ? open : (paged ? page : c)
-                let at: Double = leaf.level > 1 ? 0 : (paged ? Double(leaf.k) * 100 : 1100 + Double(leaf.k) * 180)
+                // A cluster spreading out: the leaves after the ones already out unfurl in turn.
+                let at: Double = leaf.level > 1 ? 0 : (paged ? Double(max(0, leaf.k - (cv.shown - Beanstalk.spreadCount))) * 110 : 1100 + Double(leaf.k) * 180)
                 BeanLeafView(leaf: leaf, c: lc, at: at, words: words) { cut in tap(leaf, cut: cut) }
                     .offset(x: leaf.x, y: leaf.y)
             }
-            if h.pager {
-                pager(h, total: total)
-                    .frame(width: width)
-                    .offset(x: bend, y: h.pgY)
-                    .opacity(c.span(1500, 300, 0, 1))
+            // More than three comments: an uncountable cluster of leaves that rustles and spreads out
+            // to five when tapped; past five, a smaller cluster at the bottom reveals the next ones.
+            if h.cluster || h.more {
+                LeafCluster(big: h.cluster, seed: index, words: words) {
+                    var next = cv
+                    if next.spread { next.shown += Beanstalk.spreadCount } else { next.spread = true }
+                    cv = next
+                    pageAt = .now
+                }
+                .frame(width: width)
+                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - (h.cluster ? 50 : 36))
+                .opacity(c.span(1100, 300, 0, 1))
             }
         }
         .frame(width: width, height: h.H, alignment: .topLeading)
@@ -584,9 +592,88 @@ private struct BeanLeafView: View {
         .accessibilityLabel("\(leaf.note.author): \(leaf.note.body)")
         .accessibilityHint(fit.cut ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
         .accessibilityAddTraits(fit.cut || more ? .isButton : [])
+        .overlay(alignment: left ? .trailing : .leading) {
+            // Replies wait as holly berries at the leaf's stem (Steve, 2026-10-30).
+            if more && !leaf.open { HollyBerries(count: min(leaf.replies, 3)).offset(x: left ? 10 : -10, y: 18).accessibilityHidden(true) }
+        }
         .scaleEffect(grow, anchor: anchor)
         .rotationEffect(.degrees(turn), anchor: anchor)
         .rotationEffect(.degrees(leaf.ang), anchor: anchor)
+        // A reply sprouts as a berry that becomes a smaller leaf.
+        .overlay(alignment: left ? .trailing : .leading) {
+            if leaf.level > 1, grow < 1 { HollyBerries(count: 1).scaleEffect(1.4 * (1 - grow)).opacity(1 - grow).accessibilityHidden(true) }
+        }
+    }
+}
+
+/// A few red holly berries, each with a glint, ringed in the drawing's ink.
+private struct HollyBerries: View {
+    let count: Int
+    var body: some View {
+        ZStack {
+            ForEach(0..<count, id: \.self) { i in
+                let spot: [CGSize] = [CGSize(width: 0, height: 0), CGSize(width: 9, height: -5), CGSize(width: 4, height: 8)]
+                ZStack {
+                    Circle().fill(Color(RGB(hex: "#C62828")!))
+                    Circle().stroke(Bean.vineInk, lineWidth: 1.5)
+                    Circle().fill(.white.opacity(0.75)).frame(width: 3, height: 3).offset(x: -2, y: -2)
+                }
+                .frame(width: 10, height: 10)
+                .offset(spot[i % 3])
+            }
+        }
+        .frame(width: 24, height: 24)
+    }
+}
+
+/// An uncountable cluster of leaves on the stalk: comments waiting to be read. A tap rustles it,
+/// then it spreads out into the comments (Steve, 2026-10-30).
+private struct LeafCluster: View {
+    /// The cluster under a post; false for the smaller one that reveals more.
+    let big: Bool
+    let seed: Int
+    let words: Words
+    let spread: () -> Void
+    @State private var rustles = 0
+    @Environment(\.accessibilityReduceMotion) private var still
+
+    var body: some View {
+        let n = big ? 9 : 5
+        let size: CGFloat = big ? 64 : 48
+        Button {
+            rustles += 1
+            Task {
+                try? await Task.sleep(for: .seconds(still ? 0 : 0.45))
+                withAnimation(.easeOut(duration: 0.4)) { spread() }
+            }
+        } label: {
+            ZStack {
+                ForEach(0..<n, id: \.self) { i in
+                    let turn = Double((i * 47 + seed * 13) % 360)
+                    let reach = Double(8 + (i * 7 + seed) % 14)
+                    LeafBack(flip: i % 2 == 0, fill: Bean.leaves[(i + seed) % Bean.leaves.count], line: 2)
+                        .frame(width: size, height: size / 2)
+                        .offset(x: size / 2)
+                        .rotationEffect(.degrees(turn))
+                        .offset(x: cos(turn * .pi / 180) * reach * 0.3, y: sin(turn * .pi / 180) * reach * 0.3)
+                }
+            }
+            .frame(width: size * 2.2, height: size * 1.6)
+            .keyframeAnimator(initialValue: 0.0, trigger: rustles) { view, angle in
+                view.rotationEffect(.degrees(angle))
+            } keyframes: { _ in
+                KeyframeTrack {
+                    CubicKeyframe(9, duration: 0.07)
+                    CubicKeyframe(-8, duration: 0.08)
+                    CubicKeyframe(7, duration: 0.08)
+                    CubicKeyframe(-5, duration: 0.08)
+                    CubicKeyframe(3, duration: 0.07)
+                    CubicKeyframe(0, duration: 0.07)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(words(big ? "beanstalk.openCluster" : "beanstalk.moreCluster"))
     }
 }
 
