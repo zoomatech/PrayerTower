@@ -15,8 +15,7 @@ struct ActionRowView: View {
         HStack(spacing: 0) {
             ForEach(items) { item in
                 Button { onAction(item.action) } label: {
-                    Text(item.icon)
-                        .font(.title3)
+                    glyph(item)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .background(active.contains(item.action) ? Color.accentColor.opacity(0.15) : .clear, in: .capsule)
                         .contentShape(.rect)
@@ -47,5 +46,24 @@ struct ActionRowView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Actions")
+    }
+
+    /// The icon drawn in Steve's post mockups (App/ActionIcons, the same art as the Expo app's
+    /// assets/images/actions). Open Circle keeps its emoji for the two prayer actions, religious signs there.
+    @ViewBuilder private func glyph(_ item: ActionItem) -> some View {
+        let emojiOnly = wording == .neutral && (item.action == .prayingNow || item.action == .commit)
+        if !emojiOnly, let art = Self.art("action-\(item.action.rawValue)") {
+            art.resizable().scaledToFit().frame(width: 28, height: 28).accessibilityHidden(true)
+        } else {
+            Text(item.icon).font(.title3)
+        }
+    }
+
+    private static func art(_ name: String) -> Image? {
+        #if canImport(UIKit)
+        UIImage(named: name).map { Image(uiImage: $0) }
+        #else
+        NSImage(named: name).map { Image(nsImage: $0) }
+        #endif
     }
 }

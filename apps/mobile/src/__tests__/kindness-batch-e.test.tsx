@@ -4,7 +4,7 @@ import { act, fireEvent, screen } from '@testing-library/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { renderApp } from '@/__tests__/helpers';
-import Notices from '@/app/(tabs)/notifications';
+import Notices from '@/app/notifications';
 import CircleScreen from '@/app/circles/[id]';
 import { ReplyChoiceGate } from '@/components/reply-choice';
 import { api, type CircleView } from '@/lib/api';

@@ -78,6 +78,12 @@ export function useCardActions(onChanged: () => void) {
   };
 
   const onAction = async (card: Card, action: CardAction) => {
+    // Thumbs up toggles at once, with no sheet.
+    if (action === 'thumbs_up') {
+      await api.quickReact(card.id, 'thumbs_up', !card.myQuickReactions?.includes('thumbs_up')).catch(() => undefined);
+      onChanged();
+      return;
+    }
     if (action === 'well_wishes') {
       await api.wellWishes(card.id).catch(() => undefined);
       onChanged();

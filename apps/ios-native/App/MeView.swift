@@ -17,6 +17,13 @@ struct MeView: View {
     @State private var listenOpen = false
     @State private var error: String?
     @Environment(\.dynamicTypeSize) private var typeSize
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var width
+    /// On iPhone the tab bar has no Messages or Notices; they open from here (Steve, 2026-10-30).
+    private var menuHoldsInbox: Bool { width != .regular }
+    #else
+    private let menuHoldsInbox = false
+    #endif
 
     private var w: Words { model.words }
 
@@ -25,6 +32,14 @@ struct MeView: View {
             List {
                 if let profile = model.me?.profile {
                     Section { header(profile) }
+                }
+                if menuHoldsInbox {
+                    Section {
+                        NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")) } icon: { Text("💬").accessibilityHidden(true) } }
+                        NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")) } icon: { Text("🔔").accessibilityHidden(true) } }
+                    }
+                }
+                if let profile = model.me?.profile {
                     Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
                 }
                 PrayerLifeSection()
@@ -104,6 +119,9 @@ struct MeView: View {
                 }
             }
             .navigationTitle(w("tabs.me"))
+            .navigationDestination(item: Binding(get: { model.meOpens }, set: { model.meOpens = $0 })) { page in
+                if page == 5 { NotificationsView(standalone: false) } else { MessagesView(standalone: false) }
+            }
             .refreshable { await loadCounts() }
             .task { await loadCounts() }
             .task { listenOpen = (try? await model.store.api.listenConfig().enabled) ?? false }

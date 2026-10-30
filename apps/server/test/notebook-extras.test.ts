@@ -36,12 +36,25 @@ describe('Quick reactions', () => {
       await quick.set(c, a, post.id, 'candle', true);
       await quick.set(c, a, post.id, 'candle', true); // once only
       await quick.set(c, b, post.id, 'candle', true);
-      expect(await quick.set(c, b, post.id, 'standing', true)).toEqual({ candles: 2, standing: 1, mine: ['candle', 'standing'] });
-      expect(await quick.set(c, b, post.id, 'candle', false)).toEqual({ candles: 1, standing: 1, mine: ['standing'] });
+      expect(await quick.set(c, b, post.id, 'standing', true)).toEqual({ candles: 2, standing: 1, thumbsUp: 0, mine: ['candle', 'standing'] });
+      expect(await quick.set(c, b, post.id, 'candle', false)).toEqual({ candles: 1, standing: 1, thumbsUp: 0, mine: ['standing'] });
       const [card] = await posts.cards(c, [post.id], a);
       expect(card!.counts).toMatchObject({ candles: 1, standing: 1 });
       expect(card!.myQuickReactions).toEqual(['candle']);
     });
+  });
+
+  it('thumbs up works while the tray is off, once per member, and can be taken back', async () => {
+    const [poster, a] = [await createUser('Thumbs Poster'), await createUser('Thumbs A')];
+    const post = await newRequest(poster, 'Starting a new job on Monday.');
+    expect((await as(a).put(`/posts/${post.id}/quick-reactions/thumbs_up`)).json()).toMatchObject({ thumbsUp: 1, mine: ['thumbs_up'] });
+    expect((await as(a).put(`/posts/${post.id}/quick-reactions/thumbs_up`)).json()).toMatchObject({ thumbsUp: 1 });
+    await inTx(async (c) => {
+      const [card] = await posts.cards(c, [post.id], a);
+      expect(card!.counts).toMatchObject({ thumbsUp: 1 });
+      expect(card!.actions[0]).toBe('thumbs_up');
+    });
+    expect((await as(a).delete(`/posts/${post.id}/quick-reactions/thumbs_up`)).json()).toMatchObject({ thumbsUp: 0, mine: [] });
   });
 });
 

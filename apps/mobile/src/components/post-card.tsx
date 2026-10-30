@@ -13,8 +13,9 @@ import {
 } from '@prayer-tower/shared';
 import { router } from 'expo-router';
 import { createContext, memo, useContext, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
+import { api } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -31,11 +32,24 @@ const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_hel
 const NEUTRAL_ICONS: Record<string, string> = { prayerful_helper: '🤝', commit: '🤝' };
 // What a screen reader says instead of the tier emoji.
 const TIER_NAMES: Record<string, string> = { prayer_scout: 'Prayer Scout', prayerful_helper: 'Prayerful Helper', prayer_warrior: 'Prayer Warrior' };
+// The action icons drawn in Steve's post mockups (Business Plan, "Sample prayer post request with
+// proposed action icons"); thumbs up isn't drawn there, so it stays an emoji. Open Circle keeps its emoji for the two prayer actions, which are religious signs there.
+const ACTION_ART: Partial<Record<CardAction, ImageSourcePropType>> = {
+  praying_now: require('../../assets/images/actions/praying_now.png'),
+  commit: require('../../assets/images/actions/commit.png'),
+  encouragement: require('../../assets/images/actions/encouragement.png'),
+  well_wishes: require('../../assets/images/actions/well_wishes.png'),
+  share: require('../../assets/images/actions/share.png'),
+  gift_tokens: require('../../assets/images/actions/gift_tokens.png'),
+};
+const NEUTRAL_EMOJI_ACTIONS: ReadonlySet<CardAction> = new Set(['praying_now', 'commit']);
+
 const ACTION_ICONS: Record<CardAction, string> = {
+  thumbs_up: '👍',
   praying_now: '💜',
   commit: '🙏',
   encouragement: '✉️',
-  well_wishes: '🤍',
+  well_wishes: '❤️',
   share: '↗',
   gift_tokens: '🎁',
 };
@@ -62,6 +76,16 @@ export const PostCard = memo(function PostCard({
   const [expanded, setExpanded] = useState(startExpanded);
   const [tray, setTray] = useState(false);
   const [quick, setQuick] = useState({ candles: card.counts.candles ?? 0, standing: card.counts.standing ?? 0 });
+  // Thumbs up toggles right here, with no sheet; its count joins the counts line.
+  const [thumbs, setThumbs] = useState({ n: card.counts.thumbsUp ?? 0, mine: !!card.myQuickReactions?.includes('thumbs_up') });
+  const thumbsUp = () => {
+    const on = !thumbs.mine;
+    setThumbs((t) => ({ n: Math.max(0, t.n + (on ? 1 : -1)), mine: on }));
+    api.quickReact(card.id, 'thumbs_up', on).then(
+      (r) => setThumbs({ n: r.thumbsUp, mine: r.mine.includes('thumbs_up') }),
+      () => setThumbs((t) => ({ n: Math.max(0, t.n + (on ? -1 : 1)), mine: !on })),
+    );
+  };
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
@@ -188,6 +212,7 @@ export const PostCard = memo(function PostCard({
                   : t('card.firstToPray')}
           {card.counts.commitments > 0 && !quiet ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
           {card.counts.encouragements > 0 && !quiet ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
+          {thumbs.n > 0 && !quiet ? ` · 👍 ${thumbs.n}` : ''}
           {features.reactionTray && quick.candles ? ` · 🕯️ ${quick.candles}` : ''}
           {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
         </Text>
@@ -195,15 +220,16 @@ export const PostCard = memo(function PostCard({
         {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press. */}
         <View style={styles.actions} testID="card-actions">
           {card.actions.map((action) => {
-            const active = action === 'commit' && !!card.myCommitment;
+            const active = (action === 'commit' && !!card.myCommitment) || (action === 'thumbs_up' && thumbs.mine);
             return (
               <ActionIcon
                 key={action}
                 icon={icon(action, ACTION_ICONS)}
+                art={wording === 'neutral' && NEUTRAL_EMOJI_ACTIONS.has(action) ? undefined : ACTION_ART[action]}
                 label={active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
                 name={label('action', action, ACTION_LABELS[action])}
                 active={active}
-                onPress={() => onAction(card, action)}
+                onPress={() => (action === 'thumbs_up' ? thumbsUp() : onAction(card, action))}
                 meanings={meaningsFor(action)}
               />
             );
@@ -234,6 +260,7 @@ export const PostCard = memo(function PostCard({
  */
 function ActionIcon({
   icon: glyph,
+  art,
   label: tip,
   name,
   active,
@@ -241,6 +268,7 @@ function ActionIcon({
   meanings,
 }: {
   icon: string;
+  art?: ImageSourcePropType;
   label: string;
   name: string;
   active: boolean;
@@ -282,9 +310,13 @@ function ActionIcon({
         style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
         {/* The icon is decoration; the button's name is the action's name. */}
         {/* The icon grows with larger text only so far that it stays inside its 44 pt circle; the tip and the screen-reader label carry the words. */}
-        <Text style={styles.actionIcon} aria-hidden maxFontSizeMultiplier={1.3}>
-          {glyph}
-        </Text>
+        {art ? (
+          <Image source={art} style={styles.actionArt} aria-hidden accessibilityIgnoresInvertColors />
+        ) : (
+          <Text style={styles.actionIcon} aria-hidden maxFontSizeMultiplier={1.3}>
+            {glyph}
+          </Text>
+        )}
       </Pressable>
     </View>
   );
@@ -324,6 +356,7 @@ const styles = StyleSheet.create({
   action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.background },
   actionActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
   actionIcon: { fontSize: 20 },
+  actionArt: { width: 28, height: 28 },
   tip: { position: 'absolute', bottom: 50, zIndex: 10, minWidth: 90, maxWidth: 140, paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.text },
   tipText: { fontSize: 12, color: colors.surface, textAlign: 'center', fontWeight: '600' },
   comment: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: 2 },

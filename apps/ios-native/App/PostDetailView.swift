@@ -343,6 +343,7 @@ struct PostDetailView: View {
         await call {
             switch action {
             case .prayingNow: _ = try await api.prayingNow(postId: card.id)
+            case .thumbsUp: _ = try await api.thumbsUp(postId: card.id)
             case .wellWishes: _ = try await api.react(postId: card.id, kind: "well_wishes")
             case .share:
                 sharing = card

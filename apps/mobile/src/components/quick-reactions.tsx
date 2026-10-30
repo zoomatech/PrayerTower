@@ -9,7 +9,7 @@ import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { errorText } from '@/lib/error-report';
 
-const KINDS: { kind: QuickReactionKind; icon: string }[] = [
+const KINDS: { kind: Exclude<QuickReactionKind, 'thumbs_up'>; icon: string }[] = [
   { kind: 'candle', icon: '🕯️' },
   { kind: 'standing', icon: '❤️' },
 ];
@@ -22,7 +22,7 @@ export function QuickReactionTray({ card, onChange, onClose }: { card: Card; onC
   const [counts, setCounts] = useState({ candle: card.counts.candles ?? 0, standing: card.counts.standing ?? 0 });
   const [error, setError] = useState<string | null>(null);
 
-  const toggle = async (kind: QuickReactionKind) => {
+  const toggle = async (kind: Exclude<QuickReactionKind, 'thumbs_up'>) => {
     const on = !mine.includes(kind);
     try {
       const r = await api.quickReact(card.id, kind, on);
