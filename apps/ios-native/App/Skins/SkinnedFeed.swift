@@ -290,7 +290,7 @@ struct VineLeaf<Content: View>: View {
                 p.addLine(to: CGPoint(x: reach, y: y))
                 let boxColor = Color(depth == 0 || look.fairytale ? look.stem : look.branch)
                 // From the stalk's color, gradually into the box's, solid in the box's color where it meets the box (blue to red for a comment).
-                NeonGlassLook(color: boxColor, from: Color(look.stem), fade: (CGPoint(x: 20, y: y), CGPoint(x: 20 + (reach - 20) * 0.6, y: y))).stroke(p, width: 6, in: ctx)
+                NeonGlassLook(color: boxColor, from: Color(look.stem), fade: (CGPoint(x: 20, y: y), CGPoint(x: 20 + (reach - 20) * 0.6, y: y)), white: 0.45).stroke(p, width: 6, in: ctx)
                 return
             }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))

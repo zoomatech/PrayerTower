@@ -20,6 +20,8 @@ struct NeonGlassLook: ConnectorLook {
     /// `fade.end`), gradually, like a branch from a blue stalk to a red box (Steve, 2026-10-30).
     var from: Color? = nil
     var fade: (start: CGPoint, end: CGPoint) = (.zero, .zero)
+    /// How strong the white core is: a thin branch takes less, so its color still shows.
+    var white: Double = 1
 
     private func tint(_ opacity: Double = 1) -> GraphicsContext.Shading {
         guard let from else { return .color(color.opacity(opacity)) }
@@ -39,8 +41,8 @@ struct NeonGlassLook: ConnectorLook {
         ctx.stroke(path, with: tint(), style: line(width))
         ctx.stroke(path, with: .color(.black.opacity(0.4)), style: line(width))
         ctx.stroke(path, with: tint(), style: line(width * 0.72))
-        ctx.stroke(path, with: .color(.white.opacity(0.55)), style: line(width * 0.45))
-        ctx.stroke(path, with: .color(.white.opacity(0.95)), style: line(max(1, width * 0.2)))
+        ctx.stroke(path, with: .color(.white.opacity(0.55 * white)), style: line(width * 0.45))
+        ctx.stroke(path, with: .color(.white.opacity(0.95 * white)), style: line(max(1, width * 0.2)))
     }
 }
 

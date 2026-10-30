@@ -6,8 +6,10 @@ struct AppSection: Identifiable, Hashable {
     let tag: Int
     let title: String
     let icon: String
-    /// Drawn instead of the SF Symbol, to match the Expo app's tab bar (🕊️ Prayers, 🙏 My Promises, 👤 Me).
+    /// Drawn instead of the SF Symbol, to match the Expo app's tab bar (🙏 My Promises, 👤 Me).
     var emoji: String? = nil
+    /// Prayers' drawn dove (Steve, 2026-10-30: "make it look like a dove"), in place of the emoji.
+    var dove = false
     var id: Int { tag }
 
     /// The icon for the sidebar.
@@ -15,7 +17,7 @@ struct AppSection: Identifiable, Hashable {
         Label {
             Text(title)
         } icon: {
-            if let emoji { Text(emoji).accessibilityHidden(true) } else { Image(systemName: icon) }
+            if dove { DoveShape().frame(width: 22, height: 22).accessibilityHidden(true) } else if let emoji { Text(emoji).accessibilityHidden(true) } else { Image(systemName: icon) }
         }
     }
 
@@ -23,6 +25,7 @@ struct AppSection: Identifiable, Hashable {
     /// an image, kept in its own colours.
     var tabImage: Image {
         #if os(iOS)
+        if dove { return Image(uiImage: DoveShape.tabImage) }
         if let emoji {
             let font = UIFont.systemFont(ofSize: 22)
             let text = emoji as NSString
@@ -52,9 +55,8 @@ struct MainTabs: View {
     #endif
 
     private var sections: [AppSection] {
-        // U+FE0F asks for the colour dove; without it 🕊 can draw as a black outline bird.
         var all = [
-            AppSection(tag: 0, title: model.words("tabs.prayers"), icon: "list.bullet", emoji: "🕊️"),
+            AppSection(tag: 0, title: model.words("tabs.prayers"), icon: "list.bullet", dove: true),
             // Open Circle: praying hands are a religious sign there.
             AppSection(tag: 1, title: model.words("tabs.promises"), icon: "checkmark.circle", emoji: model.wording == .neutral ? "🤝" : "🙏"),
         ]
@@ -83,6 +85,9 @@ struct MainTabs: View {
                     // .tabItem rather than Tab(…), which needs iOS 18; the app supports iOS 17.
                     ForEach(sections) { s in
                         screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
+                            // The bar under the feed is 75% opaque (Steve, 2026-10-30).
+                            .toolbarBackground(Color.barBackground.opacity(0.75), for: .tabBar)
+                            .toolbarBackground(.visible, for: .tabBar)
                     }
                 }
                 // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
@@ -172,6 +177,53 @@ struct MainTabs: View {
         .frame(width: 0, height: 0)
         .accessibilityHidden(true)
     }
+}
+
+/// A peace dove in flight with an olive sprig in its beak: the Prayers icon, drawn on a 24-point grid.
+struct DoveShape: Shape {
+    func path(in r: CGRect) -> Path {
+        let s = min(r.width, r.height) / 24
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: r.minX + x * s, y: r.minY + y * s) }
+        var p = Path()
+        // Body, raised wings and fanned tail.
+        p.move(to: pt(3.6, 9.6))
+        p.addLine(to: pt(5.2, 9.1))
+        p.addQuadCurve(to: pt(7.4, 7.1), control: pt(5.7, 7.1))
+        p.addQuadCurve(to: pt(9.6, 8.8), control: pt(9, 7.2))
+        p.addQuadCurve(to: pt(13, 1.8), control: pt(10, 4.6))
+        for (x, y) in [(13.4, 3.4), (14.4, 2.6), (14.6, 4.4), (15.6, 4)] as [(CGFloat, CGFloat)] { p.addLine(to: pt(x, y)) }
+        p.addQuadCurve(to: pt(14.4, 9.4), control: pt(15.6, 7))
+        p.addQuadCurve(to: pt(21.2, 4), control: pt(16.8, 5.4))
+        p.addLine(to: pt(20.6, 5.6))
+        p.addLine(to: pt(21.8, 5.4))
+        p.addQuadCurve(to: pt(17, 11.2), control: pt(20.6, 9.2))
+        for (x, y) in [(19.4, 10.6), (22.8, 12.2), (20.6, 12.8), (22.6, 14.6), (19.6, 14), (20.4, 16), (16.8, 14.2)] as [(CGFloat, CGFloat)] { p.addLine(to: pt(x, y)) }
+        p.addQuadCurve(to: pt(8.4, 14), control: pt(12.4, 16.4))
+        p.addQuadCurve(to: pt(5.4, 10.4), control: pt(6, 12.4))
+        p.closeSubpath()
+        // The eye, left open.
+        p.addEllipse(in: CGRect(origin: pt(6.7, 8.1), size: CGSize(width: s, height: s)))
+        // The olive sprig: its stem and two leaves.
+        var stem = Path()
+        stem.move(to: pt(4, 9.8))
+        stem.addQuadCurve(to: pt(1.6, 13.4), control: pt(2.6, 11.2))
+        p.addPath(stem.strokedPath(StrokeStyle(lineWidth: 0.7 * s, lineCap: .round)))
+        for (x, y, turn) in [(2.4, 11.4, -30.0), (3.6, 12.4, 40.0)] as [(CGFloat, CGFloat, Double)] {
+            let leaf = Path(ellipseIn: CGRect(x: -1.1 * s, y: -0.45 * s, width: 2.2 * s, height: 0.9 * s))
+            p.addPath(leaf.applying(CGAffineTransform(rotationAngle: turn * .pi / 180).concatenating(CGAffineTransform(translationX: pt(x, y).x, y: pt(x, y).y))))
+        }
+        return p
+    }
+
+    #if os(iOS)
+    /// The dove for the iPhone tab bar, as a template image so it takes the bar's selected and unselected tints.
+    static let tabImage: UIImage = UIGraphicsImageRenderer(size: CGSize(width: 26, height: 26)).image { ctx in
+        UIColor.black.setFill()
+        let path = DoveShape().path(in: CGRect(x: 0, y: 0, width: 26, height: 26)).cgPath
+        ctx.cgContext.addPath(path)
+        ctx.cgContext.fillPath(using: .evenOdd)
+    }.withRenderingMode(.alwaysTemplate)
+    #endif
 }
 
 /// Me → Feed style: the skins this community offers (the server lists only what the skins

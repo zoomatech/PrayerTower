@@ -81,6 +81,8 @@ extension Color {
     /// Errors and destructive buttons: system red is about 3.6:1 on white; these keep 4.5:1 or more
     /// on the page and grouped backgrounds in both modes.
     static let danger = adaptive(light: "#B3261E", dark: "#FF6B63")
+    /// The tab bar's background, shown 75% opaque (Steve, 2026-10-30).
+    static let barBackground = adaptive(light: "#FFFFFF", dark: "#1C1C1E")
 }
 
 private struct RGBA {
