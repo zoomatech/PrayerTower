@@ -53,6 +53,9 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+// expo-speech needs the native module; tests check what would be read aloud.
+jest.mock('expo-speech', () => ({ speak: jest.fn(), stop: jest.fn(async () => undefined) }));
+
 // expo-audio needs the native module; tests drive a fake recorder and player.
 jest.mock('expo-audio', () => {
   const recorder = { uri: 'file:///take.m4a', currentTime: 12, prepareToRecordAsync: jest.fn(async () => undefined), record: jest.fn(), stop: jest.fn(async () => undefined) };

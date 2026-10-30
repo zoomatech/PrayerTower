@@ -267,6 +267,7 @@ export interface Features {
   scheduledRadio: boolean;
   /** "Where it was heard": the receivers that decoded a radio prayer. */
   heardTrail: boolean;
+  radioFollowup: boolean;
   /** My signal queue, and signal codes on the Listen screen. */
   signalQueue: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -1148,6 +1149,26 @@ export interface RadioTrailEntry {
   amplified: boolean;
   nodes: { name: string; snrDb: number; at: string }[];
   phones: number;
+}
+
+/** "Sent by radio at 9:30 PM, heard by 4 listeners" on a request (server radio/followup.ts). */
+export interface RadioSummary {
+  optedIn: boolean;
+  latest: { sentAt: string; callSign: string | null; heardBy: number; places: { name: string; lat: number; lon: number; snrDb: number }[] } | null;
+  sends: number;
+  station: { lat: number; lon: number } | null;
+}
+
+/** The member's own radio choices; null while the admin's switch for it is off. */
+export interface RadioPrefs {
+  followup: boolean | null;
+  namesPrivate: boolean | null;
+}
+
+export interface RadioLoop {
+  followup: boolean;
+  readAloud: boolean;
+  namePrivacy: boolean;
 }
 
 /** One of my radio prayers (My signal queue). */
@@ -2096,6 +2117,9 @@ export const api = {
   precheck: (text: string, context?: 'lament' | 'lamentReply') => post<Precheck>('/moderation/precheck', { text, context }).catch((): Precheck => ({ warn: false })),
   signalQueue: () => get<{ signals: SignalEntry[] }>('/me/signal-queue'),
   radioTrail: (id: string) => get<{ trail: RadioTrailEntry[] }>(`/posts/${id}/radio-trail`),
+  radioSummary: (id: string) => get<RadioSummary>(`/posts/${id}/radio-summary`),
+  radioPrefs: () => get<RadioPrefs>('/me/radio-prefs'),
+  updateRadioPrefs: (patch: { followup?: boolean; namesPrivate?: boolean }) => request<RadioPrefs>('PATCH', '/me/radio-prefs', patch),
   setKeepOnAir: (id: string, on: boolean) => request<{ keepOnAir: boolean }>('PUT', `/posts/${id}/keep-on-air`, { on }),
   setLament: (id: string, patch: { lament?: boolean; radio?: boolean }) => request<{ lament: boolean; lamentRadio: boolean }>('PUT', `/posts/${id}/lament`, patch),
   appeal: (itemId: string, message: string) => post<{ appealId: string }>(`/moderation/items/${itemId}/appeal`, { message }),
@@ -2229,6 +2253,8 @@ export const api = {
     signalQueueSetting: () => get<{ enabled: boolean }>('/admin/signal-queue'),
     setSignalQueue: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/signal-queue', { enabled }),
     heardTrail: () => get<{ enabled: boolean }>('/admin/heard-trail'),
+    radioLoop: () => get<RadioLoop>('/admin/radio-loop'),
+    updateRadioLoop: (patch: Partial<RadioLoop>) => request<RadioLoop>('PATCH', '/admin/radio-loop', patch),
     setHeardTrail: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/heard-trail', { enabled }),
     scheduledRadio: () => get<{ enabled: boolean }>('/admin/scheduled-radio'),
     setScheduledRadio: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/scheduled-radio', { enabled }),
@@ -2486,8 +2512,8 @@ export const api = {
   endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
-  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/radio/listen'),
-  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean }>('/listen/config'),
+  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean }>('/radio/listen'),
+  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean }>('/listen/config'),
   listenPraying: (report: { callSign: string; hashes: string[] }) => post<{ matched: number }>('/listen/praying', report),
   /** "On the air" receipts: fingerprints of prayers heard on the Listen screen, never the words. */
   listenHeard: (report: { callSign: string; preset: string; snrDb: number; hashes: string[] }) => post<{ matched: number }>('/listen/heard', report),

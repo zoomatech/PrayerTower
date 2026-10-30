@@ -58,6 +58,10 @@ struct ListenView: View {
                         Toggle(w("listen.tell"), isOn: $m.tell)
                         Text(w("listen.tellHint")).font(.footnote)
                     }
+                    if c.readAloud == true {
+                        Toggle(w("readAloud.toggle"), isOn: $m.aloud)
+                        Text(w("readAloud.hint")).font(.footnote)
+                    }
                 }
                 ForEach(m.heard) { h in
                     Section {
@@ -121,6 +125,11 @@ final class ListenModel {
     var heard: [Heard] = []
     var hf = false
     var tell = true
+    /// Read decoded prayers aloud with the device's own voice (offered while the admin's switch is on).
+    var aloud = false {
+        didSet { if !aloud { speech.stopSpeaking(at: .immediate) } }
+    }
+    @ObservationIgnored private let speech = AVSpeechSynthesizer()
     var inputs: [AudioInput] = []
     var inputID: String?
     private var api: APIClient?
@@ -182,6 +191,7 @@ final class ListenModel {
     }
 
     func stop() {
+        speech.stopSpeaking(at: .word)
         guard listening || feed != nil else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
@@ -207,6 +217,13 @@ final class ListenModel {
     }
 
     private func add(_ frames: [HeardFrame]) {
+        if aloud && config?.readAloud == true {
+            for line in ReadAloud.lines(frames) {
+                let u = AVSpeechUtterance(string: line)
+                u.voice = AVSpeechSynthesisVoice(language: "en-US")
+                speech.speak(u)
+            }
+        }
         for f in frames {
             let h = Heard(frame: f, at: .now)
             heard.insert(h, at: 0)
@@ -251,7 +268,12 @@ final class ListenModel {
     private func prepareInput() throws {
         let session = AVAudioSession.sharedInstance()
         // Measurement mode turns off the voice processing that would smooth a burst's level away.
-        try session.setCategory(.record, mode: .measurement)
+        // While reading aloud is offered, the session also plays (to the speaker), so it can be read.
+        if config?.readAloud == true {
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+        } else {
+            try session.setCategory(.record, mode: .measurement)
+        }
         try session.setPreferredInput(session.availableInputs?.first { $0.uid == inputID })
         try session.setActive(true)
     }

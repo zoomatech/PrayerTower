@@ -194,6 +194,7 @@ struct NotificationSettingsView: View {
             } footer: {
                 Text(w("notifySettings.safety"))
             }
+            RadioPrefsSection(api: model.store.api, words: w)
             Section {
                 Toggle(isOn: Binding(get: { prefs.quietHours != nil }, set: { on in Task { await save(prefs.quiet(on: on)) } })) {
                     Text(w("notifySettings.quiet"))

@@ -14,6 +14,7 @@ import { JobsPanel } from '@/components/jobs-panel';
 import { LedgerCheckPanel } from '@/components/ledger-check';
 import { ListenerSignupSection, QslCardsSection, StationReportSection } from '@/components/listener-admin';
 import { BandPlanSection, UrgentRadioSection } from '@/components/radio-plan-admin';
+import { RadioLoopSection } from '@/components/radio-summary';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
 import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings, type Sponsor, type SponsorKind, type LibrarySettings } from '@/lib/api';
@@ -391,6 +392,7 @@ function Admin() {
             <CeaselessSection />
             <ScheduledRadioToggle />
             <HeardTrailToggle />
+            <RadioLoopSection />
             <SignalQueueToggle />
             <FairAirSection />
             {radio.radio_transmitter === 'station' ? <ListenerModeSection /> : null}

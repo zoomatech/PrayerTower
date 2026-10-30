@@ -40,6 +40,9 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Weekly station report (bursts, prayers delivered, listener coverage, problems) | Admin → Radio → Station report | [Weekly station report](#weekly-station-report) |
 | Band plan (on HF, the band for each burst picked from NOAA space weather) | Admin → Radio → Band plan, plus `BAND_PLAN=server` | [Band plan](#band-plan) |
 | Urgent prayers (sent first in the next window, repeated, robust preset, confirmed by a listener) | Admin → Radio → Urgent prayers | [Urgent prayers](#urgent-prayers) |
+| Sent by radio (members see when it went out and how many heard it, with a small map; one opt-in notice) | Admin → Radio → Sent by radio | [Sent by radio](#sent-by-radio) |
+| Read aloud (the Listen screen reads decoded prayers with the device's own voice) | Admin → Radio → Sent by radio | [Read aloud](#read-aloud) |
+| Name privacy (names taken out for members who choose it) | Admin → Radio → Sent by radio | [Privacy on the air](#privacy-on-the-air) |
 | Packet fallback (1200-baud APRS) | Admin → Radio → Packet fallback, plus `BURST_MODE=packet` | [Packet fallback](#packet-fallback) |
 | Decode replay and diagnostics | Always available (offline tool) | [Diagnose a weak signal](#diagnose-a-weak-signal) |
 | Compression v2 (codec 4) | `BURST_CODEC_V2=on`, after every receiver is updated | [RADIO_BURST.md](RADIO_BURST.md#compression-v2-codec-4) |
@@ -753,6 +756,62 @@ takes the mark off one still waiting; it keeps its place in the ordinary queue.
 The operator console lists the last two days of urgent prayers: waiting, sent
 and waiting for a listener, or confirmed.
 
+## Sent by radio
+
+Off by default. Admin → Radio → **Show members when it was sent and heard**.
+The member who sent a radio prayer, and the person who asked, then see on the
+request: "Sent by radio at 9:30 PM, heard by 4 listeners", how many times it
+went out, and a small map. The map shows the station and the listener nodes that
+heard the latest send, drawn on the device with no map service. Only nodes
+placed on the [coverage map](#coverage-map) appear, rounded to about a city.
+Phones and listening pages are only counted. "Heard by" counts each node once,
+plus each phone report (from [Where it was heard](#where-it-was-heard) when it
+is on, otherwise from receipts). Nobody else sees it.
+
+Members choose **Tell me once after each radio send**, on the request or in
+Notification settings. They then get one notice about half an hour after each
+send, once the listeners' reports are in: "Sent at 9:30 PM CDT, heard by 4
+listeners." This comes from the `radio_followup` job, every 10 minutes, for
+sends of the last day, each once. It is in the Prayers group, so it follows the
+member's push and quiet-hours settings. Re-sends from prayer without ceasing are
+left out.
+
+## Read aloud
+
+Off by default. Admin → Radio → **Offer reading aloud on the Listen screen**.
+The Listen screen (iPhone, Mac and the app) then offers **Read prayers aloud**,
+off until the listener turns it on. Each prayer decoded from then on is read
+once with the device's own voice: Apple's speech synthesizer on iPhone and Mac,
+and expo-speech in the app. An amplified prayer that comes several times in one
+burst is read once. Nothing leaves the device. On an iPhone, while reading aloud
+is offered, the Listen screen records and plays at once so the voice can be
+heard.
+
+## Privacy on the air
+
+The words a radio prayer carries are made once, when the station takes it, and
+kept as what was sent. The listening page, the cast log, receipts and every
+listener see exactly those words. The rules, from `apps/server/src/modules/radio/privacy.ts`:
+
+- **Always:** email addresses, web links, phone numbers (seven digits or more)
+  and @handles are taken out.
+- **Always:** an anonymous request never carries its author's name or handle.
+- **Always:** sensitive requests, laments the author did not release, removed
+  or hidden requests, and requests waiting for a moderator never go out.
+  Comments, private messages and prayer-circle posts are never radio prayers.
+- **Always:** a confession goes on the air only when the person who wrote it
+  sends it.
+- **With Admin → Radio → Take names out for members who choose it on:** for an
+  anonymous request, or a member who turned on **Keep names off the radio** in
+  Notification settings, names are replaced with "someone". This covers the
+  author's own name, and any capitalized word in mid-sentence that is not an
+  everyday, family or faith word, so "Pray for Tom Baker's surgery at Memorial
+  with Dr. Okafor" goes out as "Pray for someone's surgery at someone with Dr.
+  someone". It errs toward taking a word out.
+
+`apps/server/test/radio-loop-privacy.test.ts` checks these end to end, through
+the station's claim to what the burst carries and what the cast log shows.
+
 ## Security
 
 What protects the station, and the few things an operator decides.
@@ -868,6 +927,8 @@ For the legal department: signals aimed at the sky (the dish and sky target) sho
 
 ## Sources
 
+- AVSpeechSynthesizer and AVAudioSession categories (`.record` silences playback; `.playAndRecord` with `.defaultToSpeaker`): [Apple, AVSpeechSynthesizer](https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer), [AVAudioSession.Category](https://developer.apple.com/documentation/avfaudio/avaudiosession/category)
+- expo-speech (`speak`, `stop`, on-device text to speech): [Expo, Speech](https://docs.expo.dev/versions/latest/sdk/speech/)
 - NOAA SWPC JSON products (`f107_cm_flux.json`, `planetary_k_index_1m.json`): [NOAA SWPC data service](https://services.swpc.noaa.gov/json/)
 - Sunspot number from the 10.7 cm flux: [Space Weather Services (BOM), "The 10.7 cm solar radio flux"](https://www.sws.bom.gov.au/Educational/2/2/5)
 - MUF about three times the critical frequency for a long hop: [Wikipedia, "Maximum usable frequency"](https://en.wikipedia.org/wiki/Maximum_usable_frequency); best working frequency about 80-85% of MUF: [Electronics Notes, "MUF, LUF and FOT"](https://www.electronics-notes.com/articles/antennas-propagation/ionospheric/maximum-lowest-critical-optimum-usable-working-frequency.php)

@@ -44,6 +44,7 @@ struct PostDetailView: View {
                 if card.isMine && prayable { Section { ownerTools(card) } }
                 if card.isMine, model.features["followupNudge"] { FollowupSection(postId: card.id) { Task { await load() } } }
                 if let radio = Binding($card) { RadioSection(card: radio) }
+                if model.features["radioFollowup"] { RadioSummarySection(api: model.store.api, postId: card.id, words: model.words) }
                 if UrgentRadio.mayFlag(roles: model.me?.roles ?? [], card: card) {
                     UrgentRadioButton(api: model.store.api, postId: card.id, words: model.words)
                 }
