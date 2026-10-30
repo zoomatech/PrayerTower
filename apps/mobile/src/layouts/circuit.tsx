@@ -10,6 +10,7 @@ import { Animated, Easing, FlatList, StyleSheet, Text, View } from 'react-native
 import Svg, { Circle, G } from 'react-native-svg';
 
 import { GlassTube, GLOW_REACH, roundedBox, tubeShades } from '@/components/glass-tube';
+import { boxRuns, Sparkles } from '@/components/sparkles';
 import { DrawBusContext, makeDrawBus, useDrawIn, type Row } from '@/lib/draw-in';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
@@ -117,6 +118,8 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
           </Svg>
         </Animated.View>
       ) : null}
+      {/* And along the wire and the tap. */}
+      {row.h ? <Sparkles runs={[{ x1: WIRE_X, y1: 0, x2: WIRE_X, y2: row.h }, { x1: WIRE_X, y1: box.y + box.h / 2, x2: TAP_END + 6, y2: box.y + box.h / 2 }]} color={tokens.wire} /> : null}
       {reduced || !row.h ? null : (
         // Current runs only once the wire is drawn.
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: drawn.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 0, 1] }) }]} pointerEvents="none">
@@ -143,6 +146,8 @@ function ScreenRow({ card, index, tokens, pinned, reduced, children }: { card: C
             </Svg>
           </Animated.View>
         ) : null}
+        {/* Now and then a sparkle of light runs round the screen's tube. */}
+        {box.w ? <Sparkles runs={boxRuns(box.w, box.h, 3)} color={tokens.wire} /> : null}
         {/* The card's words fade in only once the tube round it is drawn. */}
         <Animated.View style={{ opacity: drawn.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0, 0, 1] }) }}>
           {pinned ? <Tr k="feed.pinned" style={[styles.pinned, { color: tokens.wire }]} /> : null}

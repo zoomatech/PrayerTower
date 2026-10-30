@@ -12,6 +12,7 @@ import { Animated, Easing, Image, Pressable, Share, StyleSheet, Text, View } fro
 import Svg, { Circle, G } from 'react-native-svg';
 
 import { GlassTube, GLOW_REACH, roundedBox, tubeShades } from '@/components/glass-tube';
+import { boxRuns, Sparkles } from '@/components/sparkles';
 import { commentTree } from '@/layouts/beanstalk';
 import { api } from '@/lib/api';
 import { useDrawIn, type Row } from '@/lib/draw-in';
@@ -23,6 +24,9 @@ import { colors, radius, space, type } from '@/lib/theme';
 
 
 type Tokens = { backdrop: string; wire: string; screen: string };
+
+/** Comments under comments glow violet (Steve, 2026-10-30); the post's own comments red. */
+const VIOLET = '#B44CFF';
 
 /** How far each level sits in from its parent, and where its branch runs down. */
 const INDENT = 30;
@@ -89,6 +93,7 @@ function NeonComment({
   tokens,
   through,
   foldable = false,
+  color,
   open = true,
   onToggle,
   children,
@@ -98,6 +103,8 @@ function NeonComment({
   tokens: Tokens;
   through: boolean;
   foldable?: boolean;
+  /** The card's neon; the post's own comments are red. */
+  color?: string;
   open?: boolean;
   onToggle?: () => void;
   children?: React.ReactNode;
@@ -122,7 +129,7 @@ function NeonComment({
       Animated.timing(trace, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.cubic), useNativeDriver: false }),
     ]).start();
   }, [open, foldable, reduced, unfold, trace]);
-  const red = tokens.screen;
+  const red = color ?? tokens.screen;
   const mid = box.y + (foldable ? SHUT / 2 : box.h / 2);
   const reach = through ? wrap.h : mid;
   const up = 8;
@@ -159,6 +166,7 @@ function NeonComment({
           </Svg>
         </Animated.View>
       ) : null}
+      {box.h ? <Sparkles runs={[{ x1: -INDENT + SPINE, y1: -up, x2: -INDENT + SPINE, y2: mid }, { x1: -INDENT + SPINE, y1: mid, x2: 0, y2: mid }]} color={red} /> : null}
       <Animated.View
         style={[
           styles.screen,
@@ -183,6 +191,7 @@ function NeonComment({
             </Svg>
           </Animated.View>
         ) : null}
+        {box.w && open ? <Sparkles runs={boxRuns(box.w, box.h, 2)} color={red} /> : null}
         <Animated.View style={[styles.glassClip, { opacity: drawn.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0, 0, 1] }) }]}>
           {foldable ? (
             <Pressable onPress={onToggle} accessibilityRole="button" aria-expanded={open} aria-label={`${comment.author.displayName}: ${comment.body}`} accessibilityHint={open ? t('circuit.fold') : t('circuit.open')}>
@@ -218,7 +227,7 @@ function Replies({ postId, parent, kids, tokens }: { postId: string; parent: Com
   return (
     <View style={styles.level}>
       {shown.map((c, i) => (
-        <NeonComment key={c.id} postId={postId} comment={c} tokens={tokens} through={i < shown.length - 1}>
+        <NeonComment key={c.id} postId={postId} comment={c} tokens={tokens} through={i < shown.length - 1} color={VIOLET}>
           <Replies postId={postId} parent={c} kids={kids} tokens={tokens} />
         </NeonComment>
       ))}
@@ -229,7 +238,7 @@ function Replies({ postId, parent, kids, tokens }: { postId: string; parent: Com
 
 function MoreLink({ postId, at, tokens, label }: { postId: string; at: string; n: number; tokens: Tokens; label: string }) {
   return (
-    <Text style={[styles.more, { color: tubeShades(tokens.screen).inner }]} accessibilityRole="link" onPress={() => router.push({ pathname: '/post/[id]', params: { id: postId, ...(at ? { comment: at } : {}) } })}>
+    <Text style={[styles.more, { color: tubeShades(VIOLET).inner }]} accessibilityRole="link" onPress={() => router.push({ pathname: '/post/[id]', params: { id: postId, ...(at ? { comment: at } : {}) } })}>
       {label}
     </Text>
   );
