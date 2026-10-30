@@ -53,15 +53,16 @@ struct ActionRowView: View {
     }
 
     /// The icon drawn in Steve's post mockups (App/ActionIcons, the same art as the Expo app's
-    /// assets/images/actions), except Share, which is the standard share icon (Steve, 2026-10-30).
+    /// assets/images/actions), except Share, the standard share icon, and Commit to Pray, a radio
+    /// antenna with broadcast waves (Steve, 2026-10-30).
     /// Open Circle keeps its emoji for the two prayer actions, religious signs there. On a neon
     /// backdrop (`glow`), each is a techy neon button: a standard icon lit as neon in a glass frame.
     @ViewBuilder private func glyph(_ item: ActionItem) -> some View {
         let emojiOnly = wording == .neutral && (item.action == .prayingNow || item.action == .commit)
         if let glow {
             NeonButtonGlyph(symbol: Self.standardSymbol(item.action), color: glow, size: size, action: item.action)
-        } else if item.action == .share {
-            Image(systemName: "square.and.arrow.up").font(.system(size: size * 0.75, weight: .semibold)).foregroundStyle(Color.accessibleAccent)
+        } else if item.action == .share || item.action == .commit {
+            Image(systemName: Self.standardSymbol(item.action)).font(.system(size: size * 0.75, weight: .semibold)).foregroundStyle(Color.accessibleAccent)
                 .frame(width: size, height: size).accessibilityHidden(true)
         } else if !emojiOnly, let art = Self.art("action-\(item.action.rawValue)") {
             art.resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true)
@@ -75,7 +76,7 @@ struct ActionRowView: View {
         switch action {
         case .prayingNow: "hands.sparkles.fill"
         case .thumbsUp: "M2.5 10.5 L6.5 10.5 L6.5 21 L2.5 21 Z M6.5 11.5 L10 4.5 L11 3 L12.8 3.6 L13.2 6 L12.4 9.5 L19.6 9.5 L21 11 L20.6 12.6 L19.6 13 L20.4 14.6 L19.6 16.2 L18.6 16.4 L19 17.8 L18 19.4 L16.4 19.6 L16.4 20.4 L15.4 21 L6.5 21 M19.6 13 L14.5 13 M18.6 16.4 L14.5 16.4 M16.4 19.6 L14.5 19.6"
-        case .commit: "mountain.2"
+        case .commit: "antenna.radiowaves.left.and.right"
         case .encouragement: "paperplane"
         case .wellWishes: "M12 21 L3.2 12.2 L2.6 8.6 L4.4 5 L8 4 L12 7 L16 4 L19.6 5 L21.4 8.6 L20.8 12.2 Z M12 17 L6.2 11.2 L5.9 9.1 L7 7.2 L8.6 6.9"
         case .share: "square.and.arrow.up"
@@ -122,7 +123,8 @@ enum TronIcon {
         case .prayingNow: "M12 3 L12 18 M12 3 L9 7 L7 13 L4 16 L4 21 L9 21 L12 18 M12 3 L15 7 L17 13 L20 16 L20 21 L15 21 L12 18 M9.5 8 L9.5 14 M14.5 8 L14.5 14"
         case .thumbsUp: "M2.5 10.5 L6.5 10.5 L6.5 21 L2.5 21 Z M6.5 11.5 L10 4.5 L11 3 L12.8 3.6 L13.2 6 L12.4 9.5 L19.6 9.5 L21 11 L20.6 12.6 L19.6 13 L20.4 14.6 L19.6 16.2 L18.6 16.4 L19 17.8 L18 19.4 L16.4 19.6 L16.4 20.4 L15.4 21 L6.5 21 M19.6 13 L14.5 13 M18.6 16.4 L14.5 16.4 M16.4 19.6 L14.5 19.6"
         case .wellWishes: "M12 21 L3.2 12.2 L2.6 8.6 L4.4 5 L8 4 L12 7 L16 4 L19.6 5 L21.4 8.6 L20.8 12.2 Z M12 17 L6.2 11.2 L5.9 9.1 L7 7.2 L8.6 6.9"
-        case .commit: "M2 20 L9 8 L13 14 L16 10 L22 20 Z M7.5 10.5 L9 12 L10.5 10.5 M12 3 L12 7 M10 5 L14 5"
+        // Commit to Pray: a radio antenna sending out broadcast waves (Steve, 2026-10-30).
+        case .commit: "M12 4.5 L13.2 6 L12 7.5 L10.8 6 Z M12 7.5 L12 9.5 M12 9.5 L7 22 M12 9.5 L17 22 M10.4 13.5 L13.6 13.5 M9.2 17 L14.8 17 M8 20.3 L16 20.3 M10.4 13.5 L14.8 17 M9.2 17 L16 20.3 M8.6 3.4 L7 6 L8.6 8.6 M15.4 3.4 L17 6 L15.4 8.6 M5.4 1.8 L3 6 L5.4 10.2 M18.6 1.8 L21 6 L18.6 10.2"
         case .share: "M12 3 L12 15 M8 7 L12 3 L16 7 M8 10 L5 10 L5 21 L19 21 L19 10 L16 10"
         // An open hand reaching out to lend a helping hand.
         case .giftTokens: "M5 9 L5 20 M5 10.5 L9 8.5 L13.5 8.5 L15.5 4.5 L17.5 5 L16.5 9 L21.5 10 L22 11.5 L15 12 L21.5 13 L22 14.5 L15 15 L21 16 L21 17.5 L12 18.5 L5 18.5"
