@@ -213,6 +213,9 @@ struct RadioAdminView: View {
             NavigationLink(w("urgentRadio.title")) { UrgentRadioView(api: api, words: w) }
             // "Sent by radio" for members, reading aloud and name privacy (RadioLoopView; each off until switched on).
             NavigationLink(w("radioFollowup.title")) { RadioLoopAdminView(api: api, words: w) }
+            // The prayer panel and SSTV (PrayerPanelView; off until switched on).
+            RadioPanelToggle(api: api, words: w)
+            NavigationLink(w("panel.title")) { PrayerPanelView(api: api, words: w) }
             Toggle(isOn: Binding(get: { n.multiStation }, set: { v in saveNodes(multiStation: v) })) {
                 Text(w("admin.multiStationOn"))
                 Text(w("admin.multiStationHint"))

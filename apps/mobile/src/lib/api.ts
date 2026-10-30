@@ -268,6 +268,7 @@ export interface Features {
   /** "Where it was heard": the receivers that decoded a radio prayer. */
   heardTrail: boolean;
   radioFollowup: boolean;
+  radioPanel: boolean;
   /** My signal queue, and signal codes on the Listen screen. */
   signalQueue: boolean;
   /** Feed skins (docs/FEED_SKINS.md): the gated skins, comment trees, skin ideas. */
@@ -2118,6 +2119,7 @@ export const api = {
   signalQueue: () => get<{ signals: SignalEntry[] }>('/me/signal-queue'),
   radioTrail: (id: string) => get<{ trail: RadioTrailEntry[] }>(`/posts/${id}/radio-trail`),
   radioSummary: (id: string) => get<RadioSummary>(`/posts/${id}/radio-summary`),
+  radioPanel: () => get<{ callSign: string; prayers: string[]; at: string | null }>('/radio/panel'),
   radioPrefs: () => get<RadioPrefs>('/me/radio-prefs'),
   updateRadioPrefs: (patch: { followup?: boolean; namesPrivate?: boolean }) => request<RadioPrefs>('PATCH', '/me/radio-prefs', patch),
   setKeepOnAir: (id: string, on: boolean) => request<{ keepOnAir: boolean }>('PUT', `/posts/${id}/keep-on-air`, { on }),
@@ -2254,6 +2256,8 @@ export const api = {
     setSignalQueue: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/signal-queue', { enabled }),
     heardTrail: () => get<{ enabled: boolean }>('/admin/heard-trail'),
     radioLoop: () => get<RadioLoop>('/admin/radio-loop'),
+    radioPanel: () => get<{ enabled: boolean }>('/admin/radio-panel'),
+    setRadioPanel: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/radio-panel', { enabled }),
     updateRadioLoop: (patch: Partial<RadioLoop>) => request<RadioLoop>('PATCH', '/admin/radio-loop', patch),
     setHeardTrail: (enabled: boolean) => request<{ enabled: boolean }>('PATCH', '/admin/heard-trail', { enabled }),
     scheduledRadio: () => get<{ enabled: boolean }>('/admin/scheduled-radio'),
@@ -2512,8 +2516,8 @@ export const api = {
   endMacroNeed: (id: string) => post(`/macro-needs/${id}/end`, {}),
   helpedMacroNeed: (id: string) => post<{ helpers: number }>(`/macro-needs/${id}/helped`, {}),
   prayerCast: () => get<PrayerCast>('/prayer-cast'),
-  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean }>('/radio/listen'),
-  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean }>('/listen/config'),
+  radioListen: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean; panel?: boolean }>('/radio/listen'),
+  listenConfig: () => get<{ enabled: boolean; receipts: boolean; prayingToo?: boolean; readAloud?: boolean; panel?: boolean }>('/listen/config'),
   listenPraying: (report: { callSign: string; hashes: string[] }) => post<{ matched: number }>('/listen/praying', report),
   /** "On the air" receipts: fingerprints of prayers heard on the Listen screen, never the words. */
   listenHeard: (report: { callSign: string; preset: string; snrDb: number; hashes: string[] }) => post<{ matched: number }>('/listen/heard', report),

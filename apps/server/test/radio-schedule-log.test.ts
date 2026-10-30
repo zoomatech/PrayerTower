@@ -118,13 +118,13 @@ describe('listener mode', () => {
   it('is off by default, and offers the Listen screen signed out only while the listening page is on too', async () => {
     expect(listenerDefault).toBe(false);
     const config = () => app.inject({ method: 'GET', url: '/listen/config' }).then((r) => r.json());
-    expect(await config()).toEqual({ enabled: false, receipts: false, prayingToo: false, readAloud: false });
+    expect(await config()).toEqual({ enabled: false, receipts: false, prayingToo: false, readAloud: false, panel: false });
     await as(admin).patch('/admin/radio-settings', { listenPage: false });
     expect((await as(admin).patch('/admin/listener-mode', { enabled: true })).json()).toEqual({ enabled: true, active: false });
     expect((await config()).enabled).toBe(false);
     await as(admin).patch('/admin/radio-settings', { listenPage: true, receipts: true });
-    expect(await config()).toEqual({ enabled: true, receipts: true, prayingToo: false, readAloud: false });
-    expect(await listenerMode(db)).toEqual({ enabled: true, receipts: true, prayingToo: false, readAloud: false });
+    expect(await config()).toEqual({ enabled: true, receipts: true, prayingToo: false, readAloud: false, panel: false });
+    expect(await listenerMode(db)).toEqual({ enabled: true, receipts: true, prayingToo: false, readAloud: false, panel: false });
     expect((await as(sender).patch('/admin/listener-mode', { enabled: false })).statusCode).toBe(403);
   });
 });

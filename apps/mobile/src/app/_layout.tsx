@@ -131,6 +131,7 @@ function RootStack() {
           <Stack.Screen name="radio-requests" />
           <Stack.Screen name="macro-needs" />
           <Stack.Screen name="prayer-cast" />
+          <Stack.Screen name="prayer-panel" />
           <Stack.Screen name="listen" />
           <Stack.Screen name="highlights" />
           <Stack.Screen name="kindness-research" />
