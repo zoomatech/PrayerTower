@@ -122,6 +122,10 @@ describe('highlights and notes', () => {
     const seen = (await as(b).get(`/library/notes/circle/${circle}`)).json().notes;
     expect(seen).toEqual([expect.objectContaining({ id: shared.note.id, note: 'For Sunday.', author: 'Circle Noter', mine: false })]);
     expect((await as(stranger).get(`/library/notes/circle/${circle}`)).statusCode).toBe(404);
+    // Someone who blocked the writer no longer sees their notes, as with circle posts.
+    await db.query('insert into public.user_blocks (user_id, blocked_id) values ($1, $2)', [b, a]);
+    expect((await as(b).get(`/library/notes/circle/${circle}`)).json().notes).toHaveLength(0);
+    await db.query('delete from public.user_blocks where user_id = $1 and blocked_id = $2', [b, a]);
     // A colour alone is never shared.
     await as(a).put('/library/notes', { collection: 'bible-kjv', key: hit.key, note: '', color: 'pink' });
     expect((await as(b).get(`/library/notes/circle/${circle}`)).json().notes).toHaveLength(0);

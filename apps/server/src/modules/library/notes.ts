@@ -120,6 +120,8 @@ export async function circle(q: Queryable, userId: string, circleId: string) {
        from public.library_notes n join public.prayer_circles c on c.id = n.circle_id join public.profiles p on p.id = n.user_id
        join public.prayer_circle_members m on m.circle_id = n.circle_id and m.user_id = n.user_id
       where n.circle_id = $1 and n.note is not null and n.collection = any($3::text[])
+        -- As with circle posts: notes from someone the viewer blocked stay hidden.
+        and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = n.user_id)
       order by n.updated_at desc limit 100`,
     [circleId, userId, ids],
   );
