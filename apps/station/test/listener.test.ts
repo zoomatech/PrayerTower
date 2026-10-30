@@ -6,6 +6,8 @@ import { autoChooser, parseCandidates } from '../src/burst/auto.js';
 import { buildBurst, planFrames } from '../src/burst/burst.js';
 import { presetByName } from '../src/burst/presets.js';
 import { fingerprint } from '../src/burst/sha256.js';
+import { encodePanel, panelImage, pictureSnrDb } from '../src/panel/panel.js';
+import { encodeRobot36 } from '../src/panel/sstv.js';
 import { defaultRecordCommand, httpListenerApi, listenOnce, Outbox, ReportError, RollingDecoder, s16le, startRecorder, type ListenerApi } from '../src/listener.js';
 
 function recorder() {
@@ -235,5 +237,47 @@ describe('station on a Mac', () => {
     expect((await macAudioCheck(async () => 'not json')).ok).toBe(false);
     // A listing without output markers still names what is there.
     expect(await macAudioCheck(async () => JSON.stringify({ SPAudioDataType: [{ _items: [{ _name: 'Speakers' }] }] }))).toMatchObject({ ok: true, detail: 'Speakers' });
+  });
+});
+
+describe('listener node, SSTV prayer panels (LISTEN_SSTV=on)', () => {
+  const panel = encodePanel(prayers, 'N0CALL');
+  const picture = encodeRobot36(panelImage(panel.cells).gray, 48_000);
+  let x = 3;
+  const noise = (a: Float32Array, level: number) => a.map((v) => v + level * (((x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 2 ** 32) * 2 - 1));
+  const audio = noise(new Float32Array([...silence(1), ...picture, ...silence(1)]), 0.05);
+
+  async function hear(dec: RollingDecoder) {
+    const { api, calls } = recorder();
+    const lines: string[] = [];
+    for (let at = 0; at < audio.length; at += 6 * 48_000) {
+      dec.push(audio.subarray(at, at + 6 * 48_000));
+      await listenOnce(dec, api, { searchHz: 0, receipts: true }, (m) => lines.push(m));
+    }
+    // A little more audio: the picture is read once, not again.
+    dec.push(silence(7));
+    await listenOnce(dec, api, { searchHz: 0, receipts: true }, (m) => lines.push(m));
+    return { calls, lines };
+  }
+
+  it('reads a picture arriving in pieces and reports its prayers once, as heard by SSTV', async () => {
+    const { calls, lines } = await hear(new RollingDecoder({ sstv: true }));
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ kind: 'heard', body: { callSign: 'N0CALL', preset: 'sstv-robot36', hashes: prayers.map(fingerprint) } });
+    expect(calls[0]!.body.snrDb).toBeGreaterThan(10);
+    expect(lines.join('\n')).toMatch(/heard N0CALL by SSTV picture: 2 prayer\(s\)/);
+  }, 60_000);
+
+  it('leaves SSTV alone unless it is switched on', async () => {
+    expect((await hear(new RollingDecoder())).calls).toEqual([]);
+  }, 60_000);
+
+  it('rates a clean picture above a noisy one', () => {
+    const clean = panelImage(panel.cells).gray;
+    let y = 9;
+    const grainy = clean.map((v) => Math.max(0, Math.min(255, v + Math.round((((y = (Math.imul(y, 1664525) + 1013904223) >>> 0) / 2 ** 32) - 0.5) * 300))));
+    expect(pictureSnrDb(clean)).toBeGreaterThan(40);
+    expect(pictureSnrDb(grainy)).toBeLessThan(pictureSnrDb(clean));
+    expect(pictureSnrDb(grainy)).toBeGreaterThan(0);
   });
 });

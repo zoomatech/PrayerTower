@@ -12,7 +12,11 @@ import { createHash, createHmac } from 'node:crypto';
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { channelReport, decodeAudio, fingerprint, type HeardFrame } from './burst/web.js';
+import { decodeBatch } from './burst/codec.js';
 import { demodulate as demodulatePackets } from './packet/afsk.js';
+import { decodePanelImage, pictureSnrDb } from './panel/panel.js';
+import { decodeRobot36, HEIGHT, WIDTH } from './panel/sstv.js';
+import { SSTV_PRESET } from './panel/worker.js';
 import { parseStatus, type PacketStatus } from './packet/message.js';
 import type { RelayStatus } from './relay.js';
 import type { Receiver } from './sdr.js';
@@ -30,6 +34,19 @@ export function peakDbfs(samples: Float32Array): number {
   return peak ? Math.round(200 * Math.log10(peak)) / 10 : -200;
 }
 
+/** A prayer panel read from an SSTV picture (LISTEN_SSTV=on). snrDb is the picture's own (pictureSnrDb). */
+export interface HeardPicture {
+  callSign: string;
+  prayers: string[];
+  snrDb: number;
+  corrected: boolean;
+}
+
+/** SSTV pictures are 37 seconds: kept at 12 kHz for 45, and looked for every 6 seconds of new audio. */
+const SSTV_RATE = 12_000;
+const SSTV_KEEP_SECONDS = 45;
+const SSTV_EVERY_SECONDS = 6;
+
 /** The last KEEP_SECONDS of audio, decoded on demand; each frame is returned once. */
 export class RollingDecoder {
   private chunks: Float32Array[] = [];
@@ -39,11 +56,50 @@ export class RollingDecoder {
   private packetsUpTo = 0;
   /** Packet fallback status frames decoded by the last decode() (packet/message.ts). */
   packets: PacketStatus[] = [];
+  /** Prayer panels read from SSTV pictures by the last decode(), each once (only with `sstv`). */
+  pictures: HeardPicture[] = [];
+  private sstv: { buf: Float32Array; filled: number; taken: number; readUpTo: number; sinceLook: number } | null;
+
+  constructor(opts: { sstv?: boolean } = {}) {
+    this.sstv = opts.sstv ? { buf: new Float32Array(SSTV_KEEP_SECONDS * SSTV_RATE), filled: 0, taken: 0, readUpTo: 0, sinceLook: 0 } : null;
+  }
 
   push(samples: Float32Array) {
     if (!samples.length) return;
     this.chunks.push(samples);
     this.total += samples.length;
+    const s = this.sstv;
+    if (!s) return;
+    // Averaged down to 12 kHz (RATE is a multiple of it); when full, the oldest seconds go.
+    const k = RATE / SSTV_RATE;
+    const n = Math.floor(samples.length / k);
+    if (s.filled + n > s.buf.length) {
+      const drop = Math.min(s.filled, Math.ceil((s.filled + n - s.buf.length) / SSTV_RATE) * SSTV_RATE);
+      s.buf.copyWithin(0, drop, s.filled);
+      s.filled -= drop;
+    }
+    for (let i = 0; i < n && s.filled < s.buf.length; i++) {
+      let v = 0;
+      for (let j = 0; j < k; j++) v += samples[i * k + j]!;
+      s.buf[s.filled++] = v / k;
+      s.taken++;
+    }
+    s.sinceLook += n;
+  }
+
+  /** A whole SSTV picture with a panel in it, ended since the last one read. */
+  private readPicture() {
+    const s = this.sstv;
+    this.pictures = [];
+    if (!s || s.sinceLook < SSTV_EVERY_SECONDS * SSTV_RATE || s.filled < 38 * SSTV_RATE) return;
+    s.sinceLook = 0;
+    const pic = decodeRobot36(s.buf.subarray(0, s.filled), SSTV_RATE);
+    if (!pic) return;
+    const end = s.taken - s.filled + pic.end;
+    if (end <= s.readUpTo) return;
+    s.readUpTo = end;
+    const frame = decodePanelImage(pic.gray, WIDTH, HEIGHT);
+    if (frame) this.pictures.push({ callSign: frame.callSign, prayers: decodeBatch(frame.batch), snrDb: pictureSnrDb(pic.gray), corrected: frame.corrected });
   }
 
   decode(searchHz = 0): ListenedFrame[] {
@@ -62,6 +118,7 @@ export class RollingDecoder {
       this.decodedUpTo = end;
       fresh.push({ ...f, peakDbfs: peakDbfs(buf.subarray(from + f.start, from + f.end)) });
     }
+    this.readPicture();
     // The packet fallback's 1200-baud frames, each once.
     const pFrom = Math.max(0, this.packetsUpTo - this.dropped);
     this.packets = [];
@@ -290,6 +347,12 @@ export async function listenOnce(dec: RollingDecoder, api: ListenerApi, cfg: Lis
   for (const p of dec.packets) {
     log(`[listener] heard ${p.callSign} by packet: ${p.count} prayer(s), page ${p.page}/${p.pages}`);
     if (cfg.receipts && p.ids.length && api.heardIds) await report({ kind: 'heardIds', body: { callSign: p.callSign, ids: p.ids } });
+  }
+  // SSTV prayer panels: no channel report (the station's preset doesn't apply), but the same receipts.
+  for (const p of dec.pictures) {
+    log(`[listener] heard ${p.callSign} by SSTV picture: ${p.prayers.length} prayer(s), picture ${p.snrDb} dB`);
+    const hashes = [...new Set(p.prayers)].slice(0, 500).map(fingerprint);
+    if (cfg.receipts && hashes.length) await report({ kind: 'heard', body: { callSign: p.callSign, preset: SSTV_PRESET, snrDb: p.snrDb, hashes } });
   }
   if (!frames.length) return frames;
   // One channel report per station heard: its weakest frame.
