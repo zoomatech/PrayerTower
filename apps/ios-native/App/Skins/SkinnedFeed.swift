@@ -412,8 +412,12 @@ struct NeonCommentStack: View {
     @State private var comments: [Comment] = []
 
     var body: some View {
-        CommentLevel(card: card, all: comments, parent: nil, depth: 1, look: look, wording: wording, onOpen: onOpen)
-            .task(id: card.id) { comments = await load?(card) ?? [] }
+        // A view that's always there, so the comments load even while the level is still empty.
+        VStack(alignment: .leading, spacing: 0) {
+            Color.clear.frame(height: 1)
+            CommentLevel(card: card, all: comments, parent: nil, depth: 1, look: look, wording: wording, onOpen: onOpen)
+        }
+        .task(id: card.id) { comments = await load?(card) ?? [] }
     }
 }
 

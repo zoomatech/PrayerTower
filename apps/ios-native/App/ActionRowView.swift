@@ -105,14 +105,30 @@ struct NeonButtonGlyph: View {
     var tron: String? = nil
 
     var body: some View {
-        Canvas { ctx, sz in
-            guard let d = tron ?? action.map(TronIcon.path) else { return }
-            let box = CGRect(origin: .zero, size: sz).insetBy(dx: sz.width * 0.14, dy: sz.height * 0.14)
-            NeonGlassLook(color: color, white: 0.7).stroke(TronIcon.shape(d, in: box), width: max(1.6, box.width / 24 * 1.7), in: ctx)
+        let d = tron ?? action.map(TronIcon.path) ?? ""
+        let shape = TronShape(d: d)
+        let w = max(1.6, size * 0.72 / 24 * 1.7)
+        func line(_ k: CGFloat) -> StrokeStyle { StrokeStyle(lineWidth: max(1, w * k), lineCap: .round, lineJoin: .round) }
+        // The same layers as `NeonGlassLook`: the glow, then glass deeper at its edges, then the white-hot core.
+        return ZStack {
+            shape.stroke(color.opacity(0.8), style: line(3)).blur(radius: w * 2.2)
+            shape.stroke(color, style: line(1.6)).blur(radius: w * 0.9)
+            shape.stroke(color, style: line(1))
+            shape.stroke(Color.black.opacity(0.4), style: line(1))
+            shape.stroke(color, style: line(0.72))
+            shape.stroke(Color.white.opacity(0.4), style: line(0.45))
+            shape.stroke(Color.white.opacity(0.66), style: line(0.2))
         }
+        .frame(width: size * 0.72, height: size * 0.72)
         .frame(width: size + 4, height: size)
         .accessibilityHidden(true)
     }
+}
+
+/// A Tron icon's outline as a shape, from its path on the 24-point grid.
+struct TronShape: Shape {
+    let d: String
+    func path(in r: CGRect) -> Path { TronIcon.shape(d, in: r) }
 }
 
 /// The Tron icons' outlines, as straight-line paths on a 24-point grid ("M x y L x y … Z").
