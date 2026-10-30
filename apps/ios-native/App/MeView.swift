@@ -1,4 +1,5 @@
 import PrayerTowerKit
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -10,6 +11,7 @@ struct MeView: View {
     @State private var tier: TierStatus?
     @State private var tokens: TokenSummary?
     @State private var countsError: String?
+    @State private var photoItem: PhotosPickerItem?
     @State private var exportFile: ExportFile?
     @State private var exporting = false
     @State private var listenOpen = false
@@ -136,6 +138,52 @@ struct MeView: View {
             if let why = p.whyHere, !why.isEmpty {
                 Text(why.map { w("enums.whyHere.\($0)") }.joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)
             }
+            photo(p)
+        }
+    }
+
+    /// The member's own profile photo (Steve, 2026-10-30): it fills the oval on their posts; initials until they add one.
+    @ViewBuilder private func photo(_ p: Profile) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Ellipse().fill(Color.answeredGold.opacity(0.2))
+                if let s = p.photoUrl, let url = URL(string: s) {
+                    AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { ProgressView() }
+                        .accessibilityLabel(w("profile.photoAlt"))
+                } else {
+                    Text(String(p.displayName.prefix(1)).uppercased()).font(.title.bold()).accessibilityHidden(true)
+                }
+            }
+            .frame(width: 72, height: 90)
+            .clipShape(Ellipse())
+            .overlay(Ellipse().stroke(Color.answeredGold, lineWidth: 3))
+            VStack(alignment: .leading, spacing: 6) {
+                PhotosPicker(w(p.photoUrl == nil ? "profile.photoAdd" : "profile.photoChange"), selection: $photoItem, matching: .images)
+                if p.photoUrl != nil {
+                    Button(w("profile.photoRemove"), role: .destructive) { Task { await setPhoto(nil) } }
+                }
+                Text(w("profile.photoHint")).font(.footnote).foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(.top, 6)
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task {
+                defer { photoItem = nil }
+                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+                await setPhoto((data, Compose.contentType(item.supportedContentTypes.first?.preferredMIMEType, video: false)))
+            }
+        }
+    }
+
+    private func setPhoto(_ picked: (Data, String)?) async {
+        do {
+            if let (data, type) = picked { _ = try await model.store.api.setPhoto(data, contentType: type) } else { _ = try await model.store.api.removePhoto() }
+            model.me = try await model.store.api.me()
+            error = nil
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 

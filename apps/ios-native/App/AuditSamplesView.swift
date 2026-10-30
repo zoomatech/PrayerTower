@@ -44,6 +44,8 @@ struct AuditSamplesView: View {
                     }, onEnd: {})
                     .navigationTitle(skin.name)
                     .navigationBarTitleDisplayMode(.inline)
+                    // The same bars as the feed, so the title stays readable on a dark skin.
+                    .skinBars(Skin.backdrop(skin))
                 }
             }
             .navigationTitle("Skins")

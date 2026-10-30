@@ -63,6 +63,8 @@ export interface CardHandlers {
 // Memoized: a feed re-render (a prompt or highlights arriving) skips cards whose data didn't change.
 /** A feed skin can restyle the card's box (the drawn vine puts a smaller, greener box inside a leaf). */
 export const CardSurface = createContext<ViewStyle | null>(null);
+/** True where a skin leaves out the post-type label (the Beanstalk, Steve 2026-10-30). */
+export const CardNoType = createContext(false);
 
 export const PostCard = memo(function PostCard({
   card,
@@ -94,6 +96,7 @@ export const PostCard = memo(function PostCard({
     return e ? { words: chooser.words(e), open: () => chooser.open(e), action: t('meanings.choose', { emoji: e.emoji }), hint: t('meanings.holdHint') } : null;
   };
   const surface = useContext(CardSurface);
+  const noType = useContext(CardNoType);
   const lines = features.postLines;
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
@@ -107,7 +110,7 @@ export const PostCard = memo(function PostCard({
     label('prayerKind', card.kind, PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS]),
   ].filter(Boolean);
 
-  const typeLabel = <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
+  const typeLabel = noType ? null : <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
 
   return (
     <View style={[styles.card, answered && styles.answered, surface]}>

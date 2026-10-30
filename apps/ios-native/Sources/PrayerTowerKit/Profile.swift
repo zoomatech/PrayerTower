@@ -137,7 +137,16 @@ public struct NotificationPrefs: Codable, Sendable, Equatable {
 private struct ProfileWrapper: Decodable { let profile: Profile }
 private struct Donation: Encodable { let amount: Int; let idempotencyKey: String }
 
+public struct PhotoResult: Decodable, Sendable { public let photoUrl: String? }
+
 extension APIClient {
+    /// The member's own profile photo: uploaded like post media, then set; it fills the locket on their posts.
+    public func setPhoto(_ data: Data, contentType: String) async throws -> PhotoResult {
+        let ref = try await uploadMedia(data, contentType: contentType, video: false)
+        return try await send(body(request("PUT", "/me/photo"), ["storagePath": ref.storagePath]))
+    }
+    public func removePhoto() async throws -> PhotoResult { try await send(request("DELETE", "/me/photo")) }
+
     public func tier() async throws -> TierStatus { try await get("/me/tier") }
     public func tokens() async throws -> TokenSummary { try await get("/me/tokens") }
     public func updateMe(_ patch: [String: JSONValue]) async throws -> Profile {

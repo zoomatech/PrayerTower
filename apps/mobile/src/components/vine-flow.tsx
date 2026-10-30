@@ -488,6 +488,25 @@ export function LeafFrame({
   );
 }
 
+/**
+ * Fruit on the vine (Steve, 2026-10-30): someone has gifted the poster tokens, regular or
+ * Priestly. Two round fruits hanging from a short stem, with a leaf.
+ */
+export function VineFruit({ label, size = 34 }: { label: string; size?: number }) {
+  return (
+    <View accessible accessibilityRole="image" accessibilityLabel={label} style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox="0 0 34 34">
+        <Path d="M 17 2 C 17 7, 14 10, 11 15 M 17 2 C 18 8, 21 11, 24 16" stroke="#4A3220" strokeWidth={2} fill="none" strokeLinecap="round" />
+        <Path d="M 17 4 Q 25 0, 30 5 Q 23 9, 17 4 Z" fill="#7FB347" stroke="#22301A" strokeWidth={1.2} />
+        <Circle cx={11} cy={22} r={8} fill="#D9452B" stroke="#3A1A10" strokeWidth={1.6} />
+        <Circle cx={24} cy={23} r={8} fill="#E8762E" stroke="#3A1A10" strokeWidth={1.6} />
+        <Circle cx={8.5} cy={19} r={2.2} fill="#FFFFFF" fillOpacity={0.6} />
+        <Circle cx={21.5} cy={20} r={2.2} fill="#FFFFFF" fillOpacity={0.6} />
+      </Svg>
+    </View>
+  );
+}
+
 /** The feed card's box when it sits on a leaf (passed through CardSurface). */
 export function leafCardSurface(look: VineLook): ViewStyle {
   const ink = look.vineStyle === 'ink' ? look.ink || '#3A2E1F' : '';
