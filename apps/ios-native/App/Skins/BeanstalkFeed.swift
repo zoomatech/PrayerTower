@@ -289,7 +289,7 @@ private struct BeanPost<Row: View>: View {
             guard grownAt != nil, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
-        .sheet(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words) { reading = nil } }
+        .fullScreenCover(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words) { reading = nil } }
     }
 
     private func isLive(_ now: Date) -> Bool {
@@ -873,6 +873,8 @@ private struct BeanReader: View {
         .scrollBounceBehavior(.basedOnSize)
         .background { LeafSquare().accessibilityHidden(true) }
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        // A square, as large as the screen allows; longer threads scroll inside it.
+        .aspectRatio(1, contentMode: .fit)
         .overlay(alignment: .topTrailing) {
             Button(action: close) {
                 Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
@@ -884,9 +886,12 @@ private struct BeanReader: View {
             .accessibilityLabel(words("common.close"))
             .padding(12)
         }
-        .frame(maxWidth: 600, maxHeight: 640)
+        .frame(maxWidth: 600)
         .padding(16)
-        .presentationBackground(Color(RGB(hex: "#1F1A14")!).opacity(0.55))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Just the square over the dimmed feed, with no sheet behind it; a tap outside closes it.
+        .background { Color.black.opacity(0.45).ignoresSafeArea().onTapGesture(perform: close).accessibilityHidden(true) }
+        .presentationBackground(.clear)
         .environment(\.colorScheme, .light)
     }
 
@@ -926,7 +931,7 @@ private struct LeafSquare: View {
                     veins.addLine(to: CGPoint(x: cx + reach, y: y - reach * 0.6))
                     y += 70
                 }
-                ctx.stroke(veins, with: .color(Bean.vein.opacity(0.35)), style: .init(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                ctx.stroke(veins, with: .color(Bean.vein.opacity(0.22)), style: .init(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
             }
         }
     }
