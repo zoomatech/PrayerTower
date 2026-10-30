@@ -364,7 +364,7 @@ private struct BeanPost<Row: View>: View {
                     pageAt = .now
                 }
                 .frame(width: width)
-                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - (h.cluster ? 80 : 36))
+                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - (h.cluster ? 66 : 36))
                 .opacity(c.span(1100, 300, 0, 1))
             }
         }
@@ -654,20 +654,19 @@ private struct LeafCluster: View {
     private struct Node { let y: Double, side: Double, stalk: Double, size: Double, droop: Double, text: Bool }
 
     private var nodes: [Node] {
-        let lead = width - 26
+        let lead = width - 14
         if !big {
             return [Node(y: 8, side: 1, stalk: 14, size: 58, droop: -24, text: false),
                     Node(y: 34, side: -1, stalk: 14, size: 52, droop: 10, text: false),
                     Node(y: 58, side: 1, stalk: 12, size: 46, droop: 30, text: false)]
         }
         // Upper leaves reach up and out, lower ones droop, like a shoot seen from the side.
-        return [Node(y: 14, side: 1, stalk: 18, size: 78, droop: -32, text: false),
-                Node(y: 26, side: -1, stalk: 16, size: lead, droop: 10, text: true),
+        return [Node(y: 26, side: 1, stalk: 18, size: 74, droop: -14, text: false),
+                Node(y: 26, side: -1, stalk: 12, size: lead, droop: 3, text: true),
                 Node(y: 70, side: 1, stalk: 18, size: 70, droop: 0, text: false),
                 Node(y: 124, side: 1, stalk: 16, size: 62, droop: 28, text: false),
                 Node(y: 136, side: -1, stalk: 16, size: 66, droop: 30, text: false),
-                Node(y: 176, side: -1, stalk: 14, size: 52, droop: 46, text: false),
-                Node(y: 172, side: 1, stalk: 12, size: 48, droop: 52, text: false)]
+                Node(y: 176, side: -1, stalk: 14, size: 52, droop: 40, text: false)]
     }
 
     var body: some View {
@@ -697,7 +696,7 @@ private struct LeafCluster: View {
                 .frame(width: 2 * W, height: tall)
                 ForEach(Array(all.enumerated()), id: \.offset) { i, n in
                     let left = n.side < 0
-                    let h = (n.size * 0.5).rounded()
+                    let h = (n.size * (n.text ? 0.58 : 0.5)).rounded()
                     let ex = W + n.side * n.stalk
                     let ey = n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(n.droop * .pi / 180)
                     let anchor: UnitPoint = left ? .trailing : .leading
@@ -722,9 +721,10 @@ private struct LeafCluster: View {
                 VStack(spacing: 1) {
                     Text(first.author).font(BeanFont.bold(13)).lineLimit(1)
                     // The whole first line of the top comment, as wide as the leaf allows.
-                    Text(first.body).font(BeanFont.body(12.5)).lineLimit(1).truncationMode(.tail)
+                    Text(first.body).font(BeanFont.body(12.5)).lineLimit(2).truncationMode(.tail)
                 }
                 .foregroundStyle(Bean.text)
+                .multilineTextAlignment(.center)
                 .padding(.leading, n.size * (flip ? 0.12 : 0.16))
                 .padding(.trailing, n.size * (flip ? 0.16 : 0.12))
             }
