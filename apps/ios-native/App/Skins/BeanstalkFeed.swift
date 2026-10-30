@@ -244,6 +244,8 @@ private struct BeanPost<Row: View>: View {
     @State private var cv = BeanDraw.LeafState()
     @State private var geo: BeanDraw.FrameVine?
     @State private var reading: Beanstalk.Note?
+    /// Where on screen the card's poster name ends, so a comment's close-up opens below it.
+    @State private var nameBottom: Double = 0
     @Environment(\.accessibilityReduceMotion) private var still
 
     var body: some View {
@@ -289,7 +291,7 @@ private struct BeanPost<Row: View>: View {
             guard grownAt != nil, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
-        .fullScreenCover(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words) { reading = nil } }
+        .fullScreenCover(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words, top: nameBottom) { reading = nil } }
     }
 
     private func isLive(_ now: Date) -> Bool {
@@ -322,6 +324,9 @@ private struct BeanPost<Row: View>: View {
             .overlay(RoundedRectangle(cornerRadius: 18).stroke(Bean.ink, lineWidth: 3))
             .background(RoundedRectangle(cornerRadius: 18).fill(Bean.ink).offset(x: 6, y: 7))
             .onGeometryChange(for: CGSize.self) { $0.size } action: { s in measured(s) }
+            // The locket and the poster's name, on screen: the card's top plus room under the locket and the name's line.
+            // Rounded, so scrolling only updates it every few points.
+            .onGeometryChange(for: Double.self) { (Double($0.frame(in: .global).minY) / 8).rounded() * 8 + 80 } action: { nameBottom = $0 }
             // The card springs up from the stalk: from low, narrow and flat, to whole.
             .scaleEffect(x: sx, y: sy, anchor: .bottom)
             .offset(y: dy)
@@ -850,6 +855,9 @@ private struct BeanReader: View {
     let note: Beanstalk.Note
     let kids: [String: [Beanstalk.Note]]
     let words: Words
+    /// Where the poster's locket and name end on screen: the close-up opens below them, so you
+    /// can always see whose post you're answering (Steve, 2026-10-30).
+    var top: Double = 0
     let close: () -> Void
 
     // The full close-up only hints at a leaf (Steve, 2026-10-30): a plain green square, paler in
@@ -887,10 +895,9 @@ private struct BeanReader: View {
             .padding(12)
         }
         .frame(maxWidth: 600)
-        .padding(16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Just the square over the dimmed feed, with no sheet behind it; a tap outside closes it.
-        .background { Color.black.opacity(0.45).ignoresSafeArea().onTapGesture(perform: close).accessibilityHidden(true) }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .modifier(BelowName(top: top, close: close))
         .presentationBackground(.clear)
         .environment(\.colorScheme, .light)
     }
@@ -907,6 +914,27 @@ private struct BeanReader: View {
             .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
             .padding(.leading, 20)
         })
+    }
+}
+
+/// Places the close-up below the poster's locket and name, dimming only the feed beneath them, so
+/// the post's author stays in view. A tap outside the square closes it.
+private struct BelowName: ViewModifier {
+    let top: Double
+    let close: () -> Void
+    func body(content: Content) -> some View {
+        GeometryReader { g in
+            // On screen even when the post is scrolled part way off, and never so low the square has no room.
+            let y: Double = min(max(top, 60), Double(g.size.height) * 0.5)
+            VStack(spacing: 0) {
+                Color.clear.contentShape(.rect).frame(height: y).onTapGesture(perform: close)
+                content.frame(maxHeight: .infinity, alignment: .top)
+            }
+            .background(alignment: .bottom) {
+                Color.black.opacity(0.45).frame(height: max(0, Double(g.size.height) - y + 8)).onTapGesture(perform: close).accessibilityHidden(true)
+            }
+        }
+        .ignoresSafeArea()
     }
 }
 
