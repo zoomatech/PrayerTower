@@ -59,10 +59,17 @@ struct VineFeed<Row: View>: View {
                 if look.vineStyle == .gate { GateTop(look: look).frame(height: 150).frame(maxWidth: .infinity) }
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     VStack(alignment: .leading, spacing: 18) {
-                        VineLeaf(look: look, wording: wording, depth: 0) { row(card) }
-                            .overlay(alignment: .topTrailing) {
-                                if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
-                            }
+                        VineLeaf(look: look, wording: wording, depth: 0) {
+                            row(card).environment(\.cardPart, look.vineStyle == .neon ? .post : .whole)
+                        }
+                        .overlay(alignment: .topTrailing) {
+                            if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
+                        }
+                        // Neon: the post's icons sit bigger on the black screen, outside the post (Steve, 2026-10-30).
+                        if look.vineStyle == .neon {
+                            row(card).environment(\.cardPart, .icons(Color(look.leaf)))
+                                .padding(.leading, 54).padding(.trailing, 8)
+                        }
                         ForEach(card.leafComments ?? []) { c in
                             VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
                         }

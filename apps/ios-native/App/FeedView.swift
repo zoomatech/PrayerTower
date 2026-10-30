@@ -204,8 +204,17 @@ struct FeedView: View {
     }
 }
 
+/// Which part of a card a skin asks for: all of it, or the post and its icons apart, so the icons
+/// can sit on the skin's backdrop outside the post (Steve, 2026-10-30, neon).
+enum CardPart { case whole, post, icons(Color) }
+
+extension EnvironmentValues {
+    @Entry var cardPart: CardPart = .whole
+}
+
 struct CardRow: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.cardPart) private var part
     let card: Card
     let active: Set<CardAction>
     let onAction: (CardAction) -> Void
@@ -216,6 +225,26 @@ struct CardRow: View {
     var onOpenPost: ((String) -> Void)?
 
     var body: some View {
+        if case .icons(let glow) = part {
+            icons(size: 40, glow: glow)
+        } else {
+            whole
+        }
+    }
+
+    private func icons(size: CGFloat = 28, glow: Color? = nil) -> some View {
+        ActionRowView(
+            items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
+            wording: model.wording,
+            active: active,
+            onAction: onAction,
+            onMeaning: onMeaning,
+            size: size,
+            glow: glow
+        )
+    }
+
+    private var whole: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
                 // Answered: a gold mark, as the Expo card's banner and border.
@@ -240,13 +269,7 @@ struct CardRow: View {
                     Button("🌅 " + model.words("answeredStory.read")) { onOpenPost?(id) }.font(.footnote).buttonStyle(.borderless)
                 }
             }
-            ActionRowView(
-                items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
-                wording: model.wording,
-                active: active,
-                onAction: onAction,
-                onMeaning: onMeaning
-            )
+            if case .whole = part { icons() }
         }
         .padding(.vertical, 4)
         .overlay {
