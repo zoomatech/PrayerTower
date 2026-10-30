@@ -30,6 +30,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     notificationSettings: 'Ajustes de notificaciones…',
     tour: 'Recorrido por Prayer Tower',
     feedback: 'Enviar comentarios…',
+    home: 'Inicio',
+    open: 'Menú',
+    close: 'Cerrar menú',
   },
   widget: {
     heading: 'Ora ahora',
