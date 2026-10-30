@@ -10,9 +10,9 @@ final class AccessibilityAuditTests: XCTestCase {
     static let sizes = ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"]
 
     /// Names the element in the log so the issue can be found; every issue still fails the test.
-    static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
-        // The audit calls back on the main thread; XCUIElement's properties are main-actor isolated.
-        let what = MainActor.assumeIsolated { issue.element.map { "\($0.elementType) '\($0.label)'" } } ?? "screen"
+    /// On the main actor, as XCUIElement's properties are; every caller is a @MainActor test.
+    @MainActor static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
+        let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
         print("AUDIT \(place): \(issue.compactDescription) on \(what)")
         return false
     }
