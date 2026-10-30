@@ -25,7 +25,7 @@ const FAITH_ONLY = [
   /^ai\.(chatLink|chatTitle|chatIntro|ai)$/,
   /^care\.confessionNote/,
   /^readingPlan\./,
-  /^library\.(adminHint|adminDailyHint|adminParallelsHint|adminPlansHint)$/,
+  /^library\.(adminHint|adminDailyHint|adminParallelsHint|adminPlansHint|adminWordsHint|study\..+)$/,
   /^church(Review)?\./,
   /^admin\.(toggle\.(confession|confessionHint|aiChat|aiChatHint|readingPlan|readingPlanHint|crossCommunityHint|supportLabelHint)|field\.confessionDays|newCommunityHint)$/,
   /^skins\.seasonalHint$/,

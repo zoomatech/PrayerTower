@@ -174,6 +174,10 @@ export interface Features {
   /** Parallels across texts and reading plans from the library (docs/LIBRARY_SEARCH.md). */
   libraryParallels: boolean;
   libraryPlans: boolean;
+  /** Word study on the King James Bible, highlights and notes, offline texts (docs/LIBRARY_SEARCH.md). */
+  libraryWords: boolean;
+  libraryNotes: boolean;
+  libraryOffline: boolean;
   /** Growth ideas (docs/GROWTH.md). */
   guestPrayer: boolean;
   prayerChain: boolean;
@@ -1652,13 +1656,43 @@ export type ReadingPlanToday =
     };
 export type LibraryOverview = { enabled: false } | { enabled: true; collections: { id: LibraryCollectionId; title: string; faith: boolean }[] };
 export type LibraryCollectionId = 'bible-kjv' | 'apocrypha-kjv' | 'ancient-writings' | 'oldest-texts' | 'world-classics';
-export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string };
+export type LibraryHit = { ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string; key: string };
 export type LibraryDaily =
   | { enabled: false }
   | { enabled: true; day: string; share: boolean; passage: { collection: LibraryCollectionId; ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string } };
-export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean };
+export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean; wordsEnabled: boolean; notesEnabled: boolean; offlineEnabled: boolean };
 /** Passages from one place in a collection, with their citation. */
-export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string };
+export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string; key: string };
+/** A King James verse word by word; tagged words carry Strong's numbers (H… Hebrew, G… Greek). */
+export type WordVerse = { ref: string; citation: string; key: string; words: { text: string; strongs: string[] }[]; roots: Record<string, { lemma: string; translit: string }> };
+export type WordEntry = {
+  id: string;
+  language: 'Hebrew' | 'Greek';
+  lemma: string;
+  translit: string;
+  pron: string;
+  derivation: string;
+  definition: string;
+  kjv: string;
+  total: number;
+  verses: { ref: string; text: string; as: string[]; citation: string; key: string }[];
+};
+export type NoteColor = 'yellow' | 'green' | 'blue' | 'pink';
+/** A member's highlight and/or note on a passage; private unless shared with one of their circles. */
+export type LibraryNote = {
+  id: string;
+  collection: LibraryCollectionId;
+  workId: string;
+  ref: string;
+  key: string;
+  quote: string;
+  citation: string;
+  color: NoteColor | null;
+  note: string | null;
+  circle: { id: string; name: string } | null;
+  updatedAt: string;
+};
+export type CircleLibraryNote = LibraryNote & { author: string; mine: boolean };
 export type ParallelThemes = { enabled: false } | { enabled: true; themes: { id: string; title: string; intro: string; texts: string[] }[] };
 export type ParallelTheme = { id: string; title: string; intro: string; sides: (LibraryExcerpt & { label: string | null })[] };
 export type PlanProgress = { read: number; next: number | null; finished: boolean; reminders: boolean; circle: { id: string; name: string } | null };
@@ -2448,6 +2482,13 @@ export const api = {
   unfollowPlan: (id: string) => request<ReadingPlans>('DELETE', `/library/plans/${encodeURIComponent(id)}/follow`),
   planDay: (id: string, day: number) => get<ReadingPlanDay>(`/library/plans/${encodeURIComponent(id)}/days/${day}`),
   readPlanDay: (id: string, day: number) => request<ReadingPlanDay>('POST', `/library/plans/${encodeURIComponent(id)}/days/${day}/read`, {}),
+  wordVerse: (ref: string) => get<WordVerse>(`/library/words?ref=${encodeURIComponent(ref)}`),
+  wordEntry: (id: string, offset = 0, limit = 20) => get<WordEntry>(`/library/words/${encodeURIComponent(id)}?offset=${offset}&limit=${limit}`),
+  libraryNotes: (collection?: LibraryCollectionId) => get<{ notes: LibraryNote[] }>(`/library/notes${collection ? `?collection=${collection}` : ''}`),
+  saveLibraryNote: (input: { collection: LibraryCollectionId; key: string; color?: NoteColor | null; note?: string | null; circleId?: string | null }) =>
+    request<{ note: LibraryNote | null }>('PUT', '/library/notes', input),
+  deleteLibraryNote: (id: string) => request<{ removed: true }>('DELETE', `/library/notes/${id}`),
+  circleLibraryNotes: (circleId: string) => get<{ notes: CircleLibraryNote[] }>(`/library/notes/circle/${circleId}`),
   searchLibrary: (input: { q: string; collection: LibraryCollectionId; offset?: number; limit?: number }) =>
     get<LibraryResults>(`/library/search?${new URLSearchParams({ q: input.q, collection: input.collection, offset: String(input.offset ?? 0), limit: String(input.limit ?? 20) })}`),
   markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),
