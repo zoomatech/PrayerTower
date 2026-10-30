@@ -14,6 +14,14 @@ options:
 packages:
   PrayerTowerKit:
     path: .
+  # EmbeddingGemma for the fuzzy Bible search (App/GemmaEmbedder.swift), as Winstons Syndicate's ZoomaBibleSearch.
+  # Here, not in Package.swift, so that the shared package still builds and tests on Linux.
+  onnxruntime:
+    url: https://github.com/microsoft/onnxruntime-swift-package-manager
+    exactVersion: 1.24.2
+  swift-transformers:
+    url: https://github.com/huggingface/swift-transformers
+    from: 1.3.0
 targets:
   PrayerTowerNative:
     type: application
@@ -27,6 +35,11 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+          - PrayerTowerScripture
+      - package: onnxruntime
+        product: onnxruntime
+      - package: swift-transformers
+        product: Tokenizers
       # The Pray now widget and the Praying for you Live Activity, embedded in the app.
       - target: PrayerTowerWidgets
       # Cross-posting in Safari (apps/extension), embedded in the app as a Safari web extension.
@@ -96,6 +109,11 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+          - PrayerTowerScripture
+      - package: onnxruntime
+        product: onnxruntime
+      - package: swift-transformers
+        product: Tokenizers
       - target: OpenCircleWidgets
       - target: OpenCircleCrosspost
     info:
@@ -301,6 +319,11 @@ targets:
         products:
           - PrayerTowerKit
           - PrayerTowerSession
+          - PrayerTowerScripture
+      - package: onnxruntime
+        product: onnxruntime
+      - package: swift-transformers
+        product: Tokenizers
     info:
       path: Mac/Info.plist
       properties:

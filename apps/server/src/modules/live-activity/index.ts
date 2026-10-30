@@ -39,7 +39,9 @@ export interface Summary {
 /** Who prayed for this request since the activity started: members (named unless anonymous) and guests. */
 export async function summary(q: Queryable, postId: string, since: Date): Promise<Summary> {
   const { rows: members } = await q.query<{ name: string | null; anonymous: boolean; at: Date }>(
-    `select distinct on (e.user_id) pr.display_name as name, e.is_anonymous as anonymous, e.created_at as at
+    // Someone the author blocked after they prayed still counts, but their name never shows on the Lock Screen.
+    `select distinct on (e.user_id) pr.display_name as name,
+            e.is_anonymous or exists (select 1 from public.user_blocks b where b.user_id = p.user_id and b.blocked_id = e.user_id) as anonymous, e.created_at as at
        from public.prayer_events e
        join public.posts p on p.id = e.post_id
        join public.profiles pr on pr.id = e.user_id

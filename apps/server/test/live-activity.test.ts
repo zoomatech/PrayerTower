@@ -77,6 +77,9 @@ describe('prayed-for Live Activity', () => {
     // Nothing new: nothing sent.
     await live.refresh(db, send);
     expect(sent).toHaveLength(2);
+    // Blocking Ana afterwards keeps her name off the Lock Screen.
+    await db.query('insert into public.user_blocks (user_id, blocked_id) values ($1, $2)', [author, ana]);
+    expect((await live.summary(db, post.id, new Date(0))).names).toEqual([]);
   });
 
   it('ends after 8 hours, when answered, or when Apple says the token is gone', async () => {

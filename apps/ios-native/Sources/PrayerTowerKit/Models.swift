@@ -46,6 +46,8 @@ public struct Card: Codable, Sendable, Identifiable, Equatable {
     public var lamentRadio: Bool? = nil
     /// Only on the author's own request: it goes out again when the air is quiet.
     public var keepOnAir: Bool? = nil
+    /// Someone has gifted the poster tokens, regular or Priestly: fruit on the vine skins.
+    public var gifted: Bool? = nil
     /// Newest few comments, newest first, while comments as leaves is on (the drawn vine and tower).
     public let leafComments: [LeafComment]?
     /// An answered-prayer story: the request it tells the ending of.
