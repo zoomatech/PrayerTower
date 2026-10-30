@@ -152,7 +152,9 @@ struct Mark: View {
                 }
                 .frame(width: size, height: size)
             case .star:
-                DecorativeGlyph(glyph: "✦", size: size, color: color).neonTube(color)
+                // A symbol, not a text glyph, so it scales with the words and is never read as text.
+                Image(systemName: "sparkle").font(.callout).foregroundStyle(color).neonTube(color)
+                    .frame(minWidth: size, minHeight: size).accessibilityHidden(true)
             default:
                 EmptyView()
             }

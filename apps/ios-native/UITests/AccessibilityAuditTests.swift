@@ -39,7 +39,8 @@ final class AccessibilityAuditTests: XCTestCase {
                     sleep(1)
                     try audit(app, "\(name) at \(size)")
                     // Then the end of the feed, so its last lines are checked on screen, not cut by the edge.
-                    for _ in 0..<3 { app.swipeUp() }
+                    // Slow swipes, so the feed isn't still gliding when the audit takes its picture.
+                    for _ in 0..<3 { app.swipeUp(velocity: .slow) }
                     sleep(3)
                     try audit(app, "\(name) at \(size), scrolled to the end")
                     // Back to the list; a skin whose bar has no back button (seen once at the largest
