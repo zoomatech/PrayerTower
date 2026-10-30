@@ -271,9 +271,12 @@ struct MoreLeaves: View {
 struct LeafCommentText: View {
     let comment: LeafComment
     let look: VineLook
+    @Environment(\.dynamicTypeSize) private var size
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            if look.vineStyle != .floral { Mark(shape: look.leafShape, color: Color(look.leaf), center: Color(look.tendril)) }
+            // At the accessibility sizes the words need the room, and a small mark beside giant
+            // letters reads as a stray glyph.
+            if look.vineStyle != .floral, !size.isAccessibilitySize { Mark(shape: look.leafShape, color: Color(look.leaf), center: Color(look.tendril)) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(comment.author.displayName).font(.caption.bold())
                 Text(comment.body).font(.callout)
@@ -464,7 +467,8 @@ struct TowerFeed<Row: View>: View {
             let index = Double(cards.firstIndex { $0.id == floor } ?? 0)
             VStack(spacing: 0) {
                 Rectangle().fill(Color(look.mortar)).frame(width: 2, height: max(20, 200 - index * 24))
-                DecorativeGlyph(glyph: look.climber, size: 28)
+                // Kept to the wall's width, so it never hangs over a tablet.
+                DecorativeGlyph(glyph: look.climber, size: 22, maxScale: 1)
             }
             .frame(maxHeight: .infinity, alignment: .top)
             .padding(.trailing, 4)

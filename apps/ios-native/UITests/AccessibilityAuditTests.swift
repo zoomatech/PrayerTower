@@ -48,6 +48,9 @@ final class AccessibilityAuditTests: XCTestCase {
                                    withVelocity: .slow, thenHoldForDuration: 0.5)
                     }
                     sleep(2)
+                    // Read the element tree once, so the audit sees where things are after the
+                    // scroll rather than where they were.
+                    _ = app.debugDescription
                     try audit(app, "\(name) at \(size), scrolled to the end")
                     // Back to the list; a skin whose bar has no back button (seen once at the largest
                     // text) gets a fresh launch instead.
