@@ -51,6 +51,12 @@ final class MainScreensWalk: XCTestCase {
         var issues: [String] = []
         func audit(_ screen: String) throws {
             try app.performAccessibilityAudit { issue in
+                // Left aside: Apple's own warnings for its system colors and list text ("nearly
+                // passed", "partially unsupported"), and contrast on a switched-off control, which
+                // WCAG exempts (a Comment button before anything is typed).
+                let text = issue.compactDescription
+                if text.contains("nearly passed") || text.contains("partially unsupported") { return true }
+                if issue.auditType == .contrast, issue.element?.isEnabled == false { return true }
                 let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
                 issues.append("\(screen): \(issue.compactDescription) on \(what)")
                 return true
