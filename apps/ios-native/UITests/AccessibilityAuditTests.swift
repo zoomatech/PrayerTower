@@ -38,6 +38,10 @@ final class AccessibilityAuditTests: XCTestCase {
                     _ = app.navigationBars[name].waitForExistence(timeout: 5)
                     sleep(1)
                     try audit(app, "\(name) at \(size)")
+                    // Then the end of the feed, so its last lines are checked on screen, not cut by the edge.
+                    for _ in 0..<3 { app.swipeUp() }
+                    sleep(1)
+                    try audit(app, "\(name) at \(size), scrolled to the end")
                     // Back to the list; a skin whose bar has no back button (seen once at the largest
                     // text) gets a fresh launch instead.
                     let back = app.navigationBars.buttons.firstMatch

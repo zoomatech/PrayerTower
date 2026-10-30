@@ -40,7 +40,7 @@ struct SwipeFeed<Row: View>: View {
                         .accessibilityAction(named: words.pray) { confirming = card }
                         .accessibilityAction(named: words.next) { next() }
                     AdaptiveStack {
-                        Button("‹ \(words.next)") { next() }.buttonStyle(.bordered)
+                        Button("‹ \(words.next)") { next() }.buttonStyle(.bordered).tint(.primary)
                         Spacer(minLength: 0)
                         Button("\(words.pray) ›") { confirming = card }.buttonStyle(.borderedProminent)
                     }

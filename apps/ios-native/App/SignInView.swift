@@ -80,8 +80,15 @@ struct SignInView: View {
                 .textContentType(mode == .signUp ? .newPassword : .password)
         }
         Section {
-            Button(w(mode == .signIn ? "signIn.signIn" : "signIn.createAccount")) { Task { await submit() } }
-                .disabled(!ready)
+            // Never grayed out (a disabled button's gray text fails contrast); a tap with something
+            // missing says what to fill in.
+            Button(w(mode == .signIn ? "signIn.signIn" : "signIn.createAccount")) {
+                guard ready else {
+                    if !busy { error = w.server("Enter your email and a password of at least 6 characters.") }
+                    return
+                }
+                Task { await submit() }
+            }
             if mode == .signUp && config.inviteOnly { Text(w("signIn.inviteHint")).font(.footnote) }
             if mode == .signUp { LegalLinksView(prefix: w("signIn.legalPrefix")) }
             if mode == .signIn && config.passkeys {
@@ -92,7 +99,9 @@ struct SignInView: View {
                 }
                 .disabled(busy)
             }
-            if mode == .signIn { Button(w("signIn.forgot")) { switchMode(.forgot) } }
+            if mode == .signIn {
+                Button { switchMode(.forgot) } label: { Text(w("signIn.forgot")).fixedSize(horizontal: false, vertical: true) }
+            }
             Button(w(mode == .signIn ? "signIn.toSignUp" : "signIn.toSignIn")) { switchMode(mode == .signIn ? .signUp : .signIn) }
         }
     }

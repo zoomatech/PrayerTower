@@ -73,7 +73,7 @@ struct VineFeed<Row: View>: View {
                     .foregroundStyle(Color(look.tipColor))
                     .backdropPlate(look.backdrop)
                     .padding(.leading, 44)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 160)
             }
             .padding(.vertical, 20)
             .background(alignment: .topLeading) { Stalk(look: look).frame(width: 40).accessibilityHidden(true) }
@@ -420,7 +420,7 @@ struct TowerFeed<Row: View>: View {
                     .task { if card.id == cards.last?.id { await onEnd() } }
                 }
                 if !hasMore, !cards.isEmpty {
-                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).onBackdrop(look.backdrop).padding(.vertical, 24)
+                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).onBackdrop(look.backdrop).padding(.horizontal, 34).padding(.top, 24).padding(.bottom, 160)
                 }
             }
             .scrollTargetLayout()
@@ -433,7 +433,8 @@ struct TowerFeed<Row: View>: View {
                     .font(.footnote.bold())
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
-                    .background(.regularMaterial, in: .capsule)
+                    .foregroundStyle(Color(RGB.commentText))
+                    .background(Color(RGB(hex: "#FBFAF7")!), in: .capsule)
                     .padding(.bottom, 6)
             }
         }
@@ -548,7 +549,7 @@ struct CircuitFeed<Row: View>: View {
                         // squeezed or cut off at an angle.
                         .background {
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(BackdropText(on: look.backdrop).plate ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color(look.backdrop).opacity(0.92)))
+                                .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
                                 .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)) }
                                 .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                                 .accessibilityHidden(true)
@@ -567,6 +568,7 @@ struct CircuitFeed<Row: View>: View {
                         Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).backdropPlate(look.backdrop)
                     }
                     .padding(.trailing, 40)
+                    .padding(.bottom, 160)
                 }
             }
             .padding(.vertical, 24)
