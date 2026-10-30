@@ -50,6 +50,44 @@ struct ConnectorOutline<S: Shape, L: ConnectorLook>: View {
     }
 }
 
+/// One half of a box with small curved corners, drawn from the middle of its top edge round to the
+/// middle of its bottom edge, so a frame drawing itself in starts on screen and works downward.
+struct BoxHalf: Shape {
+    /// -1 for the left half, 1 for the right.
+    let side: CGFloat
+    var radius: CGFloat = 12
+
+    func path(in r: CGRect) -> Path {
+        let c = min(radius, min(r.width, r.height) / 4)
+        let edge = side < 0 ? r.minX : r.maxX
+        let inward: CGFloat = side < 0 ? 1 : -1
+        var p = Path()
+        p.move(to: CGPoint(x: r.midX, y: r.minY))
+        p.addLine(to: CGPoint(x: edge + inward * c, y: r.minY))
+        p.addQuadCurve(to: CGPoint(x: edge, y: r.minY + c), control: CGPoint(x: edge, y: r.minY))
+        p.addLine(to: CGPoint(x: edge, y: r.maxY - c))
+        p.addQuadCurve(to: CGPoint(x: edge + inward * c, y: r.maxY), control: CGPoint(x: edge, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.midX, y: r.maxY))
+        return p
+    }
+}
+
+/// A box frame that draws itself in from the top, down both sides at once (Steve, 2026-10-30: as the
+/// feed scrolls down, a new box's top shows before its bottom, which is still off screen).
+struct TopDownFrame<L: ConnectorLook>: View {
+    let look: L
+    var radius: CGFloat = 12
+    var width: CGFloat = 8
+    var progress: CGFloat = 1
+
+    var body: some View {
+        ZStack {
+            ConnectorOutline(shape: BoxHalf(side: -1, radius: radius), look: look, width: width, progress: progress)
+            ConnectorOutline(shape: BoxHalf(side: 1, radius: radius), look: look, width: width, progress: progress)
+        }
+    }
+}
+
 /// Grows its content in when it comes into view (`progress` 0 to 1) and resets when it leaves, so it
 /// grows again. Still under Reduce Motion and in the snapshot tests.
 struct GrowingIn<Content: View>: View {
