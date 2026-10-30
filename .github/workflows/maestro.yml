@@ -15,6 +15,12 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      # Packages the app pulls in (Expo's 'apple') need Swift 6.2, so use the newest Xcode on the runner.
+      - name: Use the newest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
       - uses: actions/setup-node@v4
         with:
           node-version: 22
