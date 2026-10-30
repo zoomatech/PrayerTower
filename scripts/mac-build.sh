@@ -126,7 +126,7 @@ fi
 # Show the first errors of anything that failed.
 for f in "$LOGS"/*.log; do
   if grep -q -E 'error:|\*\* BUILD FAILED' "$f"; then
-    echo; echo "--- first errors in $(basename "$f")"; grep -m 10 -E 'error:' "$f"
+    echo; echo "--- first errors in $(basename "$f")"; grep -m 10 -A 8 -E 'error:' "$f"
   fi
 done
 exit "$FAILED"
