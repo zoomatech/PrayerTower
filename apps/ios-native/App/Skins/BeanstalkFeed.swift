@@ -289,7 +289,9 @@ private struct BeanPost<Row: View>: View {
             let bottom: Double = vp * 0.96
             let seen: Double = min(end, bottom) - max(top, 0)
             if tall > 0 && (seen >= tall * 0.08 || seen >= 0.08 * bottom) { return 1 }
-            if end <= 0 || top >= vp { return -1 }
+            // Reset only once well past the edge: a post that a text-size change nudges just off
+            // screen and back keeps its drawing instead of growing in again mid-read.
+            if end <= -vp * 0.5 || top >= vp * 1.5 { return -1 }
             return 0
         } action: { state in
             if state == 1 && grownAt == nil {
