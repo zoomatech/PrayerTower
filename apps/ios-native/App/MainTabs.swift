@@ -1,7 +1,7 @@
 import PrayerTowerKit
 import SwiftUI
 
-/// One of the signed-in app's sections, for the tab bar, the iPad and Mac sidebar, and ⌘1–⌘6.
+/// One of the signed-in app's sections, for the tab bar, the iPad and Mac sidebar, and ⌘1–⌘7.
 struct AppSection: Identifiable, Hashable {
     let tag: Int
     let title: String
@@ -59,6 +59,7 @@ struct MainTabs: View {
         if sidebar {
             all.append(AppSection(tag: 2, title: model.words("tabs.messages"), icon: "bubble.left.and.bubble.right"))
             all.append(AppSection(tag: 5, title: model.words("tabs.notices"), icon: "bell"))
+            if model.me?.community?.shows("groups") ?? true { all.append(AppSection(tag: 6, title: model.words("messages.groups"), icon: "person.2")) }
         }
         if model.features["prayerCircles"] { all.append(AppSection(tag: 3, title: "Circles", icon: "person.3")) }
         all.append(AppSection(tag: 4, title: model.words("tabs.me"), icon: "person.crop.circle", emoji: "👤"))
@@ -85,7 +86,7 @@ struct MainTabs: View {
                 }
             }
         }
-        // ⌘1–⌘6 jump between sections with a hardware keyboard (iPad, Mac).
+        // ⌘1–⌘7 jump between sections with a hardware keyboard (iPad, Mac).
         .background { shortcuts }
         .task { await model.loadSettings() }
         .fullScreenCover(isPresented: Binding(get: { model.showTour }, set: { model.showTour = $0 })) { TourView() }
@@ -111,6 +112,7 @@ struct MainTabs: View {
         case 3: CirclesView()
         case 4: MeView()
         case 5: NotificationsView()
+        case 6: NavigationStack { GroupsView() }
         default: FeedView()
         }
     }

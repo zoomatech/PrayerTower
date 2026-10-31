@@ -76,7 +76,10 @@ public enum SampleServer {
         let l = Lines.of(edition)
         let ruth = card("sample-p1", "Ruth", mine: false, l.ruth)
         let mine = card("sample-p2", "Sample Member", mine: true, "Asking for strength for my new job.")
+        // Prayer Tower's first group (Steve, 2026-10-31). Open Circle members don't see it.
+        let groups = edition == .openCircle ? "" : #"{"id":"sample-g1","title":"Cancer survivors","topic":"For cancer survivors to pray for, encourage and get to know one another.","memberCount":14,"joined":false,"lastMessageAt":"2026-10-31T09:00:00Z"}"#
         return [
+            ("GET", "^/groups$", #"{"groups":[\#(groups)]}"#),
             ("GET", "^/radio/listen$", #"{"enabled":true,"receipts":true}"#),
             ("POST", "^/listen/heard$", #"{"matched":0}"#),
             ("GET", "^/me$", """

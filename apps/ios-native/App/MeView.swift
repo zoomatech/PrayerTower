@@ -37,6 +37,10 @@ struct MeView: View {
                     Section {
                         NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")) } icon: { Text("💬").accessibilityHidden(true) } }
                         NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")) } icon: { Text("🔔").accessibilityHidden(true) } }
+                        // Groups in the main menu (Steve, 2026-10-31), starting with Cancer survivors.
+                        if model.me?.community?.shows("groups") ?? true {
+                            NavigationLink { GroupsView() } label: { Label { Text(w("messages.groups")) } icon: { Text("👥").accessibilityHidden(true) } }
+                        }
                     }
                 }
                 if let profile = model.me?.profile {

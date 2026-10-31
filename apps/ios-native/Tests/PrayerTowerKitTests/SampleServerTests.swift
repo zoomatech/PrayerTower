@@ -21,6 +21,7 @@ import Testing
         #expect(try await api.commitments().commitments.count == 1)
         #expect(try await api.conversations().count == 1)
         #expect(try await api.notifications().count == 1)
+        #expect(try await api.groups().first?.title == "Cancer survivors")
         // My Promises and Me load these too; a missing one shows an error in the store screenshots.
         #expect(try await api.weeklyReview().kept == 2)
         #expect(try await api.tier().prayers == 42)
