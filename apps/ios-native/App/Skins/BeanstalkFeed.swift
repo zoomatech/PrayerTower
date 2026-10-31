@@ -318,7 +318,12 @@ private struct BeanPost<Row: View>: View {
             guard grown, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
+        #if os(iOS)
         .fullScreenCover(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words, top: nameBottom) { reading = nil } }
+        #else
+        // The Mac has no full-screen cover; the leaf opens in a sheet there.
+        .sheet(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words, top: nameBottom) { reading = nil } }
+        #endif
     }
 
     private func isLive(_ now: Date) -> Bool {

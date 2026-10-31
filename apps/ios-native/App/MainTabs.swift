@@ -86,8 +86,7 @@ struct MainTabs: View {
                     ForEach(sections) { s in
                         screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
                             // The bar under the feed is 75% opaque (Steve, 2026-10-30).
-                            .toolbarBackground(Color.barBackground.opacity(0.75), for: .tabBar)
-                            .toolbarBackground(.visible, for: .tabBar)
+                            .seeThroughTabBar()
                     }
                 }
                 // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
@@ -264,5 +263,17 @@ struct FeedStyleSection: View {
             model.feedStyle = slug
             error = nil
         } catch { self.error = error.localizedDescription }
+    }
+}
+
+private extension View {
+    /// The tab bar at 75% opacity. The Mac app has no tab bar to style.
+    @ViewBuilder func seeThroughTabBar() -> some View {
+        #if os(iOS)
+        self.toolbarBackground(Color.barBackground.opacity(0.75), for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+        #else
+        self
+        #endif
     }
 }
