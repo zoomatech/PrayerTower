@@ -29,7 +29,7 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-0.8px)}}
 .feed::-webkit-scrollbar{display:none}
 .icon-btn:focus-visible,.plain-btn:focus-visible,.placard:focus-visible{outline:2px solid #7A5C74;outline-offset:2px}
-.placard{display:block;width:100%;text-align:left;border:0;cursor:pointer;font-family:'Lora',Georgia,serif;color:#4B3F47;position:relative;border-radius:10px;padding:10px 12px 10px 12px;box-shadow:0 3px 6px rgba(70,50,60,0.22),inset 1px 1px 0 rgba(255,255,255,0.7),inset -1px -1px 0 rgba(95,70,85,0.15)}
+.placard{display:block;width:100%;box-sizing:border-box;text-align:left;border:0;cursor:pointer;font-family:'Lora',Georgia,serif;color:#4B3F47;position:relative;border-radius:10px;padding:10px 12px 10px 12px;box-shadow:0 3px 6px rgba(70,50,60,0.22),inset 1px 1px 0 rgba(255,255,255,0.7),inset -1px -1px 0 rgba(95,70,85,0.15)}
 .rope{position:absolute;width:4px;border-radius:2px;background:repeating-linear-gradient(135deg,#D9AF88 0 2px,#F6E7D3 2px 4px);box-shadow:0 1px 1px rgba(80,60,70,0.25)}
 .tie{position:absolute;top:0;width:3px;height:12px;border-radius:2px;background:repeating-linear-gradient(135deg,#D9AF88 0 2px,#F6E7D3 2px 4px)}
 @media (prefers-reduced-motion: reduce){.anim{animation:none !important}}
@@ -182,9 +182,9 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 <div class="anim" style="position: relative; padding-top: 12px; transform-origin: 50% 0; animation: flop 760ms cubic-bezier(.3,1.2,.5,1) {{c.delay}} both">
 <div class="tie" aria-hidden="true" style="left: 34px"></div>
 <div class="tie" aria-hidden="true" style="right: 34px"></div>
-<div class="placard" style="background: {{item.cardFront}}; cursor: default">
-<button onClick="{{item.toggle}}" aria-label="{{c.foldLabel}}" style="all: unset; display: block; position: relative; cursor: pointer; width: 100%; border-radius: 8px">
+<div class="placard" style="background: {{item.cardFront}}; cursor: default; box-sizing: border-box">
 <span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 7px; border: 1px solid rgba(95,70,85,0.28); box-shadow: 1px 1px 0 rgba(255,255,255,0.7); pointer-events: none"></span>
+<button onClick="{{item.toggle}}" aria-label="{{c.foldLabel}}" style="all: unset; display: block; position: relative; cursor: pointer; width: 100%; box-sizing: border-box; border-radius: 8px">
 <span style="display: flex; align-items: center; gap: 8px; position: relative">
 <span style="width: 24px; height: 28px; flex: none; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 12px">{{c.initials}}</span>
 <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 16px">{{c.name}}</span>
