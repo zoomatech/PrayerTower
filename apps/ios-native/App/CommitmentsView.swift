@@ -62,6 +62,7 @@ struct CommitmentsView: View {
             }
             .overlay { if !loaded && error == nil { ProgressView() } }
             .navigationTitle(w("tabs.promises"))
+            .appLogo()
             .navigationDestination(item: $opened) { PostDetailView(postId: $0) }
             .refreshable { await load() }
             .task { await load() }
