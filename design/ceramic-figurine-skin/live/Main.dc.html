@@ -57,9 +57,9 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 </button>
 </div>
 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 14px">
-<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 600; font-size: 30px; line-height: 1; color: #5A4652">Prayer Tower</div>
+<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 600; font-size: 31px; line-height: 1; color: #5A4652">Prayer Tower</div>
 <div style="margin-top: 8px; width: 120px; height: 1px; background: rgba(110,85,100,0.3); box-shadow: 0 1px 0 rgba(255,255,255,0.9)"></div>
-<div style="margin-top: 6px; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: #6E5F68">{{lookLabel}}</div>
+<div style="margin-top: 6px; font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase; color: #6E5F68">{{lookLabel}}</div>
 </div>
 <button class="icon-btn" aria-label="Choose your figurines" title="Choose your figurines" onClick="{{openPicker}}" style="width: 44px; height: 44px; margin-top: 22px; border: 0; background: #EDE3E6; border-radius: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6E5F68; box-shadow: inset 0 1px 2px rgba(90,65,80,0.25), 0 1px 0 rgba(255,255,255,0.9)">
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="4"></circle><path d="M8.5 12.5 7 19.5h10l-1.5-7"></path><path d="M5.5 21h13"></path><path d="M8.3 3.2c1.6-1.2 5.8-1.2 7.4 0"></path></svg>
@@ -120,13 +120,13 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 <div aria-hidden="true" style="position: absolute; inset: 5px; border-radius: 7px; border: 1px solid rgba(95,70,85,0.32); box-shadow: 1px 1px 0 rgba(255,255,255,0.75), inset 1px 1px 0 rgba(255,255,255,0.6); pointer-events: none"></div>
 <div aria-hidden="true" style="position: absolute; inset: 9px; border-radius: 5px; border: 1px dotted rgba(95,70,85,0.3); pointer-events: none"></div>
 <div style="position: relative; display: flex; align-items: center; gap: 10px">
-<div style="width: 34px; height: 40px; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 16px; color: #4B3F47; box-shadow: inset 0 1px 2px rgba(80,60,70,0.3), 0 1px 0 rgba(255,255,255,0.8); flex: none">{{item.initials}}</div>
+<div style="width: 34px; height: 40px; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 17px; color: #4B3F47; box-shadow: inset 0 1px 2px rgba(80,60,70,0.3), 0 1px 0 rgba(255,255,255,0.8); flex: none">{{item.initials}}</div>
 <div style="min-width: 0">
-<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 19px; line-height: 1.1; color: #4B3F47">{{item.name}}</div>
-<div style="font-size: 11.5px; color: #64555E; letter-spacing: 0.4px">{{item.kind}} · {{item.time}}</div>
+<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 1.1; color: #4B3F47">{{item.name}}</div>
+<div style="font-size: 12.5px; color: #64555E; letter-spacing: 0.4px">{{item.kind}} · {{item.time}}</div>
 </div>
 </div>
-<p style="position: relative; margin: 10px 2px 0; font-size: 15px; line-height: 1.5; color: #4B3F47">{{item.body}}</p>
+<p style="position: relative; margin: 10px 2px 0; font-size: 16px; line-height: 1.5; color: #4B3F47">{{item.body}}</p>
 </div>
 </div>
 </div>
@@ -168,9 +168,9 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 <button class="placard" aria-expanded="false" aria-label="{{item.openLabel}}" onClick="{{item.toggle}}" style="background: {{item.cardFront}}">
 <span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 7px; border: 1px solid rgba(95,70,85,0.28); box-shadow: 1px 1px 0 rgba(255,255,255,0.7); pointer-events: none"></span>
 <span style="display: flex; align-items: center; gap: 8px; position: relative">
-<span style="width: 24px; height: 28px; flex: none; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 12px">{{item.first.initials}}</span>
-<span style="flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><b style="font-weight: 500">{{item.first.name}}</b> · {{item.first.body}}</span>
-<span style="flex: none; font-size: 12px; color: #64555E">+{{item.more}}</span>
+<span style="width: 24px; height: 28px; flex: none; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 13px">{{item.first.initials}}</span>
+<span style="flex: 1; min-width: 0; font-size: 14.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><b style="font-weight: 500">{{item.first.name}}</b> · {{item.first.body}}</span>
+<span style="flex: none; font-size: 13px; color: #64555E">+{{item.more}}</span>
 </span>
 </button>
 </div>
@@ -186,10 +186,10 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 <span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 7px; border: 1px solid rgba(95,70,85,0.28); box-shadow: 1px 1px 0 rgba(255,255,255,0.7); pointer-events: none"></span>
 <button onClick="{{item.toggle}}" aria-label="{{c.foldLabel}}" style="all: unset; display: block; position: relative; cursor: pointer; width: 100%; box-sizing: border-box; border-radius: 8px">
 <span style="display: flex; align-items: center; gap: 8px; position: relative">
-<span style="width: 24px; height: 28px; flex: none; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 12px">{{c.initials}}</span>
-<span style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 16px">{{c.name}}</span>
+<span style="width: 24px; height: 28px; flex: none; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 13px">{{c.initials}}</span>
+<span style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 17px">{{c.name}}</span>
 </span>
-<span style="display: block; position: relative; margin-top: 4px; font-size: 14px; line-height: 1.45">{{c.body}}</span>
+<span style="display: block; position: relative; margin-top: 4px; font-size: 15px; line-height: 1.45">{{c.body}}</span>
 </button>
 </div>
 <sc-if value="{{c.repliesClosed}}" hint-placeholder-val="{{false}}">
@@ -201,8 +201,8 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 </sc-if>
 <button onClick="{{c.toggle}}" aria-expanded="false" aria-label="{{c.replyOpenLabel}}" style="position: relative; display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border: 0; border-radius: 9px; padding: 9px 11px; min-height: 40px; background: #E6DEF0; color: #4B3F47; font-family: 'Lora', Georgia, serif; cursor: pointer; box-shadow: 0 3px 5px rgba(70,50,60,0.2), inset 1px 1px 0 rgba(255,255,255,0.7)">
 <span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 6px; border: 1px solid rgba(95,70,85,0.25); pointer-events: none"></span>
-<span style="position: relative; flex: 1; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><b style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 14.5px">{{c.firstReply.name}}</b> · {{c.firstReply.body}}</span>
-<sc-if value="{{c.moreReplies}}" hint-placeholder-val="{{false}}"><span style="position: relative; flex: none; font-size: 12px; color: #5E4F58">+{{c.moreCount}}</span></sc-if>
+<span style="position: relative; flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><b style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 15.5px">{{c.firstReply.name}}</b> · {{c.firstReply.body}}</span>
+<sc-if value="{{c.moreReplies}}" hint-placeholder-val="{{false}}"><span style="position: relative; flex: none; font-size: 13px; color: #5E4F58">+{{c.moreCount}}</span></sc-if>
 </button>
 </div>
 </sc-if>
@@ -214,8 +214,8 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 <div class="tie" aria-hidden="true" style="right: 26px; height: 10px"></div>
 <button onClick="{{c.toggle}}" aria-label="Reply from {{r.name}}. Tap to fold the replies up" style="position: relative; display: block; width: 100%; text-align: left; border: 0; border-radius: 9px; padding: 9px 11px; background: #E6DEF0; color: #4B3F47; font-family: 'Lora', Georgia, serif; cursor: pointer; box-shadow: 0 3px 5px rgba(70,50,60,0.2), inset 1px 1px 0 rgba(255,255,255,0.7)">
 <span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 6px; border: 1px solid rgba(95,70,85,0.25); pointer-events: none"></span>
-<span style="display: block; position: relative; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 15px">{{r.name}}</span>
-<span style="display: block; position: relative; font-size: 13.5px; line-height: 1.45">{{r.body}}</span>
+<span style="display: block; position: relative; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 16px">{{r.name}}</span>
+<span style="display: block; position: relative; font-size: 14.5px; line-height: 1.45">{{r.body}}</span>
 </button>
 </div>
 </sc-for>
@@ -261,17 +261,17 @@ a{color:#7A5C74}a:hover{color:#5E4458}
 <div style="position: absolute; inset: 0; background: rgba(75,60,70,0.32); z-index: 10" onClick="{{closePicker}}"></div>
 <div role="dialog" aria-label="Choose your figurines" class="anim" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 11; background: #F6F0EE; border-radius: 24px 24px 0 0; padding: 16px 18px 24px; box-shadow: 0 -6px 18px rgba(75,55,65,0.2); animation: sheetup 320ms ease-out both">
 <div style="width: 40px; height: 4px; border-radius: 2px; background: #D8CBD0; margin: 0 auto 10px"></div>
-<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 24px; color: #4B3F47; text-align: center">Choose your figurines</div>
-<div style="font-size: 13px; color: #64555E; text-align: center; margin: 4px 0 12px">They decorate the sides of your feed.</div>
+<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 25px; color: #4B3F47; text-align: center">Choose your figurines</div>
+<div style="font-size: 14px; color: #64555E; text-align: center; margin: 4px 0 12px">They decorate the sides of your feed.</div>
 <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
 <sc-for list="{{looks}}" as="s" hint-placeholder-count="6">
 <button class="icon-btn" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="border: {{s.ring}}; background: #EFE5E3; border-radius: 16px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; box-shadow: inset 0 3px 7px rgba(75,55,65,0.22), 0 1px 0 rgba(255,255,255,0.9)">
 <span style="display: block; width: 54px; height: 90px"><dc-import name="Figurine" look="{{s.preview}}" pose="sit" flip="false" w="54" h="90" hint-size="54px,90px"></dc-import></span>
-<span style="font-family: 'Lora', Georgia, serif; font-size: 12.5px; color: #4B3F47; text-align: center">{{s.label}}</span>
+<span style="font-family: 'Lora', Georgia, serif; font-size: 13.5px; color: #4B3F47; text-align: center">{{s.label}}</span>
 </button>
 </sc-for>
 </div>
-<button class="plain-btn" onClick="{{closePicker}}" style="display: block; width: 100%; margin-top: 14px; height: 48px; border: 0; border-radius: 24px; background: #8E7088; color: #FFFFFF; font-family: 'Lora', Georgia, serif; font-size: 16px; cursor: pointer">Done</button>
+<button class="plain-btn" onClick="{{closePicker}}" style="display: block; width: 100%; margin-top: 14px; height: 48px; border: 0; border-radius: 24px; background: #8E7088; color: #FFFFFF; font-family: 'Lora', Georgia, serif; font-size: 17px; cursor: pointer">Done</button>
 </div>
 </sc-if>
 
@@ -314,7 +314,7 @@ var POSTS = [
       { initials: 'MH', name: 'Margaret H.', body: 'Hallelujah!', replies: [] }
     ] },
   { initials: 'RA', name: 'Ruth A.', kind: 'Prayer request', time: '8h', tint: '#F2EBD2', avatar: '#E5DAB5',
-    body: 'Our quilting circle is making blankets for the hospice. Pray for steady hands and warm hearts.',
+    body: 'Our quilting circle is making blankets for the hospice. Pray for steady hands and warm hearts. We have twelve ladies now, and Thursday mornings at the fellowship hall have become the sweetest part of my week. Some of us are slower with the needle than we used to be, and Mabel\u2019s eyes are failing, but she still ties every knot by feel. Please pray that each blanket brings comfort to someone in their last days, and to the families sitting beside them.',
     comments: [
       { initials: 'DL', name: 'Dorothy L.', body: 'Count me in for Thursday. I will bring my good scissors.', replies: [] },
       { initials: 'HM', name: 'Helen M.', body: 'Praying for every family who wraps up in one.', replies: [] }
