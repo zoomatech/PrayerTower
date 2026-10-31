@@ -474,7 +474,7 @@ private struct ClimbCloseUp: View {
     }
 
     private func replies(_ id: String, level: Int) -> AnyView {
-        AnyView(ForEach(reading.kids[id] ?? []) { r in
+        AnyView(ForEach(Beanstalk.replies(to: id, level: level, in: reading.kids)) { r in
             VStack(alignment: .leading, spacing: 2) {
                 Text(r.author).font(.subheadline.bold())
                 Text(r.body).font(.body)

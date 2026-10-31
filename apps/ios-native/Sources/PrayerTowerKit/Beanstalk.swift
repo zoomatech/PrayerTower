@@ -45,6 +45,17 @@ public enum Beanstalk {
         return (top, kids)
     }
 
+    /// The replies to show under `id` at `level` of a close-up: its own replies, or, at the last
+    /// level, every reply further down in order, side by side, so no reply is ever left out
+    /// however deep it was posted (Steve: deep chains end in parallel leaves).
+    public static func replies(to id: String, level: Int, in kids: [String: [Note]]) -> [Note] {
+        guard level >= maxLevel else { return kids[id] ?? [] }
+        var out: [Note] = []
+        func walk(_ p: String) { for r in kids[p] ?? [] { out.append(r); walk(r.id) } }
+        walk(id)
+        return out
+    }
+
     /// The rows of one cluster, nearest the post first; each open leaf's first three replies follow it.
     public static func rows(page: [Note], kids: [String: [Note]], open: Set<String>) -> [Row] {
         var out: [Row] = []

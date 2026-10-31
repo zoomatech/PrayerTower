@@ -33,7 +33,7 @@ import { CardNoType, CardSurface } from '@/components/post-card';
 import { VineFruit } from '@/components/vine-flow';
 import { api } from '@/lib/api';
 import { DrawBusContext, makeDrawBus, SEEN_EIGHTH, useDrawIn, type Row } from '@/lib/draw-in';
-import { useCommentCluster, usePostComments } from '@/skins/comments';
+import { repliesAt, useCommentCluster, usePostComments } from '@/skins/comments';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { space } from '@/lib/theme';
@@ -763,7 +763,7 @@ function Reader({ comment, kids, onClose }: { comment: Comment | null; kids: Map
     return () => document.removeEventListener('keydown', onKey);
   }, [comment, onClose]);
   const thread = (c: Comment, level: number): React.ReactNode =>
-    (kids.get(c.id) ?? []).map((r) => (
+    repliesAt(kids, c.id, level, MAX_LEVEL).map((r) => (
       <View key={r.id} style={[styles.bi, level === 1 ? styles.bi1 : styles.bi2]}>
         <Text style={styles.biName}>{r.author.displayName}</Text>
         <Text style={styles.biText}>{r.body}</Text>

@@ -936,7 +936,7 @@ private struct BeanReader: View {
     }
 
     private func replies(_ id: String, level: Int) -> AnyView {
-        AnyView(ForEach(kids[id] ?? []) { r in
+        AnyView(ForEach(Beanstalk.replies(to: id, level: level, in: kids)) { r in
             VStack(alignment: .leading, spacing: 2) {
                 Text(r.author).font(BeanFont.bold(17))
                 Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)

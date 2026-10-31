@@ -112,3 +112,12 @@ import Testing
         #expect(cv.open == nil)
     }
 }
+
+@Test func closeUpShowsEveryReplyHoweverDeep() {
+    func note(_ id: String, _ parent: String?) -> Beanstalk.Note {
+        Beanstalk.Note(id: id, parentId: parent, body: id, author: id, createdAt: "2026-10-31T00:00:00Z")
+    }
+    let (_, kids) = Beanstalk.tree([note("a", nil), note("b", "a"), note("c", "b"), note("d", "c"), note("e", "d")])
+    #expect(Beanstalk.replies(to: "a", level: 1, in: kids).map(\.id) == ["b"])
+    #expect(Beanstalk.replies(to: "b", level: Beanstalk.maxLevel, in: kids).map(\.id) == ["c", "d", "e"])
+}

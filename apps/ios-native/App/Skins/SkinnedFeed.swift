@@ -560,7 +560,15 @@ private struct CommentLevel: View {
         _open = State(initialValue: open)
     }
 
-    private var here: [Comment] { all.filter { $0.parentId == parent } }
+    /// This level's comments. The last level (3) also takes every reply further down, side by side,
+    /// so no reply is left out however deep it was posted.
+    private var here: [Comment] {
+        guard depth >= 3, let parent else { return all.filter { $0.parentId == parent } }
+        var out: [Comment] = []
+        func walk(_ p: String) { for c in all where c.parentId == p { out.append(c); walk(c.id) } }
+        walk(parent)
+        return out
+    }
 
     var body: some View {
         if let top = here.first {

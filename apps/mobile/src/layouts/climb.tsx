@@ -21,7 +21,7 @@ import { CardSurface } from '@/components/post-card';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { useFeedHooks } from '@/skins/feed-hooks';
-import { usePostComments } from '@/skins/comments';
+import { repliesAt, usePostComments } from '@/skins/comments';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
@@ -470,7 +470,7 @@ function CloseUp({ card, comment, kids, onClose }: { card: Card | null; comment:
     return () => document.removeEventListener('keydown', onKey);
   }, [comment, onClose]);
   const thread = (c: Comment, level: number): React.ReactNode =>
-    (kids.get(c.id) ?? []).map((r) => (
+    repliesAt(kids, c.id, level, MAX_LEVEL).map((r) => (
       <View key={r.id} style={styles.reply}>
         <Text style={styles.bigName}>{r.author.displayName}</Text>
         <Text style={styles.replyText}>{r.body}</Text>
