@@ -1,7 +1,7 @@
 // Listening (docs/LIBRARY_SEARCH.md): Listen reads a passage aloud with the device's own voice (nothing leaves
 // the device). Where LibriVox has a public-domain recording of the same translation, the member can play that
 // instead, with the reader's credit. Each member's place is kept as they listen, so the Listening room can offer
-// to pick up where they left off. Off unless an admin turns on Admin → Text search → Listening.
+// to pick up where they left off. Off unless an admin turns on Admin → Bible Reference Text Search → Listening.
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { useEffect, useRef, useState } from 'react';

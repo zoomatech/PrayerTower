@@ -1816,6 +1816,7 @@ function LibrarySection() {
   return (
     <View style={styles.section}>
       <Text style={type.heading}>{t('library.adminTitle')}</Text>
+      <Text style={type.small}>{t('library.adminAsk')}</Text>
       <Toggle label={t('library.adminToggle')} hint={t('library.adminHint')} value={on.enabled} onChange={(enabled) => save({ enabled })} />
       {on.enabled ? (
         <>

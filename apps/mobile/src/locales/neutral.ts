@@ -21,6 +21,8 @@ const named = (tree: Tree): Tree =>
 
 export const keys: Tree = named({
   library: {
+    adminTitle: "Text search",
+    adminAsk: "Ask however you want to ask, even if you're fuzzy on the details",
     placeholder: 'a friend in need',
     adminToggle: 'Search the ancient writings',
   },
