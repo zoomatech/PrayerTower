@@ -163,6 +163,7 @@ export default function Circle() {
   const [error, setError] = useState<string | null>(null);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
+  const features = useFeatures();
 
   const load = useCallback(() => {
     api.circle(id).then(
@@ -201,6 +202,7 @@ export default function Circle() {
               {c.name}
             </Text>
             {c.about ? <Text style={type.body}>{c.about}</Text> : null}
+            {features.libraryStudies ? <Button small variant="secondary" label={t('library.studies')} onPress={() => router.push(`/study-rooms?circle=${c.id}`)} /> : null}
             {view.welcome?.show ? (
               <View style={[styles.card, styles.welcome]} testID="circle-welcome">
                 <Text style={type.heading} role="heading">

@@ -178,6 +178,9 @@ export interface Features {
   libraryWords: boolean;
   libraryNotes: boolean;
   libraryOffline: boolean;
+  /** Listening and circle study rooms (docs/LIBRARY_SEARCH.md). */
+  libraryListen: boolean;
+  libraryStudies: boolean;
   /** Growth ideas (docs/GROWTH.md). */
   guestPrayer: boolean;
   prayerChain: boolean;
@@ -1661,7 +1664,7 @@ export type LibraryHit = { ref: string; text: string; complete: boolean; work: {
 export type LibraryDaily =
   | { enabled: false }
   | { enabled: true; day: string; share: boolean; passage: { collection: LibraryCollectionId; ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string } };
-export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean; wordsEnabled: boolean; notesEnabled: boolean; offlineEnabled: boolean };
+export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean; wordsEnabled: boolean; notesEnabled: boolean; offlineEnabled: boolean; listenEnabled: boolean; studiesEnabled: boolean };
 /** Passages from one place in a collection, with their citation. */
 export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string; key: string };
 /** A King James verse word by word; tagged words carry Strong's numbers (H… Hebrew, G… Greek). */
@@ -1694,6 +1697,38 @@ export type LibraryNote = {
   updatedAt: string;
 };
 export type CircleLibraryNote = LibraryNote & { author: string; mine: boolean };
+/** A public-domain LibriVox recording of the place a passage is in. */
+export type LibraryRecording = { url: string; title: string; project: string; readers: string[]; seconds: number; credit: string; projectUrl: string };
+/** Where a member left off: the device's voice counts characters read, a recording seconds played. */
+export type ListenKind = 'voice' | 'recording';
+export type LibraryListened = {
+  collection: LibraryCollectionId;
+  key: string;
+  ref: string;
+  citation: string;
+  text: string;
+  kind: ListenKind;
+  position: number;
+  duration: number | null;
+  finished: boolean;
+  recording: LibraryRecording | null;
+  updatedAt: string;
+};
+export type ListenPlace = { collection: LibraryCollectionId; key: string; kind: ListenKind; position: number; duration?: number | null; finished?: boolean };
+export type LibraryStudy = {
+  id: string;
+  circleId: string;
+  prompt: string;
+  author: { id: string; displayName: string | null };
+  createdAt: string;
+  passage: { collection: LibraryCollectionId; ref: string; key: string; quote: string; citation: string };
+  plan: { id: string; title: string; day: number } | null;
+  replies: number;
+  lastReplyAt: string | null;
+  canRemove: boolean;
+};
+export type StudyReply = { id: string; author: { id: string; displayName: string | null }; body: string; createdAt: string; canRemove: boolean };
+export type StudyRoom = { study: LibraryStudy; replies: (StudyReply & { answers: StudyReply[] })[] };
 export type ParallelThemes = { enabled: false } | { enabled: true; themes: { id: string; title: string; intro: string; texts: string[] }[] };
 export type ParallelTheme = { id: string; title: string; intro: string; sides: (LibraryExcerpt & { label: string | null })[] };
 export type PlanProgress = { read: number; next: number | null; finished: boolean; reminders: boolean; circle: { id: string; name: string } | null };
@@ -2495,6 +2530,15 @@ export const api = {
     request<{ note: LibraryNote | null }>('PUT', '/library/notes', input),
   deleteLibraryNote: (id: string) => request<{ removed: true }>('DELETE', `/library/notes/${id}`),
   circleLibraryNotes: (circleId: string) => get<{ notes: CircleLibraryNote[] }>(`/library/notes/circle/${circleId}`),
+  libraryRecording: (collection: LibraryCollectionId, key: string) => get<{ recording: LibraryRecording | null }>(`/library/listen?collection=${collection}&key=${key}`),
+  listening: () => get<{ resume: LibraryListened | null; history: LibraryListened[] }>('/library/listening'),
+  saveListening: (place: ListenPlace) => put<{ saved: true }>('/library/listening', place),
+  studies: (circleId: string) => get<{ circle: { id: string; name: string }; studies: LibraryStudy[] }>(`/library/studies?circle=${circleId}`),
+  startStudy: (input: { circleId: string; prompt: string } & ({ collection: LibraryCollectionId; key: string } | { planId: string; day: number })) => post<{ id: string }>('/library/studies', input),
+  study: (id: string) => get<StudyRoom>(`/library/studies/${id}`),
+  removeStudy: (id: string) => request<{ removed: true }>('DELETE', `/library/studies/${id}`),
+  studyReply: (id: string, body: string, parentId?: string | null) => post<{ id: string }>(`/library/studies/${id}/replies`, { body, ...(parentId ? { parentId } : {}) }),
+  removeStudyReply: (id: string) => request<{ removed: true }>('DELETE', `/library/study-replies/${id}`),
   searchLibrary: (input: { q: string; collection: LibraryCollectionId; offset?: number; limit?: number }) =>
     get<LibraryResults>(`/library/search?${new URLSearchParams({ q: input.q, collection: input.collection, offset: String(input.offset ?? 0), limit: String(input.limit ?? 20) })}`),
   markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),

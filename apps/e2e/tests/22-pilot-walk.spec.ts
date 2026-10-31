@@ -10,7 +10,7 @@ const SCREENS = [
   '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/notification-settings', '/feedback', '/rules',
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/give', '/why-gifts', '/scheduled', '/signal-queue',
-  '/prayer-minute', '/prayer-chain', '/skin-idea', '/skin-gallery', '/squire-board', '/prayer-list', '/reading-plan', '/library', '/parallels', '/reading-plans', '/word-study', '/my-notes', '/church', '/two-step',
+  '/prayer-minute', '/prayer-chain', '/skin-idea', '/skin-gallery', '/squire-board', '/prayer-list', '/reading-plan', '/library', '/parallels', '/reading-plans', '/word-study', '/my-notes', '/study-rooms', '/listening-room', '/church', '/two-step',
   '/account-security', '/ai-chat', '/listen', '/listen-on-air', '/announcements', '/churches', '/onboarding', '/remembered', '/waitlist', '/invites',
   '/tour', '/delete-account', '/prayer-panel',
   '/meaning-words', '/kindness-research', '/crosspost', '/safety', '/circles',
