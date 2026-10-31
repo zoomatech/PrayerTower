@@ -26,6 +26,15 @@ export const keys: Tree = named({
     placeholder: 'a friend in need',
     adminToggle: 'Search the ancient writings',
   },
+  topicGroups: {
+    intro: 'Open groups on a topic. Anyone can join, share, comment and cheer each other on. What is shared stays in the group.',
+    joinToShare: 'Join the group to share and comment.',
+    pray: 'Thinking of you',
+    prayed: 'You’re thinking of them',
+    prayedNote: 'Thank you. They’ll know someone is with them.',
+    prayedCount: {"one": "1 is thinking of them", "other": "%{count} are thinking of them"},
+    adminHint: 'Open topic groups like Facebook groups. Anyone can find and join one, share and comment; any member can start one and leads it. Group posts never reach the main feed, the radio or digests. The author, the leader or a moderator can take a post down.',
+  },
   circles: {
     title: 'Circles',
     intro: 'A small, invite-only group (up to 12 people) that supports each other. What you share stays inside the circle.',

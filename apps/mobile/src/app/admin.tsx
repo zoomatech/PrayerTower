@@ -207,6 +207,7 @@ function Admin() {
         <Text style={type.title}>{t('profile.admin')}</Text>
         <ErrorText error={error} />
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
+        <CirclesAndGroupsSection />
         <DeletionRequestsSection />
         <FeedbackSection />
         <PilotToolsSection />
@@ -2586,6 +2587,36 @@ function ConversationSettingsSection() {
 }
 
 /** Growth practices (docs/GROWTH_PRACTICES.md): kind habits with nothing to lose, each off until switched on. */
+/** Circles and Groups switches, near the top of Admin so they're easy to find (Steve, 2026-10-31). */
+function CirclesAndGroupsSection() {
+  const t = useT();
+  const [s, setS] = useState<PracticeSettings | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceSettings().then((r) => setS(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updatePracticeSettings>[0]) =>
+    api.admin
+      .updatePracticeSettings(patch)
+      .then((r) => {
+        setS(r.settings);
+        resetFeatures();
+        setNote(t('practices.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section} testID="admin-circles-groups">
+      <Text style={type.heading}>{t('topicGroups.adminSection')}</Text>
+      <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={s.prayer_circles_enabled} onChange={(v) => save({ prayerCirclesEnabled: v })} />
+      <Toggle label={t('topicGroups.adminTitle')} hint={t('topicGroups.adminHint')} value={s.topic_groups_enabled} onChange={(v) => save({ topicGroupsEnabled: v })} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 function PracticeSettingsSection() {
   const t = useT();
   const [s, setS] = useState<PracticeSettings | null>(null);
@@ -2645,7 +2676,6 @@ function PracticeSettingsSection() {
       <Toggle label={t('kindMilestones.adminTitle')} hint={t('kindMilestones.adminHint')} value={s.kind_milestones_enabled} onChange={(v) => save({ kindMilestonesEnabled: v })} />
       <Toggle label={t('thankNote.adminTitle')} hint={t('thankNote.adminHint')} value={s.thank_note_enabled} onChange={(v) => save({ thankNoteEnabled: v })} />
       <Toggle label={t('calm.adminTitle')} hint={t('calm.adminHint')} value={s.calm_threads_enabled} onChange={(v) => save({ calmThreadsEnabled: v })} />
-      <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={s.prayer_circles_enabled} onChange={(v) => save({ prayerCirclesEnabled: v })} />
       <Toggle label={t('circleWelcome.adminTitle')} hint={t('circleWelcome.adminHint')} value={s.circle_welcome_enabled} onChange={(v) => save({ circleWelcomeEnabled: v })} />
       <Toggle label={t('circleUpdates.adminTitle')} hint={t('circleUpdates.adminHint')} value={s.circle_updates_enabled} onChange={(v) => save({ circleUpdatesEnabled: v })} />
       <Toggle label={t('pathBack.adminTitle')} hint={t('pathBack.adminHint')} value={s.path_back_enabled} onChange={(v) => save({ pathBackEnabled: v })} />

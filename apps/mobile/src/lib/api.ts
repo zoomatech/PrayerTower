@@ -234,6 +234,7 @@ export interface Features {
   thankNote: boolean;
   calmThreads: boolean;
   prayerCircles: boolean;
+  topicGroups: boolean;
   encouragerCheckin: boolean;
   circleWelcome: boolean;
   pathBack: boolean;
@@ -357,6 +358,7 @@ export interface PracticeSettings {
   thank_note_enabled: boolean;
   calm_threads_enabled: boolean;
   prayer_circles_enabled: boolean;
+  topic_groups_enabled: boolean;
   encourager_checkin_enabled: boolean;
   encourager_checkin_days: number;
   kindness_weather_enabled: boolean;
@@ -463,6 +465,34 @@ export interface CircleView {
   /** While circle welcomes are on: the starter's words (null = the app's default) and whether to show them. */
   welcome?: { text: string | null; show: boolean };
   posts: CirclePost[];
+}
+// Groups (Steve, 2026-10-31): open topic groups like Facebook groups.
+type GroupPerson = { id: string; displayName: string | null };
+export interface TopicGroup {
+  id: string;
+  name: string;
+  about: string | null;
+  members: number;
+  joined: boolean;
+  isLeader: boolean;
+  /** null = led by Prayer Tower. */
+  leader: GroupPerson | null;
+}
+export interface TopicGroupComment {
+  id: string;
+  author: GroupPerson;
+  body: string;
+  createdAt: string;
+  canRemove: boolean;
+}
+export interface TopicGroupPost extends TopicGroupComment {
+  prayed: number;
+  prayedByMe: boolean;
+  comments: TopicGroupComment[];
+}
+export interface TopicGroupView {
+  group: TopicGroup;
+  posts: TopicGroupPost[];
 }
 export type ReplyAudience = 'everyone' | 'supporters' | 'none';
 export type ReplyChoiceState = { enabled: boolean; audience: ReplyAudience; canComment: boolean; isMine: boolean };
@@ -2460,7 +2490,7 @@ export const api = {
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean; partCommentsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean; circleUpdatesEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; topicGroupsEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean; circleUpdatesEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -2742,6 +2772,16 @@ export const api = {
   askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
   endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
   encouragerCheckIn: (id: string, answer: CheckInAnswer) => post<EncouragerState>(`/me/encourager/matches/${id}/check-in`, { answer }),
+  topicGroups: () => get<{ enabled: boolean; groups: TopicGroup[] }>('/topic-groups'),
+  createTopicGroup: (name: string, about?: string) => post<{ id: string }>('/topic-groups', { name, ...(about ? { about } : {}) }),
+  topicGroup: (id: string) => get<TopicGroupView>(`/topic-groups/${id}`),
+  joinTopicGroup: (id: string) => post<{ joined: boolean }>(`/topic-groups/${id}/join`),
+  leaveTopicGroup: (id: string) => post<{ left: boolean }>(`/topic-groups/${id}/leave`),
+  topicGroupPost: (id: string, body: string) => post<{ id: string }>(`/topic-groups/${id}/posts`, { body }),
+  topicGroupComment: (postId: string, body: string) => post<{ id: string }>(`/topic-group-posts/${postId}/comments`, { body }),
+  topicGroupPray: (postId: string) => post<{ prayed: boolean }>(`/topic-group-posts/${postId}/pray`),
+  removeTopicGroupPost: (postId: string) => request<{ removed: boolean }>('DELETE', `/topic-group-posts/${postId}`),
+  removeTopicGroupComment: (id: string) => request<{ removed: boolean }>('DELETE', `/topic-group-comments/${id}`),
   myCircles: () => get<{ enabled: boolean; circles: CircleSummary[] }>('/me/circles'),
   createCircle: (name: string, about?: string) => post<{ id: string }>('/circles', { name, ...(about ? { about } : {}) }),
   joinCircle: (code: string) => post<{ id: string }>('/circles/join', { code }),
