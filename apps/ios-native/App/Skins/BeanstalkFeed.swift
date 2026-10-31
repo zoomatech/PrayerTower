@@ -615,8 +615,10 @@ private struct BeanLeafView: View {
         let anchor: UnitPoint = left ? .trailing : .leading
         let grow: Double = c.span(at, 450, 0, 1, .unfurl)
         let turn: Double = c.span(at, 450, -14, 0, .unfurl)
-        let padL: Double = leaf.lw * (left ? 0.24 : 0.12)
-        let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
+        // A reply leaf keeps its words further in from its tilted outline, so they always sit on the leaf's pale middle.
+        let near: Double = small ? 0.18 : 0.12, far: Double = small ? 0.28 : 0.24
+        let padL: Double = leaf.lw * (left ? far : near)
+        let padR: Double = leaf.lw * (left ? near : far)
         Button { onTap(fit.cut) } label: {
             VStack(spacing: 0) {
                 // The words are shortened to fit; larger text shrinks to fit the leaf, never stretching it.
