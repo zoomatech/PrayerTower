@@ -5,9 +5,12 @@ import AppKit
 #endif
 
 /// The final Prayer Tower logo in the top-right corner of each main screen, as the Expo app's
-/// logo bar (Steve, 2026-10-31). Prayer Tower edition only: Open Circle has its own brand.
+/// logo bar (Steve, 2026-10-31). Hidden wherever the words are neutral (Open Circle, either
+/// edition): Open Circle has its own brand.
 /// The image is App/PrayerTowerLogo(@2x,@3x).png, loaded as App/ActionIcons are.
 struct AppLogo: ViewModifier {
+    @Environment(AppModel.self) private var model
+
     private static let image: Image? = {
         #if os(iOS)
         UIImage(named: "PrayerTowerLogo").map { Image(uiImage: $0) }
@@ -26,7 +29,7 @@ struct AppLogo: ViewModifier {
 
     func body(content: Content) -> some View {
         content.toolbar {
-            if Edition.current == .prayerTower, let logo = Self.image {
+            if model.wording != .neutral, let logo = Self.image {
                 ToolbarItem(placement: placement) {
                     logo
                         .resizable()

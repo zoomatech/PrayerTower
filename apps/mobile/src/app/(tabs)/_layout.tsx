@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DoveIcon } from '@/components/dove-icon';
 import { CornerNav } from '@/components/corner-nav';
-import { env } from '@/lib/env';
 import { useLocale } from '@/lib/i18n';
 import { colors, space } from '@/lib/theme';
 
@@ -32,8 +31,8 @@ export default function TabsLayout() {
       <View style={styles.main}>
         <CornerNav />
         <View style={styles.root}>
-          {/* The final logo, top right, with the menu on the left (Steve, 2026-10-31). Prayer Tower edition only. */}
-          {env.edition === 'prayer-tower' ? (
+          {/* The final logo, top right, with the menu on the left (Steve, 2026-10-31). Hidden for Open Circle (neutral wording, either edition): it has its own brand. */}
+          {wording !== 'neutral' ? (
             <View style={[styles.logoBar, { paddingTop: insets.top + space.xs }]}>
               <Image source={require('../../../assets/images/prayer-tower-logo.png')} style={styles.logo} accessibilityRole="image" aria-label="The Prayer Tower" testID="app-logo" />
             </View>
