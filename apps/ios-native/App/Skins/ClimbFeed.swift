@@ -53,7 +53,7 @@ struct ClimbFeed<Row: View>: View {
                 .coordinateSpace(name: ClimbChase.space)
                 ClimberLayer(chase: chase, still: still).frame(width: 140).allowsHitTesting(false).accessibilityHidden(true)
                 if let reading {
-                    ClimbCloseUp(reading: reading, look: look, words: words) {
+                    ClimbCloseUp(reading: reading, look: look, words: words, reply: hooks.open.map { open in { open(reading.card) } }) {
                         withAnimation(still ? nil : .easeOut(duration: 0.25)) { self.reading = nil }
                     }
                     .transition(still ? AnyTransition.opacity : AnyTransition.scale(scale: 0.18).combined(with: .opacity))
@@ -312,7 +312,7 @@ private struct ClimbPost<Row: View>: View {
                 .overlay { slab.stroke(Color(red: 90 / 255, green: 70 / 255, blue: 45 / 255).opacity(0.3), lineWidth: 1).accessibilityHidden(true) }
                 .shadow(color: Color(red: 45 / 255, green: 35 / 255, blue: 25 / 255).opacity(0.45), radius: 6, y: 4)
             ForEach(Array(shown.enumerated()), id: \.element.id) { i, note in
-                CommentRock(note: note, shape: index * 2 + i, words: words) { open(note, tree.kids) }
+                CommentRock(note: note, replies: tree.kids[note.id]?.count ?? 0, shape: index * 2 + i, words: words) { open(note, tree.kids) }
                     .frame(maxWidth: 360)
                     .frame(maxWidth: .infinity, alignment: (index + i).isMultiple(of: 2) ? .leading : .trailing)
             }
@@ -338,6 +338,7 @@ private struct ClimbPost<Row: View>: View {
 /// A comment as text on a jagged rock.
 private struct CommentRock: View {
     let note: Beanstalk.Note
+    let replies: Int
     let shape: Int
     let words: Words
     let open: () -> Void
@@ -347,6 +348,8 @@ private struct CommentRock: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(note.author).font(.footnote.bold()).foregroundStyle(Color(RGB(hex: "#3A2F23")!)).lineLimit(1)
                 Text(note.body).font(.subheadline).foregroundStyle(ClimbArt.rockInk).lineLimit(2)
+                // Its replies open with it, in the close-up.
+                if replies > 0 { Text(words("climb.replies", count: replies)).font(.caption.bold()).foregroundStyle(Color(RGB(hex: "#3A2F23")!)) }
             }
             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             .padding(.vertical, 16).padding(.leading, 22).padding(.trailing, 24)
@@ -358,7 +361,7 @@ private struct CommentRock: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(note.author): \(note.body)")
+        .accessibilityLabel(replies > 0 ? "\(note.author): \(note.body). \(words("climb.replies", count: replies))" : "\(note.author): \(note.body)")
         .accessibilityHint(words("climb.openComment"))
     }
 }
@@ -380,6 +383,8 @@ private struct ClimbCloseUp: View {
     let reading: ClimbReading
     let look: ClimbLook
     let words: Words
+    /// Opens the post to write a reply; nil where nothing opens (a preview).
+    let reply: (() -> Void)?
     let close: () -> Void
 
     var body: some View {
@@ -396,6 +401,7 @@ private struct ClimbCloseUp: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(reading.note.author).font(.headline)
                                 Text(reading.note.body).font(.title3)
+                                replyButton
                             }
                             replies(reading.note.id, level: 1)
                         }
@@ -449,11 +455,25 @@ private struct ClimbCloseUp: View {
         .background(Color(look.slab), in: UnevenRoundedRectangle(topLeadingRadius: 22, bottomLeadingRadius: 26, bottomTrailingRadius: 18, topTrailingRadius: 30))
     }
 
+    /// Every comment and reply gets its own Reply (Steve: deal with all sub-comments).
+    @ViewBuilder private var replyButton: some View {
+        if let reply {
+            Button(action: reply) {
+                Text(words("post.reply")).font(.subheadline.bold()).foregroundStyle(ClimbArt.ink)
+                    .padding(.horizontal, 14).frame(minHeight: 44)
+                    .background(Color(RGB(hex: "#EFE5D2")!), in: .capsule)
+                    .overlay(Capsule().stroke(Color(RGB(hex: "#5A4A38")!), lineWidth: 1.5))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private func replies(_ id: String, level: Int) -> AnyView {
         AnyView(ForEach(reading.kids[id] ?? []) { r in
             VStack(alignment: .leading, spacing: 2) {
                 Text(r.author).font(.subheadline.bold())
                 Text(r.body).font(.body)
+                replyButton
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
             .padding(.leading, 12)

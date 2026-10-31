@@ -104,10 +104,15 @@ describe('Mountain Climber feed', () => {
     );
     const rock = await screen.findByTestId('rock-c1');
     expect(screen.getByText('Praying for steady hands tonight.')).toBeTruthy();
+    // The rock says it has a reply.
+    expect(within(rock).getByText('1 reply')).toBeTruthy();
     await fireEvent.press(rock);
     expect(await screen.findByTestId('climb-closeup')).toBeTruthy();
     const parent = screen.getByTestId('climb-parent');
     expect(within(parent).getByText(card.author.displayName)).toBeTruthy();
     expect(screen.getByText('Thank you, Daniel.')).toBeTruthy();
+    // The comment and its reply each get their own Reply button.
+    expect(within(screen.getByTestId('climb-reply-c2')).getByText('Reply')).toBeTruthy();
+    expect(screen.getAllByText('Reply').length).toBe(2);
   });
 });
