@@ -162,7 +162,8 @@ struct MeView: View {
             .clipShape(Ellipse())
             .overlay(Ellipse().stroke(Color.answeredGold, lineWidth: 3))
             VStack(alignment: .leading, spacing: 6) {
-                PhotosPicker(selection: $photoItem, matching: .images) { Text(w(p.photoUrl == nil ? "profile.photoAdd" : "profile.photoChange")).fixedSize(horizontal: false, vertical: true) }
+                let pick = w(p.photoUrl == nil ? "profile.photoAdd" : "profile.photoChange")
+                PhotosPicker(selection: $photoItem, matching: .images) { Text(pick).fixedSize(horizontal: false, vertical: true) }
                 if p.photoUrl != nil {
                     Button(w("profile.photoRemove"), role: .destructive) { Task { await setPhoto(nil) } }.foregroundStyle(Color.danger)
                 }
