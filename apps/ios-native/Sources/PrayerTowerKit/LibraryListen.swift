@@ -17,6 +17,48 @@ public struct LibraryRecording: Codable, Sendable, Equatable {
 
 struct RecordingAnswer: Decodable { let recording: LibraryRecording? }
 
+/// Where a member left off: the device's voice counts characters read, a recording seconds played.
+public struct ListenPlace: Codable, Sendable, Equatable {
+    public enum Kind: String, Codable, Sendable { case voice, recording }
+    public let collection: String
+    public let key: String
+    public let kind: Kind
+    public let position: Double
+    public var duration: Double?
+    public var finished: Bool?
+
+    public init(collection: String, key: String, kind: Kind, position: Double, duration: Double? = nil, finished: Bool? = nil) {
+        self.collection = collection
+        self.key = key
+        self.kind = kind
+        self.position = position
+        self.duration = duration
+        self.finished = finished
+    }
+}
+
+/// One entry of the member's listening history.
+public struct LibraryListened: Codable, Sendable, Equatable, Identifiable {
+    public let collection: String
+    public let key: String
+    public let ref: String
+    public let citation: String
+    public let text: String
+    public let kind: ListenPlace.Kind
+    public let position: Double
+    public let duration: Double?
+    public let finished: Bool
+    public let recording: LibraryRecording?
+    public let updatedAt: String
+    public var id: String { "\(collection)/\(key)/\(kind.rawValue)" }
+}
+
+/// The listening history, newest first, and the place to offer to pick up (the newest not finished).
+public struct ListeningHistory: Codable, Sendable, Equatable {
+    public let resume: LibraryListened?
+    public let history: [LibraryListened]
+}
+
 public struct LibraryStudy: Codable, Sendable, Equatable, Identifiable {
     public struct Person: Codable, Sendable, Equatable {
         public let id: String
@@ -95,6 +137,11 @@ struct MadeId: Decodable { let id: String }
 extension APIClient {
     public func libraryRecording(collection: String, key: String) async throws -> LibraryRecording? {
         try await (get("/library/listen", query: ["collection": collection, "key": key]) as RecordingAnswer).recording
+    }
+    public func listening() async throws -> ListeningHistory { try await get("/library/listening") }
+    /// Keeps the member's place in a passage or its recording.
+    public func saveListening(_ place: ListenPlace) async throws {
+        let _: [String: Bool] = try await send(body(request("PUT", "/library/listening"), place))
     }
     public func studies(circle: String) async throws -> StudyList { try await get("/library/studies", query: ["circle": circle]) }
     /// Starts a study and returns its id.

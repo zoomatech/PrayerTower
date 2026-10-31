@@ -28,4 +28,13 @@ import Testing
         let b = try JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as! [String: Any]
         #expect(b["day"] as? Int == 4 && b["key"] == nil)
     }
+
+    @Test func readsTheListeningHistoryAndWritesAPlace() throws {
+        let json = #"{"resume":{"collection":"bible-kjv","key":"k","ref":"Psalms 23:1","citation":"Psalms 23:1 (King James Bible)","text":"The LORD is my shepherd","kind":"recording","position":312.5,"duration":1500,"finished":false,"recording":{"url":"https://www.archive.org/download/x/p.mp3","title":"Chapter 07 - Psalms 21 - 23","project":"Bible (KJV) 19: Psalms (version 2)","readers":[],"seconds":1500,"credit":"Read for LibriVox.","projectUrl":"https://librivox.org/x"},"updatedAt":"2026-10-31T19:00:00Z"},"history":[{"collection":"bible-kjv","key":"r","ref":"Ruth 1:16","citation":"Ruth 1:16","text":"whither thou goest","kind":"voice","position":18,"duration":null,"finished":true,"recording":null,"updatedAt":"2026-10-30T19:00:00Z"}]}"#
+        let h = try JSONDecoder().decode(ListeningHistory.self, from: Data(json.utf8))
+        #expect(h.resume?.kind == .recording && h.resume?.position == 312.5 && h.resume?.recording?.seconds == 1500)
+        #expect(h.history[0].id == "bible-kjv/r/voice" && h.history[0].finished && h.history[0].duration == nil)
+        let place = try JSONSerialization.jsonObject(with: JSONEncoder().encode(ListenPlace(collection: "bible-kjv", key: "k", kind: .voice, position: 40))) as! [String: Any]
+        #expect(place["kind"] as? String == "voice" && place["position"] as? Double == 40 && place["finished"] == nil)
+    }
 }

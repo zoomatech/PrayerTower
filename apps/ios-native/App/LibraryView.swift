@@ -37,6 +37,9 @@ struct LibraryView: View {
             if model.features["libraryOffline"] {
                 Section { NavigationLink(w("library.offlineTitle")) { OfflineTextsView() } }
             }
+            if model.features["libraryListen"] {
+                Section { NavigationLink(w("library.listeningTitle")) { ListeningRoomView() } }
+            }
             if let overview {
                 if !overview.enabled {
                     Text(w("library.closed"))
