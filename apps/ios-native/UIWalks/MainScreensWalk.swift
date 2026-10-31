@@ -105,7 +105,15 @@ final class MainScreensWalk: XCTestCase {
         try audit("Request")
         // The rest of the request, scrolled up clear of the tab bar.
         app.swipeUp()
-        sleep(2)
+        // Until it comes to rest: the same words in the same place twice running.
+        var last = CGRect.null
+        for _ in 0..<10 {
+            sleep(1)
+            let now = app.staticTexts.allElementsBoundByIndex.prefix(8).reduce(CGRect.null) { $0.union($1.frame) }
+            if now == last { break }
+            last = now
+        }
+        sleep(1)
         try audit("Request, scrolled")
         XCTAssertTrue(issues.isEmpty, "Accessibility audit:\n" + issues.joined(separator: "\n"))
     }
