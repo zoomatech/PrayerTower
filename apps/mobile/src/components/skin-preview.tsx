@@ -6,6 +6,7 @@ import type { FeedTheme } from '@prayer-tower/shared';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { circuitTokens } from '@/layouts/circuit';
+import { climbTokens, EDGE_X } from '@/layouts/climb';
 import { LeafFrame, VineRow } from '@/components/vine-flow';
 import { glow, LeafMark } from '@/layouts/motifs';
 import { towerTokens } from '@/layouts/tower';
@@ -47,6 +48,20 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
       </>,
     );
   }
+  if (layout === 'climb') {
+    const t = climbTokens(theme);
+    // The rock face, the sky past its edge, and the rope down the edge.
+    return frame(
+      t.backdrop,
+      <>
+        <View style={[styles.sky, { width: EDGE_X / 2 }]} />
+        <View style={[styles.rope, { left: EDGE_X / 2 - 6 }]} />
+        <View style={[styles.cardBox, { alignSelf: 'center', width: '70%' }]}>
+          <View style={[styles.card, { backgroundColor: t.slab }]} />
+        </View>
+      </>,
+    );
+  }
   if (layout === 'wall') return frame(wallBackdrop(theme), <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   if (layout !== 'vine') return frame(colors.background, <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   const v = vineTokens(theme);
@@ -78,5 +93,7 @@ const styles = StyleSheet.create({
   pillar: { position: 'absolute', top: 0, bottom: 0, width: 16, borderWidth: 1 },
   climber: { position: 'absolute', right: 0, top: '40%', fontSize: 24 },
   wire: { position: 'absolute', left: 14, top: 0, bottom: 0, width: 2 },
+  sky: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#D9E3E8', borderRightWidth: 2, borderRightColor: '#4F4436' },
+  rope: { position: 'absolute', top: 0, bottom: 0, width: 3, backgroundColor: '#C4441F' },
   screen: { marginLeft: 40, width: '60%', borderWidth: 2, borderRadius: radius.md, padding: 4, backgroundColor: '#0E1220' },
 });
