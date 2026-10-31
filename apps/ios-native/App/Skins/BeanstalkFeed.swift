@@ -37,6 +37,15 @@ private enum Bean {
     static let link = Color(RGB(hex: "#23407F")!)
     static let text = Color(RGB.commentText)
     static let locket = Color(RGB(hex: "#C9A227")!)
+    /// Apple's accessibility audit (debug samples only) checks the feed at rest, drawn whole as with
+    /// Reduce Motion: it changes the text size as it measures, and posts growing in again then read as clipped.
+    static let audit: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("-PTAuditSamples")
+        #else
+        return false
+        #endif
+    }()
     static let locketFace = Color(RGB(hex: "#F2B9A0")!)
     static let space = "beanstalk"
 }
@@ -263,7 +272,8 @@ private struct BeanPost<Row: View>: View {
     @State private var reading: Beanstalk.Note?
     /// Where on screen the card's poster name ends, so a comment's close-up opens below it.
     @State private var nameBottom: Double = 0
-    @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var still: Bool { reduceMotion || Bean.audit }
 
     var body: some View {
         let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
@@ -685,7 +695,8 @@ private struct LeafCluster: View {
     let words: Words
     let spread: () -> Void
     @State private var rustles = 0
-    @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var still: Bool { reduceMotion || Bean.audit }
 
     /// One leaf at its node: how far down the stalk, which side, its stalk's length, the blade's
     /// width and its tilt (positive droops the tip).
