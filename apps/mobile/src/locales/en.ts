@@ -1499,6 +1499,7 @@ const en = {
     careEvents: "Prayer partners and events",
     notebook: "Notebook features",
     messages: "Messages",
+    circlesGroups: "Circles and groups",
     warriors: "Prayer Warrior standings",
     warriorsHint: "Verified prayers for others and kept promises. Private to admins until award rules are approved.",
     year: "Year",

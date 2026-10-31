@@ -299,12 +299,60 @@ struct AdminBoardsView: View {
 
     var body: some View {
         List {
+            CirclesAndGroupsSection()
             ForEach(AdminBoard.all) { b in
                 NavigationLink(model.words(b.title)) { AdminBoardView(board: b) }
             }
             LibraryAdminSection()
         }
         .navigationTitle(model.words("profile.settings"))
+    }
+}
+
+/// The two big community switches, at the top of Settings where they can't be missed.
+private struct CirclesAndGroupsSection: View {
+    @Environment(AppModel.self) private var model
+    @State private var circles: Bool?
+    @State private var groups: Bool?
+    @State private var error: String?
+    private var w: Words { model.words }
+    private var practice: AdminBoard? { AdminBoard.all.first { $0.id == "practiceSettings" } }
+    private var messaging: AdminBoard? { AdminBoard.all.first { $0.id == "messagingSettings" } }
+
+    var body: some View {
+        Section(w("admin.circlesGroups")) {
+            if let circles {
+                Toggle(isOn: Binding(get: { circles }, set: { saveCircles($0) })) {
+                    LabelHint(w("circles.adminTitle"), w("circles.adminHint"))
+                }
+            }
+            if let groups {
+                Toggle(w("admin.toggle.groups"), isOn: Binding(get: { groups }, set: { saveGroups($0) }))
+            }
+            if let error { Text(error).foregroundStyle(.red) }
+        }
+        .task {
+            do {
+                if let practice { circles = try await model.store.api.boardSettings(practice)["prayer_circles_enabled"] == .bool(true) }
+                if let messaging { groups = try await model.store.api.boardSettings(messaging)["groups_enabled"] == .bool(true) }
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+
+    private func saveCircles(_ on: Bool) {
+        guard let practice else { return }
+        Task {
+            do { circles = try await model.store.api.updateBoard(practice, ["prayerCirclesEnabled": .bool(on)])["prayer_circles_enabled"] == .bool(true) }
+            catch { self.error = error.localizedDescription }
+        }
+    }
+
+    private func saveGroups(_ on: Bool) {
+        guard let messaging else { return }
+        Task {
+            do { groups = try await model.store.api.updateBoard(messaging, ["groupsEnabled": .bool(on)])["groups_enabled"] == .bool(true) }
+            catch { self.error = error.localizedDescription }
+        }
     }
 }
 

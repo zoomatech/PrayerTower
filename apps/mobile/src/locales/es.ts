@@ -1434,6 +1434,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     careEvents: "Compañeros de oración y eventos",
     notebook: "Funciones del cuaderno",
     messages: "Mensajes",
+    circlesGroups: "Circles and groups",
     warriors: "Clasificación de Guerreros de Oración",
     warriorsHint: "Oraciones verificadas por otros y compromisos cumplidos. Privado para administradores hasta que se aprueben las reglas del premio.",
     year: "Año",

@@ -124,6 +124,7 @@
  "admin.ceaselessGap": "Quiet %{minutes} min",
  "admin.ceaselessHint": "Members can keep their own request on the air. When nothing else is waiting and the station has been quiet for the time below, one kept request goes out again, the one sent longest ago first. Members' new prayers always go first.",
  "admin.churches": "Church partner applications",
+ "admin.circlesGroups": "Circles and groups",
  "admin.communities": "Communities",
  "admin.communitiesHint": "A community that is on can be chosen by members on their Me page. Open Circle is the non-religious community: its members see warm everyday wording with no religious words, and only its own posts.",
  "admin.communityCreated": "%{name} was created. It's hidden until you turn it on.",

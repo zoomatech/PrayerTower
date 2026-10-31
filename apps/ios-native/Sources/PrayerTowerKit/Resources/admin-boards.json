@@ -308,12 +308,6 @@
     "patch": "directRequiresMutualFollow"
    },
    {
-    "label": "admin.toggle.groups",
-    "hint": null,
-    "field": "groups_enabled",
-    "patch": "groupsEnabled"
-   },
-   {
     "label": "admin.toggle.newStart",
     "hint": null,
     "field": "new_members_can_start",
@@ -586,12 +580,6 @@
     "hint": "calm.adminHint",
     "field": "calm_threads_enabled",
     "patch": "calmThreadsEnabled"
-   },
-   {
-    "label": "circles.adminTitle",
-    "hint": "circles.adminHint",
-    "field": "prayer_circles_enabled",
-    "patch": "prayerCirclesEnabled"
    },
    {
     "label": "circleWelcome.adminTitle",

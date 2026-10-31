@@ -207,6 +207,7 @@ function Admin() {
         <Text style={type.title}>{t('profile.admin')}</Text>
         <ErrorText error={error} />
         {saved ? <Text style={[type.small, { color: colors.primary }]}>{saved}</Text> : null}
+        <CirclesAndGroupsSection />
         <DeletionRequestsSection />
         <FeedbackSection />
         <PilotToolsSection />
@@ -1264,6 +1265,44 @@ function ReminderToneSection() {
 }
 
 /** Prayer partners on call, and events. Confession stays off until a lawyer reviews it. */
+/** The two big community switches, at the top of the admin screen where they can't be missed. */
+function CirclesAndGroupsSection() {
+  const t = useT();
+  const [circles, setCircles] = useState<boolean | null>(null);
+  const [groups, setGroups] = useState<boolean | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.practiceSettings().then((r) => setCircles(r.settings.prayer_circles_enabled)).catch((e) => setNote((e as Error).message));
+      api.admin.messagingSettings().then((r) => setGroups(r.settings.groups_enabled)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+
+  const saveCircles = (prayerCirclesEnabled: boolean) =>
+    api.admin
+      .updatePracticeSettings({ prayerCirclesEnabled })
+      .then((r) => {
+        setCircles(r.settings.prayer_circles_enabled);
+        resetFeatures();
+      })
+      .catch((e) => setNote((e as Error).message));
+  const saveGroups = (groupsEnabled: boolean) =>
+    api.admin
+      .updateMessagingSettings({ groupsEnabled })
+      .then((r) => setGroups(r.settings.groups_enabled))
+      .catch((e) => setNote((e as Error).message));
+
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('admin.circlesGroups')}</Text>
+      {circles === null ? null : <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={circles} onChange={saveCircles} />}
+      {groups === null ? null : <Toggle label={t('admin.toggle.groups')} value={groups} onChange={saveGroups} />}
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
 function CareAndEventSettingsSection() {
   const t = useT();
   const [care, setCare] = useState<{ care_enabled: boolean; confession_enabled: boolean; confession_retention_days: number } | null>(null);
@@ -2644,7 +2683,6 @@ function PracticeSettingsSection() {
       <Toggle label={t('kindMilestones.adminTitle')} hint={t('kindMilestones.adminHint')} value={s.kind_milestones_enabled} onChange={(v) => save({ kindMilestonesEnabled: v })} />
       <Toggle label={t('thankNote.adminTitle')} hint={t('thankNote.adminHint')} value={s.thank_note_enabled} onChange={(v) => save({ thankNoteEnabled: v })} />
       <Toggle label={t('calm.adminTitle')} hint={t('calm.adminHint')} value={s.calm_threads_enabled} onChange={(v) => save({ calmThreadsEnabled: v })} />
-      <Toggle label={t('circles.adminTitle')} hint={t('circles.adminHint')} value={s.prayer_circles_enabled} onChange={(v) => save({ prayerCirclesEnabled: v })} />
       <Toggle label={t('circleWelcome.adminTitle')} hint={t('circleWelcome.adminHint')} value={s.circle_welcome_enabled} onChange={(v) => save({ circleWelcomeEnabled: v })} />
       <Toggle label={t('circleUpdates.adminTitle')} hint={t('circleUpdates.adminHint')} value={s.circle_updates_enabled} onChange={(v) => save({ circleUpdatesEnabled: v })} />
       <Toggle label={t('pathBack.adminTitle')} hint={t('pathBack.adminHint')} value={s.path_back_enabled} onChange={(v) => save({ pathBackEnabled: v })} />
@@ -2788,7 +2826,6 @@ function MessagingSettingsSection() {
         value={s.direct_requires_mutual_follow}
         onChange={(v) => save({ directRequiresMutualFollow: v })}
       />
-      <Toggle label={t('admin.toggle.groups')} value={s.groups_enabled} onChange={(v) => save({ groupsEnabled: v })} />
       <Toggle label={t('admin.toggle.newStart')} value={s.new_members_can_start} onChange={(v) => save({ newMembersCanStart: v })} />
       <Field label={t('admin.field.requests')} keyboardType="number-pad" value={draft.requests} onChangeText={(requests) => setDraft((d) => ({ ...d, requests }))} />
       <Field label={t('admin.field.perDay')} keyboardType="number-pad" value={draft.perDay} onChangeText={(perDay) => setDraft((d) => ({ ...d, perDay }))} />
