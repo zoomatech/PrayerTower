@@ -131,4 +131,40 @@ describe('listening', () => {
     expect((await as(member).get(`/library/listen?collection=world-classics&key=${analects.key}`)).json()).toEqual({ recording: null });
     expect((await as(member).get(`/library/listen?collection=bible-kjv&key=${'0'.repeat(32)}`)).statusCode).toBe(404);
   });
+
+  it('keeps where each member left off and their history, newest first, and offers the newest unfinished to pick up', async () => {
+    const member = await createUser('Returning listener');
+    const other = await createUser('Someone else');
+    await switches(true);
+    await db.query('update public.library_settings set listen_enabled = false');
+    expect((await as(member).get('/library/listening')).statusCode).toBe(403);
+    await db.query('update public.library_settings set listen_enabled = true');
+    expect((await as(member).get('/library/listening')).json()).toEqual({ resume: null, history: [] });
+
+    const psalm = await find(member, 'the lord is my shepherd', 'bible-kjv');
+    const ruth = await find(member, 'whither thou goest I will go', 'bible-kjv');
+    const put = (who: string, body: object) => as(who).put('/library/listening', body);
+    expect((await put(member, { collection: 'bible-kjv', key: psalm.key, kind: 'recording', position: 312.5, duration: 1500 })).statusCode).toBe(200);
+    expect((await put(member, { collection: 'bible-kjv', key: ruth.key, kind: 'voice', position: 40 })).statusCode).toBe(200);
+
+    let got = (await as(member).get('/library/listening')).json();
+    expect(got.history.map((h: { key: string; kind: string }) => [h.key, h.kind])).toEqual([[ruth.key, 'voice'], [psalm.key, 'recording']]);
+    expect(got.resume).toMatchObject({ key: ruth.key, kind: 'voice', position: 40, finished: false, recording: null });
+    expect(got.resume.text).toBe(ruth.text);
+    expect(got.history[1]).toMatchObject({ position: 312.5, duration: 1500, recording: { title: 'Chapter 07 - Psalms 21 - 23' } });
+
+    // Finishing Ruth leaves the Psalm to pick up; moving on in the Psalm keeps one row for it, newest first.
+    await put(member, { collection: 'bible-kjv', key: ruth.key, kind: 'voice', position: ruth.text.length, finished: true });
+    await put(member, { collection: 'bible-kjv', key: psalm.key, kind: 'recording', position: 400 });
+    got = (await as(member).get('/library/listening')).json();
+    expect(got.history).toHaveLength(2);
+    expect(got.resume).toMatchObject({ key: psalm.key, position: 400, duration: 1500 });
+    expect(got.history[1]).toMatchObject({ key: ruth.key, finished: true });
+
+    // Nobody else sees it; a passage with no recording can't save a recording place.
+    expect((await as(other).get('/library/listening')).json()).toEqual({ resume: null, history: [] });
+    const analects = (await as(member).get('/library/search?q=Confucius said learning&collection=world-classics&limit=20')).json().hits.find((h: { work: { id: string } }) => h.work.id === 'analects-legge');
+    expect((await put(member, { collection: 'world-classics', key: analects.key, kind: 'recording', position: 1 })).statusCode).toBe(404);
+    expect((await put(member, { collection: 'bible-kjv', key: psalm.key, kind: 'recording', position: -1 })).statusCode).toBe(400);
+  });
 });

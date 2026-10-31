@@ -1,13 +1,14 @@
 // Listening (docs/LIBRARY_SEARCH.md): the app reads any passage aloud with the device's own voice (nothing
 // leaves the device), and where LibriVox has a public-domain recording of the same translation, it offers that
 // too, with the reader's credit. The recordings are matched to the place they read (a Bible chapter, a book of
-// the Iliad) in data/library/recordings.json, built by scripts/library-recordings.py. Off by default.
+// the Iliad) in data/library/recordings.json, built by scripts/library-recordings.py. Each member's place is kept
+// (library_listening), so they can pick up where they left off, and their listening history listed. Off by default.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import type { Queryable } from '../../db.js';
 import { forbidden, notFound } from '../../errors.js';
-import { byKey, collection, COLLECTIONS, dataDir, features, offered, type CollectionId } from './index.js';
+import { byKey, citation, collection, COLLECTIONS, dataDir, features, offered, type CollectionId } from './index.js';
 
 type Recording = { collection: CollectionId; workId: string; from: number; to: number; url: string; title: string; readers: string[]; seconds: number; project: string; projectUrl: string };
 
@@ -60,25 +61,103 @@ function unitAt(collectionId: CollectionId, index: number) {
 
 export const ListenQuery = z.object({ collection: z.enum(COLLECTIONS), key: z.string().regex(/^[0-9a-f]{32}$/) });
 
-/** A public-domain recording of the place a passage is in, or null; the device voice needs no server. */
-export async function recording(q: Queryable, userId: string, input: z.infer<typeof ListenQuery>) {
+async function allowed(q: Queryable, userId: string) {
   if (!(await features(q)).libraryListen) throw forbidden('Listening is off');
   const ids = await offered(q, userId);
-  if (!ids?.includes(input.collection)) throw forbidden('This collection is not offered in your community');
+  if (!ids) throw forbidden('Library search is off');
+  return ids;
+}
+
+/** The recording of the place the passage at `index` is in, shaped for the app, or null. */
+function recordingAt(id: CollectionId, index: number) {
+  const at = unitAt(id, index);
+  const r = at && all().get(`${id}/${at.workId}`)?.find((x) => x.from <= at.unit && at.unit <= x.to);
+  if (!r) return null;
+  return {
+    url: r.url,
+    title: r.title,
+    project: r.project,
+    readers: r.readers,
+    seconds: r.seconds,
+    credit: `${r.readers.length ? `Read by ${r.readers.join(', ')}` : 'Read'} for LibriVox: ${r.project}, “${r.title}”. Public domain.`,
+    projectUrl: r.projectUrl,
+  };
+}
+
+/** A public-domain recording of the place a passage is in, or null; the device voice needs no server. */
+export async function recording(q: Queryable, userId: string, input: z.infer<typeof ListenQuery>) {
+  const ids = await allowed(q, userId);
+  if (!ids.includes(input.collection)) throw forbidden('This collection is not offered in your community');
   const found = byKey(input.collection, input.key);
   if (!found) throw notFound('Passage');
-  const at = unitAt(input.collection, found.index);
-  const r = at && all().get(`${input.collection}/${at.workId}`)?.find((x) => x.from <= at.unit && at.unit <= x.to);
-  if (!r) return { recording: null };
-  return {
-    recording: {
-      url: r.url,
-      title: r.title,
-      project: r.project,
-      readers: r.readers,
-      seconds: r.seconds,
-      credit: `${r.readers.length ? `Read by ${r.readers.join(', ')}` : 'Read'} for LibriVox: ${r.project}, “${r.title}”. Public domain.`,
-      projectUrl: r.projectUrl,
-    },
-  };
+  return { recording: recordingAt(input.collection, found.index) };
+}
+
+// Where each member left off --------------------------------------------------------------
+
+export const ProgressInput = z.object({
+  collection: z.enum(COLLECTIONS),
+  key: z.string().regex(/^[0-9a-f]{32}$/),
+  kind: z.enum(['voice', 'recording']),
+  // The device's voice: characters already read. A recording: seconds already played.
+  position: z.number().min(0).max(1_000_000),
+  duration: z.number().min(0).max(1_000_000).nullable().optional(),
+  finished: z.boolean().optional(),
+});
+
+/** Keeps the member's place in a passage or its recording; the newest place is the one offered to pick up. */
+export async function saveProgress(q: Queryable, userId: string, input: z.infer<typeof ProgressInput>) {
+  const ids = await allowed(q, userId);
+  if (!ids.includes(input.collection)) throw forbidden('This collection is not offered in your community');
+  const found = byKey(input.collection, input.key);
+  if (!found) throw notFound('Passage');
+  const p = found.passage;
+  const work = collection(input.collection).works.get(p.workId)!;
+  const title = input.kind === 'recording' ? (recordingAt(input.collection, found.index)?.title ?? null) : null;
+  if (input.kind === 'recording' && !title) throw notFound('Recording');
+  await q.query(
+    `insert into public.library_listening (user_id, collection, passage_key, ref, citation, kind, position, duration, recording_title, finished)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     on conflict (user_id, collection, passage_key, kind) do update set position = excluded.position,
+       duration = coalesce(excluded.duration, library_listening.duration), recording_title = excluded.recording_title,
+       finished = excluded.finished, updated_at = now()`,
+    [userId, input.collection, input.key, p.ref.slice(0, 200), citation(input.collection, p.ref, work).slice(0, 300), input.kind, input.position, input.duration ?? null, title, input.finished ?? false],
+  );
+  return { saved: true };
+}
+
+type ListenRow = { collection: CollectionId; passage_key: string; ref: string; citation: string; kind: 'voice' | 'recording'; position: string; duration: string | null; recording_title: string | null; finished: boolean; updated_at: Date };
+
+/** The member's listening history, newest first, and the place to offer to pick up (the newest not finished). */
+export async function history(q: Queryable, userId: string) {
+  const ids = await allowed(q, userId);
+  const { rows } = await q.query<ListenRow>(
+    `select collection, passage_key, ref, citation, kind, position, duration, recording_title, finished, updated_at
+       from public.library_listening where user_id = $1 and collection = any($2::text[])
+      order by updated_at desc limit 100`,
+    [userId, ids],
+  );
+  const items = rows.flatMap((r) => {
+    const found = byKey(r.collection, r.passage_key);
+    // A passage gone from a rebuilt text can't be played again; it drops out of the list.
+    if (!found) return [];
+    const rec = r.kind === 'recording' ? recordingAt(r.collection, found.index) : null;
+    if (r.kind === 'recording' && !rec) return [];
+    return [
+      {
+        collection: r.collection,
+        key: r.passage_key,
+        ref: r.ref,
+        citation: r.citation,
+        text: found.passage.text,
+        kind: r.kind,
+        position: Number(r.position),
+        duration: r.duration === null ? null : Number(r.duration),
+        finished: r.finished,
+        recording: rec,
+        updatedAt: r.updated_at.toISOString(),
+      },
+    ];
+  });
+  return { resume: items.find((i) => !i.finished) ?? null, history: items };
 }

@@ -44,6 +44,8 @@ export function libraryRoutes(app: FastifyInstance, db: Db) {
   app.get('/library/notes/circle/:id', async (req) => notes.circle(db, requireUser(req), z.object({ id: z.uuid() }).parse(req.params).id));
   // Listening: a public-domain recording of where a passage is, if there is one.
   app.get('/library/listen', async (req) => listen.recording(db, requireUser(req), listen.ListenQuery.parse(req.query)));
+  app.get('/library/listening', async (req) => listen.history(db, requireUser(req)));
+  app.put('/library/listening', async (req) => listen.saveProgress(db, requireUser(req), listen.ProgressInput.parse(req.body)));
   // Circle study rooms.
   app.get('/library/studies', async (req) => studies.list(db, requireUser(req), z.object({ circle: z.uuid() }).parse(req.query).circle));
   app.post('/library/studies', async (req, reply) => {
