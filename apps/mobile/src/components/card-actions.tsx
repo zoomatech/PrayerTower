@@ -18,7 +18,7 @@ import { errorText } from '@/lib/error-report';
 
 type ReportTarget = { type: 'post' | 'comment'; id: string };
 type Sheet = {
-  kind: 'praying' | 'commit' | 'encourage' | 'share' | 'gift' | 'report' | 'done';
+  kind: 'praying' | 'commit' | 'cast' | 'encourage' | 'share' | 'gift' | 'report' | 'done';
   card: Card;
   message?: string;
   target?: ReportTarget;
@@ -78,12 +78,18 @@ export function useCardActions(onChanged: () => void) {
   };
 
   const onAction = async (card: Card, action: CardAction) => {
+    // Thumbs up toggles at once, with no sheet.
+    if (action === 'thumbs_up') {
+      await api.quickReact(card.id, 'thumbs_up', !card.myQuickReactions?.includes('thumbs_up')).catch(() => undefined);
+      onChanged();
+      return;
+    }
     if (action === 'well_wishes') {
       await api.wellWishes(card.id).catch(() => undefined);
       onChanged();
       return;
     }
-    const kind = ({ praying_now: 'praying', commit: 'commit', encouragement: 'encourage', share: 'share', gift_tokens: 'gift' } as const)[action];
+    const kind = ({ praying_now: 'praying', commit: 'commit', prayer_cast: 'cast', encouragement: 'encourage', share: 'share', gift_tokens: 'gift' } as const)[action];
     if (kind === 'commit' && card.myCommitment) {
       setSheet({ kind: 'done', card, message: t('actions.alreadyCommitted', { frequency: freq(card.myCommitment.frequency).toLowerCase() }) });
       return;
@@ -201,6 +207,15 @@ export function useCardActions(onChanged: () => void) {
         <OutsideShareButton card={sheet.card} />
       </>
     );
+  } else if (sheet?.kind === 'cast') {
+    // Prayer Cast: send the request out by radio (Steve, 2026-10-30).
+    body = (
+      <>
+        <Text style={type.heading}>{label('action', 'prayer_cast', ACTION_LABELS.prayer_cast)}</Text>
+        <Text style={type.body}>{t('actions.castBody')}</Text>
+        <Button label={t('post.radio')} busy={busy} onPress={() => run(() => api.sendRadioPrayer(sheet.card.id), t('post.radioSent'))} />
+      </>
+    );
   } else if (sheet?.kind === 'gift') {
     body = (
       <>
@@ -299,6 +314,7 @@ export function useCardActions(onChanged: () => void) {
     ? {
         praying: label('action', 'praying_now', ACTION_LABELS.praying_now),
         commit: t('actions.commitTitle'),
+        cast: label('action', 'prayer_cast', ACTION_LABELS.prayer_cast),
         encourage: label('action', 'encouragement', ACTION_LABELS.encouragement),
         share: label('action', 'share', ACTION_LABELS.share),
         gift: label('action', 'gift_tokens', ACTION_LABELS.gift_tokens),

@@ -274,6 +274,7 @@ export const keys: Tree = named({
     integrity: 'Tapping means you are truly holding this person in your thoughts right now.',
     prayingNow: "I'm thinking of you",
     prayingDone: 'Thank you. They will know someone is thinking of them right now.',
+    castBody: 'Send this request out over the air by radio, so your good wishes travel on as radio waves.',
     commitTitle: 'Promise to Check In',
     commitDone: 'Your promise is saved. We will remind you when it is time to check in.',
     askTitle: 'Ask people for support',
@@ -458,6 +459,7 @@ export const keys: Tree = named({
     intro: 'Start a live room for a talk, a seminar or a circle. Members of your community see it under "Live now" until you end it. Nothing is recorded.',
     roomTitlePlaceholder: 'Evening check-in',
   },
+  beanstalk: { subtitle: 'Requests & good news' },
   vine: {
     yourTendril: '➰ Your tendril: you promised to check in',
     tendrils: { one: '1 person promised to check in on this', other: '%{count} people promised to check in on this' },

@@ -104,7 +104,15 @@ Admin → Text search → **Study rooms** (`studies_enabled`, feature `librarySt
 - A study of a collection the viewer's community isn't offered (the Bible, in Open Circle) is left out for them, and can't be started there.
 - Routes: `GET /library/studies?circle`, `POST /library/studies` (`{ circleId, prompt, collection, key }` or `{ circleId, prompt, planId, day }`), `GET|DELETE /library/studies/:id`, `POST /library/studies/:id/replies` (`{ body, parentId? }`), `DELETE /library/study-replies/:id`.
 
-Winstons Syndicate's scripture package (relationship search, "David slew Goliath", and fuzzy remembered-story search) is still being built there. It will come to Prayer Tower later as an **Ask the Bible** feature (Steve, 2026-10-29), so it is not ported here.
+The native Swift app adds two Bible searches on the device (`apps/ios-native/Sources/PrayerTowerScripture`, with `App/OnnxEmbedder.swift`), both ported from Winstons Syndicate, not reinvented:
+
+- **Who did what**: its relationship search ("David slew Goliath"), reading the phrase with Apple's NaturalLanguage tagger.
+- **A story I remember**: its hybrid Bible search (`HybridBibleSearch`, Winstons Syndicate PRD FR-284 to FR-287). Three searches take turns, a verse found by more than one given once, each passage giving its verse nearest the question:
+  1. meaning: every chapter of five public-domain translations (KJV, ASV, BBE, BSB, YLT; scrollmapper's CSVs) split into groups of six verses every three, never crossing a chapter, each embedded by EmbeddingGemma 300M (`onnx-community/embeddinggemma-300m-ONNX`, q4, the same revision and query/document prompts, ONNX Runtime; IBM granite small r2 if Gemma cannot be had), merged across translations by reference with the best score kept;
+  2. the cascade text search over the same groups (`CascadeIndex`): the whole phrase, then every essential word, then any, then every word's stem anywhere;
+  3. the word search (`VerseLibrary.passageSearch`): each verse with its neighbours, the KJV's own word forms and Moby Thesaurus synonyms (rod = staff), then the relationship search.
+
+  The translations and model (about 200 MB) are downloaded and the index made once, into Application Support/Bible Search; until that is done the word search answers alone, as in Winstons Syndicate. Winstons Syndicate's sixth translation, the NRSV, is copyrighted and is not part of Prayer Tower. Tests: Winstons Syndicate's own (`PassageTests`, `HybridTests`, `PassageWordSearchTests`, `RelationSearchTests`); on Steve's Mac with its Gemma index the hybrid answers all 22 of `TestQuestions` (meaning alone 19, cascade 12, word search 8).
 
 ## How the search works
 
@@ -115,7 +123,7 @@ Winstons Syndicate's scripture package (relationship search, "David slew Goliath
 - Synonyms from the public-domain Moby Thesaurus count for 0.8 of the word (`rod` = `staff`), except for very common words.
 - Rarer words weigh more (log of total passages over passages holding the word). Ranking: every word present, then every word or a synonym, then weight, then words in the order typed, then the verse's own weight. Neighbouring hits are collapsed to one.
 
-The relationship and fuzzy searches stay in Winstons Syndicate until Ask the Bible (above).
+The relationship search, the Gemma model and the hybrid need Apple frameworks and ONNX Runtime, so they live in the native app only (above), not on the server or in the Expo app.
 
 ## Texts and rights
 

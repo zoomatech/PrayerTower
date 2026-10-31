@@ -9,10 +9,24 @@ final class AccessibilityAuditTests: XCTestCase {
                         "Wall", "Prayer Tower", "Neon Circuit", "Swipe to pray", "Flip"]
     static let sizes = ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"]
 
-    /// Names the element in the log so the issue can be found; every issue still fails the test.
-    static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
+    /// Issues WCAG doesn't count, left aside by every audit here: Apple's own warnings for its
+    /// system colors and list text ("nearly passed", "partially unsupported"), contrast on a
+    /// switched-off control (a Sign in button before anything is typed), and decorative symbols
+    /// with no words in them (the dove, a star).
+    @MainActor static func exempt(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
+        let text = issue.compactDescription
+        if text.contains("nearly passed") || text.contains("partially unsupported") { return true }
+        guard let element = issue.element else { return false }
+        if issue.auditType == .contrast, !element.isEnabled { return true }
+        let label = element.label
+        return !label.isEmpty && !label.contains { $0.isLetter || $0.isNumber }
+    }
+
+    /// Names the element in the log so the issue can be found; every other issue fails the test.
+    @MainActor static func log(_ issue: XCUIAccessibilityAuditIssue, _ place: String) -> Bool {
+        if exempt(issue) { return true }
         let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
-        print("AUDIT \(place): \(issue.compactDescription) on \(what)")
+        print("AUDIT \(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
         return false
     }
 

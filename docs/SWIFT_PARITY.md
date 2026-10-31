@@ -101,7 +101,7 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
 | Expo route | Status |
 | --- | --- |
 | `listen`, `listen-on-air`, `operator-console`, `radio-requests`, `signal-queue`, amplify / radio send | 📻 radio thread (`RadioViews.swift`, `PrayerTowerConsole`) |
-| Admin → Radio: radio settings, burst size, listen page, receipts, on-air page, Priestly fund settings, station health and acks, station alerts, listener and station nodes with SNR, recent bursts, and the radio switches (heard trail, scheduled radio, signal queue, signal journey, operator console, fair air, ceaseless, beacon, sky, schedule, operator log, followups, listener mode, packet, digest) | 📻 radio thread |
+| Admin → Radio: radio settings, burst size, listen page, receipts, on-air page, Priestly fund settings, station health and acks, station alerts, listener and station nodes with SNR, recent bursts, and the radio switches (heard trail, scheduled radio, signal queue, operator console, fair air, ceaseless, beacon, sky, schedule, operator log, followups, listener mode, packet, digest) | 📻 radio thread |
 | `kindness-research`, `meaning-words`, `mend/[id]`, `skin-gallery`, `skin-idea`, kind norms, kindness weather | 💛 kindness thread (`Skins/`, `KindCloudView`) |
 
 ## Editions
@@ -142,13 +142,3 @@ Every screen (route) in the Expo app (`apps/mobile/src/app`) and its native Swif
   signs in a sample member and answers every API call on the device (`SampleServer`), so no
   server or account is needed. They open the feed, a request with its comments, My Promises,
   Messages, Notices and Me.
-
-## Native only: Siri and Spotlight
-
-Behind one switch on the device, Me → Siri and Spotlight, off by default (`Shortcuts.defaultsKey`):
-
-- **Siri Shortcuts** (`App/Shortcuts.swift`, App Intents): "Pray for…" marks the member praying now
-  for a request Siri offers from their feed (never their own, sensitive or crisis requests), and
-  "Open prayer list" opens the prayer list, or My Promises when the list is switched off.
-- **Spotlight:** the member's own requests (never sensitive or crisis ones) are indexed on the
-  device as the feed loads. A tap opens the request. Turning the switch off removes them.

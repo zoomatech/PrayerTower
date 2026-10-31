@@ -35,6 +35,7 @@ struct CirclesView: View {
                 if let error { Text(error).foregroundStyle(.red) }
             }
             .navigationTitle("Circles")
+            .appLogo()
             .navigationDestination(for: String.self) { CircleDetailView(id: $0) }
             .refreshable { await load() }
             .task { await load() }

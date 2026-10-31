@@ -139,12 +139,14 @@ export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
 export type CardType = PostType | 'scripture_leaf' | 'feed_end';
 
 /** The labeled action row, in the same order on every card in every layout. */
-export const ACTION_ORDER = ['praying_now', 'commit', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
+export const ACTION_ORDER = ['thumbs_up', 'praying_now', 'commit', 'prayer_cast', 'encouragement', 'well_wishes', 'share', 'gift_tokens'] as const;
 export type CardAction = (typeof ACTION_ORDER)[number];
 
 export const ACTION_LABELS: Record<CardAction, string> = {
+  thumbs_up: 'Thumbs Up',
   praying_now: 'Praying Now',
   commit: 'Commit to Pray',
+  prayer_cast: 'Prayer Cast',
   encouragement: 'Encourage',
   well_wishes: 'Well Wishes',
   share: 'Share',
@@ -182,6 +184,8 @@ export interface Identity {
   displayName: string;
   handle: string | null;
   anonymous: boolean;
+  /** The member's own profile photo (a short-lived signed URL), on post cards; null or absent shows initials. */
+  photoUrl?: string | null;
 }
 
 export interface Comment {
@@ -201,7 +205,7 @@ export interface Comment {
 }
 
 /** Long-press reactions: "Light a candle" and "Standing with you". */
-export type QuickReactionKind = 'candle' | 'standing';
+export type QuickReactionKind = 'candle' | 'standing' | 'thumbs_up';
 
 export interface Card {
   id: string;
@@ -243,6 +247,8 @@ export interface Card {
   storyId?: string | null;
   /** The author chose quiet counts: others see no prayer numbers on this post. */
   countsQuiet?: boolean;
+  /** Someone has gifted the poster tokens, regular or Priestly: fruit on the vine skins. */
+  gifted?: boolean;
   /** Mentions suicide or self-harm: readers see crisis support. */
   crisis: boolean;
   /** `url` is a signed, short-lived read URL. */
@@ -257,6 +263,7 @@ export interface Card {
     comments: number;
     candles?: number;
     standing?: number;
+    thumbsUp?: number;
   };
   reach: number;
   topComment: Comment | null;
@@ -403,6 +410,8 @@ export interface FeedPage {
 export interface Profile {
   id: string;
   display_name: string;
+  /** The member's own photo, as a signed URL (GET /me); null until they add one. */
+  photo_url?: string | null;
   handle: string | null;
   bio: string;
   why_here: string[];
@@ -810,65 +819,3 @@ export function signalCode(fingerprint: string): string | null {
   return `${out.slice(0, 4)}-${out.slice(4, 8)}-${out.slice(8)}`;
 }
 export { neutralText, RELIGIOUS_WORDS } from './neutral-text';
-
-// Signal journey -----------------------------------------------------------------------
-
-/** The speed of light in km/s (exact, by the SI definition of the metre). */
-export const LIGHT_KM_S = 299_792.458;
-/** One astronomical unit in km (IAU 2012 Resolution B2). */
-const AU_KM = 149_597_870.7;
-/** One light-year in km (IAU: 365.25 days of light travel). */
-export const LIGHT_YEAR_KM = 9_460_730_472_580.8;
-
-/**
- * Places a radio wave passes on its way out, nearest first, with their distance
- * from Earth in km (sources in docs/STATION_OPERATOR_GUIDE.md, "Signal journey"). Planets
- * move, so these are average or fixed distances, and a wave that leaves on HF
- * may bounce back off the ionosphere instead (6 m and higher go on out).
- */
-export const JOURNEY_LANDMARKS = [
-  { key: 'moon', km: 384_400 },
-  { key: 'sun', km: AU_KM },
-  { key: 'neptune', km: 30.07 * AU_KM },
-  { key: 'heliopause', km: 121 * AU_KM },
-  { key: 'voyager', km: LIGHT_KM_S * 86_400 },
-  { key: 'lightYear', km: LIGHT_YEAR_KM },
-  { key: 'proxima', km: 4.2465 * LIGHT_YEAR_KM },
-] as const;
-
-export type JourneyLandmark = (typeof JOURNEY_LANDMARKS)[number]['key'];
-
-export interface SignalJourney {
-  /** Seconds since the wave left (0 if the clock says it hasn't yet). */
-  seconds: number;
-  /** How far the wave front is from Earth, in km. */
-  km: number;
-  /** The distance in the largest light unit that fits: "1.3 light-seconds", "4.2 light-hours". */
-  light: { value: number; unit: 'second' | 'minute' | 'hour' | 'day' | 'year' };
-  /** Landmarks already passed, nearest first. */
-  passed: JourneyLandmark[];
-  /** The next landmark and how long until the wave reaches it, or null past the last one. */
-  next: { key: JourneyLandmark; inSeconds: number; fraction: number } | null;
-}
-
-/** Where a wave that left at `sentAt` is at `now` (both in ms since 1970). */
-export function signalJourney(sentAt: number, now: number): SignalJourney {
-  // A time that doesn't parse (NaN) counts as just sent rather than breaking the numbers.
-  const seconds = Number.isFinite(now - sentAt) ? Math.max(0, (now - sentAt) / 1000) : 0;
-  const km = seconds * LIGHT_KM_S;
-  const units = [
-    ['year', 365.25 * 86_400],
-    ['day', 86_400],
-    ['hour', 3_600],
-    ['minute', 60],
-    ['second', 1],
-  ] as const;
-  const [unit, size] = units.find(([, s]) => seconds >= s) ?? units[units.length - 1]!;
-  const light = { value: Math.round((seconds / size) * 10) / 10, unit };
-  const passed = JOURNEY_LANDMARKS.filter((l) => l.km <= km).map((l) => l.key);
-  const ahead = JOURNEY_LANDMARKS.find((l) => l.km > km);
-  const prev = passed.length ? JOURNEY_LANDMARKS[passed.length - 1]!.km : 0;
-  const next = ahead ? { key: ahead.key, inSeconds: (ahead.km - km) / LIGHT_KM_S, fraction: (km - prev) / (ahead.km - prev) } : null;
-  return { seconds, km, light, passed, next };
-}
-

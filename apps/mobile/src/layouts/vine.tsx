@@ -12,7 +12,6 @@
 // Skins (Beanstalk, Golden Wood, Moonlit Gate) are the same vine with other
 // tokens: a backdrop, a thicker or doubled stem and round or pointed leaves.
 import { COMMENT_TEXT, contrastRatio, type Card, type Comment, type FeedTheme, type PostState } from '@prayer-tower/shared';
-import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -20,10 +19,11 @@ import { Button } from '@/components/ui';
 import { BlurredLeaves } from '@/components/comment-tree';
 import { CardSurface } from '@/components/post-card';
 import { GateArch } from '@/components/gate-arch';
-import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
+import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineFruit, VineRow, type VineSide, type VineStyle } from '@/components/vine-flow';
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
+import { useFeedHooks } from '@/skins/feed-hooks';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -145,6 +145,11 @@ function Fruit({ card, pinned, tokens, side, from, gap, fresh, children }: { car
               }
             : { opacity: grow, transform: [{ scale: grow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] },
         ]}>
+        {card.gifted ? (
+          <View style={styles.fruit}>
+            <VineFruit label={t('vine.fruit')} />
+          </View>
+        ) : null}
         <LeafFrame side={side} look={tokens} bare mark={mark}>
           <CardSurface.Provider value={surface}>
           <View style={styles.tags}>
@@ -188,7 +193,7 @@ function ScriptureLeaf({ leaf, tokens, from }: { leaf: Leaf; tokens: VineTokens;
  * The idle bird: when the screen sits still, a bud labeled "Ad" swells on the
  * vine, a bird flies in, snips it and leaves a speech bubble. Once per visit.
  */
-function IdleBird({ tokens, register }: { tokens: VineTokens; register: (nudge: () => void) => void }) {
+export function IdleBird({ tokens, register }: { tokens: VineTokens; register: (nudge: () => void) => void }) {
   const { wording, t } = useLocale();
   // The wait restarts each time the member scrolls. Kept here, not in the feed, so a scroll
   // re-renders only the bird and never the whole list of leaves.
@@ -243,6 +248,7 @@ function IdleBird({ tokens, register }: { tokens: VineTokens; register: (nudge: 
 }
 
 export function VineLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
+  const { openPost } = useFeedHooks();
   const tokens = useMemo(() => vineTokens(theme), [theme]);
   const [leaves, setLeaves] = useState<Leaf[]>([]);
   const nudgeBird = useRef<() => void>(() => undefined);
@@ -333,7 +339,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
             <Pressable
               accessibilityRole="button"
               accessibilityHint={t('vine.openComment')}
-              onPress={() => router.push(`/post/${item.postId}?comment=${item.comment.id}`)}>
+              onPress={() => openPost(item.postId, item.comment.id)}>
               <LeafFrame side={item.side} look={tokens} depth={1}>
                 <Text style={styles.commentName}>{item.comment.author.displayName}</Text>
                 <Text style={styles.commentBody} numberOfLines={3}>
@@ -344,7 +350,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
           </VineRow>
         ) : item.kind === 'more' ? (
           <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={2} seed={item.count}>
-            <Pressable accessibilityRole="button" onPress={() => router.push(`/post/${item.postId}`)}>
+            <Pressable accessibilityRole="button" onPress={() => openPost(item.postId)}>
               {/* The older comments wait behind frosted glass. */}
               <BlurredLeaves look={tokens} depth={1} side={item.side} peek={[]}>
                 <Text style={styles.moreText}>{t('vine.moreComments', { count: item.count })}</Text>
@@ -360,7 +366,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         ) : (
           <ScriptureLeaf leaf={item.leaf} tokens={tokens} from={item.from} />
         ),
-    [pinnedId, renderCard, t, tokens],
+    [pinnedId, renderCard, t, tokens, openPost],
   );
 
   return (
@@ -401,6 +407,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  fruit: { position: 'absolute', top: 6, right: 10, zIndex: 2 },
   content: { padding: space.lg, paddingBottom: 120 },
   headerPanel: { borderRadius: radius.lg, backgroundColor: colors.background, padding: space.sm, marginBottom: space.md },
   ripeness: { width: 14, height: 14, borderRadius: radius.pill, borderWidth: 2 },

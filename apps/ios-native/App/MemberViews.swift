@@ -186,8 +186,15 @@ struct NotificationsView: View {
 
     private var w: Words { model.words }
 
+    /// false when pushed from Me, inside Me's own NavigationStack.
+    var standalone = true
+
     var body: some View {
-        NavigationStack {
+        if standalone { NavigationStack { content } } else { content }
+    }
+
+    private var content: some View {
+        Group {
             List {
                 if let error { Text(error).foregroundStyle(.red) }
                 if items?.isEmpty == true { Text(w("notices.empty")).foregroundStyle(.secondary) }
@@ -212,6 +219,7 @@ struct NotificationsView: View {
             }
             .overlay { if items == nil && error == nil { ProgressView() } }
             .navigationTitle(w("tabs.notices"))
+            .appLogo()
             .navigationDestination(item: $route) { RouteView(route: $0) }
             .navigationDestination(item: $appealing) { AppealView(itemId: $0.id, held: $0.held) }
             .navigationDestination(item: $commentDraft) { PostDetailView(postId: $0.postId, draft: $0.body) }

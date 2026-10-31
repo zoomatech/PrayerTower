@@ -76,6 +76,8 @@ function RootStack() {
         </Stack.Protected>
         <Stack.Protected guard={signedIn && !needsCode && onboarded && !recovering}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="messages" />
+          <Stack.Screen name="notifications" />
           <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
           <Stack.Screen name="post/[id]" />
           <Stack.Screen name="delete-account" />

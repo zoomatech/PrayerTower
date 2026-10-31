@@ -33,7 +33,7 @@ struct FeedView: View {
         NavigationStack {
             Group {
                 if let theme, theme.kind != .column {
-                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id })
+                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hooks: hooks, row: row)
                         .skinBars(Skin.backdrop(theme))
                 } else if wide {
                     grid
@@ -52,6 +52,7 @@ struct FeedView: View {
                 if let error { ContentUnavailableView("Couldn’t load the feed", systemImage: "wifi.exclamationmark", description: Text(error)) }
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
+            .appLogo()
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
@@ -126,6 +127,17 @@ struct FeedView: View {
         }
     }
 
+    /// What every button, tap and scroll does, in whichever skin the member has (docs/SKIN_HOOKS.md).
+    private var hooks: FeedHooks {
+        FeedHooks(
+            act: { act($0, on: $1) },
+            open: { opened = $0.id },
+            loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] },
+            loadMore: more,
+            hasMore: nextPage != nil
+        )
+    }
+
     private func row(_ card: Card) -> some View {
         CardRow(card: card, active: done[card.id] ?? [], onAction: { act($0, on: card) }, onMeaning: { item, meaning in
             Task { await choose(meaning, of: item, on: card) }
@@ -140,7 +152,6 @@ struct FeedView: View {
             pending = await OfflineStore.shared.pending().count
             dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
             posts = page.posts
-            SpotlightIndex.update(page.posts)
             // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
             theme = SampleServer.skin().flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
             nextPage = page.nextPage
@@ -170,6 +181,7 @@ struct FeedView: View {
                     if try await model.store.api.prayingNowOrQueue(postId: card.id) == nil { pending = await OfflineStore.shared.pending().count }
                 }
             }
+        case .thumbsUp: Task { await run(card, action) { _ = try await model.store.api.thumbsUp(postId: card.id) } }
         case .wellWishes: Task { await run(card, action) { _ = try await model.store.api.react(postId: card.id, kind: "well_wishes") } }
         case .encouragement: encouraging = card
         case .share: sharing = card
@@ -241,7 +253,7 @@ struct CardRow: View {
                 }
             }
             ActionRowView(
-                items: ActionRow.items(actions: card.actions ?? (card.isMine ? [] : ["praying_now"]), features: model.features, tree: model.tree, wording: model.wording),
+                items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
                 wording: model.wording,
                 active: active,
                 onAction: onAction,

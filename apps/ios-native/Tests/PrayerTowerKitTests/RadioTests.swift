@@ -133,17 +133,6 @@ extension APIClientTests {
         #expect(trail.first?.phones == 3)
     }
 
-    @Test func readsSignalJourneyFieldsWhenTheServerSendsThem() async throws {
-        StubProtocol.answer = (200, """
-        {"journey":true,"signals":[{"id":"r1","postId":"p1","excerpt":"Pray","status":"sent","kind":"prayer","amplified":true,"copies":1000,"queuedAt":"2026-10-29T08:00:00Z",
-          "sentAt":"2026-10-29T08:05:00Z","callSign":"N0CALL","preset":null,"heardCount":2,"signalCode":"K7Q2","bestSnrDb":14}]}
-        """)
-        let r = try await client().signalQueueWithJourney()
-        #expect(r.journey)
-        #expect(r.signals.first?.copies == 1000)
-        #expect(r.signals.first?.bestSnrDb == 14)
-    }
-
     @Test func schedulesARadioSendAndKeepsARequestOnTheAir() async throws {
         StubProtocol.answer = (201, #"{"schedule":{"id":"s1","post_id":"p1","amount":1,"next_run_at":"2026-10-31T00:00:00Z","repeat_weeks":4,"runs":0,"action":"radio","status":"active","error":null,"excerpt":"Pray"}}"#)
         let s = try await client().scheduleSpend(postId: "p1", NewScheduledSpend(amount: 1, runAt: "2026-10-31T00:00:00.000Z", repeatWeeks: 4, action: "radio"))

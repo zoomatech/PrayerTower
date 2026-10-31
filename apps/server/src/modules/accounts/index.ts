@@ -100,6 +100,7 @@ export function validTimeZone(tz: string) {
 export interface Profile {
   id: string;
   display_name: string;
+  photo_path?: string | null;
   handle: string | null;
   bio: string;
   why_here: string[];
@@ -126,6 +127,22 @@ export interface Profile {
   suspended_until: Date | null;
   deleted_at: Date | null;
   created_at: Date;
+}
+
+/** Exactly the shape /media/upload-url hands out for an image: <user id>/<uuid>.<ext>. */
+export const PhotoPath = z.object({ storagePath: z.string().max(200) });
+
+/** Sets (or, with null, clears) the member's profile photo; returns the path it replaces, to delete from storage. */
+export async function setPhoto(q: Queryable, userId: string, storagePath: string | null): Promise<string | null> {
+  if (storagePath !== null && (!storagePath.startsWith(`${userId}/`) || !/^[0-9a-f-]{36}\.(jpg|png|webp|heic)$/.test(storagePath.slice(userId.length + 1)))) {
+    throw badRequest('Photos must be uploaded through /media/upload-url');
+  }
+  const { rows } = await q.query<{ old: string | null }>(
+    'update public.profiles p set photo_path = $2 from (select photo_path as old from public.profiles where id = $1) o where p.id = $1 returning o.old',
+    [userId, storagePath],
+  );
+  const old = rows[0]?.old ?? null;
+  return old !== storagePath ? old : null;
 }
 
 export async function getProfile(q: Queryable, userId: string): Promise<Profile | null> {
@@ -388,7 +405,11 @@ async function deleteTheRest(q: Queryable, userId: string) {
  * its text) and moderators' decisions. Returns the media paths to remove from storage.
  */
 export async function deleteAccount(q: Queryable, userId: string): Promise<string[]> {
-  const { rows: media } = await q.query<{ storage_path: string }>('select storage_path from public.post_media where user_id = $1', [userId]);
+  const { rows: media } = await q.query<{ storage_path: string }>(
+    `select storage_path from public.post_media where user_id = $1
+     union all select photo_path from public.profiles where id = $1 and photo_path is not null`,
+    [userId],
+  );
   // Requests: delete outright, unless the ledger points at them; then empty them and take them down.
   await q.query(
     `delete from public.posts p where p.user_id = $1 and not exists (select 1 from public.token_accounts a where a.post_id = p.id)`,
@@ -489,7 +510,7 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
             trauma_content_opt_out = default, anonymous_by_default = default, updates_in_first_comment = default,
             prompts_enabled = default, prompt_min_hours = default, prompt_tone = default, locale = default,
             digest_enabled = default, digest_sent_week = default, notification_prefs = default,
-            show_prayer_stats = default, town = null, support_url = null, squire_public = default, open_to_other_communities = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
+            show_prayer_stats = default, town = null, photo_path = null, support_url = null, squire_public = default, open_to_other_communities = default, thanks_card_dismissed_at = default, onboarded_at = null, deleted_at = now()
       where id = $1`,
     [userId],
   );

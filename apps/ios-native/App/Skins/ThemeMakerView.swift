@@ -159,13 +159,13 @@ struct SkinPreview: View {
     let wording: Wording
 
     var body: some View {
-        SkinnedFeed(theme: theme, cards: SkinMaker.sampleCards(wording), wording: wording, hasMore: false, row: { card in
+        SkinnedFeed(theme: theme, cards: SkinMaker.sampleCards(wording), wording: wording, row: { card in
             VStack(alignment: .leading, spacing: 4) {
                 Text(card.author.displayName).font(.caption.bold())
                 Text(card.body).font(.callout)
             }
             .padding(10)
-        }, onEnd: {})
+        })
         .allowsHitTesting(false)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(.separator))

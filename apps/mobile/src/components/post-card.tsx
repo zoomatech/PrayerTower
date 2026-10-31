@@ -2,7 +2,6 @@
 // with "more", tier icon, first/top comment, and the labeled action row.
 // Layouts decide where a card goes; the card's content and action order never change.
 import {
-  ACTION_LABELS,
   isPrayable,
   POST_BACKGROUND_STYLES,
   POST_TYPE_LABELS,
@@ -12,32 +11,49 @@ import {
   type CardAction,
 } from '@prayer-tower/shared';
 import { router } from 'expo-router';
-import { createContext, memo, useContext, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { createContext, memo, useContext, useState, type ReactNode } from 'react';
+import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
 import { useFeatures } from '@/lib/features';
 import { useLocale } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
 import { CardMedia } from './media';
+import { hasNeonIcon, NeonActionIcon } from './neon-action-icon';
 import { SparkleWords } from './sparkle-words';
 import { hasParts, PostParts, type PartComments } from './post-parts';
 import { QuickReactionTray } from './quick-reactions';
 import { UrgencyLight } from './urgency-light';
-import { useMeaningChooser, type MeaningChooser } from './meaning-chooser';
 import { useQuietSeen } from './comment-kindness';
+import { useActionRow } from '@/skins/action-row';
 
 const TIER_ICONS: Record<string, string> = { prayer_scout: '🕊', prayerful_helper: '🙏', prayer_warrior: '🛡' };
 // Open Circle (neutral wording) uses icons without a religious meaning.
 const NEUTRAL_ICONS: Record<string, string> = { prayerful_helper: '🤝', commit: '🤝' };
 // What a screen reader says instead of the tier emoji.
 const TIER_NAMES: Record<string, string> = { prayer_scout: 'Prayer Scout', prayerful_helper: 'Prayerful Helper', prayer_warrior: 'Prayer Warrior' };
+// The action icons drawn in Steve's post mockups (Business Plan, "Sample prayer post request with
+// proposed action icons"); thumbs up isn't drawn there, so it stays an emoji. Gift tokens is a hand held out to
+// help, not a hand with a gift (Steve, 2026-10-30). Open Circle keeps its emoji for the two prayer actions, which are religious signs there.
+const ACTION_ART: Partial<Record<CardAction, ImageSourcePropType>> = {
+  praying_now: require('../../assets/images/actions/praying_now.png'),
+  commit: require('../../assets/images/actions/commit.png'),
+  // The radio antenna with broadcast waves is Prayer Cast (Steve, 2026-10-30).
+  prayer_cast: require('../../assets/images/actions/broadcast.png'),
+  encouragement: require('../../assets/images/actions/encouragement.png'),
+  well_wishes: require('../../assets/images/actions/well_wishes.png'),
+  share: require('../../assets/images/actions/share.png'),
+};
+const NEUTRAL_EMOJI_ACTIONS: ReadonlySet<CardAction> = new Set(['praying_now', 'commit']);
+
 const ACTION_ICONS: Record<CardAction, string> = {
+  thumbs_up: '👍',
   praying_now: '💜',
   commit: '🙏',
+  prayer_cast: '📡',
   encouragement: '✉️',
-  well_wishes: '🤍',
+  well_wishes: '❤️',
   share: '↗',
-  gift_tokens: '🎁',
+  gift_tokens: '🫴',
 };
 
 export interface CardHandlers {
@@ -49,6 +65,13 @@ export interface CardHandlers {
 // Memoized: a feed re-render (a prompt or highlights arriving) skips cards whose data didn't change.
 /** A feed skin can restyle the card's box (the drawn vine puts a smaller, greener box inside a leaf). */
 export const CardSurface = createContext<ViewStyle | null>(null);
+/** True where a skin leaves out the post-type label (the Beanstalk, Steve 2026-10-30). */
+export const CardNoType = createContext(false);
+/**
+ * Where a skin draws the post's box in its own frame (Neon Circuit's glowing screen), and draws the action icons as neon.
+ * The action row always sits under the box, on the screen's background, not inside the post (Steve, 2026-10-30).
+ */
+export const CardFrame = createContext<{ frame: (box: ReactNode) => ReactNode; neon?: { color: string; active: string }; inset?: number } | null>(null);
 
 export const PostCard = memo(function PostCard({
   card,
@@ -63,13 +86,12 @@ export const PostCard = memo(function PostCard({
   const { t, label, n, wording } = useLocale();
   const icon = (key: string, icons: Record<string, string>) => (wording === 'neutral' ? NEUTRAL_ICONS[key] : undefined) ?? icons[key] ?? '';
   const features = useFeatures();
+  // What each button does lives in the shared skin hooks; this card only draws them.
   // Emoji meanings ride on the same row of action icons; on the request's own page the full tree sits below instead.
-  const chooser: MeaningChooser = useMeaningChooser(card.id, card.body, !startExpanded);
-  const meaningsFor = (action: string) => {
-    const e = chooser.forAction(action);
-    return e ? { words: chooser.words(e), open: () => chooser.open(e), action: t('meanings.choose', { emoji: e.emoji }), hint: t('meanings.holdHint') } : null;
-  };
+  const row = useActionRow(card, onAction, !startExpanded);
   const surface = useContext(CardSurface);
+  const noType = useContext(CardNoType);
+  const frame = useContext(CardFrame);
   const lines = features.postLines;
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
@@ -83,9 +105,9 @@ export const PostCard = memo(function PostCard({
     label('prayerKind', card.kind, PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS]),
   ].filter(Boolean);
 
-  const typeLabel = <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
+  const typeLabel = noType ? null : <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
 
-  return (
+  const box = (
     <View style={[styles.card, answered && styles.answered, surface]}>
       {answered ? <Text style={styles.answeredBanner}>{t('card.answered')}</Text> : null}
       <View style={styles.header}>
@@ -185,28 +207,11 @@ export const PostCard = memo(function PostCard({
                   : t('card.firstToPray')}
           {card.counts.commitments > 0 && !quiet ? ` · ${t('card.committed', { count: card.counts.commitments })}` : ''}
           {card.counts.encouragements > 0 && !quiet ? ` · ${t('card.encouragements', { count: card.counts.encouragements })}` : ''}
+          {row.thumbsUp > 0 && !quiet ? ` · 👍 ${row.thumbsUp}` : ''}
           {features.reactionTray && quick.candles ? ` · 🕯️ ${quick.candles}` : ''}
           {features.reactionTray && quick.standing ? ` · ❤️ ${quick.standing}` : ''}
         </Text>
 
-        {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press. */}
-        <View style={styles.actions} testID="card-actions">
-          {card.actions.map((action) => {
-            const active = action === 'commit' && !!card.myCommitment;
-            return (
-              <ActionIcon
-                key={action}
-                icon={icon(action, ACTION_ICONS)}
-                label={active ? t('card.committedLabel') : label('action', action, ACTION_LABELS[action])}
-                name={label('action', action, ACTION_LABELS[action])}
-                active={active}
-                onPress={() => onAction(card, action)}
-                meanings={meaningsFor(action)}
-              />
-            );
-          })}
-        </View>
-        {chooser.sheet}
 
         {card.topComment ? (
           <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
@@ -223,6 +228,31 @@ export const PostCard = memo(function PostCard({
       </View>
     </View>
   );
+  return (
+    <View style={styles.wrap}>
+      {frame ? frame.frame(box) : box}
+      {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press.
+          It sits under the post's box, bigger, not inside the post (Steve, 2026-10-30). */}
+      <View style={[styles.actions, frame?.inset ? { marginLeft: frame.inset } : null]} testID="card-actions">
+        {row.buttons.map((b) => (
+          <ActionIcon
+            key={b.action}
+            icon={icon(b.action, ACTION_ICONS)}
+            art={wording === 'neutral' && NEUTRAL_EMOJI_ACTIONS.has(b.action) ? undefined : ACTION_ART[b.action]}
+            label={b.tip}
+            name={b.name}
+            active={b.active}
+            onPress={b.press}
+            meanings={b.meanings}
+            caption={b.action === 'praying_now'}
+            neon={frame?.neon && hasNeonIcon(b.action) ? <NeonActionIcon action={b.action} color={b.active ? frame.neon.active : frame.neon.color} /> : undefined}
+            captionColor={frame?.neon?.color}
+          />
+        ))}
+      </View>
+      {row.sheet}
+    </View>
+  );
 });
 
 /**
@@ -231,18 +261,28 @@ export const PostCard = memo(function PostCard({
  */
 function ActionIcon({
   icon: glyph,
+  art,
   label: tip,
   name,
   active,
   onPress,
   meanings,
+  caption,
+  neon,
+  captionColor,
 }: {
   icon: string;
+  art?: ImageSourcePropType;
   label: string;
   name: string;
   active: boolean;
   onPress: () => void;
   meanings?: { words: string; open: () => void; action: string; hint: string } | null;
+  /** Shows the name under the icon: Praying Now, "the single most important button", is named on the card (Steve, 2026-10-30). */
+  caption?: boolean;
+  /** The skin's neon drawing of the icon, in place of the art. */
+  neon?: ReactNode;
+  captionColor?: string;
 }) {
   const [shown, setShown] = useState(false);
   return (
@@ -279,16 +319,28 @@ function ActionIcon({
         style={({ pressed }) => [styles.action, active && styles.actionActive, pressed && { opacity: 0.6 }]}>
         {/* The icon is decoration; the button's name is the action's name. */}
         {/* The icon grows with larger text only so far that it stays inside its 44 pt circle; the tip and the screen-reader label carry the words. */}
-        <Text style={styles.actionIcon} aria-hidden maxFontSizeMultiplier={1.3}>
-          {glyph}
-        </Text>
+        {neon ? (
+          neon
+        ) : art ? (
+          <Image source={art} style={styles.actionArt} aria-hidden accessibilityIgnoresInvertColors />
+        ) : (
+          <Text style={styles.actionIcon} aria-hidden maxFontSizeMultiplier={1.3}>
+            {glyph}
+          </Text>
+        )}
       </Pressable>
+      {caption ? (
+        <Text style={[styles.actionCaption, captionColor ? { color: captionColor } : null]} aria-hidden numberOfLines={2}>
+          {name}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   hide: { fontSize: 15, color: colors.textMuted, paddingHorizontal: space.xs },
+  wrap: { gap: space.sm },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -317,11 +369,13 @@ const styles = StyleSheet.create({
   counts: type.small,
   actions: { flexDirection: 'row', justifyContent: 'space-between', gap: space.xs },
   actionCell: { flex: 1, alignItems: 'center', position: 'relative' },
-  // 44 pt touch targets (Apple HIG).
-  action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.background },
+  // 48 pt touch targets (Apple HIG asks at least 44).
+  action: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
   actionActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
-  actionIcon: { fontSize: 20 },
-  tip: { position: 'absolute', bottom: 50, zIndex: 10, minWidth: 90, maxWidth: 140, paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.text },
+  actionIcon: { fontSize: 30 },
+  actionCaption: { marginTop: 2, fontSize: 12, fontWeight: '700', color: colors.primary, textAlign: 'center' },
+  actionArt: { width: 40, height: 40 },
+  tip: { position: 'absolute', bottom: 54, zIndex: 10, minWidth: 90, maxWidth: 140, paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.text },
   tipText: { fontSize: 12, color: colors.surface, textAlign: 'center', fontWeight: '600' },
   comment: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: 2 },
   commentAuthor: { fontWeight: '700', color: colors.text, fontSize: 14 },

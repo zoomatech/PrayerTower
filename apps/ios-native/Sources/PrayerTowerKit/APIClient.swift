@@ -55,6 +55,10 @@ public struct APIClient: Sendable {
     public func react(postId: String, kind: String, note: String? = nil) async throws -> Ignored {
         try await post("/posts/\(postId)/reactions", body: ["kind": kind, "note": note].compactMapValues { $0 })
     }
+    /// Thumbs up on a post (kept with the quick reactions); PUT adds it, DELETE takes it back.
+    public func thumbsUp(postId: String, on: Bool = true) async throws -> Ignored {
+        try await send(request(on ? "PUT" : "DELETE", "/posts/\(postId)/quick-reactions/thumbs_up"))
+    }
     public func reactionMeanings() async throws -> [MeaningEmoji] { try await (get("/reaction-meanings") as MeaningTree).emoji }
     public func meanings(postId: String) async throws -> [MeaningLeaf] { try await (get("/posts/\(postId)/meanings") as Leaves).leaves }
     public func chooseMeaning(postId: String, emoji: String, meaning: String) async throws -> [MeaningLeaf] {

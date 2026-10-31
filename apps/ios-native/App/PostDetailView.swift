@@ -139,7 +139,7 @@ struct PostDetailView: View {
         }
         .accessibilityElement(children: .contain)
         ActionRowView(
-            items: ActionRow.items(actions: card.actions ?? (card.isMine ? [] : ["praying_now"]), features: model.features, tree: model.tree, wording: model.wording),
+            items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
             wording: model.wording,
             active: [],
             onAction: { action in Task { await act(action, card) } },
@@ -343,6 +343,7 @@ struct PostDetailView: View {
         await call {
             switch action {
             case .prayingNow: _ = try await api.prayingNow(postId: card.id)
+            case .thumbsUp: _ = try await api.thumbsUp(postId: card.id)
             case .wellWishes: _ = try await api.react(postId: card.id, kind: "well_wishes")
             case .share:
                 sharing = card

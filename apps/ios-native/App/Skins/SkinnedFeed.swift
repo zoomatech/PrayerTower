@@ -8,23 +8,24 @@ struct SkinnedFeed<Row: View>: View {
     let theme: FeedTheme
     let cards: [Card]
     let wording: Wording
-    var hasMore = true
+    /// What every button, tap and scroll does (FeedHooks.swift); a preview leaves it empty.
+    var hooks = FeedHooks()
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
-    /// Swipe to pray: what a confirmed swipe right does.
-    var onPray: (Card) -> Void = { _ in }
-    /// Opens a post with all its comments (the vine's "more comments" leaf).
-    var onOpen: ((Card) -> Void)?
 
     var body: some View {
         switch theme.kind {
-        case .vine: VineFeed(look: VineLook(theme), cards: cards, wording: wording, row: row, onEnd: onEnd, onOpen: onOpen)
-        case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), row: row, onEnd: onEnd)
-        case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
-        case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hasMore: hasMore, row: row, onEnd: onEnd)
-        case .carousel: SwipeFeed(cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd, onPray: onPray)
-        case .flip: FlipFeed(cards: cards, wording: wording, hasMore: hasMore, row: row, onEnd: onEnd)
-        case .column: List(cards) { card in row(card).task { if card.id == cards.last?.id { await onEnd() } } }
+        case .vine:
+            if VineLook(theme).vineStyle == .beanstalk {
+                BeanstalkFeed(look: VineLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
+            } else {
+                VineFeed(look: VineLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
+            }
+        case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
+        case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
+        case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
+        case .carousel: SwipeFeed(cards: cards, wording: wording, hooks: hooks, row: row)
+        case .flip: FlipFeed(cards: cards, wording: wording, hooks: hooks, row: row)
+        case .column: List(cards) { card in row(card).loadsMore(after: card, in: cards, hooks) }
         }
     }
 }
@@ -37,9 +38,8 @@ struct VineFeed<Row: View>: View {
     let look: VineLook
     let cards: [Card]
     let wording: Wording
+    let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
-    var onOpen: ((Card) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -48,19 +48,22 @@ struct VineFeed<Row: View>: View {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     VStack(alignment: .leading, spacing: 18) {
                         VineLeaf(look: look, wording: wording, depth: 0) { row(card) }
+                            .overlay(alignment: .topTrailing) {
+                                if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
+                            }
                         ForEach(card.leafComments ?? []) { c in
                             VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
                         }
                         if card.moreComments > 0 {
-                            if let onOpen {
-                                Button { onOpen(card) } label: { MoreLeaves(count: card.moreComments, look: look, wording: wording) }.buttonStyle(.plain)
+                            if let open = hooks.open {
+                                Button { open(card) } label: { MoreLeaves(count: card.moreComments, look: look, wording: wording) }.buttonStyle(.plain)
                             } else {
                                 MoreLeaves(count: card.moreComments, look: look, wording: wording)
                             }
                         }
                         if look.fairytale, let scene = NeonSceneKind.after(card: i) { NeonScene(kind: scene, look: look) }
                     }
-                    .task { if card.id == cards.last?.id { await onEnd() } }
+                    .loadsMore(after: card, in: cards, hooks)
                 }
                 Text(Skin.tip(look, wording))
                     .font(.footnote)
@@ -138,7 +141,7 @@ struct Stalk: View {
             }
         }
         .shadow(color: look.stemGlow ? Color(look.stem).opacity(0.8) : .clear, radius: look.stemGlow ? 8 : 0)
-        .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.tendril)) } }
+        .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.stem)) } }
     }
 }
 
@@ -220,6 +223,21 @@ struct VineLeaf<Content: View>: View {
         Canvas { ctx, size in
             var p = Path()
             let reach = depth == 0 ? 40.0 : 68.0
+            if look.vineStyle == .neon {
+                // No plant: a straight tube at a hard right angle off the rod, with a white node
+                // where it joins (the neon `stem` in vine-flow.tsx).
+                let y = size.height * 0.3
+                p.move(to: CGPoint(x: 20, y: y))
+                p.addLine(to: CGPoint(x: reach, y: y))
+                let color = Color(look.stem)
+                for (c, w) in [(color.opacity(0.14), 12.0), (color.opacity(0.35), 6.0), (color, 2.0), (Color.white.opacity(0.85), 0.8)] {
+                    ctx.stroke(p, with: .color(c), style: .init(lineWidth: w, lineCap: .butt))
+                }
+                let node = Path(ellipseIn: CGRect(x: 16, y: y - 4, width: 8, height: 8))
+                ctx.fill(node, with: .color(.white))
+                ctx.stroke(node, with: .color(color), lineWidth: 2)
+                return
+            }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
             p.addQuadCurve(to: CGPoint(x: reach, y: size.height * 0.42), control: CGPoint(x: 22, y: size.height * 0.4))
             ctx.stroke(p, with: .color(Color(look.lit ? look.stem : look.branch)), style: .init(lineWidth: max(1.5, look.stemWidth / 3), lineCap: .round))
@@ -359,8 +377,8 @@ struct WallFeed<Row: View>: View {
     let look: WallLook
     let cards: [Card]
     let words: LayoutWords
+    let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
 
     var body: some View {
         ScrollView(.vertical) {
@@ -380,7 +398,7 @@ struct WallFeed<Row: View>: View {
                     }
                         .scrollBounceBehavior(.basedOnSize)
                         .containerRelativeFrame([.horizontal, .vertical])
-                        .task { if card.id == cards.last?.id { await onEnd() } }
+                        .loadsMore(after: card, in: cards, hooks)
                 }
             }
             .scrollTargetLayout()
@@ -399,9 +417,8 @@ struct TowerFeed<Row: View>: View {
     let look: TowerLook
     let cards: [Card]
     let wording: Wording
-    var hasMore = true
+    let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
     @State private var floor: String?
     @Environment(\.accessibilityReduceMotion) private var still
 
@@ -425,9 +442,9 @@ struct TowerFeed<Row: View>: View {
                     }
                     .padding(.horizontal, 34)
                     .id(card.id)
-                    .task { if card.id == cards.last?.id { await onEnd() } }
+                    .loadsMore(after: card, in: cards, hooks)
                 }
-                if !hasMore, !cards.isEmpty {
+                if !hooks.hasMore, !cards.isEmpty {
                     Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).onBackdrop(look.backdrop).padding(.vertical, 24)
                 }
             }
@@ -541,9 +558,8 @@ struct CircuitFeed<Row: View>: View {
     let look: CircuitLook
     let cards: [Card]
     let words: LayoutWords
-    var hasMore = true
+    let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
     @Environment(\.accessibilityReduceMotion) private var still
 
     var body: some View {
@@ -553,6 +569,8 @@ struct CircuitFeed<Row: View>: View {
                     row(card)
                         .padding(16)
                         .background(BackdropText(on: look.backdrop).plate ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color(look.backdrop).opacity(0.92)), in: .rect(cornerRadius: 10))
+                        // Text in the card's own scheme: light words on a dark screen, never the system's dark ones.
+                        .environment(\.colorScheme, BackdropText(on: look.backdrop).light ? .dark : .light)
                         .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)).accessibilityHidden(true) }
                         .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                         .padding(.leading, 18)
@@ -561,9 +579,9 @@ struct CircuitFeed<Row: View>: View {
                             // The tap from the live wire into this screen.
                             Rectangle().fill(Color(look.wire)).frame(width: 28, height: 2).padding(.trailing, 12).neonTube(Color(look.wire)).accessibilityHidden(true)
                         }
-                        .task { if card.id == cards.last?.id { await onEnd() } }
+                        .loadsMore(after: card, in: cards, hooks)
                 }
-                if !hasMore, !cards.isEmpty {
+                if !hooks.hasMore, !cards.isEmpty {
                     VStack(spacing: 8) {
                         Circle().stroke(Color(look.wire), lineWidth: 2).frame(width: 18, height: 18).neonTube(Color(look.wire)).accessibilityHidden(true)
                         Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).backdropPlate(look.backdrop)

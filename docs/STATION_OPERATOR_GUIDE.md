@@ -28,7 +28,6 @@ switches; the station settings go in `/etc/prayer-tower-station.env`.
 | Reception beacon (test burst on a schedule, logged per listener) | Admin → Radio → Reception beacon | [Reception beacon](#reception-beacon) |
 | Fair air (every request on the air once; a daily cap per member) | Admin → Radio → Every request on the air once, Radio sends per member a day | [Fair air](#fair-air) |
 | My signal queue and signal codes (a member's own radio prayers; the same code on the Listen screen) | Admin → Radio → My signal queue | [My signal queue](#my-signal-queue) |
-| Signal journey (how far each sent wave has gone, the places it passed, the strongest report) | Admin → Radio → Signal journey | [Signal journey](#signal-journey) |
 | Where it was heard (receivers that decoded each radio prayer, shown to the sender and asker) | Admin → Radio → Where it was heard | [Where it was heard](#where-it-was-heard) |
 | Scheduled radio sends (a request goes out by radio, or amplified, at a set time) | Admin → Radio → Scheduled radio sends | [Scheduled radio sends](#scheduled-radio-sends) |
 | Prayer without ceasing (kept requests go out again when the air is quiet) | Admin → Radio → Prayer without ceasing | [Prayer without ceasing](#prayer-without-ceasing) |
@@ -514,20 +513,6 @@ Two settings in Admin → Radio, both off by default.
 From the first prototype's Signal Queue tab. Off until an admin turns on **My signal queue** in Admin → Radio.
 
 While it is on, members have **My signal queue** on their profile: their own radio prayers, newest first, each waiting, going out, sent or not sent, amplified or not, with the call sign and preset it went out on and how many receivers reported it. Each one that went out has a signal code such as `Q7MK-4XPL-9RT2`: 60 bits of the fingerprint of the exact text sent (the same fingerprint the station reports and listeners send back), written in 32 letters and digits with no I, O, 0 or 1. The Listen screen shows the same code under each prayer it decodes, so a sender and a listener can match a transmission without either learning who the other is. Re-sends from [prayer without ceasing](#prayer-without-ceasing) are left out of the list.
-
-## Signal journey
-
-From the HAM Operators notebook page ("dots of prayer float from earth ... the line of the radio waves journey through space") and the radio-tower dashboard idea ("signal strength, frequency and light-years reached"). Off until an admin turns on **Signal journey** in Admin → Radio. It shows only inside [My signal queue](#my-signal-queue), so that switch must be on too.
-
-While it is on, each radio prayer in My signal queue that went out shows **How far it has gone**: how far its wave front is from Earth now ("10 light-minutes out, 179.9 million km from Earth"), worked out from the time it was sent and the speed of light, and updated every second while the screen is open. Under it is a track from Earth to Proxima Centauri on a log scale, with dots drifting out along it (held still when Reduce Motion is on), the places already passed, the next one and how long until the wave reaches it. An amplified prayer also shows how many copies went out in its burst. When [Where it was heard](#where-it-was-heard) kept reports from listener nodes, the strongest one is shown in dB; no node names appear here.
-
-The places, nearest first: the Moon (384,400 km, about 1.3 light-seconds), the Sun (1 astronomical unit, about 8.3 light-minutes), Neptune (30.07 AU, about 4.2 light-hours), the heliopause where Voyager 1 left the Sun's wind (about 121 AU), Voyager 1 itself (about one light-day out in late 2026), one light-year, and Proxima Centauri (4.2465 light-years). Planets move, so these are average or fixed distances.
-
-The same code runs on the server (packages/shared `signalJourney`), in the Expo app (components/signal-journey.tsx) and in the native app (PrayerTowerKit `SignalJourney`, App/RadioViews.swift).
-
-Note for the legal department: the journey is drawn from the time a prayer was sent and the speed of light. Whether a given wave actually leaves the Earth depends on the band: VHF and UHF (6 m and up) pass through the ionosphere, while HF is mostly reflected back (Queue-to-PSK31 Build Paper, "Radio basics"). The screen does not claim that any particular wave reached any place.
-
-Sources: speed of light 299,792.458 km/s, exact by the SI definition of the metre ([BIPM, SI Brochure](https://www.bipm.org/en/publications/si-brochure)); astronomical unit 149,597,870,700 m ([IAU 2012 Resolution B2](https://www.iau.org/static/resolutions/IAU2012_English.pdf)); light-year 9,460,730,472,580.8 km ([IAU, measuring the universe](https://www.iau.org/public/themes/measuring/)); Moon mean distance 384,400 km and Neptune 30.07 AU ([NASA planetary fact sheets](https://nssdc.gsfc.nasa.gov/planetary/factsheet/)); Voyager 1 crossed the heliopause in August 2012 at about 121 AU ([NASA, Voyager](https://science.nasa.gov/mission/voyager/)) and reaches one light-day from Earth around November 2026 ([BBC Sky at Night](https://www.skyatnightmagazine.com/news/nasa-voyager-1-light-day)); Proxima Centauri 4.2465 light-years ([NASA, Proxima Centauri](https://science.nasa.gov/exoplanet-catalog/proxima-centauri-b/)).
 
 ## Where it was heard
 

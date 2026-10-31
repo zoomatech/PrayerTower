@@ -5,7 +5,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, notFound } from '../../errors.js';
 import { getActionable } from '../posts/index.js';
 
-export const QUICK_REACTIONS = ['candle', 'standing'] as const;
+export const QUICK_REACTIONS = ['candle', 'standing', 'thumbs_up'] as const;
 export const QuickReaction = z.enum(QUICK_REACTIONS);
 
 async function requireOn(q: Queryable) {
@@ -15,7 +15,8 @@ async function requireOn(q: Queryable) {
 
 /** Adds or removes the member's reaction; returns the post's counts and the member's own reactions. */
 export async function set(q: Queryable, userId: string, postId: string, kind: z.infer<typeof QuickReaction>, on: boolean) {
-  await requireOn(q);
+  // Thumbs up is on every post's icon row, so it never waits on the long-press tray's switch.
+  if (kind !== 'thumbs_up') await requireOn(q);
   if (!(await getActionable(q, userId, postId))) throw notFound('Post');
   if (on) {
     await q.query('insert into public.quick_reactions (post_id, user_id, kind) values ($1, $2, $3) on conflict do nothing', [postId, userId, kind]);
@@ -34,6 +35,7 @@ export async function summary(q: Queryable, postId: string, userId: string) {
   return {
     candles: by.get('candle')?.n ?? 0,
     standing: by.get('standing')?.n ?? 0,
+    thumbsUp: by.get('thumbs_up')?.n ?? 0,
     mine: QUICK_REACTIONS.filter((k) => by.get(k)?.mine),
   };
 }
