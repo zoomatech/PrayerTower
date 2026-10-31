@@ -20,6 +20,7 @@ const SECTIONS = [
   'CareAndEventSettingsSection',
   'ConversationSettingsSection',
   'PracticeSettingsSection',
+  'ResolutionSettingsSection',
   'PilotToolsSection',
   'GivingSplitSection',
   'LiveSection',

@@ -31,6 +31,7 @@ import { quickReactionRoutes } from './modules/quick-reactions/routes.js';
 import { meaningReactionRoutes } from './modules/meaning-reactions/routes.js';
 import { practiceRoutes } from './modules/practices/routes.js';
 import { checkBackRoutes } from './modules/check-back/routes.js';
+import { resolutionRoutes } from './modules/resolution/routes.js';
 import { kindMilestoneRoutes } from './modules/kind-milestones/routes.js';
 import { commentKindnessRoutes } from './modules/comment-kindness/routes.js';
 import { thankNoteRoutes } from './modules/thank-note/routes.js';
@@ -386,6 +387,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     meaningReactionRoutes(authed, db);
     practiceRoutes(authed, db);
     checkBackRoutes(authed, db);
+    resolutionRoutes(authed, db);
     kindMilestoneRoutes(authed, db);
     commentKindnessRoutes(authed, db);
     thankNoteRoutes(authed, db);

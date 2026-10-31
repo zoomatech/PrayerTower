@@ -18,7 +18,7 @@ import { RadioPanelToggle } from '@/components/prayer-panel';
 import { RadioLoopSection } from '@/components/radio-summary';
 import { CoverageSection, PacketFallbackSection, RadioDigestSection, RadioSetupSection } from '@/components/radio-setup-admin';
 import { Button, Chip, Field, ErrorText, Screen, Toggle } from '@/components/ui';
-import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings, type Sponsor, type SponsorKind, type LibrarySettings } from '@/lib/api';
+import { api, type AdminMessagingSettings, type Award, type AwardSettings, type Community, type SpokenPrayerSettings, type AdminPerson, type AdminRadioSettings, type AdminSafetySettings, type AdminTier, type AdminTokenSettings, type MilestoneRule, type NotebookSettings, type GrowthSettings, type GoldfishSettings, type KindnessStarter, type PracticeSettings, type ResolutionSettings, type ResolutionReport, type ConversationSettings, type TalkCountSummary, type CheckInAnswer, type Weather, type WeatherWeek, type HealthWeek, type PilotWeek, type AiSettings, type LiveSettings, type AdminDonationSettings, type AdminGift, type SkinSettings, type ThemeProposal, type TokenPool, type StationBurst, type StationAlerts, type RadioNodes, type StationHealth, type RadioSchedule, type PushDelivery, type PracticeConnected, type PracticeModeSettings, type ReminderSettings, type SecuritySettings, type SkySettings, type SkyNow, type PilotToolsSettings, type KindNormsSettings, type Sponsor, type SponsorKind, type LibrarySettings } from '@/lib/api';
 import { errorText } from '@/lib/error-report';
 import { HighlightsAdmin } from '@/components/kindness-highlights';
 import { MeaningProposalsAdmin } from '@/components/meaning-proposals';
@@ -333,6 +333,8 @@ function Admin() {
         <GoldfishSection />
         <KindnessStarterSection />
         <PracticeSettingsSection />
+        <ResolutionSettingsSection />
+        <ResolutionReportSection />
         <ConversationSettingsSection />
         <SkinSettingsSection />
         <CommunitiesSection />
@@ -2582,6 +2584,83 @@ function ConversationSettingsSection() {
       <Toggle label={t('partComments.adminTitle')} hint={t('partComments.adminHint')} value={s.part_comments_enabled} onChange={(v) => save({ partCommentsEnabled: v })} />
       <Toggle label={t('research.adminTitle')} hint={t('research.adminHint')} value={s.research_page_enabled} onChange={(v) => save({ researchPageEnabled: v })} />
       {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Prayer resolution (server modules/resolution): "Has this prayer been answered?" check-ins and their timing. */
+function ResolutionSettingsSection() {
+  const t = useT();
+  const [s, setS] = useState<ResolutionSettings | null>(null);
+  const [first, setFirst] = useState('');
+  const [again, setAgain] = useState('');
+  const [asks, setAsks] = useState('');
+  const [free, setFree] = useState('');
+  const [every, setEvery] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const show = (x: ResolutionSettings) => {
+    setS(x);
+    setFirst(String(x.first_days));
+    setAgain(String(x.again_days));
+    setAsks(String(x.max_asks));
+    setFree(String(x.free_tokens));
+    setEvery(String(x.free_token_every_days));
+  };
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.resolutionSettings().then((r) => show(r.settings)).catch((e) => setNote((e as Error).message));
+    }, []),
+  );
+  const save = (patch: Parameters<typeof api.admin.updateResolutionSettings>[0] = {}) =>
+    api.admin
+      .updateResolutionSettings({ firstDays: toInt(first) ?? undefined, againDays: toInt(again) ?? undefined, maxAsks: toInt(asks) ?? undefined, freeTokens: toInt(free) ?? undefined, freeTokenEveryDays: toInt(every) ?? undefined, ...patch })
+      .then((r) => {
+        show(r.settings);
+        resetFeatures();
+        setNote(t('resolution.adminSaved'));
+      })
+      .catch((e) => setNote((e as Error).message));
+  if (!s) return note ? <Text style={type.small}>{note}</Text> : null;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('resolution.adminTitle')}</Text>
+      <Text style={type.small}>{t('resolution.adminIntro')}</Text>
+      <Toggle label={t('resolution.adminToggle')} value={s.enabled} onChange={(v) => save({ enabled: v })} />
+      <Field label={t('resolution.adminFirstDays')} keyboardType="number-pad" value={first} onChangeText={setFirst} />
+      <Field label={t('resolution.adminAgainDays')} keyboardType="number-pad" value={again} onChangeText={setAgain} />
+      <Field label={t('resolution.adminMaxAsks')} keyboardType="number-pad" value={asks} onChangeText={setAsks} />
+      <Field label={t('resolution.adminFreeTokens')} keyboardType="number-pad" value={free} onChangeText={setFree} />
+      <Field label={t('resolution.adminTokenEvery')} keyboardType="number-pad" value={every} onChangeText={setEvery} />
+      <Button label={t('resolution.adminSave')} onPress={() => save()} />
+      {note ? <Text style={type.small}>{note}</Text> : null}
+    </View>
+  );
+}
+
+/** Answered prayers from the check-ins, and whether each was prayercast by radio (looked up, never asked). */
+function ResolutionReportSection() {
+  const t = useT();
+  const [r, setR] = useState<ResolutionReport | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      api.admin.resolutionReport().then(setR).catch(() => undefined);
+    }, []),
+  );
+  if (!r) return null;
+  const n = r.totals;
+  return (
+    <View style={styles.section}>
+      <Text style={type.heading}>{t('resolution.reportTitle')}</Text>
+      <Text style={type.small}>
+        {t('resolution.reportTotals', { asked: n.asked, answered: n.answered, hoped: n.hoped, hisWill: n.his_will, notYet: n.not_yet, reposted: n.reposted, tokens: n.free_tokens })}
+      </Text>
+      <Text style={type.small}>{t('resolution.reportPrayercast', { count: n.answered_prayercast })}</Text>
+      {r.answered.length === 0 ? <Text style={type.small}>{t('resolution.reportEmpty')}</Text> : null}
+      {r.answered.map((a) => (
+        <Text key={a.postId} style={type.small}>
+          {`${a.who ?? '—'} · ${t(a.outcome === 'hoped' ? 'resolution.outcomeHoped' : 'resolution.outcomeHisWill')} · ${a.prayercast ? t('resolution.cast', { count: a.prayercastCount }) : t('resolution.notCast')} · ${new Date(a.answeredAt).toLocaleDateString()}`}
+        </Text>
+      ))}
     </View>
   );
 }

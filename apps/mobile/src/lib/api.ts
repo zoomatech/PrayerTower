@@ -209,6 +209,8 @@ export interface Features {
   restingThreads: boolean;
   thisHelped: boolean;
   offerSorry: boolean;
+  /** "Has this prayer been answered?" check-ins on the author's own request (server modules/resolution). */
+  prayerResolution: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -528,6 +530,34 @@ export interface RememberedItem {
   answeredAt: string;
 }
 export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
+
+/** Prayer resolution (server modules/resolution): "The Lord answered my prayer in a way I had hoped" or "...according to his will, not my will". */
+export type ResolutionOutcome = 'hoped' | 'his_will';
+export interface ResolutionStatus {
+  enabled: boolean;
+  /** "Has this prayer been answered?" is waiting for an answer. */
+  pending: boolean;
+  /** null: not answered yet; false: "not yet"; true: answered. */
+  answered: boolean | null;
+  outcome: ResolutionOutcome | null;
+  canRepost: boolean;
+  /** Free broadcast tokens the author may take now (0 = none). */
+  freeTokens: number;
+  tokenClaimed: boolean;
+  repostedPostId: string | null;
+}
+export interface ResolutionSettings {
+  enabled: boolean;
+  first_days: number;
+  again_days: number;
+  max_asks: number;
+  free_tokens: number;
+  free_token_every_days: number;
+}
+export interface ResolutionReport {
+  totals: Record<'asked' | 'answered' | 'hoped' | 'his_will' | 'not_yet' | 'answered_prayercast' | 'reposted' | 'free_tokens', number>;
+  answered: { postId: string; who: string | null; outcome: ResolutionOutcome; prayercast: boolean; prayercastCount: number; prayercastAt: string | null; answeredAt: string }[];
+}
 export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[]; weeks?: number | null };
 export type PartnerState =
   | { enabled: false }
@@ -2489,6 +2519,10 @@ export const api = {
     sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean; partCommentsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
+    resolutionSettings: () => get<{ settings: ResolutionSettings }>('/admin/resolution-settings'),
+    updateResolutionSettings: (patch: Partial<{ enabled: boolean; firstDays: number; againDays: number; maxAsks: number; freeTokens: number; freeTokenEveryDays: number }>) =>
+      request<{ settings: ResolutionSettings }>('PATCH', '/admin/resolution-settings', patch),
+    resolutionReport: () => get<ResolutionReport>('/admin/resolution'),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
     updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; topicGroupsEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean; circleUpdatesEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
@@ -2750,6 +2784,10 @@ export const api = {
   kindMilestonesSeen: () => post<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones/seen'),
   checkBack: (postId: string) => get<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`),
   setCheckBack: (postId: string, days: 3 | 7 | 14 | null) => put<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`, { days }),
+  resolution: (postId: string) => get<ResolutionStatus>(`/posts/${postId}/resolution`),
+  answerResolution: (postId: string, answer: { answered: true; outcome: ResolutionOutcome } | { answered: false }) => post<ResolutionStatus>(`/posts/${postId}/resolution`, answer),
+  repostResolution: (postId: string, body?: string) => post<{ post: Card; harm?: HarmNote | null }>(`/posts/${postId}/resolution/repost`, body ? { body } : {}),
+  claimResolutionToken: (postId: string) => post<{ amount: number; priestly: number }>(`/posts/${postId}/resolution/token`),
   followup: (postId: string) => get<{ enabled: boolean; pending: boolean }>(`/posts/${postId}/followup`),
   answerFollowup: (postId: string, answer: FollowupAnswer, body?: string) =>
     post<{ answer: FollowupAnswer; crisis: boolean }>(`/posts/${postId}/followup`, body ? { answer, body } : { answer }),
