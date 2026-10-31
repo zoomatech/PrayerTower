@@ -78,12 +78,16 @@ final class AccessibilityAuditTests: XCTestCase {
                         _ = app.debugDescription
                         try audit(app, "\(name) at \(size), scrolled to the end")
                     }
-                    // Back to the list; a skin whose bar has no back button (seen once at the largest
-                    // text) gets a fresh launch instead.
-                    let back = app.navigationBars.buttons.firstMatch
-                    if back.waitForExistence(timeout: 3) { back.tap() } else {
+                    // Back to the list by the bar's own back button (it carries the list's title,
+                    // "Skins"): the first button in any bar can be one of the skin's own, which once
+                    // opened a compose sheet and lost the list. If the list still isn't showing, the
+                    // app is launched again on it.
+                    let back = app.navigationBars[name].buttons["Skins"]
+                    if back.waitForExistence(timeout: 3) { back.tap() }
+                    if !app.navigationBars["Skins"].waitForExistence(timeout: 3) {
                         app.terminate()
                         app.launch()
+                        _ = app.navigationBars["Skins"].waitForExistence(timeout: 10)
                     }
                 }
             }
