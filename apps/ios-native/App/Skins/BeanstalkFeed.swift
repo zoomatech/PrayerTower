@@ -124,13 +124,18 @@ struct BeanstalkFeed<Row: View>: View {
         let big: Bool = type > .large
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
-                banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
+                // At the accessibility text sizes the banner would fill the screen, so it scrolls away
+                // with the feed instead of staying fixed above it.
+                if !type.isAccessibilitySize {
+                    banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
+                }
                 GeometryReader { geo in
                     let lane: Double = min(Double(geo.size.width), 760)
                     let width: Double = big ? max(BeanDraw.frameWidth(lane), lane - 72) : BeanDraw.frameWidth(lane)
                     let shifts: [Double] = cards.enumerated().map { big ? 0 : BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
                     ScrollView {
                         LazyVStack(spacing: 0) {
+                            if type.isAccessibilitySize { banner(words, stacked: true) {}.id("beanstalk-banner") }
                             Color.clear.frame(height: 76).id("beanstalk-top")
                             ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                                 BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i], margin: (lane - width) / 2,
@@ -150,8 +155,10 @@ struct BeanstalkFeed<Row: View>: View {
         .environment(\.colorScheme, .light)
     }
 
-    private func banner(_ words: Words, climb: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
+    /// Stacked: the title on its own lines and the button under it, so words wrap whole, never mid-word.
+    private func banner(_ words: Words, stacked: Bool = false, climb: @escaping () -> Void) -> some View {
+        let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        return layout {
             Canvas { ctx, _ in
                 var s = Path()
                 s.move(to: CGPoint(x: 17, y: 32)); s.addCurve(to: CGPoint(x: 12, y: 8), control1: CGPoint(x: 17, y: 22), control2: CGPoint(x: 10, y: 18))
@@ -174,20 +181,25 @@ struct BeanstalkFeed<Row: View>: View {
                 Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
-            Button(action: climb) {
-                Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Bean.button, in: .capsule)
-                    .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+            // Stacked, the banner scrolls with the feed, so it has no climb-back button.
+            if !stacked {
+                Spacer()
+                Button(action: climb) {
+                    Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(Bean.button, in: .capsule)
+                        .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(words("beanstalk.climbHint"))
             }
-            .buttonStyle(.plain)
-            .accessibilityHint(words("beanstalk.climbHint"))
         }
-        // Clear of the Home button at the top left.
-        .padding(.leading, 60)
+        // Clear of the Home button at the top left: beside it, or stacked, below it with the whole width.
+        .padding(.leading, stacked ? 16 : 60)
         .padding(.trailing, 16)
-        .padding(.vertical, 10)
+        .padding(.top, stacked ? 64 : 10)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Bean.cream)
         .overlay(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 3) }
         .background(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 4).offset(y: 4) }
