@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as Speech from 'expo-speech';
 
 import { renderApp } from '@/__tests__/helpers';
+import ListeningRoomScreen from '@/app/listening-room';
 import StudyRoomsScreen from '@/app/study-rooms';
 import { ListenPassage } from '@/components/listen-passage';
 import { StudyStart } from '@/components/study-start';
@@ -14,7 +15,7 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(() => ({})),
 }));
 jest.mock('@/lib/api', () => ({
-  api: { libraryRecording: jest.fn(), myCircles: jest.fn(), startStudy: jest.fn(), studies: jest.fn(), study: jest.fn(), studyReply: jest.fn(), removeStudyReply: jest.fn(), removeStudy: jest.fn(), precheck: jest.fn() },
+  api: { libraryRecording: jest.fn(), listening: jest.fn(), saveListening: jest.fn(async () => ({ saved: true })), myCircles: jest.fn(), startStudy: jest.fn(), studies: jest.fn(), study: jest.fn(), studyReply: jest.fn(), removeStudyReply: jest.fn(), removeStudy: jest.fn(), precheck: jest.fn() },
 }));
 let mockFeatures = { libraryListen: true, libraryStudies: true, prayerCircles: true };
 jest.mock('@/lib/features', () => ({ useFeatures: () => mockFeatures }));
@@ -41,6 +42,52 @@ describe('Listening', () => {
     await fireEvent.press(screen.getByLabelText('Play the recording: Chapter 07 - Psalms 21 - 23'));
     expect(Speech.stop).toHaveBeenCalled();
     expect(screen.getByText('Pause')).toBeTruthy();
+    // Both ways of listening keep the member's place.
+    expect(api.saveListening).toHaveBeenCalledWith({ collection: 'bible-kjv', key: KEY, kind: 'voice', position: 0 });
+    expect(api.saveListening).toHaveBeenCalledWith(expect.objectContaining({ collection: 'bible-kjv', key: KEY, kind: 'recording', duration: 600 }));
+  });
+
+  it('keeps how far the device voice got, and picks up there', async () => {
+    jest.mocked(Speech.speak).mockClear();
+    jest.mocked(api.saveListening).mockClear();
+    const text = 'The LORD is my shepherd; I shall not want.';
+    await renderApp(<ListenPassage collection="bible-kjv" passageKey={KEY} text={text} citation="Psalms 23:1" start={{ kind: 'voice', position: 25 }} />);
+    await fireEvent.press(screen.getByLabelText('Listen to Psalms 23:1'));
+    expect(Speech.speak).toHaveBeenCalledWith('I shall not want.', expect.anything());
+    const options = jest.mocked(Speech.speak).mock.calls[0]![1]!;
+    (options.onBoundary as unknown as (e: { charIndex: number }) => void)({ charIndex: 2 });
+    options.onStopped!();
+    expect(api.saveListening).toHaveBeenLastCalledWith({ collection: 'bible-kjv', key: KEY, kind: 'voice', position: 27 });
+  });
+});
+
+describe('Listening room', () => {
+  const recording = { url: 'https://www.archive.org/download/x/psalms_07.mp3', title: 'Chapter 07 - Psalms 21 - 23', project: 'Bible (KJV) 19: Psalms (version 2)', readers: ['peaceuntoyou'], seconds: 1500, credit: 'Read by peaceuntoyou for LibriVox.', projectUrl: 'https://librivox.org/x' };
+  const psalm = { collection: 'bible-kjv' as const, key: KEY, ref: 'Psalms 23:1', citation: 'Psalms 23:1 (King James Bible)', text: 'The LORD is my shepherd', kind: 'recording' as const, position: 312, duration: 1500, finished: false, recording, updatedAt: '2026-10-31T19:00:00Z' };
+  const ruth = { ...psalm, key: 'e'.repeat(32), ref: 'Ruth 1:16', citation: 'Ruth 1:16 (King James Bible)', text: 'whither thou goest, I will go', kind: 'voice' as const, position: 29, duration: null, finished: true, recording: null, updatedAt: '2026-10-30T19:00:00Z' };
+
+  it('asks to pick up where you left off each time it opens, and lists the history', async () => {
+    jest.mocked(api.listening).mockResolvedValue({ resume: psalm, history: [psalm, ruth] });
+    await renderApp(<ListeningRoomScreen />);
+    expect(await screen.findByText('Would you like to pick up where you left off?')).toBeTruthy();
+    expect(screen.getAllByText(/Left off at 5:12 of 25:00/).length).toBe(2);
+    expect(screen.getByText('Recording: Chapter 07 - Psalms 21 - 23')).toBeTruthy();
+    expect(screen.getByText('Read aloud by your device')).toBeTruthy();
+    expect(screen.getByText('Finished')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Pick up where I left off'));
+    expect(screen.queryByText('Would you like to pick up where you left off?')).toBeNull();
+    expect(screen.getByLabelText('Play the recording: Chapter 07 - Psalms 21 - 23')).toBeTruthy();
+  });
+
+  it('can be put off, and says when nothing has been listened to', async () => {
+    jest.mocked(api.listening).mockResolvedValue({ resume: psalm, history: [psalm] });
+    await renderApp(<ListeningRoomScreen />);
+    await fireEvent.press(await screen.findByText('Not now'));
+    expect(screen.queryByText('Would you like to pick up where you left off?')).toBeNull();
+    expect(screen.queryByLabelText('Play the recording: Chapter 07 - Psalms 21 - 23')).toBeNull();
+    jest.mocked(api.listening).mockResolvedValue({ resume: null, history: [] });
+    await renderApp(<ListeningRoomScreen />);
+    expect(await screen.findByText(/Nothing listened to yet/)).toBeTruthy();
   });
 
   it('says when there is no recording, and shows nothing while off', async () => {

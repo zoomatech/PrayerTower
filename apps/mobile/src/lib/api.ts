@@ -1699,6 +1699,22 @@ export type LibraryNote = {
 export type CircleLibraryNote = LibraryNote & { author: string; mine: boolean };
 /** A public-domain LibriVox recording of the place a passage is in. */
 export type LibraryRecording = { url: string; title: string; project: string; readers: string[]; seconds: number; credit: string; projectUrl: string };
+/** Where a member left off: the device's voice counts characters read, a recording seconds played. */
+export type ListenKind = 'voice' | 'recording';
+export type LibraryListened = {
+  collection: LibraryCollectionId;
+  key: string;
+  ref: string;
+  citation: string;
+  text: string;
+  kind: ListenKind;
+  position: number;
+  duration: number | null;
+  finished: boolean;
+  recording: LibraryRecording | null;
+  updatedAt: string;
+};
+export type ListenPlace = { collection: LibraryCollectionId; key: string; kind: ListenKind; position: number; duration?: number | null; finished?: boolean };
 export type LibraryStudy = {
   id: string;
   circleId: string;
@@ -2515,6 +2531,8 @@ export const api = {
   deleteLibraryNote: (id: string) => request<{ removed: true }>('DELETE', `/library/notes/${id}`),
   circleLibraryNotes: (circleId: string) => get<{ notes: CircleLibraryNote[] }>(`/library/notes/circle/${circleId}`),
   libraryRecording: (collection: LibraryCollectionId, key: string) => get<{ recording: LibraryRecording | null }>(`/library/listen?collection=${collection}&key=${key}`),
+  listening: () => get<{ resume: LibraryListened | null; history: LibraryListened[] }>('/library/listening'),
+  saveListening: (place: ListenPlace) => put<{ saved: true }>('/library/listening', place),
   studies: (circleId: string) => get<{ circle: { id: string; name: string }; studies: LibraryStudy[] }>(`/library/studies?circle=${circleId}`),
   startStudy: (input: { circleId: string; prompt: string } & ({ collection: LibraryCollectionId; key: string } | { planId: string; day: number })) => post<{ id: string }>('/library/studies', input),
   study: (id: string) => get<StudyRoom>(`/library/studies/${id}`),

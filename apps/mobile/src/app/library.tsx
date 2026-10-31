@@ -75,6 +75,7 @@ export default function LibraryScreen() {
         <Text style={type.title} accessibilityRole="header">
           {t('library.title')}
         </Text>
+        {features.libraryListen ? <Button small variant="secondary" label={t('library.listeningTitle')} onPress={() => router.push('/listening-room')} /> : null}
         {error ? <ErrorText error={error} onRetry={overview ? () => run(0, words) : load} /> : overview === null ? <Loading /> : null}
         {overview && !overview.enabled ? <Text style={type.body}>{t('library.closed')}</Text> : null}
         {overview?.enabled ? (

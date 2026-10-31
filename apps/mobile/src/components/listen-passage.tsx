@@ -1,27 +1,70 @@
 // Listening (docs/LIBRARY_SEARCH.md): Listen reads a passage aloud with the device's own voice (nothing leaves
 // the device). Where LibriVox has a public-domain recording of the same translation, the member can play that
-// instead, with the reader's credit. Off unless an admin turns on Admin → Text search → Listening.
-import { useAudioPlayer } from 'expo-audio';
+// instead, with the reader's credit. Each member's place is kept as they listen, so the Listening room can offer
+// to pick up where they left off. Off unless an admin turns on Admin → Text search → Listening.
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Speech from 'expo-speech';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui';
-import { api, type LibraryCollectionId, type LibraryRecording } from '@/lib/api';
+import { api, type LibraryCollectionId, type LibraryRecording, type ListenKind, type ListenPlace } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { space, type } from '@/lib/theme';
 
-/** Listen buttons under a passage. */
-export function ListenPassage({ collection, passageKey, text, citation }: { collection: LibraryCollectionId; passageKey: string; text: string; citation: string }) {
+/** How often a playing recording's place is kept, in seconds. */
+const KEEP_EVERY = 15;
+
+const keep = (place: ListenPlace) => void api.saveListening(place).catch(() => undefined);
+
+/**
+ * Listen buttons under a passage. `start` picks up where the member left off: the device's voice from the
+ * character it had reached, or the recording from the second it had reached.
+ */
+export function ListenPassage({
+  collection,
+  passageKey,
+  text,
+  citation,
+  start,
+  recording: known,
+}: {
+  collection: LibraryCollectionId;
+  passageKey: string;
+  text: string;
+  citation: string;
+  start?: { kind: ListenKind; position: number };
+  recording?: LibraryRecording | null;
+}) {
   const t = useT();
   const features = useFeatures();
   const [speaking, setSpeaking] = useState(false);
   // undefined: not looked up yet; null: no recording of this place.
-  const [recording, setRecording] = useState<LibraryRecording | null | undefined>(undefined);
-  const [playing, setPlaying] = useState(false);
+  const [recording, setRecording] = useState<LibraryRecording | null | undefined>(known ?? undefined);
+  const [pressedPlay, setPlaying] = useState(false);
   const player = useAudioPlayer(recording ? { uri: recording.url } : null);
+  const status = useAudioPlayerStatus(player);
+  // A recording that has played to its end is no longer playing.
+  const playing = pressedPlay && !status.didJustFinish;
+  // The device's voice: where this reading began in the passage, and how far it has got.
+  const begin0 = start?.kind === 'voice' ? Math.min(start.position, text.length) : 0;
+  const from = useRef(begin0);
+  const reached = useRef(begin0);
+  const sought = useRef(false);
   useEffect(() => () => void Speech.stop(), []);
+
+  // Keeps a playing recording's place now and then, and when it ends.
+  useEffect(() => {
+    if (!playing || !recording) return;
+    const id = setInterval(() => keep({ collection, key: passageKey, kind: 'recording', position: player.currentTime ?? 0, duration: player.duration || recording.seconds }), KEEP_EVERY * 1000);
+    return () => clearInterval(id);
+  }, [playing, recording, collection, passageKey, player]);
+  useEffect(() => {
+    if (status.didJustFinish && recording) {
+      keep({ collection, key: passageKey, kind: 'recording', position: recording.seconds, duration: recording.seconds, finished: true });
+    }
+  }, [status.didJustFinish, recording, collection, passageKey]);
   if (!features.libraryListen) return null;
 
   const speak = () => {
@@ -30,8 +73,29 @@ export function ListenPassage({ collection, passageKey, text, citation }: { coll
       setSpeaking(false);
       return;
     }
+    if (from.current >= text.length) from.current = 0;
+    const begin = from.current;
+    reached.current = begin;
     setSpeaking(true);
-    Speech.speak(`${text}\n${citation}`, { language: 'en-US', onDone: () => setSpeaking(false), onStopped: () => setSpeaking(false), onError: () => setSpeaking(false) });
+    keep({ collection, key: passageKey, kind: 'voice', position: begin });
+    const stopped = () => {
+      setSpeaking(false);
+      from.current = reached.current;
+      keep({ collection, key: passageKey, kind: 'voice', position: reached.current });
+    };
+    Speech.speak(begin > 0 ? text.slice(begin) : `${text}\n${citation}`, {
+      language: 'en-US',
+      onBoundary: (e: { charIndex: number }) => {
+        reached.current = Math.min(text.length, begin + e.charIndex);
+      },
+      onDone: () => {
+        setSpeaking(false);
+        from.current = 0;
+        keep({ collection, key: passageKey, kind: 'voice', position: text.length, finished: true });
+      },
+      onStopped: stopped,
+      onError: stopped,
+    });
   };
   const look = () =>
     api.libraryRecording(collection, passageKey).then(
@@ -39,14 +103,19 @@ export function ListenPassage({ collection, passageKey, text, citation }: { coll
       () => setRecording(null),
     );
   const play = () => {
+    if (!recording) return;
     if (playing) {
       player.pause();
       setPlaying(false);
+      keep({ collection, key: passageKey, kind: 'recording', position: player.currentTime ?? 0, duration: player.duration || recording.seconds });
     } else {
       void Speech.stop();
       setSpeaking(false);
+      if (!sought.current && start?.kind === 'recording' && start.position > 0) player.seekTo(start.position);
+      sought.current = true;
       player.play();
       setPlaying(true);
+      keep({ collection, key: passageKey, kind: 'recording', position: player.currentTime || (start?.kind === 'recording' ? start.position : 0), duration: recording.seconds });
     }
   };
 
