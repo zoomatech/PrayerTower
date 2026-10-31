@@ -8,40 +8,40 @@ Resolve Package Graph
 
 
 Resolved source packages:
-  swift-numerics: https://github.com/apple/swift-numerics.git @ 1.1.1
-  swift-crypto: https://github.com/apple/swift-crypto.git @ 4.5.2
-  swift-certificates: https://github.com/apple/swift-certificates.git @ 1.21.1
-  swift-distributed-tracing: https://github.com/apple/swift-distributed-tracing.git @ 1.5.0
-  swift-nio-transport-services: https://github.com/apple/swift-nio-transport-services.git @ 1.28.0
   swift-http-types: https://github.com/apple/swift-http-types.git @ 1.8.0
-  Supabase: https://github.com/supabase/supabase-swift.git @ 2.55.5
-  Xet: https://github.com/huggingface/swift-xet.git @ 1.1.0
-  swift-transformers: https://github.com/huggingface/swift-transformers @ 1.3.5
-  swift-async-algorithms: https://github.com/apple/swift-async-algorithms.git @ 1.1.7
-  swift-nio: https://github.com/apple/swift-nio.git @ 2.104.0
-  PrayerTowerKit: /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-  swift-algorithms: https://github.com/apple/swift-algorithms.git @ 1.2.1
-  onnxruntime: https://github.com/microsoft/onnxruntime-swift-package-manager @ 1.24.2
-  Jinja: https://github.com/huggingface/swift-jinja.git @ 2.5.2
-  swift-nio-extras: https://github.com/apple/swift-nio-extras.git @ 1.35.2
-  EventSource: https://github.com/mattt/EventSource.git @ 1.5.1
-  swift-http-structured-headers: https://github.com/apple/swift-http-structured-headers.git @ 1.7.0
-  swift-collections: https://github.com/apple/swift-collections.git @ 1.6.0
-  opentelemetry-swift-core: https://github.com/open-telemetry/opentelemetry-swift-core.git @ 2.6.0
   swift-asn1: https://github.com/apple/swift-asn1.git @ 1.7.3
-  swift-huggingface: https://github.com/huggingface/swift-huggingface.git @ 1.0.0
-  swift-atomics: https://github.com/apple/swift-atomics.git @ 1.3.1
   async-http-client: https://github.com/swift-server/async-http-client @ 1.36.2
-  swift-service-lifecycle: https://github.com/swift-server/swift-service-lifecycle.git @ 2.12.1
-  swift-log: https://github.com/apple/swift-log.git @ 1.15.1
-  yyjson: https://github.com/ibireme/yyjson.git @ 0.12.0
+  swift-collections: https://github.com/apple/swift-collections.git @ 1.6.0
   swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.4.3
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.55.5
+  swift-numerics: https://github.com/apple/swift-numerics.git @ 1.1.1
+  PrayerTowerKit: /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.13.1
+  swift-service-context: https://github.com/apple/swift-service-context.git @ 1.3.0
+  swift-algorithms: https://github.com/apple/swift-algorithms.git @ 1.2.1
+  Jinja: https://github.com/huggingface/swift-jinja.git @ 2.5.2
+  swift-http-structured-headers: https://github.com/apple/swift-http-structured-headers.git @ 1.7.0
+  Xet: https://github.com/huggingface/swift-xet.git @ 1.1.0
+  swift-async-algorithms: https://github.com/apple/swift-async-algorithms.git @ 1.1.7
+  onnxruntime: https://github.com/microsoft/onnxruntime-swift-package-manager @ 1.24.2
+  swift-nio-transport-services: https://github.com/apple/swift-nio-transport-services.git @ 1.28.0
+  swift-nio-extras: https://github.com/apple/swift-nio-extras.git @ 1.35.2
   swift-nio-ssl: https://github.com/apple/swift-nio-ssl.git @ 2.37.5
   swift-system: https://github.com/apple/swift-system.git @ 1.8.1
-  swift-service-context: https://github.com/apple/swift-service-context.git @ 1.3.0
-  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.1.1
-  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.13.1
+  swift-nio: https://github.com/apple/swift-nio.git @ 2.104.0
   swift-nio-http2: https://github.com/apple/swift-nio-http2.git @ 1.46.0
+  swift-certificates: https://github.com/apple/swift-certificates.git @ 1.21.1
+  EventSource: https://github.com/mattt/EventSource.git @ 1.5.1
+  swift-distributed-tracing: https://github.com/apple/swift-distributed-tracing.git @ 1.5.0
+  yyjson: https://github.com/ibireme/yyjson.git @ 0.12.0
+  swift-crypto: https://github.com/apple/swift-crypto.git @ 4.5.2
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.1.1
+  swift-log: https://github.com/apple/swift-log.git @ 1.15.1
+  swift-service-lifecycle: https://github.com/swift-server/swift-service-lifecycle.git @ 2.12.1
+  swift-transformers: https://github.com/huggingface/swift-transformers @ 1.3.5
+  opentelemetry-swift-core: https://github.com/open-telemetry/opentelemetry-swift-core.git @ 2.6.0
+  swift-huggingface: https://github.com/huggingface/swift-huggingface.git @ 1.0.0
+  swift-atomics: https://github.com/apple/swift-atomics.git @ 1.3.1
 
 --- xcodebuild: WARNING: Using the first of multiple matching destinations:
 { platform:iOS Simulator, arch:arm64, id:15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D, OS:18.5, name:iPhone 16 Pro }
@@ -210,8 +210,8 @@ ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/X
 
 ReadFileContents /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/docc/features.json
 
-Build description signature: 5b733b7a25a2da33796e5d4b823d5f6b
-Build description path: /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/XCBuildData/5b733b7a25a2da33796e5d4b823d5f6b.xcbuilddata
+Build description signature: 251b3ac65ec9d8649f4a2f19c98fd912
+Build description path: /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/XCBuildData/251b3ac65ec9d8649f4a2f19c98fd912.xcbuilddata
 ClangStatCache /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/PrayerTowerNative.xcodeproj
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
@@ -344,13 +344,13 @@ WriteAuxiliaryFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     write-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests-OutputFileMap.json
 
-MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest
-
 MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest
+
+MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest
 
 ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.bundle/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerKit.build/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.build/empty-PrayerTowerKit_PrayerTowerScripture.plist (in target 'PrayerTowerKit_PrayerTowerScripture' from project 'PrayerTowerKit')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
@@ -382,30 +382,22 @@ SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-na
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
-SwiftCompile normal arm64 Compiling\ MainScreensWalk.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
-SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
-    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
-    
-
 SwiftEmitModule normal arm64 Emitting\ module\ for\ PrayerTowerNativeUITests (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
 
 SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
 
+SwiftCompile normal arm64 Compiling\ MainScreensWalk.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    
+
 SwiftCompile normal arm64 Compiling\ AccessibilityAuditTests.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
-Failed frontend command:
-/Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -primary-file /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift -emit-dependencies-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/AccessibilityAuditTests.d -emit-const-values-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/AccessibilityAuditTests.swiftconstvalues -emit-reference-dependencies-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/AccessibilityAuditTests.swiftdeps -serialize-diagnostics-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/AccessibilityAuditTests.dia -target arm64-apple-ios17.0-simulator -Xllvm -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -I /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -no-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -module-cache-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex -swift-version 6 -enforce-exclusivity\=checked -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -module-alias Testing\=_Testing_Unavailable -empty-abi-descriptor -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -validate-clang-modules-once -clang-build-session-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native -resource-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift -enable-anonymous-context-mangled-names -file-compilation-dir /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native -Xcc -ivfsstatcache -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-generated-files.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-own-target-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative-b18b320b37084903fb4fefae12e54166-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-project-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources -Xcc -DDEBUG\=1 -module-name PrayerTowerNativeUITests -frontend-parseable-output -disable-clang-spi -target-sdk-version 18.5 -target-sdk-name iphonesimulator18.5 -external-plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins\#/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/local/lib/swift/host/plugins\#/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -in-process-plugin-server-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -parse-as-library -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/AccessibilityAuditTests.o -index-unit-output-path /PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/AccessibilityAuditTests.o -index-store-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Index.noindex/DataStore -index-system-modules
 
 SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:15:47: error: sending 'issue' risks causing data races
-        let what = MainActor.assumeIsolated { issue.element.map { "\($0.elementType) '\($0.label)'" } } ?? "screen"
-                                            ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:15:47: note: task-isolated 'issue' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses
-        let what = MainActor.assumeIsolated { issue.element.map { "\($0.elementType) '\($0.label)'" } } ?? "screen"
-                                              ^~~~~
 
 SwiftDriverJobDiscovery normal arm64 Emitting module for PrayerTowerNativeUITests (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
 
@@ -413,19 +405,1237 @@ SwiftDriver\ Compilation\ Requirements PrayerTowerNativeUITests normal arm64 com
     cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
     builtin-Swift-Compilation-Requirements -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name PrayerTowerNativeUITests -Onone -enforce-exclusivity\=checked @/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList -DDEBUG -module-alias Testing\=_Testing_Unavailable -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Index.noindex/DataStore -swift-version 6 -I /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-generated-files.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-own-target-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative-b18b320b37084903fb4fefae12e54166-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-project-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests-Swift.h -working-directory /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native -experimental-emit-module-separately -disable-cmo
 
+SwiftDriverJobDiscovery normal arm64 Compiling AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+
+SwiftDriver\ Compilation PrayerTowerNativeUITests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-Swift-Compilation -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name PrayerTowerNativeUITests -Onone -enforce-exclusivity\=checked @/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList -DDEBUG -module-alias Testing\=_Testing_Unavailable -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Index.noindex/DataStore -swift-version 6 -I /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-generated-files.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-own-target-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative-b18b320b37084903fb4fefae12e54166-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests-project-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests-Swift.h -working-directory /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources/PrayerTowerNativeUITests-Swift.h /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests-Swift.h (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-swiftHeaderTool -arch arm64 /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests-Swift.h -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/DerivedSources/PrayerTowerNativeUITests-Swift.h
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftmodule (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftdoc (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftdoc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.abi.json (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.abi.json /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftsourceinfo (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftsourceinfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerCrosspost.appex/Info.plist /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/Crosspost/PrayerTowerCrosspost-Info.plist (in target 'PrayerTowerCrosspost' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/Crosspost/PrayerTowerCrosspost-Info.plist -producttype com.apple.product-type.app-extension -expandbuildsettings -format binary -platform iphonesimulator -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerCrosspost.appex/Info.plist
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerKit_PrayerTowerKit.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.bundle (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerKit.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/swift-transformers_Hub.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/swift-transformers_Hub.bundle (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/swift-transformers_Hub.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/swift-crypto_Crypto.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerKit_PrayerTowerScripture.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.bundle (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerKit_PrayerTowerScripture.bundle /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerWidgets.appex /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerWidgets.appex (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks -remove-static-executable /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerWidgets.appex /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerCrosspost.appex /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerCrosspost.appex (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks -remove-static-executable /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerCrosspost.appex /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns
+
+ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Info.plist /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/App/Info.plist (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/App/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Frameworks/onnxruntime.framework -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerCrosspost.appex -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerWidgets.appex -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerKit_PrayerTowerKit.bundle -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerKit_PrayerTowerScripture.bundle -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/swift-crypto_Crypto.bundle -scanforprivacyfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/swift-transformers_Hub.bundle -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Info.plist
+
+CopySwiftLibs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PrayerTowerNative.debug.dylib --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Frameworks --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/SystemExtensions --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
+ValidateEmbeddedBinary /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerWidgets.appex (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/embeddedBinaryValidationUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerWidgets.appex -info-plist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Info.plist
+
+ValidateEmbeddedBinary /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerCrosspost.appex (in target 'PrayerTowerNative' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/embeddedBinaryValidationUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/PlugIns/PrayerTowerCrosspost.appex -info-plist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNative.app/Info.plist
+
+Ld /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/PrayerTowerNativeUITests normal (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -bundle -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -filelist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.LinkFileList -Xlinker -rpath -Xlinker @loader_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -dead_strip -Xlinker -object_path_lto -Xlinker /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.swiftmodule -framework XCTest -lXCTestSwiftSupport -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/PrayerTowerNativeUITests
+
+ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/empty-PrayerTowerUIWalks.plist (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/empty-PrayerTowerUIWalks.plist -producttype com.apple.product-type.bundle.ui-testing -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/ProductTypeInfoPlistAdditions.plist -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Info.plist
+
+ProcessInfoPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Info.plist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/empty-PrayerTowerNativeUITests.plist (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-infoPlistUtility /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/empty-PrayerTowerNativeUITests.plist -producttype com.apple.product-type.bundle.ui-testing -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/ProductTypeInfoPlistAdditions.plist -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Info.plist
+
+ExtractAppIntentsMetadata (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name PrayerTowerNativeUITests --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk --xcode-version 16F6 --platform-family iOS --deployment-target 17.0 --bundle-identifier com.zoomatech.prayertower.native.uitests --output /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest --target-triple arm64-apple-ios17.0-simulator --binary-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/PrayerTowerNativeUITests --dependency-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests_dependency_info.dat --stringsdata-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftFileList --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/Objects-normal/arm64/PrayerTowerNativeUITests.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2026-10-31 20:23:36.604 appintentsmetadataprocessor[16708:53041] Starting appintentsmetadataprocessor export
+2026-10-31 20:23:36.609 appintentsmetadataprocessor[16708:53041] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+
+CopySwiftLibs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/PrayerTowerNativeUITests --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Frameworks --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/PlugIns --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/SystemExtensions --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Extensions --platform iphonesimulator --toolchain /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Frameworks --strip-bitcode --scan-executable /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib --strip-bitcode-tool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
+AppIntentsSSUTraining (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Info.plist --temp-dir-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/ssu --bundle-id com.zoomatech.prayertower.native.uitests --product-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest --extracted-metadata-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Metadata.appintents --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNativeUITests.build/PrayerTowerNativeUITests.DependencyMetadataFileList --archive-ssu-assets
+2026-10-31 20:23:36.668 appintentsnltrainingprocessor[16709:53043] Parsing options for appintentsnltrainingprocessor
+2026-10-31 20:23:36.670 appintentsnltrainingprocessor[16709:53043] No AppShortcuts found - Skipping.
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for PrayerTowerUIWalks (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+
+SwiftDriver\ Compilation\ Requirements PrayerTowerUIWalks normal arm64 com.apple.xcode.tools.swift.compiler (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name PrayerTowerUIWalks -Onone -enforce-exclusivity\=checked @/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.SwiftFileList -DDEBUG -module-alias Testing\=_Testing_Unavailable -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-generated-files.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-own-target-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative-b18b320b37084903fb4fefae12e54166-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-project-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-Swift.h -working-directory /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native -experimental-emit-module-separately -disable-cmo
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+SwiftMergeGeneratedHeaders /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources/PrayerTowerUIWalks-Swift.h /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-Swift.h (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-swiftHeaderTool -arch arm64 /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-Swift.h -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources/PrayerTowerUIWalks-Swift.h
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftdoc (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftdoc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.abi.json (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.abi.json /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftsourceinfo (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftsourceinfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app
+
+CopyPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Info.plist /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copyPlist --validate --convert xml1 --macro-expansion WRAPPEDPRODUCTNAME PrayerTowerNativeUITests-Runner --macro-expansion WRAPPEDPRODUCTBUNDLEIDENTIFIER com.zoomatech.prayertower.native.uitests.xctrunner --macro-expansion TESTPRODUCTNAME PrayerTowerNativeUITests --macro-expansion TESTPRODUCTBUNDLEIDENTIFIER com.zoomatech.prayertower.native.uitests --copy-value UIDeviceFamily /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest/Info.plist --outdir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app -- /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist
+
+CopyAndPreserveArchs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PrayerTowerNativeUITests-Runner (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/XCTRunner -output /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PrayerTowerNativeUITests-Runner -extract arm64
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PkgInfo /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/PkgInfo (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/PkgInfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/libXCTestSwiftSupport.dylib /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/XCUnit.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCUnit.framework (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCUnit.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/XCUIAutomation.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/XCTestSupport.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestSupport.framework (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestSupport.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/XCTestCore.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestCore.framework (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestCore.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/XCTest.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCTest.framework (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCTest.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/XCTAutomationSupport.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTAutomationSupport.framework (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTAutomationSupport.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks/Testing.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/Testing.framework (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/Testing.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/Frameworks
+
+RegisterExecutionPolicyException /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-RegisterExecutionPolicyException /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest
+
+Touch /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /usr/bin/touch -c /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerNativeUITests-Runner.app/PlugIns/PrayerTowerNativeUITests.xctest
+
+SwiftDriverJobDiscovery normal arm64 Compiling MainScreensWalk.swift (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+
+SwiftDriver\ Compilation PrayerTowerUIWalks normal arm64 com.apple.xcode.tools.swift.compiler (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-Swift-Compilation -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name PrayerTowerUIWalks -Onone -enforce-exclusivity\=checked @/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.SwiftFileList -DDEBUG -module-alias Testing\=_Testing_Unavailable -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-generated-files.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-own-target-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerNative-b18b320b37084903fb4fefae12e54166-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks-project-headers.hmap -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks-Swift.h -working-directory /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/PrayerTowerUIWalks normal (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -bundle -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -filelist /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.LinkFileList -Xlinker -rpath -Xlinker @loader_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -dead_strip -Xlinker -object_path_lto -Xlinker /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.swiftmodule -framework XCTest -lXCTestSwiftSupport -o /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/PrayerTowerUIWalks
+
+CopySwiftLibs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/PrayerTowerUIWalks --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Frameworks --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/PlugIns --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/SystemExtensions --scan-folder /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Extensions --platform iphonesimulator --toolchain /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Frameworks --strip-bitcode --scan-executable /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib --strip-bitcode-tool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
+ExtractAppIntentsMetadata (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name PrayerTowerUIWalks --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk --xcode-version 16F6 --platform-family iOS --deployment-target 17.0 --bundle-identifier com.zoomatech.prayertower.native.uiwalks --output /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest --target-triple arm64-apple-ios17.0-simulator --binary-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/PrayerTowerUIWalks --dependency-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks_dependency_info.dat --stringsdata-file /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.SwiftFileList --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/Objects-normal/arm64/PrayerTowerUIWalks.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2026-10-31 20:23:37.186 appintentsmetadataprocessor[16714:53055] Starting appintentsmetadataprocessor export
+2026-10-31 20:23:37.187 appintentsmetadataprocessor[16714:53055] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+
+AppIntentsSSUTraining (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Info.plist --temp-dir-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/ssu --bundle-id com.zoomatech.prayertower.native.uiwalks --product-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest --extracted-metadata-path /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Metadata.appintents --metadata-file-list /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Intermediates.noindex/PrayerTowerNative.build/Debug-iphonesimulator/PrayerTowerUIWalks.build/PrayerTowerUIWalks.DependencyMetadataFileList --archive-ssu-assets
+2026-10-31 20:23:37.210 appintentsnltrainingprocessor[16715:53057] Parsing options for appintentsnltrainingprocessor
+2026-10-31 20:23:37.212 appintentsnltrainingprocessor[16715:53057] No AppShortcuts found - Skipping.
+
+MkDir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /bin/mkdir -p /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app
+
+CopyPlistFile /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Info.plist /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copyPlist --validate --convert xml1 --macro-expansion WRAPPEDPRODUCTNAME PrayerTowerUIWalks-Runner --macro-expansion WRAPPEDPRODUCTBUNDLEIDENTIFIER com.zoomatech.prayertower.native.uiwalks.xctrunner --macro-expansion TESTPRODUCTNAME PrayerTowerUIWalks --macro-expansion TESTPRODUCTBUNDLEIDENTIFIER com.zoomatech.prayertower.native.uiwalks --copy-value UIDeviceFamily /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest/Info.plist --outdir /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app -- /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/Info.plist
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PkgInfo /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/PkgInfo (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/PkgInfo /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app
+
+CopyAndPreserveArchs /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PrayerTowerUIWalks-Runner (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app/XCTRunner -output /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PrayerTowerUIWalks-Runner -extract arm64
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/libXCTestSwiftSupport.dylib /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/XCUnit.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCUnit.framework (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCUnit.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/XCUIAutomation.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCUIAutomation.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/XCTestSupport.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestSupport.framework (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestSupport.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/XCTestCore.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestCore.framework (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTestCore.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/XCTest.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCTest.framework (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCTest.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/XCTAutomationSupport.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTAutomationSupport.framework (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/PrivateFrameworks/XCTAutomationSupport.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+Copy /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks/Testing.framework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/Testing.framework (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/Testing.framework /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/Frameworks
+
+RegisterExecutionPolicyException /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    builtin-RegisterExecutionPolicyException /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest
+
+Touch /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest (in target 'PrayerTowerUIWalks' from project 'PrayerTowerNative')
+    cd /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native
+    /usr/bin/touch -c /Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Build/Products/Debug-iphonesimulator/PrayerTowerUIWalks-Runner.app/PlugIns/PrayerTowerUIWalks.xctest
+
+2026-10-31 20:25:07.952387+0000 PrayerTowerUIWalks-Runner[17692:57358] [Default] Running tests...
+Test Suite 'All tests' started at 2026-10-31 20:25:39.708.
+Test Suite 'PrayerTowerUIWalks.xctest' started at 2026-10-31 20:25:39.710.
+Test Suite 'MainScreensWalk' started at 2026-10-31 20:25:39.710.
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit]' started.
+    t =     0.00s Start Test at 2026-10-31 20:25:39.711
+    t =     1.23s Set Up
+    t =     1.25s     Open com.zoomatech.prayertower.native
+    t =     1.25s         Launch com.zoomatech.prayertower.native
+    t =    34.14s             Setting up automation session
+    t =    34.44s             Wait for com.zoomatech.prayertower.native to idle
+    t =    35.47s Waiting 10.0s for Any (First Match) to exist
+    t =    36.53s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    36.53s         Checking existence of `Any (First Match)`
+    t =    44.48s Waiting 10.0s for "My Promises" Button to exist
+    t =    45.53s     Checking `Expect predicate `existsNoRetry == 1` for object "My Promises" Button`
+    t =    45.53s         Checking existence of `"My Promises" Button`
+    t =    46.34s Tap "My Promises" Button
+    t =    46.34s     Wait for com.zoomatech.prayertower.native to idle
+    t =    47.05s     Find the "My Promises" Button
+    t =    47.85s     Check for interrupting elements affecting "My Promises" Button
+    t =    48.31s     Synthesize event
+    t =    49.10s     Wait for com.zoomatech.prayertower.native to idle
+    t =    53.76s Waiting 10.0s for "Me" Button to exist
+    t =    54.77s     Checking `Expect predicate `existsNoRetry == 1` for object "Me" Button`
+    t =    54.77s         Checking existence of `"Me" Button`
+    t =    55.88s Tap "Me" Button
+    t =    55.90s     Wait for com.zoomatech.prayertower.native to idle
+    t =    55.92s     Find the "Me" Button
+    t =    57.00s     Check for interrupting elements affecting "Me" Button
+    t =    58.21s     Synthesize event
+    t =    59.35s     Wait for com.zoomatech.prayertower.native to idle
+    t =    68.31s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169963264.156)
+    t =    70.29s Find the "SETTINGS" StaticText
+    t =    70.54s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169963264.156)
+    t =    71.06s Find the "SETTINGS" StaticText
+    t =    71.83s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169963264.156)
+    t =    71.95s Find the "SETTINGS" StaticText
+    t =    72.24s Find the "SETTINGS" StaticText
+    t =    72.31s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158)
+    t =    73.42s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 1)
+    t =    74.47s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 2)
+    t =    74.55s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158)
+    t =    75.63s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 1)
+    t =    76.70s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 2)
+    t =    76.74s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158)
+    t =    77.80s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 1)
+    t =    78.87s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 2)
+    t =    78.91s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160)
+    t =    79.95s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 1)
+    t =    81.08s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 2)
+    t =    81.14s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160)
+    t =    82.20s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 1)
+    t =    83.28s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 2)
+    t =    83.33s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160)
+    t =    84.38s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 1)
+    t =    85.43s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 2)
+    t =    85.46s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158)
+    t =    86.50s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 1)
+    t =    87.55s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 2)
+    t =    87.62s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158)
+    t =    88.68s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 1)
+    t =    89.80s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169955360.158) (retry 2)
+    t =    89.89s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160)
+    t =    91.00s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 1)
+    t =    92.14s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 2)
+    t =    92.23s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160)
+    t =    93.28s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 1)
+    t =    94.33s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889184.160) (retry 2)
+    t =    94.39s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169877504.162)
+    t =    95.42s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169877504.162) (retry 1)
+    t =    96.48s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169877504.162) (retry 2)
+    t =    96.55s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169877504.162)
+    t =    97.66s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169877504.162) (retry 1)
+    t =    98.73s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169877504.162) (retry 2)
+    t =    98.80s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169883264.159)
+    t =    99.85s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169883264.159) (retry 1)
+    t =   100.90s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169883264.159) (retry 2)
+    t =   100.93s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169883264.159)
+    t =   101.97s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169883264.159) (retry 1)
+    t =   103.01s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169883264.159) (retry 2)
+    t =   103.04s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889984.161)
+    t =   104.09s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889984.161) (retry 1)
+    t =   105.12s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889984.161) (retry 2)
+    t =   105.16s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889984.161)
+    t =   106.21s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889984.161) (retry 1)
+    t =   107.24s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169889984.161) (retry 2)
+    t =   107.29s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169884224.163)
+    t =   108.32s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169884224.163) (retry 1)
+    t =   109.36s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169884224.163) (retry 2)
+    t =   109.43s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169884224.163)
+    t =   110.49s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169884224.163) (retry 1)
+    t =   111.52s     Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169884224.163) (retry 2)
+    t =   111.58s Waiting 10.0s for "Me" Button to exist
+    t =   112.63s     Checking `Expect predicate `existsNoRetry == 1` for object "Me" Button`
+    t =   112.63s         Checking existence of `"Me" Button`
+    t =   112.69s Tap "Me" Button
+    t =   112.69s     Wait for com.zoomatech.prayertower.native to idle
+    t =   112.72s     Find the "Me" Button
+    t =   112.76s     Check for interrupting elements affecting "Me" Button
+    t =   112.87s     Synthesize event
+    t =   113.19s     Wait for com.zoomatech.prayertower.native to idle
+    t =   113.19s Waiting 10.0s for "Messages" Button to exist
+    t =   114.23s     Checking `Expect predicate `existsNoRetry == 1` for object "Messages" Button`
+    t =   114.23s         Checking existence of `"Messages" Button`
+    t =   114.37s Tap "Messages" Button
+    t =   114.37s     Wait for com.zoomatech.prayertower.native to idle
+    t =   114.37s     Find the "Messages" Button
+    t =   114.50s     Check for interrupting elements affecting "Messages" Button
+    t =   114.54s     Synthesize event
+    t =   114.85s     Wait for com.zoomatech.prayertower.native to idle
+    t =   118.75s Tap Button (First Match)
+    t =   118.75s     Wait for com.zoomatech.prayertower.native to idle
+    t =   118.76s     Find the Button (First Match)
+    t =   118.80s     Check for interrupting elements affecting "Me" Button
+    t =   118.84s     Synthesize event
+    t =   119.14s     Wait for com.zoomatech.prayertower.native to idle
+    t =   119.54s Tap "Notices" Button
+    t =   119.54s     Wait for com.zoomatech.prayertower.native to idle
+    t =   119.55s     Find the "Notices" Button
+    t =   119.70s     Check for interrupting elements affecting "Notices" Button
+    t =   119.76s     Synthesize event
+    t =   120.05s     Wait for com.zoomatech.prayertower.native to idle
+    t =   123.78s Waiting 10.0s for "Prayers" Button to exist
+    t =   124.81s     Checking `Expect predicate `existsNoRetry == 1` for object "Prayers" Button`
+    t =   124.81s         Checking existence of `"Prayers" Button`
+    t =   124.87s Tap "Prayers" Button
+    t =   124.87s     Wait for com.zoomatech.prayertower.native to idle
+    t =   124.88s     Find the "Prayers" Button
+    t =   124.95s     Check for interrupting elements affecting "Prayers" Button
+    t =   125.00s     Synthesize event
+    t =   125.34s     Wait for com.zoomatech.prayertower.native to idle
+    t =   125.83s Tap Any (First Match)
+    t =   125.83s     Wait for com.zoomatech.prayertower.native to idle
+    t =   125.88s     Find the Any (First Match)
+    t =   126.11s     Check for interrupting elements affecting "Ruth, Please pray for my mother's surgery on Tuesday., 4 praying" Button
+    t =   126.26s     Synthesize event
+    t =   126.60s     Wait for com.zoomatech.prayertower.native to idle
+    t =   127.03s Waiting 10.0s for Any (First Match) to exist
+    t =   128.05s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =   128.05s         Checking existence of `Any (First Match)`
+    t =   131.82s Find the Any (Descendant with identity binding to AX element pid: 18334, elementOrHash.elementID: 105553169989632.501)
+    t =   131.86s Find the "Comment" Button
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift:95: error: -[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit] : XCTAssertTrue failed - Accessibility audit:
+Me: Contrast failed on XCUIElementType(rawValue: 48) 'SETTINGS'. Contrast failed for element
+Me: Contrast failed on screen. Contrast failed for element
+Me: Contrast failed on screen. Contrast failed for element
+Me: Contrast failed on screen. Contrast failed for element
+Me: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Me: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+Request: Contrast failed on screen. Contrast failed for element
+    t =   132.43s Tear Down
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit]' failed (132.920 seconds).
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryTabOpens]' started.
+    t =     0.00s Start Test at 2026-10-31 20:27:52.636
+    t =     0.09s Set Up
+    t =     0.10s     Open com.zoomatech.prayertower.native
+    t =     0.10s         Launch com.zoomatech.prayertower.native
+    t =     0.10s             Terminate com.zoomatech.prayertower.native:18334
+    t =     2.07s             Setting up automation session
+    t =     3.79s             Wait for com.zoomatech.prayertower.native to idle
+    t =     5.67s Waiting 10.0s for Any (First Match) to exist
+    t =     6.70s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =     6.70s         Checking existence of `Any (First Match)`
+    t =     6.95s Waiting 10.0s for "My Promises" Button to exist
+    t =     7.98s     Checking `Expect predicate `existsNoRetry == 1` for object "My Promises" Button`
+    t =     7.98s         Checking existence of `"My Promises" Button`
+    t =     8.08s Tap "My Promises" Button
+    t =     8.08s     Wait for com.zoomatech.prayertower.native to idle
+    t =     8.09s     Find the "My Promises" Button
+    t =     8.11s     Check for interrupting elements affecting "My Promises" Button
+    t =     8.15s     Synthesize event
+    t =     8.50s     Wait for com.zoomatech.prayertower.native to idle
+    t =     9.05s Waiting 10.0s for Any (First Match) to exist
+    t =    10.11s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    10.11s         Checking existence of `Any (First Match)`
+    t =    10.28s Checking existence of `"Messages" Button`
+    t =    10.32s Checking existence of `"Notices" Button`
+    t =    10.36s Waiting 10.0s for "Me" Button to exist
+    t =    11.39s     Checking `Expect predicate `existsNoRetry == 1` for object "Me" Button`
+    t =    11.39s         Checking existence of `"Me" Button`
+    t =    11.44s Tap "Me" Button
+    t =    11.44s     Wait for com.zoomatech.prayertower.native to idle
+    t =    11.44s     Find the "Me" Button
+    t =    11.48s     Check for interrupting elements affecting "Me" Button
+    t =    11.54s     Synthesize event
+    t =    11.85s     Wait for com.zoomatech.prayertower.native to idle
+    t =    12.27s Waiting 10.0s for "Messages" Button to exist
+    t =    13.27s     Checking `Expect predicate `existsNoRetry == 1` for object "Messages" Button`
+    t =    13.27s         Checking existence of `"Messages" Button`
+    t =    13.43s Tap "Messages" Button
+    t =    13.43s     Wait for com.zoomatech.prayertower.native to idle
+    t =    13.43s     Find the "Messages" Button
+    t =    13.52s     Check for interrupting elements affecting "Messages" Button
+    t =    13.57s     Synthesize event
+    t =    13.88s     Wait for com.zoomatech.prayertower.native to idle
+    t =    14.27s Waiting 10.0s for Any (First Match) to exist
+    t =    15.32s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    15.32s         Checking existence of `Any (First Match)`
+    t =    15.43s Tap Button (First Match)
+    t =    15.43s     Wait for com.zoomatech.prayertower.native to idle
+    t =    15.43s     Find the Button (First Match)
+    t =    15.46s     Check for interrupting elements affecting "Me" Button
+    t =    15.49s     Synthesize event
+    t =    15.79s     Wait for com.zoomatech.prayertower.native to idle
+    t =    16.16s Waiting 10.0s for "Notices" Button to exist
+    t =    17.20s     Checking `Expect predicate `existsNoRetry == 1` for object "Notices" Button`
+    t =    17.20s         Checking existence of `"Notices" Button`
+    t =    17.32s Tap "Notices" Button
+    t =    17.32s     Wait for com.zoomatech.prayertower.native to idle
+    t =    17.32s     Find the "Notices" Button
+    t =    17.42s     Check for interrupting elements affecting "Notices" Button
+    t =    17.48s     Synthesize event
+    t =    17.82s     Wait for com.zoomatech.prayertower.native to idle
+    t =    18.25s Waiting 10.0s for Any (First Match) to exist
+    t =    19.26s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    19.26s         Checking existence of `Any (First Match)`
+    t =    19.33s Find the "Me" Button
+    t =    19.37s Waiting 10.0s for "Prayers" Button to exist
+    t =    20.37s     Checking `Expect predicate `existsNoRetry == 1` for object "Prayers" Button`
+    t =    20.37s         Checking existence of `"Prayers" Button`
+    t =    20.40s Tap "Prayers" Button
+    t =    20.40s     Wait for com.zoomatech.prayertower.native to idle
+    t =    20.40s     Find the "Prayers" Button
+    t =    20.43s     Check for interrupting elements affecting "Prayers" Button
+    t =    20.48s     Synthesize event
+    t =    20.78s     Wait for com.zoomatech.prayertower.native to idle
+    t =    21.29s Waiting 10.0s for Any (First Match) to exist
+    t =    22.32s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    22.33s         Checking existence of `Any (First Match)`
+    t =    22.40s Tear Down
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testEveryTabOpens]' passed (22.618 seconds).
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testFeedOpensARequestWithItsComments]' started.
+    t =     0.00s Start Test at 2026-10-31 20:28:15.251
+    t =     0.04s Set Up
+    t =     0.04s     Open com.zoomatech.prayertower.native
+    t =     0.04s         Launch com.zoomatech.prayertower.native
+    t =     0.04s             Terminate com.zoomatech.prayertower.native:21350
+    t =     2.35s             Setting up automation session
+    t =     3.72s             Wait for com.zoomatech.prayertower.native to idle
+    t =     5.26s Waiting 10.0s for Any (First Match) to exist
+    t =     6.30s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =     6.30s         Checking existence of `Any (First Match)`
+    t =     6.40s Tap Any (First Match)
+    t =     6.40s     Wait for com.zoomatech.prayertower.native to idle
+    t =     6.40s     Find the Any (First Match)
+    t =     6.50s     Check for interrupting elements affecting "Ruth, Please pray for my mother's surgery on Tuesday., 4 praying" Button
+    t =     6.56s     Synthesize event
+    t =     6.87s     Wait for com.zoomatech.prayertower.native to idle
+    t =     7.28s Waiting 10.0s for Any (First Match) to exist
+    t =     8.32s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =     8.32s         Checking existence of `Any (First Match)`
+    t =     8.44s Waiting 10.0s for Any (First Match) to exist
+    t =     9.47s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =     9.47s         Checking existence of `Any (First Match)`
+    t =     9.56s Tear Down
+Test Case '-[PrayerTowerUIWalks.MainScreensWalk testFeedOpensARequestWithItsComments]' passed (9.783 seconds).
+Test Suite 'MainScreensWalk' failed at 2026-10-31 20:28:25.035.
+	 Executed 3 tests, with 1 failure (0 unexpected) in 165.322 (165.325) seconds
+Test Suite 'PrayerTowerUIWalks.xctest' failed at 2026-10-31 20:28:25.035.
+	 Executed 3 tests, with 1 failure (0 unexpected) in 165.322 (165.326) seconds
+Test Suite 'All tests' failed at 2026-10-31 20:28:25.036.
+	 Executed 3 tests, with 1 failure (0 unexpected) in 165.322 (165.328) seconds
+2026-10-31 20:28:27.757087+0000 PrayerTowerNativeUITests-Runner[22689:71189] [Default] Running tests...
+    t =      nans Interface orientation changed to Portrait
+Test Suite 'All tests' started at 2026-10-31 20:28:31.051.
+Test Suite 'PrayerTowerNativeUITests.xctest' started at 2026-10-31 20:28:31.053.
+Test Suite 'AccessibilityAuditTests' started at 2026-10-31 20:28:31.053.
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin]' started.
+    t =     0.00s Start Test at 2026-10-31 20:28:31.053
+    t =     0.03s Set Up
+    t =     0.04s Open com.zoomatech.prayertower.native
+    t =     0.04s     Launch com.zoomatech.prayertower.native
+    t =     1.34s         Setting up automation session
+    t =     2.00s         Wait for com.zoomatech.prayertower.native to idle
+    t =     3.42s Beanstalk at UICTContentSizeCategoryL
+    t =     3.42s     Find the "Beanstalk" Button
+    t =     3.55s     Find the "Beanstalk" Button
+    t =     3.59s     Find the "Beanstalk" Button
+    t =     3.64s     Find the "Beanstalk" Button
+    t =     3.70s     Find the "Beanstalk" Button
+    t =     3.74s     Tap "Beanstalk" Button
+    t =     3.74s         Wait for com.zoomatech.prayertower.native to idle
+    t =     3.75s         Find the "Beanstalk" Button
+    t =     3.78s         Check for interrupting elements affecting "Beanstalk" Button
+    t =     3.82s         Synthesize event
+    t =     4.14s         Wait for com.zoomatech.prayertower.native to idle
+    t =     9.72s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169831872.142)
+    t =     9.78s     Find the "Thankful: the new job came through!" StaticText
+    t =     9.85s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169831872.142)
+    t =     9.92s     Find the "Thankful: the new job came through!" StaticText
+    t =    10.04s     Find the "Thankful: the new job came through!" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    10.11s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169831872.142)
+    t =    10.23s     Checking existence of `"Thankful: the new job came through!" StaticText`
+    t =    10.27s     Find the "Thankful: the new job came through!" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    10.76s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169834432.143)
+    t =    10.92s     Find the "Riley" StaticText
+    t =    10.98s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169834432.143)
+    t =    11.09s     Find the "Riley" StaticText
+    t =    11.20s     Find the "Riley" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Riley'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    11.28s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169834432.143)
+    t =    11.37s     Checking existence of `"Riley" StaticText`
+    t =    11.44s     Find the "Riley" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    11.55s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169838592.133)
+    t =    11.65s     Find the "Prayer requests & thanksgivings" StaticText
+    t =    11.69s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169838592.133)
+    t =    11.75s     Find the "Prayer requests & thanksgivings" StaticText
+    t =    11.82s     Find the "Prayer requests & thanksgivings" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Prayer requests & thanksgivings'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    11.85s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169838592.133)
+    t =    11.90s     Checking existence of `"Prayer requests & thanksgivings" StaticText`
+    t =    12.00s     Find the "Prayer requests & thanksgivings" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    12.07s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169838432.131)
+    t =    12.11s     Find the "The Beanstalk" StaticText
+    t =    12.19s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169838432.131)
+    t =    12.24s     Find the "The Beanstalk" StaticText
+    t =    12.32s     Find the "The Beanstalk" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'The Beanstalk'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    12.38s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169838432.131)
+    t =    12.45s     Checking existence of `"The Beanstalk" StaticText`
+    t =    12.48s     Find the "The Beanstalk" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    12.59s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169835712.141)
+    t =    12.67s     Find the "Praying for her.." StaticText
+    t =    12.76s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169835712.141)
+    t =    12.82s     Find the "Praying for her.." StaticText
+    t =    12.88s     Find the "Praying for her.." StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Praying for her..'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    12.95s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169835712.141)
+    t =    13.01s     Checking existence of `"Praying for her.." StaticText`
+    t =    13.05s     Find the "Praying for her.." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    13.16s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169835712.141)
+    t =    13.22s     Find the "Praying for her.." StaticText
+    t =    13.35s     Find the "Praying for her.." StaticText
+    t =    13.38s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169835712.141)
+    t =    13.45s     Find the "Praying for her.." StaticText
+    t =    13.53s     Find the "Praying for her.." StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Praying for her..'. Contrast failed for element
+    t =    13.57s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169835712.141)
+    t =    13.62s     Checking existence of `"Praying for her.." StaticText`
+    t =    13.65s     Find the "Praying for her.." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    13.79s     Tap Button (Element at index 0)
+    t =    13.79s         Wait for com.zoomatech.prayertower.native to idle
+    t =    13.79s         Find the Button (Element at index 0)
+    t =    13.84s         Check for interrupting elements affecting "Skins" Button
+    t =    13.92s         Synthesize event
+    t =    14.23s         Wait for com.zoomatech.prayertower.native to idle
+    t =    14.66s Golden Wood at UICTContentSizeCategoryL
+    t =    14.66s     Find the "Golden Wood" Button
+    t =    14.77s     Find the "Golden Wood" Button
+    t =    14.83s     Find the "Golden Wood" Button
+    t =    14.89s     Find the "Golden Wood" Button
+    t =    14.94s     Find the "Golden Wood" Button
+    t =    14.98s     Tap "Golden Wood" Button
+    t =    14.98s         Wait for com.zoomatech.prayertower.native to idle
+    t =    14.99s         Find the "Golden Wood" Button
+    t =    15.03s         Check for interrupting elements affecting "Golden Wood" Button
+    t =    15.06s         Synthesize event
+    t =    15.36s         Wait for com.zoomatech.prayertower.native to idle
+    t =    17.68s     Tap Button (Element at index 0)
+    t =    17.68s         Wait for com.zoomatech.prayertower.native to idle
+    t =    17.68s         Find the Button (Element at index 0)
+    t =    17.70s         Check for interrupting elements affecting "Skins" Button
+    t =    17.72s         Synthesize event
+    t =    18.02s         Wait for com.zoomatech.prayertower.native to idle
+    t =    18.38s Moonlit Gate at UICTContentSizeCategoryL
+    t =    18.38s     Find the "Moonlit Gate" Button
+    t =    18.44s     Find the "Moonlit Gate" Button
+    t =    18.49s     Find the "Moonlit Gate" Button
+    t =    18.53s     Find the "Moonlit Gate" Button
+    t =    18.58s     Find the "Moonlit Gate" Button
+    t =    18.63s     Tap "Moonlit Gate" Button
+    t =    18.63s         Wait for com.zoomatech.prayertower.native to idle
+    t =    18.64s         Find the "Moonlit Gate" Button
+    t =    18.67s         Check for interrupting elements affecting "Moonlit Gate" Button
+    t =    18.70s         Synthesize event
+    t =    19.00s         Wait for com.zoomatech.prayertower.native to idle
+    t =    21.42s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386902816.287)
+    t =    21.45s     Find the "Moonlit Gate" StaticText
+    t =    21.46s     Find the "Moonlit Gate" StaticText
+    t =    21.48s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386902816.287)
+    t =    21.50s     Find the "Moonlit Gate" StaticText
+    t =    21.51s     Find the "Moonlit Gate" StaticText
+AUDIT Moonlit Gate at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Moonlit Gate'. Contrast failed for element
+    t =    21.53s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386902816.287)
+    t =    21.55s     Checking existence of `"Moonlit Gate" StaticText`
+    t =    21.56s     Find the "Moonlit Gate" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    21.59s     Tap Button (Element at index 0)
+    t =    21.59s         Wait for com.zoomatech.prayertower.native to idle
+    t =    21.60s         Find the Button (Element at index 0)
+    t =    21.61s         Check for interrupting elements affecting "Skins" Button
+    t =    21.63s         Synthesize event
+    t =    21.94s         Wait for com.zoomatech.prayertower.native to idle
+    t =    22.31s Neon Cinderella at UICTContentSizeCategoryL
+    t =    22.31s     Find the "Neon Cinderella" Button
+    t =    22.39s     Find the "Neon Cinderella" Button
+    t =    22.50s     Find the "Neon Cinderella" Button
+    t =    22.70s     Find the "Neon Cinderella" Button
+    t =    22.76s     Find the "Neon Cinderella" Button
+    t =    22.83s     Tap "Neon Cinderella" Button
+    t =    22.83s         Wait for com.zoomatech.prayertower.native to idle
+    t =    22.83s         Find the "Neon Cinderella" Button
+    t =    22.87s         Check for interrupting elements affecting "Neon Cinderella" Button
+    t =    22.90s         Synthesize event
+    t =    23.21s         Wait for com.zoomatech.prayertower.native to idle
+    t =    26.33s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4387084912.363)
+    t =    26.40s     Find the "Neon Cinderella" StaticText
+    t =    26.43s     Find the "Neon Cinderella" StaticText
+    t =    26.45s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4387084912.363)
+    t =    26.50s     Find the "Neon Cinderella" StaticText
+    t =    26.58s     Find the "Neon Cinderella" StaticText
+AUDIT Neon Cinderella at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Neon Cinderella'. Contrast failed for element
+    t =    26.61s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4387084912.363)
+    t =    26.65s     Checking existence of `"Neon Cinderella" StaticText`
+    t =    26.69s     Find the "Neon Cinderella" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    26.80s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169858176.370)
+    t =    26.85s     Find the "✦" StaticText
+    t =    26.88s     Find the "✦" StaticText
+    t =    26.90s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169871040.375)
+    t =    26.97s     Find the "✦" StaticText
+    t =    27.00s     Find the "✦" StaticText
+    t =    27.02s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169858176.370)
+    t =    27.07s     Find the "✦" StaticText
+    t =    27.14s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169871040.375)
+    t =    27.18s     Find the "✦" StaticText
+    t =    27.21s     Tap Button (Element at index 0)
+    t =    27.21s         Wait for com.zoomatech.prayertower.native to idle
+    t =    27.22s         Find the Button (Element at index 0)
+    t =    27.26s         Check for interrupting elements affecting "Skins" Button
+    t =    27.34s         Synthesize event
+    t =    27.67s         Wait for com.zoomatech.prayertower.native to idle
+    t =    28.08s Blossom Garden at UICTContentSizeCategoryL
+    t =    28.08s     Find the "Blossom Garden" Button
+    t =    28.26s     Find the "Blossom Garden" Button
+    t =    28.36s     Find the "Blossom Garden" Button
+    t =    28.41s     Find the "Blossom Garden" Button
+    t =    28.46s     Find the "Blossom Garden" Button
+    t =    28.52s     Tap "Blossom Garden" Button
+    t =    28.52s         Wait for com.zoomatech.prayertower.native to idle
+    t =    28.52s         Find the "Blossom Garden" Button
+    t =    28.56s         Check for interrupting elements affecting "Blossom Garden" Button
+    t =    28.59s         Synthesize event
+    t =    28.89s         Wait for com.zoomatech.prayertower.native to idle
+    t =    31.18s     Tap Button (Element at index 0)
+    t =    31.18s         Wait for com.zoomatech.prayertower.native to idle
+    t =    31.19s         Find the Button (Element at index 0)
+    t =    31.21s         Check for interrupting elements affecting "Skins" Button
+    t =    31.23s         Synthesize event
+    t =    31.53s         Wait for com.zoomatech.prayertower.native to idle
+    t =    31.90s Christmas Star at UICTContentSizeCategoryL
+    t =    31.90s     Find the "Christmas Star" Button
+    t =    31.97s     Find the "Christmas Star" Button
+    t =    32.03s     Find the "Christmas Star" Button
+    t =    32.16s     Find the "Christmas Star" Button
+    t =    32.21s     Find the "Christmas Star" Button
+    t =    32.26s     Tap "Christmas Star" Button
+    t =    32.26s         Wait for com.zoomatech.prayertower.native to idle
+    t =    32.27s         Find the "Christmas Star" Button
+    t =    32.30s         Check for interrupting elements affecting "Christmas Star" Button
+    t =    32.33s         Synthesize event
+    t =    32.64s         Wait for com.zoomatech.prayertower.native to idle
+    t =    35.20s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169841792.524)
+    t =    35.24s     Find the "✦" StaticText
+    t =    35.25s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169829792.525)
+    t =    35.27s     Find the "✦" StaticText
+    t =    35.28s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4385333424.517)
+    t =    35.30s     Find the "Christmas Star" StaticText
+    t =    35.32s     Find the "Christmas Star" StaticText
+    t =    35.33s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4385333424.517)
+    t =    35.35s     Find the "Christmas Star" StaticText
+    t =    35.37s     Find the "Christmas Star" StaticText
+AUDIT Christmas Star at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Christmas Star'. Contrast failed for element
+    t =    35.40s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4385333424.517)
+    t =    35.42s     Checking existence of `"Christmas Star" StaticText`
+    t =    35.44s     Find the "Christmas Star" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    35.47s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169841792.524)
+    t =    35.49s     Find the "✦" StaticText
+    t =    35.51s     Find the "✦" StaticText
+    t =    35.52s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169829792.525)
+    t =    35.54s     Find the "✦" StaticText
+    t =    35.58s     Find the "✦" StaticText
+    t =    35.59s     Tap Button (Element at index 0)
+    t =    35.59s         Wait for com.zoomatech.prayertower.native to idle
+    t =    35.60s         Find the Button (Element at index 0)
+    t =    35.61s         Check for interrupting elements affecting "Skins" Button
+    t =    35.63s         Synthesize event
+    t =    35.93s         Wait for com.zoomatech.prayertower.native to idle
+    t =    36.31s Wall at UICTContentSizeCategoryL
+    t =    36.31s     Find the "Wall" Button
+    t =    36.37s     Find the "Wall" Button
+    t =    36.42s     Find the "Wall" Button
+    t =    36.47s     Find the "Wall" Button
+    t =    36.52s     Find the "Wall" Button
+    t =    36.56s     Tap "Wall" Button
+    t =    36.56s         Wait for com.zoomatech.prayertower.native to idle
+    t =    36.56s         Find the "Wall" Button
+    t =    36.61s         Check for interrupting elements affecting "Wall" Button
+    t =    36.65s         Synthesize event
+    t =    36.94s         Wait for com.zoomatech.prayertower.native to idle
+    t =    39.19s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386708848.594)
+    t =    39.22s     Find the "Wall" StaticText
+    t =    39.24s     Find the "Wall" StaticText
+    t =    39.26s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386708848.594)
+    t =    39.28s     Find the "Wall" StaticText
+    t =    39.29s     Find the "Wall" StaticText
+AUDIT Wall at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Wall'. Contrast failed for element
+    t =    39.31s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386708848.594)
+    t =    39.33s     Checking existence of `"Wall" StaticText`
+    t =    39.35s     Find the "Wall" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    39.40s     Tap Button (Element at index 0)
+    t =    39.40s         Wait for com.zoomatech.prayertower.native to idle
+    t =    39.41s         Find the Button (Element at index 0)
+    t =    39.43s         Check for interrupting elements affecting "Skins" Button
+    t =    39.46s         Synthesize event
+    t =    39.75s         Wait for com.zoomatech.prayertower.native to idle
+    t =    40.12s Prayer Tower at UICTContentSizeCategoryL
+    t =    40.12s     Find the "Prayer Tower" Button
+    t =    40.18s     Find the "Prayer Tower" Button
+    t =    40.23s     Find the "Prayer Tower" Button
+    t =    40.28s     Find the "Prayer Tower" Button
+    t =    40.33s     Find the "Prayer Tower" Button
+    t =    40.38s     Tap "Prayer Tower" Button
+    t =    40.38s         Wait for com.zoomatech.prayertower.native to idle
+    t =    40.39s         Find the "Prayer Tower" Button
+    t =    40.42s         Check for interrupting elements affecting "Prayer Tower" Button
+    t =    40.45s         Synthesize event
+    t =    40.74s         Wait for com.zoomatech.prayertower.native to idle
+    t =    43.26s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169833472.671)
+    t =    43.35s     Find the "🧗" StaticText
+    t =    43.38s     Find the "🧗" StaticText
+    t =    43.39s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169834912.669)
+    t =    43.41s     Find the "🚩 You reached the top of the tower." StaticText
+    t =    43.43s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169834912.669)
+    t =    43.45s     Find the "🚩 You reached the top of the tower." StaticText
+    t =    43.46s     Find the "🚩 You reached the top of the tower." StaticText
+AUDIT Prayer Tower at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) '🚩 You reached the top of the tower.'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    43.49s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169834912.669)
+    t =    43.51s     Checking existence of `"🚩 You reached the top of the tower." StaticText`
+    t =    43.53s     Find the "🚩 You reached the top of the tower." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    43.57s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169833472.671)
+    t =    43.59s     Find the "🧗" StaticText
+    t =    43.61s     Tap Button (Element at index 0)
+    t =    43.61s         Wait for com.zoomatech.prayertower.native to idle
+    t =    43.61s         Find the Button (Element at index 0)
+    t =    43.64s         Check for interrupting elements affecting "Skins" Button
+    t =    43.67s         Synthesize event
+    t =    43.96s         Wait for com.zoomatech.prayertower.native to idle
+    t =    44.32s Neon Circuit at UICTContentSizeCategoryL
+    t =    44.32s     Find the "Neon Circuit" Button
+    t =    44.40s     Find the "Neon Circuit" Button
+    t =    44.47s     Find the "Neon Circuit" Button
+    t =    44.54s     Find the "Neon Circuit" Button
+    t =    44.59s     Find the "Neon Circuit" Button
+    t =    44.65s     Tap "Neon Circuit" Button
+    t =    44.65s         Wait for com.zoomatech.prayertower.native to idle
+    t =    44.65s         Find the "Neon Circuit" Button
+    t =    44.70s         Check for interrupting elements affecting "Neon Circuit" Button
+    t =    44.73s         Synthesize event
+    t =    45.03s         Wait for com.zoomatech.prayertower.native to idle
+    t =    48.10s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933376.741)
+    t =    48.14s     Find the "Jordan" StaticText
+    t =    48.17s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933376.741)
+    t =    48.20s     Find the "Jordan" StaticText
+    t =    48.24s     Find the "Jordan" StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Jordan'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    48.26s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933376.741)
+    t =    48.29s     Checking existence of `"Jordan" StaticText`
+    t =    48.31s     Find the "Jordan" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    48.39s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933696.742)
+    t =    48.41s     Find the "Thankful: the new job came through!" StaticText
+    t =    48.44s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933696.742)
+    t =    48.47s     Find the "Thankful: the new job came through!" StaticText
+    t =    48.51s     Find the "Thankful: the new job came through!" StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    48.53s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933696.742)
+    t =    48.56s     Checking existence of `"Thankful: the new job came through!" StaticText`
+    t =    48.58s     Find the "Thankful: the new job came through!" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    48.64s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933056.743)
+    t =    48.68s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    48.70s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933056.743)
+    t =    48.73s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    48.75s     Find the "Please pray for my mom's surgery on Friday." StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Text clipped on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    48.78s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933056.743)
+    t =    48.80s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
+    t =    48.84s     Find the "Please pray for my mom's surgery on Friday." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    48.91s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386751808.737)
+    t =    48.93s     Find the "Neon Circuit" StaticText
+    t =    48.95s     Find the "Neon Circuit" StaticText
+    t =    49.00s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386751808.737)
+    t =    49.03s     Find the "Neon Circuit" StaticText
+    t =    49.06s     Find the "Neon Circuit" StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Neon Circuit'. Contrast failed for element
+    t =    49.08s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 4386751808.737)
+    t =    49.11s     Checking existence of `"Neon Circuit" StaticText`
+    t =    49.13s     Find the "Neon Circuit" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    49.22s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933056.743)
+    t =    49.25s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    49.30s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    49.33s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933056.743)
+    t =    49.41s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    49.46s     Find the "Please pray for my mom's surgery on Friday." StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Contrast failed for element
+    t =    49.51s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933056.743)
+    t =    49.61s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
+    t =    49.64s     Find the "Please pray for my mom's surgery on Friday." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    49.88s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169926976.744)
+    t =    49.99s     Find the "Riley" StaticText
+    t =    50.04s     Find the "Riley" StaticText
+    t =    50.08s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169926976.744)
+    t =    50.18s     Find the "Riley" StaticText
+    t =    50.25s     Find the "Riley" StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Riley'. Contrast failed for element
+    t =    50.30s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169926976.744)
+    t =    50.35s     Checking existence of `"Riley" StaticText`
+    t =    50.40s     Find the "Riley" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    50.47s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933696.742)
+    t =    50.51s     Find the "Thankful: the new job came through!" StaticText
+    t =    50.58s     Find the "Thankful: the new job came through!" StaticText
+    t =    50.60s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933696.742)
+    t =    50.64s     Find the "Thankful: the new job came through!" StaticText
+    t =    50.67s     Find the "Thankful: the new job came through!" StaticText
+AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Contrast failed for element
+    t =    50.70s     Find the Any (Descendant with identity binding to AX element pid: 22883, elementOrHash.elementID: 105553169933696.742)
+    t =    50.75s     Checking existence of `"Thankful: the new job came through!" StaticText`
+    t =    50.77s     Find the "Thankful: the new job came through!" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    50.86s     Tap Button (Element at index 0)
+    t =    50.86s         Wait for com.zoomatech.prayertower.native to idle
+    t =    50.87s         Find the Button (Element at index 0)
+    t =    50.94s         Check for interrupting elements affecting "Skins" Button
+    t =    50.98s         Synthesize event
+    t =    51.30s         Wait for com.zoomatech.prayertower.native to idle
+    t =    51.70s Swipe to pray at UICTContentSizeCategoryL
+    t =    51.70s     Find the "Swipe to pray" Button
+    t =    51.79s     Find the "Swipe to pray" Button
+    t =    51.87s     Find the "Swipe to pray" Button
+    t =    51.99s     Find the "Swipe to pray" Button
+    t =    52.09s     Find the "Swipe to pray" Button
+    t =    52.15s     Tap "Swipe to pray" Button
+    t =    52.15s         Wait for com.zoomatech.prayertower.native to idle
+    t =    52.16s         Find the "Swipe to pray" Button
+    t =    52.20s         Check for interrupting elements affecting "Swipe to pray" Button
+    t =    52.26s         Synthesize event
+    t =    52.56s         Wait for com.zoomatech.prayertower.native to idle
+    t =    54.92s     Tap Button (Element at index 0)
+    t =    54.92s         Wait for com.zoomatech.prayertower.native to idle
+    t =    54.93s         Find the Button (Element at index 0)
+    t =    54.94s         Check for interrupting elements affecting "Skins" Button
+    t =    54.97s         Synthesize event
+    t =    55.26s         Wait for com.zoomatech.prayertower.native to idle
+    t =    55.66s Flip at UICTContentSizeCategoryL
+    t =    55.66s     Find the "Flip" Button
+    t =    55.87s     Find the "Flip" Button
+    t =    55.93s     Find the "Flip" Button
+    t =    56.00s     Find the "Flip" Button
+    t =    56.05s     Find the "Flip" Button
+    t =    56.10s     Tap "Flip" Button
+    t =    56.10s         Wait for com.zoomatech.prayertower.native to idle
+    t =    56.10s         Find the "Flip" Button
+    t =    56.15s         Check for interrupting elements affecting "Flip" Button
+    t =    56.18s         Synthesize event
+    t =    56.51s         Wait for com.zoomatech.prayertower.native to idle
+    t =    58.64s     Tap Button (Element at index 0)
+    t =    58.64s         Wait for com.zoomatech.prayertower.native to idle
+    t =    58.65s         Find the Button (Element at index 0)
+    t =    58.66s         Check for interrupting elements affecting "Skins" Button
+    t =    58.68s         Synthesize event
+    t =    58.98s         Wait for com.zoomatech.prayertower.native to idle
+    t =    59.36s Terminate com.zoomatech.prayertower.native:22883
+    t =    60.37s Open com.zoomatech.prayertower.native
+    t =    60.37s     Launch com.zoomatech.prayertower.native
+    t =    61.45s         Setting up automation session
+    t =    62.91s         Wait for com.zoomatech.prayertower.native to idle
+    t =    64.22s Beanstalk at UICTContentSizeCategoryAccessibilityXXXL
+    t =    64.22s     Find the "Beanstalk" Button
+    t =    64.63s     Find the "Beanstalk" Button
+    t =    64.68s     Find the "Beanstalk" Button
+    t =    64.73s     Find the "Beanstalk" Button
+    t =    64.77s     Find the "Beanstalk" Button
+    t =    64.87s     Tap "Beanstalk" Button
+    t =    64.87s         Wait for com.zoomatech.prayertower.native to idle
+    t =    64.87s         Find the "Beanstalk" Button
+    t =    64.91s         Check for interrupting elements affecting "Beanstalk" Button
+    t =    64.97s         Synthesize event
+    t =    65.28s         Wait for com.zoomatech.prayertower.native to idle
+    t =    68.43s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840192.81)
+    t =    68.46s     Find the "The Beanstalk" StaticText
+    t =    68.47s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840192.81)
+    t =    68.50s     Find the "The Beanstalk" StaticText
+    t =    68.51s     Find the "The Beanstalk" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on XCUIElementType(rawValue: 48) 'The Beanstalk'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    68.53s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840192.81)
+    t =    68.55s     Checking existence of `"The Beanstalk" StaticText`
+    t =    68.56s     Find the "The Beanstalk" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    68.60s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840352.82)
+    t =    68.63s     Find the "Prayer requests & thanksgivings" StaticText
+    t =    68.66s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840352.82)
+    t =    68.67s     Find the "Prayer requests & thanksgivings" StaticText
+    t =    68.69s     Find the "Prayer requests & thanksgivings" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on XCUIElementType(rawValue: 48) 'Prayer requests & thanksgivings'. Text of this element may be clipped at larger Dynamic Type sizes.
+    t =    68.71s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840352.82)
+    t =    68.73s     Checking existence of `"Prayer requests & thanksgivings" StaticText`
+    t =    68.75s     Find the "Prayer requests & thanksgivings" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    68.79s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840512.83)
+    t =    68.84s     Find the "Scroll to climb" Button
+    t =    68.85s     Find the "Scroll to climb" Button
+    t =    68.87s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840512.83)
+    t =    68.89s     Find the "Scroll to climb" Button
+    t =    68.91s     Find the "Scroll to climb" Button
+AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 9) 'Scroll to climb'. Contrast failed for element
+    t =    68.93s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169840512.83)
+    t =    68.94s     Checking existence of `"Scroll to climb" Button`
+    t =    68.95s     Find the "Scroll to climb" Button
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    69.00s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804544.85)
+    t =    69.02s     Find the "J" StaticText
+    t =    69.04s     Find the "J" StaticText
+    t =    69.06s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804544.85)
+    t =    69.08s     Find the "J" StaticText
+    t =    69.09s     Find the "J" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'J'. Contrast failed for element
+    t =    69.11s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804544.85)
+    t =    69.14s     Checking existence of `"J" StaticText`
+    t =    69.15s     Find the "J" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    69.18s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804384.86)
+    t =    69.20s     Find the "Jordan" StaticText
+    t =    69.22s     Find the "Jordan" StaticText
+    t =    69.23s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804384.86)
+    t =    69.25s     Find the "Jordan" StaticText
+    t =    69.26s     Find the "Jordan" StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Jordan'. Contrast failed for element
+    t =    69.28s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804384.86)
+    t =    69.31s     Checking existence of `"Jordan" StaticText`
+    t =    69.32s     Find the "Jordan" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    69.35s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804224.87)
+    t =    69.37s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    69.39s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    69.40s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804224.87)
+    t =    69.42s     Find the "Please pray for my mom's surgery on Friday." StaticText
+    t =    69.44s     Find the "Please pray for my mom's surgery on Friday." StaticText
+AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Contrast failed for element
+    t =    69.46s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169804224.87)
+    t =    69.48s     Checking existence of `"Please pray for my mom's surgery on Friday." StaticText`
+    t =    69.49s     Find the "Please pray for my mom's surgery on Friday." StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    69.54s     Tap Button (Element at index 0)
+    t =    69.54s         Wait for com.zoomatech.prayertower.native to idle
+    t =    69.54s         Find the Button (Element at index 0)
+    t =    69.56s         Check for interrupting elements affecting "Skins" Button
+    t =    69.59s         Synthesize event
+    t =    69.88s         Wait for com.zoomatech.prayertower.native to idle
+    t =    70.28s Golden Wood at UICTContentSizeCategoryAccessibilityXXXL
+    t =    70.28s     Find the "Golden Wood" Button
+    t =    70.34s     Find the "Golden Wood" Button
+    t =    70.38s     Find the "Golden Wood" Button
+    t =    70.41s     Find the "Golden Wood" Button
+    t =    70.46s     Find the "Golden Wood" Button
+    t =    70.50s     Tap "Golden Wood" Button
+    t =    70.50s         Wait for com.zoomatech.prayertower.native to idle
+    t =    70.50s         Find the "Golden Wood" Button
+    t =    70.53s         Check for interrupting elements affecting "Golden Wood" Button
+    t =    70.56s         Synthesize event
+    t =    70.86s         Wait for com.zoomatech.prayertower.native to idle
+    t =    73.14s     Tap Button (Element at index 0)
+    t =    73.14s         Wait for com.zoomatech.prayertower.native to idle
+    t =    73.15s         Find the Button (Element at index 0)
+    t =    73.17s         Check for interrupting elements affecting "Skins" Button
+    t =    73.19s         Synthesize event
+    t =    73.49s         Wait for com.zoomatech.prayertower.native to idle
+    t =    73.87s Moonlit Gate at UICTContentSizeCategoryAccessibilityXXXL
+    t =    73.87s     Find the "Moonlit Gate" Button
+    t =    73.97s     Find the "Moonlit Gate" Button
+    t =    74.02s     Find the "Moonlit Gate" Button
+    t =    74.11s     Find the "Moonlit Gate" Button
+    t =    74.17s     Find the "Moonlit Gate" Button
+    t =    74.24s     Tap "Moonlit Gate" Button
+    t =    74.24s         Wait for com.zoomatech.prayertower.native to idle
+    t =    74.25s         Find the "Moonlit Gate" Button
+    t =    74.28s         Check for interrupting elements affecting "Moonlit Gate" Button
+    t =    74.32s         Synthesize event
+    t =    74.62s         Wait for com.zoomatech.prayertower.native to idle
+    t =    76.85s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 4376668736.193)
+    t =    76.90s     Find the "Moonlit Gate" StaticText
+    t =    76.93s     Find the "Moonlit Gate" StaticText
+    t =    77.01s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 4376668736.193)
+    t =    77.07s     Find the "Moonlit Gate" StaticText
+    t =    77.10s     Find the "Moonlit Gate" StaticText
+AUDIT Moonlit Gate at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Moonlit Gate'. Contrast failed for element
+    t =    77.11s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 4376668736.193)
+    t =    77.13s     Checking existence of `"Moonlit Gate" StaticText`
+    t =    77.14s     Find the "Moonlit Gate" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    77.18s     Tap Button (Element at index 0)
+    t =    77.18s         Wait for com.zoomatech.prayertower.native to idle
+    t =    77.18s         Find the Button (Element at index 0)
+    t =    77.24s         Check for interrupting elements affecting "Skins" Button
+    t =    77.26s         Synthesize event
+    t =    77.56s         Wait for com.zoomatech.prayertower.native to idle
+    t =    77.95s Neon Cinderella at UICTContentSizeCategoryAccessibilityXXXL
+    t =    77.95s     Find the "Neon Cinderella" Button
+    t =    78.05s     Find the "Neon Cinderella" Button
+    t =    78.11s     Find the "Neon Cinderella" Button
+    t =    78.16s     Find the "Neon Cinderella" Button
+    t =    78.21s     Find the "Neon Cinderella" Button
+    t =    78.26s     Tap "Neon Cinderella" Button
+    t =    78.26s         Wait for com.zoomatech.prayertower.native to idle
+    t =    78.26s         Find the "Neon Cinderella" Button
+    t =    78.29s         Check for interrupting elements affecting "Neon Cinderella" Button
+    t =    78.32s         Synthesize event
+    t =    78.66s         Wait for com.zoomatech.prayertower.native to idle
+    t =    81.22s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 4376186736.248)
+    t =    81.28s     Find the "Neon Cinderella" StaticText
+    t =    81.37s     Find the "Neon Cinderella" StaticText
+    t =    81.40s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 4376186736.248)
+    t =    81.45s     Find the "Neon Cinderella" StaticText
+    t =    81.49s     Find the "Neon Cinderella" StaticText
+AUDIT Neon Cinderella at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Neon Cinderella'. Contrast failed for element
+    t =    81.57s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 4376186736.248)
+    t =    81.63s     Checking existence of `"Neon Cinderella" StaticText`
+    t =    81.67s     Find the "Neon Cinderella" StaticText
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Contrast failed
+    t =    81.84s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169838432.253)
+    t =    81.94s     Find the "✦" StaticText
+    t =    82.02s     Find the "✦" StaticText
+    t =    82.12s     Find the Any (Descendant with identity binding to AX element pid: 25811, elementOrHash.elementID: 105553169838432.253)
+    t =    82.18s     Find the "✦" StaticText
+    t =    82.30s     Tap Button (Element at index 0)
+    t =    82.30s         Wait for com.zoomatech.prayertower.native to idle
+    t =    82.32s         Find the Button (Element at index 0)
+    t =    82.60s         Check for interrupting elements affecting "Skins" Button
+    t =    82.87s         Synthesize event
+    t =    83.29s         Wait for com.zoomatech.prayertower.native to idle
+    t =    83.69s Blossom Garden at UICTContentSizeCategoryAccessibilityXXXL
+    t =    83.69s     Find the "Blossom Garden" Button
+    t =    83.80s     Find the "Blossom Garden" Button
+    t =    83.91s     Find the "Blossom Garden" Button
+    t =    83.98s     Find the "Blossom Garden" Button
+    t =    84.06s     Find the "Blossom Garden" Button
+    t =    84.12s     Tap "Blossom Garden" Button
+    t =    84.12s         Wait for com.zoomatech.prayertower.native to idle
+    t =    84.12s         Find the "Blossom Garden" Button
+    t =    84.16s         Check for interrupting elements affecting "Blossom Garden" Button
+    t =    84.19s         Synthesize event
+    t =    84.49s         Wait for com.zoomatech.prayertower.native to idle
+    t =    86.71s     Tap Button (Element at index 0)
+    t =    86.71s         Wait for com.zoomatech.prayertower.native to idle
+    t =    86.71s         Find the Button (Element at index 0)
+    t =    86.73s         Check for interrupting elements affecting "Skins" Button
+    t =    86.75s         Synthesize event
+    t =    87.04s         Wait for com.zoomatech.prayertower.native to idle
+    t =    87.40s Christmas Star at UICTContentSizeCategoryAccessibilityXXXL
+    t =    87.40s     Find the "Christmas Star" Button
+    t =    87.47s     Find the "Christmas Star" Button
+    t =    87.61s     Find the "Christmas Star" Button
+    t =    87.71s     Find the "Christmas Star" Button
+    t =    87.79s     Find the "Christmas Star" Button
+    t =    87.87s     Tap "Christmas Star" Button
+    t =    87.87s         Wait for com.zoomatech.prayertower.native to idle
+    t =    87.87s         Find the "Christmas Star" Button
+    t =    87.92s         Check for interrupting elements affecting "Christmas Star" Button
+    t =    87.96s         Synthesize event
+    t =    88.27s         Wait for com.zoomatech.prayertower.native to idle
+AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Dynamic Type font sizes are unsupported on screen. User will not be able to change the font size of this element
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Dynamic Type font sizes are unsupported
+AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+AUDIT Christmas Star at UICTContentSizeCategoryAccessibilityXXXL: Text clipped on screen. Text of this element may be clipped at larger Dynamic Type sizes.
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
+    t =    90.73s     Tap Button (Element at index 0)
+    t =    90.73s         Wait for com.zoomatech.prayertower.native to idle
+    t =    90.73s         Find the Button (Element at index 0)
+    t =    91.76s             Find the Button (Element at index 0) (retry 1)
+    t =    92.80s             Find the Button (Element at index 0) (retry 2)
+    t =    92.82s     Requesting snapshot of accessibility hierarchy for app with pid 25811
+/Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:58: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Failed to tap Button (Element at index 0): No matches found for Descendants matching type Button from input {(
+    NavigationBar, identifier: 'Skins'
+)}
+    t =    92.87s Tear Down
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin]' failed (93.151 seconds).
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen]' started.
+    t =     0.00s Start Test at 2026-10-31 20:30:04.206
+    t =     0.13s Set Up
+    t =     0.13s Open com.zoomatech.prayertower.native
+    t =     0.14s     Launch com.zoomatech.prayertower.native
+    t =     0.14s         Terminate com.zoomatech.prayertower.native:25811
+    t =     3.24s         Setting up automation session
+    t =     5.05s         Wait for com.zoomatech.prayertower.native to idle
+    t =     8.90s Find the Any (Descendant with identity binding to AX element pid: 27683, elementOrHash.elementID: 105553169820928.10)
+    t =     8.93s Find the "🕊" StaticText
+    t =     8.95s Find the "🕊" StaticText
+    t =     8.97s Find the Any (Descendant with identity binding to AX element pid: 27683, elementOrHash.elementID: 105553169820608.7)
+    t =     9.00s Find the "Sign in" Button
+    t =     9.02s Find the Any (Descendant with identity binding to AX element pid: 27683, elementOrHash.elementID: 105553169820928.10)
+    t =     9.04s Find the "🕊" StaticText
+    t =     9.06s Terminate com.zoomatech.prayertower.native:27683
+    t =    10.15s Open com.zoomatech.prayertower.native
+    t =    10.15s     Launch com.zoomatech.prayertower.native
+    t =    10.69s         Setting up automation session
+    t =    11.77s         Wait for com.zoomatech.prayertower.native to idle
+    t =    15.16s Find the Any (Descendant with identity binding to AX element pid: 28424, elementOrHash.elementID: 105553169826432.8)
+    t =    15.20s Find the "🕊" StaticText
+    t =    15.22s Find the Any (Descendant with identity binding to AX element pid: 28424, elementOrHash.elementID: 105553169826432.8)
+    t =    15.23s Find the "🕊" StaticText
+    t =    15.26s Find the "🕊" StaticText
+    t =    15.28s Find the Any (Descendant with identity binding to AX element pid: 28424, elementOrHash.elementID: 105553169774816.10)
+    t =    15.30s Find the "Sign in" Button
+    t =    15.31s Terminate com.zoomatech.prayertower.native:28424
+    t =    16.38s Tear Down
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testSignInScreen]' passed (16.415 seconds).
+Test Suite 'AccessibilityAuditTests' failed at 2026-10-31 20:30:20.621.
+	 Executed 2 tests, with 34 failures (0 unexpected) in 109.566 (109.568) seconds
+Test Suite 'PrayerTowerNativeUITests.xctest' failed at 2026-10-31 20:30:20.622.
+	 Executed 2 tests, with 34 failures (0 unexpected) in 109.566 (109.569) seconds
+Test Suite 'All tests' failed at 2026-10-31 20:30:20.622.
+	 Executed 2 tests, with 34 failures (0 unexpected) in 109.566 (109.571) seconds
+2026-10-31 20:30:47.981 xcodebuild[16260:51723] [MT] IDETestOperationsObserverDebug: 430.634 elapsed -- Testing started completed.
+2026-10-31 20:30:47.981 xcodebuild[16260:51723] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-31 20:30:47.981 xcodebuild[16260:51723] [MT] IDETestOperationsObserverDebug: 430.634 sec, +430.634 sec -- end
 
 Test session results, code coverage, and logs:
-	/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Logs/Test/Test-PrayerTowerNative-2026.10.30_08-10-33-+0000.xcresult
+	/Users/runner/work/PrayerTower/PrayerTower/build-logs/derived-native/Logs/Test/Test-PrayerTowerNative-2026.10.31_20-23-25-+0000.xcresult
 
-Testing failed:
-	Sending 'issue' risks causing data races
-	Testing cancelled because the build failed.
+Failing tests:
+	MainScreensWalk.testEveryScreenPassesTheAccessibilityAudit()
+	AccessibilityAuditTests.testEverySkin()
+	AccessibilityAuditTests.testEverySkin()
+	AccessibilityAuditTests.testEverySkin()
+	AccessibilityAuditTests.testEverySkin()
 
 ** TEST FAILED **
 
-
-The following build commands failed:
-	SwiftCompile normal arm64 Compiling\ AccessibilityAuditTests.swift /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
-	SwiftCompile normal arm64 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift (in target 'PrayerTowerNativeUITests' from project 'PrayerTowerNative')
-	Testing project PrayerTowerNative with scheme PrayerTowerNative
-(3 failures)
+Testing started
