@@ -119,6 +119,7 @@ struct MeView: View {
                 }
             }
             .navigationTitle(w("tabs.me"))
+            .appLogo()
             .navigationDestination(item: Binding(get: { model.meOpens }, set: { model.meOpens = $0 })) { page in
                 if page == 5 { NotificationsView(standalone: false) } else { MessagesView(standalone: false) }
             }

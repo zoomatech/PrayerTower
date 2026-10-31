@@ -1,10 +1,11 @@
 import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'expo-router/ui';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DoveIcon } from '@/components/dove-icon';
 import { CornerNav } from '@/components/corner-nav';
+import { env } from '@/lib/env';
 import { useLocale } from '@/lib/i18n';
 import { colors, space } from '@/lib/theme';
 
@@ -30,7 +31,15 @@ export default function TabsLayout() {
     <Tabs style={styles.root}>
       <View style={styles.main}>
         <CornerNav />
-        <TabSlot style={styles.root} />
+        <View style={styles.root}>
+          {/* The final logo, top right, with the menu on the left (Steve, 2026-10-31). Prayer Tower edition only. */}
+          {env.edition === 'prayer-tower' ? (
+            <View style={[styles.logoBar, { paddingTop: insets.top + space.xs }]}>
+              <Image source={require('../../../assets/images/prayer-tower-logo.png')} style={styles.logo} accessibilityRole="image" aria-label="The Prayer Tower" testID="app-logo" />
+            </View>
+          ) : null}
+          <TabSlot style={styles.root} />
+        </View>
       </View>
       <TabList asChild>
         <View role="tablist" aria-label={t('tabs.label')} style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
@@ -53,6 +62,8 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   main: { flex: 1, flexDirection: 'row' },
+  logoBar: { alignItems: 'flex-end', paddingRight: space.md, paddingBottom: space.xs, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  logo: { width: 67, height: 44 },
   // 75% opaque, over the screen so it shows faintly through (Steve, 2026-10-30).
   bar: {
     position: 'absolute',
