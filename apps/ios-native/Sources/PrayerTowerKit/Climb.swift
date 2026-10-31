@@ -74,7 +74,10 @@ public enum Climb {
         public static func == (a: Facet, b: Facet) -> Bool { a.color == b.color && a.points.map(\.x) == b.points.map(\.x) && a.points.map(\.y) == b.points.map(\.y) }
     }
 
-    /// Stone facets for a band of rock w × h: a jittered grid whose top and bottom edges are straight, so bands meet in a ledge. Plus a crack or two.
+    /// How tall the rock's repeating stretch is: long enough that the repeat doesn't show.
+    public static let wallHeight: Double = 1320
+
+    /// Stone facets for a stretch of rock w × h: a jittered grid whose bottom row repeats its top row, so stretches join with no seam. Plus a crack or two.
     public static func rock(w: Double, h: Double, seed: Int) -> (facets: [Facet], cracks: [[(x: Double, y: Double)]]) {
         var rnd = Seeded(seed)
         let cols = max(2, Int((w / 58).rounded())), rows = max(1, Int((h / 44).rounded()))
@@ -82,12 +85,13 @@ public enum Climb {
         var pts: [[(x: Double, y: Double)]] = []
         for i in 0...cols {
             var col: [(x: Double, y: Double)] = []
-            for j in 0...rows {
-                let edgeX = i == 0 || i == cols, edgeY = j == 0 || j == rows
+            for j in 0..<rows {
+                let edgeX = i == 0 || i == cols
                 let x = Double(i) * cw + (edgeX ? 0 : (rnd.next() - 0.5) * cw * 0.5)
-                let y = Double(j) * ch + (edgeY ? 0 : (rnd.next() - 0.5) * ch * 0.55)
+                let y = Double(j) * ch + (rnd.next() - 0.5) * ch * 0.55
                 col.append((x, y))
             }
+            col.append((col[0].x, col[0].y + h))
             pts.append(col)
         }
         var facets: [Facet] = []

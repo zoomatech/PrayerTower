@@ -22,11 +22,15 @@ import Testing
         #expect(Climb.pose(.up, p: 0.5, t: 0).nearHip != Climb.pose(.up, p: 2, t: 0).nearHip)
     }
 
-    @Test func rockFillsTheBandAndTheCliffEdgeJoinsTheNextBand() {
+    @Test func theRockRepeatsWithNoSeamAndTheCliffEdgeJoinsTheNextBand() {
         let rock = Climb.rock(w: 390, h: 520, seed: 3)
         #expect(rock.facets.count > 40)
         #expect(!rock.cracks.isEmpty)
-        for f in rock.facets { for p in f.points { #expect(p.x >= -0.1 && p.y >= -0.1) } }
+        let ys = rock.facets.flatMap(\.points).map(\.y)
+        // No straight line across: the top and bottom of the rock are jagged, and the same jagged line.
+        let top = Set(ys.filter { $0 < 15 }.map { ($0 * 100).rounded() }), bottom = Set(ys.filter { $0 > 505 }.map { (($0 - 520) * 100).rounded() })
+        #expect(top.count > 1)
+        #expect(top == bottom)
         let edge = Climb.cliffEdge(h: 520, seed: 3)
         #expect(edge.first!.x == Climb.edgeX && edge.first!.y == 0)
         #expect(edge.last!.x == Climb.edgeX && edge.last!.y == 520)

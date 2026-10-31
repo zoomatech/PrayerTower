@@ -49,9 +49,11 @@ struct ClimbFeed<Row: View>: View {
                         .frame(maxWidth: .infinity, minHeight: max(Double(geo.size.height) * 0.7, 260), alignment: .top)
                         .background { RockBand(seed: cards.count + 1, look: look) }
                     }
+                    .coordinateSpace(name: ClimbChase.wallSpace)
                 }
                 .coordinateSpace(name: ClimbChase.space)
-                ClimberLayer(chase: chase, still: still).frame(width: 140).allowsHitTesting(false).accessibilityHidden(true)
+                // Runs behind the tab bar, as the rock does, so the rope carries on off the bottom of the screen.
+                ClimberLayer(chase: chase, still: still).frame(width: 140).ignoresSafeArea(edges: .bottom).allowsHitTesting(false).accessibilityHidden(true)
                 if let reading {
                     ClimbCloseUp(reading: reading, look: look, words: words) {
                         withAnimation(still ? nil : .easeOut(duration: 0.25)) { self.reading = nil }
@@ -84,6 +86,7 @@ enum ClimbArt {
 /// Where the climber is. A plain class, changed as the frames are drawn, so moving him never redraws the feed.
 final class ClimbChase {
     static let space = "climb-feed"
+    static let wallSpace = "climb-wall"
     var scroll: Double = 0
     var y: Double?
     var x: Double = Climb.edgeX - 19
@@ -252,37 +255,43 @@ enum ClimberDrawing {
     }
 }
 
-/// A band of the rock face: stone facets, a crack or two, the ledge where it meets the band
-/// above, and the sky past the cliff edge on the left.
+/// A band of the rock face: its part of the one continuous wall of stone facets and cracks,
+/// placed by where the band sits in the feed so bands join with no seam, and the sky past the
+/// cliff edge on the left.
 private struct RockBand: View {
     let seed: Int
     let look: ClimbLook
+    @State private var top: Double = 0
 
     var body: some View {
         Canvas { ctx, size in
             let w = Double(size.width), h = Double(size.height)
             guard w > 1, h > 1 else { return }
             ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(look.backdrop)))
-            let rock = Climb.rock(w: w, h: h, seed: seed)
-            for f in rock.facets {
-                var p = Path()
-                p.addLines(f.points.map { CGPoint(x: $0.x, y: $0.y) })
-                p.closeSubpath()
-                ctx.fill(p, with: .color(Color(RGB(hex: f.color)!)))
-                ctx.stroke(p, with: .color(Color(red: 80 / 255, green: 66 / 255, blue: 50 / 255).opacity(0.32)), lineWidth: 1)
+            let rock = Climb.rock(w: w, h: Climb.wallHeight, seed: 1)
+            // The repeats of the wall this band shows; a crack can run on past the end of its own repeat.
+            let repeats = Int(floor((top - 240) / Climb.wallHeight))...Int(floor((top + h) / Climb.wallHeight))
+            let walls = repeats.map { Double($0) * Climb.wallHeight - top }
+            for y in walls {
+                for f in rock.facets {
+                    var p = Path()
+                    p.addLines(f.points.map { CGPoint(x: $0.x, y: $0.y + y) })
+                    p.closeSubpath()
+                    ctx.fill(p, with: .color(Color(RGB(hex: f.color)!)))
+                    ctx.stroke(p, with: .color(Color(red: 80 / 255, green: 66 / 255, blue: 50 / 255).opacity(0.32)), lineWidth: 1)
+                }
             }
-            for crack in rock.cracks {
-                var p = Path()
-                p.addLines(crack.map { CGPoint(x: $0.x, y: $0.y) })
-                ctx.stroke(p.offsetBy(dx: 1, dy: 1.2), with: .color(.white.opacity(0.4)), lineWidth: 1.4)
-                ctx.stroke(p, with: .color(Color(RGB(hex: "#5F5446")!).opacity(0.7)), style: .init(lineWidth: 1.6, lineJoin: .round))
+            for y in walls {
+                for crack in rock.cracks {
+                    var p = Path()
+                    p.addLines(crack.map { CGPoint(x: $0.x, y: $0.y + y) })
+                    ctx.stroke(p.offsetBy(dx: 1, dy: 1.2), with: .color(.white.opacity(0.4)), lineWidth: 1.4)
+                    ctx.stroke(p, with: .color(Color(RGB(hex: "#5F5446")!).opacity(0.7)), style: .init(lineWidth: 1.6, lineJoin: .round))
+                }
             }
-            ctx.fill(Path(CGRect(x: 0, y: 0, width: w, height: 1.5)), with: .color(Color(red: 70 / 255, green: 56 / 255, blue: 42 / 255).opacity(0.45)))
             let edge = Climb.cliffEdge(h: h, seed: seed).map { CGPoint(x: $0.x, y: $0.y) }
             var sky = Path()
-            sky.move(to: .zero)
-            sky.addLines(edge)
-            sky.addLine(to: CGPoint(x: 0, y: h))
+            sky.addLines([.zero] + edge + [CGPoint(x: 0, y: h)])
             sky.closeSubpath()
             ctx.fill(sky, with: .color(ClimbArt.sky))
             var rim = Path()
@@ -290,6 +299,7 @@ private struct RockBand: View {
             ctx.stroke(rim.offsetBy(dx: 3, dy: 0), with: .color(ClimbArt.rimShade.opacity(0.55)), style: .init(lineWidth: 7, lineJoin: .round))
             ctx.stroke(rim, with: .color(ClimbArt.rim), style: .init(lineWidth: 2.4, lineJoin: .round))
         }
+        .onGeometryChange(for: Double.self) { Double($0.frame(in: .named(ClimbChase.wallSpace)).minY) } action: { top = $0 }
         .accessibilityHidden(true)
     }
 }
