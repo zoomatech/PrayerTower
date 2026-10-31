@@ -313,7 +313,9 @@ private struct BeanPost<Row: View>: View {
         let fade: Double = c.span(100, 200, 0, 1)
         let pop: Double = c.span(100, 600, 0.4, 1, .card)
         let fruit: Double = c.span(1300, 450, 0, 1, .pop)
+        // At its full height whatever the text size, so wrapped words always have the room they need.
         return row(card)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(12)
             // Room at the sides, so the frame's vine as it wiggles never runs over the first or last letters.
             .padding(.horizontal, 10)

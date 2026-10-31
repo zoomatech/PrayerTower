@@ -35,8 +35,8 @@ struct MeView: View {
                 }
                 if menuHoldsInbox {
                     Section {
-                        NavigationLink { MessagesView(standalone: false) } label: { Label(w("tabs.messages"), systemImage: "bubble.left.and.bubble.right") }
-                        NavigationLink { NotificationsView(standalone: false) } label: { Label(w("tabs.notices"), systemImage: "bell") }
+                        NavigationLink { MessagesView(standalone: false) } label: { MenuRow(title: w("tabs.messages"), symbol: "bubble.left.and.bubble.right") }
+                        NavigationLink { NotificationsView(standalone: false) } label: { MenuRow(title: w("tabs.notices"), symbol: "bell") }
                     }
                 }
                 if let profile = model.me?.profile {
@@ -322,6 +322,18 @@ struct DeleteAccountView: View {
         } catch {
             self.error = error.localizedDescription
             busy = false
+        }
+    }
+}
+
+/// A menu row: the icon is only a picture, the words are the row's whole text, and they wrap.
+private struct MenuRow: View {
+    let title: String
+    let symbol: String
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol).foregroundStyle(Color.accessibleAccent).accessibilityHidden(true)
+            Text(title).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
