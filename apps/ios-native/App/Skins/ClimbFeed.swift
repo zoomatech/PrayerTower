@@ -26,9 +26,7 @@ struct ClimbFeed<Row: View>: View {
             ZStack(alignment: .topLeading) {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        // Tells the climber how far the feed has scrolled.
                         Color.clear.frame(height: 44)
-                            .onGeometryChange(for: Double.self) { Double($0.frame(in: .named(ClimbChase.space)).minY) } action: { chase.scroll = -$0 }
                             .background { RockBand(seed: 0, look: look) }
                         ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                             ClimbPost(card: card, index: i, look: look, words: words, row: row, load: hooks.loadComments) { note, kids in
@@ -50,6 +48,10 @@ struct ClimbFeed<Row: View>: View {
                         .background { RockBand(seed: cards.count + 1, look: look) }
                     }
                     .coordinateSpace(name: ClimbChase.wallSpace)
+                    // Tells the climber how far the feed has scrolled. Measured on the stack itself, which
+                    // is always there: a row at the top is dropped by the lazy stack once it scrolls away,
+                    // and the climber then stopped following.
+                    .onGeometryChange(for: Double.self) { Double($0.frame(in: .named(ClimbChase.space)).minY) } action: { chase.scroll = -$0 }
                 }
                 .coordinateSpace(name: ClimbChase.space)
                 // Runs behind the tab bar, as the rock does, so the rope carries on off the bottom of the screen.
