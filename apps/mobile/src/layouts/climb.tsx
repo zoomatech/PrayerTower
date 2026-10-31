@@ -37,8 +37,8 @@ export function climbTokens(theme: FeedTheme | null): ClimbTokens {
 }
 
 /** The cliff edge down the left (the wall's profile), and where the posts start to the right of it. */
-export const EDGE_X = 46;
-const GUTTER = 66;
+export const EDGE_X = 54;
+const GUTTER = 74;
 /** How wide the strip the climber and his rope are drawn in is. */
 const CLIMBER_W = 140;
 /** How far down the screen he waits for you, as a share of its height. */

@@ -5,8 +5,8 @@ import Foundation
 /// the stone facets and the cliff edge down the left of the screen.
 public enum Climb {
     /// The cliff edge (the wall's profile) and where the posts start to the right of it.
-    public static let edgeX: Double = 46
-    public static let gutter: Double = 66
+    public static let edgeX: Double = 54
+    public static let gutter: Double = 74
     /// How far down the screen he waits for you, as a share of its height.
     public static let anchor: Double = 0.38
     /// How much of the gap he closes each frame: high enough to look fast.
