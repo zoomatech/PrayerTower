@@ -114,17 +114,21 @@ struct BeanstalkFeed<Row: View>: View {
     let wording: Wording
     let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
+    @Environment(\.dynamicTypeSize) private var type
 
     var body: some View {
         let words = Words(wording)
         let _ = BeanFont.ready
+        // Enlarged text (Steve, 2026-10-31): the posts take the lane's whole width, less room for
+        // the locket and the frame's vine, and stop swaying aside, so the words get the space.
+        let big: Bool = type > .large
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
                 banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
                 GeometryReader { geo in
                     let lane: Double = min(Double(geo.size.width), 760)
-                    let width: Double = BeanDraw.frameWidth(lane)
-                    let shifts: [Double] = cards.enumerated().map { BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
+                    let width: Double = big ? max(BeanDraw.frameWidth(lane), lane - 72) : BeanDraw.frameWidth(lane)
+                    let shifts: [Double] = cards.enumerated().map { big ? 0 : BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             Color.clear.frame(height: 76).id("beanstalk-top")
