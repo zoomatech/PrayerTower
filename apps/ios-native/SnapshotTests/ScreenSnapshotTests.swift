@@ -34,9 +34,9 @@ final class ScreenSnapshotTests: XCTestCase {
         let model = AppModel(store: .sampleData(posts: nil))
         for skin in AuditSamplesView.skins {
             let feed = NavigationStack {
-                SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
+                SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, row: { card in
                     SampleCardRow(card: card)
-                }, onEnd: {})
+                })
                 .navigationTitle(skin.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .skinBars(Skin.backdrop(skin))

@@ -12,7 +12,6 @@
 // Skins (Beanstalk, Golden Wood, Moonlit Gate) are the same vine with other
 // tokens: a backdrop, a thicker or doubled stem and round or pointed leaves.
 import { COMMENT_TEXT, contrastRatio, type Card, type Comment, type FeedTheme, type PostState } from '@prayer-tower/shared';
-import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -24,6 +23,7 @@ import { isLit, leafCardSurface, LeafFrame, VINE_GAP, VineFruit, VineRow, type V
 import { api } from '@/lib/api';
 import { Tr, useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
+import { useFeedHooks } from '@/skins/feed-hooks';
 import { colors, radius, space, type } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
@@ -248,6 +248,7 @@ export function IdleBird({ tokens, register }: { tokens: VineTokens; register: (
 }
 
 export function VineLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
+  const { openPost } = useFeedHooks();
   const tokens = useMemo(() => vineTokens(theme), [theme]);
   const [leaves, setLeaves] = useState<Leaf[]>([]);
   const nudgeBird = useRef<() => void>(() => undefined);
@@ -338,7 +339,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
             <Pressable
               accessibilityRole="button"
               accessibilityHint={t('vine.openComment')}
-              onPress={() => router.push(`/post/${item.postId}?comment=${item.comment.id}`)}>
+              onPress={() => openPost(item.postId, item.comment.id)}>
               <LeafFrame side={item.side} look={tokens} depth={1}>
                 <Text style={styles.commentName}>{item.comment.author.displayName}</Text>
                 <Text style={styles.commentBody} numberOfLines={3}>
@@ -349,7 +350,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
           </VineRow>
         ) : item.kind === 'more' ? (
           <VineRow from={item.from} side={item.side} look={tokens} gap={COMMENT_GAP} depth={2} seed={item.count}>
-            <Pressable accessibilityRole="button" onPress={() => router.push(`/post/${item.postId}`)}>
+            <Pressable accessibilityRole="button" onPress={() => openPost(item.postId)}>
               {/* The older comments wait behind frosted glass. */}
               <BlurredLeaves look={tokens} depth={1} side={item.side} peek={[]}>
                 <Text style={styles.moreText}>{t('vine.moreComments', { count: item.count })}</Text>
@@ -365,7 +366,7 @@ export function VineLayout({ cards, theme, pinnedId, renderCard, header, refresh
         ) : (
           <ScriptureLeaf leaf={item.leaf} tokens={tokens} from={item.from} />
         ),
-    [pinnedId, renderCard, t, tokens],
+    [pinnedId, renderCard, t, tokens, openPost],
   );
 
   return (

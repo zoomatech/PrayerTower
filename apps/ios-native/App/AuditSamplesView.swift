@@ -45,9 +45,9 @@ struct AuditSamplesView: View {
         NavigationStack {
             List(Self.skins, id: \.slug) { skin in
                 NavigationLink(skin.name) {
-                    SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
+                    SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, row: { card in
                         SampleCardRow(card: card)
-                    }, onEnd: {})
+                    })
                     .navigationTitle(skin.name)
                     .navigationBarTitleDisplayMode(.inline)
                     // As FeedView does: the bar takes the skin's backdrop, light text on a dark one.

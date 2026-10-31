@@ -7,10 +7,8 @@ import SwiftUI
 struct SwipeFeed<Row: View>: View {
     let cards: [Card]
     let wording: Wording
-    let hasMore: Bool
+    let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
-    let onPray: (Card) -> Void
     @State private var deck = SwipeDeck()
     @State private var drag: CGSize = .zero
     @State private var confirming: Card?
@@ -55,7 +53,7 @@ struct SwipeFeed<Row: View>: View {
                         Button("\(words.pray) ›") { confirming = card }.buttonStyle(.borderedProminent)
                     }
                     Text("\(deck.index + 1) of \(cards.count)").font(.caption).foregroundStyle(Color.subtle)
-                } else if hasMore {
+                } else if hooks.hasMore {
                     ProgressView(words.loadingMore)
                 } else {
                     Spacer()
@@ -67,11 +65,11 @@ struct SwipeFeed<Row: View>: View {
             .padding(16)
         }
         .confirmationDialog(words.confirm, isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil; settle() } }), presenting: confirming) { card in
-            Button(words.pray) { onPray(card); next() }
+            Button(words.pray) { hooks.act(.prayingNow, card); next() }
             Button("Cancel", role: .cancel) { settle() }
         }
         .onChange(of: deck.index) { _, _ in
-            if deck.needsMore(count: cards.count, atEnd: !hasMore) { Task { await onEnd() } }
+            if deck.needsMore(count: cards.count, atEnd: !hooks.hasMore) { Task { await hooks.loadMore() } }
         }
     }
 
@@ -87,9 +85,8 @@ struct SwipeFeed<Row: View>: View {
 struct FlipFeed<Row: View>: View {
     let cards: [Card]
     let wording: Wording
-    let hasMore: Bool
+    let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
-    let onEnd: () async -> Void
     @Environment(\.accessibilityReduceMotion) private var still
 
     var body: some View {
@@ -110,9 +107,9 @@ struct FlipFeed<Row: View>: View {
                             .rotation3DEffect(.degrees(fold ? phase.value * -55 : 0), axis: (x: 1, y: 0, z: 0), anchor: phase.value < 0 ? .bottom : .top, perspective: 0.6)
                             .opacity(fold ? 1 - abs(phase.value) * 0.4 : 1)
                     }
-                    .task { if card.id == cards.last?.id { await onEnd() } }
+                    .loadsMore(after: card, in: cards, hooks)
                 }
-                if !hasMore {
+                if !hooks.hasMore {
                     VStack(spacing: 8) {
                         Text(words.lastPage).font(.title3.bold())
                         Text(words.allSeen).multilineTextAlignment(.center).foregroundStyle(Color.subtle)
