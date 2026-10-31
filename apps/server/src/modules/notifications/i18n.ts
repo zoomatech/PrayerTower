@@ -130,6 +130,7 @@ const neutral: Record<string, Template> = {
   daily_reminder_1: () => ({ title: 'A moment to think of someone', body: "Take a breath. There's a request here you could support." }),
   daily_reminder_2: () => ({ title: 'A small kindness', body: 'No rush. A minute of support for someone counts for a lot.' }),
   power_prayer: (p) => ({ title: 'Will you send support to this request?', body: s(p.body) }),
+  resolution: () => ({ title: 'Checking in on your request', body: 'Has it worked out? Tap to let us know.' }),
   answered: (p) => ({ title: 'Good news on a request you supported', body: `${s(p.who, 'Someone')} says things worked out. Thank you for being there.` }),
   testimony: (p) => ({ title: 'Good news on a request you supported', body: `${s(p.who, 'Someone')} shared what happened: "${s(p.excerpt)}"` }),
   weekly_review: (p) => ({ title: 'Your week of kindness', body: s(p.body) }),

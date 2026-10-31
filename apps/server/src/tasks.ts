@@ -43,6 +43,7 @@ import { createApns, type ApnsSend } from './modules/live-activity/apns.js';
 import { refreshTask as liveActivityRefreshTask } from './modules/live-activity/index.js';
 import * as practices from './modules/practices/index.js';
 import * as checkBack from './modules/check-back/index.js';
+import * as resolution from './modules/resolution/index.js';
 import { writeDueTask as autoPrayTask } from './modules/ai/auto-pray.js';
 import { createConverser, type Converse } from './modules/ai/provider.js';
 import { sendDueRemindersTask as prayerListRemindersTask } from './modules/prayer-list/index.js';
@@ -76,6 +77,7 @@ export function buildTaskList(db: Db, config: Config, overrides: { apns?: ApnsSe
     practices_followup: practices.followupDueTask(db),
     practices_gratitude: practices.gratitudeDueTask(db),
     check_back_due: checkBack.dueTask(db),
+    resolution_due: resolution.dueTask(db),
     encourager_checkin_due: practices.checkInDueTask(db),
     prayer_actions_after_praying_now: afterPrayingNowTask(db),
     notifications_send_push: sendPushTask(db, config, overrides.fetch),
@@ -203,6 +205,8 @@ export const crontab = [
   // Hourly: the gratitude card invitation at 6 pm on each member's chosen day (only while switched on).
   '0 * * * * practices_gratitude ?max=3&jobKey=practices_gratitude',
   '30 * * * * check_back_due ?max=3&jobKey=check_back_due',
+  // Hourly: "Has this prayer been answered?" on requests that are due (prayer resolution, while switched on).
+  '40 * * * * resolution_due ?max=3&jobKey=resolution_due',
   // Daily 16:00: the two-week encourager check-in (only while switched on).
   '0 16 * * * encourager_checkin_due ?max=10&fill=1d&jobKey=encourager_checkin_due',
 ].join('\n');

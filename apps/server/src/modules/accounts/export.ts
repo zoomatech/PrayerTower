@@ -17,6 +17,7 @@ const SECTIONS: Record<string, Section> = {
   meaningReactions: { table: 'meaning_reactions', where: 'user_id = $1' },
   followups: { table: 'request_followups', where: 'user_id = $1' },
   checkBacks: { table: 'check_backs', where: 'user_id = $1' },
+  prayerResolutions: { table: 'prayer_resolutions', where: 'user_id = $1' },
   kindMilestonesSeen: { table: 'kind_milestones_seen', where: 'user_id = $1' },
   commentThanks: { table: 'comment_thanks', where: 'from_id = $1' },
   quietCounts: { table: 'quiet_count_prefs', where: 'user_id = $1' },

@@ -696,6 +696,48 @@
   ]
  },
  {
+  "id": "resolutionSettings",
+  "title": "resolution.adminTitle",
+  "intro": "resolution.adminIntro",
+  "get": "/admin/resolution-settings",
+  "patch": "/admin/resolution-settings",
+  "toggles": [
+   {
+    "label": "resolution.adminToggle",
+    "hint": null,
+    "field": "enabled",
+    "patch": "enabled"
+   }
+  ],
+  "numbers": [
+   {
+    "label": "resolution.adminFirstDays",
+    "field": "first_days",
+    "patch": "firstDays"
+   },
+   {
+    "label": "resolution.adminAgainDays",
+    "field": "again_days",
+    "patch": "againDays"
+   },
+   {
+    "label": "resolution.adminMaxAsks",
+    "field": "max_asks",
+    "patch": "maxAsks"
+   },
+   {
+    "label": "resolution.adminFreeTokens",
+    "field": "free_tokens",
+    "patch": "freeTokens"
+   },
+   {
+    "label": "resolution.adminTokenEvery",
+    "field": "free_token_every_days",
+    "patch": "freeTokenEveryDays"
+   }
+  ]
+ },
+ {
   "id": "pilotTools",
   "title": "pilotTools.title",
   "intro": "pilotTools.intro",

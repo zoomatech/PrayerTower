@@ -30,6 +30,7 @@ import { SpokenPrayers } from '@/components/spoken-prayers';
 import { AiPrayers } from '@/components/ai-prayers';
 import { KindCloud } from '@/components/kind-cloud';
 import { FollowupCard } from '@/components/followup-card';
+import { ResolutionCard } from '@/components/resolution-card';
 import { HurtNote, WelcomeCard } from '@/components/gentle-repair';
 import { LiftedMeUp } from '@/components/kindness-highlights';
 import { ReplyHelpers } from '@/components/reply-helpers';
@@ -351,6 +352,7 @@ export default function PostScreen() {
           <KeepOnAir postId={card.id} on={!!card.keepOnAir} onChange={(v) => setCard({ ...card, keepOnAir: v })} />
         ) : null}
         {card?.isMine && features.lament ? <LamentControls postId={card.id} lament={!!card.lament} radio={!!card.lamentRadio} onChange={(l, r) => setCard({ ...card, lament: l, lamentRadio: r })} /> : null}
+        {card?.postType === 'prayer_request' ? <ResolutionCard postId={card.id} isMine={card.isMine} onChanged={() => load()} /> : null}
         {card ? <FollowupCard postId={card.id} isMine={card.isMine} onAnswered={() => load()} /> : null}
         {card?.isMine && card.postType === 'prayer_request' && card.state !== 'answered' ? <CheckBack postId={card.id} /> : null}
         {card && prayable ? <ThankNoteCard postId={card.id} asker={card.author.displayName} /> : null}

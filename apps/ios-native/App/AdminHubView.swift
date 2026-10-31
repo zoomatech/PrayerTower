@@ -302,6 +302,7 @@ struct AdminBoardsView: View {
             ForEach(AdminBoard.all) { b in
                 NavigationLink(model.words(b.title)) { AdminBoardView(board: b) }
             }
+            NavigationLink(model.words("resolution.reportTitle")) { ResolutionReportView() }
             LibraryAdminSection()
         }
         .navigationTitle(model.words("profile.settings"))
