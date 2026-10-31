@@ -2271,6 +2271,7 @@ const en = {
     end: 'The rope keeps going. Pull down for new posts.',
     openComment: 'Opens the whole comment and its replies',
     more: '%{n} more',
+    replies: { one: '1 reply', other: '%{count} replies' },
   },
   circuit: {
     end: 'End of the line. Pull down to power up new posts.',

@@ -21,7 +21,7 @@ import { CardSurface } from '@/components/post-card';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { useFeedHooks } from '@/skins/feed-hooks';
-import { repliesAt, usePostComments } from '@/skins/comments';
+import { repliesAt, useCommentActions, usePostComments } from '@/skins/comments';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
@@ -361,7 +361,7 @@ function Climber({ scroll, anchor, height, reduced }: { scroll: React.MutableRef
 // ---------------------------------------------------------------------------
 // Comments: text on rocks and jags below the post.
 
-function Rock({ comment, shape, left, onOpen }: { comment: Comment; shape: number; left: boolean; onOpen: () => void }) {
+function Rock({ comment, replies, shape, left, onOpen }: { comment: Comment; replies: number; shape: number; left: boolean; onOpen: () => void }) {
   const { t } = useLocale();
   const [box, setBox] = useState({ w: 0, h: 0 });
   const outline = useMemo(() => rockOutline(box.w, box.h, shape + 1), [box.w, box.h, shape]);
@@ -399,6 +399,8 @@ function Rock({ comment, shape, left, onOpen }: { comment: Comment; shape: numbe
       <Text style={styles.rockText} numberOfLines={2}>
         {comment.body}
       </Text>
+      {/* Its replies open with it, in the close-up. */}
+      {replies > 0 ? <Text style={styles.rockReplies}>{t('climb.replies', { count: replies })}</Text> : null}
     </Pressable>
   );
 }
@@ -415,7 +417,7 @@ function CommentRocks({ card, index, onOpen }: { card: Card; index: number; onOp
   return (
     <View style={styles.rocks}>
       {top.slice(0, ROCKS_SHOWN).map((c, i) => (
-        <Rock key={c.id} comment={c} shape={index * 2 + i} left={(index + i) % 2 === 0} onOpen={() => onOpen(card, c, kids)} />
+        <Rock key={c.id} comment={c} replies={(kids.get(c.id) ?? []).length} shape={index * 2 + i} left={(index + i) % 2 === 0} onOpen={() => onOpen(card, c, kids)} />
       ))}
       {more > 0 ? (
         <Pressable accessibilityRole="button" onPress={() => openPost(card.id)} style={styles.pebble}>
@@ -452,6 +454,23 @@ function Parent({ card }: { card: Card }) {
   );
 }
 
+/** A comment's own buttons: reply, "this helped" and share (what they do: skins/comments.ts). */
+function CommentButtons({ postId, comment }: { postId: string; comment: Comment }) {
+  const { reply, helped, share } = useCommentActions(postId, comment);
+  const button = (key: string, b: { name: string; press: () => void; on?: boolean }) => (
+    <Pressable key={key} onPress={b.press} accessibilityRole="button" aria-pressed={key === 'helped' ? !!b.on : undefined} style={[styles.pill, b.on && styles.pillOn]}>
+      <Text style={styles.pillText}>{b.name}</Text>
+    </Pressable>
+  );
+  return (
+    <View style={styles.pills}>
+      {button('reply', reply)}
+      {helped ? button('helped', helped) : null}
+      {share ? button('share', share) : null}
+    </View>
+  );
+}
+
 /** A comment zoomed up to full screen in a stone box with a gradient, with its replies. */
 function CloseUp({ card, comment, kids, onClose }: { card: Card | null; comment: Comment | null; kids: Map<string, Comment[]>; onClose: () => void }) {
   const { t } = useLocale();
@@ -469,11 +488,13 @@ function CloseUp({ card, comment, kids, onClose }: { card: Card | null; comment:
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [comment, onClose]);
+  // Every reply, and every reply to a reply, with its own buttons (Steve: deal with all sub-comments).
   const thread = (c: Comment, level: number): React.ReactNode =>
     repliesAt(kids, c.id, level, MAX_LEVEL).map((r) => (
-      <View key={r.id} style={styles.reply}>
+      <View key={r.id} style={styles.reply} testID={`climb-reply-${r.id}`}>
         <Text style={styles.bigName}>{r.author.displayName}</Text>
         <Text style={styles.replyText}>{r.body}</Text>
+        {card ? <CommentButtons postId={card.id} comment={r} /> : null}
         {level < MAX_LEVEL ? thread(r, level + 1) : null}
       </View>
     ));
@@ -509,6 +530,7 @@ function CloseUp({ card, comment, kids, onClose }: { card: Card | null; comment:
           <ScrollView contentContainerStyle={styles.bigInner}>
             <Text style={styles.bigName}>{comment.author.displayName}</Text>
             <Text style={styles.bigText}>{comment.body}</Text>
+            <CommentButtons postId={card.id} comment={comment} />
             {thread(comment, 1)}
           </ScrollView>
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={styles.close}>
@@ -628,6 +650,11 @@ const styles = StyleSheet.create({
   rockRight: { alignSelf: 'flex-end', marginRight: 0 },
   rockArt: { position: 'absolute', left: 0, top: 0 },
   rockName: { fontWeight: '700', fontSize: 13, color: '#3A2F23' },
+  rockReplies: { fontSize: 12, fontWeight: '700', color: '#3A2F23', marginTop: 2 },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+  pill: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22, backgroundColor: '#EFE5D2', borderWidth: 1.5, borderColor: '#5A4A38' },
+  pillOn: { backgroundColor: '#D9C9A8' },
+  pillText: { fontSize: 15, fontWeight: '700', color: '#2B241C' },
   rockText: { fontSize: 14, lineHeight: 19, color: '#211B14' },
   pebble: { alignSelf: 'center', minHeight: 44, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 22, backgroundColor: '#E4DBCA', borderWidth: 1, borderColor: 'rgba(60,48,36,0.5)' },
   pebbleText: { fontWeight: '700', fontSize: 14, color: '#2B241C' },

@@ -940,6 +940,8 @@
  "climb.end": "The rope keeps going. Pull down for new posts.",
  "climb.more": "%{n} more",
  "climb.openComment": "Opens the whole comment and its replies",
+ "climb.replies.one": "1 reply",
+ "climb.replies.other": "%{count} replies",
  "commentKindness.adminHearts": "The asker’s heart on comments",
  "commentKindness.adminHeartsHint": "The person who asked can heart a comment on their post. It shows as “Loved by the person who asked”, never as a count, and the commenter gets one quiet note. (YouTube found a creator’s heart brings more comments.)",
  "commentKindness.adminThanks": "Thank someone for a comment",
