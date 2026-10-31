@@ -50,14 +50,14 @@ export function collection(id: CollectionId): Collection {
   return made;
 }
 
-type Settings = Record<'enabled' | 'shareEnabled' | 'dailyEnabled' | 'parallelsEnabled' | 'plansEnabled' | 'wordsEnabled' | 'notesEnabled' | 'offlineEnabled', boolean>;
-const OFF: Settings = { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false, wordsEnabled: false, notesEnabled: false, offlineEnabled: false };
+type Settings = Record<'enabled' | 'shareEnabled' | 'dailyEnabled' | 'parallelsEnabled' | 'plansEnabled' | 'wordsEnabled' | 'notesEnabled' | 'offlineEnabled' | 'listenEnabled' | 'studiesEnabled', boolean>;
+const OFF: Settings = { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false, wordsEnabled: false, notesEnabled: false, offlineEnabled: false, listenEnabled: false, studiesEnabled: false };
 
 export async function settings(q: Queryable) {
   const { rows } = await q.query<Settings>(
     `select enabled, share_enabled as "shareEnabled", daily_enabled as "dailyEnabled", parallels_enabled as "parallelsEnabled",
             plans_enabled as "plansEnabled", words_enabled as "wordsEnabled", notes_enabled as "notesEnabled",
-            offline_enabled as "offlineEnabled" from public.library_settings`,
+            offline_enabled as "offlineEnabled", listen_enabled as "listenEnabled", studies_enabled as "studiesEnabled" from public.library_settings`,
   );
   return rows[0] ?? OFF;
 }
@@ -73,14 +73,17 @@ export const SettingsPatch = z.object({
   wordsEnabled: z.boolean().optional(),
   notesEnabled: z.boolean().optional(),
   offlineEnabled: z.boolean().optional(),
+  listenEnabled: z.boolean().optional(),
+  studiesEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
   await q.query(
     `update public.library_settings set enabled = coalesce($1, enabled), share_enabled = coalesce($2, share_enabled),
        daily_enabled = coalesce($3, daily_enabled), parallels_enabled = coalesce($4, parallels_enabled), plans_enabled = coalesce($5, plans_enabled),
-       words_enabled = coalesce($6, words_enabled), notes_enabled = coalesce($7, notes_enabled), offline_enabled = coalesce($8, offline_enabled)`,
-    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null, p.wordsEnabled ?? null, p.notesEnabled ?? null, p.offlineEnabled ?? null],
+       words_enabled = coalesce($6, words_enabled), notes_enabled = coalesce($7, notes_enabled), offline_enabled = coalesce($8, offline_enabled),
+       listen_enabled = coalesce($9, listen_enabled), studies_enabled = coalesce($10, studies_enabled)`,
+    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null, p.wordsEnabled ?? null, p.notesEnabled ?? null, p.offlineEnabled ?? null, p.listenEnabled ?? null, p.studiesEnabled ?? null],
   );
   return settings(q);
 }
@@ -97,6 +100,8 @@ export async function features(q: Queryable) {
     libraryWords: s.enabled && s.wordsEnabled,
     libraryNotes: s.enabled && s.notesEnabled,
     libraryOffline: s.enabled && s.offlineEnabled,
+    libraryListen: s.enabled && s.listenEnabled,
+    libraryStudies: s.enabled && s.studiesEnabled,
   };
 }
 

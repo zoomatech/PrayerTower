@@ -63,6 +63,7 @@ const SECTIONS: Record<string, Section> = {
   libraryPlans: { table: 'library_plan_follows', where: 'user_id = $1' },
   libraryPlanReads: { table: 'library_plan_reads', where: 'user_id = $1' },
   libraryNotes: { table: 'library_notes', where: 'user_id = $1' },
+  libraryListening: { table: 'library_listening', where: 'user_id = $1' },
   prayers: { table: 'prayer_events', where: 'user_id = $1' },
   prompts: { table: 'prayer_prompts', where: 'user_id = $1' },
   thanksSent: { table: 'thanks', where: 'user_id = $1' },

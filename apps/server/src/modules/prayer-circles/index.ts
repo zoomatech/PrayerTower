@@ -96,7 +96,7 @@ export async function get(q: Queryable, userId: string, circleId: string) {
             (select count(*)::int from public.circle_prayed cp where cp.circle_post_id = x.id) as prayed,
             exists (select 1 from public.circle_prayed cp where cp.circle_post_id = x.id and cp.user_id = $2) as prayed_by_me
        from public.circle_posts x join public.profiles pr on pr.id = x.user_id
-      where x.circle_id = $1 and ${blocked}
+      where x.circle_id = $1 and x.study_key is null and ${blocked}
       order by x.created_at desc limit 50`,
     [circleId, userId],
   );
