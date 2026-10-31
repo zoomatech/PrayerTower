@@ -274,6 +274,7 @@ export const keys: Tree = named({
     integrity: 'Tapping means you are truly holding this person in your thoughts right now.',
     prayingNow: "I'm thinking of you",
     prayingDone: 'Thank you. They will know someone is thinking of them right now.',
+    castBody: 'Send this request out over the air by radio, so your good wishes travel on as radio waves.',
     commitTitle: 'Promise to Check In',
     commitDone: 'Your promise is saved. We will remind you when it is time to check in.',
     askTitle: 'Ask people for support',

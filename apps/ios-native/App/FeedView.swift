@@ -33,7 +33,7 @@ struct FeedView: View {
         NavigationStack {
             Group {
                 if let theme, theme.kind != .column {
-                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hasMore: nextPage != nil, row: row, onEnd: more, onPray: { act(.prayingNow, on: $0) }, onOpen: { opened = $0.id }, loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] })
+                    SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hooks: hooks, row: row)
                         .skinBars(Skin.backdrop(theme))
                         // A small title in the middle, clear of the Home icon in the top left corner.
                         .navigationBarTitleDisplayMode(.inline)
@@ -126,6 +126,17 @@ struct FeedView: View {
             }
             .padding(16)
         }
+    }
+
+    /// What every button, tap and scroll does, in whichever skin the member has (docs/SKIN_HOOKS.md).
+    private var hooks: FeedHooks {
+        FeedHooks(
+            act: { act($0, on: $1) },
+            open: { opened = $0.id },
+            loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] },
+            loadMore: more,
+            hasMore: nextPage != nil
+        )
     }
 
     private func row(_ card: Card) -> some View {

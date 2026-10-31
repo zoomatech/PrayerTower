@@ -697,6 +697,7 @@ const en = {
     integrity: 'Tapping means you are bringing this request before the Lord right now.',
     prayingNow: "I'm praying now",
     prayingDone: 'Thank you. They will know someone is praying for them right now.',
+    castBody: 'Send this request out over the air by radio, so the prayer travels on as radio waves.',
     commitTitle: 'Commit to Regular Prayer',
     promise: 'Your promise',
     howOften: 'How often',

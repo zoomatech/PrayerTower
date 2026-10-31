@@ -1,6 +1,6 @@
 import type { Card, FeedTheme, Prompt } from "@prayer-tower/shared";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -26,6 +26,7 @@ import { SurveyPrompts } from "@/components/survey-prompts";
 import { OfflineBanner } from "@/components/offline-banner";
 import { Button, Chip, ErrorText, Screen } from "@/components/ui";
 import { layoutFor } from "@/layouts";
+import { FeedHooksProvider, openPost, type FeedHooks } from "@/skins/feed-hooks";
 import {
   api,
   type Highlights as HighlightsData,
@@ -93,7 +94,7 @@ export default function Feed() {
     }
   }, [t, filter]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (nextPage === null || loadingMore.current) return;
     loadingMore.current = true;
     try {
@@ -106,7 +107,7 @@ export default function Feed() {
     } finally {
       loadingMore.current = false;
     }
-  };
+  }, [nextPage, filter]);
 
   // Prayers and posts made offline were just sent: reload so they show. (The
   // reload that brought us back online may have finished before they were sent.)
@@ -140,6 +141,12 @@ export default function Feed() {
     api.hidePost(card.id).catch((e) => setError((e as Error).message));
   }, []);
   const renderCard = useCallback((card: Card) => <PostCard card={card} onAction={onAction} onHide={hide} />, [onAction, hide]);
+  // Every skin's buttons, taps and scrolling go through these hooks (docs/SKIN_HOOKS.md).
+  const atEnd = nextPage === null;
+  const hooks = useMemo<FeedHooks>(
+    () => ({ act: onAction, hide, openPost, loadMore, atEnd, refresh: load, refreshing }),
+    [onAction, hide, loadMore, atEnd, load, refreshing],
+  );
 
   const answerPrompt = async (response: "prayed" | "dismissed") => {
     if (!prompt) return;
@@ -226,6 +233,7 @@ export default function Feed() {
   return (
     <Screen style={wide ? [styles.wideScreen, { maxWidth: feedWidth + SIDE_WIDTH + space.lg }] : undefined}>
       <View style={wide ? [styles.feedColumn, { maxWidth: feedWidth }] : styles.fill}>
+        <FeedHooksProvider value={hooks}>
         <Layout
           cards={cards}
           theme={theme}
@@ -235,10 +243,11 @@ export default function Feed() {
           refreshing={refreshing}
           onRefresh={load}
           onEndReached={loadMore}
-          atEnd={nextPage === null}
+          atEnd={atEnd}
           onAction={onAction}
           columns={columns}
         />
+        </FeedHooksProvider>
       </View>
       {wide && highlightsOn ? (
         <ScrollView
