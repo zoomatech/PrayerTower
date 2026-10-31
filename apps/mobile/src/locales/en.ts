@@ -2267,6 +2267,11 @@ const en = {
     pullDown: 'Swipe down to climb',
     pushUp: 'Swipe up to climb',
   },
+  climb: {
+    end: 'The rope keeps going. Pull down for new posts.',
+    openComment: 'Opens the whole comment and its replies',
+    more: '%{n} more',
+  },
   circuit: {
     end: 'End of the line. Pull down to power up new posts.',
     open: 'Opens the comments',

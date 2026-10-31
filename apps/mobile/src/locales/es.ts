@@ -1963,6 +1963,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   wall: en.wall,
   tower: en.tower,
   circuit: en.circuit,
+  climb: en.climb,
   growth: en.growth,
   card: {
     from: 'From %{name}',
