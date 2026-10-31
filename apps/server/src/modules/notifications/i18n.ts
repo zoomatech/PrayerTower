@@ -38,6 +38,7 @@ const es: Record<string, Template> = {
     body: `${s(p.who, 'Alguien')} orará ${ES_FREQUENCY[s(p.frequency)] ?? ''}.`,
   }),
   commitment_reminder: (p) => ({ title: 'Hora de orar', body: `Prometiste orar: "${s(p.excerpt)}"` }),
+  resolution: () => ({ title: '¿Fue contestada esta oración?', body: 'Revisamos tu petición de oración. Toca para contarnos.' }),
   prayer_list_reminder: (p) => ({ title: 'Your prayer list', body: `Did you remember to pray for ${s(p.name)} today?` }),
   power_prayer: (p) => ({ title: '¿Orarías por esta petición?', body: s(p.body) }),
   moderation_removed: (p) => {

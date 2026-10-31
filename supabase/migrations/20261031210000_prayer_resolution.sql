@@ -50,6 +50,7 @@ create table public.prayer_resolutions (
 );
 create index prayer_resolutions_user_idx on public.prayer_resolutions (user_id);
 create index prayer_resolutions_due_idx on public.prayer_resolutions (next_ask_at) where answered is not true and reposted_post_id is null;
+create index prayer_resolutions_token_idx on public.prayer_resolutions (token_transfer_id);
 create index prayer_resolutions_reposted_idx on public.prayer_resolutions (reposted_post_id) where reposted_post_id is not null;
 
 alter table public.prayer_resolutions enable row level security;
