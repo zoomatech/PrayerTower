@@ -361,7 +361,7 @@ function Climber({ scroll, anchor, height, reduced }: { scroll: React.MutableRef
 // ---------------------------------------------------------------------------
 // Comments: text on rocks and jags below the post.
 
-function Rock({ comment, replies, shape, left, onOpen }: { comment: Comment; replies: number; shape: number; left: boolean; onOpen: () => void }) {
+function Rock({ comment, replies, first, shape, left, onOpen }: { comment: Comment; replies: number; first?: Comment; shape: number; left: boolean; onOpen: () => void }) {
   const { t } = useLocale();
   const [box, setBox] = useState({ w: 0, h: 0 });
   const outline = useMemo(() => rockOutline(box.w, box.h, shape + 1), [box.w, box.h, shape]);
@@ -370,7 +370,7 @@ function Rock({ comment, replies, shape, left, onOpen }: { comment: Comment; rep
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${comment.author.displayName}: ${comment.body}`}
+      accessibilityLabel={first ? `${comment.author.displayName}: ${comment.body}. ${first.author.displayName}: ${first.body}. ${t('climb.replies', { count: replies })}` : `${comment.author.displayName}: ${comment.body}`}
       accessibilityHint={t('climb.openComment')}
       onPress={onOpen}
       style={[styles.rock, left ? styles.rockLeft : styles.rockRight]}
@@ -400,7 +400,14 @@ function Rock({ comment, replies, shape, left, onOpen }: { comment: Comment; rep
         {comment.body}
       </Text>
       {/* Its replies open with it, in the close-up. */}
-      {replies > 0 ? <Text style={styles.rockReplies}>{t('climb.replies', { count: replies })}</Text> : null}
+      {/* Steve: the first reply shows under every comment that has replies. */}
+      {first ? (
+        <Text style={styles.rockFirst} numberOfLines={1} testID={`rock-first-${comment.id}`}>
+          <Text style={styles.rockReplies}>{first.author.displayName}: </Text>
+          {first.body}
+        </Text>
+      ) : null}
+      {replies > 1 ? <Text style={styles.rockReplies}>{t('climb.replies', { count: replies })}</Text> : null}
     </Pressable>
   );
 }
@@ -417,7 +424,7 @@ function CommentRocks({ card, index, onOpen }: { card: Card; index: number; onOp
   return (
     <View style={styles.rocks}>
       {top.slice(0, ROCKS_SHOWN).map((c, i) => (
-        <Rock key={c.id} comment={c} replies={(kids.get(c.id) ?? []).length} shape={index * 2 + i} left={(index + i) % 2 === 0} onOpen={() => onOpen(card, c, kids)} />
+        <Rock key={c.id} comment={c} replies={(kids.get(c.id) ?? []).length} first={kids.get(c.id)?.[0]} shape={index * 2 + i} left={(index + i) % 2 === 0} onOpen={() => onOpen(card, c, kids)} />
       ))}
       {more > 0 ? (
         <Pressable accessibilityRole="button" onPress={() => openPost(card.id)} style={styles.pebble}>
@@ -650,6 +657,7 @@ const styles = StyleSheet.create({
   rockRight: { alignSelf: 'flex-end', marginRight: 0 },
   rockArt: { position: 'absolute', left: 0, top: 0 },
   rockName: { fontWeight: '700', fontSize: 13, color: '#3A2F23' },
+  rockFirst: { fontSize: 13, color: '#2B241C', marginTop: 3, paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: '#6D5F4D' },
   rockReplies: { fontSize: 12, fontWeight: '700', color: '#3A2F23', marginTop: 2 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   pill: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22, backgroundColor: '#EFE5D2', borderWidth: 1.5, borderColor: '#5A4A38' },
