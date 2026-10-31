@@ -48,12 +48,27 @@ const CATCH_UP = 0.16;
 
 /** Light browns and grays for the stone facets. */
 const FACETS = ['#C4B8A4', '#BAAD98', '#AFA28D', '#B4AFA5', '#A9A399', '#C9BFAE', '#BCB2A2', '#A89A84'];
-/** Rock shapes for the comments, as [x, y] fractions of their box. */
-const ROCKS: [number, number][][] = [
-  [[0.04, 0.18], [0.14, 0.02], [0.46, 0.08], [0.7, 0], [0.96, 0.12], [1, 0.58], [0.9, 0.92], [0.62, 1], [0.3, 0.94], [0.06, 1], [0, 0.6]],
-  [[0, 0.3], [0.1, 0.06], [0.38, 0], [0.64, 0.1], [0.88, 0.02], [1, 0.34], [0.97, 0.78], [0.8, 1], [0.44, 0.92], [0.16, 1], [0.02, 0.76]],
-  [[0.06, 0.08], [0.3, 0], [0.58, 0.06], [0.84, 0], [1, 0.24], [0.94, 0.54], [1, 0.84], [0.74, 1], [0.4, 0.95], [0.12, 1], [0, 0.7], [0.03, 0.4]],
-];
+/**
+ * A comment rock's jagged outline in real points, so it is never stretched or squished
+ * (Steve, 2026-10-31): a jag about every 28 points, 1 to 8 points deep, whatever the rock's size.
+ */
+export function rockOutline(w: number, h: number, seed: number): [number, number][] {
+  const rnd = seeded(seed);
+  const pts: [number, number][] = [];
+  const side = (x0: number, y0: number, x1: number, y1: number, ox: number, oy: number) => {
+    const n = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) / 28));
+    for (let i = 0; i < n; i++) {
+      const f = i / n;
+      const d = 1 + rnd() * 7;
+      pts.push([x0 + (x1 - x0) * f + ox * d, y0 + (y1 - y0) * f + oy * d]);
+    }
+  };
+  side(4, 0, w - 4, 0, 0, 1);
+  side(w, 4, w, h - 4, -1, 0);
+  side(w - 4, h, 4, h, 0, -1);
+  side(0, h - 4, 0, 4, 1, 0);
+  return pts;
+}
 /** Each post's square of rock has its own smoothed, slightly uneven corners. */
 const CORNERS = [
   [22, 30, 18, 26],
@@ -349,8 +364,8 @@ function Climber({ scroll, anchor, height, reduced }: { scroll: React.MutableRef
 function Rock({ comment, shape, left, onOpen }: { comment: Comment; shape: number; left: boolean; onOpen: () => void }) {
   const { t } = useLocale();
   const [box, setBox] = useState({ w: 0, h: 0 });
-  const pts = (dx: number, dy: number) =>
-    ROCKS[shape % ROCKS.length]!.map(([x, y]) => `${(x * box.w + dx).toFixed(1)},${(y * box.h + dy).toFixed(1)}`).join(' ');
+  const outline = useMemo(() => rockOutline(box.w, box.h, shape + 1), [box.w, box.h, shape]);
+  const pts = (dx: number, dy: number) => outline.map(([x, y]) => `${(x + dx).toFixed(1)},${(y + dy).toFixed(1)}`).join(' ');
   const id = `rock-${comment.id}`;
   return (
     <Pressable

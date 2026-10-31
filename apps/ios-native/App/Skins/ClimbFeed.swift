@@ -371,7 +371,7 @@ private struct CommentRock: View {
             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             .padding(.vertical, 16).padding(.leading, 22).padding(.trailing, 24)
             .background {
-                let rock = RockShape(points: Climb.rockShapes[shape % Climb.rockShapes.count])
+                let rock = RockShape(seed: shape + 1)
                 rock.fill(Color(red: 40 / 255, green: 30 / 255, blue: 20 / 255).opacity(0.45)).offset(y: 4)
                 rock.fill(LinearGradient(colors: [Color(RGB(hex: "#D6CCBA")!), Color(RGB(hex: "#B9AD98")!), Color(RGB(hex: "#A59882")!)], startPoint: .top, endPoint: UnitPoint(x: 0.6, y: 1)))
                 rock.stroke(Color(red: 60 / 255, green: 48 / 255, blue: 36 / 255).opacity(0.55), lineWidth: 1)
@@ -383,11 +383,12 @@ private struct CommentRock: View {
     }
 }
 
+/// A rock drawn to its real size: the jags never stretch or squish (Climb.rockOutline).
 struct RockShape: Shape {
-    let points: [(x: Double, y: Double)]
+    let seed: Int
     func path(in r: CGRect) -> Path {
         var p = Path()
-        p.addLines(points.map { CGPoint(x: r.minX + $0.x * r.width, y: r.minY + $0.y * r.height) })
+        p.addLines(Climb.rockOutline(w: Double(r.width), h: Double(r.height), seed: seed).map { CGPoint(x: r.minX + $0.x, y: r.minY + $0.y) })
         p.closeSubpath()
         return p
     }

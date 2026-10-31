@@ -136,12 +136,25 @@ public enum Climb {
         return pts
     }
 
-    /// Rock shapes for the comments, as fractions of their box.
-    public static let rockShapes: [[(x: Double, y: Double)]] = [
-        [(0.04, 0.18), (0.14, 0.02), (0.46, 0.08), (0.7, 0), (0.96, 0.12), (1, 0.58), (0.9, 0.92), (0.62, 1), (0.3, 0.94), (0.06, 1), (0, 0.6)],
-        [(0, 0.3), (0.1, 0.06), (0.38, 0), (0.64, 0.1), (0.88, 0.02), (1, 0.34), (0.97, 0.78), (0.8, 1), (0.44, 0.92), (0.16, 1), (0.02, 0.76)],
-        [(0.06, 0.08), (0.3, 0), (0.58, 0.06), (0.84, 0), (1, 0.24), (0.94, 0.54), (1, 0.84), (0.74, 1), (0.4, 0.95), (0.12, 1), (0, 0.7), (0.03, 0.4)],
-    ]
+    /// A comment rock's jagged outline in real points, so it is never stretched or squished
+    /// (Steve, 2026-10-31): a jag about every 28 points, 1 to 8 points deep, whatever the rock's size.
+    public static func rockOutline(w: Double, h: Double, seed: Int) -> [(x: Double, y: Double)] {
+        var rnd = Seeded(seed)
+        var pts: [(x: Double, y: Double)] = []
+        func side(_ x0: Double, _ y0: Double, _ x1: Double, _ y1: Double, _ ox: Double, _ oy: Double) {
+            let n = max(2, Int((hypot(x1 - x0, y1 - y0) / 28).rounded()))
+            for i in 0..<n {
+                let f = Double(i) / Double(n)
+                let d = 1 + rnd.next() * 7
+                pts.append((x0 + (x1 - x0) * f + ox * d, y0 + (y1 - y0) * f + oy * d))
+            }
+        }
+        side(4, 0, w - 4, 0, 0, 1)
+        side(w, 4, w, h - 4, -1, 0)
+        side(w - 4, h, 4, h, 0, -1)
+        side(0, h - 4, 0, 4, 1, 0)
+        return pts
+    }
 
     /// Each post's square of rock has its own smoothed, slightly uneven corners (top-leading, top-trailing, bottom-trailing, bottom-leading).
     public static let corners: [(Double, Double, Double, Double)] = [(22, 30, 18, 26), (28, 18, 30, 20), (18, 26, 24, 30), (30, 22, 20, 18)]
