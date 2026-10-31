@@ -35,8 +35,8 @@ struct MeView: View {
                 }
                 if menuHoldsInbox {
                     Section {
-                        NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")).fixedSize(horizontal: false, vertical: true) } icon: { Text("💬").accessibilityHidden(true) } }
-                        NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")).fixedSize(horizontal: false, vertical: true) } icon: { Text("🔔").accessibilityHidden(true) } }
+                        NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")).fixedSize(horizontal: false, vertical: true) } icon: { Text("💬").fixedSize().accessibilityHidden(true) } }
+                        NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")).fixedSize(horizontal: false, vertical: true) } icon: { Text("🔔").fixedSize().accessibilityHidden(true) } }
                     }
                 }
                 if let profile = model.me?.profile {
@@ -162,7 +162,7 @@ struct MeView: View {
             .clipShape(Ellipse())
             .overlay(Ellipse().stroke(Color.answeredGold, lineWidth: 3))
             VStack(alignment: .leading, spacing: 6) {
-                PhotosPicker(w(p.photoUrl == nil ? "profile.photoAdd" : "profile.photoChange"), selection: $photoItem, matching: .images)
+                PhotosPicker(selection: $photoItem, matching: .images) { Text(w(p.photoUrl == nil ? "profile.photoAdd" : "profile.photoChange")).fixedSize(horizontal: false, vertical: true) }
                 if p.photoUrl != nil {
                     Button(w("profile.photoRemove"), role: .destructive) { Task { await setPhoto(nil) } }.foregroundStyle(Color.danger)
                 }
