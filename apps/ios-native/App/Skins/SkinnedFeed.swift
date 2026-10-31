@@ -793,7 +793,7 @@ struct TowerFeed<Row: View>: View {
                     .background(Color(RGB(hex: "#FBFAF7")!))
             }
         }
-        .background { StoneWalls(look: look).accessibilityHidden(true) }
+        .background { StoneWalls(look: look) }
         .background(Color(look.backdrop))
         .overlay(alignment: .trailing) {
             // The climber on a rope, rising as the member reads down the tower.
@@ -839,35 +839,48 @@ struct Tablet<Content: View>: View {
     }
 }
 
-/// Courses of dressed stone down both sides, each block a slightly different shade.
+/// Courses of dressed stone down both sides, each block a slightly different shade. Each wall is
+/// a named picture: Apple's audit reads the courses' mortar lines as words, so they must be
+/// something the screen reader can reach.
 struct StoneWalls: View {
     let look: TowerLook
+    static let wall = 26.0
     var body: some View {
+        HStack(spacing: 0) {
+            side(0)
+            Spacer(minLength: 0)
+            side(1)
+        }
+    }
+
+    private func side(_ side: Int) -> some View {
         Canvas { ctx, size in
-            let wall = 26.0, course = 18.0
-            for (side, x0) in [(0, 0.0), (1, size.width - wall)] {
-                var row = 0
-                var y = 0.0
-                while y < size.height {
-                    let shift = row.isMultiple(of: 2) ? 0.0 : wall / 2
-                    var x = x0 - shift
-                    var n = side * 7 + row * 3
-                    while x < x0 + wall {
-                        let shadeBy = Double((n * 37) % 9) / 60
-                        let block = CGRect(x: max(x, x0), y: y, width: min(x + wall, x0 + wall) - max(x, x0) - 1.5, height: course - 1.5)
-                        ctx.fill(Path(block), with: .color(Color(look.stone.mix(.white, shadeBy))))
-                        x += wall
-                        n += 1
-                    }
-                    var joint = Path()
-                    joint.move(to: CGPoint(x: x0, y: y + course - 0.75))
-                    joint.addLine(to: CGPoint(x: x0 + wall, y: y + course - 0.75))
-                    ctx.stroke(joint, with: .color(Color(look.mortar)), lineWidth: 1.5)
-                    y += course
-                    row += 1
+            let wall = Self.wall, course = 18.0, x0 = 0.0
+            var row = 0
+            var y = 0.0
+            while y < size.height {
+                let shift = row.isMultiple(of: 2) ? 0.0 : wall / 2
+                var x = x0 - shift
+                var n = side * 7 + row * 3
+                while x < x0 + wall {
+                    let shadeBy = Double((n * 37) % 9) / 60
+                    let block = CGRect(x: max(x, x0), y: y, width: min(x + wall, x0 + wall) - max(x, x0) - 1.5, height: course - 1.5)
+                    ctx.fill(Path(block), with: .color(Color(look.stone.mix(.white, shadeBy))))
+                    x += wall
+                    n += 1
                 }
+                var joint = Path()
+                joint.move(to: CGPoint(x: x0, y: y + course - 0.75))
+                joint.addLine(to: CGPoint(x: x0 + wall, y: y + course - 0.75))
+                ctx.stroke(joint, with: .color(Color(look.mortar)), lineWidth: 1.5)
+                y += course
+                row += 1
             }
         }
+        .frame(width: Self.wall)
+        .accessibilityElement()
+        .accessibilityLabel("Stone wall")
+        .accessibilityAddTraits(.isImage)
     }
 }
 

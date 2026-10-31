@@ -817,10 +817,15 @@ private struct Locket: View {
         .accessibilityHidden(true)
     }
 
+    /// Drawn, not a text element: SwiftUI still listed a hidden Text letter to the screen reader and
+    /// Apple's audit, outside its card, and the poster's name already says who it is.
     private var initial: some View {
-        Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-            .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
-            .accessibilityHidden(true)
+        let letter = String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
+        return Canvas { ctx, box in
+            ctx.draw(Text(letter).font(BeanFont.bold(37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
+        }
+        .frame(width: 61, height: 71)
+        .accessibilityHidden(true)
     }
 }
 
