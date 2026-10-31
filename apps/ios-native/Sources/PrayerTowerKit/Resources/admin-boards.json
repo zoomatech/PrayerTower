@@ -1,5 +1,27 @@
 [
  {
+  "id": "practiceSettings",
+  "title": "topicGroups.adminSection",
+  "intro": null,
+  "get": "/admin/practice-settings",
+  "patch": "/admin/practice-settings",
+  "toggles": [
+   {
+    "label": "circles.adminTitle",
+    "hint": "circles.adminHint",
+    "field": "prayer_circles_enabled",
+    "patch": "prayerCirclesEnabled"
+   },
+   {
+    "label": "topicGroups.adminTitle",
+    "hint": "topicGroups.adminHint",
+    "field": "topic_groups_enabled",
+    "patch": "topicGroupsEnabled"
+   }
+  ],
+  "numbers": []
+ },
+ {
   "id": "notebookSettings",
   "title": "admin.notebook",
   "intro": null,
@@ -479,7 +501,7 @@
   "numbers": []
  },
  {
-  "id": "practiceSettings",
+  "id": "PracticeSettingsSection",
   "title": "practices.adminTitle",
   "intro": "practices.adminIntro",
   "get": "/admin/practice-settings",
@@ -586,12 +608,6 @@
     "hint": "calm.adminHint",
     "field": "calm_threads_enabled",
     "patch": "calmThreadsEnabled"
-   },
-   {
-    "label": "circles.adminTitle",
-    "hint": "circles.adminHint",
-    "field": "prayer_circles_enabled",
-    "patch": "prayerCirclesEnabled"
    },
    {
     "label": "circleWelcome.adminTitle",

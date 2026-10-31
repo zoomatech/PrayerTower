@@ -1,6 +1,6 @@
 # Search the texts (Bible and ancient writings)
 
-Ported from Winstons Syndicate (Steve, 2026-10-29: "the bible search feature FROM winston's syndicate needs to be added here"; it will grow to search other ancient texts). Off by default: Admin → Text search.
+Ported from Winstons Syndicate (Steve, 2026-10-29: "the bible search feature FROM winston's syndicate needs to be added here"; it will grow to search other ancient texts). Off by default: Admin → Bible Reference Text Search.
 
 ## What members get
 
@@ -8,7 +8,7 @@ Me → **Search the texts**. Type words; passages come back best first. Faith co
 
 ### Share a passage and the daily passage (both off by default)
 
-Admin → Text search has two more switches, shown once search is on (`library_settings.share_enabled`, `daily_enabled`; features `libraryShare`, `libraryDaily`, each true only while search is on too):
+Admin → Bible Reference Text Search has two more switches, shown once search is on (`library_settings.share_enabled`, `daily_enabled`; features `libraryShare`, `libraryDaily`, each true only while search is on too):
 
 - **Share a passage**: each search result gets a **Share** button. It opens a new post (prayer request by default; the member can switch to praise and edit the words) holding the passage in quotes and its citation:
 
@@ -24,7 +24,7 @@ Both are in the Expo app (`src/components/daily-passage.tsx`, `src/app/library.t
 
 ### Parallels (off by default)
 
-Admin → Text search → **Parallels** (`library_settings.parallels_enabled`, feature `libraryParallels`). Me → **Parallels** lists curated themes; opening one shows its passages side by side (columns on a wide screen, a sideways row of cards on a phone), each with its collection, our short label, the translator's words and the citation. `GET /library/parallels`, `GET /library/parallels/:id`.
+Admin → Bible Reference Text Search → **Parallels** (`library_settings.parallels_enabled`, feature `libraryParallels`). Me → **Parallels** lists curated themes; opening one shows its passages side by side (columns on a wide screen, a sideways row of cards on a phone), each with its collection, our short label, the translator's words and the citation. `GET /library/parallels`, `GET /library/parallels/:id`.
 
 The themes are in `apps/server/data/library/parallels.json`. Each side names a passage by its exact reference (`ref`) or by words it holds (`find`), how many passages from there (`count`), an optional label and an optional `cite` (our own wording for the place, such as "Genesis 8:6–11" or "Tablet XI, lines 142–155"). The words shown always come from the collection, never from the file. A server test checks that every side resolves.
 
@@ -45,7 +45,7 @@ Open Circle sees the themes without the Bible and the Apocrypha, and only those 
 
 ### Reading plans (off by default)
 
-Admin → Text search → **Reading plans** (`plans_enabled`, feature `libraryPlans`). Me → **Reading plans**. Separate from the staff-set Bible reading plan (`modules/reading-plan`, Admin → reading plan), which sends members to a Bible website.
+Admin → Bible Reference Text Search → **Reading plans** (`plans_enabled`, feature `libraryPlans`). Me → **Reading plans**. Separate from the staff-set Bible reading plan (`modules/reading-plan`, Admin → reading plan), which sends members to a Bible website.
 
 - The plans are in `apps/server/data/library/plans.json`: **Oldest texts in 30 days** (Ptah-hotep, the Pyramid Texts and Egyptian magicians' tales from Budge, the Book of the Dead, Gilgamesh Tablet XI, Enuma Elish, Hammurabi, Egyptian tales), **Wisdom of the East in 30 days** (Tao Te Ching, Dhammapada, Analects), **The Gospels in 89 days**, **Psalms in 30 days**, **Proverbs in a month**. A part is one work, read so many Bible chapters a day or spread evenly over so many days; `from`, `to` and `until` trim front matter.
 - Read in the app from the library's own texts, each day with its citation ("Psalms 16–20 (King James Bible)").
@@ -59,7 +59,7 @@ Routes: `GET /library/plans`, `PUT|DELETE /library/plans/:id/follow` (`{ circleI
 
 ### Word study (off by default)
 
-Admin → Text search → **Word study** (`words_enabled`, feature `libraryWords`). Offered only where the King James Bible is (never Open Circle).
+Admin → Bible Reference Text Search → **Word study** (`words_enabled`, feature `libraryWords`). Offered only where the King James Bible is (never Open Circle).
 
 - A **Study the words** button on each King James verse (search results, My highlights and notes) opens the verse word by word. Tagged words are buttons showing the transliterated root; tapping one opens its **Strong's number**: the Hebrew or Greek word, transliteration, pronunciation, Strong's definition and derivation, how the KJV renders it, and every verse that uses it (in Bible order, 20 at a time, each with the English words used for it there).
 - Data: `kjv-strongs.json.gz` (31,102 verses as tokens: a plain string, or `[word, ["H7225"]]`) and `strongs-dictionary.json.gz` (8,674 Hebrew and 5,624 Greek entries), built by `python3 scripts/library-strongs.py` from `sources/kjv-strongs/` and `sources/strongs/`. Output is Unicode NFC. The tagged text is eBible.org's KJV 2006 edition, which spells a few words differently from the Gutenberg KJV in about 226 verses; the verse references line up exactly.
@@ -67,7 +67,7 @@ Admin → Text search → **Word study** (`words_enabled`, feature `libraryWords
 
 ### Highlights and notes (off by default)
 
-Admin → Text search → **Highlights and notes** (`notes_enabled`, feature `libraryNotes`). Me → **My highlights and notes**.
+Admin → Bible Reference Text Search → **Highlights and notes** (`notes_enabled`, feature `libraryNotes`). Me → **My highlights and notes**.
 
 - A **Highlight or note** button on every passage: search results in any collection, parallels, plan days. A mark is a colour (yellow, green, blue, pink), a note (up to 2,000 characters), or both; clearing both removes it. A plan day's mark is on its first passage.
 - **Private by default**. A note (never a colour alone) can be shared with one of the member's prayer circles; members of that circle see it under My highlights and notes → **Shared in …**, with who wrote it. Leaving a circle hides your notes from it.
@@ -78,7 +78,7 @@ Admin → Text search → **Highlights and notes** (`notes_enabled`, feature `li
 
 ### Offline texts (off by default, native app)
 
-Admin → Text search → **Offline texts** (`offline_enabled`, feature `libraryOffline`). In the iPhone, iPad and Mac app: Me → **Offline texts**, also at the top of Search the texts.
+Admin → Bible Reference Text Search → **Offline texts** (`offline_enabled`, feature `libraryOffline`). In the iPhone, iPad and Mac app: Me → **Offline texts**, also at the top of Search the texts.
 
 - Lists the collections the member's community is offered, with size and passage count; **Download** keeps a copy in Application Support (`OfflineTexts/`) until the member removes it. A copy whose version (a hash of the file) differs from the server's shows **Update**. A copy of a collection no longer offered is removed when the list loads.
 - With no signal, Search the texts searches the downloaded copy: passages holding every word first, then at least half the words. It says so on screen, because old word forms and synonyms are not matched offline. Word study and marks need a connection.
@@ -86,7 +86,7 @@ Admin → Text search → **Offline texts** (`offline_enabled`, feature `library
 
 ### Listening (off by default)
 
-Admin → Text search → **Listening** (`listen_enabled`, feature `libraryListen`).
+Admin → Bible Reference Text Search → **Listening** (`listen_enabled`, feature `libraryListen`).
 
 - **Listen** under every passage (search results, parallels, plan days, study rooms) reads it aloud with the device's own voice: `expo-speech` in the Expo app, `AVSpeechSynthesizer` in the native app. Nothing is sent anywhere and it costs nothing.
 - **Find a recording** looks up a public-domain **LibriVox** recording of the place the passage is in and plays it (expo-audio, AVPlayer) with its credit ("Read by … for LibriVox: Bible (KJV) 19: Psalms (version 2), “Chapter 07 - Psalms 21 - 23”. Public domain.", linked to the LibriVox project page). The audio streams from the Internet Archive.
@@ -99,7 +99,7 @@ Admin → Text search → **Listening** (`listen_enabled`, feature `libraryListe
 
 ### Circle study rooms (off by default)
 
-Admin → Text search → **Study rooms** (`studies_enabled`, feature `libraryStudies`), with prayer circles on. A circle's page → **Study room**.
+Admin → Bible Reference Text Search → **Study rooms** (`studies_enabled`, feature `libraryStudies`), with prayer circles on. A circle's page → **Study room**.
 
 - **Study with a circle** under any passage or plan day: pick one of your circles and write a question or thought to open the talk.
 - A study is a circle post carrying the passage (columns `study_*` on `circle_posts`, migration `20261031200000_library_listen_studies.sql`), so circle rules apply: only members see it, members get the circle's one quiet heads-up a day, the kind cloud is on every composer, words from people you blocked are left out, and the author or the circle's starter can take a study or a reply down (a person decides, never the app). Studies are kept off the circle's own feed.

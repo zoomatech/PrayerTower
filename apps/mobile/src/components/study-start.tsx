@@ -1,5 +1,5 @@
 // Start a circle study (docs/LIBRARY_SEARCH.md): from any passage or reading-plan day, pick one of your circles
-// and write a question or thought to open the talk. Off unless an admin turns on Admin → Text search → Study
+// and write a question or thought to open the talk. Off unless an admin turns on Admin → Bible Reference Text Search → Study
 // rooms, with prayer circles on.
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';

@@ -36,6 +36,7 @@ import { kindMilestoneRoutes } from './modules/kind-milestones/routes.js';
 import { commentKindnessRoutes } from './modules/comment-kindness/routes.js';
 import { thankNoteRoutes } from './modules/thank-note/routes.js';
 import { prayerCircleRoutes } from './modules/prayer-circles/routes.js';
+import { groupRoutes } from './modules/groups/routes.js';
 import { pathBackRoutes } from './modules/path-back/routes.js';
 import { replyChoiceRoutes } from './modules/reply-choice/routes.js';
 import { calmThreadRoutes } from './modules/calm-threads/routes.js';
@@ -391,6 +392,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     commentKindnessRoutes(authed, db);
     thankNoteRoutes(authed, db);
     prayerCircleRoutes(authed, db);
+    groupRoutes(authed, db);
     pathBackRoutes(authed, db);
     replyChoiceRoutes(authed, db);
     calmThreadRoutes(authed, db);

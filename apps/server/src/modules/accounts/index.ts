@@ -458,6 +458,13 @@ export async function deleteAccount(q: Queryable, userId: string): Promise<strin
     'delete from public.circle_replies where user_id = $1',
     'delete from public.circle_posts where user_id = $1',
     'delete from public.prayer_circle_members where user_id = $1',
+    // A group the member led passes to its longest-standing other member, or to Prayer Tower.
+    `update public.topic_groups g set leader_id = (select m.user_id from public.topic_group_members m where m.group_id = g.id and m.user_id <> $1 order by m.joined_at limit 1)
+      where g.leader_id = $1`,
+    'delete from public.topic_group_prayers where user_id = $1',
+    'delete from public.topic_group_comments where user_id = $1',
+    'delete from public.topic_group_posts where user_id = $1',
+    'delete from public.topic_group_members where user_id = $1',
     'delete from public.remembered_hidden where user_id = $1',
     'delete from public.fresh_start_days where user_id = $1',
     'delete from public.welcome_dismissed where user_id = $1',

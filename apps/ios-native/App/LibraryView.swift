@@ -269,6 +269,7 @@ struct LibraryAdminSection: View {
     var body: some View {
         let w = model.words
         Section {
+            Text(w("library.adminAsk")).font(.footnote).foregroundStyle(.secondary)
             if let on {
                 Toggle(isOn: Binding(get: { on.enabled == true }, set: { save(LibrarySettings(enabled: $0)) })) {
                     VStack(alignment: .leading) {

@@ -7,6 +7,8 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { useFeature } from '@/lib/community-features';
+import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space } from '@/lib/theme';
 
@@ -33,10 +35,15 @@ export function CornerNav() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
+  const groupsFeature = useFeature('groups');
+  const { topicGroups } = useFeatures();
+  const groupsOn = groupsFeature && topicGroups;
   const items: { label: string; href: Href }[] = [
     { label: t('tabs.prayers'), href: '/' },
     { label: t('tabs.promises'), href: '/commitments' },
     { label: t('tabs.messages'), href: '/messages' },
+    // Groups (Steve, 2026-10-31), starting with Cancer survivors.
+    ...(groupsOn ? [{ label: t('topicGroups.title'), href: '/topic-groups' as Href }] : []),
     { label: t('tabs.notices'), href: '/notifications' },
     { label: t('tabs.me'), href: '/profile' },
   ];
