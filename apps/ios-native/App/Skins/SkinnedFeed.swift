@@ -23,6 +23,7 @@ struct SkinnedFeed<Row: View>: View {
         case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
+        case .climb: ClimbFeed(look: ClimbLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .carousel: SwipeFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .flip: FlipFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .column: List(cards) { card in row(card).loadsMore(after: card, in: cards, hooks) }
