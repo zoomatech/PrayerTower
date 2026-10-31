@@ -59,7 +59,7 @@ struct PostDetailView: View {
                         story = posted.post.id
                     }
                 }
-                Section(w("post.comments")) { commentList }
+                Section { commentList } header: { Text(w("post.comments")).foregroundStyle(Color.primary) }
                 if let rc = replyChoice, rc.enabled, rc.isMine { Section { replyChoicePicker(rc) } }
                 if ReplyChoiceState.showsComposer(replyChoice) {
                     Section { composer(card) }
@@ -202,15 +202,15 @@ struct PostDetailView: View {
                 Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
                 Text(c.body)
                 AdaptiveStack(spacing: 16) {
-                    Button { replyTo = c; asUpdate = false } label: { Text(w("post.reply")).tapTarget() }
+                    Button { replyTo = c; asUpdate = false } label: { Text(w("post.reply")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     // With sharing by consent on, only the person who wrote a comment can share it.
                     if !model.features["shareConsent"] || c.isMine == true {
-                        ShareLink(item: commentShare(c)) { Text(w("post.share")).tapTarget() }
+                        ShareLink(item: commentShare(c)) { Text(w("post.share")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     }
                     if c.isMine == true {
                         Button(role: .destructive) { Task { await deleteComment(c) } } label: { Text(w("post.deleteShort")).tapTarget() }
                     } else {
-                        Button { reporting = ("comment", c.id) } label: { Text(w("post.report")).tapTarget() }
+                        Button { reporting = ("comment", c.id) } label: { Text(w("post.report")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     }
                 }
                 .buttonStyle(.borderless)

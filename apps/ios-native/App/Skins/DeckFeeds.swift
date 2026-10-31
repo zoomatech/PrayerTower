@@ -13,6 +13,7 @@ struct SwipeFeed<Row: View>: View {
     @State private var drag: CGSize = .zero
     @State private var confirming: Card?
     @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.dynamicTypeSize) private var type
 
     var body: some View {
         let words = LayoutWords(wording)
@@ -28,7 +29,9 @@ struct SwipeFeed<Row: View>: View {
                         .mask {
                             VStack(spacing: 0) {
                                 Rectangle()
-                                LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom).frame(height: 40)
+                                // At the accessibility text sizes the card is all words, so no fade: faded words
+                                // can't be read there.
+                                LinearGradient(colors: [.black, .black.opacity(type.isAccessibilitySize ? 1 : 0)], startPoint: .top, endPoint: .bottom).frame(height: 40)
                             }
                         }
                         .background(.regularMaterial, in: .rect(cornerRadius: 18))

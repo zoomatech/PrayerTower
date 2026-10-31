@@ -343,8 +343,10 @@ private struct BeanPost<Row: View>: View {
         let fruit: Double = c.span(1300, 450, 0, 1, .pop)
         return row(card)
             .padding(15)
-            // Room under the locket.
-            .padding(.top, 38)
+            // Room at the sides, so the frame's vine as it wiggles never runs over the first or last letters.
+            .padding(.horizontal, 10)
+            // Room under the locket, so it never sits over the poster's name.
+            .padding(.top, 44)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Bean.cream)
             .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -355,14 +357,18 @@ private struct BeanPost<Row: View>: View {
             // Rounded, so scrolling only updates it every few points.
             .onGeometryChange(for: Double.self) { (Double($0.frame(in: .global).minY) / 8).rounded() * 8 + 80 } action: { nameBottom = $0 }
             // The card springs up from the stalk: from low, narrow and flat, to whole.
-            .scaleEffect(x: sx, y: sy, anchor: .bottom)
-            .offset(y: dy)
-            .opacity(fade)
+            // Drawn only, never laid out: the words keep their true place and size for the screen
+            // reader and Apple's audit while the card grows in.
+            .visualEffect { content, _ in
+                content.scaleEffect(x: sx, y: sy, anchor: .bottom).offset(y: dy).opacity(fade)
+            }
             .overlay {
                 if let geo { FrameCanvas(geo: geo, c: c).frame(width: geo.w, height: geo.h).accessibilityHidden(true) }
             }
             .overlay(alignment: .topLeading) {
                 Locket(name: card.author.displayName, photo: card.author.photoUrl).scaleEffect(pop).opacity(fade).offset(x: -29, y: -50)
+                    // The name beside it already says who posted; the locket is only its picture.
+                    .accessibilityHidden(true)
             }
             .overlay(alignment: .topTrailing) {
                 if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 44).scaleEffect(fruit).offset(x: 20, y: -24) }
@@ -622,7 +628,8 @@ private struct BeanLeafView: View {
             .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
         .buttonStyle(.plain)
-        .disabled(!(fit.cut || more))
+        // Not .disabled: a disabled button draws the whole leaf faded, its words too faint to read.
+        .allowsHitTesting(fit.cut || more)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(leaf.note.author): \(leaf.note.body)")
         .accessibilityHint(fit.cut ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
@@ -833,9 +840,15 @@ private struct Locket: View {
         .accessibilityHidden(true)
     }
 
+    /// Drawn, not a text element: SwiftUI still listed a hidden Text letter to the screen reader and
+    /// Apple's audit, outside its card, and the poster's name already says who it is.
     private var initial: some View {
-        Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-            .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
+        let letter = String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
+        return Canvas { ctx, box in
+            ctx.draw(Text(letter).font(BeanFont.bold(37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
+        }
+        .frame(width: 61, height: 71)
+        .accessibilityHidden(true)
     }
 }
 
