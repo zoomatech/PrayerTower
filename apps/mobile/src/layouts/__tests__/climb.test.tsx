@@ -5,7 +5,7 @@ import { Text } from 'react-native';
 
 import { renderApp, sampleCard } from '@/__tests__/helpers';
 import { api } from '@/lib/api';
-import { ClimbLayout, chaseStep, cliffEdge, climbTokens, climberPose, EDGE_X, nearHand, rockFacets, ropePaths } from '@/layouts/climb';
+import { ClimbLayout, chaseStep, cliffEdge, climbTokens, climberPose, EDGE_X, nearHand, rockFacets, rockOutline, ropePaths } from '@/layouts/climb';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -61,6 +61,18 @@ describe('Mountain Climber', () => {
     expect(e.slice(0, 2)).toEqual([EDGE_X, 0]);
     expect(e.slice(-2)).toEqual([EDGE_X, 520]);
     for (let i = 0; i < e.length; i += 2) expect(Math.abs(e[i]! - EDGE_X)).toBeLessThanOrEqual(11);
+  });
+
+  it('draws comment rocks at their real size, never stretched: jags stay small on a wide rock and a tall one', () => {
+    for (const [w, h] of [[300, 70], [120, 200]] as const) {
+      const pts = rockOutline(w, h, 2);
+      for (const [x, y] of pts) {
+        expect(Math.min(x, w - x, y, h - y)).toBeLessThanOrEqual(8.01);
+        expect(Math.min(x, w - x, y, h - y)).toBeGreaterThanOrEqual(0);
+      }
+      // About one jag per 28 points round the edge.
+      expect(pts.length).toBeGreaterThanOrEqual(Math.floor((2 * (w + h)) / 28) - 4);
+    }
   });
 
   it('keeps the post and comment text readable on the stone (4.5:1)', () => {
