@@ -45,6 +45,31 @@ struct VineFeed<Row: View>: View {
     let wording: Wording
     let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 44) {
+                if look.vineStyle == .gate { GateTop(look: look).frame(height: 150).frame(maxWidth: .infinity) }
+                ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
+                    VStack(alignment: .leading, spacing: look.vineStyle == .neon ? NeonDrop.gap : 18) {
+                        // Neon: the post's icons sit inside its frame, under the box, as neon outlines (Steve, 2026-10-30).
+                        VineLeaf(look: look, wording: wording, depth: 0, below: look.vineStyle == .neon ? AnyView(row(card).environment(\.cardPart, .icons(Color(look.leaf)))) : nil) {
+                            row(card).environment(\.cardPart, look.vineStyle == .neon ? .post : .whole)
+                        }
+                        .overlay(alignment: .topTrailing) {
+                            if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
+                        }
+                        if look.vineStyle == .neon {
+                            // A loaded stack of comments to flip through, coming out of the post (Steve, 2026-10-30).
+                            NeonCommentStack(card: card, look: look, wording: wording, load: hooks.loadComments, onOpen: hooks.open)
+                        } else {
+                            ForEach(card.leafComments ?? []) { c in
+                                VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
+                            }
+                        }
+                        if look.vineStyle != .neon, card.moreComments > 0 {
+                            if let open = hooks.open {
+                                Button { open(card) } label: { MoreLeaves(count: card.moreComments, look: look, wording: wording) }.buttonStyle(.plain)
                             } else {
                                 MoreLeaves(count: card.moreComments, look: look, wording: wording)
                             }
