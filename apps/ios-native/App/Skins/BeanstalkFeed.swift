@@ -329,9 +329,11 @@ private struct BeanPost<Row: View>: View {
             // Rounded, so scrolling only updates it every few points.
             .onGeometryChange(for: Double.self) { (Double($0.frame(in: .global).minY) / 8).rounded() * 8 + 80 } action: { nameBottom = $0 }
             // The card springs up from the stalk: from low, narrow and flat, to whole.
-            .scaleEffect(x: sx, y: sy, anchor: .bottom)
-            .offset(y: dy)
-            .opacity(fade)
+            // Drawn only, never laid out: the words keep their true place and size for the screen
+            // reader and Apple's audit while the card grows in.
+            .visualEffect { content, _ in
+                content.scaleEffect(x: sx, y: sy, anchor: .bottom).offset(y: dy).opacity(fade)
+            }
             .overlay {
                 if let geo { FrameCanvas(geo: geo, c: c).frame(width: geo.w, height: geo.h).accessibilityHidden(true) }
             }

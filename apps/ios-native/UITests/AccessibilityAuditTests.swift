@@ -59,6 +59,7 @@ final class AccessibilityAuditTests: XCTestCase {
                     _ = app.navigationBars[name].waitForExistence(timeout: 5)
                     // Beanstalk's posts grow in over 2 seconds (card, vine, then leaves) as they come into view.
                     sleep(3)
+                    settle(app)
                     try audit(app, "\(name) at \(size)")
                     // Then the end of the feed, so its last lines are checked on screen, not cut by the edge.
                     // At the default size: at the largest, each card fills the screen, the top pass
@@ -72,15 +73,7 @@ final class AccessibilityAuditTests: XCTestCase {
                                 .press(forDuration: 0.1, thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)),
                                        withVelocity: .slow, thenHoldForDuration: 0.5)
                         }
-                        // Wait until the feed has come to rest: the same words in the same place twice running.
-                        var last = CGRect.null
-                        for _ in 0..<10 {
-                            sleep(1)
-                            let now = app.staticTexts.allElementsBoundByIndex.prefix(8).reduce(CGRect.null) { $0.union($1.frame) }
-                            if now == last { break }
-                            last = now
-                        }
-                        sleep(1)
+                        settle(app)
                         // Read the element tree once, so the audit sees where things are after the
                         // scroll rather than where they were.
                         _ = app.debugDescription
@@ -101,6 +94,18 @@ final class AccessibilityAuditTests: XCTestCase {
             }
             app.terminate()
         }
+    }
+
+    /// Waits until the feed has come to rest: the same words in the same place twice running.
+    @MainActor func settle(_ app: XCUIApplication) {
+        var last = CGRect.null
+        for _ in 0..<10 {
+            sleep(1)
+            let now = app.staticTexts.allElementsBoundByIndex.prefix(8).reduce(CGRect.null) { $0.union($1.frame) }
+            if now == last { break }
+            last = now
+        }
+        sleep(1)
     }
 
     /// Runs the audit and fails once per issue, naming the element, so CI's annotations say what to fix.
