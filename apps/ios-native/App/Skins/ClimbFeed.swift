@@ -397,6 +397,10 @@ struct RockShape: Shape {
 /// The comment full screen, in a stone box with a gradient. Above it the request it answers
 /// stays showing: the poster's picture (initials until they add one), name and first line.
 private struct ClimbCloseUp: View {
+    /// How far the bar at the top of the feed reaches down past the top of this view: the rock
+    /// only shows below it, so the poster's picture and name must start below it too.
+    private static let barCovers: Double = 51
+
     let reading: ClimbReading
     let look: ClimbLook
     let words: Words
@@ -440,7 +444,7 @@ private struct ClimbCloseUp: View {
                 .accessibilityAddTraits(.isModal)
             }
             .frame(maxWidth: 720)
-            .padding(.horizontal, 14).padding(.top, 12).padding(.bottom, 20)
+            .padding(.horizontal, 14).padding(.top, Self.barCovers + 12).padding(.bottom, 20)
         }
     }
 
