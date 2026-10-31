@@ -62,7 +62,14 @@ final class MainScreensWalk: XCTestCase {
         XCTAssertTrue(shows("Please pray for my mother's surgery"))
         var issues: [String] = []
         func audit(_ screen: String) throws {
+            // Only what is wholly on screen between the bars, as in AccessibilityAuditTests: words
+            // passing under the see-through tab bar are read once scrolled clear of it, not through it.
+            let window = app.windows.firstMatch.frame
+            let top = app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : window.minY
+            let bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : window.maxY
+            let visible = CGRect(x: window.minX, y: top, width: window.width, height: bottom - top)
             try app.performAccessibilityAudit { issue in
+                if let frame = issue.element?.frame, !visible.contains(frame) { return true }
                 // Left aside: Apple's own warnings for its system colors and list text ("nearly
                 // passed", "partially unsupported"), contrast on a switched-off control, which WCAG
                 // exempts (a Comment button before anything is typed), and decorative symbols.

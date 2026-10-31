@@ -599,7 +599,8 @@ private struct BeanLeafView: View {
             .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
         .buttonStyle(.plain)
-        .disabled(!(fit.cut || more))
+        // Not .disabled: a disabled button draws the whole leaf faded, its words too faint to read.
+        .allowsHitTesting(fit.cut || more)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(leaf.note.author): \(leaf.note.body)")
         .accessibilityHint(fit.cut ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))

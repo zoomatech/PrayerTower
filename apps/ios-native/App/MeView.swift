@@ -35,12 +35,12 @@ struct MeView: View {
                 }
                 if menuHoldsInbox {
                     Section {
-                        NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")) } icon: { Text("💬").accessibilityHidden(true) } }
-                        NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")) } icon: { Text("🔔").accessibilityHidden(true) } }
+                        NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")).fixedSize(horizontal: false, vertical: true) } icon: { Text("💬").accessibilityHidden(true) } }
+                        NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")).fixedSize(horizontal: false, vertical: true) } icon: { Text("🔔").accessibilityHidden(true) } }
                     }
                 }
                 if let profile = model.me?.profile {
-                    Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
+                    Section { counts(profile) } footer: { Text(w("profile.tokensNote")).foregroundStyle(Color.subtle) }
                 }
                 PrayerLifeSection()
                 GratitudeSection()
@@ -58,13 +58,16 @@ struct MeView: View {
                     Section { FreshDaysSection() } header: { Text("Days that matter") }
                 }
                 if let profile = model.me?.profile {
-                    Section(w("profile.settings")) {
+                    // The system's gray section header is under 3:1; this one keeps the full text color.
+                    Section {
                         ForEach(ProfileSettings.switches(for: profile)) { s in
                             Toggle(isOn: Binding(get: { ProfileSettings.value(s.field, in: profile) }, set: { on in Task { await update(s.field, on) } })) {
                                 Text(w(s.label))
                                 if let hint = s.hint { Text(w(hint)) }
                             }
                         }
+                    } header: {
+                        Text(w("profile.settings")).foregroundStyle(Color.primary)
                     }
                 }
                 ConversationPrefsSection()
@@ -163,7 +166,7 @@ struct MeView: View {
                 if p.photoUrl != nil {
                     Button(w("profile.photoRemove"), role: .destructive) { Task { await setPhoto(nil) } }.foregroundStyle(Color.danger)
                 }
-                Text(w("profile.photoHint")).font(.footnote).foregroundStyle(Color.subtle)
+                Text(w("profile.photoHint")).font(.footnote).foregroundStyle(Color.subtle).fixedSize(horizontal: false, vertical: true)
             }
             .buttonStyle(.borderless)
         }

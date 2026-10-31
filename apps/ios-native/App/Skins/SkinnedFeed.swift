@@ -899,7 +899,8 @@ struct CircuitFeed<Row: View>: View {
             LazyVStack(spacing: 36) {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     row(card)
-                        .padding(16)
+                        // Room inside the tube for its glow, so the words sit on the plain dark screen.
+                        .padding(28)
                         // Only the screen's glass and frame lean; the words stay flat, so none are
                         // squeezed or cut off at an angle.
                         .background {
