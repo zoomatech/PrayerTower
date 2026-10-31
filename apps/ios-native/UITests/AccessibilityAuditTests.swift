@@ -6,7 +6,7 @@ import XCTest
 /// any issue fails the test. Skins come from the debug-only AuditSamplesView, so no server is needed.
 final class AccessibilityAuditTests: XCTestCase {
     static let skins = ["Beanstalk", "Golden Wood", "Moonlit Gate", "Neon Cinderella", "Blossom Garden", "Christmas Star",
-                        "Wall", "Prayer Tower", "Neon Circuit", "Swipe to pray", "Flip"]
+                        "Wall", "Prayer Tower", "Neon", "Neon Circuit", "Swipe to pray", "Flip"]
     static let sizes = ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"]
 
     /// Issues WCAG doesn't count, left aside by every audit here: Apple's own warnings for its
@@ -121,7 +121,8 @@ final class AccessibilityAuditTests: XCTestCase {
     @MainActor private func runAudit(_ app: XCUIApplication, _ place: String, in visible: CGRect) throws {
         try app.performAccessibilityAudit { issue in
             let element = issue.element
-            if let frame = element?.frame, !visible.contains(frame) { return true }
+            // An element with no place on screen (an infinite or empty frame) can't be measured there.
+            if let frame = element?.frame, !frame.origin.x.isFinite || !frame.origin.y.isFinite || frame.isEmpty || !visible.contains(frame) { return true }
             // Advisory only, as in UIWalks/MainScreensWalk.swift: the text does grow, just not by the
             // audit's full step (a system row button, e.g. sign-in's "Forgot your password?").
             if issue.compactDescription.contains("partially unsupported") { return true }

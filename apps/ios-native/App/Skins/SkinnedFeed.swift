@@ -911,6 +911,10 @@ struct CircuitFeed<Row: View>: View {
                                     .padding(3)
                                 ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: Color(look.screen)), width: 7)
                                     .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                                // The plain dark screen again over the inner glow, so the words always sit on dark glass.
+                                NeonFrame(radius: 8)
+                                    .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
+                                    .padding(18)
                             }
                             .accessibilityHidden(true)
                         }

@@ -315,6 +315,8 @@ private struct BeanPost<Row: View>: View {
         let fruit: Double = c.span(1300, 450, 0, 1, .pop)
         return row(card)
             .padding(12)
+            // Room at the sides, so the frame's vine as it wiggles never runs over the first or last letters.
+            .padding(.horizontal, 10)
             // Room under the locket.
             .padding(.top, 38)
             .frame(maxWidth: .infinity, alignment: .leading)
