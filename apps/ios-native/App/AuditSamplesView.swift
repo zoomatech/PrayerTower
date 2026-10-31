@@ -37,6 +37,7 @@ struct AuditSamplesView: View {
         FeedTheme(slug: "neon-circuit", name: "Neon Circuit", layout: "circuit", tokens: [
             "backdrop": .string("#05070D"), "wire": .string("#00E5FF"), "burst": .string("#FFFFFF"), "screen": .string("#FF2BD6"), "tilt": .number(10),
         ]),
+        FeedTheme(slug: "mountain-climber", name: "Mountain Climber", layout: "climb", tokens: ["backdrop": .string("#B8AB96")]),
         FeedTheme(slug: "swipe", name: "Swipe to pray", layout: "carousel", tokens: [:]),
         FeedTheme(slug: "flip", name: "Flip", layout: "flip", tokens: [:]),
     ]
