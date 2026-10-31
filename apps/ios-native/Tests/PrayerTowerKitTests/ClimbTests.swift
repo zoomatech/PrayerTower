@@ -34,7 +34,7 @@ import Testing
     }
 
     @Test func readsItsTokensAndKeepsTextReadable() throws {
-        let theme = try JSONDecoder().decode(FeedTheme.self, from: Data(#"{"slug":"mountain-climber","name":"Mountain Climber","layout":"climb","tokens":{"backdrop":"#B8AB96"}}"#.utf8))
+        let theme = try JSONDecoder().decode(FeedTheme.self, from: Data(##"{"slug":"mountain-climber","name":"Mountain Climber","layout":"climb","tokens":{"backdrop":"#B8AB96"}}"##.utf8))
         #expect(theme.kind == .climb)
         #expect(Skin.backdrop(theme)?.hex == "#B8AB96")
         #expect(ClimbLook(theme).slab.contrast(.textMuted) >= 4.5)
