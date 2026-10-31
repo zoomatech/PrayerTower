@@ -42,6 +42,10 @@ beforeEach(() => {
   jest.mocked(api.libraryNotes).mockResolvedValue({ notes: [] });
 });
 
+// The first test in this file loads the library screens cold; on a busy CI runner that alone
+// can pass Jest's 5 second default, so give each test here more room.
+jest.setTimeout(20000);
+
 describe('Word study', () => {
   it('shows a verse word by word and opens a word', async () => {
     jest.mocked(useLocalSearchParams).mockReturnValue({ ref: 'Genesis 1:1' });
