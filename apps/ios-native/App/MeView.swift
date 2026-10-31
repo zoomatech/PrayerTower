@@ -35,8 +35,8 @@ struct MeView: View {
                 }
                 if menuHoldsInbox {
                     Section {
-                        NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")).fixedSize(horizontal: false, vertical: true) } icon: { Text("💬").fixedSize().accessibilityHidden(true) } }
-                        NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")).fixedSize(horizontal: false, vertical: true) } icon: { Text("🔔").fixedSize().accessibilityHidden(true) } }
+                        NavigationLink { MessagesView(standalone: false) } label: { Label(w("tabs.messages"), systemImage: "bubble.left.and.bubble.right") }
+                        NavigationLink { NotificationsView(standalone: false) } label: { Label(w("tabs.notices"), systemImage: "bell") }
                     }
                 }
                 if let profile = model.me?.profile {

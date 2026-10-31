@@ -317,8 +317,8 @@ private struct BeanPost<Row: View>: View {
             .padding(12)
             // Room at the sides, so the frame's vine as it wiggles never runs over the first or last letters.
             .padding(.horizontal, 10)
-            // Room under the locket.
-            .padding(.top, 38)
+            // Room under the locket, so it never sits over the poster's name.
+            .padding(.top, 44)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Bean.cream)
             .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -337,6 +337,8 @@ private struct BeanPost<Row: View>: View {
             }
             .overlay(alignment: .topLeading) {
                 Locket(name: card.author.displayName, photo: card.author.photoUrl).scaleEffect(pop).opacity(fade).offset(x: -29, y: -50)
+                    // The name beside it already says who posted; the locket is only its picture.
+                    .accessibilityHidden(true)
             }
             .overlay(alignment: .topTrailing) {
                 if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 44).scaleEffect(fruit).offset(x: 20, y: -24) }
@@ -816,6 +818,7 @@ private struct Locket: View {
     private var initial: some View {
         Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
             .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
+            .accessibilityHidden(true)
     }
 }
 

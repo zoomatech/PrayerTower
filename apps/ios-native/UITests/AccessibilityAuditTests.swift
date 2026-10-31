@@ -72,7 +72,15 @@ final class AccessibilityAuditTests: XCTestCase {
                                 .press(forDuration: 0.1, thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)),
                                        withVelocity: .slow, thenHoldForDuration: 0.5)
                         }
-                        sleep(3)
+                        // Wait until the feed has come to rest: the same words in the same place twice running.
+                        var last = CGRect.null
+                        for _ in 0..<10 {
+                            sleep(1)
+                            let now = app.staticTexts.allElementsBoundByIndex.prefix(8).reduce(CGRect.null) { $0.union($1.frame) }
+                            if now == last { break }
+                            last = now
+                        }
+                        sleep(1)
                         // Read the element tree once, so the audit sees where things are after the
                         // scroll rather than where they were.
                         _ = app.debugDescription

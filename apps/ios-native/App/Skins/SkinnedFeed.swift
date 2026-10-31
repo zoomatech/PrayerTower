@@ -802,11 +802,14 @@ struct TowerFeed<Row: View>: View {
                 Rectangle().fill(Color(look.mortar)).frame(width: 2, height: max(20, 200 - index * 24))
                 // Kept to the wall's width, so it never hangs over a tablet.
                 DecorativeGlyph(glyph: look.climber, size: 22, maxScale: 1)
+                    // A picture the screen reader names too, so nothing drawn on screen is out of its reach.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(LayoutWords(wording).towerClimber)
+                    .accessibilityAddTraits(.isImage)
             }
             .frame(maxHeight: .infinity, alignment: .top)
             .padding(.trailing, 4)
             .animation(still ? nil : .spring(duration: 0.6), value: index)
-            .accessibilityHidden(true)
         }
         .environment(\.colorScheme, .light)
     }
