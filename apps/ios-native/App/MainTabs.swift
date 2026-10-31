@@ -59,7 +59,7 @@ struct MainTabs: View {
         if sidebar {
             all.append(AppSection(tag: 2, title: model.words("tabs.messages"), icon: "bubble.left.and.bubble.right"))
             all.append(AppSection(tag: 5, title: model.words("tabs.notices"), icon: "bell"))
-            if model.me?.community?.shows("groups") ?? true { all.append(AppSection(tag: 6, title: model.words("topicGroups.title"), icon: "person.2")) }
+            if model.features["topicGroups"], model.me?.community?.shows("groups") ?? true { all.append(AppSection(tag: 6, title: model.words("topicGroups.title"), icon: "person.2")) }
         }
         if model.features["prayerCircles"] { all.append(AppSection(tag: 3, title: "Circles", icon: "person.3")) }
         all.append(AppSection(tag: 4, title: model.words("tabs.me"), icon: "person.crop.circle", emoji: "👤"))

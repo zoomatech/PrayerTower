@@ -3,6 +3,10 @@
 -- feed, comment and pray. Group posts stay in the group: never on the main feed, the radio,
 -- search or digests. Any member can start a group and leads it; a group Prayer Tower starts
 -- has no member as its leader. The first group is "Cancer survivors".
+-- Admin → Growth practices switch (Steve, 2026-10-31: "a switch for activating Circles and one
+-- for groups"). On, since Steve ordered groups; turning it off hides Groups everywhere.
+alter table public.practice_settings add column topic_groups_enabled boolean not null default true;
+
 create table public.topic_groups (
   id uuid primary key default public.uuid_v7(),
   community_id uuid not null default public.default_community_id() references public.communities (id),

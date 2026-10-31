@@ -3112,6 +3112,9 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     commentLabel: 'Write a comment',
     send: 'Send',
     remove: 'Take down',
+    adminSection: 'Circles and Groups',
+    adminTitle: 'Groups',
+    adminHint: 'Open topic groups like Facebook groups, starting with Cancer survivors. Anyone can find and join one, share, comment and pray; any member can start one and leads it. Group posts never reach the main feed, the radio or digests. The author, the leader or a moderator can take a post down.',
   },
 };
 

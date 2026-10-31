@@ -31,6 +31,7 @@ export const keys: Tree = named({
     prayed: 'You’re thinking of them',
     prayedNote: 'Thank you. They’ll know someone is with them.',
     prayedCount: {"one": "1 is thinking of them", "other": "%{count} are thinking of them"},
+    adminHint: 'Open topic groups like Facebook groups. Anyone can find and join one, share and comment; any member can start one and leads it. Group posts never reach the main feed, the radio or digests. The author, the leader or a moderator can take a post down.',
   },
   circles: {
     title: 'Circles',

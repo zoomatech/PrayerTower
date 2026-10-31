@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { useFeature } from '@/lib/community-features';
+import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space } from '@/lib/theme';
 
@@ -34,7 +35,9 @@ export function CornerNav() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
-  const groupsOn = useFeature('groups');
+  const groupsFeature = useFeature('groups');
+  const { topicGroups } = useFeatures();
+  const groupsOn = groupsFeature && topicGroups;
   const items: { label: string; href: Href }[] = [
     { label: t('tabs.prayers'), href: '/' },
     { label: t('tabs.promises'), href: '/commitments' },

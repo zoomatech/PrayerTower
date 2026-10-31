@@ -9,6 +9,7 @@ import type { Queryable } from '../../db.js';
 import { badRequest, forbidden, notFound } from '../../errors.js';
 import { hasRole } from '../accounts/index.js';
 import { requireFeature } from '../communities/index.js';
+import { settings } from '../practices/index.js';
 
 export const MAX_LED = 5;
 
@@ -16,11 +17,17 @@ export const NewGroup = z.object({ name: z.string().trim().min(1).max(60), about
 export const NewPost = z.object({ body: z.string().trim().min(1).max(2000) });
 export const NewComment = z.object({ body: z.string().trim().min(1).max(1000) });
 
+/** Admin → Growth practices → Groups (practice_settings.topic_groups_enabled). */
+async function requireOn(q: Queryable, userId: string) {
+  if (!(await settings(q)).topic_groups_enabled) throw badRequest('Groups are switched off');
+  await requireFeature(q, userId, 'groups');
+}
+
 type Group = { id: string; name: string; about: string | null; leader_id: string | null };
 
 /** A group in the member's own community. */
 async function groupOf(q: Queryable, userId: string, groupId: string): Promise<Group> {
-  await requireFeature(q, userId, 'groups');
+  await requireOn(q, userId);
   const { rows } = await q.query<Group>(
     'select id, name, about, leader_id from public.topic_groups where id = $1 and community_id = public.member_community_id($2)',
     [groupId, userId],
@@ -45,6 +52,7 @@ async function canModerate(q: Queryable, userId: string, g: Group) {
 
 /** Every group in the member's community, the ones they belong to first, then the biggest. */
 export async function list(q: Queryable, userId: string) {
+  if (!(await settings(q)).topic_groups_enabled) return { enabled: false as const, groups: [] };
   await requireFeature(q, userId, 'groups');
   const { rows } = await q.query<{ id: string; name: string; about: string | null; leader_id: string | null; leader_name: string | null; members: number; joined: boolean }>(
     `select g.id, g.name, g.about, g.leader_id, p.display_name as leader_name,
@@ -57,6 +65,7 @@ export async function list(q: Queryable, userId: string) {
     [userId],
   );
   return {
+    enabled: true as const,
     groups: rows.map((r) => ({
       id: r.id,
       name: r.name,
@@ -70,7 +79,7 @@ export async function list(q: Queryable, userId: string) {
 }
 
 export async function create(q: Queryable, userId: string, input: z.infer<typeof NewGroup>) {
-  await requireFeature(q, userId, 'groups');
+  await requireOn(q, userId);
   const { rows: led } = await q.query<{ n: number }>('select count(*)::int as n from public.topic_groups where leader_id = $1', [userId]);
   if (led[0]!.n >= MAX_LED) throw badRequest(`You can lead up to ${MAX_LED} groups`);
   const { rows } = await q.query<{ id: string }>(

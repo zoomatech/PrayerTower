@@ -4,7 +4,11 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { grantRole } from '../src/modules/accounts/index.js';
 import { as, createUser, db } from './helpers.js';
 
-afterAll(() => db.end());
+const on = (v: boolean) => db.query('update public.practice_settings set topic_groups_enabled = $1', [v]);
+afterAll(async () => {
+  await on(true);
+  await db.end();
+});
 
 const cancer = async (u: string) => (await as(u).get('/topic-groups')).json().groups.find((g: { name: string }) => g.name === 'Cancer survivors');
 
@@ -44,6 +48,19 @@ describe('Groups', () => {
 
     expect((await as(ben).post(`/topic-groups/${g.id}/leave`)).json()).toEqual({ left: true });
     expect((await cancer(ben)).joined).toBe(false);
+  });
+
+  it('hides Groups while the admin switch is off', async () => {
+    const u = await createUser('Group Switch');
+    await on(false);
+    try {
+      expect((await as(u).get('/topic-groups')).json()).toEqual({ enabled: false, groups: [] });
+      expect((await as(u).post('/topic-groups', { name: 'Off group' })).statusCode).toBe(400);
+      expect((await as(u).get('/features')).json().features.topicGroups).toBe(false);
+    } finally {
+      await on(true);
+    }
+    expect((await as(u).get('/features')).json().features.topicGroups).toBe(true);
   });
 
   it('lets a member start a group and lead it, and passes it on when they leave', async () => {

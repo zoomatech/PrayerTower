@@ -12,6 +12,8 @@ const OUT = join(__dirname, '../../../ios-native/Sources/PrayerTowerKit/Resource
 
 /** Sections that are only switches and numbers. Radio and kindness sections live on their own screens. */
 const SECTIONS = [
+  // Circles and Groups first: Steve wants them easy to find (2026-10-31).
+  'CirclesAndGroupsSection',
   'NotebookSettingsSection',
   'GrowthSettingsSection',
   'MessagingSettingsSection',
@@ -84,7 +86,8 @@ export function adminBoards(): Board[] {
       const getter = saves.get(save)?.getter;
       const ep = getter ? endpoints(api, getter) : null;
       if (!getter || !ep || ep.method !== 'PATCH') continue;
-      boards.push({ id: getter, title, intro, get: ep.get, patch: ep.patch, ...g });
+      // Two sections can save to one endpoint (Circles and Groups, and Growth practices): keep ids unique.
+      boards.push({ id: boards.some((b) => b.id === getter) ? name : getter, title, intro, get: ep.get, patch: ep.patch, ...g });
     }
   }
   return boards;
