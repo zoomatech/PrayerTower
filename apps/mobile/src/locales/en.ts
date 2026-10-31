@@ -381,7 +381,6 @@ const en = {
     offlineKept: "On this device",
     offlineOld: "On this device: a newer copy is ready",
     offlineSearched: "No signal: searched your offline copy. Old word forms and similar words are not matched offline.",
-<<<<<<< HEAD
     adminListen: "Listening",
     adminListenHint: "Listen on every passage reads it aloud with the device's own voice (nothing is sent anywhere). Where LibriVox has a public-domain recording of the same translation, members can play that instead, with the reader's credit.",
     adminStudies: "Study rooms",
@@ -420,7 +419,6 @@ const en = {
     studySend: "Send",
     studyTakeDown: "Take down",
     studyRemove: "Take down this study",
-=======
     modeWords: "Words",
     modeWho: "Who did what",
     modeStory: "A story I remember",
@@ -430,7 +428,6 @@ const en = {
     storyHint: "Describe it in your own words: the guy who built the ark.",
     preparing: "Getting the meaning search ready on this device, once only: %{step}. Until then the word search answers.",
     unavailable: "This search needs an iPhone.",
->>>>>>> origin/main
   },
   readingPlan: {
     title: "Bible reading plan",
