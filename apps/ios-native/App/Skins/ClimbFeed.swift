@@ -113,6 +113,15 @@ final class ClimbChase {
 }
 
 /// The climber and his rope, drawn over the cliff edge.
+/// Mountain Climber's line look (the shared `ConnectorLook`, as Neon's glass and Beanstalk's vine
+/// strands): a climbing rope, dark red with a dashed orange braid along it.
+private struct RopeLook: ConnectorLook {
+    func stroke(_ path: Path, width: CGFloat, in ctx: GraphicsContext) {
+        ctx.stroke(path, with: .color(Color(RGB(hex: "#7A2412")!)), style: .init(lineWidth: width, lineCap: .round, lineJoin: .round))
+        ctx.stroke(path, with: .color(Color(RGB(hex: "#E0552A")!)), style: .init(lineWidth: width * 2.2 / 3.4, lineCap: .round, lineJoin: .round, dash: [3, 3]))
+    }
+}
+
 private struct ClimberLayer: View {
     let chase: ClimbChase
     let still: Bool
@@ -145,8 +154,7 @@ private struct ClimberLayer: View {
                 below.addCurve(to: CGPoint(x: hx - 6, y: hy + 300), control1: CGPoint(x: hx - 4 + sw, y: hy + 60), control2: CGPoint(x: hx - 10 + sw2, y: hy + 170))
                 below.addLine(to: CGPoint(x: hx - 6, y: max(h + 20, hy + 320)))
                 for rope in [above, below] {
-                    ctx.stroke(rope, with: .color(Color(RGB(hex: "#7A2412")!)), style: .init(lineWidth: 3.4, lineCap: .round, lineJoin: .round))
-                    ctx.stroke(rope, with: .color(Color(RGB(hex: "#E0552A")!)), style: .init(lineWidth: 2.2, lineCap: .round, lineJoin: .round, dash: [3, 3]))
+                    RopeLook().stroke(rope, width: 3.4, in: ctx)
                 }
                 var him = ctx
                 him.translateBy(x: hx, y: hy)
