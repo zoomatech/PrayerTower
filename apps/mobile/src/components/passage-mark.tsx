@@ -1,6 +1,6 @@
 // Highlights and notes on library passages (docs/LIBRARY_SEARCH.md): a colour, a note, or both, on any passage in
 // any collection. Private by default; a note can be shared with one of the member's circles. Off unless an admin
-// turns it on under Admin → Text search.
+// turns it on under Admin → Bible Reference Text Search.
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
