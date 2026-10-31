@@ -332,7 +332,7 @@ private struct ClimbPost<Row: View>: View {
                 .overlay { slab.stroke(Color(red: 90 / 255, green: 70 / 255, blue: 45 / 255).opacity(0.3), lineWidth: 1).accessibilityHidden(true) }
                 .shadow(color: Color(red: 45 / 255, green: 35 / 255, blue: 25 / 255).opacity(0.45), radius: 6, y: 4)
             ForEach(Array(shown.enumerated()), id: \.element.id) { i, note in
-                CommentRock(note: note, replies: tree.kids[note.id]?.count ?? 0, shape: index * 2 + i, words: words) { open(note, tree.kids) }
+                CommentRock(note: note, replies: tree.kids[note.id]?.count ?? 0, first: tree.kids[note.id]?.first, shape: index * 2 + i, words: words) { open(note, tree.kids) }
                     .frame(maxWidth: 360)
                     .frame(maxWidth: .infinity, alignment: (index + i).isMultiple(of: 2) ? .leading : .trailing)
             }
@@ -359,6 +359,7 @@ private struct ClimbPost<Row: View>: View {
 private struct CommentRock: View {
     let note: Beanstalk.Note
     let replies: Int
+    let first: Beanstalk.Note?
     let shape: Int
     let words: Words
     let open: () -> Void
@@ -369,7 +370,13 @@ private struct CommentRock: View {
                 Text(note.author).font(.footnote.bold()).foregroundStyle(Color(RGB(hex: "#3A2F23")!)).lineLimit(1)
                 Text(note.body).font(.subheadline).foregroundStyle(ClimbArt.rockInk).lineLimit(2)
                 // Its replies open with it, in the close-up.
-                if replies > 0 { Text(words("climb.replies", count: replies)).font(.caption.bold()).foregroundStyle(Color(RGB(hex: "#3A2F23")!)) }
+                // Steve: the first reply shows under every comment that has replies.
+                if let first {
+                    (Text("\(first.author): ").bold() + Text(first.body)).font(.footnote).foregroundStyle(ClimbArt.rockInk).lineLimit(1)
+                        .padding(.leading, 10)
+                        .overlay(alignment: .leading) { Rectangle().fill(Color(RGB(hex: "#6D5F4D")!)).frame(width: 3) }
+                }
+                if replies > 1 { Text(words("climb.replies", count: replies)).font(.caption.bold()).foregroundStyle(Color(RGB(hex: "#3A2F23")!)) }
             }
             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             .padding(.vertical, 16).padding(.leading, 22).padding(.trailing, 24)
@@ -381,7 +388,7 @@ private struct CommentRock: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(replies > 0 ? "\(note.author): \(note.body). \(words("climb.replies", count: replies))" : "\(note.author): \(note.body)")
+        .accessibilityLabel(first.map { "\(note.author): \(note.body). \($0.author): \($0.body). \(words("climb.replies", count: replies))" } ?? "\(note.author): \(note.body)")
         .accessibilityHint(words("climb.openComment"))
     }
 }
