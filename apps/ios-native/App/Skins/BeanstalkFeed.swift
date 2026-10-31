@@ -52,6 +52,8 @@ private enum BeanFont {
     static func body(_ size: Double) -> Font { .custom("Alegreya-Regular", size: size) }
     static func semi(_ size: Double) -> Font { .custom("Alegreya-SemiBold", size: size) }
     static func bold(_ size: Double) -> Font { .custom("Alegreya-Bold", size: size) }
+    /// A size that doesn't grow with the text setting, for a letter drawn inside a fixed shape.
+    static func boldFixed(_ size: Double) -> Font { .custom("Alegreya-Bold", fixedSize: size) }
     static func boldItalic(_ size: Double) -> Font { .custom("Alegreya-BoldItalic", size: size) }
     static func title(_ size: Double) -> Font { .custom("HennyPenny-Regular", size: size) }
 }
@@ -840,7 +842,7 @@ private struct Locket: View {
     private var initial: some View {
         let letter = String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
         return Canvas { ctx, box in
-            ctx.draw(Text(letter).font(BeanFont.bold(37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
+            ctx.draw(Text(letter).font(BeanFont.boldFixed(37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
         }
         .frame(width: 61, height: 71)
         .accessibilityHidden(true)
