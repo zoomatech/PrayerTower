@@ -461,6 +461,34 @@ export interface CircleView {
   welcome?: { text: string | null; show: boolean };
   posts: CirclePost[];
 }
+// Groups (Steve, 2026-10-31): open topic groups like Facebook groups.
+type GroupPerson = { id: string; displayName: string | null };
+export interface TopicGroup {
+  id: string;
+  name: string;
+  about: string | null;
+  members: number;
+  joined: boolean;
+  isLeader: boolean;
+  /** null = led by Prayer Tower. */
+  leader: GroupPerson | null;
+}
+export interface TopicGroupComment {
+  id: string;
+  author: GroupPerson;
+  body: string;
+  createdAt: string;
+  canRemove: boolean;
+}
+export interface TopicGroupPost extends TopicGroupComment {
+  prayed: number;
+  prayedByMe: boolean;
+  comments: TopicGroupComment[];
+}
+export interface TopicGroupView {
+  group: TopicGroup;
+  posts: TopicGroupPost[];
+}
 export type ReplyAudience = 'everyone' | 'supporters' | 'none';
 export type ReplyChoiceState = { enabled: boolean; audience: ReplyAudience; canComment: boolean; isMine: boolean };
 export type RemovedWords = { target: 'post'; body: string; postType: string } | { target: 'comment'; body: string; postId: string };
@@ -2698,6 +2726,16 @@ export const api = {
   askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
   endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
   encouragerCheckIn: (id: string, answer: CheckInAnswer) => post<EncouragerState>(`/me/encourager/matches/${id}/check-in`, { answer }),
+  topicGroups: () => get<{ groups: TopicGroup[] }>('/topic-groups'),
+  createTopicGroup: (name: string, about?: string) => post<{ id: string }>('/topic-groups', { name, ...(about ? { about } : {}) }),
+  topicGroup: (id: string) => get<TopicGroupView>(`/topic-groups/${id}`),
+  joinTopicGroup: (id: string) => post<{ joined: boolean }>(`/topic-groups/${id}/join`),
+  leaveTopicGroup: (id: string) => post<{ left: boolean }>(`/topic-groups/${id}/leave`),
+  topicGroupPost: (id: string, body: string) => post<{ id: string }>(`/topic-groups/${id}/posts`, { body }),
+  topicGroupComment: (postId: string, body: string) => post<{ id: string }>(`/topic-group-posts/${postId}/comments`, { body }),
+  topicGroupPray: (postId: string) => post<{ prayed: boolean }>(`/topic-group-posts/${postId}/pray`),
+  removeTopicGroupPost: (postId: string) => request<{ removed: boolean }>('DELETE', `/topic-group-posts/${postId}`),
+  removeTopicGroupComment: (id: string) => request<{ removed: boolean }>('DELETE', `/topic-group-comments/${id}`),
   myCircles: () => get<{ enabled: boolean; circles: CircleSummary[] }>('/me/circles'),
   createCircle: (name: string, about?: string) => post<{ id: string }>('/circles', { name, ...(about ? { about } : {}) }),
   joinCircle: (code: string) => post<{ id: string }>('/circles/join', { code }),

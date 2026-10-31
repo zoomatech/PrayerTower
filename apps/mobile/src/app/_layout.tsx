@@ -121,6 +121,8 @@ function RootStack() {
           <Stack.Screen name="remembered" />
           <Stack.Screen name="circles/index" />
           <Stack.Screen name="circles/[id]" />
+          <Stack.Screen name="topic-groups/index" />
+          <Stack.Screen name="topic-groups/[id]" />
           <Stack.Screen name="mend/[id]" />
           <Stack.Screen name="meaning-words" />
           <Stack.Screen name="highlights" />

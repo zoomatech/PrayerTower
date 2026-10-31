@@ -39,7 +39,7 @@ struct MeView: View {
                         NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")) } icon: { Text("🔔").accessibilityHidden(true) } }
                         // Groups in the main menu (Steve, 2026-10-31), starting with Cancer survivors.
                         if model.me?.community?.shows("groups") ?? true {
-                            NavigationLink { GroupsView() } label: { Label { Text(w("messages.groups")) } icon: { Text("👥").accessibilityHidden(true) } }
+                            NavigationLink { TopicGroupsView() } label: { Label { Text(w("topicGroups.title")) } icon: { Text("👥").accessibilityHidden(true) } }
                         }
                     }
                 }

@@ -250,7 +250,7 @@ async function getConversation(q: Queryable, id: string) {
     topic: string | null;
     is_public: boolean;
     closed_at: Date | null;
-    created_by: string | null;
+    created_by: string;
   }>('select id, kind, post_id, title, topic, is_public, closed_at, created_by from public.conversations where id = $1', [id]);
   return rows[0] ?? null;
 }

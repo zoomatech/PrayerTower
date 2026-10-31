@@ -40,7 +40,7 @@ export function CornerNav() {
     { label: t('tabs.promises'), href: '/commitments' },
     { label: t('tabs.messages'), href: '/messages' },
     // Groups (Steve, 2026-10-31), starting with Cancer survivors.
-    ...(groupsOn ? [{ label: t('messages.groups'), href: '/groups' as Href }] : []),
+    ...(groupsOn ? [{ label: t('topicGroups.title'), href: '/topic-groups' as Href }] : []),
     { label: t('tabs.notices'), href: '/notifications' },
     { label: t('tabs.me'), href: '/profile' },
   ];

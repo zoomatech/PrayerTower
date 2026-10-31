@@ -181,14 +181,6 @@ describe('group chats', () => {
     const friend = await createUser('Invited Friend');
     const outsider = await createUser('Outsider');
 
-    // Prayer Tower's own first group (Steve, 2026-10-31) is open to everyone.
-    const cancer = (await as(joiner).get('/groups')).json().groups.find((g: { title: string }) => g.title === 'Cancer survivors');
-    expect(cancer).toMatchObject({ topic: expect.stringContaining('cancer survivors'), joined: false });
-    expect((await as(joiner).post(`/conversations/${cancer.id}/join`)).statusCode).toBe(200);
-    expect((await as(joiner).post(`/conversations/${cancer.id}/messages`, { body: 'Five years clear this week. Glad to find you all.' })).statusCode).toBe(201);
-    expect((await as(outsider).get(`/conversations/${cancer.id}`)).statusCode).toBe(404);
-    expect((await as(joiner).post(`/conversations/${cancer.id}/decline`)).statusCode).toBe(200);
-
     const pub = (await as(owner).post('/conversations/groups', { title: 'Morning prayer circle', topic: 'Pray at 7am together', isPublic: true })).json();
     const groups = (await as(joiner).get('/groups')).json().groups;
     expect(groups.find((g: { id: string }) => g.id === pub.conversationId)).toMatchObject({ title: 'Morning prayer circle', memberCount: 1, joined: false });
