@@ -1,8 +1,8 @@
 
-Shared tests       PASS   Test run with 270 tests
+Shared tests       PASS   Test run with 274 tests
 Xcode project      PASS   PrayerTowerNative.xcodeproj
 iPhone app         PASS   iOS Simulator (id=15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D)
-UI walks           FAIL   /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261031-201746/ui-walks.txt
+UI walks           FAIL   /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261031-205212/ui-walks.txt
 Open Circle app    PASS   iOS Simulator (id=15FAB4A1-2F41-4DFB-B3E0-FB0C9936253D)
 Mac app            PASS   macOS
 Mac console        PASS   macOS
@@ -13,10 +13,6 @@ First errors:
 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:57: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Text clipped
 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UITests/AccessibilityAuditTests.swift:58: error: -[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin] : Failed to tap Button (Element at index 0): No matches found for Descendants matching type Button from input {(
 /Users/runner/work/PrayerTower/PrayerTower/apps/ios-native/UIWalks/MainScreensWalk.swift:95: error: -[PrayerTowerUIWalks.MainScreensWalk testEveryScreenPassesTheAccessibilityAudit] : XCTAssertTrue failed - Accessibility audit:
-AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'J'. Contrast failed for element
-AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Jordan'. Contrast failed for element
-AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Please pray for my mom's surgery on Friday.'. Contrast failed for element
-AUDIT Beanstalk at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 9) 'Scroll to climb'. Contrast failed for element
 AUDIT Beanstalk at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Praying for her..'. Contrast failed for element
 AUDIT Christmas Star at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Christmas Star'. Contrast failed for element
 AUDIT Moonlit Gate at UICTContentSizeCategoryAccessibilityXXXL: Contrast failed on XCUIElementType(rawValue: 48) 'Moonlit Gate'. Contrast failed for element
@@ -28,4 +24,8 @@ AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementTy
 AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Riley'. Contrast failed for element
 AUDIT Neon Circuit at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Thankful: the new job came through!'. Contrast failed for element
 AUDIT Wall at UICTContentSizeCategoryL: Contrast failed on XCUIElementType(rawValue: 48) 'Wall'. Contrast failed for element
-Logs: /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261031-201746
+Me: Contrast failed on screen. Contrast failed for element
+Me: Contrast failed on XCUIElementType(rawValue: 48) 'SETTINGS'. Contrast failed for element
+Request: Contrast failed on screen. Contrast failed for element
+Test Case '-[PrayerTowerNativeUITests.AccessibilityAuditTests testEverySkin]' failed (102.675 seconds).
+Logs: /Users/runner/work/PrayerTower/PrayerTower/build-logs/native-20261031-205212
