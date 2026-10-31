@@ -31,6 +31,8 @@ private enum Bean {
     static let heart = Color(RGB(hex: "#B23A22")!)
     static let stem = Color(RGB(hex: "#5E9440")!)
     static let leaves = [Color(RGB(hex: "#B6D77A")!), Color(RGB(hex: "#D7EBB0")!), Color(RGB(hex: "#9CC862")!)]
+    /// The leaf veins: the stalk's green made 10% lighter (Steve, 2026-10-30).
+    static let vein = Color(RGB(hex: "#6E9F53")!)
     static let button = Color(RGB(hex: "#D7EBB0")!)
     static let sub = Color(RGB(hex: "#5C4A33")!)
     // A little darker than the design's #2F4F86, for 4.5:1 on the darkest leaf (WCAG AA).
@@ -150,7 +152,7 @@ struct BeanstalkFeed<Row: View>: View {
                         LazyVStack(spacing: 0) {
                             Color.clear.frame(height: 76).id("beanstalk-top")
                             ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
-                                BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i],
+                                BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i], margin: (lane - width) / 2,
                                          viewport: Double(geo.size.height), words: words, row: row, load: loadComments)
                                     .task { if card.id == cards.last?.id { await onEnd() } }
                             }
@@ -250,6 +252,8 @@ private struct BeanPost<Row: View>: View {
     /// Where this post sits, and where the next one does, off the centre line.
     let shift: Double
     let next: Double
+    /// The lane's space on each side of the frame, before the post's own shift.
+    let margin: Double
     let viewport: Double
     let words: Words
     let row: (Card) -> Row
@@ -263,13 +267,15 @@ private struct BeanPost<Row: View>: View {
     @State private var cv = BeanDraw.LeafState()
     @State private var geo: BeanDraw.FrameVine?
     @State private var reading: Beanstalk.Note?
+    /// Where on screen the card's poster name ends, so a comment's close-up opens below it.
+    @State private var nameBottom: Double = 0
     @Environment(\.accessibilityReduceMotion) private var still
 
     var body: some View {
         let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
         let tree = Beanstalk.tree(notes)
         let total: Int = all != nil ? tree.top.count : max(tree.top.count, card.counts.comments)
-        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift)
+        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift, room: (margin + shift, margin - shift))
         let live: Bool = !still && isLive(Date())
         let vp: Double = viewport
         // The shared growing-connector routine in Beanstalk's style: the design's linear clock in
@@ -313,7 +319,7 @@ private struct BeanPost<Row: View>: View {
             guard grown, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
-        .sheet(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words) { reading = nil } }
+        .fullScreenCover(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words, top: nameBottom) { reading = nil } }
     }
 
     private func isLive(_ now: Date) -> Bool {
@@ -346,6 +352,9 @@ private struct BeanPost<Row: View>: View {
             .overlay(RoundedRectangle(cornerRadius: 18).stroke(Bean.ink, lineWidth: 3))
             .background(RoundedRectangle(cornerRadius: 18).fill(Bean.ink).offset(x: 6, y: 7))
             .onGeometryChange(for: CGSize.self) { $0.size } action: { s in measured(s) }
+            // The locket and the poster's name, on screen: the card's top plus room under the locket and the name's line.
+            // Rounded, so scrolling only updates it every few points.
+            .onGeometryChange(for: Double.self) { (Double($0.frame(in: .global).minY) / 8).rounded() * 8 + 80 } action: { nameBottom = $0 }
             // The card springs up from the stalk: from low, narrow and flat, to whole.
             .scaleEffect(x: sx, y: sy, anchor: .bottom)
             .offset(y: dy)
@@ -591,7 +600,7 @@ private struct BeanLeafView: View {
         let left: Bool = leaf.side < 0
         let fs: Double = leaf.level == 1 ? 14 : (leaf.level == 2 ? 12.5 : 12)
         let nameFs: Double = leaf.level == 1 ? 13.5 : (leaf.level == 2 ? 12 : 11.5)
-        let minH: Double = leaf.level == 1 ? 100 : (leaf.level == 2 ? 84 : 66)
+        let minH: Double = leaf.level == 1 ? 110 : (leaf.level == 2 ? 92 : 73)
         let small: Bool = leaf.level > 1
         let fit = Beanstalk.fit(leaf.note.body, max: Beanstalk.chars(width: leaf.lw * 0.64, font: fs, lines: small ? 1 : 2))
         let more: Bool = leaf.replies > 0 && leaf.level < 3
@@ -603,8 +612,9 @@ private struct BeanLeafView: View {
         let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
         Button { onTap(fit.cut) } label: {
             VStack(spacing: 0) {
-                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1)
-                Text(fit.text).font(BeanFont.body(fs)).lineLimit(small ? 1 : 2)
+                // The words are shortened to fit; larger text shrinks to fit the leaf, never stretching it.
+                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1).minimumScaleFactor(0.6)
+                Text(fit.text).font(BeanFont.body(fs)).lineLimit(small ? 1 : 2).minimumScaleFactor(0.6)
                 if !hint.isEmpty, !small { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).padding(.top, 2) }
             }
             .foregroundStyle(Bean.text)
@@ -615,8 +625,8 @@ private struct BeanLeafView: View {
             .padding(.trailing, padR)
             .frame(width: leaf.lw)
             // A reply keeps a real leaf's shape, half as tall as it is wide, so it never balloons.
-            .frame(minHeight: small ? nil : minH)
-            .frame(height: small ? (leaf.lw * 0.52).rounded() : nil)
+            // A true leaf's proportions at a fixed size: the words never stretch it (Steve, 2026-10-30).
+            .frame(height: small ? (leaf.lw * 0.52).rounded() : minH)
             .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
         .buttonStyle(.plain)
@@ -686,23 +696,23 @@ private struct LeafCluster: View {
     private var nodes: [Node] {
         let lead = width - 14
         if !big {
-            return [Node(y: 8, side: 1, stalk: 14, size: 58, droop: -24, text: false),
-                    Node(y: 34, side: -1, stalk: 14, size: 52, droop: 10, text: false),
-                    Node(y: 58, side: 1, stalk: 12, size: 46, droop: 30, text: false)]
+            return [Node(y: 9, side: 1, stalk: 14, size: 64, droop: -24, text: false),
+                    Node(y: 37, side: -1, stalk: 14, size: 57, droop: 10, text: false),
+                    Node(y: 64, side: 1, stalk: 12, size: 51, droop: 30, text: false)]
         }
         // Upper leaves reach up and out, lower ones droop, like a shoot seen from the side.
-        return [Node(y: 26, side: 1, stalk: 18, size: 84, droop: -14, text: false),
-                Node(y: 26, side: -1, stalk: 12, size: lead, droop: 3, text: true),
-                Node(y: 76, side: 1, stalk: 16, size: 62, droop: 2, text: false),
-                Node(y: 124, side: 1, stalk: 16, size: 72, droop: 28, text: false),
-                Node(y: 136, side: -1, stalk: 16, size: 58, droop: 30, text: false),
-                Node(y: 176, side: -1, stalk: 14, size: 44, droop: 40, text: false)]
+        return [Node(y: 29, side: 1, stalk: 18, size: 92, droop: -14, text: false),
+                Node(y: 29, side: -1, stalk: 12, size: lead, droop: 3, text: true),
+                Node(y: 84, side: 1, stalk: 16, size: 68, droop: 2, text: false),
+                Node(y: 136, side: 1, stalk: 16, size: 79, droop: 28, text: false),
+                Node(y: 150, side: -1, stalk: 16, size: 64, droop: 30, text: false),
+                Node(y: 194, side: -1, stalk: 14, size: 48, droop: 40, text: false)]
     }
 
     var body: some View {
         let W = width
         let all = nodes
-        let tall: Double = big ? 220 : 90
+        let tall: Double = big ? 242 : 99
         Button {
             rustles += 1
             Task {
@@ -732,6 +742,7 @@ private struct LeafCluster: View {
                     let ey = n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(n.droop * .pi / 180)
                     let anchor: UnitPoint = left ? .trailing : .leading
                     blade(n, flip: left, fill: Bean.leaves[(i + seed) % Bean.leaves.count])
+                        // Always a true leaf's proportions: the words never stretch it (Steve, 2026-10-30).
                         .frame(width: n.size, height: h)
                         // Each leaf swings on its own stalk, out of step with the rest.
                         .rustle(rustles, by: Double(i % 3 + 2) * (i % 2 == 0 ? 1 : -1), anchor: anchor)
@@ -750,9 +761,11 @@ private struct LeafCluster: View {
             LeafBack(flip: flip, fill: fill, line: 2)
             if n.text, let first {
                 VStack(spacing: 1) {
-                    Text(first.author).font(BeanFont.bold(13)).lineLimit(1)
-                    // The whole first line of the top comment, as wide as the leaf allows.
-                    Text(first.body).font(BeanFont.body(12.5)).lineLimit(2).truncationMode(.tail)
+                    Text(first.author).font(BeanFont.bold(13)).lineLimit(1).minimumScaleFactor(0.6)
+                    // The opening of the top comment, shortened to fit at a word; larger text shrinks to
+                    // fit the leaf rather than stretching it.
+                    Text(Beanstalk.fit(first.body, max: Beanstalk.chars(width: n.size * 0.9, font: 12.5, lines: 2)).text)
+                        .font(BeanFont.body(12.5)).lineLimit(2).minimumScaleFactor(0.6)
                 }
                 .foregroundStyle(Bean.text)
                 .multilineTextAlignment(.center)
@@ -789,8 +802,11 @@ private struct LeafBack: View {
     var body: some View {
         ZStack {
             DesignLeaf(flip: flip).fill(fill)
+            // From the leaf's own green at its edges to a brighter, paler green in the middle (Steve, 2026-10-30).
+            DesignLeaf(flip: flip).fill(EllipticalGradient(colors: [Color(RGB(hex: "#F4FBE4")!).opacity(0.85), Color(RGB(hex: "#F4FBE4")!).opacity(0)],
+                                                           center: .center, startRadiusFraction: 0, endRadiusFraction: 0.55))
             DesignLeaf(flip: flip).stroke(Bean.vineInk, lineWidth: line)
-            DesignLeaf(flip: flip, veins: true, big: big).stroke(Bean.stem.opacity(0.55), style: .init(lineWidth: 1.2, lineCap: .round))
+            DesignLeaf(flip: flip, veins: true, big: big).stroke(Bean.vein.opacity(0.55), style: .init(lineWidth: 1.2, lineCap: .round))
         }
     }
 }
@@ -862,57 +878,114 @@ private struct BeanReader: View {
     let note: Beanstalk.Note
     let kids: [String: [Beanstalk.Note]]
     let words: Words
+    /// Where the poster's locket and name end on screen: the close-up opens below them, so you
+    /// can always see whose post you're answering (Steve, 2026-10-30).
+    var top: Double = 0
     let close: () -> Void
 
+    // The full close-up only hints at a leaf (Steve, 2026-10-30): a plain green square, paler in
+    // the middle, with V-shaped veins repeating down it, and the replies indented under the comment
+    // as in any social app. No leaf outline, no vine lining.
     var body: some View {
-        GeometryReader { g in
-            let w: Double = Double(g.size.width)
-            let h: Double = Double(g.size.height)
-            ZStack(alignment: .topLeading) {
-                LeafBack(fill: Bean.leaves[1], line: 3, big: true).accessibilityHidden(true)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(note.author).font(BeanFont.bold(15))
-                            Text(note.body).font(BeanFont.body(19))
-                        }
-                        replies(note.id, level: 1)
-                    }
-                    .foregroundStyle(Bean.ink)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(note.author).font(BeanFont.bold(17))
+                    Text(note.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(width: w * 0.76, height: h * 0.70)
-                .offset(x: w * 0.09, y: h * 0.17)
-                Button(action: close) {
-                    Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
-                        .frame(width: 48, height: 48)
-                        .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
-                        .overlay(Circle().stroke(Bean.ink, lineWidth: 3))
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut(.cancelAction)
-                .accessibilityLabel(words("common.close"))
-                .offset(x: w * 0.86 - 48, y: h * 0.08)
+                replies(note.id, level: 1)
             }
+            .foregroundStyle(Bean.text)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 22)
+            .padding(.top, 64)
+            .padding(.bottom, 24)
         }
-        .frame(maxWidth: 760, maxHeight: 560)
-        .padding(12)
-        .presentationBackground(Color(RGB(hex: "#1F1A14")!).opacity(0.55))
+        .scrollBounceBehavior(.basedOnSize)
+        .background { LeafSquare().accessibilityHidden(true) }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        // A square, as large as the screen allows; longer threads scroll inside it.
+        .aspectRatio(1, contentMode: .fit)
+        .overlay(alignment: .topTrailing) {
+            Button(action: close) {
+                Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
+                    .frame(width: 44, height: 44)
+                    .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut(.cancelAction)
+            .accessibilityLabel(words("common.close"))
+            .padding(12)
+        }
+        .frame(maxWidth: 600)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .modifier(BelowName(top: top, close: close))
+        .presentationBackground(.clear)
         .environment(\.colorScheme, .light)
     }
 
     private func replies(_ id: String, level: Int) -> AnyView {
         AnyView(ForEach(kids[id] ?? []) { r in
             VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(BeanFont.bold(15))
-                Text(r.body).font(BeanFont.body(17))
+                Text(r.author).font(BeanFont.bold(17))
+                Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
+            .padding(.top, 8)
             .padding(.leading, 12)
             .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
             .padding(.leading, 20)
         })
+    }
+}
+
+/// Places the close-up below the poster's locket and name, dimming only the feed beneath them, so
+/// the post's author stays in view. A tap outside the square closes it.
+private struct BelowName: ViewModifier {
+    let top: Double
+    let close: () -> Void
+    func body(content: Content) -> some View {
+        GeometryReader { g in
+            // On screen even when the post is scrolled part way off, and never so low the square has no room.
+            let y: Double = min(max(top, 60), Double(g.size.height) * 0.5)
+            VStack(spacing: 0) {
+                Color.clear.contentShape(.rect).frame(height: y).onTapGesture(perform: close)
+                content.frame(maxHeight: .infinity, alignment: .top)
+            }
+            .background(alignment: .bottom) {
+                Color.black.opacity(0.45).frame(height: max(0, Double(g.size.height) - y + 8)).onTapGesture(perform: close).accessibilityHidden(true)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// A green square that suggests a leaf: the leaf's green at the edges, paler and brighter in the
+/// middle, a midrib down the centre and V-shaped veins repeating along it.
+private struct LeafSquare: View {
+    var body: some View {
+        ZStack {
+            // 10% lighter at both ends of the gradient than first drawn (Steve, 2026-10-30).
+            Rectangle().fill(Color(RGB(hex: "#BDDB87")!))
+            Rectangle().fill(EllipticalGradient(colors: [Color(RGB(hex: "#F5FBE7")!).opacity(0.9), Color(RGB(hex: "#F5FBE7")!).opacity(0)],
+                                                center: .center, startRadiusFraction: 0, endRadiusFraction: 0.6))
+            Canvas { ctx, size in
+                let cx = size.width / 2
+                let reach = size.width * 0.42
+                var veins = Path()
+                veins.move(to: CGPoint(x: cx, y: 0))
+                veins.addLine(to: CGPoint(x: cx, y: size.height))
+                var y: CGFloat = reach * 0.6
+                while y < size.height + reach * 0.6 {
+                    veins.move(to: CGPoint(x: cx - reach, y: y - reach * 0.6))
+                    veins.addLine(to: CGPoint(x: cx, y: y))
+                    veins.addLine(to: CGPoint(x: cx + reach, y: y - reach * 0.6))
+                    y += 70
+                }
+                ctx.stroke(veins, with: .color(Bean.vein.opacity(0.22)), style: .init(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            }
+        }
     }
 }
 

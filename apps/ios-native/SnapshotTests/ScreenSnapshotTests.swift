@@ -30,18 +30,18 @@ final class ScreenSnapshotTests: XCTestCase {
     func testEverySkin() {
         // Neon Cinderella's spark runs down its rod and the glows draw a hair differently each run,
         // so a skin may differ in a few pixels (0.5%) from its reference without failing.
+        // The skins' comment views read the app model, as the real feed's do.
+        let model = AppModel(store: .sampleData(posts: nil))
         for skin in AuditSamplesView.skins {
             let feed = NavigationStack {
                 SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, hasMore: false, row: { card in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(card.author.displayName).font(.subheadline.bold())
-                        Text(card.body)
-                    }
+                    SampleCardRow(card: card)
                 }, onEnd: {})
                 .navigationTitle(skin.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .skinBars(Skin.backdrop(skin))
             }
+            .environment(model)
             assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1, wholeScreen: true, precision: 0.995),
                            named: "skin-\(skin.slug)-largest-text", timeout: 10)
         }
