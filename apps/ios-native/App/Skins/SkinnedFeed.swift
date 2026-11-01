@@ -15,7 +15,9 @@ struct SkinnedFeed<Row: View>: View {
     var body: some View {
         if SkinHeader.drawsOwn(theme) {
             // The skin's own header runs up behind the clock under the bar (Steve, 2026-11-01).
-            layouts.overlay(alignment: .top) { header }
+            // The feed stops at the foot of the bar instead of scrolling on under the header, so no
+            // words sit hidden beneath it (VoiceOver and the accessibility audit would still find them).
+            layouts.clipShape(BelowTheBar()).overlay(alignment: .top) { header }
         } else {
             // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
             layouts.solidNavigationBar()
@@ -1060,4 +1062,10 @@ struct CeramicHeader: View {
             ctx.fill(Path(CGRect(x: 0, y: bottom + 1, width: size.width, height: 1)), with: .color(.white.opacity(0.8)))
         }
     }
+}
+
+/// Everything from the top of the feed (the foot of the bar) down, with room past the bottom so
+/// a backdrop still runs on under the tab bar.
+private struct BelowTheBar: Shape {
+    func path(in rect: CGRect) -> Path { Path(CGRect(x: rect.minX - 500, y: rect.minY, width: rect.width + 1000, height: rect.height + 2000)) }
 }

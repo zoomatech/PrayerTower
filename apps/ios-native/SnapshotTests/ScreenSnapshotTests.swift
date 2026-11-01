@@ -42,7 +42,10 @@ final class ScreenSnapshotTests: XCTestCase {
                 .skinBars(Skin.backdrop(skin))
             }
             .environment(model)
-            assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1, wholeScreen: true, precision: 0.995),
+            // Mountain Climber's climber and Ceramic Figurines' turtle and flying angels are always on
+            // the move, so those two allow a little more (2%) than the glows.
+            let moving = skin.kind == .climb || skin.kind == .ceramic
+            assertSnapshot(of: UIHostingController(rootView: feed), as: .loaded(style: .light, seconds: 1, wholeScreen: true, precision: moving ? 0.98 : 0.995),
                            named: "skin-\(skin.slug)-largest-text", timeout: 10)
         }
     }
