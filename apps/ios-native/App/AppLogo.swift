@@ -43,6 +43,12 @@ struct AppLogo: ViewModifier {
                         .accessibilityLabel("The Prayer Tower")
                         .accessibilityAddTraits(.isImage)
                         .accessibilityIdentifier("app-logo")
+                        // A bar item can't grow with the text size; held down at the larger sizes it
+                        // shows enlarged in the Large Content Viewer, as Apple asks for bar items.
+                        .accessibilityShowsLargeContentViewer {
+                            logo.resizable().scaledToFit()
+                            Text("The Prayer Tower")
+                        }
                 }
             }
         }
