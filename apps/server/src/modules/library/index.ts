@@ -189,14 +189,21 @@ export async function search(q: Queryable, userId: string, input: z.infer<typeof
 
 // The daily passage --------------------------------------------------------------------
 
-const candidates = new Map<CollectionId, number[]>();
+const candidates = new Map<string, number[]>();
 
-/** Passages short enough for a card, in order; picked from by the day. */
-function cardPassages(id: CollectionId) {
-  const known = candidates.get(id);
+/** Religious words an Open Circle screen never shows (docs/OPEN_CIRCLE.md, as the Open Circle walk checks). */
+const FAITH_WORDS = /\b(pray\w*|god|lord|jesus|christ\w*|bible|psalms?|gospel|ministry|worship\w*|spiritual|church\w*|amen|blessed|scripture|priestly|pastor\w*|testimon\w*|confession\w*|faith|prais\w*)\b/i;
+
+/** Passages short enough for a card, in order; picked from by the day. In Open Circle, only those with no religious word in their words or citation. */
+function cardPassages(id: CollectionId, secular: boolean) {
+  const key = `${id}:${secular}`;
+  const known = candidates.get(key);
   if (known) return known;
-  const list = collection(id).index.passages.flatMap((p, i) => (p.text.length >= 60 && p.text.length <= 320 ? [i] : []));
-  candidates.set(id, list);
+  const c = collection(id);
+  const list = c.index.passages.flatMap((p, i) =>
+    p.text.length >= 60 && p.text.length <= 320 && !(secular && FAITH_WORDS.test(`${p.text}\n${citation(id, p.ref, c.works.get(p.workId)!)}`)) ? [i] : [],
+  );
+  candidates.set(key, list);
   return list;
 }
 
@@ -213,7 +220,7 @@ export async function daily(q: Queryable, userId: string, day = new Date().toISO
   const ids = f.libraryDaily ? await offered(q, userId) : null;
   if (!ids) return { enabled: false as const };
   const id: CollectionId = ids.includes('bible-kjv') ? 'bible-kjv' : 'ancient-writings';
-  const list = cardPassages(id);
+  const list = cardPassages(id, id !== 'bible-kjv');
   const c = collection(id);
   const p = c.index.passages[list[dayNumber(day) % list.length]!]!;
   const work = c.works.get(p.workId)!;
