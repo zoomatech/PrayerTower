@@ -87,14 +87,23 @@ struct MainTabs: View {
                 TabView(selection: $tab) {
                     // .tabItem rather than Tab(…), which needs iOS 18; the app supports iOS 17.
                     ForEach(sections) { s in
-                        screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
+                        screen(s.tag)
+                            // Clear of Home and Menu where they sit below the title bar.
+                            .contentMargins(.leading, s.tag == 0 && !model.feedOpen ? 0 : HomeAndMenu.column, for: .scrollContent)
+                            .tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
                             // The bar under the feed is 75% opaque (Steve, 2026-10-30).
                             .seeThroughTabBar()
                     }
                 }
                 // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
                 // menu right below it, so there's always a way back to the feed.
-                .overlay(alignment: .topLeading) { homeAndMenu.padding(.leading, 8).padding(.top, 2) }
+                // Over the feed they sit in its header's corner; on every other screen (Me, a request,
+                // anything with a back button) just below the title bar, with the content moved
+                // right to clear them, so they never cover a title, a back button or a name
+                // (Steve, 2026-11-01).
+                .overlay(alignment: .topLeading) {
+                    homeAndMenu.padding(.leading, 8).padding(.top, tab == 0 && !model.feedOpen ? 2 : HomeAndMenu.belowBar)
+                }
             }
         }
         // ⌘1–⌘7 jump between sections with a hardware keyboard (iPad, Mac).

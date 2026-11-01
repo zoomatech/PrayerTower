@@ -70,6 +70,7 @@ struct FeedView: View {
                 }
             }
             .navigationDestination(item: $opened) { PostDetailView(postId: $0) }
+            .onChange(of: opened, initial: true) { _, id in model.feedOpen = id != nil }
             // A tap on the Pray now widget or the Live Activity opens its request.
             .onChange(of: model.openPost, initial: true) { _, id in
                 guard let id else { return }

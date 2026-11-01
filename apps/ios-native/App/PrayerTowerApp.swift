@@ -49,6 +49,8 @@ final class AppModel {
     var tree: [MeaningEmoji] = []
     /// A request to open from a widget or Live Activity tap.
     var openPost: String?
+    /// A request is open over the feed, so Home and Menu step down below its title bar (Steve, 2026-11-01).
+    var feedOpen = false
     /// On iPhone, the Me menu page to open: Messages (2) or Notices (5), which are not tabs there.
     var meOpens: Int?
     /// The code from an invite link (prayertower://sign-in?invite=CODE), for sign-up.
