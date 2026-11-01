@@ -47,6 +47,8 @@ struct MainTabs: View {
     @State private var tab = 0
     /// Changed by Home, so the feed starts again from its top screen.
     @State private var home = UUID()
+    /// Menu → Settings, open.
+    @State private var settings = false
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var width
     private var sidebar: Bool { width == .regular }
@@ -99,6 +101,7 @@ struct MainTabs: View {
         .background { shortcuts }
         .task { await model.loadSettings() }
         .fullScreenCover(isPresented: Binding(get: { model.showTour }, set: { model.showTour = $0 })) { TourView() }
+        .sheet(isPresented: $settings) { SettingsView() }
         .onChange(of: model.openPost) { _, id in if id != nil { tab = 0 } }
         // Store screenshots (scripts/mac-screenshots-native.sh): open the asked-for screen.
         .onAppear {
@@ -129,6 +132,8 @@ struct MainTabs: View {
                 ForEach(menuSections) { s in
                     Button { go(s.tag) } label: { s.label }
                 }
+                // Settings → Themes → Full Screen Sparkler Theme → Background choices (Steve, 2026-11-01).
+                Button { settings = true } label: { Label(model.words("menu.settings"), systemImage: "gearshape") }
             } label: {
                 Image(systemName: "line.3.horizontal").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
             }

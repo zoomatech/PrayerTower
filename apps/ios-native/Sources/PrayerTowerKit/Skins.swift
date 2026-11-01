@@ -78,7 +78,7 @@ public struct FeedThemeChoices: Codable, Sendable, Equatable {
 
 /// `FeedLayoutKind` in packages/shared; an unknown layout is drawn as the column.
 public enum SkinLayout: String, Sendable, CaseIterable {
-    case column, vine, carousel, flip, wall, tower, circuit, climb
+    case column, vine, carousel, flip, wall, tower, circuit, climb, sparkler
 }
 
 /// An sRGB color from a `#RRGGBB` token.
@@ -283,6 +283,7 @@ public enum Skin {
         case .wall: return WallLook(theme).backdrop
         case .circuit: return CircuitLook(theme).backdrop
         case .climb: return ClimbLook(theme).backdrop
+        case .sparkler: return SparklerLook(theme).backdrop
         case .tower, .carousel, .flip, .column: return nil
         }
     }

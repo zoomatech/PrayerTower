@@ -83,6 +83,10 @@ function RootStack() {
           <Stack.Screen name="delete-account" />
           <Stack.Screen name="feedback" />
           <Stack.Screen name="notification-settings" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="themes" />
+          <Stack.Screen name="sparkler-theme" />
+          <Stack.Screen name="sparkler-backgrounds" />
           <Stack.Screen name="tour" options={{ presentation: "modal" }} />
           <Stack.Screen name="moderation" />
           <Stack.Screen name="admin" />

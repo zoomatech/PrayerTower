@@ -2341,7 +2341,6 @@ const en = {
     backgrounds: 'Background choices',
     backgroundsHint: 'The background behind every post in the Full Screen Sparkler theme.',
     groups: { solid: 'Solid colors', stars: 'Starfields', flowers: 'Flowers', texture: 'Textures' },
-    chosen: 'Chosen',
   },
   circuit: {
     end: 'End of the line. Pull down to power up new posts.',

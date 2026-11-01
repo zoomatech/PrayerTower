@@ -128,14 +128,17 @@ export function sparks(rnd: () => number, n = 16) {
   });
 }
 
+const STILL_SPRAY = sparks(seeded(5));
+
 function Sparkler({ still }: { still: boolean }) {
-  const [tick, setTick] = useState(0);
+  // Each tick redraws a fresh spray.
+  const [, setTick] = useState(0);
   useEffect(() => {
     if (still) return;
     const id = setInterval(() => setTick((n) => n + 1), 70);
     return () => clearInterval(id);
   }, [still]);
-  const spray = useMemo(() => sparks(still ? seeded(5) : Math.random), [still, tick]);
+  const spray = still ? STILL_SPRAY : sparks(Math.random);
   const c = SPARK_BOX / 2;
   return (
     <Svg width={SPARK_BOX} height={SPARK_BOX} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
