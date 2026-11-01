@@ -1,3 +1,4 @@
+import PrayerTowerKit
 import SwiftUI
 
 // The growing connectors (Steve, 2026-10-30): every skin's stalk builds downward, a branch shoots
