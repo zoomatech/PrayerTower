@@ -112,3 +112,7 @@ import Testing
         #expect(cv.open == nil)
     }
 }
+
+@Test func everyLeafIsTheDrawingsTwoByOne() {
+    for w in [78.0, 109, 187, 221, 300] { #expect(BeanDraw.leafHeight(width: w) == (w / 2).rounded()) }
+}
