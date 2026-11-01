@@ -33,6 +33,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     home: 'Inicio',
     open: 'Menú',
     close: 'Cerrar menú',
+    settings: en.menu.settings,
   },
   widget: {
     heading: 'Ora ahora',
@@ -2017,6 +2018,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   ceramic: en.ceramic,
   circuit: en.circuit,
   climb: en.climb,
+  sparkler: en.sparkler,
+  themes: en.themes,
   growth: en.growth,
   card: {
     from: 'From %{name}',

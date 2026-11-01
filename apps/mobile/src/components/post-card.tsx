@@ -72,6 +72,11 @@ export const CardNoType = createContext(false);
  * The action row always sits under the box, on the screen's background, not inside the post (Steve, 2026-10-30).
  */
 export const CardFrame = createContext<{ frame: (box: ReactNode) => ReactNode; neon?: { color: string; active: string }; inset?: number } | null>(null);
+/**
+ * The card's text colors where a skin puts it on its own background (Full Screen Sparkler's
+ * starfields and dark color blocks, Steve 2026-11-01), and a light plate under the action icons there.
+ */
+export const CardInk = createContext<{ text: string; muted: string; plate?: string; /** Points added to the body text (the skin's words 1 pt bigger, Steve). */ bump?: number } | null>(null);
 
 export const PostCard = memo(function PostCard({
   card,
@@ -92,6 +97,10 @@ export const PostCard = memo(function PostCard({
   const surface = useContext(CardSurface);
   const noType = useContext(CardNoType);
   const frame = useContext(CardFrame);
+  const ink = useContext(CardInk);
+  const inkText = ink ? { color: ink.text } : null;
+  const inkMuted = ink ? { color: ink.muted } : null;
+  const inkBody = ink ? { color: ink.text, ...(ink.bump ? { fontSize: type.body.fontSize + ink.bump, lineHeight: type.body.lineHeight + ink.bump } : null) } : null;
   const lines = features.postLines;
   const answered = card.state === 'answered';
   const open = () => router.push(`/post/${card.id}`);
@@ -113,7 +122,7 @@ export const PostCard = memo(function PostCard({
       <View style={styles.header}>
         <UrgencyLight urgency={card.urgency} />
         <Text
-          style={lines ? [styles.author, styles.authorShort] : styles.author}
+          style={lines ? [styles.author, styles.authorShort, inkText] : [styles.author, inkText]}
           numberOfLines={2}
           accessibilityLabel={card.author.tier && TIER_NAMES[card.author.tier] ? `${card.author.displayName}, ${n(TIER_NAMES[card.author.tier]!)}` : card.author.displayName}
           onPress={!card.author.anonymous && card.author.id && !card.isMine ? () => router.push(`/people/${card.author.id}`) : undefined}>
@@ -139,24 +148,24 @@ export const PostCard = memo(function PostCard({
       {/* With the lines on, a line runs down the left of everything that belongs to this post. */}
       <View style={lines ? [styles.body, styles.bodyLine] : styles.body} testID={lines ? 'post-lines' : undefined}>
         {card.author.pastor ? (
-          <Text style={styles.pastor} accessibilityLabel={t('card.pastorBadge', { title: card.author.pastor.title, church: card.author.pastor.church })}>
+          <Text style={[styles.pastor, inkText]} accessibilityLabel={t('card.pastorBadge', { title: card.author.pastor.title, church: card.author.pastor.church })}>
             ✝ {card.author.pastor.title} · {card.author.pastor.church}
           </Text>
         ) : null}
-        {tags.length ? <Text style={styles.tags}>{tags.join(' · ')}</Text> : null}
-        {card.crosspostedFrom ? <Text style={styles.tags}>{t('card.from', { name: card.crosspostedFrom === 'threads' ? 'Threads' : 'Facebook' })}</Text> : null}
-        {card.lament && features.lament ? <Text style={styles.tags}>🕯️ {t('lament.tag')}</Text> : null}
+        {tags.length ? <Text style={[styles.tags, inkMuted]}>{tags.join(' · ')}</Text> : null}
+        {card.crosspostedFrom ? <Text style={[styles.tags, inkMuted]}>{t('card.from', { name: card.crosspostedFrom === 'threads' ? 'Threads' : 'Facebook' })}</Text> : null}
+        {card.lament && features.lament ? <Text style={[styles.tags, inkMuted]}>🕯️ {t('lament.tag')}</Text> : null}
         {features.answeredStories && card.answers ? (
-          <Text style={styles.storyLink} onPress={() => router.push(`/post/${card.answers!.id}`)} accessibilityRole="link">
+          <Text style={[styles.storyLink, inkText]} onPress={() => router.push(`/post/${card.answers!.id}`)} accessibilityRole="link">
             🌅 {t('answeredStory.answers', { preview: card.answers.preview })}
           </Text>
         ) : null}
         {features.answeredStories && card.storyId ? (
-          <Text style={styles.storyLink} onPress={() => router.push(`/post/${card.storyId}`)} accessibilityRole="link">
+          <Text style={[styles.storyLink, inkText]} onPress={() => router.push(`/post/${card.storyId}`)} accessibilityRole="link">
             🌅 {t('answeredStory.read')}
           </Text>
         ) : null}
-        {card.allSupportWelcome && features.supportLabel ? <Text style={styles.tags}>🕊️ {t('notebook.supportLabel')}</Text> : null}
+        {card.allSupportWelcome && features.supportLabel ? <Text style={[styles.tags, inkMuted]}>🕊️ {t('notebook.supportLabel')}</Text> : null}
 
         <Pressable
           onPress={open}
@@ -166,12 +175,12 @@ export const PostCard = memo(function PostCard({
           onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && setTray(true)}
           style={bg && [styles.backdrop, { backgroundColor: bg.color }]}>
           {parts && expanded && !bg && hasParts(card.body) ? (
-            <PostParts body={card.body} style={type.body} parts={parts} />
+            <PostParts body={card.body} style={inkBody ? [type.body, inkBody] : type.body} parts={parts} />
           ) : (
-            <Text style={bg ? [styles.backdropText, { color: bg.text }] : type.body}>
+            <Text style={bg ? [styles.backdropText, { color: bg.text }] : [type.body, inkBody]}>
               {expanded || !card.truncated ? card.body : `${card.preview}… `}
               {card.truncated && !expanded ? (
-                <Text style={styles.more} onPress={() => setExpanded(true)}>
+                <Text style={[styles.more, inkText]} onPress={() => setExpanded(true)}>
                   {t('card.more')}
                 </Text>
               ) : null}
@@ -187,13 +196,13 @@ export const PostCard = memo(function PostCard({
         {card.testimony ? (
           <View style={styles.testimony}>
             <Text style={styles.testimonyLabel}>{t('card.testimony')}</Text>
-            <Text style={type.body} numberOfLines={expanded ? undefined : 4} onPress={open}>
+            <Text style={[type.body, inkBody]} numberOfLines={expanded ? undefined : 4} onPress={open}>
               {card.testimony}
             </Text>
           </View>
         ) : null}
 
-        <Text style={styles.counts}>
+        <Text style={[styles.counts, inkMuted]}>
           {!isPrayable(card.postType)
             ? ''
             : card.counts.prayers > 0
@@ -215,14 +224,14 @@ export const PostCard = memo(function PostCard({
 
         {card.topComment ? (
           <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
-            <Text style={styles.commentAuthor}>
+            <Text style={[styles.commentAuthor, inkText]}>
               {card.topComment.isUpdate ? t('card.update') : ''}
               {card.topComment.author.displayName}
             </Text>
-            <Text style={type.body} numberOfLines={3}>
+            <Text style={[type.body, inkBody]} numberOfLines={3}>
               {card.topComment.body}
             </Text>
-            {card.counts.comments > 1 ? <Text style={styles.more}>{t('card.viewAll', { count: card.counts.comments })}</Text> : null}
+            {card.counts.comments > 1 ? <Text style={[styles.more, inkText]}>{t('card.viewAll', { count: card.counts.comments })}</Text> : null}
           </Pressable>
         ) : null}
       </View>
@@ -233,7 +242,7 @@ export const PostCard = memo(function PostCard({
       {frame ? frame.frame(box) : box}
       {/* One row of icons in every design (Steve, 2026-10-29); the name shows on hover or a long press.
           It sits under the post's box, bigger, not inside the post (Steve, 2026-10-30). */}
-      <View style={[styles.actions, frame?.inset ? { marginLeft: frame.inset } : null]} testID="card-actions">
+      <View style={[styles.actions, frame?.inset ? { marginLeft: frame.inset } : null, ink?.plate ? { backgroundColor: ink.plate, borderRadius: radius.pill, paddingHorizontal: space.xs } : null]} testID="card-actions">
         {row.buttons.map((b) => (
           <ActionIcon
             key={b.action}

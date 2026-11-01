@@ -36,6 +36,6 @@ export function skinHeaderLook(theme: FeedTheme | null | undefined): SkinHeaderL
   if (!theme || theme.layout === 'column') return null;
   const t = theme.tokens;
   const backdrop = hex(t.backdrop) ?? hex(t.leafSoft) ?? '#FFFFFF';
-  const accent = hex(t.stem) ?? hex(t.mortar) ?? hex(t.wire) ?? hex(t.rope) ?? '#7A5BC2';
+  const accent = hex(t.stem) ?? hex(t.mortar) ?? hex(t.wire) ?? hex(t.rope) ?? hex(t.stripe) ?? '#7A5BC2';
   return { backdrop, accent };
 }
