@@ -104,44 +104,12 @@ export function useDrawIn(ref: RefObject<Row | null>, style: number | DrawInStyl
 }
 
 /**
- * How far down a line has grown into a row as the member scrolls, 0 to 1 (Full Screen Sparkler,
- * Steve 2026-11-01: a line that "goes downward and grows as you scroll"). The line's tip rides at
- * `at` of the way down the window; a row is drawn as far as the tip has reached into it, and never
- * draws back while it stays mounted, so scrolling up leaves the line drawn and the tip waiting
- * further down. With Reduce Motion, or outside a feed with a DrawBus, the row is fully drawn.
- * Driven by the same DrawBus as useDrawIn: the list calls its `emit` from onScroll.
+ * Where one line down a whole feed ends, in the feed's own points from its top (Full Screen
+ * Sparkler, Steve 2026-11-01): `at` of the screen below how far it has scrolled, so it grows as
+ * you scroll, never drawing back (`reached` is what it had before) and never past the feed's end.
+ * The same as Kit Sparkler.tip in the native app.
  */
-export function useGrowWithScroll(ref: RefObject<Row | null>, at = 0.7) {
-  const bus = useContext(DrawBusContext);
-  const reduced = useReducedMotion();
-  const live = !!bus && !reduced;
-  const grown = useRef(new Animated.Value(live ? 0 : 1)).current;
-  const reach = useRef(live ? 0 : 1);
-  const recheck = useRef<() => void>(() => {});
-  useEffect(() => {
-    if (!bus || reduced) {
-      reach.current = 1;
-      grown.setValue(1);
-      return;
-    }
-    const check = () =>
-      ref.current?.measureInWindow((_x, y, _w, h) => {
-        if (!h) return;
-        const tip = Dimensions.get('window').height * at;
-        const now = Math.min(1, Math.max(0, (tip - y) / h));
-        if (now > reach.current) {
-          reach.current = now;
-          grown.setValue(now);
-        }
-      });
-    recheck.current = check;
-    const first = setTimeout(check, 80);
-    const off = bus.sub(check);
-    return () => {
-      clearTimeout(first);
-      off();
-      recheck.current = () => {};
-    };
-  }, [bus, reduced, ref, grown, at]);
-  return { grown, onLayout: () => recheck.current() };
+export function lineTip(scrolled: number, screen: number, reached: number, feedHeight: number, at = 0.84) {
+  const now = Math.max(0, scrolled) + screen * at;
+  return Math.min(Math.max(reached, now), Math.max(0, feedHeight));
 }
