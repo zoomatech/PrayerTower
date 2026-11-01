@@ -586,8 +586,14 @@ async function requireMinute(q: Queryable) {
   if (!(await settings(q)).prayer_minute_enabled) throw forbidden('The prayer minute is turned off for now');
 }
 
-/** Members whose chosen minute is the same moment as this one, today (all time zones). */
-const SAME_MOMENT = `(date_trunc('day', now() at time zone m.time_zone) + m.minute_of_day * interval '1 minute') at time zone m.time_zone`;
+/**
+ * A chosen minute as a UTC minute of the day, using each zone's offset at this instant, so members
+ * whose minute is the same moment match across time zones. Reading each zone's own local day
+ * instead fails on a daylight-saving change day, when one zone has changed its offset and the
+ * other has not yet (e.g. 7:00 Chicago and 8:00 New York, 1 November).
+ */
+const utcMinute = (t: string) =>
+  `mod(${t}.minute_of_day - (extract(epoch from (now() at time zone ${t}.time_zone) - (now() at time zone 'utc')) / 60)::int + 2880, 1440)`;
 
 export async function myMinute(q: Queryable, userId: string) {
   if (!(await settings(q)).prayer_minute_enabled) return { enabled: false as const };
@@ -595,8 +601,7 @@ export async function myMinute(q: Queryable, userId: string) {
     `select me.minute_of_day, me.time_zone,
             (select count(*)::int from public.prayer_minutes m
               where m.user_id <> me.user_id
-                and to_char(${SAME_MOMENT} at time zone 'utc', 'HH24:MI') =
-                    to_char((date_trunc('day', now() at time zone me.time_zone) + me.minute_of_day * interval '1 minute') at time zone me.time_zone at time zone 'utc', 'HH24:MI')) as others
+                and ${utcMinute('m')} = ${utcMinute('me')}) as others
        from public.prayer_minutes me where me.user_id = $1`,
     [userId],
   );
