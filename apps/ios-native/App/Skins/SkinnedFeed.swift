@@ -25,8 +25,9 @@ struct SkinnedFeed<Row: View>: View {
     @ViewBuilder private var header: some View {
         switch theme.kind {
         case .climb: ClimbHeader(look: ClimbLook(theme))
-        default:
-            if VineLook(theme).vineStyle == .beanstalk { BeanHeader() } else { NeonHeader(look: VineLook(theme)) }
+        case .vine where VineLook(theme).vineStyle == .beanstalk: BeanHeader()
+        case .vine where VineLook(theme).vineStyle == .neon: NeonHeader(look: VineLook(theme))
+        default: PlainSkinHeader(backdrop: Skin.backdrop(theme), accent: SkinHeader.accent(theme))
         }
     }
 
@@ -104,7 +105,10 @@ struct VineFeed<Row: View>: View {
                     .padding(.leading, 56)
                     .padding(.bottom, 160)
             }
-            .padding(.vertical, 20)
+            .padding(.bottom, 20)
+            // Neon: the first box starts below the Home and Menu buttons, which hang down from the
+            // top-left corner of every screen, so they never cover its corner.
+            .padding(.top, look.vineStyle == .neon ? HomeAndMenu.overhang + 12 : 20)
             // Neon's stalk gets room for its glow, which would otherwise stop at a hard edge.
             .background(alignment: .topLeading) { Stalk(look: look).frame(width: look.vineStyle == .neon ? 80 : 40).accessibilityHidden(true) }
         }
@@ -1034,4 +1038,10 @@ struct NeonHeader: View {
             ctx.fill(Path(CGRect(x: x + 30, y: bottom + 4.5, width: 5, height: 5)), with: .color(Color(look.branch)))
         }
     }
+}
+
+/// The Home and Menu buttons' size, so a skin can start its first post clear of them.
+enum HomeAndMenu {
+    /// How far the buttons reach below the top of the navigation bar's 44-point row.
+    static let overhang: CGFloat = 2 + 44 + 6 + 44 - 44
 }

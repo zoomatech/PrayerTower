@@ -279,14 +279,34 @@ enum SkinHeader {
     /// On a skin with a dark header, the color of the plate's edge under the logo.
     static func logoPlate(_ theme: FeedTheme) -> Color? {
         guard drawsOwn(theme), let dark = Skin.backdrop(theme), BackdropText(on: dark).light else { return nil }
-        return theme.kind == .vine ? Color(VineLook(theme).stem) : nil
+        return Color(accent(theme))
     }
 
-    static func drawsOwn(_ theme: FeedTheme) -> Bool {
+    /// Every skin draws its own header behind the clock (Steve, 2026-11-01); the plain column
+    /// keeps the system bar, which is its style.
+    static func drawsOwn(_ theme: FeedTheme) -> Bool { theme.kind != .column }
+
+    /// The line each skin edges its header with: its stalk, mortar, wire or the app's accent.
+    static func accent(_ theme: FeedTheme) -> RGB {
         switch theme.kind {
-        case .climb: true
-        case .vine: [.beanstalk, .neon].contains(VineLook(theme).vineStyle)
-        default: false
+        case .vine: VineLook(theme).stem
+        case .tower: TowerLook(theme).mortar
+        case .circuit: CircuitLook(theme).wire
+        default: RGB(hex: "#7A5BC2")!
+        }
+    }
+}
+
+/// The header of a skin without a drawn one of its own: the skin's backdrop up behind the clock,
+/// edged along its foot with a line in the skin's own color.
+struct PlainSkinHeader: View {
+    let backdrop: RGB?
+    let accent: RGB
+
+    var body: some View {
+        SkinHeaderBand(edge: 6) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: backdrop.map { .color(Color($0)) } ?? .color(Color.pageBackground))
+            ctx.fill(Path(CGRect(x: 0, y: bottom, width: size.width, height: 3)), with: .color(Color(accent)))
         }
     }
 }

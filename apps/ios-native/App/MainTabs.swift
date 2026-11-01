@@ -115,6 +115,7 @@ struct MainTabs: View {
     }
 
     /// Home (back to the top of the feed) and, right below it, the menu of every section.
+    /// Laid out as `HomeAndMenu`: two 44-point buttons, 6 apart, 2 below the top.
     private var homeAndMenu: some View {
         VStack(spacing: 6) {
             Button {
