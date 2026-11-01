@@ -215,11 +215,17 @@ struct BeanstalkFeed<Row: View>: View {
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 // Wraps instead of clipping at the largest text sizes.
+                // Stacked, each line gets room above and below for the lettering's tall flourishes and
+                // descenders, which otherwise run past the line's own box at the accessibility sizes.
                 Text(words("beanstalk.title")).font(BeanFont.title(23)).foregroundStyle(Bean.ink)
+                    .lineSpacing(stacked ? 8 : 0)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.vertical, stacked ? 10 : 0)
                     .accessibilityAddTraits(.isHeader)
                 Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
+                    .lineSpacing(stacked ? 4 : 0)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.vertical, stacked ? 6 : 0)
             }
             // Stacked, the banner scrolls with the feed, so it has no climb-back button.
             if !stacked {
