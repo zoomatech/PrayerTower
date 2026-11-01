@@ -973,13 +973,18 @@ private struct BeanReader: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 22)
             .padding(.top, 64)
-            .padding(.bottom, 24)
+            // Room under the last words, clear of the square's foot, however many "+N more" open.
+            .padding(.bottom, 44)
         }
         .scrollBounceBehavior(.basedOnSize)
+        // A square, as large as the screen allows; longer threads scroll inside it, and the words
+        // never show past its edges (never up over the poster's name).
+        .aspectRatio(1, contentMode: .fit)
+        .frame(maxWidth: 600)
+        .scrollClipDisabled(false)
         .background { LeafSquare().accessibilityHidden(true) }
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        // A square, as large as the screen allows; longer threads scroll inside it.
-        .aspectRatio(1, contentMode: .fit)
+        .contentShape(RoundedRectangle(cornerRadius: 16))
         .overlay(alignment: .topTrailing) {
             Button(action: close) {
                 Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
@@ -991,7 +996,6 @@ private struct BeanReader: View {
             .accessibilityLabel(words("common.close"))
             .padding(12)
         }
-        .frame(maxWidth: 600)
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .modifier(BelowName(top: top, close: close))
