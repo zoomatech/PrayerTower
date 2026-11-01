@@ -1047,3 +1047,14 @@ enum HomeAndMenu {
     /// How far the buttons reach below the top of the navigation bar's 44-point row.
     static let overhang: CGFloat = 2 + 44 + 6 + 44 - 44
 }
+
+/// The Ceramic Figurines header: the cream shelf up behind the clock, with an etched line along its foot.
+struct CeramicHeader: View {
+    var body: some View {
+        SkinHeaderBand(edge: 4) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: .color(Color(RGB(hex: "#F6F0EE")!)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom, width: size.width, height: 1)), with: .color(Color(red: 110 / 255, green: 85 / 255, blue: 100 / 255).opacity(0.3)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom + 1, width: size.width, height: 1)), with: .color(.white.opacity(0.8)))
+        }
+    }
+}

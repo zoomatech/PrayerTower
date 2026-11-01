@@ -1,12 +1,11 @@
-// The Ceramic Figurine skin (Steve, 2026-10-31): plaques that grow, placards that flop down,
-// the first reply hanging exposed, no Reply on replies, and the member's own figurines.
+// The Ceramic Figurines skin (Steve, 2026-10-31): angels hauling plaques on pulleys, ceramic placards for comments.
 import { contrastRatio } from '@prayer-tower/shared';
 import { fireEvent, screen, within } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import { renderApp, sampleCard } from '@/__tests__/helpers';
 import { api } from '@/lib/api';
-import { CeramicLayout, lookAt } from '@/layouts/ceramic';
+import { angelSide, CeramicLayout, ceramicTokens, initials, LOOKS, lookFor, MUTED, PLAQUE_TINTS, pointerAt, ropeGeometry, TOP } from '@/layouts/ceramic';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -15,79 +14,120 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-const comment = (id: string, body: string, name: string, parentId: string | null = null, minute = 0) => ({
-  id,
-  parentId,
-  body,
-  isUpdate: false,
-  createdAt: `2026-10-31T10:${String(minute).padStart(2, '0')}:00Z`,
-  author: { displayName: name },
-});
+const layout = async () =>
+  fireEvent(await screen.findByTestId('ceramic-layout'), 'layout', { nativeEvent: { layout: { width: 390, height: 844 } } });
 
-const feed = (cards = [sampleCard()]) => (
-  <CeramicLayout
-    cards={cards}
-    theme={null}
-    pinnedId={null}
-    renderCard={(c) => <Text>{`plaque ${c.body}`}</Text>}
-    refreshing={false}
-    onRefresh={() => undefined}
-    onEndReached={() => undefined}
-    atEnd
-  />
-);
+const nums = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
 
-describe('Ceramic Figurine', () => {
-  it('mixes all five figurines through the feed, or uses the one the member picks', () => {
-    expect(new Set([0, 1, 2, 3, 4].map((n) => lookAt('mix', n))).size).toBe(5);
-    expect(lookAt('shepherd', 3)).toBe('shepherd');
+describe('Ceramic Figurines drawing', () => {
+  it('mixes all five figurine styles by turns, or keeps the one a member picked', () => {
+    const seen = new Set([0, 1, 2, 3, 4].map((i) => lookFor('mix', i, 0)));
+    expect(seen.size).toBe(LOOKS.length);
+    expect(lookFor('mix', 0, 0)).not.toBe(lookFor('mix', 0, 1));
+    expect(lookFor('choir', 7, 1)).toBe('choir');
   });
 
-  it('keeps every word readable on the pastel ceramic (4.5:1)', () => {
-    for (const bg of ['#F7F1EE', '#E6DEF0', '#DCE6EF', '#F3DDD7', '#DDEADF', '#F2EBD2', '#EDE3E6']) {
-      expect(contrastRatio('#4B3F47', bg)).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio('#64555E', bg)).toBeGreaterThanOrEqual(4.5);
+  it('puts a still pointing statue at every third post, and the hauling angel on alternate sides', () => {
+    expect([0, 1, 2, 3, 4, 5].filter((i) => pointerAt(i))).toEqual([1, 4]);
+    expect([0, 1, 2].map(angelSide)).toEqual(['left', 'right', 'left']);
+  });
+
+  it('runs the hauling rope from the pulley to the angel’s hands, and the bridle down to both side ropes', () => {
+    for (const w of [320, 390, 560]) {
+      for (const side of ['left', 'right'] as const) {
+        const g = ropeGeometry(side, w);
+        const haul = nums(g.haul);
+        // It leaves the pulley's rim on the angel's side and ends at the angel's hands.
+        expect(Math.abs(haul[0]! - w / 2)).toBeCloseTo(13, 0);
+        expect(Math.sign(haul[0]! - w / 2)).toBe(side === 'left' ? -1 : 1);
+        expect(haul[2]).toBeCloseTo(g.handX, 0);
+        expect(g.handX).toBeGreaterThan(0);
+        expect(g.handX).toBeLessThan(w);
+        // The load rope comes down the other side of the wheel to the ring.
+        expect(Math.sign(g.loadX - w / 2)).toBe(side === 'left' ? 1 : -1);
+        const bridle = nums(g.bridle);
+        expect(bridle).toContain(g.ropeL);
+        expect(bridle).toContain(g.ropeR);
+        expect(Math.max(...bridle.filter((_, i) => i % 2 === 1))).toBe(TOP);
+      }
     }
   });
 
-  it('hangs the comments as a closed stack, flops them down on a tap, and folds them on another', async () => {
+  it('keeps every word readable on the pastel ceramic (4.5:1)', () => {
+    const t = ceramicTokens(null);
+    for (const bg of [...PLAQUE_TINTS, t.placard, t.reply, t.frame]) {
+      expect(contrastRatio(t.ink, bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(MUTED, bg)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('shows initials in the oval until a member adds a photo', () => {
+    expect(initials('Margaret Hale')).toBe('MH');
+    expect(initials('June')).toBe('J');
+  });
+});
+
+describe('Ceramic Figurines comments', () => {
+  it('stacks the placards with the first comment showing, flops them down on a tap, and folds them on a tap', async () => {
     const comments = [
-      comment('c1', 'Praying for steady hands for his surgeon.', 'Evelyn', null, 5),
-      comment('c2', 'Thank you, Evelyn.', 'Margaret', 'c1', 6),
-      comment('c3', 'He was reading the paper in a week.', 'Evelyn', 'c2', 7),
-      comment('c4', 'Lifting you both up tonight.', 'Dorothy', null, 1),
+      { id: 'c1', parentId: null, body: 'Praying for steady hands tonight.', isUpdate: false, createdAt: '2026-10-31T10:00:00Z', author: { displayName: 'Evelyn R' } },
+      { id: 'c2', parentId: 'c1', body: 'Thank you, Evelyn.', isUpdate: false, createdAt: '2026-10-31T10:05:00Z', author: { displayName: 'Margaret H' } },
+      { id: 'c3', parentId: 'c1', body: 'He is in good hands.', isUpdate: false, createdAt: '2026-10-31T10:06:00Z', author: { displayName: 'Ruth A' } },
+      { id: 'c4', parentId: null, body: 'Lifting you both up.', isUpdate: false, createdAt: '2026-10-31T09:00:00Z', author: { displayName: 'Dorothy L' } },
     ];
     (api.comments as jest.Mock).mockResolvedValue({ comments });
     const card = sampleCard({ counts: { ...sampleCard().counts, comments: 2 } });
-    await renderApp(feed([card]));
-    // Closed: only the first comment's first line reads, with how many more are behind it.
-    const stack = await screen.findByTestId(`ceramic-open-${card.id}`);
+    await renderApp(
+      <CeramicLayout
+        cards={[card]}
+        theme={null}
+        pinnedId={null}
+        renderCard={(c) => <Text>{`card ${c.id}`}</Text>}
+        refreshing={false}
+        onRefresh={() => undefined}
+        onEndReached={() => undefined}
+        atEnd
+      />,
+    );
+    await layout();
+    // Closed: one placard with the newest comment's first line, the rest stacked behind it.
+    const stack = await screen.findByTestId(`ceramic-stack-${card.id}`);
+    expect(within(stack).getByText(/Praying for steady hands tonight\./)).toBeTruthy();
     expect(within(stack).getByText('+1')).toBeTruthy();
+    expect(screen.queryByText('Lifting you both up.')).toBeNull();
+
     await fireEvent.press(stack);
     expect(await screen.findByTestId('ceramic-comment-c1')).toBeTruthy();
-    expect(screen.getByTestId('ceramic-comment-c4')).toBeTruthy();
-    // The first reply hangs exposed under its comment, with how many more there are.
-    const firstReply = screen.getByTestId('ceramic-first-reply-c1');
-    expect(within(firstReply).getByText('+1')).toBeTruthy();
-    await fireEvent.press(firstReply);
-    // Every reply, however deep, flops down; none has a Reply button.
-    expect(within(screen.getByTestId('ceramic-reply-c2')).queryByText('Reply')).toBeNull();
-    expect(within(screen.getByTestId('ceramic-reply-c3')).queryByText('Reply')).toBeNull();
+    expect(screen.getByText('Lifting you both up.')).toBeTruthy();
+    // The first reply hangs under the comment that has replies.
+    const first = screen.getByTestId('ceramic-first-c1');
+    expect(within(first).getByText(/Thank you, Evelyn\./)).toBeTruthy();
+    expect(within(first).getByText('+1')).toBeTruthy();
+
+    await fireEvent.press(first);
+    const reply = await screen.findByTestId('ceramic-reply-c3');
+    expect(within(reply).getByText('He is in good hands.')).toBeTruthy();
+    // Replies never get a Reply button; each top-level comment does.
+    expect(within(reply).queryByText('Reply')).toBeNull();
     expect(screen.getAllByText('Reply').length).toBe(2);
-    // Tapping a reply folds the replies back up; tapping a comment folds the comments.
-    await fireEvent.press(screen.getByText('Thank you, Evelyn.'));
-    expect(screen.queryByTestId('ceramic-reply-c2')).toBeNull();
-    await fireEvent.press(screen.getByText('Lifting you both up tonight.'));
-    expect(screen.queryByTestId('ceramic-comment-c1')).toBeNull();
-    expect(screen.getByTestId(`ceramic-open-${card.id}`)).toBeTruthy();
+
+    // A tap on a reply folds the replies back to the first one.
+    await fireEvent.press(within(reply).getByLabelText(/Folds the replies back up/));
+    expect(await screen.findByTestId('ceramic-first-c1')).toBeTruthy();
+
+    // A tap on a comment folds the placards back into the stack.
+    await fireEvent.press(screen.getAllByLabelText(/Folds the comments back up/)[0]!);
+    expect(await screen.findByTestId(`ceramic-stack-${card.id}`)).toBeTruthy();
   });
 
-  it('lets the member choose their figurines', async () => {
-    await renderApp(feed());
-    await fireEvent.press(screen.getByTestId('ceramic-figurines'));
-    expect(screen.getByTestId('ceramic-picker')).toBeTruthy();
-    const shepherd = screen.getByTestId('ceramic-pick-shepherd');
-    await fireEvent.press(shepherd);
-    expect(shepherd).toHaveProp('aria-pressed', true);
+  it('lets a member pick their own figurines', async () => {
+    await renderApp(
+      <CeramicLayout cards={[sampleCard()]} theme={null} pinnedId={null} renderCard={() => <Text>card</Text>} refreshing={false} onRefresh={() => undefined} onEndReached={() => undefined} atEnd />,
+    );
+    await layout();
+    await fireEvent.press(await screen.findByTestId('ceramic-pick'));
+    await fireEvent.press(await screen.findByTestId('ceramic-look-choir'));
+    expect(screen.getByTestId('ceramic-look-choir')).toHaveProp('aria-pressed', true);
+    expect(screen.getByText('Figurines: Choir Kids')).toBeTruthy();
   });
 });
