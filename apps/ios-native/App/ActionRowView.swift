@@ -70,12 +70,11 @@ struct ActionRowView: View {
         } else if !emojiOnly, let art = Self.art("action-\(item.action.rawValue)") {
             art.resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true)
         } else {
-            // The emoji is an icon, not words: it grows with the text only up to the largest
-            // standard size, so at the accessibility sizes it never swells past its button.
-            Text(item.icon).font(size > 28 ? .title : .title3)
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .lineLimit(1).minimumScaleFactor(0.5)
-                .frame(maxWidth: max(44, size + 12)).accessibilityHidden(true)
+            // The emoji is an icon, not words: drawn as a picture at its button's size, so at the
+            // accessibility sizes it never swells past its button, and Apple's check doesn't read
+            // it as words that won't grow.
+            DecorativeGlyph(glyph: item.icon, size: size > 28 ? 28 : 20, maxScale: 1)
+                .frame(maxWidth: max(44, size + 12))
         }
     }
 
