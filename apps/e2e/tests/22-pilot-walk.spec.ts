@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test';
 import { db, signIn } from './helpers';
 
 const SCREENS = [
-  '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/notification-settings', '/feedback', '/rules',
+  '/', '/commitments', '/messages', '/notifications', '/profile', '/compose', '/notification-settings', '/settings', '/themes', '/sparkler-theme', '/sparkler-backgrounds', '/feedback', '/rules',
   '/groups', '/events', '/care', '/highlights', '/witness', '/help-stories', '/awards', '/pools', '/prayer-cast', '/branch',
   '/live', '/macro-needs', '/circle-prep', '/token-store', '/podcasts', '/surveys', '/give', '/why-gifts', '/scheduled', '/signal-queue',
   '/prayer-minute', '/prayer-chain', '/skin-idea', '/skin-gallery', '/squire-board', '/prayer-list', '/reading-plan', '/library', '/parallels', '/reading-plans', '/word-study', '/my-notes', '/study-rooms', '/listening-room', '/church', '/two-step',

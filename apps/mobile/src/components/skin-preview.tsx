@@ -8,6 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ceramicTokens, Figurine } from '@/layouts/ceramic';
 import { circuitTokens } from '@/layouts/circuit';
 import { climbTokens, EDGE_X } from '@/layouts/climb';
+import { sparklerTokens } from '@/layouts/sparkler';
 import { LeafFrame, VineRow } from '@/components/vine-flow';
 import { glow, LeafMark } from '@/layouts/motifs';
 import { towerTokens } from '@/layouts/tower';
@@ -63,6 +64,26 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
       </>,
     );
   }
+  if (layout === 'sparkler') {
+    const t = sparklerTokens(theme);
+    // Full-width white posts split by the black line with its light blue middle, and the line down the left with its spark.
+    const square = <View style={[styles.square]} />;
+    const split = (
+      <View style={[styles.split, { backgroundColor: t.backdrop }]}>
+        <View style={{ height: 2, backgroundColor: t.stripe }} />
+      </View>
+    );
+    return frame(
+      t.backdrop,
+      <>
+        {square}
+        {split}
+        {square}
+        <View style={[styles.sparkLine, { backgroundColor: t.stripe }]} />
+        <View style={styles.spark} />
+      </>,
+    );
+  }
   if (layout === 'ceramic') {
     // A plaque in its shadow box on a platform, with an angel statuette beside it.
     const t = ceramicTokens(theme);
@@ -111,5 +132,9 @@ const styles = StyleSheet.create({
   wire: { position: 'absolute', left: 14, top: 0, bottom: 0, width: 2 },
   sky: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#D9E3E8', borderRightWidth: 2, borderRightColor: '#4F4436' },
   rope: { position: 'absolute', top: 0, bottom: 0, width: 3, backgroundColor: '#C4441F' },
+  square: { height: 60, backgroundColor: '#FFFFFF', marginHorizontal: -space.md },
+  split: { height: 8, justifyContent: 'center', marginHorizontal: -space.md },
+  sparkLine: { position: 'absolute', left: 10, top: 0, height: '62%', width: 3 },
+  spark: { position: 'absolute', left: 5, top: '58%', width: 13, height: 13, borderRadius: 7, backgroundColor: '#FFE680', borderWidth: 2, borderColor: '#FFFFFF' },
   screen: { marginLeft: 40, width: '60%', borderWidth: 2, borderRadius: radius.md, padding: 4, backgroundColor: '#0E1220' },
 });

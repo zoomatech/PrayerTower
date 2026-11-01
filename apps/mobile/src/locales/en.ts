@@ -31,6 +31,7 @@ const en = {
     home: 'Home',
     open: 'Menu',
     close: 'Close menu',
+    settings: 'Settings',
   },
   widget: {
     heading: 'Pray now',
@@ -2325,6 +2326,21 @@ const en = {
     more: '%{n} more',
     replies: { one: '1 reply', other: '%{count} replies' },
     fold: 'Folds it closed again',
+  },
+  sparkler: {
+    end: 'You have reached the end. Pull down for new posts.',
+    open: 'Opens the comments',
+    fold: 'Folds the comments closed',
+    more: '%{n} more comments',
+    moreReplies: { one: '1 more reply. Tap to show it', other: '%{count} more replies. Tap to show them' },
+  },
+  themes: {
+    settings: 'Settings',
+    title: 'Themes',
+    sparkler: 'Full Screen Sparkler Theme',
+    backgrounds: 'Background choices',
+    backgroundsHint: 'The background behind every post in the Full Screen Sparkler theme.',
+    groups: { solid: 'Solid colors', stars: 'Starfields', flowers: 'Flowers', texture: 'Textures' },
   },
   ceramic: {
     end: 'Every prayer is on its way up. Pull down for new posts.',

@@ -292,6 +292,7 @@ enum SkinHeader {
         case .vine: VineLook(theme).stem
         case .tower: TowerLook(theme).mortar
         case .circuit: CircuitLook(theme).wire
+        case .sparkler: SparklerLook(theme).stripe
         default: RGB(hex: "#7A5BC2")!
         }
     }

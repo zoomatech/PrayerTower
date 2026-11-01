@@ -38,6 +38,7 @@ struct AuditSamplesView: View {
             "backdrop": .string("#05070D"), "wire": .string("#00E5FF"), "burst": .string("#FFFFFF"), "screen": .string("#FF2BD6"), "tilt": .number(10),
         ]),
         FeedTheme(slug: "mountain-climber", name: "Mountain Climber", layout: "climb", tokens: ["backdrop": .string("#B8AB96")]),
+        FeedTheme(slug: "full-screen-sparkler", name: "Full Screen Sparkler", layout: "sparkler", tokens: ["backdrop": .string("#000000"), "stripe": .string("#8FD3FF")]),
         FeedTheme(slug: "ceramic-figurines", name: "Ceramic Figurines", layout: "ceramic", tokens: ["backdrop": .string("#EAE6F1")]),
         FeedTheme(slug: "swipe", name: "Swipe to pray", layout: "carousel", tokens: [:]),
         FeedTheme(slug: "flip", name: "Flip", layout: "flip", tokens: [:]),

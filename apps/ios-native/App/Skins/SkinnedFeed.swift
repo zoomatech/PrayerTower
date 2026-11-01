@@ -25,6 +25,8 @@ struct SkinnedFeed<Row: View>: View {
     @ViewBuilder private var header: some View {
         switch theme.kind {
         case .climb: ClimbHeader(look: ClimbLook(theme))
+        // Black, edged with the light blue of its separators.
+        case .sparkler: PlainSkinHeader(backdrop: SparklerLook(theme).backdrop, accent: SparklerLook(theme).stripe)
         case .ceramic: CeramicHeader()
         case .vine where VineLook(theme).vineStyle == .beanstalk: BeanHeader()
         case .vine where VineLook(theme).vineStyle == .neon: NeonHeader(look: VineLook(theme))
@@ -44,6 +46,7 @@ struct SkinnedFeed<Row: View>: View {
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
         case .climb: ClimbFeed(look: ClimbLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
+        case .sparkler: SparklerFeed(look: SparklerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .ceramic: CeramicFeed(look: CeramicLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .carousel: SwipeFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .flip: FlipFeed(cards: cards, wording: wording, hooks: hooks, row: row)
