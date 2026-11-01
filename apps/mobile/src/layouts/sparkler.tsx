@@ -24,7 +24,7 @@ import { GlassTube, GLOW_REACH } from '@/components/glass-tube';
 import { lineTip } from '@/lib/draw-in';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
-import { flowerPoints, petalPath, seeded, sparklerBackground, starPoints, useSparklerBackground, type SparklerBackground } from '@/lib/sparkler-backgrounds';
+import { flowerPoints, petalPath, seeded, shownBackground, sparklerBackground, starPoints, useSparklerBackground, type SparklerBackground } from '@/lib/sparkler-backgrounds';
 import { colors, radius, space, type } from '@/lib/theme';
 import { useCommentActions, usePostComments } from '@/skins/comments';
 import { useFeedHooks } from '@/skins/feed-hooks';
@@ -441,9 +441,9 @@ export function stardust(scrolled: number, top: number, tip: number, time: numbe
     const y = y0 - age * 10 * rnd() + Math.cos(time * 0.6 + phase) * 1.5;
     const fade = Math.pow(Math.max(0, Math.min(1, (along - 0.05) / 0.95)), 1.3);
     const opacity = fade * (0.35 + 0.45 * (0.5 + 0.5 * Math.sin(time * (2 + rnd() * 3) + phase)));
-    const r = 0.5 + rnd() * 0.9;
+    const r = 0.8 + rnd() * 1.2;
     const warm = rnd() < 0.6;
-    if (opacity > 0.05) out.push({ y, dx, r, opacity, warm });
+    if (opacity > 0.05) out.push({ y, dx, r, opacity: Math.min(1, opacity * 1.4), warm });
   }
   return out;
 }
@@ -537,7 +537,8 @@ function TheLine({ top, rest, end, lead, upward, scrolled, stripe, still }: { to
 export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const { t } = useLocale();
   const tokens = useMemo(() => sparklerTokens(theme), [theme]);
-  const bg = useSparklerBackground();
+  const dark = useColorScheme() === 'dark';
+  const bg = shownBackground(useSparklerBackground(), dark);
   const still = useReducedMotion();
   // How far the feed has scrolled, how tall the screen and the feed are, and where the tip is in
   // the feed's own points: always at the same place on screen, so the sparkler is never lost from

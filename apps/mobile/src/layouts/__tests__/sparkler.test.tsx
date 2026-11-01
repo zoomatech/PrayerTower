@@ -6,7 +6,7 @@ import { Text } from 'react-native';
 import { renderApp, sampleCard } from '@/__tests__/helpers';
 import SparklerBackgrounds from '@/app/sparkler-backgrounds';
 import { api } from '@/lib/api';
-import { flowerPoints, petalPath, SPARKLER_BACKGROUNDS, SPARKLER_GROUPS, sparklerBackground, starPoints } from '@/lib/sparkler-backgrounds';
+import { flowerPoints, NIGHT, petalPath, shownBackground, SPARKLER_BACKGROUNDS, SPARKLER_GROUPS, sparklerBackground, starPoints } from '@/lib/sparkler-backgrounds';
 import { lineTip } from '@/lib/draw-in';
 import { dustBelow, glitter, inkFor, stardust, TRAIL_YELLOWS, TRAIL_YELLOWS_LIGHT, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
 
@@ -106,6 +106,15 @@ describe('Full Screen Sparkler motion', () => {
     const dust = dustBelow(600, 60, 0, 1);
     expect(dust.length).toBeGreaterThan(0);
     expect(dust.every((m) => m.y > 600 && m.y < 680)).toBe(true);
+  });
+
+  it('turns the default white to night in dark mode, but keeps a color the member picked', () => {
+    expect(shownBackground(sparklerBackground('white'), true).id).toBe('night');
+    expect(shownBackground(sparklerBackground('white'), false).id).toBe('white');
+    expect(shownBackground(sparklerBackground('mint'), true).id).toBe('mint');
+    const ink = inkFor(NIGHT);
+    expect(contrastRatio(ink.text, NIGHT.base)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(ink.muted, NIGHT.base)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('makes the divider between prayer requests bold', () => {

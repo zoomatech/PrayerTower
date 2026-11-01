@@ -74,6 +74,17 @@ public enum Sparkler {
         backgrounds.first { $0.id == id } ?? backgrounds[0]
     }
 
+    /// The night block the default white becomes in dark mode (Steve, 2026-11-01: the sparkler
+    /// leaves stardust behind it in dark mode, which needs a dark feed to show).
+    public static let night = Background(id: "night", group: .solid, name: "Night", base: RGB(hex: "#10131C")!, dark: true)
+
+    /// The background a post shows: the member's choice, except that the default white turns to
+    /// night in dark mode. A color the member picked stays as picked.
+    public static func background(_ id: String?, dark: Bool) -> Background {
+        let b = background(id)
+        return dark && b.id == "white" ? night : b
+    }
+
     /// The words' colors on a background: light on the dark ones. Both keep 4.5:1.
     public static func ink(_ bg: Background) -> (text: RGB, muted: RGB) {
         bg.dark ? (RGB.white, RGB(hex: "#D3DAE8")!) : (RGB.commentText, RGB(hex: "#544B5C")!)
@@ -154,7 +165,7 @@ public enum Sparkler {
             let fade = pow(max(0, min(1, (along - 0.05) / 0.95)), 1.3)
             let o = fade * (0.35 + 0.45 * (0.5 + 0.5 * sin(time * (2 + rnd.next() * 3) + phase)))
             guard o > 0.05 else { continue }
-            out.append(Mote(y: y, dx: dx, r: 0.5 + rnd.next() * 0.9, opacity: o, warm: rnd.next() < 0.6))
+            out.append(Mote(y: y, dx: dx, r: 0.8 + rnd.next() * 1.2, opacity: min(1, o * 1.4), warm: rnd.next() < 0.6))
         }
         return out
     }

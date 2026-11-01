@@ -84,4 +84,14 @@ final class SparklerTests: XCTestCase {
         XCTAssertFalse(dust.isEmpty)
         XCTAssertTrue(dust.allSatisfy { $0.y > 600 && $0.y < 600 + 60 + 20 })
     }
+
+    func testDefaultWhiteTurnsToNightInDarkModeButAPickedColorStays() {
+        XCTAssertEqual(Sparkler.background("white", dark: true).id, "night")
+        XCTAssertTrue(Sparkler.background("white", dark: true).dark)
+        XCTAssertEqual(Sparkler.background("white", dark: false).id, "white")
+        XCTAssertEqual(Sparkler.background("mint", dark: true).id, "mint")
+        let ink = Sparkler.ink(Sparkler.night)
+        XCTAssertGreaterThanOrEqual(ink.text.contrast(Sparkler.night.base), 4.5)
+        XCTAssertGreaterThanOrEqual(ink.muted.contrast(Sparkler.night.base), 4.5)
+    }
 }

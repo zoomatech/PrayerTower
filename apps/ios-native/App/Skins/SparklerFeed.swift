@@ -22,6 +22,7 @@ struct SparklerFeed<Row: View>: View {
     @ViewBuilder let row: (Card) -> Row
     @AppStorage(Sparkler.storageKey) private var chosen = "white"
     @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.colorScheme) private var scheme
     /// How far the feed has scrolled, and how tall it is.
     @State private var scrolled: Double = 0
     @State private var feedHeight: Double = 0
@@ -32,7 +33,7 @@ struct SparklerFeed<Row: View>: View {
 
     var body: some View {
         let words = Words(wording)
-        let bg = Sparkler.background(chosen)
+        let bg = Sparkler.background(chosen, dark: scheme == .dark)
         let moving = !(still || GrowingIn<EmptyView>.frozen)
         VStack(spacing: 0) {
         // Black room under the Home and Menu buttons, held still above the feed, so they never sit
