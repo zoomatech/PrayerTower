@@ -114,5 +114,8 @@ describe('Mountain Climber feed', () => {
     // Only the comment gets a Reply button; its replies never do (Steve: no overnesting).
     expect(within(screen.getByTestId('climb-reply-c2')).queryByText('Reply')).toBeNull();
     expect(screen.getAllByText('Reply').length).toBe(1);
+    // Tapping the comment again folds it closed.
+    await fireEvent.press(screen.getByTestId('climb-fold'));
+    expect(screen.queryByTestId('climb-closeup')).toBeNull();
   });
 });

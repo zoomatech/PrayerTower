@@ -37,7 +37,7 @@ struct ClimbFeed<Row: View>: View {
                         // The rope never ends: it runs on down past the last post.
                         VStack {
                             if !hooks.hasMore, !cards.isEmpty {
-                                Text(words("climb.end")).font(.subheadline).foregroundStyle(ClimbArt.ink)
+                                Text(words("climb.end")).climbFont(.subheadline).foregroundStyle(ClimbArt.ink)
                                     .multilineTextAlignment(.center).padding(12)
                                     .background(Color(look.slab), in: .rect(cornerRadius: 14))
                                     .padding(.leading, Climb.gutter).padding(.trailing, 12).padding(.top, 28)
@@ -338,7 +338,7 @@ private struct ClimbPost<Row: View>: View {
             }
             if total > shown.count, !shown.isEmpty {
                 Button(action: more) {
-                    Text(words("climb.more", ["n": "\(total - shown.count)"])).font(.subheadline.bold()).foregroundStyle(ClimbArt.ink)
+                    Text(words("climb.more", ["n": "\(total - shown.count)"])).climbFont(.subheadline, weight: .bold).foregroundStyle(ClimbArt.ink)
                         .padding(.horizontal, 16).frame(minHeight: 44)
                         .background(Color(RGB(hex: "#E4DBCA")!), in: .capsule)
                 }
@@ -367,16 +367,16 @@ private struct CommentRock: View {
     var body: some View {
         Button(action: open) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(note.author).font(.footnote.bold()).foregroundStyle(Color(RGB(hex: "#3A2F23")!)).lineLimit(1)
-                Text(note.body).font(.subheadline).foregroundStyle(ClimbArt.rockInk).lineLimit(2)
+                Text(note.author).climbFont(.footnote, weight: .bold).foregroundStyle(Color(RGB(hex: "#3A2F23")!)).lineLimit(1)
+                Text(note.body).climbFont(.subheadline).foregroundStyle(ClimbArt.rockInk)
                 // Its replies open with it, in the close-up.
                 // Steve: the first reply shows under every comment that has replies.
                 if let first {
-                    (Text("\(first.author): ").bold() + Text(first.body)).font(.footnote).foregroundStyle(ClimbArt.rockInk).lineLimit(1)
+                    (Text("\(first.author): ").bold() + Text(first.body)).climbFont(.footnote).foregroundStyle(ClimbArt.rockInk)
                         .padding(.leading, 10)
                         .overlay(alignment: .leading) { Rectangle().fill(Color(RGB(hex: "#6D5F4D")!)).frame(width: 3) }
                 }
-                if replies > 1 { Text(words("climb.replies", count: replies)).font(.caption.bold()).foregroundStyle(Color(RGB(hex: "#3A2F23")!)) }
+                if replies > 1 { Text(words("climb.replies", count: replies)).climbFont(.caption, weight: .bold).foregroundStyle(Color(RGB(hex: "#3A2F23")!)) }
             }
             .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             .padding(.vertical, 16).padding(.leading, 22).padding(.trailing, 24)
@@ -430,8 +430,17 @@ private struct ClimbCloseUp: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(reading.note.author).font(.headline)
-                                Text(reading.note.body).font(.title3)
+                                // Steve: tapping it again folds it closed.
+                                Button(action: close) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(reading.note.author).climbFont(.headline, weight: .semibold)
+                                        Text(reading.note.body).climbFont(.title3)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(.rect)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint(words("climb.fold"))
                                 replyButton
                             }
                             replies(reading.note.id, level: 1)
@@ -469,17 +478,17 @@ private struct ClimbCloseUp: View {
                 ZStack {
                     Ellipse().fill(Color(RGB(hex: "#6D5F4D")!))
                     if let photo = card.author.photoUrl, let url = URL(string: photo) {
-                        AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { Text(initials).font(.headline).foregroundStyle(Color(RGB(hex: "#F6EFE2")!)) }
+                        AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { Text(initials).climbFont(.headline, weight: .semibold).foregroundStyle(Color(RGB(hex: "#F6EFE2")!)) }
                             .clipShape(Ellipse())
                     } else {
-                        Text(initials).font(.headline).foregroundStyle(Color(RGB(hex: "#F6EFE2")!))
+                        Text(initials).climbFont(.headline, weight: .semibold).foregroundStyle(Color(RGB(hex: "#F6EFE2")!))
                     }
                 }
                 .frame(width: 40, height: 46)
                 .accessibilityHidden(true)
-                Text(card.author.displayName).font(.headline).foregroundStyle(ClimbArt.ink).lineLimit(1)
+                Text(card.author.displayName).climbFont(.headline, weight: .semibold).foregroundStyle(ClimbArt.ink).lineLimit(1)
             }
-            Text(card.body).font(.body).foregroundStyle(ClimbArt.ink).lineLimit(1)
+            Text(card.body).climbFont(.body).foregroundStyle(ClimbArt.ink).lineLimit(1)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -490,7 +499,7 @@ private struct ClimbCloseUp: View {
     @ViewBuilder private var replyButton: some View {
         if let reply {
             Button(action: reply) {
-                Text(words("post.reply")).font(.subheadline.bold()).foregroundStyle(ClimbArt.ink)
+                Text(words("post.reply")).climbFont(.subheadline, weight: .bold).foregroundStyle(ClimbArt.ink)
                     .padding(.horizontal, 14).frame(minHeight: 44)
                     .background(Color(RGB(hex: "#EFE5D2")!), in: .capsule)
                     .overlay(Capsule().stroke(Color(RGB(hex: "#5A4A38")!), lineWidth: 1.5))
@@ -502,8 +511,8 @@ private struct ClimbCloseUp: View {
     private func replies(_ id: String, level: Int) -> AnyView {
         AnyView(ForEach(Beanstalk.replies(to: id, level: level, in: reading.kids)) { r in
             VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(.subheadline.bold())
-                Text(r.body).font(.body)
+                Text(r.author).climbFont(.subheadline, weight: .bold)
+                Text(r.body).climbFont(.body)
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
             .padding(.leading, 12)
@@ -541,4 +550,31 @@ struct ClimbHeader: View {
             ctx.stroke(rim, with: .color(ClimbArt.rim), style: .init(lineWidth: 2.4, lineJoin: .round))
         }
     }
+}
+
+/// The skin's words, 1 pt bigger than the system's (Steve, 2026-10-31), still growing with the reader's text size.
+private struct ClimbFont: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+    private let weight: Font.Weight
+
+    init(_ style: Font.TextStyle, weight: Font.Weight) {
+        // The system's sizes at the default text size, plus 1.
+        let base: CGFloat = switch style {
+        case .title3: 20
+        case .headline, .body: 17
+        case .callout: 16
+        case .subheadline: 15
+        case .footnote: 13
+        case .caption: 12
+        default: 17
+        }
+        _size = ScaledMetric(wrappedValue: base + 1, relativeTo: style)
+        self.weight = weight
+    }
+
+    func body(content: Content) -> some View { content.font(.system(size: size, weight: weight)) }
+}
+
+private extension View {
+    func climbFont(_ style: Font.TextStyle, weight: Font.Weight = .regular) -> some View { modifier(ClimbFont(style, weight: weight)) }
 }

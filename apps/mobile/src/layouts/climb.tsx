@@ -396,13 +396,14 @@ function Rock({ comment, replies, first, shape, left, onOpen }: { comment: Comme
       <Text style={styles.rockName} numberOfLines={1}>
         {comment.author.displayName}
       </Text>
-      <Text style={styles.rockText} numberOfLines={2}>
+      {/* Steve: plaques grow with their words, so nothing is cut off. */}
+      <Text style={styles.rockText}>
         {comment.body}
       </Text>
       {/* Its replies open with it, in the close-up. */}
       {/* Steve: the first reply shows under every comment that has replies. */}
       {first ? (
-        <Text style={styles.rockFirst} numberOfLines={1} testID={`rock-first-${comment.id}`}>
+        <Text style={styles.rockFirst} testID={`rock-first-${comment.id}`}>
           <Text style={styles.rockReplies}>{first.author.displayName}: </Text>
           {first.body}
         </Text>
@@ -536,8 +537,11 @@ function CloseUp({ card, comment, kids, onClose }: { card: Card | null; comment:
             </Svg>
           ) : null}
           <ScrollView contentContainerStyle={styles.bigInner}>
-            <Text style={styles.bigName}>{comment.author.displayName}</Text>
-            <Text style={styles.bigText}>{comment.body}</Text>
+            {/* Steve: tapping it again folds it closed. */}
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityHint={t('climb.fold')} testID="climb-fold">
+              <Text style={styles.bigName}>{comment.author.displayName}</Text>
+              <Text style={styles.bigText}>{comment.body}</Text>
+            </Pressable>
             <CommentButtons postId={card.id} comment={comment} />
             {thread(comment, 1)}
           </ScrollView>
@@ -635,7 +639,7 @@ const styles = StyleSheet.create({
   band: { position: 'relative', overflow: 'hidden' },
   header: { paddingLeft: GUTTER, paddingRight: 12, paddingTop: 12 },
   post: { paddingLeft: GUTTER, paddingRight: 12, paddingTop: 22, paddingBottom: 26, gap: 10 },
-  pinned: { fontWeight: '700', fontSize: 13, color: '#2B241C' },
+  pinned: { fontWeight: '700', fontSize: 14, color: '#2B241C' },
   // Carved and smoothed: a lit top edge, a darker lower edge, and a shadow on the wall.
   slab: {
     borderTopWidth: 2,
@@ -657,31 +661,31 @@ const styles = StyleSheet.create({
   rockLeft: { alignSelf: 'flex-start', marginLeft: 4 },
   rockRight: { alignSelf: 'flex-end', marginRight: 0 },
   rockArt: { position: 'absolute', left: 0, top: 0 },
-  rockName: { fontWeight: '700', fontSize: 13, color: '#3A2F23' },
-  rockFirst: { fontSize: 13, color: '#2B241C', marginTop: 3, paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: '#6D5F4D' },
-  rockReplies: { fontSize: 12, fontWeight: '700', color: '#3A2F23', marginTop: 2 },
+  rockName: { fontWeight: '700', fontSize: 14, color: '#3A2F23' },
+  rockFirst: { fontSize: 14, color: '#2B241C', marginTop: 3, paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: '#6D5F4D' },
+  rockReplies: { fontSize: 13, fontWeight: '700', color: '#3A2F23', marginTop: 2 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   pill: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22, backgroundColor: '#EFE5D2', borderWidth: 1.5, borderColor: '#5A4A38' },
   pillOn: { backgroundColor: '#D9C9A8' },
-  pillText: { fontSize: 15, fontWeight: '700', color: '#2B241C' },
-  rockText: { fontSize: 14, lineHeight: 19, color: '#211B14' },
+  pillText: { fontSize: 16, fontWeight: '700', color: '#2B241C' },
+  rockText: { fontSize: 15, lineHeight: 20, color: '#211B14' },
   pebble: { alignSelf: 'center', minHeight: 44, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 22, backgroundColor: '#E4DBCA', borderWidth: 1, borderColor: 'rgba(60,48,36,0.5)' },
-  pebbleText: { fontWeight: '700', fontSize: 14, color: '#2B241C' },
-  end: { marginLeft: GUTTER, marginRight: 12, marginTop: 28, padding: 12, borderRadius: 14, backgroundColor: '#F1EBE0', color: '#2B241C', fontSize: 15, textAlign: 'center', overflow: 'hidden' },
+  pebbleText: { fontWeight: '700', fontSize: 15, color: '#2B241C' },
+  end: { marginLeft: GUTTER, marginRight: 12, marginTop: 28, padding: 12, borderRadius: 14, backgroundColor: '#F1EBE0', color: '#2B241C', fontSize: 16, textAlign: 'center', overflow: 'hidden' },
   climber: { position: 'absolute', left: 0, top: 0, width: CLIMBER_W },
   scrim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(28,22,16,0.6)' },
   bigColumn: { position: 'absolute', left: 14, right: 14, top: 48, bottom: 28, gap: 10, alignItems: 'stretch' },
   big: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', borderRadius: 22, borderWidth: 3, borderColor: '#5A4A38', overflow: 'hidden' },
   parent: { width: '100%', maxWidth: 720, alignSelf: 'center', backgroundColor: '#F1EBE0', borderTopLeftRadius: 22, borderTopRightRadius: 30, borderBottomRightRadius: 18, borderBottomLeftRadius: 26, padding: 12, gap: 6, borderTopWidth: 2, borderTopColor: 'rgba(255,255,255,0.6)', borderBottomWidth: 3, borderBottomColor: 'rgba(90,70,45,0.35)' },
   parentHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  parentLine: { fontSize: 16, color: '#2B241C' },
+  parentLine: { fontSize: 17, color: '#2B241C' },
   oval: { width: 40, height: 46, borderRadius: 23, backgroundColor: '#6D5F4D', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   ovalPhoto: { width: 40, height: 46 },
-  ovalText: { color: '#F6EFE2', fontWeight: '700', fontSize: 16 },
+  ovalText: { color: '#F6EFE2', fontWeight: '700', fontSize: 17 },
   bigInner: { paddingTop: 70, paddingHorizontal: 22, paddingBottom: 24, gap: 16 },
-  bigName: { fontWeight: '700', fontSize: 17, color: '#2B241C' },
-  bigText: { fontSize: 21, lineHeight: 30, color: '#211B14', marginTop: -10 },
+  bigName: { fontWeight: '700', fontSize: 18, color: '#2B241C' },
+  bigText: { fontSize: 22, lineHeight: 31, color: '#211B14', marginTop: -10 },
   reply: { marginLeft: 18, paddingLeft: 12, borderLeftWidth: 4, borderLeftColor: '#8A7A63', gap: 2 },
-  replyText: { fontSize: 17, lineHeight: 24, color: '#211B14' },
+  replyText: { fontSize: 18, lineHeight: 25, color: '#211B14' },
   close: { position: 'absolute', right: 10, top: 10, width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: '#4A3F33', backgroundColor: '#EFE5D2', alignItems: 'center', justifyContent: 'center' },
 });

@@ -2324,6 +2324,7 @@ const en = {
     openComment: 'Opens the whole comment and its replies',
     more: '%{n} more',
     replies: { one: '1 reply', other: '%{count} replies' },
+    fold: 'Folds it closed again',
   },
   circuit: {
     end: 'End of the line. Pull down to power up new posts.',
