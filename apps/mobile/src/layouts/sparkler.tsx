@@ -412,13 +412,14 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   const tokens = useMemo(() => sparklerTokens(theme), [theme]);
   const bg = useSparklerBackground();
   const still = useReducedMotion();
-  // How far the feed has scrolled, how tall the screen and the feed are, and where the tip has
-  // reached in the feed's own points (it never draws back).
+  // How far the feed has scrolled, how tall the screen and the feed are, and where the tip is in
+  // the feed's own points: always at the same place on screen, so the sparkler is never lost from
+  // sight and the line always runs on toward the foot of the screen.
   const [view, setView] = useState({ scrolled: 0, screen: 0, feed: 0, reached: 0 });
   const move = (next: Partial<typeof view>) =>
     setView((v) => {
       const n = { ...v, ...next };
-      return { ...n, reached: lineTip(n.scrolled, n.screen, v.reached, n.feed, TIP_AT) };
+      return { ...n, reached: lineTip(n.scrolled, n.screen, 0, n.feed, TIP_AT) };
     });
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
@@ -427,18 +428,15 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   // Room under the last post, so the line can grow all the way down past it.
   const tail = Math.round((view.screen || 800) * (1 - TIP_AT)) + 40;
   return (
-    <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="sparkler-layout" onLayout={(e: LayoutChangeEvent) => move({ screen: e.nativeEvent.layout.height })}>
+    <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="sparkler-layout">
+      {/* Black room under the Home and Menu buttons, held still above the feed, so they never sit on a post's words. */}
+      <View style={{ height: TOP_ROOM }} />
+      <View style={styles.fill} onLayout={(e: LayoutChangeEvent) => move({ screen: e.nativeEvent.layout.height })}>
       <FlatList
         data={cards}
         keyExtractor={(c) => c.id}
         renderItem={({ item, index }) => <PostSquare card={item} index={index} tokens={tokens} bg={bg} pinned={item.id === pinnedId} still={still} renderCard={renderCard} />}
-        ListHeaderComponent={
-          <>
-            {/* Black room under the Home and Menu buttons. */}
-            <View style={{ height: TOP_ROOM }} />
-            {header ? <View style={styles.headerPanel}>{header}</View> : null}
-          </>
-        }
+        ListHeaderComponent={header ? <View style={styles.headerPanel}>{header}</View> : undefined}
         ListFooterComponent={<View style={{ minHeight: tail }}>{atEnd && cards.length > 0 ? <Text style={styles.end}>{t('sparkler.end')}</Text> : null}</View>}
         // Up and down only.
         horizontal={false}
@@ -452,7 +450,8 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
         onContentSizeChange={(_w, h) => move({ feed: h })}
       />
       {/* The line starts at the first post and is drawn on screen from there to the tip. */}
-      {view.screen ? <TheLine top={Math.max(0, TOP_ROOM - view.scrolled)} tip={view.reached - view.scrolled} atEnd={view.feed > 0 && view.reached >= view.feed - 1} stripe={tokens.stripe} still={still} /> : null}
+      {view.screen ? <TheLine top={Math.max(0, -view.scrolled)} tip={view.reached - view.scrolled} atEnd={view.feed > 0 && view.reached >= view.feed - 1} stripe={tokens.stripe} still={still} /> : null}
+      </View>
     </View>
   );
 }

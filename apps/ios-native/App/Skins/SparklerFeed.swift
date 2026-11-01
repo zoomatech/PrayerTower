@@ -7,7 +7,8 @@ import SwiftUI
 private let sparklerSpace = "sparkler-feed"
 
 /// A simple full-screen scroll with no border: each post fills the screen's width. ONE line on the
-/// left runs down the whole feed over the posts and grows downward as you scroll, with a burning
+/// left runs down the whole feed over the posts and grows downward as you scroll (its tip always on
+/// screen near the foot, so it never seems to stop while there is more below), with a burning
 /// sparkler at its tip leading the way (the line is drawn in the shared glass look,
 /// GrowingConnector.swift). Posts are separated by a black line with a light blue line through its
 /// middle, the poster's profile picture sits in the upper right corner of each square, and the
@@ -24,20 +25,22 @@ struct SparklerFeed<Row: View>: View {
     /// How far the feed has scrolled, and how tall it is.
     @State private var scrolled: Double = 0
     @State private var feedHeight: Double = 0
-    /// Where the line's tip has reached, in the feed's own points. It never draws back.
-    @State private var reached: Double = 0
 
     var body: some View {
         let words = Words(wording)
         let bg = Sparkler.background(chosen)
+        VStack(spacing: 0) {
+        // Black room under the Home and Menu buttons, held still above the feed, so they never sit
+        // on a post's words however far it scrolls.
+        Color(look.backdrop).frame(height: Sparkler.topRoom).accessibilityHidden(true)
         GeometryReader { geo in
             let screen = Double(geo.size.height)
-            let tip = Sparkler.tip(scrolled: scrolled, screen: screen, reached: reached, feedHeight: feedHeight)
+            // The tip always rides at the same place on screen, sparkler and all, so it is never
+            // lost from sight and the line always runs on down toward the foot of the screen.
+            let tip = Sparkler.tip(scrolled: scrolled, screen: screen, reached: 0, feedHeight: feedHeight)
             // Up and down only.
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
-                    // Black room under the Home and Menu buttons, so they never sit on a post's words.
-                    Color(look.backdrop).frame(height: Sparkler.topRoom).accessibilityHidden(true)
                     ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                         SparklerPost(card: card, index: i, look: look, bg: bg, words: words, hooks: hooks, row: row)
                             .loadsMore(after: card, in: cards, hooks)
@@ -59,11 +62,10 @@ struct SparklerFeed<Row: View>: View {
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(sparklerSpace)) } action: { r in
                     scrolled = Double(-r.minY)
                     feedHeight = Double(r.height)
-                    let next = Sparkler.tip(scrolled: scrolled, screen: screen, reached: reached, feedHeight: feedHeight)
-                    if next > reached { reached = next }
                 }
             }
             .coordinateSpace(name: sparklerSpace)
+        }
         }
         .background(Color(look.backdrop))
     }
