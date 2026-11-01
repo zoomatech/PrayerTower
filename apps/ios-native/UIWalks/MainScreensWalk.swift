@@ -87,7 +87,7 @@ final class MainScreensWalk: XCTestCase {
                 // CI log shows what it could be (CI's Xcode flags these where a Mac's newer one doesn't).
                 if issue.element == nil, !described.contains(screen) {
                     described.insert(screen)
-                    for line in app.debugDescription.split(separator: "\n") where line.contains("{{") {
+                    for line in self.app.debugDescription.split(separator: "\n") where line.contains("{{") {
                         print("WALKDIAG \(screen): \(line.trimmingCharacters(in: .whitespaces))")
                     }
                 }
