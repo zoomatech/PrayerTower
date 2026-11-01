@@ -39,7 +39,7 @@ extension View {
 }
 
 /// An emoji or symbol drawn purely as decoration (the sign-in dove, the tower's climber, a star
-/// mark). It is drawn as a picture, so it is no text at all to VoiceOver or the accessibility
+/// mark). It is drawn on a canvas, so it is no text at all to VoiceOver or the accessibility
 /// audit: hidden text was still checked for contrast and Dynamic Type.
 struct DecorativeGlyph: View {
     let glyph: String
@@ -50,22 +50,11 @@ struct DecorativeGlyph: View {
     /// Grows with Dynamic Type like the words around it.
     @ScaledMetric private var scale: CGFloat = 1
 
-    @Environment(\.displayScale) private var displayScale
-    @Environment(\.colorScheme) private var scheme
-
     var body: some View {
         // Grows with the text, up to half again its size, so a big glyph never crowds the words.
         let side = size * min(scale, maxScale)
-        // Rendered once into a bitmap: even text drawn on a canvas was still read as words of a
-        // fixed size by Apple's check on GitHub's Xcode.
-        let renderer = ImageRenderer(content: Text(glyph).font(.system(size: side)).foregroundStyle(color).environment(\.colorScheme, scheme))
-        let _ = renderer.scale = displayScale
-        Group {
-            if let picture = renderer.cgImage {
-                Image(decorative: picture, scale: displayScale)
-            } else {
-                Color.clear
-            }
+        Canvas { ctx, box in
+            ctx.draw(Text(glyph).font(.system(size: side)).foregroundStyle(color), at: CGPoint(x: box.width / 2, y: box.height / 2))
         }
         .frame(width: side * 1.3, height: side * 1.3)
         .accessibilityHidden(true)
