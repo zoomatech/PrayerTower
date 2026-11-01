@@ -293,7 +293,7 @@ export interface TokenSummary {
   priestly: PriestlyStatus;
 }
 
-export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit' | 'climb' | 'sparkler';
+export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit' | 'climb' | 'sparkler' | 'ceramic';
 
 export interface FeedTheme {
   slug: string;

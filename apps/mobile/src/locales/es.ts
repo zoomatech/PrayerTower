@@ -2015,6 +2015,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   tree: en.tree,
   wall: en.wall,
   tower: en.tower,
+  ceramic: en.ceramic,
   circuit: en.circuit,
   climb: en.climb,
   sparkler: en.sparkler,

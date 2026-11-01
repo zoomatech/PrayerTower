@@ -27,6 +27,7 @@ struct SkinnedFeed<Row: View>: View {
         case .climb: ClimbHeader(look: ClimbLook(theme))
         // Black, edged with the light blue of its separators.
         case .sparkler: PlainSkinHeader(backdrop: SparklerLook(theme).backdrop, accent: SparklerLook(theme).stripe)
+        case .ceramic: CeramicHeader()
         case .vine where VineLook(theme).vineStyle == .beanstalk: BeanHeader()
         case .vine where VineLook(theme).vineStyle == .neon: NeonHeader(look: VineLook(theme))
         default: PlainSkinHeader(backdrop: Skin.backdrop(theme), accent: SkinHeader.accent(theme))
@@ -46,6 +47,7 @@ struct SkinnedFeed<Row: View>: View {
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
         case .climb: ClimbFeed(look: ClimbLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .sparkler: SparklerFeed(look: SparklerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
+        case .ceramic: CeramicFeed(look: CeramicLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .carousel: SwipeFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .flip: FlipFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .column: List(cards) { card in row(card).loadsMore(after: card, in: cards, hooks) }
@@ -1047,4 +1049,15 @@ struct NeonHeader: View {
 enum HomeAndMenu {
     /// How far the buttons reach below the top of the navigation bar's 44-point row.
     static let overhang: CGFloat = 2 + 44 + 6 + 44 - 44
+}
+
+/// The Ceramic Figurines header: the cream shelf up behind the clock, with an etched line along its foot.
+struct CeramicHeader: View {
+    var body: some View {
+        SkinHeaderBand(edge: 4) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: .color(Color(RGB(hex: "#F6F0EE")!)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom, width: size.width, height: 1)), with: .color(Color(red: 110 / 255, green: 85 / 255, blue: 100 / 255).opacity(0.3)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom + 1, width: size.width, height: 1)), with: .color(.white.opacity(0.8)))
+        }
+    }
 }

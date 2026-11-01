@@ -127,7 +127,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
 export interface FeedTheme {
   slug: string;
   name: string;
-  layout: 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit' | 'climb' | 'sparkler';
+  layout: 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit' | 'climb' | 'sparkler' | 'ceramic';
   cardTemplates: Record<string, unknown>;
   animations: Record<string, unknown>;
   tokens: Record<string, unknown>;

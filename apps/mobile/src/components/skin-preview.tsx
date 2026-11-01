@@ -1,10 +1,11 @@
 // A small drawing of a feed skin: its backdrop and the drawn vine with a request and a comment in their leaves (vine), stone pillars and
-// climber (tower), glowing screen on a wire (circuit), or one full card (wall). Used by
+// climber (tower), glowing screen on a wire (circuit), a plaque in a shadow box with an angel statuette (ceramic), or one full card (wall). Used by
 // the theme maker and the skin gallery. Colors that aren't #RRGGBB yet (half typed in
 // the maker) fall back to the layout's own.
 import type { FeedTheme } from '@prayer-tower/shared';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { ceramicTokens, Figurine } from '@/layouts/ceramic';
 import { circuitTokens } from '@/layouts/circuit';
 import { climbTokens, EDGE_X } from '@/layouts/climb';
 import { sparklerTokens } from '@/layouts/sparkler';
@@ -83,6 +84,20 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
       </>,
     );
   }
+  if (layout === 'ceramic') {
+    // A plaque in its shadow box on a platform, with an angel statuette beside it.
+    const t = ceramicTokens(theme);
+    return frame(
+      t.backdrop,
+      <>
+        <View style={styles.statue}>
+          <Figurine look="angel" pose="present" width={36} height={60} />
+        </View>
+        <View style={[styles.cardBox, { alignSelf: 'center', width: '66%', padding: 6, borderRadius: 12, backgroundColor: t.frame, borderWidth: 2, borderColor: t.recess }]}>{card}</View>
+        <View style={{ alignSelf: 'center', width: '72%', height: 8, borderRadius: 4, backgroundColor: t.platform }} />
+      </>,
+    );
+  }
   if (layout === 'wall') return frame(wallBackdrop(theme), <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   if (layout !== 'vine') return frame(colors.background, <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   const v = vineTokens(theme);
@@ -107,6 +122,7 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
 const styles = StyleSheet.create({
   preview: { borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', justifyContent: 'center', padding: space.md },
   cardBox: { width: '42%' },
+  statue: { position: 'absolute', left: 6, bottom: 10 },
   vinePreview: { justifyContent: 'flex-start', paddingTop: 0 },
   miniCard: { height: 46, borderRadius: radius.md, backgroundColor: colors.surface },
   miniLine: { height: 14 },
