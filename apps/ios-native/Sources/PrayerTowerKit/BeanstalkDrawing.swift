@@ -255,7 +255,8 @@ public enum BeanDraw {
         let cx = w / 2
         // 10% larger than first drawn (Steve, 2026-10-30).
         let lw = (max(170, w * 0.5) * 1.1).rounded()
-        let angles = [22.0, 15, 27]
+        // A gentle tilt, so a leaf's level words stay on its pale middle (Steve, 2026-11-01).
+        let angles = [10.0, 8, 12]
         let per = Beanstalk.perPage
         let pages = 1, page = 0
         let cluster = top.count > per && !cv.spread
@@ -300,7 +301,7 @@ public enum BeanDraw {
                         stems += [.move(ccX, ccY + 28), .curve(ccX, baseY - 18, baseX - sd * 4, baseY - 12, baseX, baseY)]
                         let reps2 = kids[r.id] ?? []
                         let open2 = cv.open2 == m && !reps2.isEmpty
-                        let ra = 12.0
+                        let ra = 10.0
                         subs.append(Leaf(note: r, level: 2, path: [gi, m], x: inside(side < 0 ? baseX - rw : baseX, rw).rounded(), y: (baseY - rh / 2).rounded(), lw: rw, side: side, ang: sd * ra, fill: (k + m + seed + 1) % 3, replies: reps2.count, open: open2, k: m))
                         let rcX = baseX + sd * (rw / 2) * cos(ra * deg), rcY = baseY + (rw / 2) * sin(ra * deg)
                         cur = rcY + rh / 2 + 12
@@ -309,7 +310,7 @@ public enum BeanDraw {
                             for (z, q) in reps2.prefix(per).enumerated() {
                                 let bX = side < 0 ? rcX + qw / 2 : rcX - qw / 2, bY = cur + 4
                                 stems += [.move(rcX, rcY + 22), .curve(rcX, bY - 14, bX - sd * 3, bY - 10, bX, bY)]
-                                subs.append(Leaf(note: q, level: 3, path: [gi, m, z], x: inside(side < 0 ? bX - qw : bX, qw).rounded(), y: (bY - qh / 2).rounded(), lw: qw, side: side, ang: sd * 9, fill: (k + m + z + seed + 2) % 3, replies: 0, open: false, k: z))
+                                subs.append(Leaf(note: q, level: 3, path: [gi, m, z], x: inside(side < 0 ? bX - qw : bX, qw).rounded(), y: (bY - qh / 2).rounded(), lw: qw, side: side, ang: sd * 8, fill: (k + m + z + seed + 2) % 3, replies: 0, open: false, k: z))
                                 cur = bY + (qw / 2) * sin(9 * deg) + qh / 2 + 12
                             }
                         }

@@ -671,6 +671,8 @@ private struct BeanLeafView: View {
             }
             .foregroundStyle(Bean.text)
             .multilineTextAlignment(.center)
+            // The leaf tilts, its words stay level: tilted words read poorly and fail Apple's contrast check.
+            .rotationEffect(.degrees(-leaf.ang))
             .padding(.top, small ? 4 : 10)
             .padding(.bottom, small ? 6 : 12)
             .padding(.leading, padL)
