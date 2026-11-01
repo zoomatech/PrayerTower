@@ -4,6 +4,10 @@ import Foundation
 /// the same geometry as apps/mobile/src/layouts/beanstalk.tsx: the vine round each post, the stalk
 /// below it with the comments on big tilted leaves, and each post's sway off the centre line.
 public enum BeanDraw {
+    /// A leaf's height from its width: the leaf drawing is 200 by 100, so every leaf is exactly
+    /// half as tall as it is wide, whatever its words (Steve, 2026-11-01: never a puffy leaf).
+    public static func leafHeight(width: Double) -> Double { (width / 2).rounded() }
+
     /// One step of a drawing, in the same coordinates as the view that draws it.
     public enum Seg: Sendable, Equatable {
         case move(Double, Double)
@@ -289,7 +293,7 @@ public enum BeanDraw {
                 var bottom = ccY + 64
                 if open {
                     // Replies are small leaves of a true leaf's proportions (half as tall as wide).
-                    let rw = (lw * 0.6).rounded(), rh = (rw * 0.52).rounded()
+                    let rw = (lw * 0.6).rounded(), rh = leafHeight(width: rw)
                     var cur = ccY + 54
                     for (m, r) in reps.prefix(per).enumerated() {
                         let baseX = side < 0 ? ccX + rw / 2 : ccX - rw / 2, baseY = cur + 6
@@ -301,7 +305,7 @@ public enum BeanDraw {
                         let rcX = baseX + sd * (rw / 2) * cos(ra * deg), rcY = baseY + (rw / 2) * sin(ra * deg)
                         cur = rcY + rh / 2 + 12
                         if open2 {
-                            let qw = (lw * 0.48).rounded(), qh = (qw * 0.52).rounded()
+                            let qw = (lw * 0.48).rounded(), qh = leafHeight(width: qw)
                             for (z, q) in reps2.prefix(per).enumerated() {
                                 let bX = side < 0 ? rcX + qw / 2 : rcX - qw / 2, bY = cur + 4
                                 stems += [.move(rcX, rcY + 22), .curve(rcX, bY - 14, bX - sd * 3, bY - 10, bX, bY)]

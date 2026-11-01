@@ -563,7 +563,10 @@ private struct DesignLeaf: Shape {
     var big = false
 
     func path(in r: CGRect) -> Path {
-        let W = Double(r.width), H = Double(r.height), X0 = Double(r.minX), Y0 = Double(r.minY)
+        // Always the drawing's own 2 by 1, centred in whatever box it is given: no frame, text
+        // length or text size can ever stretch a leaf into a puffy or squashed one (Steve, 2026-11-01).
+        let W = min(Double(r.width), 2 * Double(r.height)), H = W / 2
+        let X0 = Double(r.midX) - W / 2, Y0 = Double(r.midY) - H / 2
         func P(_ x: Double, _ y: Double) -> CGPoint {
             let u: Double = x / 200 * W
             let px: Double = flip ? W - u : u
@@ -603,7 +606,6 @@ private struct BeanLeafView: View {
         let left: Bool = leaf.side < 0
         let fs: Double = leaf.level == 1 ? 14 : (leaf.level == 2 ? 12.5 : 12)
         let nameFs: Double = leaf.level == 1 ? 13.5 : (leaf.level == 2 ? 12 : 11.5)
-        let minH: Double = leaf.level == 1 ? 110 : (leaf.level == 2 ? 92 : 73)
         let small: Bool = leaf.level > 1
         let fit = Beanstalk.fit(leaf.note.body, max: Beanstalk.chars(width: leaf.lw * 0.64, font: fs, lines: small ? 1 : 2))
         let more: Bool = leaf.replies > 0 && leaf.level < 3
@@ -622,14 +624,14 @@ private struct BeanLeafView: View {
             }
             .foregroundStyle(Bean.text)
             .multilineTextAlignment(.center)
-            .padding(.top, small ? 4 : 16)
-            .padding(.bottom, small ? 6 : 18)
+            .padding(.top, small ? 4 : 10)
+            .padding(.bottom, small ? 6 : 12)
             .padding(.leading, padL)
             .padding(.trailing, padR)
             .frame(width: leaf.lw)
             // A reply keeps a real leaf's shape, half as tall as it is wide, so it never balloons.
             // A true leaf's proportions at a fixed size: the words never stretch it (Steve, 2026-10-30).
-            .frame(height: small ? (leaf.lw * 0.52).rounded() : minH)
+            .frame(height: BeanDraw.leafHeight(width: leaf.lw))
             .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
         .buttonStyle(.plain)

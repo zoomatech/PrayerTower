@@ -446,6 +446,9 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
 }
 
 /** The design's leaf, drawn in a 200×100 box: wide at the base (left), a pointed tip (right). */
+/** A leaf's height from its width: the leaf drawing is 200 by 100, so every leaf is half as tall as wide. */
+export const leafHeight = (width: number) => Math.round(width / 2);
+
 export const LEAF_PATH = 'M2 50 C 4 34, 22 10, 66 6 C 112 2, 160 20, 198 60 C 158 82, 110 98, 64 94 C 24 90, 4 66, 2 50 Z';
 const LEAF_VEINS = 'M2 50 C 60 46, 140 48, 198 60 M46 48 C 56 34, 64 22, 74 12 M46 48 C 56 62, 62 76, 70 88 M96 48 C 106 34, 116 22, 128 14 M96 49 C 106 62, 114 74, 124 84 M144 52 C 152 44, 158 36, 168 30 M144 53 C 150 62, 156 68, 164 74';
 
@@ -584,10 +587,10 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
   const { t: tr } = useLocale();
   const fs = leaf.level === 1 ? 14 : leaf.level === 2 ? 12.5 : 12;
   const nameFs = leaf.level === 1 ? 13.5 : leaf.level === 2 ? 12 : 11.5;
-  // A true leaf's proportions at a fixed size, as the drawing is (200 by 100): the words never
-  // stretch it into a puffy leaf (Steve, 2026-10-30, 2026-11-01). A reply is half as tall as wide.
+  // Every leaf is exactly the drawing's 2 by 1 (leafHeight), and the drawing itself can only
+  // scale evenly ('meet'), so no text length or size can ever puff a leaf out (Steve, 2026-11-01).
   const small = leaf.level > 1;
-  const minH = small ? Math.round(leaf.lw * 0.52) : Math.max(100, Math.round(leaf.lw * 0.55));
+  const minH = leafHeight(leaf.lw);
   const left = leaf.side < 0;
   // The text sits in the leaf's wide middle, away from the tip.
   const textW = leaf.lw * 0.64;
@@ -616,7 +619,7 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
           accessibilityLabel={`${leaf.comment.author.displayName}: ${leaf.comment.body}`}
           accessibilityHint={leaf.replies > 0 && leaf.level < 3 && !leaf.open ? tr('beanstalk.repliesHint') : fit.cut ? tr('beanstalk.readHint') : actionable ? tr('beanstalk.repliesHint') : undefined}
           style={[styles.leafBody, small ? styles.leafBodySmall : null, { height: minH, paddingLeft: `${left ? 24 : 12}%`, paddingRight: `${left ? 12 : 24}%` }]}>
-          <Svg aria-hidden pointerEvents="none" style={[StyleSheet.absoluteFill, left ? styles.flip : null]} viewBox="0 0 200 100" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Svg aria-hidden pointerEvents="none" style={[StyleSheet.absoluteFill, left ? styles.flip : null]} viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Path d={LEAF_PATH} fill={leaf.fill} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
             <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
           </Svg>
@@ -734,7 +737,7 @@ function Bunch({ x, y, size, lean = 0, t, at, go, onDone, label, hint }: { x: nu
                 <Svg aria-hidden width={w} height={h} style={left ? styles.flip : null} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                   <Path d={`M0 ${h / 2} Q ${stalk / 2} ${h / 2 - 3 * size} ${stalk + 2} ${h / 2}`} fill="none" stroke={BEANSTALK.vineInk} strokeWidth={Math.max(2.5, 4 * size)} strokeLinecap="round" />
                   <Path d={`M0 ${h / 2} Q ${stalk / 2} ${h / 2 - 3 * size} ${stalk + 2} ${h / 2}`} fill="none" stroke={BEANSTALK.stem} strokeWidth={Math.max(1, 2 * size)} strokeLinecap="round" />
-                  <G transform={`translate(${stalk} 0) scale(${blade / 200} ${h / 100})`}>
+                  <G transform={`translate(${stalk} 0) scale(${blade / 200})`}>
                     <Path d={LEAF_PATH} fill={LEAF_FILLS[(i + 1) % 3]!} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
                     <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
                   </G>
@@ -1144,7 +1147,7 @@ const styles = StyleSheet.create({
   bunchAt: { position: 'absolute', zIndex: 1 },
   bunchLeaf: { position: 'absolute' },
   bunchHint: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontFamily: 'Alegreya_400Regular_Italic', fontSize: 14, color: BEANSTALK.link },
-  leafBody: { justifyContent: 'center', alignItems: 'center', paddingTop: 16, paddingBottom: 18 },
+  leafBody: { justifyContent: 'center', alignItems: 'center', paddingTop: 10, paddingBottom: 12, overflow: 'hidden' },
   leafBodySmall: { paddingTop: 4, paddingBottom: 6 },
   flip: { transform: [{ scaleX: -1 }] },
   leafName: { fontFamily: FONT.bold, color: COMMENT_TEXT, textAlign: 'center' },

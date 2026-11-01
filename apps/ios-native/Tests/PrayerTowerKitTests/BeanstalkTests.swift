@@ -121,3 +121,7 @@ import Testing
     #expect(Beanstalk.replies(to: "a", level: 1, in: kids).map(\.id) == ["b"])
     #expect(Beanstalk.replies(to: "b", level: Beanstalk.maxLevel, in: kids).map(\.id) == ["c", "d", "e"])
 }
+
+@Test func everyLeafIsTheDrawingsTwoByOne() {
+    for w in [78.0, 109, 187, 221, 300] { #expect(BeanDraw.leafHeight(width: w) == (w / 2).rounded()) }
+}
