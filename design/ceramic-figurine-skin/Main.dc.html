@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ceramic Figurine feed</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&amp;family=Lora:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#7A5C74}a:hover{color:#5E4458}
+@keyframes settle{0%{opacity:0;transform:translateY(-8px) scale(1.02)}60%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes sheetup{0%{transform:translateY(40px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes ropeRun{to{stroke-dashoffset:-10}}
+@keyframes spin{to{transform:rotate(-360deg)}}
+@keyframes lift{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes drift{0%,100%{transform:translateX(0)}50%{transform:translateX(10px)}}
+@keyframes flop{0%{transform:perspective(700px) rotateX(-100deg);opacity:0}45%{opacity:1}60%{transform:perspective(700px) rotateX(16deg)}80%{transform:perspective(700px) rotateX(-6deg)}100%{transform:perspective(700px) rotateX(0deg);opacity:1}}
+@keyframes flyDownL{0%{transform:translate(8px,90px) rotate(-10deg);opacity:0}12%{opacity:1}50%{transform:translate(80px,250px) rotate(8deg)}88%{transform:translate(18px,410px) rotate(-4deg);opacity:1}100%{transform:translate(14px,430px);opacity:0}}
+@keyframes flyDownR{0%{transform:translate(342px,90px) rotate(10deg);opacity:0}12%{opacity:1}50%{transform:translate(270px,250px) rotate(-8deg)}88%{transform:translate(332px,410px) rotate(4deg);opacity:1}100%{transform:translate(336px,430px);opacity:0}}
+@keyframes flyUpL{0%{transform:translate(8px,800px) rotate(10deg);opacity:0}12%{opacity:1}50%{transform:translate(80px,620px) rotate(-8deg)}88%{transform:translate(18px,450px) rotate(4deg);opacity:1}100%{transform:translate(14px,430px);opacity:0}}
+@keyframes flyUpR{0%{transform:translate(342px,800px) rotate(-10deg);opacity:0}12%{opacity:1}50%{transform:translate(270px,620px) rotate(8deg)}88%{transform:translate(332px,450px) rotate(-4deg);opacity:1}100%{transform:translate(336px,430px);opacity:0}}
+@keyframes walk{0%{transform:translateX(-80px)}55%{transform:translateX(400px)}100%{transform:translateX(400px)}}
+@keyframes step{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-0.8px)}}
+.feed::-webkit-scrollbar{display:none}
+.icon-btn:focus-visible,.plain-btn:focus-visible,.placard:focus-visible{outline:2px solid #7A5C74;outline-offset:2px}
+.placard{display:block;width:100%;box-sizing:border-box;text-align:left;border:0;cursor:pointer;font-family:'Lora',Georgia,serif;color:#4B3F47;position:relative;border-radius:10px;padding:10px 12px 10px 12px;box-shadow:0 3px 6px rgba(70,50,60,0.22),inset 1px 1px 0 rgba(255,255,255,0.7),inset -1px -1px 0 rgba(95,70,85,0.15)}
+.rope{position:absolute;width:4px;border-radius:2px;background:repeating-linear-gradient(135deg,#D9AF88 0 2px,#F6E7D3 2px 4px);box-shadow:0 1px 1px rgba(80,60,70,0.25)}
+.tie{position:absolute;top:0;width:3px;height:12px;border-radius:2px;background:repeating-linear-gradient(135deg,#D9AF88 0 2px,#F6E7D3 2px 4px)}
+@media (prefers-reduced-motion: reduce){.anim{animation:none !important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EAE6F1; font-family: 'Lora', Georgia, serif; color: #4B3F47">
+
+<svg aria-hidden="true" width="0" height="0" style="position: absolute">
+<defs>
+<filter id="bisque" x="0" y="0" width="100%" height="100%">
+<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"></feTurbulence>
+<feColorMatrix type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.28  0 0 0 0 0.32  0 0 0 0.9 0"></feColorMatrix>
+</filter>
+</defs>
+</svg>
+<svg aria-hidden="true" width="390" height="844" style="position: absolute; inset: 0; opacity: 0.06; pointer-events: none"><rect width="390" height="844" filter="url(#bisque)"></rect></svg>
+
+<header style="position: absolute; top: 0; left: 0; right: 0; height: 104px; background: #F6F0EE; box-shadow: inset 0 -1px 0 rgba(110,85,100,0.22), 0 1px 0 rgba(255,255,255,0.8); z-index: 5; display: flex; align-items: flex-start; padding: 8px 12px 0 8px; box-sizing: border-box; gap: 8px">
+<div style="display: flex; flex-direction: column">
+<button class="icon-btn" aria-label="Home" title="Home" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6E5F68">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"></path><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"></path></svg>
+</button>
+<button class="icon-btn" aria-label="Menu" title="Menu" style="width: 44px; height: 44px; border: 0; background: transparent; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6E5F68">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+</button>
+</div>
+<button class="icon-btn" aria-label="Choose your figurines" title="Choose your figurines" onClick="{{openPicker}}" style="width: 44px; height: 44px; margin-top: 22px; border: 0; background: #EDE3E6; border-radius: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6E5F68; box-shadow: inset 0 1px 2px rgba(90,65,80,0.25), 0 1px 0 rgba(255,255,255,0.9)">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="4"></circle><path d="M8.5 12.5 7 19.5h10l-1.5-7"></path><path d="M5.5 21h13"></path><path d="M8.3 3.2c1.6-1.2 5.8-1.2 7.4 0"></path></svg>
+</button>
+<div style="flex: 1"></div>
+<img src="/_blob/df2d3e761304863cc6a14b9325fd3e1d" alt="Prayer Tower" width="134" height="88" style="display: block; width: 134px; height: 88px; margin-top: 0; object-fit: contain">
+</header>
+
+<div class="feed" ref="{{feedRef}}" onScroll="{{onFeedScroll}}" style="position: absolute; z-index: 1; top: 104px; left: 0; right: 0; bottom: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; scrollbar-width: none; padding: 6px 0 70px; box-sizing: border-box">
+<sc-for list="{{rows}}" as="item" hint-placeholder-count="2">
+<article style="position: relative; padding-top: 112px; margin-bottom: 30px">
+
+<sc-if value="{{item.cloud}}" hint-placeholder-val="{{false}}">
+<svg aria-hidden="true" class="anim" width="130" height="50" viewBox="0 0 130 50" style="position: absolute; top: {{item.cloudY}}; left: {{item.cloudX}}; pointer-events: none; animation: drift 14s ease-in-out infinite"><path d="M16 44h96a14 14 0 0 0-3-27.5A21 21 0 0 0 72 9a17 17 0 0 0-30 7A13.5 13.5 0 0 0 16 44Z" fill="#FBF8FB" stroke="#CFC1CE" stroke-width="1.2"></path><path d="M44 30q6-6 13 0M78 26q5-5 11 0" fill="none" stroke="#DED3DC" stroke-width="1"></path></svg>
+</sc-if>
+
+<svg aria-hidden="true" width="390" height="116" viewBox="0 0 390 116" style="position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none">
+<path d="M150 22h90a11 11 0 0 0-2-21.6A17 17 0 0 0 208-4a14 14 0 0 0-26 3A11 11 0 0 0 150 22Z" fill="#FBF8FB" stroke="#CFC1CE" stroke-width="1.2"></path>
+<rect x="191" y="12" width="8" height="14" rx="2" fill="#FFFFFF" stroke="#B9AEB6" stroke-width="1"></rect>
+<path d="{{item.haulD}}" fill="none" stroke="#D9AF88" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path>
+<path class="anim" d="{{item.haulD}}" fill="none" stroke="#F6E7D3" stroke-width="3.4" stroke-dasharray="2.2 2.8" stroke-linejoin="round" style="animation: ropeRun 0.8s linear infinite; animation-play-state: {{item.run}}"></path>
+<path d="{{item.tailD}}" fill="none" stroke="#D9AF88" stroke-width="3" stroke-linecap="round"></path>
+<path d="{{item.tasselD}}" fill="#EBC6D0" stroke="#B88E9A" stroke-width="0.9"></path>
+<path d="{{item.loadD}}" fill="none" stroke="#D9AF88" stroke-width="3.4" stroke-linecap="round"></path>
+<path class="anim" d="{{item.loadD}}" fill="none" stroke="#F6E7D3" stroke-width="3.4" stroke-dasharray="2.2 2.8" style="animation: ropeRun 0.8s linear infinite reverse; animation-play-state: {{item.run}}"></path>
+<path d="{{item.bridleD}}" fill="none" stroke="#D9AF88" stroke-width="2.6" stroke-linecap="round"></path>
+<path d="{{item.bridleD}}" fill="none" stroke="#F6E7D3" stroke-width="2.6" stroke-dasharray="2 2.6"></path>
+<circle cx="{{item.loadX}}" cy="88" r="4" fill="none" stroke="#FFFFFF" stroke-width="2.4"></circle>
+<circle cx="{{item.loadX}}" cy="88" r="4" fill="none" stroke="#A99DA6" stroke-width="0.6"></circle>
+<circle cx="195" cy="26" r="13" fill="#F9F8FA" stroke="#A99DA6" stroke-width="1.2"></circle>
+<circle cx="195" cy="26" r="9.5" fill="#FFFFFF" stroke="#DCD5DA" stroke-width="1.6"></circle>
+<g class="anim" style="transform-origin: 195px 26px; transform-box: view-box; animation: spin 2.4s linear infinite; animation-play-state: {{item.run}}">
+<path d="M195 17.5v17M186.5 26h17M189 20l12 12M201 20l-12 12" stroke="#CFC6CC" stroke-width="1.3" stroke-linecap="round"></path>
+</g>
+<circle cx="195" cy="26" r="3" fill="#EBD9A6" stroke="#B89F62" stroke-width="0.8"></circle>
+<path d="M185.5 19.5a11.5 11.5 0 0 1 10-5.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"></path>
+<circle cx="188.6" cy="18.6" r="1.3" fill="#FFFFFF"></circle>
+<path d="M{{item.cloudFeetX}} 106h50a8 8 0 0 0-2-15.5 12 12 0 0 0-22-3 9 9 0 0 0-16 5A7.5 7.5 0 0 0 {{item.cloudFeetX}} 106Z" fill="#FBF8FB" stroke="#CFC1CE" stroke-width="1.1"></path>
+<path display="{{item.pointerD}}" d="M{{item.cloudPointX}} 106h50a8 8 0 0 0-2-15.5 12 12 0 0 0-22-3 9 9 0 0 0-16 5A7.5 7.5 0 0 0 {{item.cloudPointX}} 106Z" fill="#FBF8FB" stroke="#CFC1CE" stroke-width="1.1"></path>
+</svg>
+
+<div aria-hidden="true" style="position: absolute; top: 22px; left: {{item.angelX}}; width: 46px; height: 77px; z-index: 2">
+<dc-import name="Figurine" look="{{item.look}}" pose="pull" present="{{item.present}}" flip="{{item.angelFlip}}" w="46" h="77" hint-size="46px,77px"></dc-import>
+</div>
+<sc-if value="{{item.pointer}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; top: 22px; left: {{item.pointX}}; width: 46px; height: 77px; z-index: 2">
+<dc-import name="Figurine" look="{{item.pointLook}}" pose="stand" flip="{{item.pointFlip}}" w="46" h="77" hint-size="46px,77px"></dc-import>
+</div>
+</sc-if>
+
+<div class="anim" style="position: relative; animation: lift 1.6s ease-in-out infinite; animation-play-state: {{item.run}}">
+<div style="position: relative; padding-top: 6px">
+<div class="rope" aria-hidden="true" style="left: 38px; top: 0; bottom: 52px"></div>
+<div class="rope" aria-hidden="true" style="right: 38px; top: 0; bottom: 52px"></div>
+
+<div class="anim" style="margin: 0 50px; position: relative; z-index: 1; background: #F1E4DF; border-radius: 14px; padding: 6px; box-shadow: inset 1px 1px 0 rgba(255,255,255,0.85), inset -1px -1px 0 rgba(120,90,105,0.2), 0 5px 12px rgba(90,65,80,0.16); animation: settle 900ms cubic-bezier(.2,.7,.2,1) {{item.delay}} both">
+<div style="background: #E5DAD5; border-radius: 9px; padding: 7px; box-shadow: inset 0 5px 11px rgba(75,55,65,0.32), inset 0 -1px 0 rgba(255,255,255,0.65)">
+<div style="position: relative; border-radius: 10px; padding: 14px 14px 16px; background: {{item.tint}}; box-shadow: 0 4px 7px rgba(70,50,60,0.24), 0 1px 1px rgba(70,50,60,0.18)">
+<svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; border-radius: 10px; opacity: 0.09; pointer-events: none"><rect width="100%" height="100%" filter="url(#bisque)"></rect></svg>
+<div aria-hidden="true" style="position: absolute; inset: 5px; border-radius: 7px; border: 1px solid rgba(95,70,85,0.32); box-shadow: 1px 1px 0 rgba(255,255,255,0.75), inset 1px 1px 0 rgba(255,255,255,0.6); pointer-events: none"></div>
+<div aria-hidden="true" style="position: absolute; inset: 9px; border-radius: 5px; border: 1px dotted rgba(95,70,85,0.3); pointer-events: none"></div>
+<div style="position: relative; display: flex; align-items: center; gap: 10px">
+<div style="width: 34px; height: 40px; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 17px; color: #4B3F47; box-shadow: inset 0 1px 2px rgba(80,60,70,0.3), 0 1px 0 rgba(255,255,255,0.8); flex: none">{{item.initials}}</div>
+<div style="min-width: 0">
+<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 1.1; color: #4B3F47">{{item.name}}</div>
+<div style="font-size: 12.5px; color: #64555E; letter-spacing: 0.4px">{{item.kind}} · {{item.time}}</div>
+</div>
+</div>
+<p style="position: relative; margin: 10px 2px 0; font-size: 16px; line-height: 1.5; color: #4B3F47">{{item.body}}</p>
+</div>
+</div>
+</div>
+
+<div style="position: relative; z-index: 1; margin: -4px 26px 0">
+<div aria-hidden="true" style="height: 10px; border-radius: 6px 6px 2px 2px; background: #F8F1EC; box-shadow: inset 0 -1px 0 rgba(95,70,85,0.25), 0 1px 0 rgba(255,255,255,0.8)"></div>
+<div style="position: relative; display: flex; padding: 0 6px; background: #EADDD7; border-radius: 0 0 12px 12px; box-shadow: 0 6px 10px rgba(80,60,70,0.22), inset 0 1px 0 rgba(255,255,255,0.6)">
+<div aria-hidden="true" style="position: absolute; left: 6px; right: 6px; top: 4px; bottom: 4px; border-radius: 6px; border: 1px solid rgba(95,70,85,0.25); box-shadow: 1px 1px 0 rgba(255,255,255,0.7); pointer-events: none"></div>
+<button class="icon-btn" aria-label="Praying Now" title="Praying Now" style="flex: 1; height: 46px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5E4F58; border-radius: 10px">
+<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 3.5 9.4 9.6 8.6 13.4 5 16.6 7.2 20.3 12 16.4Z"></path><path d="M12 3.5l2.6 6.1.8 3.8 3.6 3.2-2.2 3.7L12 16.4Z"></path></svg>
+</button>
+<button class="icon-btn" aria-label="Thumbs Up" title="Thumbs Up" style="flex: 1; height: 46px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5E4F58; border-radius: 10px">
+<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M7 10.5V20H4v-9.5Z"></path><path d="M7 10.5 10.8 3.6c1.5 0 2.5 1.1 2.2 2.6L12.4 9.6H18a2 2 0 0 1 2 2.3l-1.1 6.3A2.1 2.1 0 0 1 16.8 20H7"></path></svg>
+</button>
+<button class="icon-btn" aria-label="Commit to Pray" title="Commit to Pray" style="flex: 1; height: 46px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5E4F58; border-radius: 10px">
+<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M2.5 19.5 9.3 7.5l3.8 6 2.6-3.6 5.8 9.6Z"></path><path d="M7.7 10.3l1.6 1.2 1.5-1.4"></path></svg>
+</button>
+<button class="icon-btn" aria-label="Prayer Cast" title="Prayer Cast" style="flex: 1; height: 46px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5E4F58; border-radius: 10px">
+<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="9" r="1.4"></circle><path d="M12 10.5 8.3 21M12 10.5 15.7 21M9.6 17.3h4.8"></path><path d="M8.9 5.9a4.4 4.4 0 0 0 0 6.2M15.1 5.9a4.4 4.4 0 0 1 0 6.2M6.4 3.4a7.9 7.9 0 0 0 0 11.2M17.6 3.4a7.9 7.9 0 0 1 0 11.2"></path></svg>
+</button>
+<button class="icon-btn" aria-label="Gift Tokens" title="Gift Tokens" style="flex: 1; height: 46px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5E4F58; border-radius: 10px">
+<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="13.5" cy="6.5" r="2.6"></circle><path d="M2.5 14.5h3.2l3.6-1.2h4.4a1.5 1.5 0 0 1 0 3H10"></path><path d="M13.7 16.3h1.6l4.6-3a1.5 1.5 0 0 1 1.7 2.4L16 20H5.7l-3.2-.4"></path></svg>
+</button>
+<button class="icon-btn" aria-label="Share" title="Share" style="flex: 1; height: 46px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #5E4F58; border-radius: 10px">
+<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 3.5v11.5M8.2 7.3 12 3.5l3.8 3.8"></path><path d="M8 10.5H6v10h12v-10h-2"></path></svg>
+</button>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 10px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #E6CFA0; box-shadow: 0 1px 1px rgba(80,60,70,0.3)"></div>
+<div aria-hidden="true" style="position: absolute; right: 10px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #E6CFA0; box-shadow: 0 1px 1px rgba(80,60,70,0.3)"></div>
+</div>
+</div>
+
+<sc-if value="{{item.closed}}" hint-placeholder-val="{{true}}">
+<div style="position: relative; margin: 0 52px; padding-top: 12px; padding-bottom: 14px">
+<div class="tie" aria-hidden="true" style="left: 34px"></div>
+<div class="tie" aria-hidden="true" style="right: 34px"></div>
+<div aria-hidden="true" style="position: absolute; left: 12px; right: 12px; top: 24px; bottom: 2px; border-radius: 10px; background: {{item.cardBack}}; box-shadow: 0 3px 5px rgba(70,50,60,0.2)"></div>
+<div aria-hidden="true" style="position: absolute; left: 6px; right: 6px; top: 18px; bottom: 8px; border-radius: 10px; background: {{item.cardMid}}; box-shadow: 0 3px 5px rgba(70,50,60,0.2)"></div>
+<button class="placard" aria-expanded="false" aria-label="{{item.openLabel}}" onClick="{{item.toggle}}" style="background: {{item.cardFront}}">
+<span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 7px; border: 1px solid rgba(95,70,85,0.28); box-shadow: 1px 1px 0 rgba(255,255,255,0.7); pointer-events: none"></span>
+<span style="display: flex; align-items: center; gap: 8px; position: relative">
+<span style="width: 24px; height: 28px; flex: none; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 13px">{{item.first.initials}}</span>
+<span style="flex: 1; min-width: 0; font-size: 14.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><b style="font-weight: 500">{{item.first.name}}</b> · {{item.first.body}}</span>
+<span style="flex: none; font-size: 13px; color: #64555E">+{{item.more}}</span>
+</span>
+</button>
+</div>
+</sc-if>
+
+<sc-if value="{{item.open}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; margin: 0 52px; padding-bottom: 6px">
+<sc-for list="{{item.cmts}}" as="c" hint-placeholder-count="3">
+<div class="anim" style="position: relative; padding-top: 12px; transform-origin: 50% 0; animation: flop 760ms cubic-bezier(.3,1.2,.5,1) {{c.delay}} both">
+<div class="tie" aria-hidden="true" style="left: 34px"></div>
+<div class="tie" aria-hidden="true" style="right: 34px"></div>
+<div class="placard" style="background: {{item.cardFront}}; cursor: default; box-sizing: border-box">
+<span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 7px; border: 1px solid rgba(95,70,85,0.28); box-shadow: 1px 1px 0 rgba(255,255,255,0.7); pointer-events: none"></span>
+<button onClick="{{item.toggle}}" aria-label="{{c.foldLabel}}" style="all: unset; display: block; position: relative; cursor: pointer; width: 100%; box-sizing: border-box; border-radius: 8px">
+<span style="display: flex; align-items: center; gap: 8px; position: relative">
+<span style="width: 24px; height: 28px; flex: none; border-radius: 50%; background: {{item.avatar}}; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 13px">{{c.initials}}</span>
+<span style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 17px">{{c.name}}</span>
+</span>
+<span style="display: block; position: relative; margin-top: 4px; font-size: 15px; line-height: 1.45">{{c.body}}</span>
+</button>
+</div>
+<sc-if value="{{c.repliesClosed}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; margin-left: 22px; padding-top: 10px; padding-bottom: {{c.stackPad}}">
+<div class="tie" aria-hidden="true" style="left: 26px; height: 10px"></div>
+<div class="tie" aria-hidden="true" style="right: 26px; height: 10px"></div>
+<sc-if value="{{c.moreReplies}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 7px; right: 7px; top: 18px; bottom: 0; border-radius: 9px; background: #D9CFE6; box-shadow: 0 3px 5px rgba(70,50,60,0.2)"></div>
+</sc-if>
+<button onClick="{{c.toggle}}" aria-expanded="false" aria-label="{{c.replyOpenLabel}}" style="position: relative; display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border: 0; border-radius: 9px; padding: 9px 11px; min-height: 40px; background: #E6DEF0; color: #4B3F47; font-family: 'Lora', Georgia, serif; cursor: pointer; box-shadow: 0 3px 5px rgba(70,50,60,0.2), inset 1px 1px 0 rgba(255,255,255,0.7)">
+<span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 6px; border: 1px solid rgba(95,70,85,0.25); pointer-events: none"></span>
+<span style="position: relative; flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><b style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 15.5px">{{c.firstReply.name}}</b> · {{c.firstReply.body}}</span>
+<sc-if value="{{c.moreReplies}}" hint-placeholder-val="{{false}}"><span style="position: relative; flex: none; font-size: 13px; color: #5E4F58">+{{c.moreCount}}</span></sc-if>
+</button>
+</div>
+</sc-if>
+<sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+<div style="margin-left: 22px">
+<sc-for list="{{c.replies}}" as="r" hint-placeholder-count="1">
+<div class="anim" style="position: relative; padding-top: 10px; transform-origin: 50% 0; animation: flop 700ms cubic-bezier(.3,1.2,.5,1) {{r.delay}} both">
+<div class="tie" aria-hidden="true" style="left: 26px; height: 10px"></div>
+<div class="tie" aria-hidden="true" style="right: 26px; height: 10px"></div>
+<button onClick="{{c.toggle}}" aria-label="Reply from {{r.name}}. Tap to fold the replies up" style="position: relative; display: block; width: 100%; text-align: left; border: 0; border-radius: 9px; padding: 9px 11px; background: #E6DEF0; color: #4B3F47; font-family: 'Lora', Georgia, serif; cursor: pointer; box-shadow: 0 3px 5px rgba(70,50,60,0.2), inset 1px 1px 0 rgba(255,255,255,0.7)">
+<span aria-hidden="true" style="position: absolute; inset: 4px; border-radius: 6px; border: 1px solid rgba(95,70,85,0.25); pointer-events: none"></span>
+<span style="display: block; position: relative; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 16px">{{r.name}}</span>
+<span style="display: block; position: relative; font-size: 14.5px; line-height: 1.45">{{r.body}}</span>
+</button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+</article>
+</sc-for>
+</div>
+
+<sc-if value="{{flying}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" class="anim" style="position: absolute; left: 0; top: 0; z-index: 6; width: 40px; height: 67px; pointer-events: none; animation: {{flyAnim}} 3.2s ease-in-out both">
+<dc-import name="Figurine" look="angel" pose="host" present="true" flap="true" flip="{{flyFlip}}" w="40" h="67" hint-size="40px,67px"></dc-import>
+</div>
+</sc-if>
+
+<div aria-hidden="true" class="anim" style="position: absolute; left: 0; bottom: 8px; z-index: 0; width: 64px; height: 36px; pointer-events: none; animation: walk 46s linear 3s infinite both">
+<svg width="64" height="36" viewBox="0 0 64 36" style="display: block; overflow: visible">
+<ellipse cx="31" cy="33" rx="25" ry="2.4" fill="#5A4652" opacity="0.15"></ellipse>
+<g class="anim" style="animation: step 1.6s ease-in-out infinite; transform-origin: 18px 25px; transform-box: view-box"><ellipse cx="18" cy="28" rx="4" ry="5" fill="#CFE0D2" stroke="#7F9F88" stroke-width="0.9"></ellipse></g>
+<g class="anim" style="animation: step 1.6s ease-in-out -0.8s infinite; transform-origin: 44px 25px; transform-box: view-box"><ellipse cx="44" cy="28" rx="4" ry="5" fill="#CFE0D2" stroke="#7F9F88" stroke-width="0.9"></ellipse></g>
+<path d="M8 23.5 3 26.5 9 26.5Z" fill="#CFE0D2" stroke="#7F9F88" stroke-width="0.9" stroke-linejoin="round"></path>
+<g class="anim" style="animation: bob 1.6s ease-in-out infinite">
+<circle cx="56" cy="19" r="6.2" fill="#D6E5D8" stroke="#7F9F88" stroke-width="0.9"></circle>
+<ellipse cx="58.2" cy="17.4" rx="0.9" ry="1.2" fill="#45363B"></ellipse>
+<path d="M57 21.6q1.5 1 3 0" fill="none" stroke="#7F6A6E" stroke-width="0.7" stroke-linecap="round"></path>
+<circle cx="55.6" cy="21" r="1.3" fill="#F2B4AA" opacity="0.6"></circle>
+</g>
+<path d="M9 25Q11 5 31 4.5Q51 5 53 25Z" fill="#CBE0D0" stroke="#7F9F88" stroke-width="1"></path>
+<path d="M25 11h12l4 7-4 7H25l-4-7Z" fill="none" stroke="#93B39C" stroke-width="0.9" stroke-linejoin="round"></path>
+<path d="M25 11 19 9M37 11l6-2M41 18h10M21 18H11M25 25l-3 0M37 25h3" fill="none" stroke="#93B39C" stroke-width="0.9" stroke-linecap="round"></path>
+<path d="M8 25.5H54" stroke="#ECDFC8" stroke-width="3.2" stroke-linecap="round"></path>
+<path d="M8 25.5H54" stroke="#B9A88A" stroke-width="0.6" stroke-dasharray="1.2 2.4"></path>
+</svg>
+</div>
+
+<sc-if value="{{picker}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; background: rgba(75,60,70,0.32); z-index: 10" onClick="{{closePicker}}"></div>
+<div role="dialog" aria-label="Choose your figurines" class="anim" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 11; background: #F6F0EE; border-radius: 24px 24px 0 0; padding: 16px 18px 24px; box-shadow: 0 -6px 18px rgba(75,55,65,0.2); animation: sheetup 320ms ease-out both">
+<div style="width: 40px; height: 4px; border-radius: 2px; background: #D8CBD0; margin: 0 auto 10px"></div>
+<div style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 25px; color: #4B3F47; text-align: center">Choose your figurines</div>
+<div style="font-size: 14px; color: #64555E; text-align: center; margin: 4px 0 12px">They decorate the sides of your feed.</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{looks}}" as="s" hint-placeholder-count="6">
+<button class="icon-btn" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="border: {{s.ring}}; background: #EFE5E3; border-radius: 16px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; box-shadow: inset 0 3px 7px rgba(75,55,65,0.22), 0 1px 0 rgba(255,255,255,0.9)">
+<span style="display: block; width: 54px; height: 90px"><dc-import name="Figurine" look="{{s.preview}}" pose="sit" flip="false" w="54" h="90" hint-size="54px,90px"></dc-import></span>
+<span style="font-family: 'Lora', Georgia, serif; font-size: 13.5px; color: #4B3F47; text-align: center">{{s.label}}</span>
+</button>
+</sc-for>
+</div>
+<button class="plain-btn" onClick="{{closePicker}}" style="display: block; width: 100%; margin-top: 14px; height: 48px; border: 0; border-radius: 24px; background: #8E7088; color: #FFFFFF; font-family: 'Lora', Georgia, serif; font-size: 17px; cursor: pointer">Done</button>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"look":{"editor":"enum","options":["mix","angel","garden","shepherd","choir","dove"],"default":"mix","section":"Figurines"},"statueEvery":{"editor":"int","min":2,"max":5,"default":3,"section":"Figurines"},"$preview":{"width":390,"height":844}}'>
+var LOOKS = [
+  { id: 'mix', label: 'All five, mixed' },
+  { id: 'angel', label: 'Little Angels' },
+  { id: 'garden', label: 'Garden Children' },
+  { id: 'shepherd', label: 'Shepherd & Lamb' },
+  { id: 'choir', label: 'Choir Kids' },
+  { id: 'dove', label: 'Dove Keepers' }
+];
+var FIVE = ['angel', 'garden', 'shepherd', 'choir', 'dove'];
+var POSTS = [
+  { initials: 'MH', name: 'Margaret H.', kind: 'Prayer request', time: '2h', tint: '#DCE6EF', avatar: '#C9D7E6',
+    body: 'Please pray for my husband Walter, who has cataract surgery Tuesday morning. He is nervous, and so am I.',
+    comments: [
+      { initials: 'ER', name: 'Evelyn R.', body: 'Praying for steady hands for his surgeon and peace for you both, Margaret. My brother had the same surgery last spring.',
+        replies: [ { name: 'Margaret H.', body: 'Thank you, Evelyn. How did his recovery go?' }, { name: 'Evelyn R.', body: 'Beautifully. He was reading the paper in a week.' } ] },
+      { initials: 'DL', name: 'Dorothy L.', body: 'Lifting you both up tonight.', replies: [] },
+      { initials: 'RA', name: 'Ruth A.', body: 'I will bring a casserole Wednesday so you can rest.', replies: [ { name: 'Margaret H.', body: 'You are a dear.' } ] },
+      { initials: 'JP', name: 'June P.', body: 'Praying now.', replies: [] }
+    ] },
+  { initials: 'ER', name: 'Evelyn R.', kind: 'Prayer request', time: '3h', tint: '#F3DDD7', avatar: '#E9C9C1',
+    body: 'My granddaughter starts nursing school this week. Pray she finds good friends and keeps her faith.',
+    comments: [
+      { initials: 'HM', name: 'Helen M.', body: 'What a calling. Praying she finds a good study group and a church family nearby.', replies: [ { name: 'Evelyn R.', body: 'She found one already! Thank you, Helen.' } ] },
+      { initials: 'MH', name: 'Margaret H.', body: 'Nurses are angels on earth.', replies: [] },
+      { initials: 'DL', name: 'Dorothy L.', body: 'Praying for her first week.', replies: [] }
+    ] },
+  { initials: 'DL', name: 'Dorothy L.', kind: 'Praise', time: '5h', tint: '#DDEADF', avatar: '#C8DCCB',
+    body: 'Give thanks with me: my sister’s scans came back clear!',
+    comments: [
+      { initials: 'RA', name: 'Ruth A.', body: 'Praise God! I have been praying for her every morning.', replies: [ { name: 'Dorothy L.', body: 'I know you have. It meant the world to her.' } ] },
+      { initials: 'JP', name: 'June P.', body: 'Wonderful news, Dorothy.', replies: [] },
+      { initials: 'ER', name: 'Evelyn R.', body: 'Tears of joy here.', replies: [] },
+      { initials: 'HM', name: 'Helen M.', body: 'Thank you for telling us. It lifts us all.', replies: [] },
+      { initials: 'MH', name: 'Margaret H.', body: 'Hallelujah!', replies: [] }
+    ] },
+  { initials: 'RA', name: 'Ruth A.', kind: 'Prayer request', time: '8h', tint: '#F2EBD2', avatar: '#E5DAB5',
+    body: 'Our quilting circle is making blankets for the hospice. Pray for steady hands and warm hearts. We have twelve ladies now, and Thursday mornings at the fellowship hall have become the sweetest part of my week. Some of us are slower with the needle than we used to be, and Mabel\u2019s eyes are failing, but she still ties every knot by feel. Please pray that each blanket brings comfort to someone in their last days, and to the families sitting beside them.',
+    comments: [
+      { initials: 'DL', name: 'Dorothy L.', body: 'Count me in for Thursday. I will bring my good scissors.', replies: [] },
+      { initials: 'HM', name: 'Helen M.', body: 'Praying for every family who wraps up in one.', replies: [] }
+    ] },
+  { initials: 'HM', name: 'Helen M.', kind: 'Prayer request', time: '1d', tint: '#E6DEF0', avatar: '#D5C8E6',
+    body: 'I lost my dear friend Agnes on Sunday. Pray for her family, and for me as I miss her.',
+    comments: [
+      { initials: 'MH', name: 'Margaret H.', body: 'Agnes was a light to all of us. Praying for comfort, Helen.', replies: [ { name: 'Helen M.', body: 'She loved you too.' } ] },
+      { initials: 'ER', name: 'Evelyn R.', body: 'Holding you close in prayer.', replies: [] },
+      { initials: 'JP', name: 'June P.', body: 'May her memory be a blessing.', replies: [] }
+    ] }
+];
+var CLOUDS = { 1: ['-48px', '62%'], 2: ['300px', '58%'], 4: ['-40px', '48%'] };
+class Component extends DCLogic {
+  componentDidMount() {
+    var self = this;
+    this._t = setTimeout(function () { self.findCenter(); }, 300);
+  }
+  componentWillUnmount() { clearTimeout(this._t); }
+  findCenter() {
+    var el = this.feedEl;
+    if (!el) return;
+    var mid = el.scrollTop + el.clientHeight / 2;
+    var arts = el.querySelectorAll('article');
+    var best = 0, dist = Infinity;
+    for (var i = 0; i < arts.length; i++) {
+      var a = arts[i];
+      var d = Math.abs(a.offsetTop + a.offsetHeight / 2 - mid);
+      if (d < dist) { dist = d; best = i; }
+    }
+    var prev = (this.state || {}).center;
+    if (prev === best) return;
+    this.setState({ center: best });
+    if (typeof prev === 'number' && !this._flying && Math.random() < 0.5) {
+      var self = this;
+      var key = (best > prev ? 'Down' : 'Up') + (best % 2 === 0 ? 'L' : 'R');
+      this._flying = true;
+      setTimeout(function () { self.setState({ fly: key }); }, 40);
+      setTimeout(function () { self._flying = false; self.setState({ fly: null }); }, 3400);
+    }
+  }
+  renderVals() {
+    var st = this.state || {};
+    var self = this;
+    var look = st.look || this.props.look || 'mix';
+    var every = Math.max(2, this.props.statueEvery || 3);
+    var openPosts = st.openPosts || {};
+    var openCmts = st.openCmts || {};
+    var n = 0;
+    var next = function () { var id = look === 'mix' ? FIVE[n % 5] : look; n++; return id; };
+    var center = typeof st.center === 'number' ? st.center : -1;
+    var rows = POSTS.map(function (p, i) {
+      var left = i % 2 === 0;
+      var present = i === center;
+      var pointer = i % every === 1;
+      var isOpen = !!openPosts[i];
+      var cmts = p.comments.slice(0, 5).map(function (c, ci) {
+        var key = i + '-' + ci;
+        var o = !!openCmts[key];
+        return Object.assign({}, c, {
+          delay: (ci * 140) + 'ms',
+          open: o,
+          expanded: o ? 'true' : 'false',
+          hasReplies: c.replies.length > 0,
+          repliesClosed: c.replies.length > 0 && !o,
+          firstReply: c.replies[0] || { name: '', body: '' },
+          moreReplies: c.replies.length > 1,
+          moreCount: c.replies.length - 1,
+          stackPad: c.replies.length > 1 ? '6px' : '0px',
+          replyOpenLabel: 'Show ' + (c.replies.length === 1 ? '1 reply' : c.replies.length + ' replies'),
+          foldLabel: 'Comment from ' + c.name + '. Tap to fold the comments up',
+          replyLabel: c.replies.length === 1 ? '1 reply' : c.replies.length + ' replies',
+          replies: c.replies.map(function (r, ri) { return Object.assign({}, r, { delay: (ri * 140) + 'ms' }); }),
+          toggle: function () { var m = Object.assign({}, openCmts); m[key] = !o; self.setState({ openCmts: m }); }
+        });
+      });
+      return Object.assign({}, p, {
+        look: next(),
+        pointLook: pointer ? next() : 'angel',
+        present: present ? 'true' : 'false',
+        run: present ? 'paused' : 'running',
+        pointer: pointer,
+        pointerD: pointer ? 'inline' : 'none',
+        angelX: left ? '4px' : '340px',
+        angelFlip: left ? 'false' : 'true',
+        pointX: left ? '340px' : '4px',
+        pointFlip: left ? 'true' : 'false',
+        cloudFeetX: left ? 2 : 336,
+        cloudPointX: left ? 336 : 2,
+        loadX: left ? 207 : 183,
+        haulD: left ? 'M183 27 L42 53.5 L36 57' : 'M207 27 L348 53.5 L354 57',
+        tailD: left ? 'M36 57 Q29 68 33 80' : 'M354 57 Q361 68 357 80',
+        tasselD: left ? 'M33 79 l-3.5 9 h7 Z' : 'M357 79 l-3.5 9 h7 Z',
+        loadD: left ? 'M207 27 V84' : 'M183 27 V84',
+        bridleD: left ? 'M207 92 L40 112 M207 92 L350 112' : 'M183 92 L40 112 M183 92 L350 112',
+        cloud: !!CLOUDS[i],
+        cloudX: CLOUDS[i] ? CLOUDS[i][0] : '0px',
+        cloudY: CLOUDS[i] ? CLOUDS[i][1] : '0px',
+        delay: (Math.min(i, 2) * 260) + 'ms',
+        closed: !isOpen && p.comments.length > 0,
+        open: isOpen,
+        first: p.comments[0] || { initials: '', name: '', body: '' },
+        more: Math.max(0, p.comments.length - 1),
+        openLabel: 'Show all ' + p.comments.length + ' comments',
+        cardFront: '#F7F1EE',
+        cardMid: '#EDE3E0',
+        cardBack: '#E3D7D4',
+        cmts: cmts,
+        foldDelay: (cmts.length * 140) + 'ms',
+        toggle: function () { var m = Object.assign({}, openPosts); m[i] = !isOpen; self.setState({ openPosts: m }); }
+      });
+    });
+    var looks = LOOKS.map(function (s) {
+      var on = s.id === look;
+      return Object.assign({}, s, {
+        preview: s.id === 'mix' ? 'dove' : s.id,
+        pressed: on ? 'true' : 'false',
+        ring: on ? '2px solid #8E7088' : '2px solid transparent',
+        pick: function () { self.setState({ look: s.id }); }
+      });
+    });
+    var current = LOOKS.filter(function (s) { return s.id === look; })[0] || LOOKS[0];
+    return {
+      rows: rows,
+      looks: looks,
+      lookLabel: current.label,
+      picker: !!st.picker,
+      flying: !!st.fly,
+      flyAnim: 'fly' + (st.fly || 'DownL'),
+      flyFlip: st.fly && st.fly.slice(-1) === 'R' ? 'true' : 'false',
+      feedRef: function (el) { self.feedEl = el; },
+      onFeedScroll: function () { self.findCenter(); },
+      openPicker: function () { self.setState({ picker: true }); },
+      closePicker: function () { self.setState({ picker: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
