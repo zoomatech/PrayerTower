@@ -164,19 +164,23 @@ private struct SparklerTip: View {
     }
 
     static func draw(_ spray: [Sparkler.Spark], in ctx: GraphicsContext, size: CGSize) {
-        let c = CGPoint(x: size.width / 2, y: size.height / 2)
-        func dot(_ r: Double, _ color: Color) { ctx.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(color)) }
-        dot(11, Color(RGB(hex: "#FFD45C")!).opacity(0.25))
-        dot(6, Color(RGB(hex: "#FFE680")!).opacity(0.7))
+        let cx = Double(size.width) / 2
+        let cy = Double(size.height) / 2
+        func dot(_ x: Double, _ y: Double, _ r: Double, _ color: Color) {
+            ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(color))
+        }
+        dot(cx, cy, 11, Color(RGB(hex: "#FFD45C")!).opacity(0.25))
+        dot(cx, cy, 6, Color(RGB(hex: "#FFE680")!).opacity(0.7))
         for s in spray {
             let color = Color(Sparkler.sparkColors[s.color])
+            let end = CGPoint(x: cx + s.x2, y: cy + s.y2)
             var p = Path()
-            p.move(to: CGPoint(x: c.x + s.x1, y: c.y + s.y1))
-            p.addLine(to: CGPoint(x: c.x + s.x2, y: c.y + s.y2))
+            p.move(to: CGPoint(x: cx + s.x1, y: cy + s.y1))
+            p.addLine(to: end)
             ctx.stroke(p, with: .color(color), style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
-            if s.dot { ctx.fill(Path(ellipseIn: CGRect(x: c.x + s.x2 - 1.3, y: c.y + s.y2 - 1.3, width: 2.6, height: 2.6)), with: .color(color)) }
+            if s.dot { dot(cx + s.x2, cy + s.y2, 1.3, color) }
         }
-        dot(3, .white)
+        dot(cx, cy, 3, .white)
     }
 }
 
@@ -188,39 +192,60 @@ struct SparklerBackdrop: View {
     private static let flowerHues: [String: [String]] = ["meadow": ["#F2A7B5", "#F6D365", "#B9A4E8"], "blossoms": ["#F49AB4", "#F7BFD0", "#EE7FA0"]]
 
     var body: some View {
-        Canvas { ctx, size in
-            let w = Double(size.width), h = Double(size.height)
-            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(bg.base)))
-            switch bg.group {
-            case .solid: break
-            case .stars:
-                var stars = Sparkler.stars(w: w, h: h, seed: seed)
-                if bg.id == "deep-space" { stars += Sparkler.stars(w: w, h: h, seed: seed + 7) }
-                for s in stars {
-                    ctx.fill(Path(ellipseIn: CGRect(x: s.x - s.r, y: s.y - s.r, width: s.r * 2, height: s.r * 2)), with: .color((s.blue ? Color(RGB(hex: "#BFE3FF")!) : .white).opacity(s.opacity)))
-                }
-            case .flowers:
-                let hues = (Self.flowerHues[bg.id] ?? Self.flowerHues["meadow"]!).map { Color(RGB(hex: $0)!) }
-                for f in Sparkler.flowers(w: w, h: h, seed: seed) {
-                    var petals = Path()
-                    for i in 0..<5 {
-                        let a = (f.turn + Double(i) * 72) * .pi / 180
-                        let l = a - .pi / 2, side = f.r * 0.55
-                        let mid = CGPoint(x: f.x + cos(a) * f.r * 0.5, y: f.y + sin(a) * f.r * 0.5)
-                        petals.move(to: CGPoint(x: f.x, y: f.y))
-                        petals.addQuadCurve(to: CGPoint(x: f.x + cos(a) * f.r, y: f.y + sin(a) * f.r), control: CGPoint(x: mid.x + cos(l) * side, y: mid.y + sin(l) * side))
-                        petals.addQuadCurve(to: CGPoint(x: f.x, y: f.y), control: CGPoint(x: mid.x - cos(l) * side, y: mid.y - sin(l) * side))
-                        petals.closeSubpath()
-                    }
-                    ctx.fill(petals, with: .color(hues[f.hue % hues.count].opacity(0.55)))
-                    let c = f.r * 0.28
-                    ctx.fill(Path(ellipseIn: CGRect(x: f.x - c, y: f.y - c, width: c * 2, height: c * 2)), with: .color(Color(RGB(hex: "#F3C94E")!).opacity(0.55)))
-                }
-            case .texture:
-                textures(ctx, w: w, h: h)
-            }
+        Canvas { ctx, size in paint(ctx, size: size) }
+            .accessibilityHidden(true)
+    }
+
+    private func paint(_ ctx: GraphicsContext, size: CGSize) {
+        let w = Double(size.width), h = Double(size.height)
+        ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(bg.base)))
+        switch bg.group {
+        case .solid: break
+        case .stars: stars(ctx, w: w, h: h)
+        case .flowers: flowers(ctx, w: w, h: h)
+        case .texture: textures(ctx, w: w, h: h)
         }
-        .accessibilityHidden(true)
+    }
+
+    private func stars(_ ctx: GraphicsContext, w: Double, h: Double) {
+        var all: [Sparkler.Star] = Sparkler.stars(w: w, h: h, seed: seed)
+        if bg.id == "deep-space" { all += Sparkler.stars(w: w, h: h, seed: seed + 7) }
+        let blue = Color(RGB(hex: "#BFE3FF")!)
+        for s in all {
+            let rect = CGRect(x: s.x - s.r, y: s.y - s.r, width: s.r * 2, height: s.r * 2)
+            let tint: Color = s.blue ? blue : .white
+            ctx.fill(Path(ellipseIn: rect), with: .color(tint.opacity(s.opacity)))
+        }
+    }
+
+    private func flowers(_ ctx: GraphicsContext, w: Double, h: Double) {
+        let names: [String] = Self.flowerHues[bg.id] ?? Self.flowerHues["meadow"]!
+        let hues: [Color] = names.map { Color(RGB(hex: $0)!) }
+        let middle = Color(RGB(hex: "#F3C94E")!).opacity(0.55)
+        for f in Sparkler.flowers(w: w, h: h, seed: seed) {
+            var petals = Path()
+            for i in 0..<5 { Self.petal(&petals, f, Double(i)) }
+            ctx.fill(petals, with: .color(hues[f.hue % hues.count].opacity(0.55)))
+            let c: Double = f.r * 0.28
+            ctx.fill(Path(ellipseIn: CGRect(x: f.x - c, y: f.y - c, width: c * 2, height: c * 2)), with: .color(middle))
+        }
+    }
+
+    /// One petal of a five-petal flower, the same shape as the Expo app's petalPath.
+    private static func petal(_ p: inout Path, _ f: Sparkler.Flower, _ i: Double) {
+        let a: Double = (f.turn + i * 72) * Double.pi / 180
+        let l: Double = a - Double.pi / 2
+        let side: Double = f.r * 0.55
+        let midX: Double = f.x + cos(a) * f.r * 0.5
+        let midY: Double = f.y + sin(a) * f.r * 0.5
+        let tip = CGPoint(x: f.x + cos(a) * f.r, y: f.y + sin(a) * f.r)
+        let c1 = CGPoint(x: midX + cos(l) * side, y: midY + sin(l) * side)
+        let c2 = CGPoint(x: midX - cos(l) * side, y: midY - sin(l) * side)
+        let centre = CGPoint(x: f.x, y: f.y)
+        p.move(to: centre)
+        p.addQuadCurve(to: tip, control: c1)
+        p.addQuadCurve(to: centre, control: c2)
+        p.closeSubpath()
     }
 
     private func textures(_ ctx: GraphicsContext, w: Double, h: Double) {
@@ -234,19 +259,30 @@ struct SparklerBackdrop: View {
             ctx.stroke(across, with: .color(thread.opacity(0.6)), lineWidth: 0.6)
             ctx.stroke(down, with: .color(thread.opacity(0.4)), lineWidth: 0.6)
         case "paper":
+            let speck = Color(RGB(hex: "#BFB49C")!)
             for _ in 0..<Int(w * h / 500) {
-                let x = rnd.next() * w, y = rnd.next() * h, r = 0.3 + rnd.next() * 0.6, o = 0.25 + rnd.next() * 0.3
-                ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(Color(RGB(hex: "#BFB49C")!).opacity(o)))
+                let x: Double = rnd.next() * w
+                let y: Double = rnd.next() * h
+                let r: Double = 0.3 + rnd.next() * 0.6
+                let o: Double = 0.25 + rnd.next() * 0.3
+                ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(speck.opacity(o)))
             }
         default:
             // Wood grain: wavy lines across.
-            var y = 4.0, i = 0.0
+            let wood = Color(RGB(hex: "#B48F5E")!).opacity(0.35)
+            var y: Double = 4
+            var i: Double = 0
             while y < h {
-                let a = 2 + rnd.next() * 4, period = 60 + rnd.next() * 80
+                let amp: Double = 2 + rnd.next() * 4
+                let period: Double = 60 + rnd.next() * 80
                 var grain = Path()
                 grain.move(to: CGPoint(x: 0, y: y))
-                for x in stride(from: 10.0, through: w + 10, by: 10) { grain.addLine(to: CGPoint(x: x, y: y + sin(x / period * .pi * 2 + i) * a)) }
-                ctx.stroke(grain, with: .color(Color(RGB(hex: "#B48F5E")!).opacity(0.35)), lineWidth: 0.9 + rnd.next())
+                for x in stride(from: 10.0, through: w + 10, by: 10) {
+                    let wave: Double = sin(x / period * Double.pi * 2 + i) * amp
+                    grain.addLine(to: CGPoint(x: x, y: y + wave))
+                }
+                let width: Double = 0.9 + rnd.next()
+                ctx.stroke(grain, with: .color(wood), lineWidth: width)
                 y += 7 + rnd.next() * 9
                 i += 1
             }
