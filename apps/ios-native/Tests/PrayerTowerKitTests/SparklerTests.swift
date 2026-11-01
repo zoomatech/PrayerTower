@@ -20,15 +20,6 @@ final class SparklerTests: XCTestCase {
         XCTAssertEqual(Sparkler.background("nope").id, "white")
     }
 
-    func testLineGrowsWithTheScrollAndNeverDrawsBack() {
-        // A 400-point row whose top is at 300 on an 800-point screen: the tip (560) is 260 into it.
-        XCTAssertEqual(Sparkler.grown(rowTop: 300, rowHeight: 400, screen: 800, reached: 0), 0.65, accuracy: 0.001)
-        XCTAssertEqual(Sparkler.grown(rowTop: 900, rowHeight: 400, screen: 800, reached: 0), 0)
-        XCTAssertEqual(Sparkler.grown(rowTop: -500, rowHeight: 400, screen: 800, reached: 0), 1)
-        // Scrolled back up, it stays as far as it reached.
-        XCTAssertEqual(Sparkler.grown(rowTop: 900, rowHeight: 400, screen: 800, reached: 0.65), 0.65)
-    }
-
     func testStarsAndFlowersFitTheirPostTheSameEachTime() {
         XCTAssertEqual(Sparkler.stars(w: 390, h: 600, seed: 3), Sparkler.stars(w: 390, h: 600, seed: 3))
         XCTAssertGreaterThan(Sparkler.stars(w: 390, h: 600, seed: 3).count, Sparkler.stars(w: 390, h: 200, seed: 3).count)
@@ -40,5 +31,15 @@ final class SparklerTests: XCTestCase {
         let spray = Sparkler.sparks { 0.5 }
         XCTAssertEqual(spray.count, 16)
         for s in spray { XCTAssertGreaterThan(hypot(s.x2 - s.x1, s.y2 - s.y1), 5) }
+    }
+
+    func testOneLineGrowsWithTheScrollAndNeverDrawsBack() {
+        // At the top, the tip already rides near the foot of the screen (84%), sparkler and all.
+        XCTAssertEqual(Sparkler.tip(scrolled: 0, screen: 800, reached: 0, feedHeight: 5000), 672, accuracy: 0.001)
+        XCTAssertEqual(Sparkler.tip(scrolled: 1000, screen: 800, reached: 672, feedHeight: 5000), 1672, accuracy: 0.001)
+        // Scrolled back up, it stays as far as it reached.
+        XCTAssertEqual(Sparkler.tip(scrolled: 200, screen: 800, reached: 1672, feedHeight: 5000), 1672, accuracy: 0.001)
+        // Never past the end of the feed.
+        XCTAssertEqual(Sparkler.tip(scrolled: 4800, screen: 800, reached: 0, feedHeight: 5000), 5000, accuracy: 0.001)
     }
 }

@@ -22,8 +22,9 @@ public enum Sparkler {
     /// Where the line runs down the left, over the posts, and where the posts' words start.
     public static let lineX: Double = 12
     public static let textLeft: Double = 26
-    /// How far down the screen the line's tip (and its sparkler) rides.
-    public static let tipAt: Double = 0.7
+    /// How far down the screen the line's tip (and its sparkler) rides: near the bottom, just above
+    /// the tab bar, so the line never seems to stop short of the screen's foot (Steve, 2026-11-01).
+    public static let tipAt: Double = 0.84
     /// The separator: 8 points of black with a 2-point light blue line through its middle.
     public static let separatorHeight: Double = 8
     public static let stripeHeight: Double = 2
@@ -31,6 +32,12 @@ public enum Sparkler {
     public static let opened = 5
     /// The member's choice is kept on the device under this key.
     public static let storageKey = "sparkler.background"
+    /// The line's width, and the black room at the top of the feed under the Home and Menu buttons.
+    public static let lineWidth: Double = 5
+    public static let topRoom: Double = 58
+    /// How far the comments, and then their replies, sit in from the post's words.
+    public static let commentIndent: Double = 18
+    public static let replyIndent: Double = 36
 
     public enum Kind: String, Sendable, CaseIterable { case solid, stars, flowers, texture }
 
@@ -71,12 +78,12 @@ public enum Sparkler {
         bg.dark ? (RGB.white, RGB(hex: "#D3DAE8")!) : (RGB.commentText, RGB(hex: "#544B5C")!)
     }
 
-    /// How far down a row the line has grown, 0 to 1: as far as the tip (at `tipAt` of the
-    /// screen) has reached into it, never drawing back (`reached` is what it had before).
-    public static func grown(rowTop: Double, rowHeight: Double, screen: Double, reached: Double) -> Double {
-        guard rowHeight > 0 else { return reached }
-        let now = min(1, max(0, (screen * tipAt - rowTop) / rowHeight))
-        return max(reached, now)
+    /// Where the one line down the whole feed ends, in the feed's own points from its top: at
+    /// `tipAt` of the screen below how far it has scrolled, never drawing back (`reached` is
+    /// what it had before), and never past the feed's end.
+    public static func tip(scrolled: Double, screen: Double, reached: Double, feedHeight: Double) -> Double {
+        let now = max(0, scrolled) + screen * tipAt
+        return min(max(reached, now), max(0, feedHeight))
     }
 
     /// The same numbers every time for the same seed (the Expo app's generator).
@@ -121,8 +128,9 @@ public enum Sparkler {
 
     /// One spray of sparks thrown out from the burning tip at (0, 0); `color` indexes `sparkColors`.
     public static func sparks(_ next: () -> Double, count: Int = 16) -> [Spark] {
-        (0..<count).map { _ in
-            let a = next() * .pi * 2
+        (0..<count).map { i in
+            // Most are thrown downward, the way the line is going (Steve: it leads the way down).
+            let a = i % 4 == 0 ? next() * .pi * 2 : .pi * (0.15 + next() * 0.7)
             let r0 = 3 + next() * 3
             let r1 = r0 + 6 + next() * 18
             return Spark(x1: cos(a) * r0, y1: sin(a) * r0, x2: cos(a) * r1, y2: sin(a) * r1, color: Int(next() * Double(sparkColors.count)) % sparkColors.count, dot: next() < 0.4)
