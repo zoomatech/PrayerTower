@@ -73,9 +73,13 @@ const thread = (n: number) => [
 
 describe('Full Screen Sparkler motion', () => {
   it('throws the sparkler ahead in a swipe, at most a tenth of the screen, for the screen to catch up to', () => {
-    expect(swipeLead(0, 100, 800)).toBeCloseTo(45);
-    expect(swipeLead(60, 400, 800)).toBeCloseTo(80);
-    expect(swipeLead(0, -400, 800)).toBeCloseTo(-40);
+    let lead = 0;
+    for (let i = 0; i < 12; i++) lead = swipeLead(lead, 60, 800);
+    expect(lead).toBeCloseTo(80, 0);
+    // As the swipe slows, the screen catches up.
+    for (let i = 0; i < 12; i++) lead = swipeLead(lead, 4, 800);
+    expect(lead).toBeLessThan(12);
+    expect(swipeLead(0, -400, 800)).toBeCloseTo(-14);
   });
 
   it('leaves a trail of sparkle behind the sparkler that dies away near the top of the screen', () => {

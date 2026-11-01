@@ -21,7 +21,7 @@ public struct SparklerLook: Sendable, Equatable {
 public enum Sparkler {
     /// Where the line runs down the left, over the posts, and where the posts' words start.
     public static let lineX: Double = 12
-    public static let textLeft: Double = 26
+    public static let textLeft: Double = 34
     /// How far down the screen the line's tip (and its sparkler) rides: near the bottom, just above
     /// the tab bar, so the line never seems to stop short of the screen's foot (Steve, 2026-11-01).
     public static let tipAt: Double = 0.84
@@ -88,10 +88,12 @@ public enum Sparkler {
     }
 
     /// How far ahead of its resting place a swipe throws the sparkler: on along the way the feed is
-    /// moving, at most a tenth of the screen down (or a twentieth up), so the screen then catches up
-    /// to where it went (Steve, 2026-11-01).
+    /// moving, as far as it is moving fast (`delta` is this frame's scroll), at most a tenth of the
+    /// screen down (or a twentieth up), eased in from where it was. As a swipe slows the screen
+    /// catches up to where the sparkler went (Steve, 2026-11-01).
     public static func lead(_ lead: Double, delta: Double, screen: Double) -> Double {
-        min(screen * 0.1, max(-screen * 0.05, lead + delta * 0.45))
+        let goal = min(screen * 0.1, max(-screen * 0.05, delta * 2.2))
+        return lead + (goal - lead) * 0.35
     }
 
     /// One glint of the trail of sparkle the sparkler leaves on the line behind it.

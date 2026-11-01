@@ -44,7 +44,7 @@ export function sparklerTokens(theme: FeedTheme | null): SparklerTokens {
 
 /** Where the line runs down the left, over the posts, and how far in the posts' words start. */
 export const LINE_X = 12;
-const TEXT_LEFT = 26;
+const TEXT_LEFT = 34;
 /** How far down the screen the line's tip (and its sparkler) rides: near the foot, so the line never seems to stop short. */
 export const TIP_AT = 0.84;
 /** Black room at the top of the feed under the Home and Menu buttons, so they never cover a post. */
@@ -390,9 +390,10 @@ const PostSquare = memo(function PostSquare({ card, index, tokens, bg, pinned, s
   );
 });
 
-/** How far ahead of its resting place a swipe throws the sparkler: at most a tenth of the screen down, a twentieth up (Kit Sparkler.lead). */
+/** How far ahead of its resting place a swipe throws the sparkler: as far as the feed is moving fast (`delta` is this scroll step), at most a tenth of the screen down, a twentieth up, eased in; as the swipe slows the screen catches up (Kit Sparkler.lead). */
 export function swipeLead(lead: number, delta: number, screen: number) {
-  return Math.min(screen * 0.1, Math.max(-screen * 0.05, lead + delta * 0.45));
+  const goal = Math.min(screen * 0.1, Math.max(-screen * 0.05, delta * 2.2));
+  return lead + (goal - lead) * 0.35;
 }
 
 /**

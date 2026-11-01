@@ -44,9 +44,14 @@ final class SparklerTests: XCTestCase {
     }
 
     func testASwipeThrowsTheSparklerAheadAtMostATenthOfTheScreen() {
-        XCTAssertEqual(Sparkler.lead(0, delta: 100, screen: 800), 45, accuracy: 0.001)
-        XCTAssertEqual(Sparkler.lead(60, delta: 400, screen: 800), 80, accuracy: 0.001)
-        XCTAssertEqual(Sparkler.lead(0, delta: -400, screen: 800), -40, accuracy: 0.001)
+        // A fast swipe eases it toward a tenth of the screen ahead...
+        var lead = 0.0
+        for _ in 0..<12 { lead = Sparkler.lead(lead, delta: 60, screen: 800) }
+        XCTAssertEqual(lead, 80, accuracy: 1)
+        // ...and as the swipe slows, the screen catches up.
+        for _ in 0..<12 { lead = Sparkler.lead(lead, delta: 4, screen: 800) }
+        XCTAssertLessThan(lead, 12)
+        XCTAssertEqual(Sparkler.lead(0, delta: -400, screen: 800), -14, accuracy: 0.001)
     }
 
     func testTheTrailOfSparkleFadesOutTowardTheTopOfTheScreen() {
