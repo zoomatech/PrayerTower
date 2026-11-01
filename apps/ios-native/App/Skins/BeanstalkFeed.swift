@@ -39,6 +39,15 @@ private enum Bean {
     static let link = Color(RGB(hex: "#23407F")!)
     static let text = Color(RGB.commentText)
     static let locket = Color(RGB(hex: "#C9A227")!)
+    /// Apple's accessibility audit (debug samples only) checks the feed at rest, drawn whole as with
+    /// Reduce Motion: it changes the text size as it measures, and posts growing in again then read as clipped.
+    static let audit: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("-PTAuditSamples")
+        #else
+        return false
+        #endif
+    }()
     static let locketFace = Color(RGB(hex: "#F2B9A0")!)
     static let space = "beanstalk"
 }
@@ -54,6 +63,8 @@ private enum BeanFont {
     static func body(_ size: Double) -> Font { .custom("Alegreya-Regular", size: size) }
     static func semi(_ size: Double) -> Font { .custom("Alegreya-SemiBold", size: size) }
     static func bold(_ size: Double) -> Font { .custom("Alegreya-Bold", size: size) }
+    /// A size that doesn't grow with the text setting, for a letter drawn inside a fixed shape.
+    static func boldFixed(_ size: Double) -> Font { .custom("Alegreya-Bold", fixedSize: size) }
     static func boldItalic(_ size: Double) -> Font { .custom("Alegreya-BoldItalic", size: size) }
     static func title(_ size: Double) -> Font { .custom("HennyPenny-Regular", size: size) }
 }
@@ -136,19 +147,28 @@ struct BeanstalkFeed<Row: View>: View {
     let wording: Wording
     let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
+    @Environment(\.dynamicTypeSize) private var type
 
     var body: some View {
         let words = Words(wording)
         let _ = BeanFont.ready
+        // Enlarged text (Steve, 2026-10-31): the posts take the lane's whole width, less room for
+        // the locket and the frame's vine, and stop swaying aside, so the words get the space.
+        let big: Bool = type > .large
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
-                banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
+                // At the accessibility text sizes the banner would fill the screen, so it scrolls away
+                // with the feed instead of staying fixed above it.
+                if !type.isAccessibilitySize {
+                    banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
+                }
                 GeometryReader { geo in
                     let lane: Double = min(Double(geo.size.width), 760)
-                    let width: Double = BeanDraw.frameWidth(lane)
-                    let shifts: [Double] = cards.enumerated().map { BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
+                    let width: Double = big ? max(BeanDraw.frameWidth(lane), lane - 72) : BeanDraw.frameWidth(lane)
+                    let shifts: [Double] = cards.enumerated().map { big ? 0 : BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
                     ScrollView {
                         LazyVStack(spacing: 0) {
+                            if type.isAccessibilitySize { banner(words, stacked: true) {}.id("beanstalk-banner") }
                             Color.clear.frame(height: 76).id("beanstalk-top")
                             ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                                 BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i], margin: (lane - width) / 2,
@@ -168,8 +188,10 @@ struct BeanstalkFeed<Row: View>: View {
         .environment(\.colorScheme, .light)
     }
 
-    private func banner(_ words: Words, climb: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
+    /// Stacked: the title on its own lines and the button under it, so words wrap whole, never mid-word.
+    private func banner(_ words: Words, stacked: Bool = false, climb: @escaping () -> Void) -> some View {
+        let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        return layout {
             Canvas { ctx, _ in
                 var s = Path()
                 s.move(to: CGPoint(x: 17, y: 32)); s.addCurve(to: CGPoint(x: 12, y: 8), control1: CGPoint(x: 17, y: 22), control2: CGPoint(x: 10, y: 18))
@@ -192,20 +214,25 @@ struct BeanstalkFeed<Row: View>: View {
                 Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
-            Button(action: climb) {
-                Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Bean.button, in: .capsule)
-                    .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+            // Stacked, the banner scrolls with the feed, so it has no climb-back button.
+            if !stacked {
+                Spacer()
+                Button(action: climb) {
+                    Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(Bean.button, in: .capsule)
+                        .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(words("beanstalk.climbHint"))
             }
-            .buttonStyle(.plain)
-            .accessibilityHint(words("beanstalk.climbHint"))
         }
-        // Clear of the Home button at the top left.
-        .padding(.leading, 60)
+        // Clear of the Home button at the top left: beside it, or stacked, below it with the whole width.
+        .padding(.leading, stacked ? 16 : 60)
         .padding(.trailing, 16)
-        .padding(.vertical, 10)
+        .padding(.top, stacked ? 64 : 10)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Bean.cream)
         .overlay(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 3) }
         .background(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 4).offset(y: 4) }
@@ -268,7 +295,8 @@ private struct BeanPost<Row: View>: View {
     @State private var reading: Beanstalk.Note?
     /// Where on screen the card's poster name ends, so a comment's close-up opens below it.
     @State private var nameBottom: Double = 0
-    @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var still: Bool { reduceMotion || Bean.audit }
 
     var body: some View {
         let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
@@ -299,7 +327,9 @@ private struct BeanPost<Row: View>: View {
             let bottom: Double = vp * 0.96
             let seen: Double = min(end, bottom) - max(top, 0)
             if tall > 0 && (seen >= tall * 0.08 || seen >= 0.08 * bottom) { return 1 }
-            if end <= 0 || top >= vp { return -1 }
+            // Reset only once well past the edge: a post that a text-size change nudges just off
+            // screen and back keeps its drawing instead of growing in again mid-read.
+            if end <= -vp * 0.5 || top >= vp * 1.5 { return -1 }
             return 0
         } action: { state in
             if state == 1 && !grown {
@@ -319,10 +349,18 @@ private struct BeanPost<Row: View>: View {
             all = await load(card).map(Beanstalk.Note.init)
         }
         #if os(iOS)
-        .fullScreenCover(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words, top: nameBottom) { reading = nil } }
+        .fullScreenCover(item: $reading) { note in
+            // The tapped comment and every later one on the post; a reply opened alone is read by itself.
+            let rest = Array(tree.top.drop { $0.id != note.id })
+            BeanReader(thread: rest.isEmpty ? [note] : rest, kids: tree.kids, words: words, top: nameBottom) { reading = nil }
+        }
         #else
         // The Mac has no full-screen cover; the leaf opens in a sheet there.
-        .sheet(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words, top: nameBottom) { reading = nil } }
+        .sheet(item: $reading) { note in
+            // The tapped comment and every later one on the post; a reply opened alone is read by itself.
+            let rest = Array(tree.top.drop { $0.id != note.id })
+            BeanReader(thread: rest.isEmpty ? [note] : rest, kids: tree.kids, words: words, top: nameBottom) { reading = nil }
+        }
         #endif
     }
 
@@ -346,7 +384,9 @@ private struct BeanPost<Row: View>: View {
         let fade: Double = c.span(100, 200, 0, 1)
         let pop: Double = c.span(100, 600, 0.4, 1, .card)
         let fruit: Double = c.span(1300, 450, 0, 1, .pop)
+        // At its full height whatever the text size, so wrapped words always have the room they need.
         return row(card)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(15)
             // Room at the sides, so the frame's vine as it wiggles never runs over the first or last letters.
             .padding(.horizontal, 10)
@@ -424,7 +464,8 @@ private struct BeanPost<Row: View>: View {
     }
 
     private func tap(_ leaf: BeanDraw.Leaf, cut: Bool) {
-        if cut {
+        // A first-level comment always opens the square close-up (Steve, 2026-11-01).
+        if cut || leaf.level == 1 {
             reading = leaf.note
             return
         }
@@ -613,8 +654,10 @@ private struct BeanLeafView: View {
         let anchor: UnitPoint = left ? .trailing : .leading
         let grow: Double = c.span(at, 450, 0, 1, .unfurl)
         let turn: Double = c.span(at, 450, -14, 0, .unfurl)
-        let padL: Double = leaf.lw * (left ? 0.24 : 0.12)
-        let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
+        // A reply leaf keeps its words further in from its tilted outline, so they always sit on the leaf's pale middle.
+        let near: Double = small ? 0.18 : 0.12, far: Double = small ? 0.28 : 0.24
+        let padL: Double = leaf.lw * (left ? far : near)
+        let padR: Double = leaf.lw * (left ? near : far)
         Button { onTap(fit.cut) } label: {
             VStack(spacing: 0) {
                 // The words are shortened to fit; larger text shrinks to fit the leaf, never stretching it.
@@ -636,11 +679,11 @@ private struct BeanLeafView: View {
         }
         .buttonStyle(.plain)
         // Not .disabled: a disabled button draws the whole leaf faded, its words too faint to read.
-        .allowsHitTesting(fit.cut || more)
+        .allowsHitTesting(fit.cut || more || leaf.level == 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(leaf.note.author): \(leaf.note.body)")
-        .accessibilityHint(fit.cut ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
-        .accessibilityAddTraits(fit.cut || more ? .isButton : [])
+        .accessibilityHint(fit.cut || leaf.level == 1 ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
+        .accessibilityAddTraits(fit.cut || more || leaf.level == 1 ? .isButton : [])
         .overlay(alignment: left ? .trailing : .leading) {
             // Replies wait as holly berries at the leaf's stem (Steve, 2026-10-30).
             if more && !leaf.open { HollyBerries(count: min(leaf.replies, 3)).offset(x: left ? 10 : -10, y: 18).accessibilityHidden(true) }
@@ -693,7 +736,8 @@ private struct LeafCluster: View {
     let words: Words
     let spread: () -> Void
     @State private var rustles = 0
-    @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var still: Bool { reduceMotion || Bean.audit }
 
     /// One leaf at its node: how far down the stalk, which side, its stalk's length, the blade's
     /// width and its tilt (positive droops the tip).
@@ -852,7 +896,7 @@ private struct Locket: View {
     private var initial: some View {
         let letter = String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
         return Canvas { ctx, box in
-            ctx.draw(Text(letter).font(BeanFont.bold(37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
+            ctx.draw(Text(letter).font(BeanFont.boldFixed(37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
         }
         .frame(width: 61, height: 71)
         .accessibilityHidden(true)
@@ -887,25 +931,32 @@ private struct Lead: View {
 
 /// The big leaf: one comment and its replies.
 private struct BeanReader: View {
-    let note: Beanstalk.Note
+    /// The comment tapped, then every later first-level comment on the post.
+    let thread: [Beanstalk.Note]
     let kids: [String: [Beanstalk.Note]]
     let words: Words
     /// Where the poster's locket and name end on screen: the close-up opens below them, so you
     /// can always see whose post you're answering (Steve, 2026-10-30).
     var top: Double = 0
     let close: () -> Void
+    /// The comments whose replies are all shown; the rest show their first reply and "+N more".
+    @State private var opened: Set<String> = []
 
     // The full close-up only hints at a leaf (Steve, 2026-10-30): a plain green square, paler in
     // the middle, with V-shaped veins repeating down it, and the replies indented under the comment
     // as in any social app. No leaf outline, no vine lining.
+    // Steve, 2026-11-01: a first-level comment opens it, with all the later comments exposed, each
+    // with its first reply and a count of how many more there are at that level ("+13 more").
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(note.author).font(BeanFont.bold(17))
-                    Text(note.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 18) {
+                ForEach(thread) { c in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(c.author).font(BeanFont.bold(17))
+                        Text(c.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
+                        replies(c.id, level: 1)
+                    }
                 }
-                replies(note.id, level: 1)
             }
             .foregroundStyle(Bean.text)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -937,17 +988,33 @@ private struct BeanReader: View {
         .environment(\.colorScheme, .light)
     }
 
+    /// The replies to one comment: the first, then "+N more" for the rest at that level until tapped.
     private func replies(_ id: String, level: Int) -> AnyView {
-        AnyView(ForEach(Beanstalk.replies(to: id, level: level, in: kids)) { r in
-            VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(BeanFont.bold(17))
-                Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
-                if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
+        let all = Beanstalk.replies(to: id, level: level, in: kids)
+        let shown = opened.contains(id) ? all : Array(all.prefix(1))
+        let hidden = all.count - shown.count
+        return AnyView(VStack(alignment: .leading, spacing: 0) {
+            ForEach(shown) { r in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(r.author).font(BeanFont.bold(17))
+                    Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
+                    if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
+                }
+                .padding(.top, 8)
+                .padding(.leading, 12)
+                .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
+                .padding(.leading, 20)
             }
-            .padding(.top, 8)
-            .padding(.leading, 12)
-            .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
-            .padding(.leading, 20)
+            if hidden > 0 {
+                Button { opened.insert(id) } label: {
+                    Text("+\(hidden) more").font(BeanFont.boldItalic(16)).foregroundStyle(Bean.link)
+                        .frame(minHeight: 44, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 32)
+                .accessibilityLabel("\(hidden) more \(hidden == 1 ? "reply" : "replies")")
+                .accessibilityHint("Shows them all")
+            }
         })
     }
 }

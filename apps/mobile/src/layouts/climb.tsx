@@ -462,7 +462,7 @@ function Parent({ card }: { card: Card }) {
 }
 
 /** A comment's own buttons: reply, "this helped" and share (what they do: skins/comments.ts). */
-function CommentButtons({ postId, comment }: { postId: string; comment: Comment }) {
+function CommentButtons({ postId, comment, canReply = true }: { postId: string; comment: Comment; canReply?: boolean }) {
   const { reply, helped, share } = useCommentActions(postId, comment);
   const button = (key: string, b: { name: string; press: () => void; on?: boolean }) => (
     <Pressable key={key} onPress={b.press} accessibilityRole="button" aria-pressed={key === 'helped' ? !!b.on : undefined} style={[styles.pill, b.on && styles.pillOn]}>
@@ -471,7 +471,7 @@ function CommentButtons({ postId, comment }: { postId: string; comment: Comment 
   );
   return (
     <View style={styles.pills}>
-      {button('reply', reply)}
+      {canReply ? button('reply', reply) : null}
       {helped ? button('helped', helped) : null}
       {share ? button('share', share) : null}
     </View>
@@ -501,7 +501,8 @@ function CloseUp({ card, comment, kids, onClose }: { card: Card | null; comment:
       <View key={r.id} style={styles.reply} testID={`climb-reply-${r.id}`}>
         <Text style={styles.bigName}>{r.author.displayName}</Text>
         <Text style={styles.replyText}>{r.body}</Text>
-        {card ? <CommentButtons postId={card.id} comment={r} /> : null}
+        {/* Steve: sub-comments get no Reply button (overnesting is hard to follow). */}
+        {card ? <CommentButtons postId={card.id} comment={r} canReply={false} /> : null}
         {level < MAX_LEVEL ? thread(r, level + 1) : null}
       </View>
     ));
