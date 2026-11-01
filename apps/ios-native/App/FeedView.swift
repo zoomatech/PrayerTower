@@ -52,6 +52,7 @@ struct FeedView: View {
                 if let error { ContentUnavailableView("Couldn’t load the feed", systemImage: "wifi.exclamationmark", description: Text(error)) }
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
+            .appLogo()
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }

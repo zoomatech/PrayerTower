@@ -151,6 +151,14 @@ export async function spendOnRadio(q: Queryable, userId: string, amount: number,
   );
 }
 
+/** A free broadcast (Priestly) token from a prayer resolution check-in: new tokens, once per key. */
+export async function grantBroadcast(q: Queryable, userId: string, amount: number, key: string) {
+  return transfer(
+    q, `broadcast:${key}`, 'bonus',
+    await systemAccount(q, 'mint', 'priestly'), await userAccount(q, userId, 'priestly'), amount, null, 'Free broadcast token',
+  );
+}
+
 /** Count a verified prayer toward Priestly tokens; returns tokens credited (usually 0). Idempotent per event. */
 export async function creditPriestlyProgress(q: Queryable, eventId: string): Promise<number> {
   const { rows } = await q.query<{ n: number }>('select public.credit_priestly_progress($1) as n', [eventId]);

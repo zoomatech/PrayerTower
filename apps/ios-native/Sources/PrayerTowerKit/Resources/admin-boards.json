@@ -1,5 +1,27 @@
 [
  {
+  "id": "practiceSettings",
+  "title": "topicGroups.adminSection",
+  "intro": null,
+  "get": "/admin/practice-settings",
+  "patch": "/admin/practice-settings",
+  "toggles": [
+   {
+    "label": "circles.adminTitle",
+    "hint": "circles.adminHint",
+    "field": "prayer_circles_enabled",
+    "patch": "prayerCirclesEnabled"
+   },
+   {
+    "label": "topicGroups.adminTitle",
+    "hint": "topicGroups.adminHint",
+    "field": "topic_groups_enabled",
+    "patch": "topicGroupsEnabled"
+   }
+  ],
+  "numbers": []
+ },
+ {
   "id": "notebookSettings",
   "title": "admin.notebook",
   "intro": null,
@@ -479,7 +501,7 @@
   "numbers": []
  },
  {
-  "id": "practiceSettings",
+  "id": "PracticeSettingsSection",
   "title": "practices.adminTitle",
   "intro": "practices.adminIntro",
   "get": "/admin/practice-settings",
@@ -588,12 +610,6 @@
     "patch": "calmThreadsEnabled"
    },
    {
-    "label": "circles.adminTitle",
-    "hint": "circles.adminHint",
-    "field": "prayer_circles_enabled",
-    "patch": "prayerCirclesEnabled"
-   },
-   {
     "label": "circleWelcome.adminTitle",
     "hint": "circleWelcome.adminHint",
     "field": "circle_welcome_enabled",
@@ -692,6 +708,48 @@
     "label": "practices.adminPartnerDays",
     "field": "partner_days",
     "patch": "partnerDays"
+   }
+  ]
+ },
+ {
+  "id": "resolutionSettings",
+  "title": "resolution.adminTitle",
+  "intro": "resolution.adminIntro",
+  "get": "/admin/resolution-settings",
+  "patch": "/admin/resolution-settings",
+  "toggles": [
+   {
+    "label": "resolution.adminToggle",
+    "hint": null,
+    "field": "enabled",
+    "patch": "enabled"
+   }
+  ],
+  "numbers": [
+   {
+    "label": "resolution.adminFirstDays",
+    "field": "first_days",
+    "patch": "firstDays"
+   },
+   {
+    "label": "resolution.adminAgainDays",
+    "field": "again_days",
+    "patch": "againDays"
+   },
+   {
+    "label": "resolution.adminMaxAsks",
+    "field": "max_asks",
+    "patch": "maxAsks"
+   },
+   {
+    "label": "resolution.adminFreeTokens",
+    "field": "free_tokens",
+    "patch": "freeTokens"
+   },
+   {
+    "label": "resolution.adminTokenEvery",
+    "field": "free_token_every_days",
+    "patch": "freeTokenEveryDays"
    }
   ]
  },
