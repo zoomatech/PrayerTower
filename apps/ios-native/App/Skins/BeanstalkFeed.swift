@@ -959,43 +959,50 @@ private struct BeanReader: View {
     // Steve, 2026-11-01: a first-level comment opens it, with all the later comments exposed, each
     // with its first reply and a count of how many more there are at that level ("+13 more").
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                ForEach(thread) { c in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(c.author).font(BeanFont.bold(17))
-                        Text(c.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
-                        replies(c.id, level: 1)
+        VStack(spacing: 0) {
+            // The close button on its own strip at the top, so no scrolling words ever pass under it.
+            HStack {
+                Spacer()
+                Button(action: close) {
+                    Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
+                        .frame(width: 44, height: 44)
+                        .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
+                .accessibilityLabel(words("common.close"))
+            }
+            .padding([.top, .horizontal], 12)
+            .padding(.bottom, 4)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    ForEach(thread) { c in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(c.author).font(BeanFont.bold(17))
+                            Text(c.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
+                            replies(c.id, level: 1)
+                        }
                     }
                 }
+                .foregroundStyle(Bean.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 22)
+                .padding(.top, 4)
+                // Room under the last words, clear of the square's foot, however many "+N more" open.
+                .padding(.bottom, 44)
             }
-            .foregroundStyle(Bean.text)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 22)
-            .padding(.top, 64)
-            // Room under the last words, clear of the square's foot, however many "+N more" open.
-            .padding(.bottom, 44)
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicatorsFlash(onAppear: true)
+            // The scroll bar flashes on opening, to show there is more below; no fade, as faded
+            // words can't be read.
         }
-        .scrollBounceBehavior(.basedOnSize)
         // A square, as large as the screen allows; longer threads scroll inside it, and the words
         // never show past its edges (never up over the poster's name).
         .aspectRatio(1, contentMode: .fit)
         .frame(maxWidth: 600)
-        .scrollClipDisabled(false)
         .background { LeafSquare().accessibilityHidden(true) }
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .contentShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(alignment: .topTrailing) {
-            Button(action: close) {
-                Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
-                    .frame(width: 44, height: 44)
-                    .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(.cancelAction)
-            .accessibilityLabel(words("common.close"))
-            .padding(12)
-        }
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .modifier(BelowName(top: top, close: close))
