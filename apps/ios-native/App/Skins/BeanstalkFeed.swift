@@ -349,7 +349,7 @@ private struct BeanPost<Row: View>: View {
             }
             if state == -1 { grown = false }
         }
-        .onAppear { if Bean.audit, grownAt == nil { grownAt = .now } }
+        .onAppear { if Bean.audit, !grown { grown = true } }
         // Re-renders once each drawing has finished, so the frame clock stops.
         .task(id: [pageAt, openAt]) {
             try? await Task.sleep(for: .seconds(2.2))
