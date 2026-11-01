@@ -320,7 +320,11 @@ private struct BeanPost<Row: View>: View {
             guard grownAt != nil, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
-        .fullScreenCover(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words, top: nameBottom) { reading = nil } }
+        .fullScreenCover(item: $reading) { note in
+            // The tapped comment and every later one on the post; a reply opened alone is read by itself.
+            let rest = Array(tree.top.drop { $0.id != note.id })
+            BeanReader(thread: rest.isEmpty ? [note] : rest, kids: tree.kids, words: words, top: nameBottom) { reading = nil }
+        }
     }
 
     private func isLive(_ now: Date) -> Bool {
@@ -423,7 +427,8 @@ private struct BeanPost<Row: View>: View {
     }
 
     private func tap(_ leaf: BeanDraw.Leaf, cut: Bool) {
-        if cut {
+        // A first-level comment always opens the square close-up (Steve, 2026-11-01).
+        if cut || leaf.level == 1 {
             reading = leaf.note
             return
         }
@@ -642,11 +647,11 @@ private struct BeanLeafView: View {
         }
         .buttonStyle(.plain)
         // Not .disabled: a disabled button draws the whole leaf faded, its words too faint to read.
-        .allowsHitTesting(fit.cut || more)
+        .allowsHitTesting(fit.cut || more || leaf.level == 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(leaf.note.author): \(leaf.note.body)")
-        .accessibilityHint(fit.cut ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
-        .accessibilityAddTraits(fit.cut || more ? .isButton : [])
+        .accessibilityHint(fit.cut || leaf.level == 1 ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
+        .accessibilityAddTraits(fit.cut || more || leaf.level == 1 ? .isButton : [])
         .overlay(alignment: left ? .trailing : .leading) {
             // Replies wait as holly berries at the leaf's stem (Steve, 2026-10-30).
             if more && !leaf.open { HollyBerries(count: min(leaf.replies, 3)).offset(x: left ? 10 : -10, y: 18).accessibilityHidden(true) }
@@ -894,25 +899,32 @@ private struct Lead: View {
 
 /// The big leaf: one comment and its replies.
 private struct BeanReader: View {
-    let note: Beanstalk.Note
+    /// The comment tapped, then every later first-level comment on the post.
+    let thread: [Beanstalk.Note]
     let kids: [String: [Beanstalk.Note]]
     let words: Words
     /// Where the poster's locket and name end on screen: the close-up opens below them, so you
     /// can always see whose post you're answering (Steve, 2026-10-30).
     var top: Double = 0
     let close: () -> Void
+    /// The comments whose replies are all shown; the rest show their first reply and "+N more".
+    @State private var opened: Set<String> = []
 
     // The full close-up only hints at a leaf (Steve, 2026-10-30): a plain green square, paler in
     // the middle, with V-shaped veins repeating down it, and the replies indented under the comment
     // as in any social app. No leaf outline, no vine lining.
+    // Steve, 2026-11-01: a first-level comment opens it, with all the later comments exposed, each
+    // with its first reply and a count of how many more there are at that level ("+13 more").
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(note.author).font(BeanFont.bold(17))
-                    Text(note.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 18) {
+                ForEach(thread) { c in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(c.author).font(BeanFont.bold(17))
+                        Text(c.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
+                        replies(c.id, level: 1)
+                    }
                 }
-                replies(note.id, level: 1)
             }
             .foregroundStyle(Bean.text)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -944,17 +956,33 @@ private struct BeanReader: View {
         .environment(\.colorScheme, .light)
     }
 
+    /// The replies to one comment: the first, then "+N more" for the rest at that level until tapped.
     private func replies(_ id: String, level: Int) -> AnyView {
-        AnyView(ForEach(kids[id] ?? []) { r in
-            VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(BeanFont.bold(17))
-                Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
-                if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
+        let all = kids[id] ?? []
+        let shown = opened.contains(id) ? all : Array(all.prefix(1))
+        let hidden = all.count - shown.count
+        return AnyView(VStack(alignment: .leading, spacing: 0) {
+            ForEach(shown) { r in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(r.author).font(BeanFont.bold(17))
+                    Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
+                    if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
+                }
+                .padding(.top, 8)
+                .padding(.leading, 12)
+                .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
+                .padding(.leading, 20)
             }
-            .padding(.top, 8)
-            .padding(.leading, 12)
-            .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
-            .padding(.leading, 20)
+            if hidden > 0 {
+                Button { opened.insert(id) } label: {
+                    Text("+\(hidden) more").font(BeanFont.boldItalic(16)).foregroundStyle(Bean.link)
+                        .frame(minHeight: 44, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 32)
+                .accessibilityLabel("\(hidden) more \(hidden == 1 ? "reply" : "replies")")
+                .accessibilityHint("Shows them all")
+            }
         })
     }
 }
