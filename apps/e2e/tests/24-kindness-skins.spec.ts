@@ -51,7 +51,9 @@ test('every skin keeps one icon row and passes axe with the kindness tools on', 
         await page.getByTestId('card-actions').or(page.getByText('Climb up', { exact: true })).first().waitFor({ timeout: 60_000 });
         if (!(await page.getByTestId('card-actions').count())) await page.getByText('Climb up', { exact: true }).click();
         await page.getByTestId('card-actions').first().waitFor({ timeout: 30_000 });
-        await page.waitForTimeout(600);
+        // Neon Circuit draws each frame in over 1.6 s and only then fades its words in (Steve,
+        // 2026-10-30); axe reads half-faded words as too faint, so wait for the drawing to finish.
+        await page.waitForTimeout(skin.slug === 'neon-circuit' ? 2000 : 600);
         const rows = await page.getByTestId('card-actions').evaluateAll((els) =>
           els
             .filter((el) => (el as HTMLElement).offsetParent !== null)
