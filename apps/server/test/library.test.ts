@@ -110,6 +110,29 @@ describe('library search', () => {
     expect((await as(member).get('/library/daily')).json()).toEqual({ enabled: false });
   });
 
+  it("never puts a religious word on Open Circle's daily card", async () => {
+    const member = await createUser('Library Daily Open Circle');
+    const c = await db.connect();
+    try {
+      await c.query('begin');
+      await c.query(`update public.communities set status = 'active' where slug = 'open-circle'`);
+      await c.query('delete from public.community_memberships where user_id = $1', [member]);
+      await c.query(`insert into public.community_memberships (community_id, user_id, is_primary) select id, $1, true from public.communities where slug = 'open-circle'`, [member]);
+      await c.query('update public.library_settings set enabled = true, daily_enabled = true');
+      const faith = /\b(pray\w*|god|lord|jesus|christ\w*|bible|psalms?|gospel|ministry|worship\w*|spiritual|church\w*|amen|blessed|scripture|priestly|pastor\w*|testimon\w*|confession\w*|faith|prais\w*)\b/i;
+      for (let d = 1; d <= 60; d++) {
+        const day = new Date(Date.UTC(2026, 9, d)).toISOString().slice(0, 10);
+        const card = await library.daily(c, member, day);
+        if (!card.enabled) throw new Error('daily card is off');
+        expect(card.passage.collection).toBe('ancient-writings');
+        expect(`${card.passage.text}\n${card.passage.citation}`).not.toMatch(faith);
+      }
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+
   it('credits ancient passages to their work and translator', () => {
     const work = { id: 'w', title: 'Meditations', author: 'Marcus Aurelius', rights: 'public_domain' as const };
     expect(library.citation('ancient-writings', 'Book IV', work)).toBe('Meditations, Book IV (Marcus Aurelius)');
