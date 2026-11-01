@@ -213,15 +213,17 @@ struct PostDetailView: View {
                 // The name and the words read as one; the buttons stay their own elements, as one
                 // combined element with buttons inside was what Apple's audit flagged (Dynamic
                 // Type unsupported, text clipped) on GitHub's Xcode.
-                VStack(alignment: .leading, spacing: 4) {
-                    Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
-                    Text(c.body)
+                if !Self.hidden.contains("ctext") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
+                        Text(c.body)
+                    }
+                    .accessibilityElement(children: .combine)
                 }
-                .accessibilityElement(children: .combine)
-                AdaptiveStack(spacing: 16) {
+                if !Self.hidden.contains("cbuttons") { AdaptiveStack(spacing: 16) {
                     Button { replyTo = c; asUpdate = false } label: { Text(w("post.reply")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     // With sharing by consent on, only the person who wrote a comment can share it.
-                    if !model.features["shareConsent"] || c.isMine == true {
+                    if !model.features["shareConsent"] || c.isMine == true, !Self.hidden.contains("cshare") {
                         ShareLink(item: commentShare(c)) { Text(w("post.share")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     }
                     if c.isMine == true {
@@ -232,6 +234,7 @@ struct PostDetailView: View {
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
+                }
             }
             .padding(.leading, CGFloat(item.depth) * 16)
         }
