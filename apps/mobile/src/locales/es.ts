@@ -2016,6 +2016,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   tower: en.tower,
   ceramic: en.ceramic,
   circuit: en.circuit,
+  climb: en.climb,
   growth: en.growth,
   card: {
     from: 'From %{name}',

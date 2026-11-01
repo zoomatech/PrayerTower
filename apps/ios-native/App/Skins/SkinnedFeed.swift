@@ -13,6 +13,26 @@ struct SkinnedFeed<Row: View>: View {
     @ViewBuilder let row: (Card) -> Row
 
     var body: some View {
+        if SkinHeader.drawsOwn(theme) {
+            // The skin's own header runs up behind the clock under the bar (Steve, 2026-11-01).
+            layouts.overlay(alignment: .top) { header }
+        } else {
+            // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
+            layouts.solidNavigationBar()
+        }
+    }
+
+    @ViewBuilder private var header: some View {
+        switch theme.kind {
+        case .climb: ClimbHeader(look: ClimbLook(theme))
+        case .ceramic: CeramicHeader()
+        case .vine where VineLook(theme).vineStyle == .beanstalk: BeanHeader()
+        case .vine where VineLook(theme).vineStyle == .neon: NeonHeader(look: VineLook(theme))
+        default: PlainSkinHeader(backdrop: Skin.backdrop(theme), accent: SkinHeader.accent(theme))
+        }
+    }
+
+    @ViewBuilder private var layouts: some View {
         switch theme.kind {
         case .vine:
             if VineLook(theme).vineStyle == .beanstalk {
@@ -23,6 +43,7 @@ struct SkinnedFeed<Row: View>: View {
         case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
+        case .climb: ClimbFeed(look: ClimbLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .ceramic: CeramicFeed(look: CeramicLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .carousel: SwipeFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .flip: FlipFeed(cards: cards, wording: wording, hooks: hooks, row: row)
@@ -47,15 +68,23 @@ struct VineFeed<Row: View>: View {
             LazyVStack(alignment: .leading, spacing: 44) {
                 if look.vineStyle == .gate { GateTop(look: look).frame(height: 150).frame(maxWidth: .infinity) }
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
-                    VStack(alignment: .leading, spacing: 18) {
-                        VineLeaf(look: look, wording: wording, depth: 0) { row(card) }
-                            .overlay(alignment: .topTrailing) {
-                                if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
-                            }
-                        ForEach(card.leafComments ?? []) { c in
-                            VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
+                    VStack(alignment: .leading, spacing: look.vineStyle == .neon ? NeonDrop.gap : 18) {
+                        // Neon: the post's icons sit inside its frame, under the box, as neon outlines (Steve, 2026-10-30).
+                        VineLeaf(look: look, wording: wording, depth: 0, below: look.vineStyle == .neon ? AnyView(row(card).environment(\.cardPart, .icons(Color(look.leaf)))) : nil) {
+                            row(card).environment(\.cardPart, look.vineStyle == .neon ? .post : .whole)
                         }
-                        if card.moreComments > 0 {
+                        .overlay(alignment: .topTrailing) {
+                            if card.gifted == true { VineFruit(label: Words(wording)("vine.fruit")).padding(.trailing, 14) }
+                        }
+                        if look.vineStyle == .neon {
+                            // A loaded stack of comments to flip through, coming out of the post (Steve, 2026-10-30).
+                            NeonCommentStack(card: card, look: look, wording: wording, load: hooks.loadComments, onOpen: hooks.open)
+                        } else {
+                            ForEach(card.leafComments ?? []) { c in
+                                VineLeaf(look: look, wording: wording, depth: 1) { LeafCommentText(comment: c, look: look) }
+                            }
+                        }
+                        if look.vineStyle != .neon, card.moreComments > 0 {
                             if let open = hooks.open {
                                 Button { open(card) } label: { MoreLeaves(count: card.moreComments, look: look, wording: wording) }.buttonStyle(.plain)
                             } else {
@@ -68,13 +97,22 @@ struct VineFeed<Row: View>: View {
                 }
                 Text(Skin.tip(look, wording))
                     .font(.footnote)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color(look.tipColor))
                     .backdropPlate(look.backdrop)
-                    .padding(.leading, 44)
-                    .padding(.bottom, 40)
+                    // On a backdrop, a solid backing of the backdrop's own color, so a glowing stalk
+                    // close by never lights up behind the words; and clear of the stalk.
+                    .padding(look.backdrop == nil ? 0 : 8)
+                    .background { if let b = look.backdrop { RoundedRectangle(cornerRadius: 10).fill(Color(b)) } }
+                    .padding(.leading, 56)
+                    .padding(.bottom, 160)
             }
-            .padding(.vertical, 20)
-            .background(alignment: .topLeading) { Stalk(look: look).frame(width: 40).accessibilityHidden(true) }
+            .padding(.bottom, 20)
+            // Neon: the first box starts below the Home and Menu buttons, which hang down from the
+            // top-left corner of every screen, so they never cover its corner.
+            .padding(.top, look.vineStyle == .neon ? HomeAndMenu.overhang + 12 : 20)
+            // Neon's stalk gets room for its glow, which would otherwise stop at a hard edge.
+            .background(alignment: .topLeading) { Stalk(look: look).frame(width: look.vineStyle == .neon ? 80 : 40).accessibilityHidden(true) }
         }
         .background(look.backdrop.map { Color($0) } ?? Color.pageBackground)
         .environment(\.colorScheme, look.backdrop.map { BackdropText(on: $0).light } == true ? .dark : .light)
@@ -85,8 +123,25 @@ struct VineFeed<Row: View>: View {
 struct Stalk: View {
     let look: VineLook
     @Environment(\.accessibilityReduceMotion) private var still
+    @Environment(\.dynamicTypeSize) private var size
+    private var glow: Bool { look.stemGlow && !size.isAccessibilitySize }
+    /// Neon's rod builds downward from the top when the feed opens, as the vines grow.
+    @State private var grown: CGFloat = 0
 
     var body: some View {
+        rod
+            .overlay {
+                // Lights riding the rod (its line is at x 20).
+                if look.vineStyle == .neon { NeonSparks(shape: VerticalLine(x: 20), color: Color(look.stem), width: 4, count: 4, loop: false) }
+            }
+            .buildsDownward(look.vineStyle == .neon ? grown : 1)
+            .onAppear {
+                if look.vineStyle != .neon || still || GrowingIn<EmptyView>.frozen { grown = 1; return }
+                withAnimation(.easeIn(duration: 2.5)) { grown = 1 }
+            }
+    }
+
+    private var rod: some View {
         Canvas { ctx, size in
             let x = 20.0, w = look.stemWidth
             func wave(_ phase: Double, _ amp: Double) -> Path {
@@ -108,13 +163,13 @@ struct Stalk: View {
                 ctx.stroke(wave(0, 3), with: .color(Color(look.ink ?? look.branch)), style: .init(lineWidth: w + 2))
                 ctx.stroke(wave(0, 3), with: .color(Color(look.stem)), style: .init(lineWidth: w))
             case .neon:
-                // Straight glowing rods: a wide faint bloom, a halo and a thin white core.
+                // One straight neon glass tube, Tron style: a radiant glow round glass that is
+                // deeper colored at its edges and close to white in the middle.
                 var rod = Path()
                 rod.move(to: CGPoint(x: x, y: 0))
                 rod.addLine(to: CGPoint(x: x, y: size.height))
-                ctx.stroke(rod, with: .color(Color(look.stem).opacity(0.25)), lineWidth: w * 5)
-                ctx.stroke(rod, with: .color(Color(look.stem).opacity(0.7)), lineWidth: w * 2)
-                ctx.stroke(rod, with: .color(.white), lineWidth: max(1, w / 2))
+                let tube: CGFloat = max(8, CGFloat(w) * 2.5)
+                NeonGlassLook(color: Color(look.stem)).stroke(rod, width: tube, in: ctx)
             case .gate:
                 // Fine lines of silver light.
                 for dx in [-2.0, 2.0] {
@@ -141,7 +196,8 @@ struct Stalk: View {
                 }
             }
         }
-        .shadow(color: look.stemGlow ? Color(look.stem).opacity(0.8) : .clear, radius: look.stemGlow ? 8 : 0)
+        // The glow's blur reads as smudged text beside the accessibility sizes' giant letters.
+        .shadow(color: glow ? Color(look.stem).opacity(0.8) : .clear, radius: glow ? 8 : 0)
         .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.stem)) } }
     }
 }
@@ -149,10 +205,13 @@ struct Stalk: View {
 /// A spark with a fading tail running down Neon Cinderella's rod, again and again.
 struct Spark: View {
     let color: Color
+    /// Held still inside the snapshot tests (XCTest is loaded in the app there), so each picture matches its reference.
+    static var frozen: Bool { GrowingIn<EmptyView>.frozen }
     var body: some View {
-        TimelineView(.animation) { t in
+        TimelineView(.animation(paused: Self.frozen)) { t in
             GeometryReader { geo in
-                let y = (t.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4) * min(geo.size.height, 2400)
+                let phase = Self.frozen ? 0.1 : t.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4
+                let y = phase * min(geo.size.height, 2400)
                 Capsule()
                     .fill(LinearGradient(colors: [color.opacity(0), color, .white], startPoint: .top, endPoint: .bottom))
                     .frame(width: 4, height: 40)
@@ -170,33 +229,89 @@ struct VineLeaf<Content: View>: View {
     let look: VineLook
     let wording: Wording
     let depth: Int
+    /// Shown inside the frame, under the post's box: neon's icons (Steve, 2026-10-30).
+    var below: AnyView? = nil
+    /// The cards waiting behind this one in a stack, nearest first: each peeks out below it with its first line.
+    var behind: [String] = []
     @ViewBuilder let content: () -> Content
+    @Environment(\.dynamicTypeSize) private var size
+    /// Neon indents a comment under its post, joined by a tube that comes down and turns into it.
+    private var tucked: Bool { look.vineStyle == .neon && depth > 0 }
+    /// How far each card behind in a stack shows below the one in front.
+    static var peek: CGFloat { 26 }
+    private var backdrop: Color { look.backdrop.map { Color($0) } ?? Color.pageBackground }
+    /// Each level of reply sits further in, under its parent.
+    private var indent: CGFloat { NeonDrop.indent(depth) }
 
     var body: some View {
+        // Neon's connector grows in as the post comes into view: the branch, then the frame.
+        GrowingIn(duration: look.vineStyle == .neon ? 2 : 0) { p in leaf(look.vineStyle == .neon ? p : 1) }
+    }
+
+    @ViewBuilder private func leaf(_ drawn: CGFloat) -> some View {
         let box = Color(look.leafBox(wording))
-        content()
-            .padding(depth == 0 ? 14 : 10)
-            .background(box, in: .rect(cornerRadius: 12))
-            .overlay {
-                if look.vineStyle == .ink { RoundedRectangle(cornerRadius: 12).stroke(Color(look.ink ?? look.branch), lineWidth: 1.5) }
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            content()
+                .opacity(ConnectorTiming.text(drawn))
+                .frame(maxWidth: look.vineStyle == .neon ? .infinity : nil, alignment: .leading)
+                .padding(depth == 0 ? 14 : 10)
+                .background(box, in: .rect(cornerRadius: 12))
+                .overlay {
+                    if look.vineStyle == .ink { RoundedRectangle(cornerRadius: 12).stroke(Color(look.ink ?? look.branch), lineWidth: 1.5) }
+                }
+            if let below { below.opacity(ConnectorTiming.text(drawn)) }
+        }
             .padding(.horizontal, depth == 0 ? 18 : 14)
-            .padding(.vertical, depth == 0 ? 40 : 26)
-            .background { frame.accessibilityHidden(true) }
+            .padding(.vertical, below == nil ? (depth == 0 ? 40 : 26) : 24)
+            .background {
+                ZStack {
+                    // The rest of the stack: whole cards overlapping like a loaded deck, each showing
+                    // its first line below the one in front (Steve, 2026-10-30). The furthest is drawn first.
+                    ForEach(Array(behind.prefix(3).enumerated()).reversed(), id: \.offset) { k, line in
+                        ZStack(alignment: .bottomLeading) {
+                            RoundedRectangle(cornerRadius: 12).fill(backdrop)
+                            frame(drawn)
+                            Text(line).font(.caption.bold()).lineLimit(1).foregroundStyle(.white)
+                                .shadow(color: Color(look.branch), radius: 3)
+                                .padding(.horizontal, 20).padding(.bottom, 6)
+                                .opacity(ConnectorTiming.text(drawn))
+                        }
+                        .offset(y: CGFloat(k + 1) * Self.peek)
+                    }
+                    RoundedRectangle(cornerRadius: 12).fill(behind.isEmpty ? .clear : backdrop)
+                    frame(drawn)
+                }
+                .accessibilityHidden(true)
+            }
+            .padding(.bottom, CGFloat(min(behind.count, 3)) * Self.peek)
             .environment(\.colorScheme, .light)
-            .padding(.leading, depth == 0 ? 36 : 64)
-            .padding(.trailing, 8)
-            .overlay(alignment: .leading) { twig.accessibilityHidden(true) }
+            .padding(.leading, depth == 0 ? 36 : tucked ? indent : 64)
+            // Neon leaves room on the right for the tube's glow before the screen's edge.
+            .padding(.trailing, look.vineStyle == .neon ? 18 : 8)
+            .overlay(alignment: .leading) {
+                if tucked {
+                    // From the post's box above (over the gap between them), down and round into this box.
+                    NeonDrop(look: look, depth: depth, y: 48).buildsDownward(ConnectorTiming.branch(drawn)).padding(.top, -NeonDrop.gap).accessibilityHidden(true)
+                } else {
+                    twig.shootsOut(ConnectorTiming.branch(drawn)).accessibilityHidden(true)
+                }
+            }
     }
 
     /// What houses the box: a leaf, a neon frame, an arched doorway or a petal frame.
-    @ViewBuilder private var frame: some View {
+    @ViewBuilder private func frame(_ drawn: CGFloat) -> some View {
         switch look.vineStyle {
         case .neon:
             // A real tube: colored glass glowing round a thin white-hot core.
+            // Posts glow in the main color, their comments in the second (Tron's blue and red).
             ZStack {
-                CutCorners().stroke(Color(look.stem), lineWidth: 2.5).neonTube(Color(look.stem))
-                CutCorners().stroke(.white.opacity(0.9), lineWidth: 0.8)
+                TopDownFrame(look: NeonGlassLook(color: look.neon(depth), cap: .butt), width: 8, progress: ConnectorTiming.frame(drawn))
+                // Soldered circuit touches off the box, out into the clear space above and below it.
+                if depth == 0, !look.fairytale {
+                    ConnectorOutline(shape: CircuitTouches(), look: NeonGlassLook(color: Color(look.branch), white: 0.5), width: 3, progress: drawn >= 1 ? 1 : 0)
+                }
+                // Once the frame has drawn, now and then a light rides round it.
+                if drawn >= 1 { NeonSparks(shape: NeonFrame(radius: 12), color: look.neon(depth), width: 8, count: 1) }
             }
         case .gate:
             ArchTop().stroke(Color(look.stem), lineWidth: 1.2).overlay(alignment: .top) {
@@ -207,7 +322,8 @@ struct VineLeaf<Content: View>: View {
         default:
             ZStack {
                 LeafOutline(shape: look.leafShape).fill(Color(look.leaf))
-                LeafVeins().stroke(Color(look.branch).opacity(0.45), lineWidth: 1)
+                // Fine veins read as stray strokes beside the accessibility sizes' giant letters.
+                if !size.isAccessibilitySize { LeafVeins().stroke(Color(look.branch).opacity(0.45), lineWidth: 1) }
                 if look.vineStyle == .ink {
                     // Pen and ink in the manner of Tolkien's own tree drawings: a firm outline and
                     // fine hatching along the leaf's edges, clipped to the leaf.
@@ -225,18 +341,14 @@ struct VineLeaf<Content: View>: View {
             var p = Path()
             let reach = depth == 0 ? 40.0 : 68.0
             if look.vineStyle == .neon {
-                // No plant: a straight tube at a hard right angle off the rod, with a white node
-                // where it joins (the neon `stem` in vine-flow.tsx).
+                // No plant: a straight glass tube off the rod, Tron style, glowing like the rest,
+                // with no node or ornament where it joins.
                 let y = size.height * 0.3
                 p.move(to: CGPoint(x: 20, y: y))
                 p.addLine(to: CGPoint(x: reach, y: y))
-                let color = Color(look.stem)
-                for (c, w) in [(color.opacity(0.14), 12.0), (color.opacity(0.35), 6.0), (color, 2.0), (Color.white.opacity(0.85), 0.8)] {
-                    ctx.stroke(p, with: .color(c), style: .init(lineWidth: w, lineCap: .butt))
-                }
-                let node = Path(ellipseIn: CGRect(x: 16, y: y - 4, width: 8, height: 8))
-                ctx.fill(node, with: .color(.white))
-                ctx.stroke(node, with: .color(color), lineWidth: 2)
+                let boxColor = Color(depth == 0 || look.fairytale ? look.stem : look.branch)
+                // From the stalk's color, gradually into the box's, solid in the box's color where it meets the box (blue to red for a comment).
+                NeonGlassLook(color: boxColor, cap: .butt, from: Color(look.stem), fade: (CGPoint(x: 20, y: y), CGPoint(x: 20 + (reach - 20) * 0.6, y: y)), white: 0.45).stroke(p, width: 6, in: ctx)
                 return
             }
             p.move(to: CGPoint(x: 20, y: size.height * 0.2))
@@ -280,15 +392,261 @@ struct MoreLeaves: View {
 struct LeafCommentText: View {
     let comment: LeafComment
     let look: VineLook
+    @Environment(\.dynamicTypeSize) private var size
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            if look.vineStyle != .floral { Mark(shape: look.leafShape, color: Color(look.leaf), center: Color(look.tendril)) }
+            // At the accessibility sizes the words need the room, and a small mark beside giant
+            // letters reads as a stray glyph.
+            if look.vineStyle != .floral, !size.isAccessibilitySize { Mark(shape: look.leafShape, color: Color(look.leaf), center: Color(look.tendril)) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(comment.author.displayName).font(.caption.bold())
                 Text(comment.body).font(.callout)
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+extension VineLook {
+    /// Neon's color for a box at `depth`: posts blue, comments red, replies to comments violet (Steve, 2026-10-30).
+    func neon(_ depth: Int) -> Color {
+        if depth == 0 || fairytale { return Color(stem) }
+        return depth == 1 ? Color(branch) : Color(red: 0.69, green: 0.30, blue: 1)
+    }
+}
+
+/// Neon's comment connector: a red tube down from the box above (over the gap between them) that
+/// bends smoothly into the comment's box, `y` points below the comment's top.
+struct NeonDrop: View {
+    let look: VineLook
+    let depth: Int
+    let y: CGFloat
+
+    /// The space between a box and the comment under it, which the tube crosses.
+    static let gap: CGFloat = 30
+
+    /// Each level of reply sits further in, under its parent.
+    static func indent(_ depth: Int) -> CGFloat { 104 + CGFloat(depth - 1) * 40 }
+
+    var body: some View {
+        let indent = Self.indent(depth)
+        Canvas { ctx, size in
+            let x: CGFloat = indent - 32, r: CGFloat = 12, y = self.y + Self.gap
+            var p = Path()
+            // From inside the tube of the box above, so it joins it, to the edge of this box.
+            p.move(to: CGPoint(x: x, y: 2))
+            p.addLine(to: CGPoint(x: x, y: y - r))
+            p.addQuadCurve(to: CGPoint(x: x + r, y: y), control: CGPoint(x: x, y: y))
+            p.addLine(to: CGPoint(x: indent + 2, y: y))
+            NeonGlassLook(color: look.neon(depth), cap: .butt, white: 0.45).stroke(p, width: 6, in: ctx)
+        }
+        .frame(width: indent + 26)
+    }
+}
+
+/// Small circuit traces off a post's box, each ending at a solder pad: one up from the top edge
+/// near the right, one down from the bottom edge near the right, clear of the comment tube and icons.
+struct CircuitTouches: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        func pad(_ c: CGPoint) { p.addRoundedRect(in: CGRect(x: c.x - 3.5, y: c.y - 3.5, width: 7, height: 7), cornerSize: CGSize(width: 1.5, height: 1.5)) }
+        // Up from the top, then a bend to the right.
+        let a = CGPoint(x: r.maxX - 64, y: r.minY)
+        p.move(to: a)
+        p.addLine(to: CGPoint(x: a.x, y: a.y - 6))
+        p.addQuadCurve(to: CGPoint(x: a.x + 6, y: a.y - 12), control: CGPoint(x: a.x, y: a.y - 12))
+        p.addLine(to: CGPoint(x: a.x + 22, y: a.y - 12))
+        pad(CGPoint(x: a.x + 26, y: a.y - 12))
+        // Down from the bottom, then a bend to the left.
+        let b = CGPoint(x: r.maxX - 40, y: r.maxY)
+        p.move(to: b)
+        p.addLine(to: CGPoint(x: b.x, y: b.y + 6))
+        p.addQuadCurve(to: CGPoint(x: b.x - 6, y: b.y + 12), control: CGPoint(x: b.x, y: b.y + 12))
+        p.addLine(to: CGPoint(x: b.x - 26, y: b.y + 12))
+        pad(CGPoint(x: b.x - 30, y: b.y + 12))
+        return p
+    }
+}
+
+/// The straight stretch of a comment tube that carries on down to the next comment.
+private struct NeonRun: View {
+    let look: VineLook
+    let depth: Int
+
+    var body: some View {
+        let x = NeonDrop.indent(depth) - 32
+        Canvas { ctx, size in
+            var p = Path()
+            p.move(to: CGPoint(x: x, y: 0))
+            p.addLine(to: CGPoint(x: x, y: size.height))
+            NeonGlassLook(color: look.neon(depth), cap: .butt, white: 0.45).stroke(p, width: 6, in: ctx)
+        }
+        .frame(width: x + 30)
+        .padding(.top, -NeonDrop.gap)
+        .padding(.bottom, -NeonDrop.gap)
+        .accessibilityHidden(true)
+    }
+}
+
+/// A closed comment cluster (Steve, 2026-10-30): the top comment's first line on a neon card laid
+/// forward on its face, the others a fading recession of neon lines under it.
+private struct FaceDownCard: View {
+    let line: String
+    let behind: Int
+    let look: VineLook
+    let depth: Int
+
+    var body: some View {
+        let color = look.neon(depth)
+        let backdrop = look.backdrop.map { Color($0) } ?? Color.pageBackground
+        ZStack(alignment: .leading) {
+            ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.5), width: 5)
+                .background(backdrop, in: .rect(cornerRadius: 10))
+            Text(line).font(.callout.bold()).lineLimit(1).foregroundStyle(.white)
+                .shadow(color: color, radius: 3)
+                .padding(.horizontal, 16)
+        }
+        .frame(height: 50)
+        .rotation3DEffect(.degrees(40), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.45)
+        // The other comments: a recession of neon lines under it, each further back, narrower and fainter.
+        .background(alignment: .bottom) {
+            ZStack(alignment: .top) {
+                ForEach(0..<min(behind, 4), id: \.self) { k in
+                    let step = CGFloat(k + 1)
+                    Capsule().fill(color).frame(height: 3).shadow(color: color, radius: 4)
+                        .padding(.horizontal, 8 * step)
+                        .opacity(0.75 - Double(k) * 0.18)
+                        .offset(y: 9 * step)
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .accessibilityHidden(true)
+        }
+        .padding(.top, 14)
+        .padding(.bottom, 14 + CGFloat(min(behind, 4)) * 9)
+        .padding(.leading, NeonDrop.indent(depth))
+        .padding(.trailing, 16)
+        .overlay(alignment: .leading) { NeonDrop(look: look, depth: depth, y: 39).padding(.top, -NeonDrop.gap).accessibilityHidden(true) }
+        .contentShape(.rect)
+    }
+}
+
+/// Neon's comments (Steve, 2026-10-30): a loaded stack you flip through, coming out of the parent
+/// post; a comment's replies come out of it the same way, each with its own icons. Swipe sideways
+/// to flip.
+struct NeonCommentStack: View {
+    let card: Card
+    let look: VineLook
+    let wording: Wording
+    let load: ((Card) async -> [Comment])?
+    var onOpen: ((Card) -> Void)?
+    @State private var comments: [Comment] = []
+
+    var body: some View {
+        // A view that's always there, so the comments load even while the level is still empty.
+        VStack(alignment: .leading, spacing: 0) {
+            Color.clear.frame(height: 1)
+            CommentLevel(card: card, all: comments, parent: nil, depth: 1, look: look, wording: wording, onOpen: onOpen)
+        }
+        .task(id: card.id) { comments = await load?(card) ?? [] }
+    }
+}
+
+/// One level of the stack: the comments under `parent`, one showing at a time, then that one's replies.
+private struct CommentLevel: View {
+    let card: Card
+    let all: [Comment]
+    let parent: String?
+    let depth: Int
+    let look: VineLook
+    let wording: Wording
+    var onOpen: ((Card) -> Void)?
+    @State private var hearted: Set<String> = []
+    /// Open: the top 5 comments laid out in full. Closed: only the top comment's first line, the
+    /// rest a fading recession of neon lines behind it (Steve, 2026-10-30).
+    @State private var open: Bool
+    @Environment(AppModel.self) private var model
+
+    /// Replies stay a closed cluster of their own until tapped (Steve, 2026-10-30).
+    init(card: Card, all: [Comment], parent: String?, depth: Int, look: VineLook, wording: Wording, onOpen: ((Card) -> Void)?, open: Bool = false) {
+        self.card = card
+        self.all = all
+        self.parent = parent
+        self.depth = depth
+        self.look = look
+        self.wording = wording
+        self.onOpen = onOpen
+        _open = State(initialValue: open)
+    }
+
+    /// This level's comments. The last level (3) also takes every reply further down, side by side,
+    /// so no reply is left out however deep it was posted.
+    private var here: [Comment] {
+        guard depth >= 3, let parent else { return all.filter { $0.parentId == parent } }
+        var out: [Comment] = []
+        func walk(_ p: String) { for c in all where c.parentId == p { out.append(c); walk(c.id) } }
+        walk(parent)
+        return out
+    }
+
+    var body: some View {
+        if let top = here.first {
+            Group {
+                if open {
+                    VStack(alignment: .leading, spacing: NeonDrop.gap) {
+                        let shown = Array(here.prefix(5))
+                        ForEach(Array(shown.enumerated()), id: \.element.id) { i, c in
+                            VStack(alignment: .leading, spacing: NeonDrop.gap) {
+                                VineLeaf(look: look, wording: wording, depth: depth, below: AnyView(icons(c, i))) {
+                                    LeafCommentText(comment: LeafComment(id: c.id, body: c.body, author: c.author, createdAt: c.createdAt), look: look)
+                                }
+                                // Replies: at most three levels deep (Steve, 2026-10-29).
+                                if depth < 3 {
+                                    AnyView(CommentLevel(card: card, all: all, parent: c.id, depth: depth + 1, look: look, wording: wording, onOpen: onOpen))
+                                }
+                            }
+                            // The red tube runs on down past this comment and its replies to the next one,
+                            // so every comment hangs from one unbroken line out of the post.
+                            .background(alignment: .topLeading) {
+                                if i < shown.count - 1 { NeonRun(look: look, depth: depth) }
+                            }
+                        }
+                    }
+                    .transition(.opacity)
+                } else {
+                    FaceDownCard(line: "\(top.author.displayName): \(top.body)", behind: here.count - 1, look: look, depth: depth)
+                        .transition(.opacity)
+                }
+            }
+            // A tap anywhere on the cluster opens it, pushing everything below it down; again closes it.
+            .contentShape(.rect)
+            .onTapGesture { withAnimation(.spring(duration: 0.6)) { open.toggle() } }
+            .accessibilityAction(named: open ? "Close comments" : "Open comments") { open.toggle() }
+        }
+    }
+
+    /// A comment's own icons: a heart and reply.
+    private func icons(_ c: Comment, _ i: Int) -> some View {
+        let color = look.neon(depth)
+        return HStack(spacing: 18) {
+            Button {
+                let on = !hearted.contains(c.id)
+                if on { hearted.insert(c.id) } else { hearted.remove(c.id) }
+                Task { _ = try? await model.store.api.heartComment(c.id, on: on) }
+            } label: {
+                NeonButtonGlyph(symbol: "heart", color: color, size: 34, action: .wellWishes)
+                    .background(hearted.contains(c.id) ? color.opacity(0.25) : .clear, in: .capsule)
+            }
+            .accessibilityLabel("Heart")
+            .accessibilityAddTraits(hearted.contains(c.id) ? .isSelected : [])
+            // Only a top-level comment takes replies: nesting deeper makes a conversation hard to follow (Steve, 2026-11-01).
+            if c.parentId == nil {
+                Button { onOpen?(card) } label: { NeonButtonGlyph(symbol: "arrowshape.turn.up.left", color: color, size: 34, tron: TronIcon.reply) }
+                    .accessibilityLabel("Reply")
+            }
+            Spacer()
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -388,11 +746,12 @@ struct WallFeed<Row: View>: View {
                     ScrollView {
                         VStack(spacing: 12) {
                             row(card)
-                            // "2 / 9", and on the first post how to reach the next.
-                            Text("\(i + 1) / \(cards.count)" + (i == 0 ? " · \(words.wallSwipe)" : ""))
+                            // "Post 2 of 9", and on the first post how to reach the next. The words shown
+                            // are the words read, so nothing reads as cut off.
+                            Text(words.wallPosition(i + 1, of: cards.count) + (i == 0 ? " · \(words.wallSwipe)" : ""))
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .accessibilityLabel(words.wallPosition(i + 1, of: cards.count))
+                                .foregroundStyle(Color.subtle)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .backdropPlate(look.backdrop)
                         .padding(24)
@@ -446,7 +805,7 @@ struct TowerFeed<Row: View>: View {
                     .loadsMore(after: card, in: cards, hooks)
                 }
                 if !hooks.hasMore, !cards.isEmpty {
-                    Text("🚩 " + LayoutWords(wording).towerTop).font(.headline).onBackdrop(look.backdrop).padding(.vertical, 24)
+                    Label(LayoutWords(wording).towerTop, systemImage: "flag.fill").font(.headline).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).onBackdrop(look.backdrop).padding(.horizontal, 34).padding(.top, 24).padding(.bottom, 160)
                 }
             }
             .scrollTargetLayout()
@@ -455,27 +814,33 @@ struct TowerFeed<Row: View>: View {
         .scrollPosition(id: $floor, anchor: .top)
         .safeAreaInset(edge: .bottom) {
             if let n = cards.firstIndex(where: { $0.id == floor }) ?? (cards.isEmpty ? nil : 0) {
+                // A solid strip along the bottom, like a toolbar, so the words scroll under it
+                // rather than showing through round a floating label.
                 Text(LayoutWords(wording).towerFloor(n + 1, of: cards.count))
                     .font(.footnote.bold())
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(.regularMaterial, in: .capsule)
-                    .padding(.bottom, 6)
+                    .foregroundStyle(Color(RGB.commentText))
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(RGB(hex: "#FBFAF7")!))
             }
         }
-        .background { StoneWalls(look: look).accessibilityHidden(true) }
+        .background { StoneWalls(look: look) }
         .background(Color(look.backdrop))
         .overlay(alignment: .trailing) {
             // The climber on a rope, rising as the member reads down the tower.
             let index = Double(cards.firstIndex { $0.id == floor } ?? 0)
             VStack(spacing: 0) {
                 Rectangle().fill(Color(look.mortar)).frame(width: 2, height: max(20, 200 - index * 24))
-                Text(look.climber).font(.title)
+                // Kept to the wall's width, so it never hangs over a tablet.
+                DecorativeGlyph(glyph: look.climber, size: 22, maxScale: 1)
+                    // A picture the screen reader names too, so nothing drawn on screen is out of its reach.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(LayoutWords(wording).towerClimber)
+                    .accessibilityAddTraits(.isImage)
             }
             .frame(maxHeight: .infinity, alignment: .top)
             .padding(.trailing, 4)
             .animation(still ? nil : .spring(duration: 0.6), value: index)
-            .accessibilityHidden(true)
         }
         .environment(\.colorScheme, .light)
     }
@@ -505,35 +870,48 @@ struct Tablet<Content: View>: View {
     }
 }
 
-/// Courses of dressed stone down both sides, each block a slightly different shade.
+/// Courses of dressed stone down both sides, each block a slightly different shade. Each wall is
+/// a named picture: Apple's audit reads the courses' mortar lines as words, so they must be
+/// something the screen reader can reach.
 struct StoneWalls: View {
     let look: TowerLook
+    static let wall = 26.0
     var body: some View {
+        HStack(spacing: 0) {
+            side(0)
+            Spacer(minLength: 0)
+            side(1)
+        }
+    }
+
+    private func side(_ side: Int) -> some View {
         Canvas { ctx, size in
-            let wall = 26.0, course = 18.0
-            for (side, x0) in [(0, 0.0), (1, size.width - wall)] {
-                var row = 0
-                var y = 0.0
-                while y < size.height {
-                    let shift = row.isMultiple(of: 2) ? 0.0 : wall / 2
-                    var x = x0 - shift
-                    var n = side * 7 + row * 3
-                    while x < x0 + wall {
-                        let shadeBy = Double((n * 37) % 9) / 60
-                        let block = CGRect(x: max(x, x0), y: y, width: min(x + wall, x0 + wall) - max(x, x0) - 1.5, height: course - 1.5)
-                        ctx.fill(Path(block), with: .color(Color(look.stone.mix(.white, shadeBy))))
-                        x += wall
-                        n += 1
-                    }
-                    var joint = Path()
-                    joint.move(to: CGPoint(x: x0, y: y + course - 0.75))
-                    joint.addLine(to: CGPoint(x: x0 + wall, y: y + course - 0.75))
-                    ctx.stroke(joint, with: .color(Color(look.mortar)), lineWidth: 1.5)
-                    y += course
-                    row += 1
+            let wall = Self.wall, course = 18.0, x0 = 0.0
+            var row = 0
+            var y = 0.0
+            while y < size.height {
+                let shift = row.isMultiple(of: 2) ? 0.0 : wall / 2
+                var x = x0 - shift
+                var n = side * 7 + row * 3
+                while x < x0 + wall {
+                    let shadeBy = Double((n * 37) % 9) / 60
+                    let block = CGRect(x: max(x, x0), y: y, width: min(x + wall, x0 + wall) - max(x, x0) - 1.5, height: course - 1.5)
+                    ctx.fill(Path(block), with: .color(Color(look.stone.mix(.white, shadeBy))))
+                    x += wall
+                    n += 1
                 }
+                var joint = Path()
+                joint.move(to: CGPoint(x: x0, y: y + course - 0.75))
+                joint.addLine(to: CGPoint(x: x0 + wall, y: y + course - 0.75))
+                ctx.stroke(joint, with: .color(Color(look.mortar)), lineWidth: 1.5)
+                y += course
+                row += 1
             }
         }
+        .frame(width: Self.wall)
+        .accessibilityElement()
+        .accessibilityLabel("Stone wall")
+        .accessibilityAddTraits(.isImage)
     }
 }
 
@@ -568,12 +946,27 @@ struct CircuitFeed<Row: View>: View {
             LazyVStack(spacing: 36) {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                     row(card)
-                        .padding(16)
-                        .background(BackdropText(on: look.backdrop).plate ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color(look.backdrop).opacity(0.92)), in: .rect(cornerRadius: 10))
+                        // Room inside the tube for its glow, so the words sit on the plain dark screen.
+                        .padding(28)
+                        // Only the screen's glass and frame lean; the words stay flat, so none are
+                        // squeezed or cut off at an angle.
+                        .background {
+                            // A plain screen for the words, framed by one neon tube bent in smooth curves.
+                            ZStack {
+                                NeonFrame(radius: 10)
+                                    .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
+                                    .padding(3)
+                                ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: Color(look.screen)), width: 7)
+                                    .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                                // The plain dark screen again over the inner glow, so the words always sit on dark glass.
+                                NeonFrame(radius: 8)
+                                    .fill(BackdropText(on: look.backdrop).plate ? Color.pageBackground : Color(look.backdrop))
+                                    .padding(18)
+                            }
+                            .accessibilityHidden(true)
+                        }
                         // Text in the card's own scheme: light words on a dark screen, never the system's dark ones.
                         .environment(\.colorScheme, BackdropText(on: look.backdrop).light ? .dark : .light)
-                        .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color(look.screen), lineWidth: 2).neonTube(Color(look.screen)).accessibilityHidden(true) }
-                        .rotation3DEffect(.degrees(look.lean(i)), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                         .padding(.leading, 18)
                         .padding(.trailing, 40)
                         .overlay(alignment: .trailing) {
@@ -584,10 +977,11 @@ struct CircuitFeed<Row: View>: View {
                 }
                 if !hooks.hasMore, !cards.isEmpty {
                     VStack(spacing: 8) {
-                        Circle().stroke(Color(look.wire), lineWidth: 2).frame(width: 18, height: 18).neonTube(Color(look.wire)).accessibilityHidden(true)
-                        Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).backdropPlate(look.backdrop)
+                        ConnectorOutline(shape: NeonFrame(radius: 4), look: NeonGlassLook(color: Color(look.wire)), width: 5).frame(width: 18, height: 18).accessibilityHidden(true)
+                        Text(words.circuitEnd).font(.footnote).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).backdropPlate(look.backdrop)
                     }
                     .padding(.trailing, 40)
+                    .padding(.bottom, 160)
                 }
             }
             .padding(.vertical, 24)
@@ -611,12 +1005,56 @@ extension View {
     /// (`BackdropText`); nothing on the usual backdrops.
     func backdropPlate(_ backdrop: RGB?) -> some View {
         let plate = backdrop.map { BackdropText(on: $0).plate } ?? false
-        return padding(plate ? 8 : 0).background { if plate { RoundedRectangle(cornerRadius: 10).fill(.regularMaterial) } }
+        return padding(plate ? 8 : 0).background { if plate { RoundedRectangle(cornerRadius: 10).fill(Color.pageBackground) } }
     }
 
     /// Text on a backdrop inside a view that has its own color scheme (the tower keeps the light
     /// one for its tablets): the text's own scheme, and a plate when it needs one.
     func onBackdrop(_ backdrop: RGB) -> some View {
         backdropPlate(backdrop).environment(\.colorScheme, BackdropText(on: backdrop).light ? .dark : .light)
+    }
+}
+
+/// Neon's header: the night backdrop up behind the clock, edged along the foot by a glass tube
+/// in the rod's color with a short circuit trace and pad off it.
+struct NeonHeader: View {
+    let look: VineLook
+
+    var body: some View {
+        // Room below the tube for its glow to fade out, rather than stop in a straight line.
+        SkinHeaderBand(edge: 28) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 2)), with: .color(look.backdrop.map { Color($0) } ?? .black))
+            var tube = Path()
+            tube.move(to: CGPoint(x: 6, y: bottom))
+            tube.addLine(to: CGPoint(x: size.width - 6, y: bottom))
+            var glow = ctx
+            glow.addFilter(.shadow(color: Color(look.stem).opacity(0.7), radius: 6))
+            NeonGlassLook(color: Color(look.stem)).stroke(tube, width: 5, in: glow)
+            // A circuit trace off the tube, clear of the logo and of Home and Menu.
+            let x = size.width * 0.42
+            var trace = Path()
+            trace.move(to: CGPoint(x: x, y: bottom))
+            trace.addLine(to: CGPoint(x: x + 8, y: bottom + 7))
+            trace.addLine(to: CGPoint(x: x + 30, y: bottom + 7))
+            ctx.stroke(trace, with: .color(Color(look.branch).opacity(0.85)), lineWidth: 1.5)
+            ctx.fill(Path(CGRect(x: x + 30, y: bottom + 4.5, width: 5, height: 5)), with: .color(Color(look.branch)))
+        }
+    }
+}
+
+/// The Home and Menu buttons' size, so a skin can start its first post clear of them.
+enum HomeAndMenu {
+    /// How far the buttons reach below the top of the navigation bar's 44-point row.
+    static let overhang: CGFloat = 2 + 44 + 6 + 44 - 44
+}
+
+/// The Ceramic Figurines header: the cream shelf up behind the clock, with an etched line along its foot.
+struct CeramicHeader: View {
+    var body: some View {
+        SkinHeaderBand(edge: 4) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: .color(Color(RGB(hex: "#F6F0EE")!)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom, width: size.width, height: 1)), with: .color(Color(red: 110 / 255, green: 85 / 255, blue: 100 / 255).opacity(0.3)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom + 1, width: size.width, height: 1)), with: .color(.white.opacity(0.8)))
+        }
     }
 }

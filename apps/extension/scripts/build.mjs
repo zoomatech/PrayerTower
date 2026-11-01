@@ -4,7 +4,7 @@
 //   node scripts/build.mjs opencircle --safari   (adds Safari's minimum version; scripts/safari.sh uses this)
 // The folder is what goes to the Chrome Web Store (zip it) and to Apple's Safari packager
 // (scripts/safari.sh). See docs/CROSSPOST.md.
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,7 +47,8 @@ export function build(edition, root = join(dirname(fileURLToPath(import.meta.url
   return out;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Real paths, so a run through a symlink (/tmp is /private/tmp on a Mac) still counts as run directly.
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
   console.log(build(args.find((a) => !a.startsWith('--')) ?? 'prayertower', undefined, { safari: args.includes('--safari') }));
 }

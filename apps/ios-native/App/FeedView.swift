@@ -34,7 +34,9 @@ struct FeedView: View {
             Group {
                 if let theme, theme.kind != .column {
                     SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hooks: hooks, row: row)
-                        .skinBars(Skin.backdrop(theme))
+                        .skinBars(Skin.backdrop(theme), ownHeader: SkinHeader.drawsOwn(theme))
+                        // A small title in the middle, clear of the Home icon in the top left corner.
+                        .navigationBarTitleDisplayMode(.inline)
                 } else if wide {
                     grid
                 } else {
@@ -53,6 +55,7 @@ struct FeedView: View {
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
             .appLogo()
+            .environment(\.logoPlate, theme.flatMap(SkinHeader.logoPlate))
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
@@ -216,8 +219,17 @@ struct FeedView: View {
     }
 }
 
+/// Which part of a card a skin asks for: all of it, or the post and its icons apart, so the icons
+/// can sit on the skin's backdrop outside the post (Steve, 2026-10-30, neon).
+enum CardPart { case whole, post, icons(Color) }
+
+extension EnvironmentValues {
+    @Entry var cardPart: CardPart = .whole
+}
+
 struct CardRow: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.cardPart) private var part
     let card: Card
     let active: Set<CardAction>
     let onAction: (CardAction) -> Void
@@ -228,6 +240,26 @@ struct CardRow: View {
     var onOpenPost: ((String) -> Void)?
 
     var body: some View {
+        if case .icons(let glow) = part {
+            icons(size: 40, glow: glow)
+        } else {
+            whole
+        }
+    }
+
+    private func icons(size: CGFloat = 28, glow: Color? = nil) -> some View {
+        ActionRowView(
+            items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
+            wording: model.wording,
+            active: active,
+            onAction: onAction,
+            onMeaning: onMeaning,
+            size: size,
+            glow: glow
+        )
+    }
+
+    private var whole: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
                 // Answered: a gold mark, as the Expo card's banner and border.
@@ -236,7 +268,7 @@ struct CardRow: View {
                 Text(card.preview)
                 if card.counts.prayers > 0 {
                     Text(model.wording == .neutral ? "\(card.counts.prayers) people thinking of this" : "\(card.counts.prayers) praying")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.subtle)
                 }
             }
             .contentShape(.rect)
@@ -252,13 +284,7 @@ struct CardRow: View {
                     Button("🌅 " + model.words("answeredStory.read")) { onOpenPost?(id) }.font(.footnote).buttonStyle(.borderless)
                 }
             }
-            ActionRowView(
-                items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
-                wording: model.wording,
-                active: active,
-                onAction: onAction,
-                onMeaning: onMeaning
-            )
+            if case .whole = part { icons() }
         }
         .padding(.vertical, 4)
         .overlay {
@@ -277,7 +303,7 @@ struct EncourageSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section { Text(card.preview).foregroundStyle(.secondary) }
+                Section { Text(card.preview).foregroundStyle(Color.subtle) }
                 Section { KindComposer(title: "A few kind words", text: $text, limit: 77) }
             }
             .navigationTitle("Encourage")
@@ -330,7 +356,7 @@ struct OfflineBanner: View {
                     Text("\(w("offline.notice")) \(w("offline.saved", ["when": savedAt.formatted(date: .abbreviated, time: .shortened)]))").bold()
                 }
                 if pending > 0 { Text(pending == 1 ? w("offline.waitingOne") : w("offline.waitingMany", count: pending)) }
-                ForEach(dropped, id: \.self) { Text(w("offline.notSent", ["what": $0])).foregroundStyle(.red) }
+                ForEach(dropped, id: \.self) { Text(w("offline.notSent", ["what": $0])).foregroundStyle(Color.danger) }
                 HStack {
                     if savedAt != nil { Button(w("offline.retry"), action: onRetry) }
                     if !dropped.isEmpty { Button(w("offline.ok"), action: onDismiss) }

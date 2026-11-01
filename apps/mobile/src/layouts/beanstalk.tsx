@@ -17,7 +17,7 @@
 // stalk curves naturally between them. Reduced motion shows it all at once.
 import { COMMENT_TEXT, type Card, type Comment } from '@prayer-tower/shared';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, Path } from 'react-native-svg';
 
 import { Alegreya_400Regular } from '@expo-google-fonts/alegreya/400Regular';
@@ -32,7 +32,8 @@ import { Button } from '@/components/ui';
 import { CardNoType, CardSurface } from '@/components/post-card';
 import { VineFruit } from '@/components/vine-flow';
 import { api } from '@/lib/api';
-import { useCommentCluster, usePostComments } from '@/skins/comments';
+import { DrawBusContext, makeDrawBus, SEEN_EIGHTH, useDrawIn, type Row } from '@/lib/draw-in';
+import { repliesAt, useCommentCluster, usePostComments } from '@/skins/comments';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { space } from '@/lib/theme';
@@ -445,6 +446,9 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
 }
 
 /** The design's leaf, drawn in a 200×100 box: wide at the base (left), a pointed tip (right). */
+/** A leaf's height from its width: the leaf drawing is 200 by 100, so every leaf is half as tall as wide. */
+export const leafHeight = (width: number) => Math.round(width / 2);
+
 export const LEAF_PATH = 'M2 50 C 4 34, 22 10, 66 6 C 112 2, 160 20, 198 60 C 158 82, 110 98, 64 94 C 24 90, 4 66, 2 50 Z';
 const LEAF_VEINS = 'M2 50 C 60 46, 140 48, 198 60 M46 48 C 56 34, 64 22, 74 12 M46 48 C 56 62, 62 76, 70 88 M96 48 C 106 34, 116 22, 128 14 M96 49 C 106 62, 114 74, 124 84 M144 52 C 152 44, 158 36, 168 30 M144 53 C 150 62, 156 68, 164 74';
 
@@ -486,62 +490,15 @@ function span(t: Animated.Value, at: number, ms: number, from: number, to: numbe
   return t.interpolate({ inputRange: [at, at + ms], outputRange: [from, to], easing, extrapolate: 'clamp' });
 }
 
-type Box = React.ComponentRef<typeof View>;
-
-/** Scroll events, for the drawings that grow as they scroll into view. */
-type ScrollBus = { sub: (f: () => void) => () => void; emit: () => void };
-function makeBus(): ScrollBus {
-  const subs = new Set<() => void>();
-  return {
-    sub: (fn) => {
-      subs.add(fn);
-      return () => subs.delete(fn);
-    },
-    emit: () => subs.forEach((fn) => fn()),
-  };
-}
-
 /**
- * The design's IntersectionObserver: grown once 8% of the post is on screen (less the
- * bottom 4%), ungrown once it is wholly off, so it grows again each time it comes back.
+ * The shared draw-in (lib/draw-in) in Beanstalk's style: the design's 2-second linear clock,
+ * grown once 8% of the post is on screen (less the bottom 4%), ungrown once it is wholly off,
+ * so it grows again each time it comes back.
  */
-function useGrown(bus: ScrollBus, ref: React.RefObject<Box | null>) {
+function useClock(ref: React.RefObject<Row | null>) {
   const [grown, setGrown] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      ref.current?.measureInWindow((_x, y, _w, h) => {
-        if (!h) return;
-        const view = Dimensions.get('window').height;
-        const bottom = view * 0.96;
-        const seen = Math.min(y + h, bottom) - Math.max(y, 0);
-        if (seen >= h * 0.08 || seen >= 0.08 * bottom) setGrown(true);
-        else if (y + h <= 0 || y >= view) setGrown(false);
-      });
-    const first = setTimeout(check, 60);
-    const off = bus.sub(check);
-    return () => {
-      clearTimeout(first);
-      off();
-    };
-  }, [bus, ref]);
-  return grown;
-}
-
-function useClock(grown: boolean) {
-  const reduced = useReducedMotion();
-  const t = useRef(new Animated.Value(reduced ? CLOCK : 0)).current;
-  useEffect(() => {
-    if (reduced) return t.setValue(CLOCK);
-    if (!grown) {
-      t.stopAnimation();
-      return t.setValue(0);
-    }
-    t.setValue(0);
-    const run = Animated.timing(t, { toValue: CLOCK, duration: CLOCK, easing: Easing.linear, useNativeDriver: false });
-    run.start();
-    return () => run.stop();
-  }, [grown, reduced, t]);
-  return t;
+  const { drawn } = useDrawIn(ref, { duration: CLOCK, easing: EASE.linear, to: CLOCK, seen: SEEN_EIGHTH, firstCheck: 60, onShow: setGrown });
+  return { t: drawn, grown };
 }
 
 /** A short clock of its own, for leaves that unfurl when they appear (a new page, a reply). */
@@ -630,11 +587,14 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
   const { t: tr } = useLocale();
   const fs = leaf.level === 1 ? 14 : leaf.level === 2 ? 12.5 : 12;
   const nameFs = leaf.level === 1 ? 13.5 : leaf.level === 2 ? 12 : 11.5;
-  const minH = leaf.level === 1 ? 100 : leaf.level === 2 ? 84 : 66;
+  // Every leaf is exactly the drawing's 2 by 1 (leafHeight), and the drawing itself can only
+  // scale evenly ('meet'), so no text length or size can ever puff a leaf out (Steve, 2026-11-01).
+  const small = leaf.level > 1;
+  const minH = leafHeight(leaf.lw);
   const left = leaf.side < 0;
   // The text sits in the leaf's wide middle, away from the tip.
   const textW = leaf.lw * 0.64;
-  const fit = fitText(leaf.comment.body, leafChars(textW, fs, 2));
+  const fit = fitText(leaf.comment.body, leafChars(textW, fs, small ? 1 : 2));
   const hint = leaf.replies > 0 && leaf.level < 3 ? (leaf.open ? (fit.cut ? tr('beanstalk.readMore') : tr('beanstalk.fold')) : tr('beanstalk.replies', { count: leaf.replies })) : '';
   const actionable = fit.cut || (leaf.replies > 0 && leaf.level < 3);
   // A reply sprouts first as a cluster of holly berries at its stem, which then grows into its leaf.
@@ -648,7 +608,7 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
       {sprout ? <Berries t={t} at={at} left={left} minH={minH} /> : null}
       <Animated.View
         style={{
-          minHeight: minH,
+          height: minH,
           transformOrigin: origin,
           transform: [{ rotate: turn.interpolate({ inputRange: [-14, 0], outputRange: ['-14deg', '0deg'] }) }, { scale: grow }],
         }}>
@@ -658,18 +618,18 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
           accessibilityRole={actionable ? 'button' : 'text'}
           accessibilityLabel={`${leaf.comment.author.displayName}: ${leaf.comment.body}`}
           accessibilityHint={leaf.replies > 0 && leaf.level < 3 && !leaf.open ? tr('beanstalk.repliesHint') : fit.cut ? tr('beanstalk.readHint') : actionable ? tr('beanstalk.repliesHint') : undefined}
-          style={[styles.leafBody, { minHeight: minH, paddingLeft: `${left ? 24 : 12}%`, paddingRight: `${left ? 12 : 24}%` }]}>
-          <Svg aria-hidden pointerEvents="none" style={[StyleSheet.absoluteFill, left ? styles.flip : null]} viewBox="0 0 200 100" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          style={[styles.leafBody, small ? styles.leafBodySmall : null, { height: minH, paddingLeft: `${left ? 24 : 12}%`, paddingRight: `${left ? 12 : 24}%` }]}>
+          <Svg aria-hidden pointerEvents="none" style={[StyleSheet.absoluteFill, left ? styles.flip : null]} viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Path d={LEAF_PATH} fill={leaf.fill} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
             <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
           </Svg>
-          <Text style={[styles.leafName, { fontSize: nameFs }]} numberOfLines={1}>
+          <Text style={[styles.leafName, { fontSize: nameFs }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
             {leaf.comment.author.displayName}
           </Text>
-          <Text style={[styles.leafText, { fontSize: fs, lineHeight: fs * 1.25 }]} numberOfLines={2}>
+          <Text style={[styles.leafText, { fontSize: fs, lineHeight: fs * 1.25 }]} numberOfLines={small ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.6}>
             {fit.text}
           </Text>
-          {hint ? <Text style={styles.leafHint}>{hint}</Text> : null}
+          {hint && !small ? <Text style={styles.leafHint} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{hint}</Text> : null}
         </Pressable>
       </Animated.View>
     </View>
@@ -777,7 +737,7 @@ function Bunch({ x, y, size, lean = 0, t, at, go, onDone, label, hint }: { x: nu
                 <Svg aria-hidden width={w} height={h} style={left ? styles.flip : null} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                   <Path d={`M0 ${h / 2} Q ${stalk / 2} ${h / 2 - 3 * size} ${stalk + 2} ${h / 2}`} fill="none" stroke={BEANSTALK.vineInk} strokeWidth={Math.max(2.5, 4 * size)} strokeLinecap="round" />
                   <Path d={`M0 ${h / 2} Q ${stalk / 2} ${h / 2 - 3 * size} ${stalk + 2} ${h / 2}`} fill="none" stroke={BEANSTALK.stem} strokeWidth={Math.max(1, 2 * size)} strokeLinecap="round" />
-                  <G transform={`translate(${stalk} 0) scale(${blade / 200} ${h / 100})`}>
+                  <G transform={`translate(${stalk} 0) scale(${blade / 200})`}>
                     <Path d={LEAF_PATH} fill={LEAF_FILLS[(i + 1) % 3]!} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
                     <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
                   </G>
@@ -809,7 +769,7 @@ function Reader({ comment, kids, onClose }: { comment: Comment | null; kids: Map
     return () => document.removeEventListener('keydown', onKey);
   }, [comment, onClose]);
   const thread = (c: Comment, level: number): React.ReactNode =>
-    (kids.get(c.id) ?? []).map((r) => (
+    repliesAt(kids, c.id, level, MAX_LEVEL).map((r) => (
       <View key={r.id} style={[styles.bi, level === 1 ? styles.bi1 : styles.bi2]}>
         <Text style={styles.biName}>{r.author.displayName}</Text>
         <Text style={styles.biText}>{r.body}</Text>
@@ -871,7 +831,6 @@ const Post = memo(function Post({
   shift,
   next,
   first,
-  bus,
   renderCard,
 }: {
   card: Card;
@@ -881,13 +840,11 @@ const Post = memo(function Post({
   shift: number;
   next: number;
   first: boolean;
-  bus: ScrollBus;
   renderCard: FeedLayoutProps['renderCard'];
 }) {
   const { t: tr } = useLocale();
-  const here = useRef<Box>(null);
-  const grown = useGrown(bus, here);
-  const t = useClock(grown);
+  const here = useRef<Row>(null);
+  const { t, grown } = useClock(here);
   const [size, setSize] = useState({ w: 0, h: 0 });
   // The comments and how their cluster opens come from the shared skin hooks (skins/comments.ts); this skin draws them.
   const cluster = useCommentCluster();
@@ -1023,7 +980,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
   // Drawn with the system font until these arrive.
   useFonts({ Alegreya_400Regular, Alegreya_400Regular_Italic, Alegreya_600SemiBold, Alegreya_700Bold, Alegreya_700Bold_Italic, HennyPenny_400Regular });
   const [lane, setLane] = useState(0);
-  const bus = useRef(makeBus()).current;
+  const bus = useMemo(() => makeDrawBus(), []);
   const list = useRef<FlatList<Item>>(null);
   const [verses, setVerses] = useState<Verse[]>([]);
   const nudgeBird = useRef<() => void>(() => undefined);
@@ -1071,7 +1028,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
   const renderItem = useCallback(
     ({ item }: { item: Item }) =>
       item.kind === 'post' ? (
-        <Post card={item.card} index={item.index} width={width} shift={item.shift} next={item.next} first={item.index === 0} bus={bus} renderCard={renderCard} />
+        <Post card={item.card} index={item.index} width={width} shift={item.shift} next={item.next} first={item.index === 0} renderCard={renderCard} />
       ) : (
         <View>
           <View style={[styles.verse, { width, transform: [{ translateX: item.shift }] }]} accessibilityRole="text">
@@ -1084,7 +1041,7 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
           <Stalk width={width} h={60} shift={item.shift} />
         </View>
       ),
-    [width, bus, renderCard],
+    [width, renderCard],
   );
 
   const banner = (
@@ -1106,43 +1063,45 @@ export function BeanstalkLayout({ cards, theme, renderCard, header, refreshing, 
   );
 
   return (
-    <View style={styles.fill} onLayout={(e) => setLane(Math.min(e.nativeEvent.layout.width, 760))}>
-      {banner}
-      <FlatList
-        ref={list}
-        data={items}
-        keyExtractor={(it) => (it.kind === 'post' ? it.card.id : it.key)}
-        renderItem={renderItem}
-        extraData={width}
-        ListHeaderComponent={header ? <View style={styles.headerPanel}>{header}</View> : <View style={styles.feedTop} />}
-        ListFooterComponent={
-          atEnd && cards.length > 0 ? (
-            <View style={styles.ground}>
-              <View style={styles.groundArt} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <View style={styles.hill1} />
-                <View style={styles.hill2} />
-                <View style={styles.groundStalk} />
-                <View style={styles.soil} />
+    <DrawBusContext.Provider value={bus}>
+      <View style={styles.fill} onLayout={(e) => setLane(Math.min(e.nativeEvent.layout.width, 760))}>
+        {banner}
+        <FlatList
+          ref={list}
+          data={items}
+          keyExtractor={(it) => (it.kind === 'post' ? it.card.id : it.key)}
+          renderItem={renderItem}
+          extraData={width}
+          ListHeaderComponent={header ? <View style={styles.headerPanel}>{header}</View> : <View style={styles.feedTop} />}
+          ListFooterComponent={
+            atEnd && cards.length > 0 ? (
+              <View style={styles.ground}>
+                <View style={styles.groundArt} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <View style={styles.hill1} />
+                  <View style={styles.hill2} />
+                  <View style={styles.groundStalk} />
+                  <View style={styles.soil} />
+                </View>
+                <Text style={styles.groundTitle}>{t('beanstalk.ground')}</Text>
+                <Text style={styles.groundSub}>{wording === 'neutral' ? t('vine.tip') : t('beanstalk.groundSub')}</Text>
+                <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />
               </View>
-              <Text style={styles.groundTitle}>{t('beanstalk.ground')}</Text>
-              <Text style={styles.groundSub}>{wording === 'neutral' ? t('vine.tip') : t('beanstalk.groundSub')}</Text>
-              <Button small variant="ghost" label={t('vine.growMore')} onPress={onRefresh} />
-            </View>
-          ) : undefined
-        }
-        contentContainerStyle={styles.content}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.5}
-        {...feedListTuning}
-        maxToRenderPerBatch={2}
-        onScroll={onScroll}
-        // Every frame, so a post starts growing the moment it scrolls onto the screen.
-        scrollEventThrottle={16}
-      />
-      {theme?.animations?.idleBird === false ? null : <IdleBird tokens={tokens} register={registerBird} />}
-    </View>
+            ) : undefined
+          }
+          contentContainerStyle={styles.content}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          {...feedListTuning}
+          maxToRenderPerBatch={2}
+          onScroll={onScroll}
+          // Every frame, so a post starts growing the moment it scrolls onto the screen.
+          scrollEventThrottle={16}
+        />
+        {theme?.animations?.idleBird === false ? null : <IdleBird tokens={tokens} register={registerBird} />}
+      </View>
+    </DrawBusContext.Provider>
   );
 }
 
@@ -1188,7 +1147,8 @@ const styles = StyleSheet.create({
   bunchAt: { position: 'absolute', zIndex: 1 },
   bunchLeaf: { position: 'absolute' },
   bunchHint: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontFamily: 'Alegreya_400Regular_Italic', fontSize: 14, color: BEANSTALK.link },
-  leafBody: { justifyContent: 'center', alignItems: 'center', paddingTop: 16, paddingBottom: 18 },
+  leafBody: { justifyContent: 'center', alignItems: 'center', paddingTop: 10, paddingBottom: 12, overflow: 'hidden' },
+  leafBodySmall: { paddingTop: 4, paddingBottom: 6 },
   flip: { transform: [{ scaleX: -1 }] },
   leafName: { fontFamily: FONT.bold, color: COMMENT_TEXT, textAlign: 'center' },
   leafText: { fontFamily: FONT.body, color: COMMENT_TEXT, textAlign: 'center' },

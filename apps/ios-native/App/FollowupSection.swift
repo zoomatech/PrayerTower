@@ -33,7 +33,7 @@ struct FollowupSection: View {
                         ForEach(FollowupAnswer.sharing, id: \.self) { a in Button(w(a.wordKey)) { choice = a } }
                         Button(w("practices.followupPrivate")) { Task { await send(.private) } }.disabled(busy)
                     }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if let error { Text(error).foregroundStyle(Color.danger) }
                 } header: {
                     Text(w("practices.followupTitle"))
                 }

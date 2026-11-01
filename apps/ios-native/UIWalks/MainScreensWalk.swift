@@ -62,7 +62,18 @@ final class MainScreensWalk: XCTestCase {
         XCTAssertTrue(shows("Please pray for my mother's surgery"))
         var issues: [String] = []
         func audit(_ screen: String) throws {
+            // Only what is wholly on screen between the bars, as in AccessibilityAuditTests: words
+            // passing under the see-through tab bar are read once scrolled clear of it, not through it.
+            let window = app.windows.firstMatch.frame
+            let top = app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : window.minY
+            let bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : window.maxY
+            let visible = CGRect(x: window.minX, y: top, width: window.width, height: bottom - top)
+            // Words lying under a bar right now: a contrast issue Apple names no element for is then
+            // most likely those words seen through the bar, and they are audited once scrolled clear.
+            let under = app.staticTexts.allElementsBoundByIndex.contains { $0.exists && !$0.frame.isEmpty && !visible.contains($0.frame) && $0.frame.intersects(window) }
             try app.performAccessibilityAudit { issue in
+                if issue.element == nil, issue.auditType == .contrast, under { return true }
+                if let frame = issue.element?.frame, !visible.contains(frame) { return true }
                 // Left aside: Apple's own warnings for its system colors and list text ("nearly
                 // passed", "partially unsupported"), contrast on a switched-off control, which WCAG
                 // exempts (a Comment button before anything is typed), and decorative symbols.
@@ -92,6 +103,18 @@ final class MainScreensWalk: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Please pray for my mother's surgery")).firstMatch.tap()
         XCTAssertTrue(shows("Holding you and your mother up today."))
         try audit("Request")
+        // The rest of the request, scrolled up clear of the tab bar.
+        app.swipeUp()
+        // Until it comes to rest: the same words in the same place twice running.
+        var last = CGRect.null
+        for _ in 0..<10 {
+            sleep(1)
+            let now = app.staticTexts.allElementsBoundByIndex.prefix(8).reduce(CGRect.null) { $0.union($1.frame) }
+            if now == last { break }
+            last = now
+        }
+        sleep(1)
+        try audit("Request, scrolled")
         XCTAssertTrue(issues.isEmpty, "Accessibility audit:\n" + issues.joined(separator: "\n"))
     }
 }

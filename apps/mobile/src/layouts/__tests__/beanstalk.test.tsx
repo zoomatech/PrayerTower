@@ -1,7 +1,7 @@
 // The Beanstalk, ported from Steve's Claude Design file: the frame vine, the stalk and leaves below each post, the sway.
 import { COMMENT_TEXT, contrastRatio, type Comment } from '@prayer-tower/shared';
 
-import { BEANSTALK, commentTree, fitText, frameVine, frameWidth, hanging, leafChars, maxShift, postShift } from '@/layouts/beanstalk';
+import { BEANSTALK, commentTree, fitText, frameVine, frameWidth, hanging, leafChars, leafHeight, maxShift, postShift } from '@/layouts/beanstalk';
 
 const c = (id: string, mins: number, parentId: string | null = null, body = id) =>
   ({ id, parentId, body, isUpdate: false, createdAt: new Date(Date.UTC(2026, 9, 30, 0, mins)).toISOString(), author: { displayName: id } }) as unknown as Comment;
@@ -100,5 +100,11 @@ describe('Beanstalk leaves', () => {
     expect(end(straight.s1)).toEqual([180, straight.H]);
     expect(end(bent.s1)).toEqual([220, bent.H]);
     expect(nums(bent.s1).slice(0, 2)).toEqual([180, 0]);
+  });
+});
+
+describe('leaf shape', () => {
+  it('every leaf is exactly half as tall as it is wide, whatever its words (never puffy)', () => {
+    for (const w of [78, 109, 170, 221, 300]) expect(leafHeight(w)).toBe(Math.round(w / 2));
   });
 });

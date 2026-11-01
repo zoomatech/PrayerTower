@@ -108,7 +108,7 @@ struct ComposeView: View {
                         }
                     }
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(w("common.cancel")) { dismiss() } }
@@ -212,17 +212,38 @@ struct ChoiceRow: View {
     let label: (String) -> String
     let choose: (String) -> Void
 
+    @Environment(\.dynamicTypeSize) private var size
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                ForEach(options, id: \.self) { o in
-                    Button(label(o)) { choose(o) }
-                        .buttonStyle(.bordered)
-                        .tint(o == selected ? .accentColor : .secondary)
-                        .accessibilityAddTraits(o == selected ? .isSelected : [])
-                }
-            }
+        // At the accessibility text sizes the chips stack, so no choice runs off the edge.
+        if size.isAccessibilitySize {
+            VStack(alignment: .leading) { chips }
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) { HStack { chips } }
         }
+    }
+
+    private var chips: some View {
+        ForEach(options, id: \.self) { o in
+            let on = o == selected
+            Button { choose(o) } label: { Text(label(o)).multilineTextAlignment(.leading) }
+                // The chosen chip is filled (white on the accent), the rest plain, so both read clearly in dark mode.
+                .buttonStyle(ChipStyle(on: on))
+                .accessibilityAddTraits(on ? .isSelected : [])
+        }
+    }
+}
+
+private struct ChipStyle: ButtonStyle {
+    let on: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .frame(minHeight: 44)
+            .foregroundStyle(on ? Color.white : Color.primary)
+            // #0061CC: white text on it reads at 5.8:1, where white on system blue is only about 4:1.
+            .background(on ? Color(red: 0, green: 0.38, blue: 0.8) : Color.secondary.opacity(0.15), in: .rect(cornerRadius: 12))
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
@@ -257,7 +278,7 @@ struct LabelHint: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text(title)
-            Text(hint).font(.footnote).foregroundStyle(.secondary)
+            Text(hint).font(.footnote).foregroundStyle(Color.subtle)
         }
     }
 }

@@ -16,6 +16,8 @@ import SwiftUI
 // of the centre line (never more than 15%). The geometry is BeanDraw in PrayerTowerKit.
 
 private enum Bean {
+    /// How long a post takes to grow in, in ms: the design's 2 s, until its last leaf is out.
+    static let grow: Double = 2300
     static let page = Color(RGB(hex: "#EFE4C6")!)
     static let cream = Color(RGB(hex: "#FFF7E2")!)
     static let ink = Color(RGB(hex: "#2A2118")!)
@@ -29,12 +31,23 @@ private enum Bean {
     static let heart = Color(RGB(hex: "#B23A22")!)
     static let stem = Color(RGB(hex: "#5E9440")!)
     static let leaves = [Color(RGB(hex: "#B6D77A")!), Color(RGB(hex: "#D7EBB0")!), Color(RGB(hex: "#9CC862")!)]
+    /// The leaf veins: the stalk's green made 10% lighter (Steve, 2026-10-30).
+    static let vein = Color(RGB(hex: "#6E9F53")!)
     static let button = Color(RGB(hex: "#D7EBB0")!)
     static let sub = Color(RGB(hex: "#5C4A33")!)
     // A little darker than the design's #2F4F86, for 4.5:1 on the darkest leaf (WCAG AA).
     static let link = Color(RGB(hex: "#23407F")!)
     static let text = Color(RGB.commentText)
     static let locket = Color(RGB(hex: "#C9A227")!)
+    /// Apple's accessibility audit (debug samples only) checks the feed at rest, drawn whole as with
+    /// Reduce Motion: it changes the text size as it measures, and posts growing in again then read as clipped.
+    static let audit: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("-PTAuditSamples")
+        #else
+        return false
+        #endif
+    }()
     static let locketFace = Color(RGB(hex: "#F2B9A0")!)
     static let space = "beanstalk"
 }
@@ -50,6 +63,8 @@ private enum BeanFont {
     static func body(_ size: Double) -> Font { .custom("Alegreya-Regular", size: size) }
     static func semi(_ size: Double) -> Font { .custom("Alegreya-SemiBold", size: size) }
     static func bold(_ size: Double) -> Font { .custom("Alegreya-Bold", size: size) }
+    /// A size that doesn't grow with the text setting, for a letter drawn inside a fixed shape.
+    static func boldFixed(_ size: Double) -> Font { .custom("Alegreya-Bold", fixedSize: size) }
     static func boldItalic(_ size: Double) -> Font { .custom("Alegreya-BoldItalic", size: size) }
     static func title(_ size: Double) -> Font { .custom("HennyPenny-Regular", size: size) }
 }
@@ -92,6 +107,26 @@ private struct Clock {
     }
 }
 
+/// Beanstalk's connector look (the shared `ConnectorLook`): a vine strand, a band of `color`
+/// `core` points wide inside a dark ink outline `width` points wide.
+private struct VineStrandLook: ConnectorLook {
+    let color: Color
+    let core: CGFloat
+    var join: CGLineJoin = .round
+
+    /// The thick strand of the stalk and the frame vine.
+    static let main = VineStrandLook(color: Bean.strand, core: 5.5)
+    /// The thin strand twisting round it.
+    static let second = VineStrandLook(color: Bean.strandLight, core: 3)
+    /// A leaf's stem off the stalk.
+    static let stem = VineStrandLook(color: Bean.stem, core: 3.2, join: .miter)
+
+    func stroke(_ path: Path, width: CGFloat, in ctx: GraphicsContext) {
+        ctx.stroke(path, with: .color(Bean.vineInk), style: .init(lineWidth: width, lineCap: .round, lineJoin: join))
+        ctx.stroke(path, with: .color(color), style: .init(lineWidth: core, lineCap: .round, lineJoin: join))
+    }
+}
+
 private func path(_ d: BeanDraw.Drawing) -> Path {
     var p = Path()
     for s in d {
@@ -112,22 +147,31 @@ struct BeanstalkFeed<Row: View>: View {
     let wording: Wording
     let hooks: FeedHooks
     @ViewBuilder let row: (Card) -> Row
+    @Environment(\.dynamicTypeSize) private var type
 
     var body: some View {
         let words = Words(wording)
         let _ = BeanFont.ready
+        // Enlarged text (Steve, 2026-10-31): the posts take the lane's whole width, less room for
+        // the locket and the frame's vine, and stop swaying aside, so the words get the space.
+        let big: Bool = type > .large
         ScrollViewReader { proxy in
             VStack(spacing: 0) {
-                banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
+                // At the accessibility text sizes the banner would fill the screen, so it scrolls away
+                // with the feed instead of staying fixed above it.
+                if !type.isAccessibilitySize {
+                    banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
+                }
                 GeometryReader { geo in
                     let lane: Double = min(Double(geo.size.width), 760)
-                    let width: Double = BeanDraw.frameWidth(lane)
-                    let shifts: [Double] = cards.enumerated().map { BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
+                    let width: Double = big ? max(BeanDraw.frameWidth(lane), lane - 72) : BeanDraw.frameWidth(lane)
+                    let shifts: [Double] = cards.enumerated().map { big ? 0 : BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
                     ScrollView {
                         LazyVStack(spacing: 0) {
+                            if type.isAccessibilitySize { banner(words, stacked: true) {}.id("beanstalk-banner") }
                             Color.clear.frame(height: 76).id("beanstalk-top")
                             ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
-                                BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i],
+                                BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i], margin: (lane - width) / 2,
                                          viewport: Double(geo.size.height), words: words, row: row, load: hooks.loadComments)
                                     .loadsMore(after: card, in: cards, hooks)
                             }
@@ -144,8 +188,17 @@ struct BeanstalkFeed<Row: View>: View {
         .environment(\.colorScheme, .light)
     }
 
-    private func banner(_ words: Words, climb: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
+    /// Stacked: the title on its own lines and the button under it, so words wrap whole, never mid-word.
+    private func banner(_ words: Words, stacked: Bool = false, climb: @escaping () -> Void) -> some View {
+        let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        return bannerBody(words, stacked: stacked, layout: layout, climb: climb)
+            // Stacked, at the accessibility sizes: the title's decorative letters still grow large,
+            // but stop where their tall flourishes would run past their own line.
+            .dynamicTypeSize(...(stacked ? DynamicTypeSize.accessibility2 : DynamicTypeSize.accessibility5))
+    }
+
+    private func bannerBody(_ words: Words, stacked: Bool, layout: AnyLayout, climb: @escaping () -> Void) -> some View {
+        layout {
             Canvas { ctx, _ in
                 var s = Path()
                 s.move(to: CGPoint(x: 17, y: 32)); s.addCurve(to: CGPoint(x: 12, y: 8), control1: CGPoint(x: 17, y: 22), control2: CGPoint(x: 10, y: 18))
@@ -161,22 +214,32 @@ struct BeanstalkFeed<Row: View>: View {
             .frame(width: 34, height: 34)
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
+                // Wraps instead of clipping at the largest text sizes.
                 Text(words("beanstalk.title")).font(BeanFont.title(23)).foregroundStyle(Bean.ink)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
-            Button(action: climb) {
-                Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Bean.button, in: .capsule)
-                    .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+            // Stacked, the banner scrolls with the feed, so it has no climb-back button.
+            if !stacked {
+                Spacer()
+                Button(action: climb) {
+                    Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(Bean.button, in: .capsule)
+                        .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(words("beanstalk.climbHint"))
             }
-            .buttonStyle(.plain)
-            .accessibilityHint(words("beanstalk.climbHint"))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        // Clear of the Home button at the top left: beside it, or stacked, below it with the whole width.
+        .padding(.leading, stacked ? 16 : 60)
+        .padding(.trailing, 16)
+        .padding(.top, stacked ? 64 : 10)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Bean.cream)
         .overlay(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 3) }
         .background(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 4).offset(y: 4) }
@@ -222,11 +285,14 @@ private struct BeanPost<Row: View>: View {
     /// Where this post sits, and where the next one does, off the centre line.
     let shift: Double
     let next: Double
+    /// The lane's space on each side of the frame, before the post's own shift.
+    let margin: Double
     let viewport: Double
     let words: Words
     let row: (Card) -> Row
     let load: ((Card) async -> [Comment])?
-    @State private var grownAt: Date?
+    /// In view by the design's rule; the shared `GrowingIn` grows the post on it.
+    @State private var grown = false
     @State private var pageAt: Date?
     @State private var openAt: Date?
     @State private var settled = 0
@@ -234,19 +300,27 @@ private struct BeanPost<Row: View>: View {
     @State private var cv = BeanDraw.LeafState()
     @State private var geo: BeanDraw.FrameVine?
     @State private var reading: Beanstalk.Note?
-    @Environment(\.accessibilityReduceMotion) private var still
+    /// Where on screen the card's poster name ends, so a comment's close-up opens below it.
+    @State private var nameBottom: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var still: Bool { reduceMotion || Bean.audit }
 
     var body: some View {
         let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
         let tree = Beanstalk.tree(notes)
         let total: Int = all != nil ? tree.top.count : max(tree.top.count, card.counts.comments)
-        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift)
+        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift, room: (margin + shift, margin - shift))
         let live: Bool = !still && isLive(Date())
         let vp: Double = viewport
-        TimelineView(.animation(paused: !live)) { tl in
-            VStack(spacing: 0) {
-                framed(clock(grownAt, tl.date, full: 2000))
-                hanging(hang, total: total, c: clock(grownAt, tl.date, full: 2000), page: clock(pageAt, tl.date, full: 700), open: clock(openAt, tl.date, full: 450))
+        // The shared growing-connector routine in Beanstalk's style: the design's linear clock in
+        // milliseconds, run on until the last leaf has unfurled (1820 + 450).
+        GrowingIn(animation: .linear(duration: Bean.grow / 1000), shown: grown) { p in
+            let c = Clock(ms: Double(p) * Bean.grow)
+            TimelineView(.animation(paused: !live)) { tl in
+                VStack(spacing: 0) {
+                    framed(c)
+                    hanging(hang, tree: (tree.top, tree.kids), total: total, c: c, page: clock(pageAt, tl.date, full: 700), open: clock(openAt, tl.date, full: 450))
+                }
             }
         }
         .frame(width: width)
@@ -255,35 +329,54 @@ private struct BeanPost<Row: View>: View {
         .frame(maxWidth: .infinity)
         // The design's IntersectionObserver: grown once 8% is on screen, reset once wholly off, so it grows again.
         .onGeometryChange(for: Int.self) { g in
+            // The audit's samples (debug only) are grown once and stay grown: it changes the text
+            // size as it measures, and a post reset and regrown then reads as clipped.
+            if Bean.audit { return 0 }
             let f = g.frame(in: .named(Bean.space))
             let top: Double = Double(f.minY), end: Double = Double(f.maxY), tall: Double = Double(f.height)
             let bottom: Double = vp * 0.96
             let seen: Double = min(end, bottom) - max(top, 0)
             if tall > 0 && (seen >= tall * 0.08 || seen >= 0.08 * bottom) { return 1 }
-            if end <= 0 || top >= vp { return -1 }
+            // Reset only once well past the edge: a post that a text-size change nudges just off
+            // screen and back keeps its drawing instead of growing in again mid-read.
+            if end <= -vp * 0.5 || top >= vp * 1.5 { return -1 }
             return 0
         } action: { state in
-            if state == 1 && grownAt == nil {
-                grownAt = .now
+            if state == 1 && !grown {
+                grown = true
                 pageAt = nil
                 openAt = nil
             }
-            if state == -1 { grownAt = nil }
+            if state == -1 { grown = false }
         }
+        .onAppear { if Bean.audit, !grown { grown = true } }
         // Re-renders once each drawing has finished, so the frame clock stops.
-        .task(id: [grownAt, pageAt, openAt]) {
+        .task(id: [pageAt, openAt]) {
             try? await Task.sleep(for: .seconds(2.2))
             settled += 1
         }
-        .task(id: grownAt != nil) {
-            guard grownAt != nil, all == nil, card.counts.comments > 0, let load else { return }
+        .task(id: grown) {
+            guard grown, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
-        .sheet(item: $reading) { note in BeanReader(note: note, kids: tree.kids, words: words) { reading = nil } }
+        #if os(iOS)
+        .fullScreenCover(item: $reading) { note in
+            // The tapped comment and every later one on the post; a reply opened alone is read by itself.
+            let rest = Array(tree.top.drop { $0.id != note.id })
+            BeanReader(thread: rest.isEmpty ? [note] : rest, kids: tree.kids, words: words, top: nameBottom) { reading = nil }
+        }
+        #else
+        // The Mac has no full-screen cover; the leaf opens in a sheet there.
+        .sheet(item: $reading) { note in
+            // The tapped comment and every later one on the post; a reply opened alone is read by itself.
+            let rest = Array(tree.top.drop { $0.id != note.id })
+            BeanReader(thread: rest.isEmpty ? [note] : rest, kids: tree.kids, words: words, top: nameBottom) { reading = nil }
+        }
+        #endif
     }
 
     private func isLive(_ now: Date) -> Bool {
-        for start in [grownAt, pageAt, openAt] {
+        for start in [pageAt, openAt] {
             if let start, now.timeIntervalSince(start) < 2.1 { return true }
         }
         return false
@@ -302,25 +395,36 @@ private struct BeanPost<Row: View>: View {
         let fade: Double = c.span(100, 200, 0, 1)
         let pop: Double = c.span(100, 600, 0.4, 1, .card)
         let fruit: Double = c.span(1300, 450, 0, 1, .pop)
+        // At its full height whatever the text size, so wrapped words always have the room they need.
         return row(card)
-            .padding(12)
-            // Room under the locket.
-            .padding(.top, 38)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(15)
+            // Room at the sides, so the frame's vine as it wiggles never runs over the first or last letters.
+            .padding(.horizontal, 10)
+            // Room under the locket, so it never sits over the poster's name.
+            .padding(.top, 44)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Bean.cream)
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(RoundedRectangle(cornerRadius: 18).stroke(Bean.ink, lineWidth: 3))
             .background(RoundedRectangle(cornerRadius: 18).fill(Bean.ink).offset(x: 6, y: 7))
             .onGeometryChange(for: CGSize.self) { $0.size } action: { s in measured(s) }
+            // The locket and the poster's name, on screen: the card's top plus room under the locket and the name's line.
+            // Rounded, so scrolling only updates it every few points.
+            .onGeometryChange(for: Double.self) { (Double($0.frame(in: .global).minY) / 8).rounded() * 8 + 80 } action: { nameBottom = $0 }
             // The card springs up from the stalk: from low, narrow and flat, to whole.
-            .scaleEffect(x: sx, y: sy, anchor: .bottom)
-            .offset(y: dy)
-            .opacity(fade)
+            // Drawn only, never laid out: the words keep their true place and size for the screen
+            // reader and Apple's audit while the card grows in.
+            .visualEffect { content, _ in
+                content.scaleEffect(x: sx, y: sy, anchor: .bottom).offset(y: dy).opacity(fade)
+            }
             .overlay {
                 if let geo { FrameCanvas(geo: geo, c: c).frame(width: geo.w, height: geo.h).accessibilityHidden(true) }
             }
             .overlay(alignment: .topLeading) {
                 Locket(name: card.author.displayName, photo: card.author.photoUrl).scaleEffect(pop).opacity(fade).offset(x: -29, y: -50)
+                    // The name beside it already says who posted; the locket is only its picture.
+                    .accessibilityHidden(true)
             }
             .overlay(alignment: .topTrailing) {
                 if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 44).scaleEffect(fruit).offset(x: 20, y: -24) }
@@ -335,7 +439,7 @@ private struct BeanPost<Row: View>: View {
         geo = BeanDraw.frameVine(w: w, h: h)
     }
 
-    private func hanging(_ h: BeanDraw.Hanging, total: Int, c: Clock, page: Clock, open: Clock) -> some View {
+    private func hanging(_ h: BeanDraw.Hanging, tree: (top: [Beanstalk.Note], kids: [String: [Beanstalk.Note]]), total: Int, c: Clock, page: Clock, open: Clock) -> some View {
         let bend: Double = next - shift
         let paged: Bool = pageAt != nil
         return ZStack(alignment: .topLeading) {
@@ -343,22 +447,36 @@ private struct BeanPost<Row: View>: View {
             ForEach(h.leaves) { leaf in
                 // The first time, on the post's clock after the stalk has grown; a new page, or opened replies, on their own.
                 let lc: Clock = leaf.level > 1 ? open : (paged ? page : c)
-                let at: Double = leaf.level > 1 ? 0 : (paged ? Double(leaf.k) * 100 : 1100 + Double(leaf.k) * 180)
+                // A cluster spreading out: the leaves after the ones already out unfurl in turn.
+                let at: Double = leaf.level > 1 ? 0 : (paged ? Double(max(0, leaf.k - (cv.shown - Beanstalk.spreadCount))) * 110 : 1100 + Double(leaf.k) * 180)
                 BeanLeafView(leaf: leaf, c: lc, at: at, words: words) { cut in tap(leaf, cut: cut) }
                     .offset(x: leaf.x, y: leaf.y)
             }
-            if h.pager {
-                pager(h, total: total)
-                    .frame(width: width)
-                    .offset(x: bend, y: h.pgY)
-                    .opacity(c.span(1500, 300, 0, 1))
+            // More than three comments: an uncountable cluster of leaves that rustles and spreads out
+            // to five when tapped; past five, a smaller cluster at the bottom reveals the next ones.
+            if h.cluster || h.more {
+                let top: Double = h.cluster ? 66 : 36
+                LeafCluster(big: h.cluster, seed: index, first: h.cluster ? tree.top.first : nil, width: (width * 0.5).rounded(), vine: { (y: Double) -> Double in
+                    // The stalk's own sway and wiggle at this height, less the cluster's own shift.
+                    let Y = h.pgY - top + y
+                    return 7 * sin(Y / 30) + bend * BeanDraw.smooth(Y / max(1, h.H)) - bend * (h.pgY / max(1, h.H))
+                }, words: words) {
+                    var next = cv
+                    if next.spread { next.shown += Beanstalk.spreadCount } else { next.spread = true }
+                    cv = next
+                    pageAt = .now
+                }
+                .frame(width: width)
+                .offset(x: bend * (h.pgY / max(1, h.H)), y: h.pgY - top)
+                .opacity(c.span(1100, 300, 0, 1))
             }
         }
         .frame(width: width, height: h.H, alignment: .topLeading)
     }
 
     private func tap(_ leaf: BeanDraw.Leaf, cut: Bool) {
-        if cut {
+        // A first-level comment always opens the square close-up (Steve, 2026-11-01).
+        if cut || leaf.level == 1 {
             reading = leaf.note
             return
         }
@@ -424,15 +542,12 @@ private struct StalkCanvas: View {
             let grow: Double = c.span(500, 750, 0, 1, .easeIn)
             let s1 = path(h.s1).trimmedPath(from: 0, to: grow)
             let s2 = path(h.s2).trimmedPath(from: 0, to: grow)
-            ctx.stroke(s2, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round, lineJoin: .round))
-            ctx.stroke(s2, with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            ctx.stroke(s1, with: .color(Bean.vineInk), style: .init(lineWidth: 9.5, lineCap: .round, lineJoin: .round))
-            ctx.stroke(s1, with: .color(Bean.strand), style: .init(lineWidth: 5.5, lineCap: .round, lineJoin: .round))
+            VineStrandLook.second.stroke(s2, width: 6.5, in: ctx)
+            VineStrandLook.main.stroke(s1, width: 9.5, in: ctx)
             var stems = ctx
             stems.opacity = c.span(1050, 300, 0, 1)
             let st = path(h.stems)
-            stems.stroke(st, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round))
-            stems.stroke(st, with: .color(Bean.stem), style: .init(lineWidth: 3.2, lineCap: .round))
+            VineStrandLook.stem.stroke(st, width: 6.5, in: stems)
             var deco = ctx
             deco.opacity = c.span(900, 300, 0, 1)
             let d = path(h.deco)
@@ -457,13 +572,11 @@ private struct FrameCanvas: View {
             let g2: Double = c.span(120, 1350, 0, 1, .vine)
             for d in geo.s2 {
                 let p = path(d).trimmedPath(from: 0, to: g2)
-                ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 6.5, lineCap: .round, lineJoin: .round))
-                ctx.stroke(p, with: .color(Bean.strandLight), style: .init(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                VineStrandLook.second.stroke(p, width: 6.5, in: ctx)
             }
             for d in geo.s1 {
                 let p = path(d).trimmedPath(from: 0, to: g1)
-                ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 9.5, lineCap: .round, lineJoin: .round))
-                ctx.stroke(p, with: .color(Bean.strand), style: .init(lineWidth: 5.5, lineCap: .round, lineJoin: .round))
+                VineStrandLook.main.stroke(p, width: 9.5, in: ctx)
             }
             // Leaves in five groups, one after another round the frame.
             let starts: [Double] = [200, 420, 660, 900, 1120]
@@ -502,7 +615,10 @@ private struct DesignLeaf: Shape {
     var big = false
 
     func path(in r: CGRect) -> Path {
-        let W = Double(r.width), H = Double(r.height), X0 = Double(r.minX), Y0 = Double(r.minY)
+        // Always the drawing's own 2 by 1, centred in whatever box it is given: no frame, text
+        // length or text size can ever stretch a leaf into a puffy or squashed one (Steve, 2026-11-01).
+        let W = min(Double(r.width), 2 * Double(r.height)), H = W / 2
+        let X0 = Double(r.midX) - W / 2, Y0 = Double(r.midY) - H / 2
         func P(_ x: Double, _ y: Double) -> CGPoint {
             let u: Double = x / 200 * W
             let px: Double = flip ? W - u : u
@@ -538,44 +654,215 @@ private struct BeanLeafView: View {
     let words: Words
     let onTap: (Bool) -> Void
 
+    private func leafWords(_ text: String, _ fs: Double, _ nameFs: Double, _ hint: String, lines: Int, show: Bool) -> some View {
+        VStack(spacing: 0) {
+            Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1).minimumScaleFactor(0.6)
+            Text(text).font(BeanFont.body(fs)).lineLimit(lines).minimumScaleFactor(0.6)
+            if show { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).lineLimit(1).minimumScaleFactor(0.6).padding(.top, 2) }
+        }
+    }
+
     var body: some View {
         let left: Bool = leaf.side < 0
         let fs: Double = leaf.level == 1 ? 14 : (leaf.level == 2 ? 12.5 : 12)
         let nameFs: Double = leaf.level == 1 ? 13.5 : (leaf.level == 2 ? 12 : 11.5)
-        let minH: Double = leaf.level == 1 ? 100 : (leaf.level == 2 ? 84 : 66)
-        let fit = Beanstalk.fit(leaf.note.body, max: Beanstalk.chars(width: leaf.lw * 0.64, font: fs, lines: 2))
+        let small: Bool = leaf.level > 1
+        let fit = Beanstalk.fit(leaf.note.body, max: Beanstalk.chars(width: leaf.lw * 0.64, font: fs, lines: small ? 1 : 2))
         let more: Bool = leaf.replies > 0 && leaf.level < 3
         let hint: String = more ? (leaf.open ? words("beanstalk.fold") : words("beanstalk.replies", count: leaf.replies)) : ""
         let anchor: UnitPoint = left ? .trailing : .leading
         let grow: Double = c.span(at, 450, 0, 1, .unfurl)
         let turn: Double = c.span(at, 450, -14, 0, .unfurl)
-        let padL: Double = leaf.lw * (left ? 0.24 : 0.12)
-        let padR: Double = leaf.lw * (left ? 0.12 : 0.24)
+        // A reply leaf keeps its words further in from its tilted outline, so they always sit on the leaf's pale middle.
+        let near: Double = small ? 0.18 : 0.12, far: Double = small ? 0.28 : 0.24
+        let padL: Double = leaf.lw * (left ? far : near)
+        let padR: Double = leaf.lw * (left ? near : far)
         Button { onTap(fit.cut) } label: {
-            VStack(spacing: 0) {
-                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1)
-                Text(fit.text).font(BeanFont.body(fs)).lineLimit(2)
-                if !hint.isEmpty { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).padding(.top, 2) }
+            // The words are shortened to fit; at a larger text size the leaf keeps its size and its
+            // words step down to whatever fits inside it (the whole comment opens on a tap and is
+            // read in full by VoiceOver), so nothing ever spills out of a leaf.
+            ViewThatFits(in: .vertical) {
+                leafWords(fit.text, fs, nameFs, hint, lines: small ? 1 : 2, show: !hint.isEmpty && !small)
+                leafWords(fit.text, fs, nameFs, hint, lines: small ? 1 : 2, show: false)
+                leafWords(fit.text, fs, nameFs, hint, lines: 1, show: false)
+                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1).minimumScaleFactor(0.3)
             }
             .foregroundStyle(Bean.text)
             .multilineTextAlignment(.center)
-            .padding(.top, 16)
-            .padding(.bottom, 18)
+            .padding(.top, small ? 4 : 10)
+            .padding(.bottom, small ? 6 : 12)
             .padding(.leading, padL)
             .padding(.trailing, padR)
             .frame(width: leaf.lw)
-            .frame(minHeight: minH)
+            // A reply keeps a real leaf's shape, half as tall as it is wide, so it never balloons.
+            // A true leaf's proportions at a fixed size: the words never stretch it (Steve, 2026-10-30).
+            .frame(height: BeanDraw.leafHeight(width: leaf.lw))
             .background { LeafBack(flip: left, fill: Bean.leaves[leaf.fill]) }
         }
         .buttonStyle(.plain)
-        .disabled(!(fit.cut || more))
+        // Not .disabled: a disabled button draws the whole leaf faded, its words too faint to read.
+        .allowsHitTesting(fit.cut || more || leaf.level == 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(leaf.note.author): \(leaf.note.body)")
-        .accessibilityHint(fit.cut ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
-        .accessibilityAddTraits(fit.cut || more ? .isButton : [])
+        .accessibilityHint(fit.cut || leaf.level == 1 ? words("beanstalk.readHint") : (more ? words("beanstalk.repliesHint") : ""))
+        .accessibilityAddTraits(fit.cut || more || leaf.level == 1 ? .isButton : [])
+        .overlay(alignment: left ? .trailing : .leading) {
+            // Replies wait as holly berries at the leaf's stem (Steve, 2026-10-30).
+            if more && !leaf.open { HollyBerries(count: min(leaf.replies, 3)).offset(x: left ? 10 : -10, y: 18).accessibilityHidden(true) }
+        }
         .scaleEffect(grow, anchor: anchor)
         .rotationEffect(.degrees(turn), anchor: anchor)
         .rotationEffect(.degrees(leaf.ang), anchor: anchor)
+        // A reply grows out of its holly berry: the berry swells, then the small leaf unfurls from it,
+        // and the berry stays at the leaf's stem as its seed.
+        .overlay(alignment: left ? .trailing : .leading) {
+            if small { HollyBerries(count: 1).scaleEffect(1 + 0.5 * (1 - grow)).offset(x: left ? 7 : -7).accessibilityHidden(true) }
+        }
+    }
+}
+
+/// A few red holly berries, each with a glint, ringed in the drawing's ink.
+private struct HollyBerries: View {
+    let count: Int
+    var body: some View {
+        ZStack {
+            ForEach(0..<count, id: \.self) { i in
+                let spot: [CGSize] = [CGSize(width: 0, height: 0), CGSize(width: 9, height: -5), CGSize(width: 4, height: 8)]
+                ZStack {
+                    Circle().fill(Color(RGB(hex: "#C62828")!))
+                    Circle().stroke(Bean.vineInk, lineWidth: 1.5)
+                    Circle().fill(.white.opacity(0.75)).frame(width: 3, height: 3).offset(x: -2, y: -2)
+                }
+                .frame(width: 10, height: 10)
+                .offset(spot[i % 3])
+            }
+        }
+        .frame(width: 24, height: 24)
+    }
+}
+
+/// A cluster of comments waiting to be read, grown the way a vine grows leaves: several nodes
+/// close together on the stalk, each leaf on its own short stalk (petiole), alternating sides
+/// and spreading outward, never overlapping. The largest leaf carries the first line of the top
+/// comment. A tap rustles every leaf on its stalk, then the comments spread out (Steve, 2026-10-30).
+private struct LeafCluster: View {
+    /// The cluster under a post; false for the smaller one that reveals more.
+    let big: Bool
+    let seed: Int
+    /// The top comment, whose first line shows on the largest leaf.
+    let first: Beanstalk.Note?
+    /// A hanging leaf's width; the cluster is twice that, centred on the stalk.
+    let width: Double
+    /// Where the vine actually is at a height in the cluster, off its centre line: it sways and wiggles.
+    var vine: (Double) -> Double = { _ in 0 }
+    let words: Words
+    let spread: () -> Void
+    @State private var rustles = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var still: Bool { reduceMotion || Bean.audit }
+
+    /// One leaf at its node: how far down the stalk, which side, its stalk's length, the blade's
+    /// width and its tilt (positive droops the tip).
+    private struct Node { let y: Double, side: Double, stalk: Double, size: Double, droop: Double, text: Bool }
+
+    private var nodes: [Node] {
+        let lead = width - 14
+        if !big {
+            return [Node(y: 9, side: 1, stalk: 14, size: 64, droop: -24, text: false),
+                    Node(y: 37, side: -1, stalk: 14, size: 57, droop: 10, text: false),
+                    Node(y: 64, side: 1, stalk: 12, size: 51, droop: 30, text: false)]
+        }
+        // Upper leaves reach up and out, lower ones droop, like a shoot seen from the side.
+        return [Node(y: 29, side: 1, stalk: 18, size: 92, droop: -14, text: false),
+                Node(y: 29, side: -1, stalk: 12, size: lead, droop: 3, text: true),
+                Node(y: 84, side: 1, stalk: 16, size: 68, droop: 2, text: false),
+                Node(y: 136, side: 1, stalk: 16, size: 79, droop: 28, text: false),
+                Node(y: 150, side: -1, stalk: 16, size: 64, droop: 30, text: false),
+                Node(y: 194, side: -1, stalk: 14, size: 48, droop: 40, text: false)]
+    }
+
+    var body: some View {
+        let W = width
+        let all = nodes
+        let tall: Double = big ? 242 : 99
+        Button {
+            rustles += 1
+            Task {
+                try? await Task.sleep(for: .seconds(still ? 0 : 0.5))
+                withAnimation(.easeOut(duration: 0.4)) { spread() }
+            }
+        } label: {
+            ZStack(alignment: .topLeading) {
+                // The leaf stalks, each from its own node on the vine.
+                Canvas { ctx, _ in
+                    for n in all {
+                        let a = n.droop * .pi / 180
+                        let vx = W + vine(n.y)
+                        var p = Path()
+                        p.move(to: CGPoint(x: vx, y: n.y))
+                        p.addQuadCurve(to: CGPoint(x: vx + n.side * n.stalk, y: n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(a)),
+                                       control: CGPoint(x: vx + n.side * n.stalk * 0.5, y: n.y - 3))
+                        ctx.stroke(p, with: .color(Bean.vineInk), style: .init(lineWidth: 4.5, lineCap: .round))
+                        ctx.stroke(p, with: .color(Bean.stem), style: .init(lineWidth: 2.5, lineCap: .round))
+                    }
+                }
+                .frame(width: 2 * W, height: tall)
+                ForEach(Array(all.enumerated()), id: \.offset) { i, n in
+                    let left = n.side < 0
+                    let h = (n.size * (n.text ? 0.58 : 0.5)).rounded()
+                    let ex = W + vine(n.y) + n.side * n.stalk
+                    let ey = n.y + n.stalk * 0.35 + n.stalk * 0.4 * sin(n.droop * .pi / 180)
+                    let anchor: UnitPoint = left ? .trailing : .leading
+                    blade(n, flip: left, fill: Bean.leaves[(i + seed) % Bean.leaves.count])
+                        // Always a true leaf's proportions: the words never stretch it (Steve, 2026-10-30).
+                        .frame(width: n.size, height: h)
+                        // Each leaf swings on its own stalk, out of step with the rest.
+                        .rustle(rustles, by: Double(i % 3 + 2) * (i % 2 == 0 ? 1 : -1), anchor: anchor)
+                        .rotationEffect(.degrees(n.side * n.droop), anchor: anchor)
+                        .offset(x: left ? ex - n.size : ex, y: ey - h / 2)
+                }
+            }
+            .frame(width: 2 * W, height: tall, alignment: .topLeading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(first.map { "\($0.author): \($0.body). " + words("beanstalk.openCluster") } ?? words(big ? "beanstalk.openCluster" : "beanstalk.moreCluster"))
+    }
+
+    @ViewBuilder private func blade(_ n: Node, flip: Bool, fill: Color) -> some View {
+        ZStack {
+            LeafBack(flip: flip, fill: fill, line: 2)
+            if n.text, let first {
+                VStack(spacing: 1) {
+                    Text(first.author).font(BeanFont.bold(13)).lineLimit(1).minimumScaleFactor(0.6)
+                    // The opening of the top comment, shortened to fit at a word; larger text shrinks to
+                    // fit the leaf rather than stretching it.
+                    Text(Beanstalk.fit(first.body, max: Beanstalk.chars(width: n.size * 0.9, font: 12.5, lines: 2)).text)
+                        .font(BeanFont.body(12.5)).lineLimit(2).minimumScaleFactor(0.6)
+                }
+                .foregroundStyle(Bean.text)
+                .multilineTextAlignment(.center)
+                .padding(.leading, n.size * (flip ? 0.2 : 0.16))
+                .padding(.trailing, n.size * (flip ? 0.16 : 0.2))
+            }
+        }
+    }
+}
+
+private extension View {
+    /// Shakes like a leaf in a gust when `trigger` changes, `by` degrees at its widest swing.
+    func rustle(_ trigger: Int, by amp: Double, anchor: UnitPoint) -> some View {
+        keyframeAnimator(initialValue: 0.0, trigger: trigger) { view, angle in
+            view.rotationEffect(.degrees(angle), anchor: anchor)
+        } keyframes: { _ in
+            KeyframeTrack {
+                CubicKeyframe(amp * 3, duration: 0.07)
+                CubicKeyframe(-amp * 2.6, duration: 0.08)
+                CubicKeyframe(amp * 2.2, duration: 0.08)
+                CubicKeyframe(-amp * 1.4, duration: 0.08)
+                CubicKeyframe(amp * 0.8, duration: 0.08)
+                CubicKeyframe(0, duration: 0.08)
+            }
+        }
     }
 }
 
@@ -587,8 +874,11 @@ private struct LeafBack: View {
     var body: some View {
         ZStack {
             DesignLeaf(flip: flip).fill(fill)
+            // From the leaf's own green at its edges to a brighter, paler green in the middle (Steve, 2026-10-30).
+            DesignLeaf(flip: flip).fill(EllipticalGradient(colors: [Color(RGB(hex: "#F4FBE4")!).opacity(0.85), Color(RGB(hex: "#F4FBE4")!).opacity(0)],
+                                                           center: .center, startRadiusFraction: 0, endRadiusFraction: 0.55))
             DesignLeaf(flip: flip).stroke(Bean.vineInk, lineWidth: line)
-            DesignLeaf(flip: flip, veins: true, big: big).stroke(Bean.stem.opacity(0.55), style: .init(lineWidth: 1.2, lineCap: .round))
+            DesignLeaf(flip: flip, veins: true, big: big).stroke(Bean.vein.opacity(0.55), style: .init(lineWidth: 1.2, lineCap: .round))
         }
     }
 }
@@ -623,9 +913,15 @@ private struct Locket: View {
         .accessibilityHidden(true)
     }
 
+    /// Drawn, not a text element: SwiftUI still listed a hidden Text letter to the screen reader and
+    /// Apple's audit, outside its card, and the poster's name already says who it is.
     private var initial: some View {
-        Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-            .font(BeanFont.bold(37)).foregroundStyle(Bean.ink)
+        let letter = String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
+        return Canvas { ctx, box in
+            ctx.draw(Text(letter).font(BeanFont.boldFixed(37)).foregroundStyle(Bean.ink), at: CGPoint(x: box.width / 2, y: box.height / 2))
+        }
+        .frame(width: 61, height: 71)
+        .accessibilityHidden(true)
     }
 }
 
@@ -657,60 +953,151 @@ private struct Lead: View {
 
 /// The big leaf: one comment and its replies.
 private struct BeanReader: View {
-    let note: Beanstalk.Note
+    /// The comment tapped, then every later first-level comment on the post.
+    let thread: [Beanstalk.Note]
     let kids: [String: [Beanstalk.Note]]
     let words: Words
+    /// Where the poster's locket and name end on screen: the close-up opens below them, so you
+    /// can always see whose post you're answering (Steve, 2026-10-30).
+    var top: Double = 0
     let close: () -> Void
+    /// The comments whose replies are all shown; the rest show their first reply and "+N more".
+    @State private var opened: Set<String> = []
 
+    // The full close-up only hints at a leaf (Steve, 2026-10-30): a plain green square, paler in
+    // the middle, with V-shaped veins repeating down it, and the replies indented under the comment
+    // as in any social app. No leaf outline, no vine lining.
+    // Steve, 2026-11-01: a first-level comment opens it, with all the later comments exposed, each
+    // with its first reply and a count of how many more there are at that level ("+13 more").
     var body: some View {
-        GeometryReader { g in
-            let w: Double = Double(g.size.width)
-            let h: Double = Double(g.size.height)
-            ZStack(alignment: .topLeading) {
-                LeafBack(fill: Bean.leaves[1], line: 3, big: true).accessibilityHidden(true)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(note.author).font(BeanFont.bold(15))
-                            Text(note.body).font(BeanFont.body(19))
-                        }
-                        replies(note.id, level: 1)
-                    }
-                    .foregroundStyle(Bean.ink)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                }
-                .frame(width: w * 0.76, height: h * 0.70)
-                .offset(x: w * 0.09, y: h * 0.17)
+        VStack(spacing: 0) {
+            // The close button on its own strip at the top, so no scrolling words ever pass under it.
+            HStack {
+                Spacer()
                 Button(action: close) {
                     Image(systemName: "xmark").font(.headline.bold()).foregroundStyle(Bean.ink)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                         .background(Color(RGB(hex: "#F3E3B8")!), in: .circle)
-                        .overlay(Circle().stroke(Bean.ink, lineWidth: 3))
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.cancelAction)
                 .accessibilityLabel(words("common.close"))
-                .offset(x: w * 0.86 - 48, y: h * 0.08)
             }
+            .padding([.top, .horizontal], 12)
+            .padding(.bottom, 4)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    ForEach(thread) { c in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(c.author).font(BeanFont.bold(17))
+                            Text(c.body).font(BeanFont.body(20)).fixedSize(horizontal: false, vertical: true)
+                            replies(c.id, level: 1)
+                        }
+                    }
+                }
+                .foregroundStyle(Bean.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 22)
+                .padding(.top, 4)
+                // Room under the last words, clear of the square's foot, however many "+N more" open.
+                .padding(.bottom, 44)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicatorsFlash(onAppear: true)
+            // The scroll bar flashes on opening, to show there is more below; no fade, as faded
+            // words can't be read.
         }
-        .frame(maxWidth: 760, maxHeight: 560)
-        .padding(12)
-        .presentationBackground(Color(RGB(hex: "#1F1A14")!).opacity(0.55))
+        // A square, as large as the screen allows; longer threads scroll inside it, and the words
+        // never show past its edges (never up over the poster's name).
+        .aspectRatio(1, contentMode: .fit)
+        .frame(maxWidth: 600)
+        .background { LeafSquare().accessibilityHidden(true) }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .contentShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .modifier(BelowName(top: top, close: close))
+        .presentationBackground(.clear)
         .environment(\.colorScheme, .light)
     }
 
+    /// The replies to one comment: the first, then "+N more" for the rest at that level until tapped.
     private func replies(_ id: String, level: Int) -> AnyView {
-        AnyView(ForEach(kids[id] ?? []) { r in
-            VStack(alignment: .leading, spacing: 2) {
-                Text(r.author).font(BeanFont.bold(15))
-                Text(r.body).font(BeanFont.body(17))
-                if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
+        let all = Beanstalk.replies(to: id, level: level, in: kids)
+        let shown = opened.contains(id) ? all : Array(all.prefix(1))
+        let hidden = all.count - shown.count
+        return AnyView(VStack(alignment: .leading, spacing: 0) {
+            ForEach(shown) { r in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(r.author).font(BeanFont.bold(17))
+                    Text(r.body).font(BeanFont.body(18)).fixedSize(horizontal: false, vertical: true)
+                    if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
+                }
+                .padding(.top, 8)
+                .padding(.leading, 12)
+                .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
+                .padding(.leading, 20)
             }
-            .padding(.leading, 12)
-            .overlay(alignment: .leading) { Rectangle().fill(level == 1 ? Bean.stem : Bean.strandLight).frame(width: 4) }
-            .padding(.leading, 20)
+            if hidden > 0 {
+                Button { opened.insert(id) } label: {
+                    Text("+\(hidden) more").font(BeanFont.boldItalic(16)).foregroundStyle(Bean.link)
+                        .frame(minHeight: 44, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 32)
+                .accessibilityLabel("\(hidden) more \(hidden == 1 ? "reply" : "replies")")
+                .accessibilityHint("Shows them all")
+            }
         })
+    }
+}
+
+/// Places the close-up below the poster's locket and name, dimming only the feed beneath them, so
+/// the post's author stays in view. A tap outside the square closes it.
+private struct BelowName: ViewModifier {
+    let top: Double
+    let close: () -> Void
+    func body(content: Content) -> some View {
+        GeometryReader { g in
+            // On screen even when the post is scrolled part way off, and never so low the square has no room.
+            let y: Double = min(max(top, 60), Double(g.size.height) * 0.5)
+            VStack(spacing: 0) {
+                Color.clear.contentShape(.rect).frame(height: y).onTapGesture(perform: close)
+                content.frame(maxHeight: .infinity, alignment: .top)
+            }
+            .background(alignment: .bottom) {
+                Color.black.opacity(0.45).frame(height: max(0, Double(g.size.height) - y + 8)).onTapGesture(perform: close).accessibilityHidden(true)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// A green square that suggests a leaf: the leaf's green at the edges, paler and brighter in the
+/// middle, a midrib down the centre and V-shaped veins repeating along it.
+private struct LeafSquare: View {
+    var body: some View {
+        ZStack {
+            // 10% lighter at both ends of the gradient than first drawn (Steve, 2026-10-30).
+            Rectangle().fill(Color(RGB(hex: "#BDDB87")!))
+            Rectangle().fill(EllipticalGradient(colors: [Color(RGB(hex: "#F5FBE7")!).opacity(0.9), Color(RGB(hex: "#F5FBE7")!).opacity(0)],
+                                                center: .center, startRadiusFraction: 0, endRadiusFraction: 0.6))
+            Canvas { ctx, size in
+                let cx = size.width / 2
+                let reach = size.width * 0.42
+                var veins = Path()
+                veins.move(to: CGPoint(x: cx, y: 0))
+                veins.addLine(to: CGPoint(x: cx, y: size.height))
+                var y: CGFloat = reach * 0.6
+                while y < size.height + reach * 0.6 {
+                    veins.move(to: CGPoint(x: cx - reach, y: y - reach * 0.6))
+                    veins.addLine(to: CGPoint(x: cx, y: y))
+                    veins.addLine(to: CGPoint(x: cx + reach, y: y - reach * 0.6))
+                    y += 70
+                }
+                ctx.stroke(veins, with: .color(Bean.vein.opacity(0.22)), style: .init(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            }
+        }
     }
 }
 
@@ -742,5 +1129,25 @@ struct VineFruit: View {
         .accessibilityElement()
         .accessibilityLabel(label)
         .accessibilityAddTraits(.isImage)
+    }
+}
+
+/// Beanstalk's header: the cards' cream up behind the clock, edged along the foot by the vine's
+/// two strands twisting round each other, as round the frames.
+struct BeanHeader: View {
+    var body: some View {
+        SkinHeaderBand(edge: 14) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: .color(Bean.cream))
+            func strand(_ phase: Double, _ amp: Double) -> Path {
+                var p = Path()
+                p.move(to: CGPoint(x: 0, y: bottom + amp * sin(phase)))
+                for x in stride(from: 4.0, through: Double(size.width), by: 4) {
+                    p.addLine(to: CGPoint(x: x, y: bottom + amp * sin(x / 34 + phase)))
+                }
+                return p
+            }
+            VineStrandLook.main.stroke(strand(0, 3), width: 9.5, in: ctx)
+            VineStrandLook.second.stroke(strand(.pi, 4), width: 6.5, in: ctx)
+        }
     }
 }

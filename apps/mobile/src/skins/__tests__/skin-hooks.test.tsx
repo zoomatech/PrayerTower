@@ -7,7 +7,7 @@ import { Pressable, Text, View } from 'react-native';
 import { renderApp, sampleCard } from '@/__tests__/helpers';
 import { api } from '@/lib/api';
 import { useActionRow } from '@/skins/action-row';
-import { clusterSlice, useCommentCluster } from '@/skins/comments';
+import { clusterSlice, commentTree, repliesAt, useCommentCluster } from '@/skins/comments';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -75,5 +75,14 @@ describe('skin hooks', () => {
     const list = [1, 2, 3, 4, 5, 6, 7];
     expect(clusterSlice(list, false, 5, 4)).toEqual({ shown: [1], behind: 4, more: 0 });
     expect(clusterSlice(list, true, 5, 4)).toEqual({ shown: [1, 2, 3, 4, 5], behind: 0, more: 2 });
+  });
+});
+
+describe('repliesAt', () => {
+  const c = (id: string, parentId?: string) => ({ id, parentId, body: id, createdAt: '2026-10-31T00:00:00Z', author: { displayName: id } }) as never;
+  it('shows every reply however deep, side by side at the last level', () => {
+    const { kids } = commentTree([c('a'), c('b', 'a'), c('c', 'b'), c('d', 'c'), c('e', 'd')]);
+    expect(repliesAt(kids, 'a', 1, 2).map((r) => r.id)).toEqual(['b']);
+    expect(repliesAt(kids, 'b', 2, 2).map((r) => r.id)).toEqual(['c', 'd', 'e']);
   });
 });

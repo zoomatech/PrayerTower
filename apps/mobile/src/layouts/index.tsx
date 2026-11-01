@@ -8,6 +8,7 @@ import type { ReactElement } from 'react';
 import { CarouselLayout } from './carousel';
 import { CeramicLayout } from './ceramic';
 import { CircuitLayout } from './circuit';
+import { ClimbLayout } from './climb';
 import { ColumnLayout } from './column';
 import { FlipLayout } from './flip';
 import { TowerLayout } from './tower';
@@ -52,6 +53,7 @@ const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   wall: WallLayout,
   tower: TowerLayout,
   circuit: CircuitLayout,
+  climb: ClimbLayout,
   ceramic: CeramicLayout,
 };
 

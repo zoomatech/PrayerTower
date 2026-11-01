@@ -78,6 +78,73 @@ jobs:
       - uses: actions/checkout@v4
       - run: swift test
 
+  # The native iPhone app on a GitHub-hosted Mac (free for public repositories), headless:
+  # the app, widgets and Mac console build; the accessibility audit on every skin, snapshots of
+  # every main screen (light, dark, largest text) and the launch and 1,000-post scrolling
+  # measurements run in the iPhone simulator (scripts/mac-build-native.sh). Snapshot images and
+  # the logs are kept; a new snapshot is recorded on the first run and fails it once.
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    # contents: write lets the job commit newly recorded snapshot images back to the PR branch.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      # A snapshot that differs from its reference writes its new picture here (xcodebuild hands
+      # TEST_RUNNER_ variables to the tests); a matching one writes nothing.
+      - run: bash scripts/mac-build-native.sh
+        env:
+          TEST_RUNNER_SNAPSHOT_ARTIFACTS: ${{ runner.temp }}/snapshot-diffs
+      # A snapshot test with no reference image records one and fails once. On a PR from this repo,
+      # commit the new images to the branch so they show in the PR's diff for review (the job logs
+      # and artifacts can't be fetched everywhere). Only new files: a changed screen still fails.
+      - name: Commit newly recorded snapshots
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          dir=apps/ios-native/SnapshotTests/__Snapshots__
+          [ -d "$dir" ] || exit 0
+          git add "$dir"
+          git diff --cached --quiet --diff-filter=A && exit 0
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Native snapshots: record new reference images from CI"
+          git push origin HEAD:${{ github.head_ref }}
+      # The result table, first errors and performance numbers as annotations, so they can be
+      # read from the checks API without downloading the logs.
+      - name: Results as annotations
+        if: ${{ !cancelled() }}
+        run: |
+          d=$(ls -d build-logs/native-* 2>/dev/null | grep -v derived | tail -1)
+          [ -n "$d" ] || exit 0
+          [ -s "$d/errors.txt" ] && head -40 "$d/errors.txt" | while IFS= read -r l; do echo "::error title=ios::${l//%/%25}"; done
+          [ -s "$d/performance.txt" ] && head -20 "$d/performance.txt" | while IFS= read -r l; do echo "::notice title=performance::${l//%/%25}"; done
+          grep -hE "Test Case .* failed|recorded|error:" "$d"/ui-walks.txt 2>/dev/null | sort -u | head -40 | while IFS= read -r l; do echo "::warning title=tests::${l//%/%25}"; done
+          # The screen walk lists its audit issues on the lines after "Accessibility audit:".
+          grep -h -A20 "Accessibility audit:" "$d"/ui-walks.txt 2>/dev/null | grep -E "^(Feed|My Promises|Messages|Notices|Me|Request)" | sort -u | head -30 | while IFS= read -r l; do echo "::warning title=walk audit::${l//%/%25}"; done
+          exit 0
+      - name: Performance numbers
+        if: ${{ !cancelled() }}
+        run: |
+          f=$(ls -d build-logs/native-*/performance.txt 2>/dev/null | tail -1)
+          if [ -s "$f" ]; then { echo '### Native app performance'; echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      # Only the pictures that differ from their references, only when the job fails, kept a day.
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: ios-snapshot-diffs
+          path: ${{ runner.temp }}/snapshot-diffs
+          if-no-files-found: ignore
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: ios-logs
+          path: |
+            build-logs/native-*/*.txt
+          if-no-files-found: ignore
+
   # Known vulnerabilities in dependencies. The server, station and shared
   # packages run in production, so any high one fails the build; the app's
   # build tooling (Expo CLI) fails only on critical. The full report is kept.

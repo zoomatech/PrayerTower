@@ -7,6 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { ceramicTokens, Figurine } from '@/layouts/ceramic';
 import { circuitTokens } from '@/layouts/circuit';
+import { climbTokens, EDGE_X } from '@/layouts/climb';
 import { LeafFrame, VineRow } from '@/components/vine-flow';
 import { glow, LeafMark } from '@/layouts/motifs';
 import { towerTokens } from '@/layouts/tower';
@@ -45,6 +46,20 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
       <>
         <View style={[styles.wire, { backgroundColor: t.wire }, glow(t.wire, 6)]} />
         <View style={[styles.screen, { borderColor: t.screen }, glow(t.screen, 10), { transform: [{ perspective: 600 }, { rotateY: `${t.tilt}deg` }] }]}>{card}</View>
+      </>,
+    );
+  }
+  if (layout === 'climb') {
+    const t = climbTokens(theme);
+    // The rock face, the sky past its edge, and the rope down the edge.
+    return frame(
+      t.backdrop,
+      <>
+        <View style={[styles.sky, { width: EDGE_X / 2 }]} />
+        <View style={[styles.rope, { left: EDGE_X / 2 - 6 }]} />
+        <View style={[styles.cardBox, { alignSelf: 'center', width: '70%' }]}>
+          <View style={[styles.card, { backgroundColor: t.slab }]} />
+        </View>
       </>,
     );
   }
@@ -94,5 +109,7 @@ const styles = StyleSheet.create({
   pillar: { position: 'absolute', top: 0, bottom: 0, width: 16, borderWidth: 1 },
   climber: { position: 'absolute', right: 0, top: '40%', fontSize: 24 },
   wire: { position: 'absolute', left: 14, top: 0, bottom: 0, width: 2 },
+  sky: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#D9E3E8', borderRightWidth: 2, borderRightColor: '#4F4436' },
+  rope: { position: 'absolute', top: 0, bottom: 0, width: 3, backgroundColor: '#C4441F' },
   screen: { marginLeft: 40, width: '60%', borderWidth: 2, borderRadius: radius.md, padding: 4, backgroundColor: '#0E1220' },
 });

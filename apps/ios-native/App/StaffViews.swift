@@ -67,7 +67,7 @@ struct ModerationView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if !flags.isEmpty {
                 Section(w("moderation.flagsTitle")) {
                     ForEach(flags) { f in
@@ -99,7 +99,7 @@ struct ModerationView: View {
                 }
             }
             Section(w("moderation.queue")) {
-                if items?.isEmpty == true { Text(w("moderation.empty")).foregroundStyle(.secondary) }
+                if items?.isEmpty == true { Text(w("moderation.empty")).foregroundStyle(Color.subtle) }
                 ForEach(items ?? []) { item in row(item) }
             }
         }
@@ -120,7 +120,7 @@ struct ModerationView: View {
             Text("\(w("moderation.target.\(item.target_type)")) · \(w("moderation.source.\(item.source)")) · \(staffDate(item.created_at))")
                 .font(.footnote.bold())
             Text(item.content ?? w("moderation.gone"))
-            if let reason = item.reason { Text(w("moderation.why", ["reason": reason])).font(.footnote).foregroundStyle(.red) }
+            if let reason = item.reason { Text(w("moderation.why", ["reason": reason])).font(.footnote).foregroundStyle(Color.danger) }
             if let h = item.history { Text(Moderation.goldfish(h, words: w)).font(.footnote) }
             if item.source == "crisis" {
                 // Someone may be in danger: reach out and keep it up; remove only method details. Never suspend.
@@ -197,7 +197,7 @@ struct AnnouncementsAdminView: View {
     var body: some View {
         List {
             Section { Text(w("announcementsAdmin.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let notice { Section { Text(notice) } }
             Section(w("announcementsAdmin.new")) {
                 Picker(w("announcementsAdmin.new"), selection: $kind) {
@@ -217,7 +217,7 @@ struct AnnouncementsAdminView: View {
                 Button(w("announcementsAdmin.post")) { Task { await post() } }.disabled(ready == nil || busy)
             }
             Section(w("announcementsAdmin.posts")) {
-                if items?.isEmpty == true { Text(w("announcementsAdmin.empty")).foregroundStyle(.secondary) }
+                if items?.isEmpty == true { Text(w("announcementsAdmin.empty")).foregroundStyle(Color.subtle) }
                 ForEach(items ?? []) { a in
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(w("announcementsAdmin.kind.\(a.kind)")) · \(w(a.active == true ? "announcementsAdmin.live" : "announcementsAdmin.ended")) · \(w("announcementsAdmin.dismissals", count: a.dismissals ?? 0))")
@@ -225,7 +225,7 @@ struct AnnouncementsAdminView: View {
                         Text(a.title).bold()
                         if !a.body.isEmpty { Text(a.body) }
                         Text(staffDate(a.createdAt) + (a.endsAt.map { " · " + w(a.active == true ? "announcementsAdmin.endsAt" : "announcementsAdmin.endedAt", ["date": staffDate($0)]) } ?? ""))
-                            .font(.footnote).foregroundStyle(.secondary)
+                            .font(.footnote).foregroundStyle(Color.subtle)
                         if a.active == true {
                             Button(w("announcementsAdmin.end", ["title": a.title]), role: .destructive) { Task { await end(a) } }.font(.footnote)
                         }
@@ -285,7 +285,7 @@ struct InvitesView: View {
     var body: some View {
         List {
             Section { Text(w("invites.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let notice { Section { Text(notice) } }
             if let list {
                 Section {
@@ -312,13 +312,13 @@ struct InvitesView: View {
                 Button(w("invites.create")) { Task { await create() } }.disabled(ready == nil || busy)
             }
             Section(w("invites.codes")) {
-                if list?.invites.isEmpty == true { Text(w("invites.empty")).foregroundStyle(.secondary) }
+                if list?.invites.isEmpty == true { Text(w("invites.empty")).foregroundStyle(Color.subtle) }
                 ForEach(list?.invites ?? []) { i in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(i.code).font(.body.monospaced().bold()).textSelection(.enabled)
                         if !i.note.isEmpty { Text(i.note) }
                         if let c = i.community { Text(w("invites.joins", ["name": c.name])).font(.footnote) }
-                        Text(statusLine(i)).font(.footnote).foregroundStyle(.secondary)
+                        Text(statusLine(i)).font(.footnote).foregroundStyle(Color.subtle)
                         if i.status == "active" {
                             HStack {
                                 ShareLink(item: i.shareMessage(words: w)) { Text(w("invites.share")) }
@@ -402,7 +402,7 @@ struct EmailInviteSheet: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 TextField(w("invites.emailMessage"), text: $message, axis: .vertical).lineLimit(2...6)
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .navigationTitle(w("invites.emailCode", ["code": invite.code]))
             .navigationBarTitleDisplayMode(.inline)
@@ -444,8 +444,8 @@ struct WaitlistView: View {
         List {
             Section { Text(w("waitlist.intro")) }
             if list?.enabled == false { Section { Text(w("waitlist.off")) } }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
-            if list?.entries.isEmpty == true { Section { Text(w("waitlist.empty")).foregroundStyle(.secondary) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
+            if list?.entries.isEmpty == true { Section { Text(w("waitlist.empty")).foregroundStyle(Color.subtle) } }
             ForEach(list?.entries ?? []) { e in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(e.email).bold().textSelection(.enabled)
@@ -507,14 +507,14 @@ struct FeedbackTriageView: View {
                     ForEach(FeedbackTriage.tags, id: \.self) { Text(w("feedbackTriage.tag.\($0)")).tag($0) }
                 }
             }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let notice { Section { Text(notice) } }
-            if items?.isEmpty == true { Section { Text(w("feedbackTriage.empty")).foregroundStyle(.secondary) } }
+            if items?.isEmpty == true { Section { Text(w("feedbackTriage.empty")).foregroundStyle(Color.subtle) } }
             ForEach(items ?? []) { f in
                 Section {
                     Text(w("admin.feedbackFrom", ["kind": f.kind, "name": f.name])).font(.footnote.bold())
                     Text(f.body).textSelection(.enabled)
-                    Text([staffDate(f.createdAt), f.platform, f.appVersion].compactMap { $0 }.joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)
+                    Text([staffDate(f.createdAt), f.platform, f.appVersion].compactMap { $0 }.joined(separator: " · ")).font(.footnote).foregroundStyle(Color.subtle)
                     Menu {
                         ForEach(FeedbackTriage.tags, id: \.self) { g in
                             Button {
@@ -581,13 +581,13 @@ struct ErrorLogView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
-            if errors?.isEmpty == true { Section { Text(w("errorLog.none")).foregroundStyle(.secondary) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
+            if errors?.isEmpty == true { Section { Text(w("errorLog.none")).foregroundStyle(Color.subtle) } }
             ForEach(errors ?? []) { e in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(e.message).bold().textSelection(.enabled)
                     Text(w("errorLog.where", ["source": w("errorLog.source.\(e.source)"), "place": e.place, "count": "\(e.count)"])).font(.footnote)
-                    Text(w("errorLog.seen", ["first": staffDate(e.firstSeen), "last": staffDate(e.lastSeen)])).font(.footnote).foregroundStyle(.secondary)
+                    Text(w("errorLog.seen", ["first": staffDate(e.firstSeen), "last": staffDate(e.lastSeen)])).font(.footnote).foregroundStyle(Color.subtle)
                     if let u = e.lastUser { Text(w("errorLog.lastUser", ["name": u.name])).font(.footnote) }
                     if let detail = e.detail {
                         Button(w(open.contains(e.id) ? "errorLog.hideDetail" : "errorLog.showDetail")) {
@@ -643,13 +643,13 @@ struct AuditLogView: View {
                     Button(w("auditLog.filterApply")) { Task { await load() } }
                 }
             }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
-            if entries?.isEmpty == true { Section { Text(w("auditLog.empty")).foregroundStyle(.secondary) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
+            if entries?.isEmpty == true { Section { Text(w("auditLog.empty")).foregroundStyle(Color.subtle) } }
             ForEach(entries ?? []) { e in
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(staffDate(e.created_at)) · \(e.actor_name ?? w("auditLog.deleted"))").font(.footnote)
                     Text(AuditLog.describe(e.action, words: w)).bold()
-                    if let t = e.target_id { Text(w("auditLog.target", ["id": String(t.suffix(8))])).font(.footnote).foregroundStyle(.secondary) }
+                    if let t = e.target_id { Text(w("auditLog.target", ["id": String(t.suffix(8))])).font(.footnote).foregroundStyle(Color.subtle) }
                 }
             }
             if more { Button(w("auditLog.more")) { Task { await load(after: entries?.last) } } }
@@ -684,13 +684,13 @@ struct OpsView: View {
     var body: some View {
         List {
             Section { Text(w("ops.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let s {
                 Section {
                     if s.problems.isEmpty {
                         Label(w("ops.allGood"), systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                     } else {
-                        ForEach(s.problems, id: \.self) { Label(w("ops.problem.\($0)"), systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red) }
+                        ForEach(s.problems, id: \.self) { Label(w("ops.problem.\($0)"), systemImage: "exclamationmark.triangle.fill").foregroundStyle(Color.danger) }
                     }
                     Text(w("ops.checked", ["when": staffDate(s.checkedAt)])).font(.footnote)
                 }
@@ -703,8 +703,8 @@ struct OpsView: View {
                 Section(w("ops.queue")) {
                     Text(w("ops.waiting", count: s.queue.waiting))
                     Text(w("ops.running", count: s.queue.running))
-                    if s.queue.overdue > 0 { Text(w("ops.overdue", ["seconds": "\(s.queue.oldestOverdueSeconds)"], count: s.queue.overdue)).foregroundStyle(.red) }
-                    if s.queue.failed > 0 { Text(w("ops.failed", count: s.queue.failed)).foregroundStyle(.red) }
+                    if s.queue.overdue > 0 { Text(w("ops.overdue", ["seconds": "\(s.queue.oldestOverdueSeconds)"], count: s.queue.overdue)).foregroundStyle(Color.danger) }
+                    if s.queue.failed > 0 { Text(w("ops.failed", count: s.queue.failed)).foregroundStyle(Color.danger) }
                     if s.queue.retrying > 0 { Text(w("ops.retrying", count: s.queue.retrying)) }
                 }
                 Section(w("ops.errors")) {

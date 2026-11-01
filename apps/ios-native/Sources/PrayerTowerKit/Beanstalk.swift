@@ -5,6 +5,8 @@ import Foundation
 /// reply's replies one size smaller, three levels in all. Long words are cut with "..".
 public enum Beanstalk {
     public static let perPage = 3
+    /// How many comments a tapped cluster spreads out to, and how many more each tap after reveals.
+    public static let spreadCount = 5
     /// Comment, reply, reply to a reply: the third level is the last.
     public static let maxLevel = 2
 
@@ -41,6 +43,17 @@ public enum Beanstalk {
         var kids: [String: [Note]] = [:]
         for n in all { if let p = n.parentId { kids[p, default: []].append(n) } }
         return (top, kids)
+    }
+
+    /// The replies to show under `id` at `level` of a close-up: its own replies, or, at the last
+    /// level, every reply further down in order, side by side, so no reply is ever left out
+    /// however deep it was posted (Steve: deep chains end in parallel leaves).
+    public static func replies(to id: String, level: Int, in kids: [String: [Note]]) -> [Note] {
+        guard level >= maxLevel else { return kids[id] ?? [] }
+        var out: [Note] = []
+        func walk(_ p: String) { for r in kids[p] ?? [] { out.append(r); walk(r.id) } }
+        walk(id)
+        return out
     }
 
     /// The rows of one cluster, nearest the post first; each open leaf's first three replies follow it.

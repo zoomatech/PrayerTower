@@ -13,6 +13,8 @@ public struct LayoutWords: Sendable, Equatable {
     /// The wall, tower and circuit (en.ts `wall`, `tower`, `circuit`).
     public let wallSwipe = "Swipe up for the next post"
     public let towerTop = "You reached the top of the tower."
+    /// The climber drawn on the rope by the tower's wall.
+    public let towerClimber = "A climber on a rope, rising as you read"
     public let circuitEnd = "End of the line. Pull down to power up new posts."
     public func wallPosition(_ n: Int, of total: Int) -> String { "Post \(n) of \(total)" }
     public func towerFloor(_ n: Int, of total: Int) -> String { "Floor \(n) of \(total)" }

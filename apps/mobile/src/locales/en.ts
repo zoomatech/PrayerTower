@@ -2319,6 +2319,13 @@ const en = {
     pullDown: 'Swipe down to climb',
     pushUp: 'Swipe up to climb',
   },
+  climb: {
+    end: 'The rope keeps going. Pull down for new posts.',
+    openComment: 'Opens the whole comment and its replies',
+    more: '%{n} more',
+    replies: { one: '1 reply', other: '%{count} replies' },
+    fold: 'Folds it closed again',
+  },
   ceramic: {
     end: 'Every prayer is on its way up. Pull down for new posts.',
     showComments: { one: 'Shows the comment', other: 'Shows all %{count} comments' },

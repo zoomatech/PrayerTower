@@ -35,16 +35,16 @@ struct MeView: View {
                 }
                 if menuHoldsInbox {
                     Section {
-                        NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")) } icon: { Text("💬").accessibilityHidden(true) } }
-                        NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")) } icon: { Text("🔔").accessibilityHidden(true) } }
+                        NavigationLink { MessagesView(standalone: false) } label: { MenuRow(title: w("tabs.messages"), symbol: "bubble.left.and.bubble.right") }
+                        NavigationLink { NotificationsView(standalone: false) } label: { MenuRow(title: w("tabs.notices"), symbol: "bell") }
                         // Groups in the main menu (Steve, 2026-10-31), starting with Cancer survivors.
                         if model.features["topicGroups"], model.me?.community?.shows("groups") ?? true {
-                            NavigationLink { TopicGroupsView() } label: { Label { Text(w("topicGroups.title")) } icon: { Text("👥").accessibilityHidden(true) } }
+                            NavigationLink { TopicGroupsView() } label: { MenuRow(title: w("topicGroups.title"), symbol: "person.3") }
                         }
                     }
                 }
                 if let profile = model.me?.profile {
-                    Section { counts(profile) } footer: { Text(w("profile.tokensNote")) }
+                    Section { counts(profile) } footer: { Text(w("profile.tokensNote")).foregroundStyle(Color.subtle) }
                 }
                 PrayerLifeSection()
                 GratitudeSection()
@@ -62,13 +62,16 @@ struct MeView: View {
                     Section { FreshDaysSection() } header: { Text("Days that matter") }
                 }
                 if let profile = model.me?.profile {
-                    Section(w("profile.settings")) {
+                    // The system's gray section header is under 3:1; this one keeps the full text color.
+                    Section {
                         ForEach(ProfileSettings.switches(for: profile)) { s in
                             Toggle(isOn: Binding(get: { ProfileSettings.value(s.field, in: profile) }, set: { on in Task { await update(s.field, on) } })) {
                                 Text(w(s.label))
                                 if let hint = s.hint { Text(w(hint)) }
                             }
                         }
+                    } header: {
+                        Text(w("profile.settings")).foregroundStyle(Color.primary)
                     }
                 }
                 ConversationPrefsSection()
@@ -76,7 +79,7 @@ struct MeView: View {
                 ExtrasSection()
                 MoreToolsSection()
                 StaffSection()
-                if let error { Section { Text(error).foregroundStyle(.red) } }
+                if let error { Section { Text(error).foregroundStyle(Color.danger) } }
                 Section {
                     NavigationLink(w("notifySettings.title")) { NotificationSettingsView() }
                     NavigationLink(w("profile.scheduled")) { ScheduledGiftsView() }
@@ -120,6 +123,7 @@ struct MeView: View {
                             model.state = .signedOut
                         }
                     }
+                    .foregroundStyle(Color.danger)
                     NavigationLink(w("profile.deleteAccount")) { DeleteAccountView() }
                 }
             }
@@ -142,7 +146,7 @@ struct MeView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(p.displayName.isEmpty ? w("profile.me") : p.displayName).font(.title2.bold())
             if let why = p.whyHere, !why.isEmpty {
-                Text(why.map { w("enums.whyHere.\($0)") }.joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)
+                Text(why.map { w("enums.whyHere.\($0)") }.joined(separator: " · ")).font(.footnote).foregroundStyle(Color.subtle)
             }
             photo(p)
         }
@@ -150,25 +154,26 @@ struct MeView: View {
 
     /// The member's own profile photo (Steve, 2026-10-30): it fills the oval on their posts; initials until they add one.
     @ViewBuilder private func photo(_ p: Profile) -> some View {
-        HStack(spacing: 12) {
+        AdaptiveStack(spacing: 12) {
             ZStack {
                 Ellipse().fill(Color.answeredGold.opacity(0.2))
                 if let s = p.photoUrl, let url = URL(string: s) {
                     AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { ProgressView() }
                         .accessibilityLabel(w("profile.photoAlt"))
                 } else {
-                    Text(String(p.displayName.prefix(1)).uppercased()).font(.title.bold()).accessibilityHidden(true)
+                    DecorativeGlyph(glyph: String(p.displayName.prefix(1)).uppercased(), size: 28, maxScale: 1)
                 }
             }
             .frame(width: 72, height: 90)
             .clipShape(Ellipse())
             .overlay(Ellipse().stroke(Color.answeredGold, lineWidth: 3))
             VStack(alignment: .leading, spacing: 6) {
-                PhotosPicker(w(p.photoUrl == nil ? "profile.photoAdd" : "profile.photoChange"), selection: $photoItem, matching: .images)
+                let pick = w(p.photoUrl == nil ? "profile.photoAdd" : "profile.photoChange")
+                PhotosPicker(selection: $photoItem, matching: .images) { Text(pick).fixedSize(horizontal: false, vertical: true) }
                 if p.photoUrl != nil {
-                    Button(w("profile.photoRemove"), role: .destructive) { Task { await setPhoto(nil) } }
+                    Button(w("profile.photoRemove"), role: .destructive) { Task { await setPhoto(nil) } }.foregroundStyle(Color.danger)
                 }
-                Text(w("profile.photoHint")).font(.footnote).foregroundStyle(.secondary)
+                Text(w("profile.photoHint")).font(.footnote).foregroundStyle(Color.subtle).fixedSize(horizontal: false, vertical: true)
             }
             .buttonStyle(.borderless)
         }
@@ -195,7 +200,7 @@ struct MeView: View {
 
     @ViewBuilder private func counts(_ p: Profile) -> some View {
         if let countsError {
-            Text(countsError).foregroundStyle(.red)
+            Text(countsError).foregroundStyle(Color.danger)
             Button(w("common.tryAgain")) { Task { await loadCounts() } }
         }
         // Four across, or one under another at the accessibility text sizes so nothing shrinks.
@@ -235,7 +240,7 @@ struct MeView: View {
         return VStack(alignment: big ? .leading : .center, spacing: 2) {
             // Never shrunk below the member's text size (the accessibility audit counts that as clipped).
             Text(value).font(.title3.bold()).lineLimit(nil).fixedSize(horizontal: false, vertical: true)
-            Text(label).font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(big ? .leading : .center)
+            Text(label).font(.caption2).foregroundStyle(Color.subtle).multilineTextAlignment(big ? .leading : .center)
         }
         .frame(maxWidth: .infinity, alignment: big ? .leading : .center)
         .accessibilityElement(children: .combine)
@@ -294,16 +299,17 @@ struct DeleteAccountView: View {
             Section {
                 Text(w("deleteAccount.intro"))
                 Text(w("deleteAccount.list"))
-                Text(w("deleteAccount.keep")).font(.footnote).foregroundStyle(.secondary)
+                Text(w("deleteAccount.keep")).font(.footnote).foregroundStyle(Color.subtle)
             }
             Section(w("deleteAccount.confirm")) {
                 TextField("DELETE", text: $confirm)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
             }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section {
                 Button(w("profile.deleteAccount"), role: .destructive) { Task { await remove() } }
+                    .foregroundStyle(Color.danger)
                     .disabled(busy || confirm.trimmingCharacters(in: .whitespaces) != "DELETE")
             }
         }
@@ -322,6 +328,18 @@ struct DeleteAccountView: View {
         } catch {
             self.error = error.localizedDescription
             busy = false
+        }
+    }
+}
+
+/// A menu row: the icon is only a picture, the words are the row's whole text, and they wrap.
+private struct MenuRow: View {
+    let title: String
+    let symbol: String
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol).foregroundStyle(Color.accessibleAccent).accessibilityHidden(true)
+            Text(title).fixedSize(horizontal: false, vertical: true)
         }
     }
 }

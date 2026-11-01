@@ -38,6 +38,7 @@ import { useT } from "@/lib/i18n";
 import { useOffline } from "@/lib/offline";
 import { updatePrayWidget } from "@/lib/pray-widget";
 import { breakpoints, colors, maxContentWidth, radius, space, type } from "@/lib/theme";
+import { setSkinHeader, skinHeaderLook } from "@/skins/skin-header";
 import { tourSeen } from "@/lib/tour";
 
 /** Wide screens show the highlights in a right column; phones link to them. */
@@ -64,6 +65,14 @@ export default function Feed() {
   const wide = width >= breakpoints.split;
   const veryWide = width >= breakpoints.twoColumnFeed;
   const loadingMore = useRef(false);
+
+  // The header takes the skin's style while the feed is in view.
+  useFocusEffect(
+    useCallback(() => {
+      setSkinHeader(skinHeaderLook(theme));
+      return () => setSkinHeader(null);
+    }, [theme]),
+  );
 
   // First time on this device: show the short tour once.
   useEffect(() => {

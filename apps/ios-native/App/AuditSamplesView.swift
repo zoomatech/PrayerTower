@@ -21,6 +21,12 @@ struct AuditSamplesView: View {
             "branch": .string("#FFD36E"), "leaf": .string("#8FB3FF"), "leafSoft": .string("#F3EDFF"), "tendril": .string("#FFD36E"),
             "leafShape": .string("star"), "scenery": .string("fairytale"), "leafEvery": .number(4),
         ]),
+        // Tron-style neon (Steve, 2026-10-30): glass tubes only, straight runs with small curved
+        // corners, growing downward. No scenery: Cinderella is its own style.
+        FeedTheme(slug: "neon", name: "Neon", layout: "vine", tokens: [
+            "vineStyle": .string("neon"), "backdrop": .string("#02040A"), "stem": .string("#00C8FF"), "stemWidth": .number(3),
+            "branch": .string("#FF2B1C"), "leaf": .string("#00C8FF"), "leafSoft": .string("#EAFBFF"), "tendril": .string("#FF2B1C"),
+        ]),
         FeedTheme(slug: "blossom-garden", name: "Blossom Garden", layout: "vine", tokens: ["vineStyle": .string("floral"), "stemWidth": .number(3)]),
         FeedTheme(slug: "christmas-star", name: "Christmas Star", layout: "vine", tokens: [
             "backdrop": .string("#0D1B36"), "stem": .string("#E8C15A"), "leaf": .string("#FFF4C2"), "leafSoft": .string("#FFF8E1"),
@@ -31,6 +37,8 @@ struct AuditSamplesView: View {
         FeedTheme(slug: "neon-circuit", name: "Neon Circuit", layout: "circuit", tokens: [
             "backdrop": .string("#05070D"), "wire": .string("#00E5FF"), "burst": .string("#FFFFFF"), "screen": .string("#FF2BD6"), "tilt": .number(10),
         ]),
+        FeedTheme(slug: "mountain-climber", name: "Mountain Climber", layout: "climb", tokens: ["backdrop": .string("#B8AB96")]),
+        FeedTheme(slug: "ceramic-figurines", name: "Ceramic Figurines", layout: "ceramic", tokens: ["backdrop": .string("#EAE6F1")]),
         FeedTheme(slug: "swipe", name: "Swipe to pray", layout: "carousel", tokens: [:]),
         FeedTheme(slug: "flip", name: "Flip", layout: "flip", tokens: [:]),
     ]
@@ -40,15 +48,11 @@ struct AuditSamplesView: View {
             List(Self.skins, id: \.slug) { skin in
                 NavigationLink(skin.name) {
                     SkinnedFeed(theme: skin, cards: SkinMaker.sampleCards(.faith), wording: .faith, row: { card in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(card.author.displayName).font(.subheadline.bold())
-                            Text(card.body)
-                        }
-                        .accessibilityElement(children: .combine)
+                        SampleCardRow(card: card)
                     })
                     .navigationTitle(skin.name)
                     .navigationBarTitleDisplayMode(.inline)
-                    // The same bars as the feed, so the title stays readable on a dark skin.
+                    // As FeedView does: the bar takes the skin's backdrop, light text on a dark one.
                     .skinBars(Skin.backdrop(skin))
                 }
             }
@@ -57,3 +61,23 @@ struct AuditSamplesView: View {
     }
 }
 #endif
+
+/// A sample post's name and words, standing in for CardRow. Like CardRow it draws only the part a
+/// skin asks for: neon draws the post in its box and the icons under it, so the icons part is empty
+/// here rather than the words a second time on the dark backdrop.
+struct SampleCardRow: View {
+    let card: Card
+    @Environment(\.cardPart) private var part
+
+    var body: some View {
+        if case .icons = part {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.author.displayName).font(.subheadline.bold())
+                Text(card.body)
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
