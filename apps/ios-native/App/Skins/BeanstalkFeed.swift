@@ -643,6 +643,14 @@ private struct BeanLeafView: View {
     let words: Words
     let onTap: (Bool) -> Void
 
+    private func leafWords(_ text: String, _ fs: Double, _ nameFs: Double, _ hint: String, lines: Int, show: Bool) -> some View {
+        VStack(spacing: 0) {
+            Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1).minimumScaleFactor(0.6)
+            Text(text).font(BeanFont.body(fs)).lineLimit(lines).minimumScaleFactor(0.6)
+            if show { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).lineLimit(1).minimumScaleFactor(0.6).padding(.top, 2) }
+        }
+    }
+
     var body: some View {
         let left: Bool = leaf.side < 0
         let fs: Double = leaf.level == 1 ? 14 : (leaf.level == 2 ? 12.5 : 12)
@@ -659,11 +667,14 @@ private struct BeanLeafView: View {
         let padL: Double = leaf.lw * (left ? far : near)
         let padR: Double = leaf.lw * (left ? near : far)
         Button { onTap(fit.cut) } label: {
-            VStack(spacing: 0) {
-                // The words are shortened to fit; larger text shrinks to fit the leaf, never stretching it.
-                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1).minimumScaleFactor(0.6)
-                Text(fit.text).font(BeanFont.body(fs)).lineLimit(small ? 1 : 2).minimumScaleFactor(0.6)
-                if !hint.isEmpty, !small { Text(hint).font(BeanFont.boldItalic(12)).foregroundStyle(Bean.link).padding(.top, 2) }
+            // The words are shortened to fit; at a larger text size the leaf keeps its size and its
+            // words step down to whatever fits inside it (the whole comment opens on a tap and is
+            // read in full by VoiceOver), so nothing ever spills out of a leaf.
+            ViewThatFits(in: .vertical) {
+                leafWords(fit.text, fs, nameFs, hint, lines: small ? 1 : 2, show: !hint.isEmpty && !small)
+                leafWords(fit.text, fs, nameFs, hint, lines: small ? 1 : 2, show: false)
+                leafWords(fit.text, fs, nameFs, hint, lines: 1, show: false)
+                Text(leaf.note.author).font(BeanFont.bold(nameFs)).lineLimit(1).minimumScaleFactor(0.3)
             }
             .foregroundStyle(Bean.text)
             .multilineTextAlignment(.center)

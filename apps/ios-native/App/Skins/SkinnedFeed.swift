@@ -1015,7 +1015,8 @@ struct NeonHeader: View {
     let look: VineLook
 
     var body: some View {
-        SkinHeaderBand { ctx, size, bottom in
+        // Room below the tube for its glow to fade out, rather than stop in a straight line.
+        SkinHeaderBand(edge: 28) { ctx, size, bottom in
             ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 2)), with: .color(look.backdrop.map { Color($0) } ?? .black))
             var tube = Path()
             tube.move(to: CGPoint(x: 6, y: bottom))
