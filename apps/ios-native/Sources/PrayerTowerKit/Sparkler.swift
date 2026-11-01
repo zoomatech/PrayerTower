@@ -119,9 +119,61 @@ public enum Sparkler {
             let twinkle = 0.45 + 0.55 * (0.5 + 0.5 * sin(time * (4 + rnd.next() * 5) + rnd.next() * 6.28))
             let o = fade * twinkle
             guard o > 0.04 else { continue }
-            out.append(Glint(y: y, dx: (rnd.next() - 0.5) * 14, r: 1.5 + rnd.next() * 2.5 * (0.4 + along), opacity: o, color: Int(rnd.next() * Double(sparkColors.count)) % sparkColors.count))
+            out.append(Glint(y: y, dx: (rnd.next() - 0.5) * 14, r: 1.5 + rnd.next() * 2.5 * (0.4 + along), opacity: o, color: Int(rnd.next() * Double(trailColors.count)) % trailColors.count))
         }
         return out
+    }
+
+    /// The trail's yellows (Steve, 2026-11-01): bright on the dark, deeper gold on light posts so it shows.
+    public static let trailColors = ["#FFE14D", "#FFD21F", "#FFC400", "#FFF08A"].map { RGB(hex: $0)! }
+    public static let trailColorsLight = ["#F2B800", "#E6A700", "#D99A00", "#F5C518"].map { RGB(hex: $0)! }
+
+    /// One mote of the stardust the sparkler leaves behind it in dark mode.
+    public struct Mote: Sendable, Equatable { public let y, dx, r, opacity: Double; public let warm: Bool }
+
+    /// Stardust (dark mode, Steve 2026-11-01): fine motes shed along the line behind the sparkler,
+    /// set along the feed so they ride up with the posts, drifting slowly out from the line the
+    /// older they are (the higher on screen), and fading away near the top.
+    public static func stardust(scrolled: Double, top: Double, tip: Double, time: Double) -> [Mote] {
+        guard tip > top + 4 else { return [] }
+        let step = 5.0
+        var out: [Mote] = []
+        var k = Int(((scrolled + top) / step).rounded(.down))
+        while true {
+            var rnd = Seeded(k &* 104_729 &+ 3)
+            let y0 = Double(k) * step + rnd.next() * step - scrolled
+            k += 1
+            if y0 > tip - 4 { break }
+            if y0 < top { continue }
+            let along = (y0 - top) / max(1, tip - top)
+            let age = 1 - along
+            let side = rnd.next() < 0.5 ? -1.0 : 1.0
+            let phase = rnd.next() * 6.28
+            let dx = side * (3 + age * 26 * rnd.next()) + sin(time * 0.8 + phase) * 2.5
+            let y = y0 - age * 10 * rnd.next() + cos(time * 0.6 + phase) * 1.5
+            let fade = pow(max(0, min(1, (along - 0.05) / 0.95)), 1.3)
+            let o = fade * (0.35 + 0.45 * (0.5 + 0.5 * sin(time * (2 + rnd.next() * 3) + phase)))
+            guard o > 0.05 else { continue }
+            out.append(Mote(y: y, dx: dx, r: 0.5 + rnd.next() * 0.9, opacity: o, warm: rnd.next() < 0.6))
+        }
+        return out
+    }
+
+    /// Stardust left below the sparkler as a scroll up throws it upward (Steve, 2026-11-01): motes
+    /// in the `length` points under the tip, brightest just under it, sifting slowly down.
+    public static func dustBelow(tip: Double, length: Double, scrolled: Double, time: Double) -> [Mote] {
+        guard length > 2 else { return [] }
+        let n = Int(min(40, length / 2.5))
+        return (0..<n).compactMap { i in
+            var rnd = Seeded(i &* 7_727 &+ Int(scrolled / 9) &* 31 &+ 11)
+            let along = rnd.next()
+            let phase = rnd.next() * 6.28
+            let y = tip + 8 + along * length + (time * 6).truncatingRemainder(dividingBy: 8)
+            let dx = (rnd.next() - 0.5) * 22 + sin(time * 1.1 + phase) * 2
+            let o = (1 - along) * (0.4 + 0.5 * (0.5 + 0.5 * sin(time * 3 + phase)))
+            guard o > 0.05 else { return nil }
+            return Mote(y: y, dx: dx, r: 0.6 + rnd.next() * 1.0, opacity: o, warm: rnd.next() < 0.7)
+        }
     }
 
     /// The same numbers every time for the same seed (the Expo app's generator).

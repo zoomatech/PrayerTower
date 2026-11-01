@@ -16,7 +16,7 @@
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
 import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, FlatList, Image, Pressable, StyleSheet, Text, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Svg, { Circle, G, Line, Path } from 'react-native-svg';
 
 import { CardInk } from '@/components/post-card';
@@ -396,13 +396,65 @@ export function swipeLead(lead: number, delta: number, screen: number) {
   return lead + (goal - lead) * 0.35;
 }
 
+/** The trail's yellows (Steve, 2026-11-01): bright on the dark, deeper gold on light posts so it shows. */
+export const TRAIL_YELLOWS = ['#FFE14D', '#FFD21F', '#FFC400', '#FFF08A'];
+export const TRAIL_YELLOWS_LIGHT = ['#F2B800', '#E6A700', '#D99A00', '#F5C518'];
+
+/** Stardust left below the sparkler as a scroll up throws it upward (Steve, 2026-11-01): motes in the `length` points under the tip, brightest just under it, sifting slowly down (Kit Sparkler.dustBelow). */
+export function dustBelow(tip: number, length: number, scrolled: number, time: number) {
+  const out: { y: number; dx: number; r: number; opacity: number; warm: boolean }[] = [];
+  if (length <= 2) return out;
+  const n = Math.floor(Math.min(40, length / 2.5));
+  for (let i = 0; i < n; i++) {
+    const rnd = seeded(i * 7727 + Math.trunc(scrolled / 9) * 31 + 11);
+    const along = rnd();
+    const phase = rnd() * 6.28;
+    const y = tip + 8 + along * length + ((time * 6) % 8);
+    const dx = (rnd() - 0.5) * 22 + Math.sin(time * 1.1 + phase) * 2;
+    const opacity = (1 - along) * (0.4 + 0.5 * (0.5 + 0.5 * Math.sin(time * 3 + phase)));
+    const r = 0.6 + rnd() * 1.0;
+    const warm = rnd() < 0.7;
+    if (opacity > 0.05) out.push({ y, dx, r, opacity, warm });
+  }
+  return out;
+}
+
+/**
+ * Stardust (dark mode, Steve 2026-11-01): fine motes shed along the line behind the sparkler, set
+ * along the feed so they ride up with the posts, drifting slowly out from the line the older (higher)
+ * they are, fading away near the top (Kit Sparkler.stardust).
+ */
+export function stardust(scrolled: number, top: number, tip: number, time: number) {
+  const out: { y: number; dx: number; r: number; opacity: number; warm: boolean }[] = [];
+  if (tip <= top + 4) return out;
+  const step = 5;
+  for (let k = Math.floor((scrolled + top) / step); ; k++) {
+    const rnd = seeded(k * 104729 + 3);
+    const y0 = k * step + rnd() * step - scrolled;
+    if (y0 > tip - 4) break;
+    if (y0 < top) continue;
+    const along = (y0 - top) / Math.max(1, tip - top);
+    const age = 1 - along;
+    const side = rnd() < 0.5 ? -1 : 1;
+    const phase = rnd() * 6.28;
+    const dx = side * (3 + age * 26 * rnd()) + Math.sin(time * 0.8 + phase) * 2.5;
+    const y = y0 - age * 10 * rnd() + Math.cos(time * 0.6 + phase) * 1.5;
+    const fade = Math.pow(Math.max(0, Math.min(1, (along - 0.05) / 0.95)), 1.3);
+    const opacity = fade * (0.35 + 0.45 * (0.5 + 0.5 * Math.sin(time * (2 + rnd() * 3) + phase)));
+    const r = 0.5 + rnd() * 0.9;
+    const warm = rnd() < 0.6;
+    if (opacity > 0.05) out.push({ y, dx, r, opacity, warm });
+  }
+  return out;
+}
+
 /**
  * The trail of sparkle the sparkler leaves on the line behind it (Kit Sparkler.glitter): set every
  * 13 points along the feed itself so it rides up with the posts, brightest just behind the tip and
  * gone near the top of the screen, each glint twinkling in its own time.
  */
 export function glitter(scrolled: number, top: number, tip: number, time: number) {
-  const out: { y: number; dx: number; r: number; opacity: number; color: string }[] = [];
+  const out: { y: number; dx: number; r: number; opacity: number; color: number }[] = [];
   if (tip <= top + 4) return out;
   const step = 13;
   for (let k = Math.floor((scrolled + top) / step); ; k++) {
@@ -417,28 +469,40 @@ export function glitter(scrolled: number, top: number, tip: number, time: number
     const opacity = fade * twinkle;
     const dx = (rnd() - 0.5) * 14;
     const r = 1.5 + rnd() * 2.5 * (0.4 + along);
-    const color = SPARK_COLORS[Math.floor(rnd() * SPARK_COLORS.length) % SPARK_COLORS.length]!;
+    const color = Math.floor(rnd() * TRAIL_YELLOWS.length) % TRAIL_YELLOWS.length;
     if (opacity > 0.04) out.push({ y, dx, r, opacity, color });
   }
   return out;
 }
 
 /** The glitter along the line, twinkling (still under Reduce Motion). */
-function SparkleTrail({ top, tip, scrolled, still }: { top: number; tip: number; scrolled: number; still: boolean }) {
+function SparkleTrail({ top, tip, below, scrolled, still }: { top: number; tip: number; below: number; scrolled: number; still: boolean }) {
   const [time, setTime] = useState(0);
   useEffect(() => {
     if (still) return;
     const id = setInterval(() => setTime(Date.now() / 1000), 50);
     return () => clearInterval(id);
   }, [still]);
+  const dark = useColorScheme() === 'dark';
   const glints = glitter(scrolled, top, tip, time);
-  if (!glints.length) return null;
+  // In dark mode the sparkler leaves stardust behind it too (Steve).
+  const dust = dark ? stardust(scrolled, top, tip, time) : [];
+  const yellows = dark ? TRAIL_YELLOWS : TRAIL_YELLOWS_LIGHT;
+  // Scrolling up, it leaves a little stardust below it as it bounces upward (Steve).
+  const under = dustBelow(tip, below, scrolled, time);
+  if (!glints.length && !under.length) return null;
   return (
-    <Svg aria-hidden width={LINE_X + 20} height={Math.max(1, tip)} style={{ position: 'absolute', left: 0, top: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="sparkler-trail">
+    <Svg aria-hidden width={LINE_X + 44} height={Math.max(1, tip + below + 30)} style={{ position: 'absolute', left: 0, top: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="sparkler-trail">
+      {dust.map((m, i) => (
+        <Circle key={`d${i}`} cx={LINE_X + m.dx} cy={m.y} r={m.r} fill={m.warm ? '#FFF3B0' : '#FFFFFF'} opacity={m.opacity} />
+      ))}
+      {under.map((m, i) => (
+        <Circle key={`u${i}`} cx={LINE_X + m.dx} cy={m.y} r={m.r} fill={dark ? (m.warm ? '#FFF3B0' : '#FFFFFF') : m.warm ? '#E6A700' : '#F5C518'} opacity={m.opacity} />
+      ))}
       {glints.map((g, i) => (
         <G key={i} opacity={g.opacity}>
-          <Line x1={LINE_X + g.dx - g.r} y1={g.y} x2={LINE_X + g.dx + g.r} y2={g.y} stroke={g.color} strokeWidth={1.2} strokeLinecap="round" />
-          <Line x1={LINE_X + g.dx} y1={g.y - g.r} x2={LINE_X + g.dx} y2={g.y + g.r} stroke={g.color} strokeWidth={1.2} strokeLinecap="round" />
+          <Line x1={LINE_X + g.dx - g.r} y1={g.y} x2={LINE_X + g.dx + g.r} y2={g.y} stroke={yellows[g.color]} strokeWidth={1.4} strokeLinecap="round" />
+          <Line x1={LINE_X + g.dx} y1={g.y - g.r} x2={LINE_X + g.dx} y2={g.y + g.r} stroke={yellows[g.color]} strokeWidth={1.4} strokeLinecap="round" />
         </G>
       ))}
     </Svg>
@@ -446,7 +510,7 @@ function SparkleTrail({ top, tip, scrolled, still }: { top: number; tip: number;
 }
 
 /** The one line down the feed, over the posts, as far as it has grown on screen, and the sparkler at its tip. */
-function TheLine({ top, rest, end, lead, scrolled, stripe, still }: { top: number; rest: number; end: number; lead: Animated.Value; scrolled: number; stripe: string; still: boolean }) {
+function TheLine({ top, rest, end, lead, upward, scrolled, stripe, still }: { top: number; rest: number; end: number; lead: Animated.Value; upward: number; scrolled: number; stripe: string; still: boolean }) {
   const room = GLOW_REACH + 4;
   const tip = Math.min(rest, end);
   const atEnd = rest >= end - 1;
@@ -460,7 +524,7 @@ function TheLine({ top, rest, end, lead, scrolled, stripe, still }: { top: numbe
           <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${tall}`} color={stripe} width={5} />
         </Svg>
       </Animated.View>
-      <SparkleTrail top={top} tip={tip} scrolled={scrolled} still={still} />
+      <SparkleTrail top={top} tip={tip} below={atEnd ? 0 : upward * 1.6} scrolled={scrolled} still={still} />
       {!atEnd ? (
         <Animated.View style={[styles.tip, { top: tip - SPARK_BOX / 2, transform: [{ translateY: ahead }] }]} testID="sparkler-tip">
           <Sparkler still={still} />
@@ -487,6 +551,8 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   // How far a swipe has thrown the sparkler ahead (Steve: the swipe moves the sparkler down, then
   // the screen catches up to where it went, with a bounce).
   const [lead] = useState(() => new Animated.Value(0));
+  // How far a scroll up has thrown it upward, for the stardust it leaves below it.
+  const [upward, setUpward] = useState(0);
   const ahead = useRef(0);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -497,9 +563,11 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
     ahead.current = swipeLead(ahead.current, delta, layoutMeasurement.height);
     lead.stopAnimation();
     lead.setValue(ahead.current);
+    setUpward(Math.max(0, -ahead.current));
     if (settle.current) clearTimeout(settle.current);
     settle.current = setTimeout(() => {
       ahead.current = 0;
+      setUpward(0);
       Animated.spring(lead, { toValue: 0, bounciness: 12, speed: 10, useNativeDriver: false }).start();
     }, 90);
   };
@@ -534,7 +602,7 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
         onContentSizeChange={(_w, h) => move({ feed: h })}
       />
       {/* The line starts at the first post and is drawn on screen from there to the tip. */}
-      {view.screen ? <TheLine top={Math.max(0, -view.scrolled)} rest={view.reached - view.scrolled} end={view.feed > 0 ? view.feed - view.scrolled : Infinity} lead={lead} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
+      {view.screen ? <TheLine top={Math.max(0, -view.scrolled)} rest={view.reached - view.scrolled} end={view.feed > 0 ? view.feed - view.scrolled : Infinity} lead={lead} upward={upward} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
       </View>
     </View>
   );

@@ -8,7 +8,7 @@ import SparklerBackgrounds from '@/app/sparkler-backgrounds';
 import { api } from '@/lib/api';
 import { flowerPoints, petalPath, SPARKLER_BACKGROUNDS, SPARKLER_GROUPS, sparklerBackground, starPoints } from '@/lib/sparkler-backgrounds';
 import { lineTip } from '@/lib/draw-in';
-import { glitter, inkFor, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
+import { dustBelow, glitter, inkFor, stardust, TRAIL_YELLOWS, TRAIL_YELLOWS_LIGHT, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -89,6 +89,23 @@ describe('Full Screen Sparkler motion', () => {
     const near = Math.max(...all.filter((g) => g.y > 560).map((g) => g.opacity));
     const mid = Math.max(...all.filter((g) => g.y > 250 && g.y < 350).map((g) => g.opacity));
     expect(near).toBeGreaterThan(mid);
+  });
+
+  it('leaves a yellow trail, and stardust behind it in dark mode, fading toward the top', () => {
+    for (const c of [...TRAIL_YELLOWS, ...TRAIL_YELLOWS_LIGHT]) {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+      expect(r! > 200 && g! > 150 && b! < 150).toBe(true);
+    }
+    const dust = stardust(300, 0, 700, 2);
+    expect(dust.length).toBeGreaterThan(40);
+    expect(dust.filter((m) => m.y < 30)).toHaveLength(0);
+  });
+
+  it('leaves a little stardust below the sparkler as a scroll up throws it upward', () => {
+    expect(dustBelow(600, 0, 0, 1)).toHaveLength(0);
+    const dust = dustBelow(600, 60, 0, 1);
+    expect(dust.length).toBeGreaterThan(0);
+    expect(dust.every((m) => m.y > 600 && m.y < 680)).toBe(true);
   });
 
   it('makes the divider between prayer requests bold', () => {

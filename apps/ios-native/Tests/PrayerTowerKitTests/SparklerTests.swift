@@ -66,4 +66,22 @@ final class SparklerTests: XCTestCase {
         // It rides with the feed: the same glint 13 points further down the feed sits 13 points higher on screen.
         XCTAssertEqual(Sparkler.glitter(scrolled: 0, top: 0, tip: 700, time: 1).count > 0, true)
     }
+
+    func testTheTrailIsYellowAndDarkModeShedsStardustThatFadesTowardTheTop() {
+        for c in Sparkler.trailColors + Sparkler.trailColorsLight {
+            // Yellow: strong red and green, little blue.
+            XCTAssertGreaterThan(c.r, 0.8); XCTAssertGreaterThan(c.g, 0.6); XCTAssertLessThan(c.b, 0.6)
+        }
+        let dust = Sparkler.stardust(scrolled: 300, top: 0, tip: 700, time: 2)
+        XCTAssertGreaterThan(dust.count, 40)
+        XCTAssertTrue(dust.filter { $0.y < 30 }.isEmpty)
+        XCTAssertEqual(dust, Sparkler.stardust(scrolled: 300, top: 0, tip: 700, time: 2))
+    }
+
+    func testScrollingUpLeavesStardustBelowTheSparkler() {
+        XCTAssertTrue(Sparkler.dustBelow(tip: 600, length: 0, scrolled: 0, time: 1).isEmpty)
+        let dust = Sparkler.dustBelow(tip: 600, length: 60, scrolled: 0, time: 1)
+        XCTAssertFalse(dust.isEmpty)
+        XCTAssertTrue(dust.allSatisfy { $0.y > 600 && $0.y < 600 + 60 + 20 })
+    }
 }

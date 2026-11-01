@@ -131,8 +131,8 @@ private struct SparklerLine: View {
             }
             .frame(width: 60, height: max(1, tip - top))
             .offset(x: Sparkler.lineX - 30, y: min(top, tip))
-            SparkleTrail(top: top, tip: tip, scrolled: scrolled, still: still)
-                .frame(width: 60, height: max(1, tip))
+            SparkleTrail(top: top, tip: tip, below: atEnd ? 0 : max(0, -lead) * 1.6, scrolled: scrolled, still: still)
+                .frame(width: 60, height: max(1, tip + max(0, -lead) * 1.6 + 30))
                 .offset(x: Sparkler.lineX - 30)
             if !atEnd {
                 SparklerTip(still: still)
@@ -151,8 +151,11 @@ private struct SparklerLine: View {
 private struct SparkleTrail: View {
     let top: Double
     let tip: Double
+    /// How far below the tip a scroll up leaves stardust (0 when it isn't moving up).
+    let below: Double
     let scrolled: Double
     let still: Bool
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         if still {
@@ -165,14 +168,31 @@ private struct SparkleTrail: View {
     }
 
     private func draw(_ ctx: GraphicsContext, size: CGSize, time: Double) {
+        let dark = scheme == .dark
+        // In dark mode the sparkler leaves stardust behind it too (Steve).
+        if dark {
+            let warm = Color(RGB(hex: "#FFF3B0")!), cool = Color.white
+            for m in Sparkler.stardust(scrolled: scrolled, top: top, tip: tip, time: time) {
+                let x = 30 + m.dx
+                ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warm : cool).opacity(m.opacity)))
+            }
+        }
+        // Scrolling up, it leaves a little stardust below it as it bounces upward (Steve).
+        let warmDust = Color(RGB(hex: dark ? "#FFF3B0" : "#E6A700")!), coolDust = Color(RGB(hex: dark ? "#FFFFFF" : "#F5C518")!)
+        for m in Sparkler.dustBelow(tip: tip, length: below, scrolled: scrolled, time: time) {
+            let x = 30 + m.dx
+            ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warmDust : coolDust).opacity(m.opacity)))
+        }
+        // The trail is yellow: bright on the dark, deeper gold on light posts.
+        let yellows = dark ? Sparkler.trailColors : Sparkler.trailColorsLight
         for g in Sparkler.glitter(scrolled: scrolled, top: top, tip: tip, time: time) {
-            let color = Color(Sparkler.sparkColors[g.color]).opacity(g.opacity)
+            let color = Color(yellows[g.color % yellows.count]).opacity(g.opacity)
             let x = 30 + g.dx
             var star = Path()
             star.move(to: CGPoint(x: x - g.r, y: g.y)); star.addLine(to: CGPoint(x: x + g.r, y: g.y))
             star.move(to: CGPoint(x: x, y: g.y - g.r)); star.addLine(to: CGPoint(x: x, y: g.y + g.r))
-            ctx.stroke(star, with: .color(color), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
-            ctx.fill(Path(ellipseIn: CGRect(x: x - g.r * 0.35, y: g.y - g.r * 0.35, width: g.r * 0.7, height: g.r * 0.7)), with: .color(color))
+            ctx.stroke(star, with: .color(color), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+            ctx.fill(Path(ellipseIn: CGRect(x: x - g.r * 0.4, y: g.y - g.r * 0.4, width: g.r * 0.8, height: g.r * 0.8)), with: .color(color))
         }
     }
 }
