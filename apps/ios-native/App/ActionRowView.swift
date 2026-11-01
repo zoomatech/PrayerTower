@@ -29,6 +29,9 @@ struct ActionRowView: View {
                 .buttonStyle(.plain)
                 .help(item.meaningWords(wording).map { "\(item.name)\n\($0)" } ?? item.name)
                 .accessibilityLabel(item.name)
+                // The icons keep their size as the text grows; held down at the larger text sizes,
+                // each shows enlarged with its name in the Large Content Viewer, as Apple asks.
+                .accessibilityShowsLargeContentViewer { glyph(item); Text(item.name) }
                 .accessibilityAddTraits(active.contains(item.action) ? .isSelected : [])
                 .contextMenu {
                     // The first entry is the name, so a long press always says what the icon does.
