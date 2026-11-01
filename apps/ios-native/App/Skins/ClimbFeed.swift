@@ -513,3 +513,33 @@ private struct ClimbCloseUp: View {
         })
     }
 }
+
+/// Mountain Climber's header: sky up behind the clock, with the top of the rock wall along the
+/// foot, a jagged ridge with its rim, as the cliff edge is drawn.
+struct ClimbHeader: View {
+    let look: ClimbLook
+
+    var body: some View {
+        SkinHeaderBand(edge: 12) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom)), with: .color(ClimbArt.sky))
+            // The same ridge every time: jags about every 28 points, 2 to 9 deep, real size, never stretched.
+            var ridge: [CGPoint] = []
+            var x = 0.0, i = 0
+            while x < Double(size.width) + 28 {
+                let depth = 2 + Double((i * 37 + 11) % 8)
+                ridge.append(CGPoint(x: x, y: Double(bottom) - 6 + depth))
+                x += 20 + Double((i * 53 + 7) % 16)
+                i += 1
+            }
+            var rock = Path()
+            rock.move(to: CGPoint(x: 0, y: bottom + 12))
+            rock.addLines(ridge)
+            rock.addLine(to: CGPoint(x: size.width, y: bottom + 12))
+            rock.closeSubpath()
+            ctx.fill(rock, with: .color(Color(look.backdrop)))
+            var rim = Path()
+            rim.addLines(ridge)
+            ctx.stroke(rim, with: .color(ClimbArt.rim), style: .init(lineWidth: 2.4, lineJoin: .round))
+        }
+    }
+}

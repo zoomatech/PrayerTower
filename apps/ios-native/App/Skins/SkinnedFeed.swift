@@ -13,8 +13,21 @@ struct SkinnedFeed<Row: View>: View {
     @ViewBuilder let row: (Card) -> Row
 
     var body: some View {
-        // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
-        layouts.solidNavigationBar()
+        if SkinHeader.drawsOwn(theme) {
+            // The skin's own header runs up behind the clock under the bar (Steve, 2026-11-01).
+            layouts.overlay(alignment: .top) { header }
+        } else {
+            // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
+            layouts.solidNavigationBar()
+        }
+    }
+
+    @ViewBuilder private var header: some View {
+        switch theme.kind {
+        case .climb: ClimbHeader(look: ClimbLook(theme))
+        default:
+            if VineLook(theme).vineStyle == .beanstalk { BeanHeader() } else { NeonHeader(look: VineLook(theme)) }
+        }
     }
 
     @ViewBuilder private var layouts: some View {
@@ -990,5 +1003,31 @@ extension View {
     /// one for its tablets): the text's own scheme, and a plate when it needs one.
     func onBackdrop(_ backdrop: RGB) -> some View {
         backdropPlate(backdrop).environment(\.colorScheme, BackdropText(on: backdrop).light ? .dark : .light)
+    }
+}
+
+/// Neon's header: the night backdrop up behind the clock, edged along the foot by a glass tube
+/// in the rod's color with a short circuit trace and pad off it.
+struct NeonHeader: View {
+    let look: VineLook
+
+    var body: some View {
+        SkinHeaderBand { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 2)), with: .color(look.backdrop.map { Color($0) } ?? .black))
+            var tube = Path()
+            tube.move(to: CGPoint(x: 6, y: bottom))
+            tube.addLine(to: CGPoint(x: size.width - 6, y: bottom))
+            var glow = ctx
+            glow.addFilter(.shadow(color: Color(look.stem).opacity(0.7), radius: 6))
+            NeonGlassLook(color: Color(look.stem)).stroke(tube, width: 5, in: glow)
+            // A circuit trace off the tube, clear of the logo and of Home and Menu.
+            let x = size.width * 0.42
+            var trace = Path()
+            trace.move(to: CGPoint(x: x, y: bottom))
+            trace.addLine(to: CGPoint(x: x + 8, y: bottom + 7))
+            trace.addLine(to: CGPoint(x: x + 30, y: bottom + 7))
+            ctx.stroke(trace, with: .color(Color(look.branch).opacity(0.85)), lineWidth: 1.5)
+            ctx.fill(Path(CGRect(x: x + 30, y: bottom + 4.5, width: 5, height: 5)), with: .color(Color(look.branch)))
+        }
     }
 }

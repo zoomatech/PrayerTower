@@ -248,3 +248,37 @@ struct VerticalLine: Shape {
         return p
     }
 }
+
+// MARK: - Skin headers (Steve, 2026-11-01)
+
+/// The band at the top of a skin: it runs up behind the clock and down to the foot of the bar,
+/// drawn in the skin's own style, with a little edge hanging just below. The bar keeps its title,
+/// the logo in the upper right and Home and Menu on the left, all drawn over it.
+struct SkinHeaderBand: View {
+    /// How far below the bar the band's edge may hang.
+    var edge: CGFloat = 12
+    /// Draws the band: `bottom` is where the bar ends.
+    let draw: (inout GraphicsContext, CGSize, CGFloat) -> Void
+
+    var body: some View {
+        GeometryReader { g in
+            let bottom = g.safeAreaInsets.top
+            Canvas { ctx, size in draw(&ctx, size, bottom) }
+                .frame(height: bottom + edge)
+        }
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+enum SkinHeader {
+    /// Skins that draw their own header band, so the bar's own background is hidden over them.
+    static func drawsOwn(_ theme: FeedTheme) -> Bool {
+        switch theme.kind {
+        case .climb: true
+        case .vine: [.beanstalk, .neon].contains(VineLook(theme).vineStyle)
+        default: false
+        }
+    }
+}

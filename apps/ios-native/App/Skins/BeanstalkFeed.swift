@@ -1029,3 +1029,23 @@ struct VineFruit: View {
         .accessibilityAddTraits(.isImage)
     }
 }
+
+/// Beanstalk's header: the cards' cream up behind the clock, edged along the foot by the vine's
+/// two strands twisting round each other, as round the frames.
+struct BeanHeader: View {
+    var body: some View {
+        SkinHeaderBand(edge: 14) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: .color(Bean.cream))
+            func strand(_ phase: Double, _ amp: Double) -> Path {
+                var p = Path()
+                p.move(to: CGPoint(x: 0, y: bottom + amp * sin(phase)))
+                for x in stride(from: 4.0, through: Double(size.width), by: 4) {
+                    p.addLine(to: CGPoint(x: x, y: bottom + amp * sin(x / 34 + phase)))
+                }
+                return p
+            }
+            VineStrandLook.main.stroke(strand(0, 3), width: 9.5, in: ctx)
+            VineStrandLook.second.stroke(strand(.pi, 4), width: 6.5, in: ctx)
+        }
+    }
+}

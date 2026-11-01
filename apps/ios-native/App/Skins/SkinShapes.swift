@@ -186,9 +186,21 @@ extension View {
 extension View {
     /// The title and tab bar over a skin take its backdrop, with light text on a dark one, so
     /// "Prayers" and the tabs stay readable on a night sky (Moonlit Gate, neon, the wall).
-    @ViewBuilder func skinBars(_ backdrop: RGB?) -> some View {
+    /// With `ownHeader`, the skin draws its own header band under the title bar (Steve,
+    /// 2026-11-01), so the title bar's background is hidden and only the tab bar takes the backdrop.
+    @ViewBuilder func skinBars(_ backdrop: RGB?, ownHeader: Bool = false) -> some View {
         #if os(iOS)
-        if let backdrop {
+        if ownHeader {
+            if let backdrop {
+                let scheme: ColorScheme = BackdropText(on: backdrop).light ? .dark : .light
+                self.toolbarBackground(.hidden, for: .navigationBar)
+                    .toolbarColorScheme(scheme, for: .navigationBar, .tabBar)
+                    .toolbarBackground(Color(backdrop), for: .tabBar)
+                    .toolbarBackground(.visible, for: .tabBar)
+            } else {
+                self.toolbarBackground(.hidden, for: .navigationBar).toolbarColorScheme(.light, for: .navigationBar)
+            }
+        } else if let backdrop {
             let scheme: ColorScheme = BackdropText(on: backdrop).light ? .dark : .light
             self.toolbarBackground(Color(backdrop), for: .navigationBar, .tabBar)
                 .toolbarBackground(.visible, for: .navigationBar, .tabBar)
