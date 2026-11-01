@@ -1,10 +1,10 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>Ceramic Figurine Skin</title><style>html,body{margin:0;background:#EAE6F1;overflow:hidden;position:fixed;inset:0;overscroll-behavior:none;touch-action:pan-y}#app{transform-origin:0 0;width:390px}</style></head><body><div id="app"></div>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><meta name="theme-color" content="#F6F0EE"><title>Ceramic Figurine Skin</title><style>html,body{margin:0;background:#EAE6F1;overflow:hidden;position:fixed;inset:0;overscroll-behavior:none;touch-action:pan-y}#app{transform-origin:0 0;width:390px}</style></head><body><div id="probe" style="position:fixed;top:0;height:0;padding-top:env(safe-area-inset-top)"></div><style id="fitcss"></style><div id="app"></div>
 <script>
 const SVGNS='http://www.w3.org/2000/svg';
 class DCLogic{constructor(p){this.props=p;this.state={}}setState(p){Object.assign(this.state,p);schedule()}forceUpdate(){schedule()}}
 const comps={};
 async function load(name){
-  const txt=await (await fetch(name+'.dc.html')).text();
+  const txt=(await (await fetch(name+'.dc.html')).text()).replace(/\/_blob\/df2d3e761304863cc6a14b9325fd3e1d/g,'prayer-tower-logo.png');
   const doc=new DOMParser().parseFromString(txt,'text/html');
   const xdc=doc.querySelector('x-dc');
   const helmet=xdc.querySelector('helmet');
@@ -51,7 +51,7 @@ function patch(parent,vs,svg){
   while(kids.length>vs.length)parent.removeChild(parent.lastChild)}
 let root,pending=false;
 function schedule(){if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;draw()})}
-function fit(){const a=document.getElementById('app');const k=innerWidth/390;a.style.transform='scale('+k+')'}addEventListener('resize',fit);
+function fit(){const a=document.getElementById('app');const top=document.getElementById('probe').offsetHeight||0;const k=innerWidth/390;a.style.transform='scale('+k+')';a.style.marginTop=top+'px';document.getElementById('fitcss').textContent='#app>div{height:'+((innerHeight-top)/k)+'px !important}html,body{background:#F6F0EE !important}'}addEventListener('resize',fit);
 function draw(){fit();patch(document.getElementById('app'),render(comps.Main.tpl,root.renderVals(),[]),false)}
 (async()=>{await load('Figurine');await load('Main');root=new comps.Main.C({});draw();root.componentDidMount&&root.componentDidMount();window.ready=true})();
 </script></body></html>
