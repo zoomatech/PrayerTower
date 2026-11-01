@@ -938,6 +938,7 @@
  "circuit.more": "%{n} more",
  "circuit.open": "Opens the comments",
  "climb.end": "The rope keeps going. Pull down for new posts.",
+ "climb.fold": "Folds it closed again",
  "climb.more": "%{n} more",
  "climb.openComment": "Opens the whole comment and its replies",
  "climb.replies.one": "1 reply",
