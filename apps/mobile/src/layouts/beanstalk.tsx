@@ -584,14 +584,11 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
   const { t: tr } = useLocale();
   const fs = leaf.level === 1 ? 14 : leaf.level === 2 ? 12.5 : 12;
   const nameFs = leaf.level === 1 ? 13.5 : leaf.level === 2 ? 12 : 11.5;
-  // A true leaf's proportions at a fixed size, as the drawing is (200 by 100): the words never
-  // stretch it into a puffy leaf (Steve, 2026-10-30, 2026-11-01). A reply is half as tall as wide.
-  const small = leaf.level > 1;
-  const minH = small ? Math.round(leaf.lw * 0.52) : Math.max(100, Math.round(leaf.lw * 0.55));
+  const minH = leaf.level === 1 ? 100 : leaf.level === 2 ? 84 : 66;
   const left = leaf.side < 0;
   // The text sits in the leaf's wide middle, away from the tip.
   const textW = leaf.lw * 0.64;
-  const fit = fitText(leaf.comment.body, leafChars(textW, fs, small ? 1 : 2));
+  const fit = fitText(leaf.comment.body, leafChars(textW, fs, 2));
   const hint = leaf.replies > 0 && leaf.level < 3 ? (leaf.open ? (fit.cut ? tr('beanstalk.readMore') : tr('beanstalk.fold')) : tr('beanstalk.replies', { count: leaf.replies })) : '';
   const actionable = fit.cut || (leaf.replies > 0 && leaf.level < 3);
   // A reply sprouts first as a cluster of holly berries at its stem, which then grows into its leaf.
@@ -605,7 +602,7 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
       {sprout ? <Berries t={t} at={at} left={left} minH={minH} /> : null}
       <Animated.View
         style={{
-          height: minH,
+          minHeight: minH,
           transformOrigin: origin,
           transform: [{ rotate: turn.interpolate({ inputRange: [-14, 0], outputRange: ['-14deg', '0deg'] }) }, { scale: grow }],
         }}>
@@ -615,18 +612,18 @@ const Leaf = memo(function Leaf({ leaf, t, at, onTap }: { leaf: HangingLeaf; t: 
           accessibilityRole={actionable ? 'button' : 'text'}
           accessibilityLabel={`${leaf.comment.author.displayName}: ${leaf.comment.body}`}
           accessibilityHint={leaf.replies > 0 && leaf.level < 3 && !leaf.open ? tr('beanstalk.repliesHint') : fit.cut ? tr('beanstalk.readHint') : actionable ? tr('beanstalk.repliesHint') : undefined}
-          style={[styles.leafBody, small ? styles.leafBodySmall : null, { height: minH, paddingLeft: `${left ? 24 : 12}%`, paddingRight: `${left ? 12 : 24}%` }]}>
+          style={[styles.leafBody, { minHeight: minH, paddingLeft: `${left ? 24 : 12}%`, paddingRight: `${left ? 12 : 24}%` }]}>
           <Svg aria-hidden pointerEvents="none" style={[StyleSheet.absoluteFill, left ? styles.flip : null]} viewBox="0 0 200 100" preserveAspectRatio="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Path d={LEAF_PATH} fill={leaf.fill} stroke={BEANSTALK.vineInk} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
             <Path d={LEAF_VEINS} fill="none" stroke={BEANSTALK.stem} strokeWidth={1.2} strokeLinecap="round" opacity={0.55} vectorEffect="non-scaling-stroke" />
           </Svg>
-          <Text style={[styles.leafName, { fontSize: nameFs }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+          <Text style={[styles.leafName, { fontSize: nameFs }]} numberOfLines={1}>
             {leaf.comment.author.displayName}
           </Text>
-          <Text style={[styles.leafText, { fontSize: fs, lineHeight: fs * 1.25 }]} numberOfLines={small ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.6}>
+          <Text style={[styles.leafText, { fontSize: fs, lineHeight: fs * 1.25 }]} numberOfLines={2}>
             {fit.text}
           </Text>
-          {hint && !small ? <Text style={styles.leafHint} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{hint}</Text> : null}
+          {hint ? <Text style={styles.leafHint}>{hint}</Text> : null}
         </Pressable>
       </Animated.View>
     </View>
@@ -1145,7 +1142,6 @@ const styles = StyleSheet.create({
   bunchLeaf: { position: 'absolute' },
   bunchHint: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontFamily: 'Alegreya_400Regular_Italic', fontSize: 14, color: BEANSTALK.link },
   leafBody: { justifyContent: 'center', alignItems: 'center', paddingTop: 16, paddingBottom: 18 },
-  leafBodySmall: { paddingTop: 4, paddingBottom: 6 },
   flip: { transform: [{ scaleX: -1 }] },
   leafName: { fontFamily: FONT.bold, color: COMMENT_TEXT, textAlign: 'center' },
   leafText: { fontFamily: FONT.body, color: COMMENT_TEXT, textAlign: 'center' },
