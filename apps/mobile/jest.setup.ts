@@ -72,3 +72,6 @@ jest.mock('expo-audio', () => {
     useAudioPlayerStatus: () => ({ playing: false, currentTime: 0 }),
   };
 });
+
+// expo-speech needs the native module: the device voice is a fake that remembers what it was asked to say.
+jest.mock('expo-speech', () => ({ speak: jest.fn(), stop: jest.fn(async () => undefined), isSpeakingAsync: jest.fn(async () => false) }));

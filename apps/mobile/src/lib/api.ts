@@ -178,6 +178,9 @@ export interface Features {
   libraryWords: boolean;
   libraryNotes: boolean;
   libraryOffline: boolean;
+  /** Listening and circle study rooms (docs/LIBRARY_SEARCH.md). */
+  libraryListen: boolean;
+  libraryStudies: boolean;
   /** Growth ideas (docs/GROWTH.md). */
   guestPrayer: boolean;
   prayerChain: boolean;
@@ -206,6 +209,8 @@ export interface Features {
   restingThreads: boolean;
   thisHelped: boolean;
   offerSorry: boolean;
+  /** "Has this prayer been answered?" check-ins on the author's own request (server modules/resolution). */
+  prayerResolution: boolean;
   /** Growth practices (docs/GROWTH_PRACTICES.md): "how's it going?" follow-ups, the weekly gratitude card, days this month in place of the streak. */
   followupNudge: boolean;
   gratitudeCard: boolean;
@@ -231,6 +236,7 @@ export interface Features {
   thankNote: boolean;
   calmThreads: boolean;
   prayerCircles: boolean;
+  topicGroups: boolean;
   encouragerCheckin: boolean;
   circleWelcome: boolean;
   pathBack: boolean;
@@ -354,6 +360,7 @@ export interface PracticeSettings {
   thank_note_enabled: boolean;
   calm_threads_enabled: boolean;
   prayer_circles_enabled: boolean;
+  topic_groups_enabled: boolean;
   encourager_checkin_enabled: boolean;
   encourager_checkin_days: number;
   kindness_weather_enabled: boolean;
@@ -461,6 +468,34 @@ export interface CircleView {
   welcome?: { text: string | null; show: boolean };
   posts: CirclePost[];
 }
+// Groups (Steve, 2026-10-31): open topic groups like Facebook groups.
+type GroupPerson = { id: string; displayName: string | null };
+export interface TopicGroup {
+  id: string;
+  name: string;
+  about: string | null;
+  members: number;
+  joined: boolean;
+  isLeader: boolean;
+  /** null = led by Prayer Tower. */
+  leader: GroupPerson | null;
+}
+export interface TopicGroupComment {
+  id: string;
+  author: GroupPerson;
+  body: string;
+  createdAt: string;
+  canRemove: boolean;
+}
+export interface TopicGroupPost extends TopicGroupComment {
+  prayed: number;
+  prayedByMe: boolean;
+  comments: TopicGroupComment[];
+}
+export interface TopicGroupView {
+  group: TopicGroup;
+  posts: TopicGroupPost[];
+}
 export type ReplyAudience = 'everyone' | 'supporters' | 'none';
 export type ReplyChoiceState = { enabled: boolean; audience: ReplyAudience; canComment: boolean; isMine: boolean };
 export type RemovedWords = { target: 'post'; body: string; postType: string } | { target: 'comment'; body: string; postId: string };
@@ -495,6 +530,34 @@ export interface RememberedItem {
   answeredAt: string;
 }
 export type FollowupAnswer = 'grateful' | 'still' | 'changed' | 'private';
+
+/** Prayer resolution (server modules/resolution): "The Lord answered my prayer in a way I had hoped" or "...according to his will, not my will". */
+export type ResolutionOutcome = 'hoped' | 'his_will';
+export interface ResolutionStatus {
+  enabled: boolean;
+  /** "Has this prayer been answered?" is waiting for an answer. */
+  pending: boolean;
+  /** null: not answered yet; false: "not yet"; true: answered. */
+  answered: boolean | null;
+  outcome: ResolutionOutcome | null;
+  canRepost: boolean;
+  /** Free broadcast tokens the author may take now (0 = none). */
+  freeTokens: number;
+  tokenClaimed: boolean;
+  repostedPostId: string | null;
+}
+export interface ResolutionSettings {
+  enabled: boolean;
+  first_days: number;
+  again_days: number;
+  max_asks: number;
+  free_tokens: number;
+  free_token_every_days: number;
+}
+export interface ResolutionReport {
+  totals: Record<'asked' | 'answered' | 'hoped' | 'his_will' | 'not_yet' | 'answered_prayercast' | 'reposted' | 'free_tokens', number>;
+  answered: { postId: string; who: string | null; outcome: ResolutionOutcome; prayercast: boolean; prayercastCount: number; prayercastAt: string | null; answeredAt: string }[];
+}
 export type Gratitude = { enabled: false } | { enabled: true; weekday: number | null; weekStart: string; items: string[]; weeks?: number | null };
 export type PartnerState =
   | { enabled: false }
@@ -1661,7 +1724,7 @@ export type LibraryHit = { ref: string; text: string; complete: boolean; work: {
 export type LibraryDaily =
   | { enabled: false }
   | { enabled: true; day: string; share: boolean; passage: { collection: LibraryCollectionId; ref: string; text: string; complete: boolean; work: { id: string; title: string; author: string }; citation: string } };
-export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean; wordsEnabled: boolean; notesEnabled: boolean; offlineEnabled: boolean };
+export type LibrarySettings = { enabled: boolean; shareEnabled: boolean; dailyEnabled: boolean; parallelsEnabled: boolean; plansEnabled: boolean; wordsEnabled: boolean; notesEnabled: boolean; offlineEnabled: boolean; listenEnabled: boolean; studiesEnabled: boolean };
 /** Passages from one place in a collection, with their citation. */
 export type LibraryExcerpt = { collection: LibraryCollectionId; collectionTitle: string; work: { id: string; title: string; author: string }; ref: string; text: string; citation: string; key: string };
 /** A King James verse word by word; tagged words carry Strong's numbers (H… Hebrew, G… Greek). */
@@ -1694,6 +1757,38 @@ export type LibraryNote = {
   updatedAt: string;
 };
 export type CircleLibraryNote = LibraryNote & { author: string; mine: boolean };
+/** A public-domain LibriVox recording of the place a passage is in. */
+export type LibraryRecording = { url: string; title: string; project: string; readers: string[]; seconds: number; credit: string; projectUrl: string };
+/** Where a member left off: the device's voice counts characters read, a recording seconds played. */
+export type ListenKind = 'voice' | 'recording';
+export type LibraryListened = {
+  collection: LibraryCollectionId;
+  key: string;
+  ref: string;
+  citation: string;
+  text: string;
+  kind: ListenKind;
+  position: number;
+  duration: number | null;
+  finished: boolean;
+  recording: LibraryRecording | null;
+  updatedAt: string;
+};
+export type ListenPlace = { collection: LibraryCollectionId; key: string; kind: ListenKind; position: number; duration?: number | null; finished?: boolean };
+export type LibraryStudy = {
+  id: string;
+  circleId: string;
+  prompt: string;
+  author: { id: string; displayName: string | null };
+  createdAt: string;
+  passage: { collection: LibraryCollectionId; ref: string; key: string; quote: string; citation: string };
+  plan: { id: string; title: string; day: number } | null;
+  replies: number;
+  lastReplyAt: string | null;
+  canRemove: boolean;
+};
+export type StudyReply = { id: string; author: { id: string; displayName: string | null }; body: string; createdAt: string; canRemove: boolean };
+export type StudyRoom = { study: LibraryStudy; replies: (StudyReply & { answers: StudyReply[] })[] };
 export type ParallelThemes = { enabled: false } | { enabled: true; themes: { id: string; title: string; intro: string; texts: string[] }[] };
 export type ParallelTheme = { id: string; title: string; intro: string; sides: (LibraryExcerpt & { label: string | null })[] };
 export type PlanProgress = { read: number; next: number | null; finished: boolean; reminders: boolean; circle: { id: string; name: string } | null };
@@ -2424,8 +2519,12 @@ export const api = {
     sendHighlights: () => post<{ sent: number }>('/admin/kindness-highlights/send'),
     updateConversationSettings: (patch: Partial<{ replySuggestionsEnabled: boolean; meaningPrefsEnabled: boolean; troubleNudgeEnabled: boolean; greetingPacksEnabled: boolean; ownWordsEnabled: boolean; kindClosingsEnabled: boolean; talkCountsEnabled: boolean; meaningRowEnabled: boolean; researchPageEnabled: boolean; meaningProposalsEnabled: boolean; typePromptsEnabled: boolean; authorHeartsEnabled: boolean; commentThanksEnabled: boolean; quietCountsEnabled: boolean; replyChoiceEnabled: boolean; partCommentsEnabled: boolean }>) =>
       request<{ settings: ConversationSettings }>('PATCH', '/admin/conversation-settings', patch),
+    resolutionSettings: () => get<{ settings: ResolutionSettings }>('/admin/resolution-settings'),
+    updateResolutionSettings: (patch: Partial<{ enabled: boolean; firstDays: number; againDays: number; maxAsks: number; freeTokens: number; freeTokenEveryDays: number }>) =>
+      request<{ settings: ResolutionSettings }>('PATCH', '/admin/resolution-settings', patch),
+    resolutionReport: () => get<ResolutionReport>('/admin/resolution'),
     practiceSettings: () => get<{ settings: PracticeSettings }>('/admin/practice-settings'),
-    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean; circleUpdatesEnabled: boolean }>) =>
+    updatePracticeSettings: (patch: Partial<{ followupEnabled: boolean; followupDays: number; gratitudeEnabled: boolean; gentleRhythmEnabled: boolean; encouragerEnabled: boolean; encouragerDays: number; newcomerDays: number; rememberedEnabled: boolean; welcomeCardEnabled: boolean; welcomeText: string; askKindlyEnabled: boolean; mendEnabled: boolean; liftUpEnabled: boolean; gratitudeCountEnabled: boolean; believeEnabled: boolean; partnersEnabled: boolean; partnerDays: number; highlightsEnabled: boolean; coolDownEnabled: boolean; lamentEnabled: boolean; answeredStoriesEnabled: boolean; kindnessIntroEnabled: boolean; checkBackEnabled: boolean; kindMilestonesEnabled: boolean; thankNoteEnabled: boolean; calmThreadsEnabled: boolean; prayerCirclesEnabled: boolean; topicGroupsEnabled: boolean; encouragerCheckinEnabled: boolean; encouragerCheckinDays: number; kindnessWeatherEnabled: boolean; circleWelcomeEnabled: boolean; pathBackEnabled: boolean; empathyPracticeEnabled: boolean; weeklyIntentionEnabled: boolean; communityHealthEnabled: boolean; freshDaysEnabled: boolean; circleUpdatesEnabled: boolean }>) =>
       request<{ settings: PracticeSettings }>('PATCH', '/admin/practice-settings', patch),
     skinSettings: () => get<{ settings: SkinSettings }>('/admin/skin-settings'),
     updateSkinSettings: (patch: Partial<{ skinsEnabled: boolean; commentTreeEnabled: boolean; commentTreeLeaves: number; commentTreeMaxDepth: number; proposalsEnabled: boolean; videoMaxSeconds: number; seasonalEnabled: boolean; seasonalAuto: boolean; galleryEnabled: boolean }>) =>
@@ -2495,6 +2594,15 @@ export const api = {
     request<{ note: LibraryNote | null }>('PUT', '/library/notes', input),
   deleteLibraryNote: (id: string) => request<{ removed: true }>('DELETE', `/library/notes/${id}`),
   circleLibraryNotes: (circleId: string) => get<{ notes: CircleLibraryNote[] }>(`/library/notes/circle/${circleId}`),
+  libraryRecording: (collection: LibraryCollectionId, key: string) => get<{ recording: LibraryRecording | null }>(`/library/listen?collection=${collection}&key=${key}`),
+  listening: () => get<{ resume: LibraryListened | null; history: LibraryListened[] }>('/library/listening'),
+  saveListening: (place: ListenPlace) => put<{ saved: true }>('/library/listening', place),
+  studies: (circleId: string) => get<{ circle: { id: string; name: string }; studies: LibraryStudy[] }>(`/library/studies?circle=${circleId}`),
+  startStudy: (input: { circleId: string; prompt: string } & ({ collection: LibraryCollectionId; key: string } | { planId: string; day: number })) => post<{ id: string }>('/library/studies', input),
+  study: (id: string) => get<StudyRoom>(`/library/studies/${id}`),
+  removeStudy: (id: string) => request<{ removed: true }>('DELETE', `/library/studies/${id}`),
+  studyReply: (id: string, body: string, parentId?: string | null) => post<{ id: string }>(`/library/studies/${id}/replies`, { body, ...(parentId ? { parentId } : {}) }),
+  removeStudyReply: (id: string) => request<{ removed: true }>('DELETE', `/library/study-replies/${id}`),
   searchLibrary: (input: { q: string; collection: LibraryCollectionId; offset?: number; limit?: number }) =>
     get<LibraryResults>(`/library/search?${new URLSearchParams({ q: input.q, collection: input.collection, offset: String(input.offset ?? 0), limit: String(input.limit ?? 20) })}`),
   markReadingRead: (planId: string) => post<ReadingPlanToday>(`/reading-plan/${planId}/read`, {}),
@@ -2676,6 +2784,10 @@ export const api = {
   kindMilestonesSeen: () => post<{ enabled: boolean; milestones: KindMilestone[] }>('/me/kind-milestones/seen'),
   checkBack: (postId: string) => get<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`),
   setCheckBack: (postId: string, days: 3 | 7 | 14 | null) => put<{ enabled: boolean; dueAt: string | null }>(`/posts/${postId}/check-back`, { days }),
+  resolution: (postId: string) => get<ResolutionStatus>(`/posts/${postId}/resolution`),
+  answerResolution: (postId: string, answer: { answered: true; outcome: ResolutionOutcome } | { answered: false }) => post<ResolutionStatus>(`/posts/${postId}/resolution`, answer),
+  repostResolution: (postId: string, body?: string) => post<{ post: Card; harm?: HarmNote | null }>(`/posts/${postId}/resolution/repost`, body ? { body } : {}),
+  claimResolutionToken: (postId: string) => post<{ amount: number; priestly: number }>(`/posts/${postId}/resolution/token`),
   followup: (postId: string) => get<{ enabled: boolean; pending: boolean }>(`/posts/${postId}/followup`),
   answerFollowup: (postId: string, answer: FollowupAnswer, body?: string) =>
     post<{ answer: FollowupAnswer; crisis: boolean }>(`/posts/${postId}/followup`, body ? { answer, body } : { answer }),
@@ -2698,6 +2810,16 @@ export const api = {
   askForEncourager: () => post<EncouragerState>('/me/encourager/ask'),
   endEncouragerMatch: (id: string) => request<EncouragerState>('DELETE', `/me/encourager/matches/${id}`),
   encouragerCheckIn: (id: string, answer: CheckInAnswer) => post<EncouragerState>(`/me/encourager/matches/${id}/check-in`, { answer }),
+  topicGroups: () => get<{ enabled: boolean; groups: TopicGroup[] }>('/topic-groups'),
+  createTopicGroup: (name: string, about?: string) => post<{ id: string }>('/topic-groups', { name, ...(about ? { about } : {}) }),
+  topicGroup: (id: string) => get<TopicGroupView>(`/topic-groups/${id}`),
+  joinTopicGroup: (id: string) => post<{ joined: boolean }>(`/topic-groups/${id}/join`),
+  leaveTopicGroup: (id: string) => post<{ left: boolean }>(`/topic-groups/${id}/leave`),
+  topicGroupPost: (id: string, body: string) => post<{ id: string }>(`/topic-groups/${id}/posts`, { body }),
+  topicGroupComment: (postId: string, body: string) => post<{ id: string }>(`/topic-group-posts/${postId}/comments`, { body }),
+  topicGroupPray: (postId: string) => post<{ prayed: boolean }>(`/topic-group-posts/${postId}/pray`),
+  removeTopicGroupPost: (postId: string) => request<{ removed: boolean }>('DELETE', `/topic-group-posts/${postId}`),
+  removeTopicGroupComment: (id: string) => request<{ removed: boolean }>('DELETE', `/topic-group-comments/${id}`),
   myCircles: () => get<{ enabled: boolean; circles: CircleSummary[] }>('/me/circles'),
   createCircle: (name: string, about?: string) => post<{ id: string }>('/circles', { name, ...(about ? { about } : {}) }),
   joinCircle: (code: string) => post<{ id: string }>('/circles/join', { code }),

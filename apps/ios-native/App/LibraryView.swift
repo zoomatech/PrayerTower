@@ -37,6 +37,9 @@ struct LibraryView: View {
             if model.features["libraryOffline"] {
                 Section { NavigationLink(w("library.offlineTitle")) { OfflineTextsView() } }
             }
+            if model.features["libraryListen"] {
+                Section { NavigationLink(w("library.listeningTitle")) { ListeningRoomView() } }
+            }
             if let overview {
                 if !overview.enabled {
                     Text(w("library.closed"))
@@ -144,6 +147,10 @@ struct LibraryView: View {
         if bible, model.features["libraryWords"], !searchedOffline {
             NavigationLink(w("library.study.study")) { WordStudyView(ref: h.ref) }
                 .accessibilityLabel(w("library.study.studyOne", ["ref": h.ref]))
+        }
+        if let key = h.key, let collection, !searchedOffline {
+            ListenRow(collection: collection, key: key, text: h.text, citation: h.credit)
+            StudyStartRow(subject: .passage(collection: collection, key: key), citation: h.credit)
         }
         if model.features["libraryNotes"], let key = h.key, let collection {
             PassageMarkRow(collection: collection, key: key, citation: h.credit, marks: marks)
@@ -262,6 +269,7 @@ struct LibraryAdminSection: View {
     var body: some View {
         let w = model.words
         Section {
+            Text(w("library.adminAsk")).font(.footnote).foregroundStyle(.secondary)
             if let on {
                 Toggle(isOn: Binding(get: { on.enabled == true }, set: { save(LibrarySettings(enabled: $0)) })) {
                     VStack(alignment: .leading) {
@@ -310,6 +318,18 @@ struct LibraryAdminSection: View {
                         VStack(alignment: .leading) {
                             Text(w("library.adminOffline"))
                             Text(w("library.adminOfflineHint")).font(.caption).foregroundStyle(Color.subtle)
+                        }
+                    }
+                    Toggle(isOn: Binding(get: { on.listenEnabled == true }, set: { save(LibrarySettings(listenEnabled: $0)) })) {
+                        VStack(alignment: .leading) {
+                            Text(w("library.adminListen"))
+                            Text(w("library.adminListenHint")).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Toggle(isOn: Binding(get: { on.studiesEnabled == true }, set: { save(LibrarySettings(studiesEnabled: $0)) })) {
+                        VStack(alignment: .leading) {
+                            Text(w("library.adminStudies"))
+                            Text(w("library.adminStudiesHint")).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }

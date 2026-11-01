@@ -24,6 +24,7 @@ import * as reminders from '../reminders/index.js';
 import * as goldfish from '../goldfish/index.js';
 import * as moderationTools from '../moderation/tools.js';
 import * as practices from '../practices/index.js';
+import * as resolution from '../resolution/index.js';
 import * as conversationHelpers from '../conversation-helpers/index.js';
 import * as security from '../security/index.js';
 import * as kindNorms from '../kind-norms/index.js';
@@ -274,6 +275,8 @@ export async function features(q: Queryable) {
     heardTrail: await trail.enabled(q),
     /** "Sent by radio, heard by N listeners" on a request, with a small map (radio/followup.ts). */
     radioFollowup: await followup.enabled(q),
+    /** "Has this prayer been answered?" check-ins on the author's own request (modules/resolution). */
+    prayerResolution: (await resolution.settings(q)).enabled,
     /** The prayer panel: the latest prayers as one picture to show or print (radio/panel.ts). */
     radioPanel: await panel.enabled(q),
     /** My signal queue and signal codes on the Listen screen (radio/signal-queue.ts). */

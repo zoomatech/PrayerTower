@@ -49,6 +49,7 @@ struct MessagesView: View {
             }
             .overlay { if !loaded && error == nil { ProgressView() } }
             .navigationTitle(w("tabs.messages"))
+            .appLogo()
             .navigationDestination(for: String.self) { ConversationScreen(id: $0) }
             .refreshable { await load() }
             .task { await load() }
