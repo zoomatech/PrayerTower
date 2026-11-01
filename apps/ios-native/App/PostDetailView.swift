@@ -210,8 +210,14 @@ struct PostDetailView: View {
         ForEach(comments) { item in
             let c = item.comment
             VStack(alignment: .leading, spacing: 4) {
-                Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
-                Text(c.body)
+                // The name and the words read as one; the buttons stay their own elements, as one
+                // combined element with buttons inside was what Apple's audit flagged (Dynamic
+                // Type unsupported, text clipped) on GitHub's Xcode.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
+                    Text(c.body)
+                }
+                .accessibilityElement(children: .combine)
                 AdaptiveStack(spacing: 16) {
                     Button { replyTo = c; asUpdate = false } label: { Text(w("post.reply")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     // With sharing by consent on, only the person who wrote a comment can share it.
@@ -228,7 +234,6 @@ struct PostDetailView: View {
                 .font(.caption)
             }
             .padding(.leading, CGFloat(item.depth) * 16)
-            .accessibilityElement(children: .combine)
         }
     }
 
