@@ -32,7 +32,19 @@ struct SparklerFeed<Row: View>: View {
         VStack(spacing: 0) {
         // Black room under the Home and Menu buttons, held still above the feed, so they never sit
         // on a post's words however far it scrolls.
-        Color(look.backdrop).frame(height: Sparkler.topRoom).accessibilityHidden(true)
+        Color(look.backdrop).frame(height: Sparkler.topRoom)
+            // The line runs on up through it to the header's light blue edge.
+            .overlay(alignment: .topLeading) {
+                Canvas { ctx, size in
+                    var line = Path()
+                    line.move(to: CGPoint(x: 30, y: 0))
+                    line.addLine(to: CGPoint(x: 30, y: Double(size.height)))
+                    NeonGlassLook(color: Color(look.stripe), white: 0.8).stroke(line, width: Sparkler.lineWidth, in: ctx)
+                }
+                .frame(width: 60).offset(x: Sparkler.lineX - 30)
+            }
+            .clipped()
+            .accessibilityHidden(true)
         GeometryReader { geo in
             let screen = Double(geo.size.height)
             // The tip always rides at the same place on screen, sparkler and all, so it is never

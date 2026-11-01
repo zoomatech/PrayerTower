@@ -430,7 +430,12 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   return (
     <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="sparkler-layout">
       {/* Black room under the Home and Menu buttons, held still above the feed, so they never sit on a post's words. */}
-      <View style={{ height: TOP_ROOM }} />
+      <View style={{ height: TOP_ROOM, overflow: 'hidden' }}>
+        {/* The line runs on up through it to the header's light blue edge. */}
+        <Svg aria-hidden width={LINE_X + GLOW_REACH + 4} height={TOP_ROOM} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${TOP_ROOM}`} color={tokens.stripe} width={5} />
+        </Svg>
+      </View>
       <View style={styles.fill} onLayout={(e: LayoutChangeEvent) => move({ screen: e.nativeEvent.layout.height })}>
       <FlatList
         data={cards}
