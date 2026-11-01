@@ -111,8 +111,8 @@ describe('Mountain Climber feed', () => {
     const parent = screen.getByTestId('climb-parent');
     expect(within(parent).getByText(card.author.displayName)).toBeTruthy();
     expect(within(screen.getByTestId('climb-reply-c2')).getByText('Thank you, Daniel.')).toBeTruthy();
-    // The comment and its reply each get their own Reply button.
-    expect(within(screen.getByTestId('climb-reply-c2')).getByText('Reply')).toBeTruthy();
-    expect(screen.getAllByText('Reply').length).toBe(2);
+    // Only the comment gets a Reply button; its replies never do (Steve: no overnesting).
+    expect(within(screen.getByTestId('climb-reply-c2')).queryByText('Reply')).toBeNull();
+    expect(screen.getAllByText('Reply').length).toBe(1);
   });
 });
