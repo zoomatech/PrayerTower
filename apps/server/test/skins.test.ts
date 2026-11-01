@@ -23,7 +23,7 @@ async function inTx(fn: (c: PoolClient) => Promise<void>) {
   }
 }
 
-const SKINS = ['beanstalk', 'golden-wood', 'moonlit-gate', 'wall', 'prayer-tower', 'neon-cinderella', 'neon-circuit', 'blossom-garden', 'mountain-climber'];
+const SKINS = ['beanstalk', 'golden-wood', 'moonlit-gate', 'wall', 'prayer-tower', 'neon-cinderella', 'neon-circuit', 'blossom-garden', 'mountain-climber', 'ceramic-figurine'];
 const OPEN_CIRCLE_SKINS = ['beanstalk', 'blossom-garden', 'climbing-tower', 'golden-wood', 'moonlit-gate', 'mountain-climber', 'neon-cinderella', 'neon-circuit', 'wall'];
 
 describe('Feed skins', () => {

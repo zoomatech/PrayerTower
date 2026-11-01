@@ -2326,6 +2326,17 @@ const en = {
     replies: { one: '1 reply', other: '%{count} replies' },
     fold: 'Folds it closed again',
   },
+  ceramic: {
+    end: 'You have reached the shelf’s end. Pull down for new plaques.',
+    showComments: { one: 'Show 1 comment', other: 'Show all %{count} comments' },
+    showReplies: { one: 'Shows 1 reply', other: 'Shows %{count} replies' },
+    foldComments: 'Folds the comments back up',
+    foldReplies: 'Folds the replies back up',
+    more: '%{n} more comments on the post’s page',
+    pickTitle: 'Choose your figurines',
+    pickSub: 'They decorate the sides of your feed.',
+    looks: { mix: 'All five, mixed', angel: 'Little Angels', garden: 'Garden Children', shepherd: 'Shepherd & Lamb', choir: 'Choir Kids', dove: 'Dove Keepers' },
+  },
   circuit: {
     end: 'End of the line. Pull down to power up new posts.',
     open: 'Opens the comments',
