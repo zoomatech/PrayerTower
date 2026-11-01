@@ -586,17 +586,19 @@ async function requireMinute(q: Queryable) {
   if (!(await settings(q)).prayer_minute_enabled) throw forbidden('The prayer minute is turned off for now');
 }
 
-/** Members whose chosen minute is the same moment as this one, today (all time zones). */
-const SAME_MOMENT = `(date_trunc('day', now() at time zone m.time_zone) + m.minute_of_day * interval '1 minute') at time zone m.time_zone`;
+/** A member's chosen minute on the given calendar date, in their own time zone, as a UTC time of day. */
+const momentOn = (day: string, alias: string) =>
+  `to_char(((${day}) + ${alias}.minute_of_day * interval '1 minute') at time zone ${alias}.time_zone at time zone 'utc', 'HH24:MI')`;
 
 export async function myMinute(q: Queryable, userId: string) {
   if (!(await settings(q)).prayer_minute_enabled) return { enabled: false as const };
+  // Members whose chosen minute is the same moment as this one. Both minutes are placed on this member's
+  // own date, so near midnight or a clock change two zones aren't compared on different days.
+  const day = `(now() at time zone me.time_zone)::date::timestamp`;
   const { rows } = await q.query<{ minute_of_day: number; time_zone: string; others: number }>(
     `select me.minute_of_day, me.time_zone,
             (select count(*)::int from public.prayer_minutes m
-              where m.user_id <> me.user_id
-                and to_char(${SAME_MOMENT} at time zone 'utc', 'HH24:MI') =
-                    to_char((date_trunc('day', now() at time zone me.time_zone) + me.minute_of_day * interval '1 minute') at time zone me.time_zone at time zone 'utc', 'HH24:MI')) as others
+              where m.user_id <> me.user_id and ${momentOn(day, 'm')} = ${momentOn(day, 'me')}) as others
        from public.prayer_minutes me where me.user_id = $1`,
     [userId],
   );
