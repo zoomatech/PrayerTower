@@ -101,6 +101,10 @@ struct ParallelThemeView: View {
                     Button(w("library.share")) { sharing = SharedPassage(post: Library.shared(s.excerpt.text, citation: s.excerpt.citation)) }
                         .accessibilityLabel(w("library.shareOne", ["citation": s.excerpt.citation]))
                 }
+                if let key = s.excerpt.key {
+                    ListenRow(collection: s.excerpt.collection, key: key, text: s.excerpt.text, citation: s.excerpt.citation)
+                    StudyStartRow(subject: .passage(collection: s.excerpt.collection, key: key), citation: s.excerpt.citation)
+                }
                 if model.features["libraryNotes"], let key = s.excerpt.key {
                     PassageMarkRow(collection: s.excerpt.collection, key: key, citation: s.excerpt.citation, marks: marks)
                 }
@@ -230,6 +234,10 @@ struct PlanDayView: View {
                         Button(w("library.share")) { sharing = SharedPassage(post: Library.shared(String(data.reading.text.prefix(1500)), citation: data.reading.citation)) }
                             .accessibilityLabel(w("library.shareOne", ["citation": data.reading.citation]))
                     }
+                    if let key = data.reading.key {
+                        ListenRow(collection: data.reading.collection, key: key, text: data.reading.text, citation: data.reading.citation)
+                    }
+                    StudyStartRow(subject: .planDay(planId: plan, day: data.day), citation: data.reading.citation)
                     if model.features["libraryNotes"], let key = data.reading.key {
                         PassageMarkRow(collection: data.reading.collection, key: key, citation: data.reading.citation, marks: marks)
                     }

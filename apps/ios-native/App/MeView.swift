@@ -37,6 +37,10 @@ struct MeView: View {
                     Section {
                         NavigationLink { MessagesView(standalone: false) } label: { Label { Text(w("tabs.messages")) } icon: { Text("💬").accessibilityHidden(true) } }
                         NavigationLink { NotificationsView(standalone: false) } label: { Label { Text(w("tabs.notices")) } icon: { Text("🔔").accessibilityHidden(true) } }
+                        // Groups in the main menu (Steve, 2026-10-31), starting with Cancer survivors.
+                        if model.features["topicGroups"], model.me?.community?.shows("groups") ?? true {
+                            NavigationLink { TopicGroupsView() } label: { Label { Text(w("topicGroups.title")) } icon: { Text("👥").accessibilityHidden(true) } }
+                        }
                     }
                 }
                 if let profile = model.me?.profile {
@@ -80,6 +84,7 @@ struct MeView: View {
                     if model.features["libraryParallels"] { NavigationLink(w("library.parallels")) { ParallelsView() } }
                     if model.features["libraryPlans"] { NavigationLink(w("library.plans")) { ReadingPlansView() } }
                     if model.features["libraryNotes"] { NavigationLink(w("library.notesTitle")) { MyNotesView() } }
+                    if model.features["libraryListen"] { NavigationLink(w("library.listeningTitle")) { ListeningRoomView() } }
                     if model.features["libraryOffline"] { NavigationLink(w("library.offlineTitle")) { OfflineTextsView() } }
                 }
                 if model.me?.roles.contains("admin") == true {
@@ -119,6 +124,7 @@ struct MeView: View {
                 }
             }
             .navigationTitle(w("tabs.me"))
+            .appLogo()
             .navigationDestination(item: Binding(get: { model.meOpens }, set: { model.meOpens = $0 })) { page in
                 if page == 5 { NotificationsView(standalone: false) } else { MessagesView(standalone: false) }
             }

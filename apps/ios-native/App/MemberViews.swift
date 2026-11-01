@@ -219,6 +219,7 @@ struct NotificationsView: View {
             }
             .overlay { if items == nil && error == nil { ProgressView() } }
             .navigationTitle(w("tabs.notices"))
+            .appLogo()
             .navigationDestination(item: $route) { RouteView(route: $0) }
             .navigationDestination(item: $appealing) { AppealView(itemId: $0.id, held: $0.held) }
             .navigationDestination(item: $commentDraft) { PostDetailView(postId: $0.postId, draft: $0.body) }

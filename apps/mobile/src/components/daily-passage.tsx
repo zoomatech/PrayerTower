@@ -1,5 +1,5 @@
 // The daily passage card and "Share a passage" (docs/LIBRARY_SEARCH.md). Both are off unless an admin turns them on
-// under Admin → Text search. A shared passage goes into a new post or prayer with its citation; the member edits it.
+// under Admin → Bible Reference Text Search. A shared passage goes into a new post or prayer with its citation; the member edits it.
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';

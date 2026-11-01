@@ -103,6 +103,8 @@ function RootStack() {
           <Stack.Screen name="reading-plans" />
           <Stack.Screen name="word-study" />
           <Stack.Screen name="my-notes" />
+          <Stack.Screen name="study-rooms" />
+          <Stack.Screen name="listening-room" />
           <Stack.Screen name="podcasts-admin" />
           <Stack.Screen name="waitlist" />
           <Stack.Screen name="crosspost" />
@@ -121,6 +123,8 @@ function RootStack() {
           <Stack.Screen name="remembered" />
           <Stack.Screen name="circles/index" />
           <Stack.Screen name="circles/[id]" />
+          <Stack.Screen name="topic-groups/index" />
+          <Stack.Screen name="topic-groups/[id]" />
           <Stack.Screen name="mend/[id]" />
           <Stack.Screen name="meaning-words" />
           <Stack.Screen name="highlights" />
