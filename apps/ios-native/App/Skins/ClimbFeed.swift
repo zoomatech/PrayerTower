@@ -486,7 +486,7 @@ private struct ClimbCloseUp: View {
         .background(Color(look.slab), in: UnevenRoundedRectangle(topLeadingRadius: 22, bottomLeadingRadius: 26, bottomTrailingRadius: 18, topTrailingRadius: 30))
     }
 
-    /// Every comment and reply gets its own Reply (Steve: deal with all sub-comments).
+    /// Only the comment gets Reply; its replies never do (Steve: overnesting is hard to follow).
     @ViewBuilder private var replyButton: some View {
         if let reply {
             Button(action: reply) {
@@ -504,7 +504,6 @@ private struct ClimbCloseUp: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(r.author).font(.subheadline.bold())
                 Text(r.body).font(.body)
-                replyButton
                 if level < Beanstalk.maxLevel { replies(r.id, level: level + 1) }
             }
             .padding(.leading, 12)
