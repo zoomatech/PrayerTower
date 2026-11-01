@@ -53,7 +53,8 @@ function Icons({ postId, comment }: { postId: string; comment: Comment }) {
   );
   return (
     <View style={styles.icons}>
-      {icon('reply', reply)}
+      {/* Only a top-level comment takes replies: nesting deeper makes a conversation hard to follow (Steve, 2026-11-01). */}
+      {comment.parentId ? null : icon('reply', reply)}
       {helped ? icon('helped', helped) : null}
       {share ? icon('share', share) : null}
     </View>

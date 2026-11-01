@@ -633,8 +633,11 @@ private struct CommentLevel: View {
             }
             .accessibilityLabel("Heart")
             .accessibilityAddTraits(hearted.contains(c.id) ? .isSelected : [])
-            Button { onOpen?(card) } label: { NeonButtonGlyph(symbol: "arrowshape.turn.up.left", color: color, size: 34, tron: TronIcon.reply) }
-                .accessibilityLabel("Reply")
+            // Only a top-level comment takes replies: nesting deeper makes a conversation hard to follow (Steve, 2026-11-01).
+            if c.parentId == nil {
+                Button { onOpen?(card) } label: { NeonButtonGlyph(symbol: "arrowshape.turn.up.left", color: color, size: 34, tron: TronIcon.reply) }
+                    .accessibilityLabel("Reply")
+            }
             Spacer()
         }
         .buttonStyle(.plain)
