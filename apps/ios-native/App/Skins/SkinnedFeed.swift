@@ -323,7 +323,9 @@ struct VineLeaf<Content: View>: View {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)
             }
         case .floral:
-            Scallop().fill(Color(look.leaf).opacity(0.55))
+            // The petal tint over a solid backing of the page, so nothing drawn behind a box (the
+            // stalk, a twig, the leaves waiting behind) shows through under its words.
+            Scallop().fill(Color(look.leaf).opacity(0.55)).background(Scallop().fill(backdrop))
         default:
             ZStack {
                 LeafOutline(shape: look.leafShape).fill(Color(look.leaf))
