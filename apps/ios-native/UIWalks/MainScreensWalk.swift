@@ -126,4 +126,25 @@ final class MainScreensWalk: XCTestCase {
         try audit("Request, scrolled")
         XCTAssertTrue(issues.isEmpty, "Accessibility audit:\n" + issues.joined(separator: "\n"))
     }
+
+    /// Diagnostic, never fails: audits a request with one part left out at a time and prints what
+    /// Apple flags, so the CI log shows which part its Xcode flags with no element named.
+    func testRequestAuditBisect() throws {
+        for hide in ["none", "header", "prayed", "comments", "composer", "header,prayed,comments,composer"] {
+            let a = XCUIApplication()
+            a.launchArguments = ["-PTSampleData", "-PTHide", hide]
+            a.launch()
+            let post = a.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Please pray for my mother's surgery")).firstMatch
+            guard post.waitForExistence(timeout: 15) else { print("BISECT \(hide): no feed"); continue }
+            post.tap()
+            sleep(3)
+            var found: [String] = []
+            try? a.performAccessibilityAudit { issue in
+                if issue.element == nil { found.append(issue.compactDescription) }
+                return true
+            }
+            print("BISECT \(hide): \(found.isEmpty ? "clean" : found.joined(separator: " | "))")
+            a.terminate()
+        }
+    }
 }
