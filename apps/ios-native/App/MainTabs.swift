@@ -125,9 +125,12 @@ struct MainTabs: View {
                 tab = 0
                 home = UUID()
             } label: {
-                Image(systemName: "house.fill").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+                Image(systemName: "house.fill").resizable().scaledToFit().fontWeight(.semibold).frame(width: 20, height: 20).frame(width: 44, height: 44)
             }
             .accessibilityLabel("Home")
+            // Drawn as pictures at a fixed size, like a bar's buttons: held down at the larger text
+            // sizes, each shows enlarged in the Large Content Viewer, as Apple asks for bar items.
+            .accessibilityShowsLargeContentViewer { Image(systemName: "house.fill"); Text("Home") }
             Menu {
                 ForEach(menuSections) { s in
                     Button { go(s.tag) } label: { s.label }
@@ -135,9 +138,10 @@ struct MainTabs: View {
                 // Settings → Themes → Full Screen Sparkler Theme → Background choices (Steve, 2026-11-01).
                 Button { settings = true } label: { Label(model.words("menu.settings"), systemImage: "gearshape") }
             } label: {
-                Image(systemName: "line.3.horizontal").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+                Image(systemName: "line.3.horizontal").resizable().scaledToFit().fontWeight(.semibold).frame(width: 20, height: 20).frame(width: 44, height: 44)
             }
             .accessibilityLabel("Menu")
+            .accessibilityShowsLargeContentViewer { Image(systemName: "line.3.horizontal"); Text("Menu") }
         }
         .foregroundStyle(Color.accessibleAccent)
         .background(.regularMaterial, in: .rect(cornerRadius: 14))

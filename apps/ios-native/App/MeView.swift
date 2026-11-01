@@ -161,7 +161,7 @@ struct MeView: View {
                     AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { ProgressView() }
                         .accessibilityLabel(w("profile.photoAlt"))
                 } else {
-                    DecorativeGlyph(glyph: String(p.displayName.prefix(1)).uppercased(), size: 28, maxScale: 1.5)
+                    DecorativeGlyph(glyph: String(p.displayName.prefix(1)).uppercased(), size: 28, maxScale: 1)
                 }
             }
             .frame(width: 72, height: 90)
