@@ -46,6 +46,8 @@ export function CornerNav() {
     ...(groupsOn ? [{ label: t('topicGroups.title'), href: '/topic-groups' as Href }] : []),
     { label: t('tabs.notices'), href: '/notifications' },
     { label: t('tabs.me'), href: '/profile' },
+    // Settings → Themes → Full Screen Sparkler Theme → Background choices (Steve, 2026-11-01).
+    { label: t('menu.settings'), href: '/settings' },
   ];
   const go = (href: Href) => {
     setOpen(false);

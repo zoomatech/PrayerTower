@@ -34,7 +34,7 @@ struct FeedView: View {
             Group {
                 if let theme, theme.kind != .column {
                     SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hooks: hooks, row: row)
-                        .skinBars(Skin.backdrop(theme))
+                        .skinBars(Skin.backdrop(theme), ownHeader: SkinHeader.drawsOwn(theme))
                         // A small title in the middle, clear of the Home icon in the top left corner.
                         .navigationBarTitleDisplayMode(.inline)
                 } else if wide {
@@ -55,6 +55,7 @@ struct FeedView: View {
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
             .appLogo()
+            .environment(\.logoPlate, theme.flatMap(SkinHeader.logoPlate))
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }

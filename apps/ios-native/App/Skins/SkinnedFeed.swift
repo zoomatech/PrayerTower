@@ -13,8 +13,25 @@ struct SkinnedFeed<Row: View>: View {
     @ViewBuilder let row: (Card) -> Row
 
     var body: some View {
-        // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
-        layouts.solidNavigationBar()
+        if SkinHeader.drawsOwn(theme) {
+            // The skin's own header runs up behind the clock under the bar (Steve, 2026-11-01).
+            layouts.overlay(alignment: .top) { header }
+        } else {
+            // The bar keeps its own background over a skin, so its title never sits on a dark backdrop.
+            layouts.solidNavigationBar()
+        }
+    }
+
+    @ViewBuilder private var header: some View {
+        switch theme.kind {
+        case .climb: ClimbHeader(look: ClimbLook(theme))
+        // Black, edged with the light blue of its separators.
+        case .sparkler: PlainSkinHeader(backdrop: SparklerLook(theme).backdrop, accent: SparklerLook(theme).stripe)
+        case .ceramic: CeramicHeader()
+        case .vine where VineLook(theme).vineStyle == .beanstalk: BeanHeader()
+        case .vine where VineLook(theme).vineStyle == .neon: NeonHeader(look: VineLook(theme))
+        default: PlainSkinHeader(backdrop: Skin.backdrop(theme), accent: SkinHeader.accent(theme))
+        }
     }
 
     @ViewBuilder private var layouts: some View {
@@ -28,6 +45,9 @@ struct SkinnedFeed<Row: View>: View {
         case .wall: WallFeed(look: WallLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
         case .tower: TowerFeed(look: TowerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .circuit: CircuitFeed(look: CircuitLook(theme), cards: cards, words: LayoutWords(wording), hooks: hooks, row: row)
+        case .climb: ClimbFeed(look: ClimbLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
+        case .sparkler: SparklerFeed(look: SparklerLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
+        case .ceramic: CeramicFeed(look: CeramicLook(theme), cards: cards, wording: wording, hooks: hooks, row: row)
         case .carousel: SwipeFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .flip: FlipFeed(cards: cards, wording: wording, hooks: hooks, row: row)
         case .column: List(cards) { card in row(card).loadsMore(after: card, in: cards, hooks) }
@@ -90,7 +110,10 @@ struct VineFeed<Row: View>: View {
                     .padding(.leading, 56)
                     .padding(.bottom, 160)
             }
-            .padding(.vertical, 20)
+            .padding(.bottom, 20)
+            // Neon: the first box starts below the Home and Menu buttons, which hang down from the
+            // top-left corner of every screen, so they never cover its corner.
+            .padding(.top, look.vineStyle == .neon ? HomeAndMenu.overhang + 12 : 20)
             // Neon's stalk gets room for its glow, which would otherwise stop at a hard edge.
             .background(alignment: .topLeading) { Stalk(look: look).frame(width: look.vineStyle == .neon ? 80 : 40).accessibilityHidden(true) }
         }
@@ -559,7 +582,15 @@ private struct CommentLevel: View {
         _open = State(initialValue: open)
     }
 
-    private var here: [Comment] { all.filter { $0.parentId == parent } }
+    /// This level's comments. The last level (3) also takes every reply further down, side by side,
+    /// so no reply is left out however deep it was posted.
+    private var here: [Comment] {
+        guard depth >= 3, let parent else { return all.filter { $0.parentId == parent } }
+        var out: [Comment] = []
+        func walk(_ p: String) { for c in all where c.parentId == p { out.append(c); walk(c.id) } }
+        walk(parent)
+        return out
+    }
 
     var body: some View {
         if let top = here.first {
@@ -611,8 +642,11 @@ private struct CommentLevel: View {
             }
             .accessibilityLabel("Heart")
             .accessibilityAddTraits(hearted.contains(c.id) ? .isSelected : [])
-            Button { onOpen?(card) } label: { NeonButtonGlyph(symbol: "arrowshape.turn.up.left", color: color, size: 34, tron: TronIcon.reply) }
-                .accessibilityLabel("Reply")
+            // Only a top-level comment takes replies: nesting deeper makes a conversation hard to follow (Steve, 2026-11-01).
+            if c.parentId == nil {
+                Button { onOpen?(card) } label: { NeonButtonGlyph(symbol: "arrowshape.turn.up.left", color: color, size: 34, tron: TronIcon.reply) }
+                    .accessibilityLabel("Reply")
+            }
             Spacer()
         }
         .buttonStyle(.plain)
@@ -981,5 +1015,49 @@ extension View {
     /// one for its tablets): the text's own scheme, and a plate when it needs one.
     func onBackdrop(_ backdrop: RGB) -> some View {
         backdropPlate(backdrop).environment(\.colorScheme, BackdropText(on: backdrop).light ? .dark : .light)
+    }
+}
+
+/// Neon's header: the night backdrop up behind the clock, edged along the foot by a glass tube
+/// in the rod's color with a short circuit trace and pad off it.
+struct NeonHeader: View {
+    let look: VineLook
+
+    var body: some View {
+        // Room below the tube for its glow to fade out, rather than stop in a straight line.
+        SkinHeaderBand(edge: 28) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 2)), with: .color(look.backdrop.map { Color($0) } ?? .black))
+            var tube = Path()
+            tube.move(to: CGPoint(x: 6, y: bottom))
+            tube.addLine(to: CGPoint(x: size.width - 6, y: bottom))
+            var glow = ctx
+            glow.addFilter(.shadow(color: Color(look.stem).opacity(0.7), radius: 6))
+            NeonGlassLook(color: Color(look.stem)).stroke(tube, width: 5, in: glow)
+            // A circuit trace off the tube, clear of the logo and of Home and Menu.
+            let x = size.width * 0.42
+            var trace = Path()
+            trace.move(to: CGPoint(x: x, y: bottom))
+            trace.addLine(to: CGPoint(x: x + 8, y: bottom + 7))
+            trace.addLine(to: CGPoint(x: x + 30, y: bottom + 7))
+            ctx.stroke(trace, with: .color(Color(look.branch).opacity(0.85)), lineWidth: 1.5)
+            ctx.fill(Path(CGRect(x: x + 30, y: bottom + 4.5, width: 5, height: 5)), with: .color(Color(look.branch)))
+        }
+    }
+}
+
+/// The Home and Menu buttons' size, so a skin can start its first post clear of them.
+enum HomeAndMenu {
+    /// How far the buttons reach below the top of the navigation bar's 44-point row.
+    static let overhang: CGFloat = 2 + 44 + 6 + 44 - 44
+}
+
+/// The Ceramic Figurines header: the cream shelf up behind the clock, with an etched line along its foot.
+struct CeramicHeader: View {
+    var body: some View {
+        SkinHeaderBand(edge: 4) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: .color(Color(RGB(hex: "#F6F0EE")!)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom, width: size.width, height: 1)), with: .color(Color(red: 110 / 255, green: 85 / 255, blue: 100 / 255).opacity(0.3)))
+            ctx.fill(Path(CGRect(x: 0, y: bottom + 1, width: size.width, height: 1)), with: .color(.white.opacity(0.8)))
+        }
     }
 }

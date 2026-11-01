@@ -1,3 +1,4 @@
+import PrayerTowerKit
 import SwiftUI
 
 // The growing connectors (Steve, 2026-10-30): every skin's stalk builds downward, a branch shoots
@@ -123,9 +124,14 @@ private struct BothHalves: Shape {
 }
 
 /// Grows its content in when it comes into view (`progress` 0 to 1) and resets when it leaves, so it
-/// grows again. Still under Reduce Motion and in the snapshot tests.
+/// grows again. Still under Reduce Motion and in the snapshot tests. A skin chooses how long it takes,
+/// how it eases, and, with `shown`, its own rule for when it counts as in view (otherwise, on appear).
 struct GrowingIn<Content: View>: View {
     var duration: Double = 1.4
+    /// The growth's easing; ease-out by default.
+    var animation: Animation? = nil
+    /// The skin's own "in view" signal; nil grows on appear and resets on disappear.
+    var shown: Bool? = nil
     @ViewBuilder let content: (CGFloat) -> Content
     @Environment(\.accessibilityReduceMotion) private var still
     @State private var progress: CGFloat = 0
@@ -134,12 +140,17 @@ struct GrowingIn<Content: View>: View {
     static var frozen: Bool { NSClassFromString("XCTestCase") != nil }
 
     var body: some View {
-        Stepped(progress: progress, content: content)
-            .onAppear {
-                if still || Self.frozen { progress = 1; return }
-                withAnimation(.easeOut(duration: duration)) { progress = 1 }
+        Stepped(progress: still || Self.frozen ? 1 : progress, content: content)
+            .onAppear { if shown ?? true { grow() } }
+            .onDisappear { progress = 0 }
+            .onChange(of: shown) { _, now in
+                if now == true { grow() } else if now == false { progress = 0 }
             }
-            .onDisappear { if !(still || Self.frozen) { progress = 0 } }
+    }
+
+    private func grow() {
+        if still || Self.frozen { progress = 1; return }
+        withAnimation(animation ?? .easeOut(duration: duration)) { progress = 1 }
     }
 }
 
@@ -236,5 +247,67 @@ struct VerticalLine: Shape {
         p.move(to: CGPoint(x: r.minX + x, y: r.minY))
         p.addLine(to: CGPoint(x: r.minX + x, y: r.maxY))
         return p
+    }
+}
+
+// MARK: - Skin headers (Steve, 2026-11-01)
+
+/// The band at the top of a skin: it runs up behind the clock and down to the foot of the bar,
+/// drawn in the skin's own style, with a little edge hanging just below. The bar keeps its title,
+/// the logo in the upper right and Home and Menu on the left, all drawn over it.
+struct SkinHeaderBand: View {
+    /// How far below the bar the band's edge may hang.
+    var edge: CGFloat = 12
+    /// Draws the band: `bottom` is where the bar ends.
+    let draw: (inout GraphicsContext, CGSize, CGFloat) -> Void
+
+    var body: some View {
+        // Laid out from the foot of the bar, so where that sits on screen is the bar's height.
+        GeometryReader { g in
+            let bottom = g.frame(in: .global).minY
+            Canvas { ctx, size in draw(&ctx, size, bottom) }
+                .frame(height: bottom + edge)
+                .offset(y: -bottom)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+enum SkinHeader {
+    /// Skins that draw their own header band, so the bar's own background is hidden over them.
+    /// On a skin with a dark header, the color of the plate's edge under the logo.
+    static func logoPlate(_ theme: FeedTheme) -> Color? {
+        guard drawsOwn(theme), let dark = Skin.backdrop(theme), BackdropText(on: dark).light else { return nil }
+        return Color(accent(theme))
+    }
+
+    /// Every skin draws its own header behind the clock (Steve, 2026-11-01); the plain column
+    /// keeps the system bar, which is its style.
+    static func drawsOwn(_ theme: FeedTheme) -> Bool { theme.kind != .column }
+
+    /// The line each skin edges its header with: its stalk, mortar, wire or the app's accent.
+    static func accent(_ theme: FeedTheme) -> RGB {
+        switch theme.kind {
+        case .vine: VineLook(theme).stem
+        case .tower: TowerLook(theme).mortar
+        case .circuit: CircuitLook(theme).wire
+        case .sparkler: SparklerLook(theme).stripe
+        default: RGB(hex: "#7A5BC2")!
+        }
+    }
+}
+
+/// The header of a skin without a drawn one of its own: the skin's backdrop up behind the clock,
+/// edged along its foot with a line in the skin's own color.
+struct PlainSkinHeader: View {
+    let backdrop: RGB?
+    let accent: RGB
+
+    var body: some View {
+        SkinHeaderBand(edge: 6) { ctx, size, bottom in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: bottom + 1)), with: backdrop.map { .color(Color($0)) } ?? .color(Color.pageBackground))
+            ctx.fill(Path(CGRect(x: 0, y: bottom, width: size.width, height: 3)), with: .color(Color(accent)))
+        }
     }
 }

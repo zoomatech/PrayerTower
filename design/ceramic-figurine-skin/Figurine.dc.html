@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ceramic figurine</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+@keyframes haul{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(10deg)}}
+@keyframes flap{0%{transform:scaleX(1)}100%{transform:scaleX(0.6)}}
+</style>
+</helmet>
+<div style="width: {{w}}; height: {{h}}; position: relative">
+<svg aria-hidden="true" width="100%" height="100%" viewBox="0 0 60 100" style="display: block; overflow: visible">
+<g transform="{{flipT}}">
+
+<rect x="8" y="94" width="44" height="4.5" rx="1.5" fill="#DCCFC4" stroke="#A89788" stroke-width="0.7"></rect>
+<ellipse cx="30" cy="94" rx="22" ry="3.6" fill="#EFE6DE" stroke="#A89788" stroke-width="0.7"></ellipse>
+<g style="transform: {{turnT}}; transform-origin: 30px 94px; transform-box: view-box; transition: transform 1.4s ease-in-out">
+
+<g transform="{{headT}}" display="{{wingsD}}">
+<g style="animation: {{flapA}}; transform-origin: 30px 62px; transform-box: view-box">
+<path d="M23 59C9 50 4 66 12 76c4-4 9-8 13-10Z" fill="#FBF8F3" stroke="#A8968A" stroke-width="0.9"></path>
+<path d="M37 59c14-9 19 7 11 17-4-4-9-8-13-10Z" fill="#FBF8F3" stroke="#A8968A" stroke-width="0.9"></path>
+<path d="M12 66c3 1 6 1 10-1M14 71c2 0 5-1 8-3M48 66c-3 1-6 1-10-1M46 71c-2 0-5-1-8-3" fill="none" stroke="#C4B5AA" stroke-width="0.8"></path>
+</g>
+</g>
+
+<g display="{{standD}}">
+<path d="M19 98V66c0-6 3-8 6-8 3 0 4 2 4 4.5" fill="none" stroke="#C4A88A" stroke-width="2.2" stroke-linecap="round" display="{{crookD}}"></path>
+<ellipse cx="25" cy="92" rx="5" ry="2.8" fill="#B9A0B2"></ellipse>
+<ellipse cx="35" cy="92" rx="5" ry="2.8" fill="#B9A0B2"></ellipse>
+<path d="M22 54Q30 50 38 54L44 89Q30 93 16 89Z" fill="{{dress}}" stroke="{{dressLine}}" stroke-width="0.9"></path>
+<path d="M21 78Q30 81 39 78" fill="none" stroke="{{dressLine}}" stroke-width="0.8"></path>
+<g style="opacity: {{freeO}}; transition: opacity 0.6s ease-in-out">
+<path d="M23.5 58Q17.5 67 19 76" fill="none" stroke="{{dress}}" stroke-width="6" stroke-linecap="round"></path>
+<circle cx="19" cy="77.5" r="3" fill="#F7E6D8" stroke="#B8957F" stroke-width="0.7"></circle>
+</g>
+<g display="{{pointArmD}}">
+<path d="M36.5 58Q45.5 56 53 52.5" fill="none" stroke="{{dress}}" stroke-width="6" stroke-linecap="round"></path>
+<circle cx="54.5" cy="52" r="3" fill="#F7E6D8" stroke="#B8957F" stroke-width="0.7"></circle>
+<path d="M56.5 51.2 59.6 50" fill="none" stroke="#F0D9C8" stroke-width="2" stroke-linecap="round"></path>
+</g>
+<ellipse cx="30" cy="52.5" rx="9" ry="3" fill="#FFFDF8" stroke="#B9ACA1" stroke-width="0.8" display="{{collarD}}"></ellipse>
+<g display="{{hostD}}" style="opacity: {{hostArmO}}; transform: rotate({{armRot}}deg); transform-origin: 36.5px 58px; transform-box: view-box; transition: transform 1.4s ease-in-out">
+<path d="M36.5 58Q41 66 40.5 75" fill="none" stroke="{{dress}}" stroke-width="6" stroke-linecap="round"></path>
+<path d="M36.5 58Q41 66 40.5 75" fill="none" stroke="{{dressLine}}" stroke-width="0.6" stroke-dasharray="0 2 30"></path>
+<ellipse cx="40.6" cy="77.8" rx="2.3" ry="3.8" fill="#F7E6D8" stroke="#B8957F" stroke-width="0.7"></ellipse>
+<path d="M38.9 81l-1 1.7M40.6 81.5v1.9M42.3 81l1 1.7" fill="none" stroke="#B8957F" stroke-width="0.7" stroke-linecap="round"></path>
+</g>
+<g display="{{pullD}}" style="opacity: {{pullO}}; transition: opacity 0.6s ease-in-out">
+<g style="animation: {{pullA}}; transform-origin: 23.5px 58px; transform-box: view-box">
+<path d="M23.5 58Q33 52 42.5 44" fill="none" stroke="{{dress}}" stroke-width="6" stroke-linecap="round"></path>
+<path d="M23.5 58Q33 52 42.5 44" fill="none" stroke="{{dressLine}}" stroke-width="0.6" stroke-dasharray="0 3 40"></path>
+<circle cx="43.5" cy="43" r="3" fill="#F7E6D8" stroke="#B8957F" stroke-width="0.7"></circle>
+</g>
+<g style="animation: {{pullB}}; transform-origin: 36.5px 58px; transform-box: view-box">
+<path d="M36.5 58Q43 50 48.5 40" fill="none" stroke="{{dress}}" stroke-width="6" stroke-linecap="round"></path>
+<path d="M36.5 58Q43 50 48.5 40" fill="none" stroke="{{dressLine}}" stroke-width="0.6" stroke-dasharray="0 3 40"></path>
+<circle cx="49.5" cy="38.5" r="3" fill="#F7E6D8" stroke="#B8957F" stroke-width="0.7"></circle>
+</g>
+</g>
+<g display="{{flowerStandD}}">
+<circle cx="16.6" cy="80.6" r="2" fill="#F2C4CF"></circle><circle cx="20.4" cy="80.8" r="2" fill="#F2C4CF"></circle><circle cx="18.4" cy="78.6" r="2" fill="#F2C4CF"></circle><circle cx="17.4" cy="83" r="2" fill="#F2C4CF"></circle><circle cx="19.8" cy="83" r="2" fill="#F2C4CF"></circle><circle cx="18.5" cy="81.2" r="1.3" fill="#EFD79A"></circle>
+</g>
+<g display="{{doveStandD}}" transform="translate(17 79)"><g transform="translate(0 0)" fill="#FFFFFF" stroke="#9E8E97" stroke-width="0.8" stroke-linejoin="round">
+<path d="M-6 1 L-10 -1 L-9 3Z"></path>
+<ellipse cx="0" cy="1" rx="6" ry="3.4"></ellipse>
+<circle cx="5" cy="-2.2" r="2.4"></circle>
+<path d="M-3 0 Q0 -5 4 -1" fill="none"></path>
+<path d="M7.2 -2.4 L9 -1.8 L7.2 -1.2Z" fill="#E7C78F" stroke="none"></path>
+<circle cx="5.6" cy="-2.6" r="0.5" fill="#45363B" stroke="none"></circle>
+</g></g>
+<g display="{{bookStandD}}">
+<rect x="13" y="73" width="9.5" height="11" rx="1" fill="#CDBDDC" stroke="#8E78A6" stroke-width="0.8"></rect>
+<path d="M15 76h5.5M15 78.5h5.5" stroke="#F4EEF8" stroke-width="0.9"></path>
+</g>
+</g>
+
+<g display="{{sitD}}">
+<ellipse cx="24" cy="92" rx="5" ry="2.6" fill="#B9A0B2"></ellipse>
+<ellipse cx="36" cy="92" rx="5" ry="2.6" fill="#B9A0B2"></ellipse>
+<path d="M17 72Q30 60 43 72L47 91Q30 95 13 91Z" fill="{{dress}}" stroke="{{dressLine}}" stroke-width="0.9"></path>
+<path d="M20 70Q19.5 78 27 79M40 70Q40.5 78 33 79" fill="none" stroke="{{dress}}" stroke-width="6" stroke-linecap="round"></path>
+<path d="M20 70Q19.5 78 27 79M40 70Q40.5 78 33 79" fill="none" stroke="{{dressLine}}" stroke-width="0.7" stroke-dasharray="0.1 40"></path>
+<path d="M27.4 80 30 68.6 32.6 80Z" fill="#F7E6D8" stroke="#B8957F" stroke-width="0.8" stroke-linejoin="round"></path>
+<ellipse cx="30" cy="64.5" rx="9" ry="3" fill="#FFFDF8" stroke="#B9ACA1" stroke-width="0.8" display="{{collarD}}"></ellipse>
+<g display="{{bookSitD}}">
+<path d="M21 72.5 30 75l9-2.5V81l-9 2.5L21 81Z" fill="#FFFDF8" stroke="#9C88B3" stroke-width="0.9" stroke-linejoin="round"></path>
+<path d="M30 75v8.5M23 75.5l5 1.3M23 78l5 1.3M32 76.8l5-1.3M32 79.3l5-1.3" stroke="#CFC2DD" stroke-width="0.7"></path>
+</g>
+<g display="{{flowerSitD}}">
+<path d="M10 92c0-4 1-7 3-9" fill="none" stroke="#B9CDB4" stroke-width="1"></path>
+<circle cx="11.6" cy="81.6" r="2" fill="#F2C4CF"></circle><circle cx="15.2" cy="82.2" r="2" fill="#F2C4CF"></circle><circle cx="13.6" cy="79.6" r="2" fill="#F2C4CF"></circle><circle cx="12.4" cy="84.4" r="2" fill="#F2C4CF"></circle><circle cx="14.8" cy="84.6" r="2" fill="#F2C4CF"></circle><circle cx="13.5" cy="82.4" r="1.3" fill="#EFD79A"></circle>
+</g>
+<g display="{{doveSitD}}" transform="translate(48 87)"><g transform="translate(0 0)" fill="#FFFFFF" stroke="#9E8E97" stroke-width="0.8" stroke-linejoin="round">
+<path d="M-6 1 L-10 -1 L-9 3Z"></path>
+<ellipse cx="0" cy="1" rx="6" ry="3.4"></ellipse>
+<circle cx="5" cy="-2.2" r="2.4"></circle>
+<path d="M-3 0 Q0 -5 4 -1" fill="none"></path>
+<path d="M7.2 -2.4 L9 -1.8 L7.2 -1.2Z" fill="#E7C78F" stroke="none"></path>
+<circle cx="5.6" cy="-2.6" r="0.5" fill="#45363B" stroke="none"></circle>
+</g></g>
+<g display="{{lambD}}">
+<path d="M45 91v2.5M52 91v2.5" stroke="#A89788" stroke-width="1.4" stroke-linecap="round"></path>
+<ellipse cx="49" cy="87.5" rx="8.5" ry="5.2" fill="#FBF8F3" stroke="#B5A79B" stroke-width="0.9"></ellipse>
+<path d="M43 86q1.5-2 3 0q1.5-2 3 0q1.5-2 3 0q1.5-2 3 0" fill="none" stroke="#E6DDD4" stroke-width="0.8"></path>
+<circle cx="55.2" cy="82.6" r="3.6" fill="#EFE3D9" stroke="#B19F91" stroke-width="0.8"></circle>
+<ellipse cx="53.2" cy="80.6" rx="1.8" ry="1" fill="#E6D3C6" transform="rotate(-30 53.2 80.6)"></ellipse>
+<path d="M55.3 82.6q.8.6 1.6 0" fill="none" stroke="#8A7478" stroke-width="0.8" stroke-linecap="round"></path>
+</g>
+</g>
+
+<g transform="{{headT}}">
+<circle cx="30" cy="34" r="17" fill="#F7E6D8" stroke="#B8957F" stroke-width="0.9"></circle>
+<g display="{{hostEyesD}}">
+<g style="opacity: {{restO}}; transition: opacity 1s ease-in-out">
+<path d="M22.5 36q2.5 2.2 5 0M32.5 36q2.5 2.2 5 0" fill="none" stroke="#45363B" stroke-width="1.1" stroke-linecap="round"></path>
+<path d="M28.2 42q1.8 1.3 3.6 0" fill="none" stroke="#A0716B" stroke-width="0.8" stroke-linecap="round"></path>
+</g>
+<g style="opacity: {{presO}}; transition: opacity 1s ease-in-out">
+<ellipse cx="33" cy="35.5" rx="1.6" ry="2.2" fill="#45363B"></ellipse>
+<ellipse cx="40.5" cy="35.5" rx="1.6" ry="2.2" fill="#45363B"></ellipse>
+<path d="M33.5 42q2.8 2.4 5.6 0" fill="none" stroke="#A0716B" stroke-width="0.9" stroke-linecap="round"></path>
+</g>
+</g>
+<g display="{{pointD}}">
+<ellipse cx="32" cy="36" rx="1.6" ry="2.2" fill="#45363B"></ellipse>
+<ellipse cx="39.5" cy="36" rx="1.6" ry="2.2" fill="#45363B"></ellipse>
+<path d="M34 43q2 1.5 4 0" fill="none" stroke="#A0716B" stroke-width="0.8" stroke-linecap="round"></path>
+</g>
+<g display="{{sitD}}">
+<path d="M22.5 36q2.5 2.2 5 0M32.5 36q2.5 2.2 5 0" fill="none" stroke="#45363B" stroke-width="1.1" stroke-linecap="round"></path>
+<path d="M28.2 42q1.8 1.3 3.6 0" fill="none" stroke="#A0716B" stroke-width="0.8" stroke-linecap="round"></path>
+</g>
+<circle cx="22" cy="40.5" r="2.6" fill="#F2B4AA" opacity="0.55"></circle>
+<circle cx="40" cy="40.5" r="2.6" fill="#F2B4AA" opacity="0.55"></circle>
+
+<g display="{{angelD}}">
+<path d="M13 33Q12 16 30 16Q48 16 47 33Q44 25 37 24Q34 27 30 24Q26 27 23 24Q16 25 13 33Z" fill="#EFDCAE" stroke="#C2A66A" stroke-width="0.8"></path>
+<ellipse cx="30" cy="11" rx="11" ry="2.8" fill="none" stroke="#C9A75E" stroke-width="1.8"></ellipse>
+</g>
+<g display="{{gardenD}}">
+<path d="M14 37Q12 23 20 20H40Q48 23 46 37Q44 31 42 29H18Q16 31 14 37Z" fill="#C9A48C"></path>
+<path d="M16 25Q17 11 30 11Q43 11 44 25Z" fill="#F4D9D3" stroke="#BF9A91" stroke-width="0.8"></path>
+<ellipse cx="30" cy="25" rx="21" ry="5" fill="#F4D9D3" stroke="#BF9A91" stroke-width="0.8"></ellipse>
+<path d="M16.5 21.5Q30 18.5 43.5 21.5" fill="none" stroke="#E9B9C4" stroke-width="2"></path>
+</g>
+<g display="{{shepherdD}}">
+<path d="M12 36Q12 14 30 14Q48 14 48 36L46 48Q44 30 30 27Q16 30 14 48Z" fill="#EFE6CB" stroke="#B8A678" stroke-width="0.8"></path>
+<path d="M14 28Q30 22 46 28" fill="none" stroke="#C9B184" stroke-width="2"></path>
+</g>
+<g display="{{doveHairD}}">
+<circle cx="12" cy="31" r="4.6" fill="#A8826C" stroke="#8A6753" stroke-width="0.8"></circle>
+<circle cx="48" cy="31" r="4.6" fill="#A8826C" stroke="#8A6753" stroke-width="0.8"></circle>
+<path d="M13 33Q12 16 30 16Q48 16 47 33Q45 25 38 23Q30 27 22 23Q15 25 13 33Z" fill="#A8826C" stroke="#8A6753" stroke-width="0.8"></path>
+<path d="M14.5 27.5l-3.5-2.5M45.5 27.5l3.5-2.5" stroke="#E9B9C4" stroke-width="1.6" stroke-linecap="round"></path>
+</g>
+<g display="{{choirD}}">
+<path d="M13 34Q12 16 30 16Q48 16 47 34Q46 26 41 24Q36 28 30 25Q24 28 19 24Q14 26 13 34Z" fill="#C9A48C" stroke="#97735D" stroke-width="0.8"></path>
+</g>
+</g>
+
+</g>
+</g>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"look":{"editor":"enum","options":["angel","garden","shepherd","choir","dove"],"default":"angel"},"pose":{"editor":"enum","options":["sit","stand","host","pull"],"default":"stand"},"present":{"editor":"boolean","default":false},"flap":{"editor":"boolean","default":false},"flip":{"editor":"boolean","default":false},"w":{"editor":null},"h":{"editor":null},"$preview":{"width":120,"height":200}}'>
+var DRESS = {
+  angel: ['#D3DFEC', '#95ABC4'],
+  garden: ['#D3E6D6', '#93B39A'],
+  shepherd: ['#E6D6B9', '#B9A37A'],
+  choir: ['#DCCFEA', '#A794C2'],
+  dove: ['#F1D7D3', '#C99F98']
+};
+class Component extends DCLogic {
+  renderVals() {
+    var look = DRESS[this.props.look] ? this.props.look : 'angel';
+    var pose = ['sit', 'host', 'pull'].indexOf(this.props.pose) >= 0 ? this.props.pose : 'stand';
+    var present = this.props.present === true || this.props.present === 'true';
+    var flip = this.props.flip === true || this.props.flip === 'true';
+    var stand = pose !== 'sit';
+    var pull = pose === 'pull';
+    var host = pose === 'host' || pull;
+    var free = !(pull && !present);
+    var on = function (b) { return b ? 'inline' : 'none'; };
+    return {
+      w: (Number(this.props.w) || 120) + 'px',
+      h: (Number(this.props.h) || 200) + 'px',
+      flipT: flip ? 'translate(60 0) scale(-1 1)' : 'translate(0 0)',
+      headT: stand ? 'translate(0 0)' : 'translate(0 12)',
+      dress: DRESS[look][0],
+      dressLine: DRESS[look][1],
+      flapA: (this.props.flap === true || this.props.flap === 'true') ? 'flap 0.3s ease-in-out infinite alternate' : 'none',
+      standD: on(stand),
+      pointD: on(pose === 'stand' || (pull && !present)),
+      pointArmD: on(pose === 'stand'),
+      pullD: on(pull),
+      pullO: pull && !present ? 1 : 0,
+      pullA: 'haul 1.6s ease-in-out infinite',
+      pullB: 'haul 1.6s ease-in-out -0.8s infinite',
+      freeO: free ? 1 : 0,
+      hostArmO: (pose === 'host' || present) ? 1 : 0,
+      hostD: on(host),
+      hostEyesD: on(host && !(pull && !present)),
+      armRot: host && present ? -86 : 0,
+      turnT: host && present ? 'scaleX(0.9) rotate(3deg)' : (pull ? 'scaleX(1) rotate(-6deg)' : 'scaleX(1) rotate(0deg)'),
+      restO: present ? 0 : 1,
+      
+      presO: present ? 1 : 0,
+      sitD: on(!stand),
+      wingsD: 'inline',
+      angelD: on(look === 'angel'),
+      gardenD: on(look === 'garden'),
+      shepherdD: on(look === 'shepherd'),
+      choirD: on(look === 'choir'),
+      doveHairD: on(look === 'dove'),
+      doveStandD: on(free && stand && look === 'dove'),
+      doveSitD: on(!stand && look === 'dove'),
+      collarD: on(look === 'choir'),
+      crookD: on(free && look === 'shepherd'),
+      flowerStandD: on(free && stand && look === 'garden'),
+      bookStandD: on(free && stand && look === 'choir'),
+      flowerSitD: on(!stand && look === 'garden'),
+      bookSitD: on(!stand && look === 'choir'),
+      lambD: on(!stand && look === 'shepherd')
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -7,6 +7,8 @@ import { DoveIcon } from '@/components/dove-icon';
 import { CornerNav } from '@/components/corner-nav';
 import { useLocale } from '@/lib/i18n';
 import { colors, space } from '@/lib/theme';
+import { isDark } from '@/layouts/motifs';
+import { useSkinHeader } from '@/skins/skin-header';
 
 function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSlotProps & { icon: string | ReactNode; label: string }) {
   return (
@@ -26,6 +28,8 @@ function TabButton({ icon, label, isFocused, ref: _ref, ...props }: TabTriggerSl
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { t, wording } = useLocale();
+  const skin = useSkinHeader();
+  const dark = skin ? isDark(skin.backdrop) : false;
   return (
     <Tabs style={styles.root}>
       <View style={styles.main}>
@@ -33,8 +37,14 @@ export default function TabsLayout() {
         <View style={styles.root}>
           {/* The final logo, top right, with the menu on the left (Steve, 2026-10-31). Hidden for Open Circle (neutral wording, either edition): it has its own brand. */}
           {wording !== 'neutral' ? (
-            <View style={[styles.logoBar, { paddingTop: insets.top + space.xs }]}>
-              <Image source={require('../../../assets/images/prayer-tower-logo.png')} style={styles.logo} accessibilityRole="image" aria-label="The Prayer Tower" testID="app-logo" />
+            <View
+              style={[styles.logoBar, { paddingTop: insets.top + space.xs }, skin ? { backgroundColor: skin.backdrop, borderBottomColor: skin.accent, borderBottomWidth: 3 } : null]}
+              testID={skin ? 'skin-header' : undefined}
+            >
+              {/* On a dark skin the logo's black and red sit on a light plate edged in the skin's own color; the logo is never recolored. */}
+              <View style={dark && skin ? [styles.plate, { borderColor: skin.accent }] : null}>
+                <Image source={require('../../../assets/images/prayer-tower-logo.png')} style={dark ? styles.logoOnPlate : styles.logo} accessibilityRole="image" aria-label="The Prayer Tower" testID="app-logo" />
+              </View>
             </View>
           ) : null}
           <TabSlot style={styles.root} />
@@ -63,6 +73,8 @@ const styles = StyleSheet.create({
   main: { flex: 1, flexDirection: 'row' },
   logoBar: { alignItems: 'flex-end', paddingRight: space.md, paddingBottom: space.xs, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   logo: { width: 67, height: 44 },
+  logoOnPlate: { width: 58, height: 38 },
+  plate: { backgroundColor: '#FFFFFF', borderWidth: 2, borderRadius: 7, padding: 3 },
   // 75% opaque, over the screen so it shows faintly through (Steve, 2026-10-30).
   bar: {
     position: 'absolute',

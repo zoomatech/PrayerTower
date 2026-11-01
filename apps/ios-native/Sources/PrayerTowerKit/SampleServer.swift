@@ -96,8 +96,7 @@ public enum SampleServer {
             ("GET", "^/me$", """
             {"profile":{"id":"\(memberId)","display_name":"Sample Member","bio":"","onboarded_at":"2026-10-01T00:00:00Z"},"roles":["member"],"community":null}
             """),
-            // Circles stay off as in a new community, so the iPhone keeps five tabs (the UI walks tap Me).
-            ("GET", "^/features$", #"{"features":{}}"#),
+            ("GET", "^/features$", #"{"features":{"topicGroups":true}}"#),
             ("GET", "^/feed$", #"{"theme":null,"posts":[\#(ruth),\#(mine)],"pinnedId":null,"nextPage":null}"#),
             ("GET", "^/posts/sample-p1$", #"{"post":\#(ruth)}"#),
             ("GET", "^/posts/sample-p2$", #"{"post":\#(mine)}"#),

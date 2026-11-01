@@ -21,6 +21,24 @@ export function commentTree(all: Comment[]) {
 }
 
 /**
+ * The replies to show under `id` at `level` of a close-up: its own replies, or at the last level
+ * (`max`) every reply further down in order, side by side, so no reply is ever left out however
+ * deep it was posted (Steve: deep chains end in parallel leaves).
+ */
+export function repliesAt(kids: Map<string, Comment[]>, id: string, level: number, max: number): Comment[] {
+  if (level < max) return kids.get(id) ?? [];
+  const out: Comment[] = [];
+  const walk = (p: string) => {
+    for (const r of kids.get(p) ?? []) {
+      out.push(r);
+      walk(r.id);
+    }
+  };
+  walk(id);
+  return out;
+}
+
+/**
  * A post's comments as a tree. Until they load (or while `when` is false, e.g. before the
  * post has scrolled into view) it uses the newest few the feed already sent. `total` is
  * how many top-level comments there are, counting ones not loaded yet.

@@ -47,6 +47,8 @@ struct MainTabs: View {
     @State private var tab = 0
     /// Changed by Home, so the feed starts again from its top screen.
     @State private var home = UUID()
+    /// Menu → Settings, open.
+    @State private var settings = false
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var width
     private var sidebar: Bool { width == .regular }
@@ -86,11 +88,8 @@ struct MainTabs: View {
                     // .tabItem rather than Tab(…), which needs iOS 18; the app supports iOS 17.
                     ForEach(sections) { s in
                         screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
-                            #if os(iOS)
                             // The bar under the feed is 75% opaque (Steve, 2026-10-30).
-                            .toolbarBackground(Color.barBackground.opacity(0.75), for: .tabBar)
-                            .toolbarBackground(.visible, for: .tabBar)
-                            #endif
+                            .seeThroughTabBar()
                     }
                 }
                 // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
@@ -102,6 +101,7 @@ struct MainTabs: View {
         .background { shortcuts }
         .task { await model.loadSettings() }
         .fullScreenCover(isPresented: Binding(get: { model.showTour }, set: { model.showTour = $0 })) { TourView() }
+        .sheet(isPresented: $settings) { SettingsView() }
         .onChange(of: model.openPost) { _, id in if id != nil { tab = 0 } }
         // Store screenshots (scripts/mac-screenshots-native.sh): open the asked-for screen.
         .onAppear {
@@ -118,6 +118,7 @@ struct MainTabs: View {
     }
 
     /// Home (back to the top of the feed) and, right below it, the menu of every section.
+    /// Laid out as `HomeAndMenu`: two 44-point buttons, 6 apart, 2 below the top.
     private var homeAndMenu: some View {
         VStack(spacing: 6) {
             Button {
@@ -131,6 +132,8 @@ struct MainTabs: View {
                 ForEach(menuSections) { s in
                     Button { go(s.tag) } label: { s.label }
                 }
+                // Settings → Themes → Full Screen Sparkler Theme → Background choices (Steve, 2026-11-01).
+                Button { settings = true } label: { Label(model.words("menu.settings"), systemImage: "gearshape") }
             } label: {
                 Image(systemName: "line.3.horizontal").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
             }
@@ -268,5 +271,17 @@ struct FeedStyleSection: View {
             model.feedStyle = slug
             error = nil
         } catch { self.error = error.localizedDescription }
+    }
+}
+
+private extension View {
+    /// The tab bar at 75% opacity. The Mac app has no tab bar to style.
+    @ViewBuilder func seeThroughTabBar() -> some View {
+        #if os(iOS)
+        self.toolbarBackground(Color.barBackground.opacity(0.75), for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+        #else
+        self
+        #endif
     }
 }

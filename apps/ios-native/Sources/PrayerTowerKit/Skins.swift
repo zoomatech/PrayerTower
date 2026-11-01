@@ -78,7 +78,7 @@ public struct FeedThemeChoices: Codable, Sendable, Equatable {
 
 /// `FeedLayoutKind` in packages/shared; an unknown layout is drawn as the column.
 public enum SkinLayout: String, Sendable, CaseIterable {
-    case column, vine, carousel, flip, wall, tower, circuit
+    case column, vine, carousel, flip, wall, tower, circuit, climb, sparkler, ceramic
 }
 
 /// An sRGB color from a `#RRGGBB` token.
@@ -238,6 +238,17 @@ public struct CircuitLook: Sendable, Equatable {
     public func lean(_ index: Int) -> Double { index.isMultiple(of: 2) ? -tilt : tilt }
 }
 
+/// Mountain Climber (`climbTokens()` in layouts/climb.tsx): the rock face and the smoothed squares the posts sit in.
+public struct ClimbLook: Sendable, Equatable {
+    public var backdrop = RGB(hex: "#B8AB96")!
+    public var slab = RGB(hex: "#F1EBE0")!
+
+    public init(_ theme: FeedTheme?) {
+        backdrop = theme?.color("backdrop") ?? backdrop
+        slab = theme?.color("slab") ?? slab
+    }
+}
+
 /// Wall: one post per screen on a dark backdrop.
 public struct WallLook: Sendable, Equatable {
     public var backdrop = RGB(hex: "#101418")!
@@ -271,6 +282,9 @@ public enum Skin {
         case .vine: return VineLook(theme).backdrop
         case .wall: return WallLook(theme).backdrop
         case .circuit: return CircuitLook(theme).backdrop
+        case .climb: return ClimbLook(theme).backdrop
+        case .sparkler: return SparklerLook(theme).backdrop
+        case .ceramic: return CeramicLook(theme).backdrop
         case .tower, .carousel, .flip, .column: return nil
         }
     }
