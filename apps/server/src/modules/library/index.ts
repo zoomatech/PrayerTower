@@ -50,14 +50,14 @@ export function collection(id: CollectionId): Collection {
   return made;
 }
 
-type Settings = Record<'enabled' | 'shareEnabled' | 'dailyEnabled' | 'parallelsEnabled' | 'plansEnabled' | 'wordsEnabled' | 'notesEnabled' | 'offlineEnabled', boolean>;
-const OFF: Settings = { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false, wordsEnabled: false, notesEnabled: false, offlineEnabled: false };
+type Settings = Record<'enabled' | 'shareEnabled' | 'dailyEnabled' | 'parallelsEnabled' | 'plansEnabled' | 'wordsEnabled' | 'notesEnabled' | 'offlineEnabled' | 'listenEnabled' | 'studiesEnabled', boolean>;
+const OFF: Settings = { enabled: false, shareEnabled: false, dailyEnabled: false, parallelsEnabled: false, plansEnabled: false, wordsEnabled: false, notesEnabled: false, offlineEnabled: false, listenEnabled: false, studiesEnabled: false };
 
 export async function settings(q: Queryable) {
   const { rows } = await q.query<Settings>(
     `select enabled, share_enabled as "shareEnabled", daily_enabled as "dailyEnabled", parallels_enabled as "parallelsEnabled",
             plans_enabled as "plansEnabled", words_enabled as "wordsEnabled", notes_enabled as "notesEnabled",
-            offline_enabled as "offlineEnabled" from public.library_settings`,
+            offline_enabled as "offlineEnabled", listen_enabled as "listenEnabled", studies_enabled as "studiesEnabled" from public.library_settings`,
   );
   return rows[0] ?? OFF;
 }
@@ -73,14 +73,17 @@ export const SettingsPatch = z.object({
   wordsEnabled: z.boolean().optional(),
   notesEnabled: z.boolean().optional(),
   offlineEnabled: z.boolean().optional(),
+  listenEnabled: z.boolean().optional(),
+  studiesEnabled: z.boolean().optional(),
 });
 
 export async function updateSettings(q: Queryable, p: z.infer<typeof SettingsPatch>) {
   await q.query(
     `update public.library_settings set enabled = coalesce($1, enabled), share_enabled = coalesce($2, share_enabled),
        daily_enabled = coalesce($3, daily_enabled), parallels_enabled = coalesce($4, parallels_enabled), plans_enabled = coalesce($5, plans_enabled),
-       words_enabled = coalesce($6, words_enabled), notes_enabled = coalesce($7, notes_enabled), offline_enabled = coalesce($8, offline_enabled)`,
-    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null, p.wordsEnabled ?? null, p.notesEnabled ?? null, p.offlineEnabled ?? null],
+       words_enabled = coalesce($6, words_enabled), notes_enabled = coalesce($7, notes_enabled), offline_enabled = coalesce($8, offline_enabled),
+       listen_enabled = coalesce($9, listen_enabled), studies_enabled = coalesce($10, studies_enabled)`,
+    [p.enabled ?? null, p.shareEnabled ?? null, p.dailyEnabled ?? null, p.parallelsEnabled ?? null, p.plansEnabled ?? null, p.wordsEnabled ?? null, p.notesEnabled ?? null, p.offlineEnabled ?? null, p.listenEnabled ?? null, p.studiesEnabled ?? null],
   );
   return settings(q);
 }
@@ -97,6 +100,8 @@ export async function features(q: Queryable) {
     libraryWords: s.enabled && s.wordsEnabled,
     libraryNotes: s.enabled && s.notesEnabled,
     libraryOffline: s.enabled && s.offlineEnabled,
+    libraryListen: s.enabled && s.listenEnabled,
+    libraryStudies: s.enabled && s.studiesEnabled,
   };
 }
 
@@ -184,14 +189,21 @@ export async function search(q: Queryable, userId: string, input: z.infer<typeof
 
 // The daily passage --------------------------------------------------------------------
 
-const candidates = new Map<CollectionId, number[]>();
+const candidates = new Map<string, number[]>();
 
-/** Passages short enough for a card, in order; picked from by the day. */
-function cardPassages(id: CollectionId) {
-  const known = candidates.get(id);
+/** Religious words an Open Circle screen never shows (docs/OPEN_CIRCLE.md, as the Open Circle walk checks). */
+const FAITH_WORDS = /\b(pray\w*|god|lord|jesus|christ\w*|bible|psalms?|gospel|ministry|worship\w*|spiritual|church\w*|amen|blessed|scripture|priestly|pastor\w*|testimon\w*|confession\w*|faith|prais\w*)\b/i;
+
+/** Passages short enough for a card, in order; picked from by the day. In Open Circle, only those with no religious word in their words or citation. */
+function cardPassages(id: CollectionId, secular: boolean) {
+  const key = `${id}:${secular}`;
+  const known = candidates.get(key);
   if (known) return known;
-  const list = collection(id).index.passages.flatMap((p, i) => (p.text.length >= 60 && p.text.length <= 320 ? [i] : []));
-  candidates.set(id, list);
+  const c = collection(id);
+  const list = c.index.passages.flatMap((p, i) =>
+    p.text.length >= 60 && p.text.length <= 320 && !(secular && FAITH_WORDS.test(`${p.text}\n${citation(id, p.ref, c.works.get(p.workId)!)}`)) ? [i] : [],
+  );
+  candidates.set(key, list);
   return list;
 }
 
@@ -208,7 +220,7 @@ export async function daily(q: Queryable, userId: string, day = new Date().toISO
   const ids = f.libraryDaily ? await offered(q, userId) : null;
   if (!ids) return { enabled: false as const };
   const id: CollectionId = ids.includes('bible-kjv') ? 'bible-kjv' : 'ancient-writings';
-  const list = cardPassages(id);
+  const list = cardPassages(id, id !== 'bible-kjv');
   const c = collection(id);
   const p = c.index.passages[list[dayNumber(day) % list.length]!]!;
   const work = c.works.get(p.workId)!;

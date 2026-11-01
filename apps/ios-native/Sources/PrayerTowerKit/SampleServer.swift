@@ -85,7 +85,12 @@ public enum SampleServer {
         let l = Lines.of(edition)
         let ruth = card("sample-p1", "Ruth", mine: false, l.ruth)
         let mine = card("sample-p2", "Sample Member", mine: true, "Asking for strength for my new job.")
+        // Groups (Steve, 2026-10-31): Prayer Tower's first group. Open Circle members don't see it.
+        let groups = edition == .openCircle ? "" : #"{"id":"sample-g1","name":"Cancer survivors","about":"For cancer survivors to pray for, encourage and get to know one another.","members":14,"joined":true,"isLeader":false,"leader":null}"#
+        let groupPost = #"{"id":"sample-gp1","author":{"id":"sample-ruth","displayName":"Ruth"},"body":"Five years clear this week. Glad to find you all.","createdAt":"2026-10-31T09:00:00Z","prayed":6,"prayedByMe":false,"canRemove":false,"comments":[{"id":"sample-gc1","author":{"id":"sample-sam","displayName":"Sam"},"body":"So happy for you!","createdAt":"2026-10-31T10:00:00Z","canRemove":false}]}"#
         return [
+            ("GET", "^/topic-groups$", #"{"groups":[\#(groups)]}"#),
+            ("GET", "^/topic-groups/sample-g1$", #"{"group":\#(groups),"posts":[\#(groupPost)]}"#),
             ("GET", "^/radio/listen$", #"{"enabled":true,"receipts":true}"#),
             ("POST", "^/listen/heard$", #"{"matched":0}"#),
             ("GET", "^/me$", """
