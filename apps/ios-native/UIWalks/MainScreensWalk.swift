@@ -61,6 +61,7 @@ final class MainScreensWalk: XCTestCase {
     func testEveryScreenPassesTheAccessibilityAudit() throws {
         XCTAssertTrue(shows("Please pray for my mother's surgery"))
         var issues: [String] = []
+        var described: Set<String> = []
         func audit(_ screen: String) throws {
             // Only what is wholly on screen between the bars, as in AccessibilityAuditTests: words
             // passing under the see-through tab bar are read once scrolled clear of it, not through it.
@@ -82,6 +83,14 @@ final class MainScreensWalk: XCTestCase {
                 if issue.auditType == .contrast, issue.element?.isEnabled == false { return true }
                 if let label = issue.element?.label, !label.isEmpty, !label.contains(where: { $0.isLetter || $0.isNumber }) { return true }
                 let what = issue.element.map { "\($0.elementType) '\($0.label)'" } ?? "screen"
+                // An issue Apple names no element for: list what is on screen, once per screen, so the
+                // CI log shows what it could be (CI's Xcode flags these where a Mac's newer one doesn't).
+                if issue.element == nil, !described.contains(screen) {
+                    described.insert(screen)
+                    for line in app.debugDescription.split(separator: "\n") where line.contains("{{") {
+                        print("WALKDIAG \(screen): \(line.trimmingCharacters(in: .whitespaces))")
+                    }
+                }
                 issues.append("\(screen): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
                 return true
             }
