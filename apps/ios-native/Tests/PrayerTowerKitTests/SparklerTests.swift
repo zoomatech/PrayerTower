@@ -42,4 +42,23 @@ final class SparklerTests: XCTestCase {
         // Never past the end of the feed.
         XCTAssertEqual(Sparkler.tip(scrolled: 4800, screen: 800, reached: 0, feedHeight: 5000), 5000, accuracy: 0.001)
     }
+
+    func testASwipeThrowsTheSparklerAheadAtMostATenthOfTheScreen() {
+        XCTAssertEqual(Sparkler.lead(0, delta: 100, screen: 800), 45, accuracy: 0.001)
+        XCTAssertEqual(Sparkler.lead(60, delta: 400, screen: 800), 80, accuracy: 0.001)
+        XCTAssertEqual(Sparkler.lead(0, delta: -400, screen: 800), -40, accuracy: 0.001)
+    }
+
+    func testTheTrailOfSparkleFadesOutTowardTheTopOfTheScreen() {
+        let all = Sparkler.glitter(scrolled: 500, top: 0, tip: 700, time: 1)
+        XCTAssertFalse(all.isEmpty)
+        XCTAssertTrue(all.allSatisfy { $0.y >= 0 && $0.y < 700 })
+        // Nothing in the top tenth; brighter near the tip than halfway up.
+        XCTAssertTrue(all.filter { $0.y < 50 }.isEmpty)
+        let low = all.filter { $0.y > 560 }.map(\.opacity).max() ?? 0
+        let mid = all.filter { $0.y > 250 && $0.y < 350 }.map(\.opacity).max() ?? 0
+        XCTAssertGreaterThan(low, mid)
+        // It rides with the feed: the same glint 13 points further down the feed sits 13 points higher on screen.
+        XCTAssertEqual(Sparkler.glitter(scrolled: 0, top: 0, tip: 700, time: 1).count > 0, true)
+    }
 }

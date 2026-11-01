@@ -15,7 +15,7 @@
 //   * The poster's profile picture sits in the upper right corner of the post's square.
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
 import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Svg, { Circle, G, Line, Path } from 'react-native-svg';
 
@@ -52,8 +52,8 @@ const TOP_ROOM = 58;
 /** How far comments, and then their replies, sit in from the post's words. */
 const COMMENT_INDENT = 18;
 const REPLY_INDENT = 18;
-/** The separator: a black line with a light blue line through its middle. */
-export const SEPARATOR = { height: 8, stripe: 2 };
+/** The separator: a black line with a glowing light blue line through its middle, made bold (Steve: accentuate the divider). */
+export const SEPARATOR = { height: 16, stripe: 4 };
 /** The profile picture in the square's upper right corner. */
 const PIC = 48;
 /** Comments shown when a post's comments open. */
@@ -203,7 +203,7 @@ function ProfilePic({ card }: { card: Card }) {
 export function Separator({ tokens }: { tokens: SparklerTokens }) {
   return (
     <View style={[styles.separator, { backgroundColor: tokens.backdrop }]} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={[styles.stripe, { backgroundColor: tokens.stripe }]} />
+      <View style={[styles.stripe, { backgroundColor: tokens.stripe, boxShadow: `0 0 6px ${tokens.stripe}` }]} />
     </View>
   );
 }
@@ -316,8 +316,12 @@ function Comments({ card, ink, stripe, still }: { card: Card; ink: Ink; stripe: 
         accessibilityRole="button"
         aria-expanded={false}
         accessibilityHint={t('sparkler.open')}
-        style={styles.comments}
+        style={[styles.comments, styles.closed, { backgroundColor: `${ink.text}12`, borderLeftColor: stripe }]}
         testID={`sparkler-comments-${card.id}`}>
+        {/* Plainly comments: a speech bubble and how many (Steve: the folded look alone didn't say so). */}
+        <Text style={[styles.count, { color: ink.text }]} testID={`sparkler-count-${card.id}`}>
+          💬 {t('sparkler.comments', { count })} ▾
+        </Text>
         <Text style={[styles.commentText, { color: ink.text }]} numberOfLines={1} testID={`sparkler-first-line-${card.id}`}>
           <Text style={styles.replyName}>{first.author.displayName}: </Text>
           {first.body}
@@ -329,7 +333,6 @@ function Comments({ card, ink, stripe, still }: { card: Card; ink: Ink; stripe: 
                 <FoldedEdge key={i} ink={ink.muted} down={i % 2 === 0} inset={i * 18} />
               ))}
             </View>
-            <Text style={[styles.moreReplies, { color: ink.muted }]}>{t('sparkler.more', { n: more })}</Text>
           </>
         ) : null}
       </Pressable>
@@ -387,21 +390,80 @@ const PostSquare = memo(function PostSquare({ card, index, tokens, bg, pinned, s
   );
 });
 
+/** How far ahead of its resting place a swipe throws the sparkler: at most a tenth of the screen down, a twentieth up (Kit Sparkler.lead). */
+export function swipeLead(lead: number, delta: number, screen: number) {
+  return Math.min(screen * 0.1, Math.max(-screen * 0.05, lead + delta * 0.45));
+}
+
+/**
+ * The trail of sparkle the sparkler leaves on the line behind it (Kit Sparkler.glitter): set every
+ * 13 points along the feed itself so it rides up with the posts, brightest just behind the tip and
+ * gone near the top of the screen, each glint twinkling in its own time.
+ */
+export function glitter(scrolled: number, top: number, tip: number, time: number) {
+  const out: { y: number; dx: number; r: number; opacity: number; color: string }[] = [];
+  if (tip <= top + 4) return out;
+  const step = 13;
+  for (let k = Math.floor((scrolled + top) / step); ; k++) {
+    const rnd = seeded(k * 7919 + 17);
+    const y = k * step + rnd() * step - scrolled;
+    if (y > tip - 6) break;
+    if (y < top) continue;
+    const along = (y - top) / Math.max(1, tip - top);
+    const fade = Math.pow(Math.max(0, Math.min(1, (along - 0.08) / 0.92)), 1.6);
+    const speed = 4 + rnd() * 5;
+    const twinkle = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(time * speed + rnd() * 6.28));
+    const opacity = fade * twinkle;
+    const dx = (rnd() - 0.5) * 14;
+    const r = 1.5 + rnd() * 2.5 * (0.4 + along);
+    const color = SPARK_COLORS[Math.floor(rnd() * SPARK_COLORS.length) % SPARK_COLORS.length]!;
+    if (opacity > 0.04) out.push({ y, dx, r, opacity, color });
+  }
+  return out;
+}
+
+/** The glitter along the line, twinkling (still under Reduce Motion). */
+function SparkleTrail({ top, tip, scrolled, still }: { top: number; tip: number; scrolled: number; still: boolean }) {
+  const [time, setTime] = useState(0);
+  useEffect(() => {
+    if (still) return;
+    const id = setInterval(() => setTime(Date.now() / 1000), 50);
+    return () => clearInterval(id);
+  }, [still]);
+  const glints = glitter(scrolled, top, tip, time);
+  if (!glints.length) return null;
+  return (
+    <Svg aria-hidden width={LINE_X + 20} height={Math.max(1, tip)} style={{ position: 'absolute', left: 0, top: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="sparkler-trail">
+      {glints.map((g, i) => (
+        <G key={i} opacity={g.opacity}>
+          <Line x1={LINE_X + g.dx - g.r} y1={g.y} x2={LINE_X + g.dx + g.r} y2={g.y} stroke={g.color} strokeWidth={1.2} strokeLinecap="round" />
+          <Line x1={LINE_X + g.dx} y1={g.y - g.r} x2={LINE_X + g.dx} y2={g.y + g.r} stroke={g.color} strokeWidth={1.2} strokeLinecap="round" />
+        </G>
+      ))}
+    </Svg>
+  );
+}
+
 /** The one line down the feed, over the posts, as far as it has grown on screen, and the sparkler at its tip. */
-function TheLine({ top, tip, atEnd, stripe, still }: { top: number; tip: number; atEnd: boolean; stripe: string; still: boolean }) {
+function TheLine({ top, rest, end, lead, scrolled, stripe, still }: { top: number; rest: number; end: number; lead: Animated.Value; scrolled: number; stripe: string; still: boolean }) {
   const room = GLOW_REACH + 4;
-  const h = Math.max(0, tip - top);
+  const tip = Math.min(rest, end);
+  const atEnd = rest >= end - 1;
+  // The swipe throws the tip on ahead of where it rests; it springs back as the screen catches up.
+  const ahead = atEnd ? 0 : lead;
+  const tall = Math.max(0, tip - top) + 120;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="sparkler-line">
-      {h > 0 ? (
-        <Svg aria-hidden width={LINE_X + room} height={h} style={{ position: 'absolute', left: 0, top }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${h}`} color={stripe} width={5} />
+      <Animated.View style={{ position: 'absolute', left: 0, top, width: LINE_X + room, overflow: 'hidden', height: Animated.add(Math.max(0, tip - top), ahead) }}>
+        <Svg aria-hidden width={LINE_X + room} height={tall} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${tall}`} color={stripe} width={5} />
         </Svg>
-      ) : null}
+      </Animated.View>
+      <SparkleTrail top={top} tip={tip} scrolled={scrolled} still={still} />
       {!atEnd ? (
-        <View style={[styles.tip, { top: tip - SPARK_BOX / 2 }]} testID="sparkler-tip">
+        <Animated.View style={[styles.tip, { top: tip - SPARK_BOX / 2, transform: [{ translateY: ahead }] }]} testID="sparkler-tip">
           <Sparkler still={still} />
-        </View>
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -421,10 +483,26 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
       const n = { ...v, ...next };
       return { ...n, reached: lineTip(n.scrolled, n.screen, 0, n.feed, TIP_AT) };
     });
+  // How far a swipe has thrown the sparkler ahead (Steve: the swipe moves the sparkler down, then
+  // the screen catches up to where it went, with a bounce).
+  const [lead] = useState(() => new Animated.Value(0));
+  const ahead = useRef(0);
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+    const delta = contentOffset.y - view.scrolled;
     move({ scrolled: contentOffset.y, screen: layoutMeasurement.height, feed: contentSize.height });
+    if (still || Math.abs(delta) < 0.5) return;
+    ahead.current = swipeLead(ahead.current, delta, layoutMeasurement.height);
+    lead.stopAnimation();
+    lead.setValue(ahead.current);
+    if (settle.current) clearTimeout(settle.current);
+    settle.current = setTimeout(() => {
+      ahead.current = 0;
+      Animated.spring(lead, { toValue: 0, bounciness: 12, speed: 10, useNativeDriver: false }).start();
+    }, 90);
   };
+  useEffect(() => () => void (settle.current && clearTimeout(settle.current)), []);
   // Room under the last post, so the line can grow all the way down past it.
   const tail = Math.round((view.screen || 800) * (1 - TIP_AT)) + 40;
   return (
@@ -455,7 +533,7 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
         onContentSizeChange={(_w, h) => move({ feed: h })}
       />
       {/* The line starts at the first post and is drawn on screen from there to the tip. */}
-      {view.screen ? <TheLine top={Math.max(0, -view.scrolled)} tip={view.reached - view.scrolled} atEnd={view.feed > 0 && view.reached >= view.feed - 1} stripe={tokens.stripe} still={still} /> : null}
+      {view.screen ? <TheLine top={Math.max(0, -view.scrolled)} rest={view.reached - view.scrolled} end={view.feed > 0 ? view.feed - view.scrolled : Infinity} lead={lead} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
       </View>
     </View>
   );
@@ -474,6 +552,9 @@ const styles = StyleSheet.create({
   stripe: { height: SEPARATOR.stripe },
   tip: { position: 'absolute', left: LINE_X - SPARK_BOX / 2, width: SPARK_BOX, height: SPARK_BOX + TRAIL },
   comments: { marginTop: space.md, gap: space.md, marginLeft: COMMENT_INDENT },
+  // The indent made plain: a tinted panel set in from the post's words, with a strong rule down its left.
+  closed: { gap: 6, borderLeftWidth: 4, borderRadius: 6, paddingVertical: 10, paddingLeft: 12, paddingRight: 10 },
+  count: { fontSize: 16, fontWeight: '700' },
   comment: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.sm },
   folds: { gap: 2, marginTop: 4 },
   edge: { height: 7, borderRadius: 1.5, borderWidth: StyleSheet.hairlineWidth, opacity: 0.45, overflow: 'hidden' },

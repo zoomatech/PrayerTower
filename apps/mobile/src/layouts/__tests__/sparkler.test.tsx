@@ -8,7 +8,7 @@ import SparklerBackgrounds from '@/app/sparkler-backgrounds';
 import { api } from '@/lib/api';
 import { flowerPoints, petalPath, SPARKLER_BACKGROUNDS, SPARKLER_GROUPS, sparklerBackground, starPoints } from '@/lib/sparkler-backgrounds';
 import { lineTip } from '@/lib/draw-in';
-import { inkFor, sparklerTokens, SparklerLayout, sparks, TIP_AT } from '@/layouts/sparkler';
+import { glitter, inkFor, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -71,6 +71,28 @@ const thread = (n: number) => [
   { id: 'r2', parentId: 'c1', body: 'Amen.', isUpdate: false, createdAt: '2026-11-01T11:06:00Z', author: { displayName: 'Ann' } },
 ];
 
+describe('Full Screen Sparkler motion', () => {
+  it('throws the sparkler ahead in a swipe, at most a tenth of the screen, for the screen to catch up to', () => {
+    expect(swipeLead(0, 100, 800)).toBeCloseTo(45);
+    expect(swipeLead(60, 400, 800)).toBeCloseTo(80);
+    expect(swipeLead(0, -400, 800)).toBeCloseTo(-40);
+  });
+
+  it('leaves a trail of sparkle behind the sparkler that dies away near the top of the screen', () => {
+    const all = glitter(500, 0, 700, 1);
+    expect(all.length).toBeGreaterThan(10);
+    expect(all.every((g) => g.y >= 50 && g.y < 700)).toBe(true);
+    const near = Math.max(...all.filter((g) => g.y > 560).map((g) => g.opacity));
+    const mid = Math.max(...all.filter((g) => g.y > 250 && g.y < 350).map((g) => g.opacity));
+    expect(near).toBeGreaterThan(mid);
+  });
+
+  it('makes the divider between prayer requests bold', () => {
+    expect(SEPARATOR.height).toBeGreaterThanOrEqual(16);
+    expect(SEPARATOR.stripe).toBeGreaterThanOrEqual(4);
+  });
+});
+
 describe('Full Screen Sparkler feed', () => {
   it('puts the poster\'s picture in the corner of each square and a separator after each', async () => {
     (api.comments as jest.Mock).mockResolvedValue({ comments: [] });
@@ -85,6 +107,8 @@ describe('Full Screen Sparkler feed', () => {
     const card = sampleCard({ counts: { ...sampleCard().counts, comments: 12 } });
     await renderApp(layout([card]));
     const first = await screen.findByTestId(`sparkler-first-line-${card.id}`);
+    // Plainly comments, and how many.
+    expect(screen.getByText(/12 comments/)).toBeTruthy();
     expect(first.props.numberOfLines).toBe(1);
     expect(screen.getByTestId(`sparkler-folds-${card.id}`, { includeHiddenElements: true })).toBeTruthy();
     expect(screen.queryByTestId('sparkler-comment-c2')).toBeNull();

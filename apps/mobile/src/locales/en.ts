@@ -2333,6 +2333,7 @@ const en = {
     fold: 'Folds the comments closed',
     more: '%{n} more comments',
     moreReplies: { one: '1 more reply. Tap to show it', other: '%{count} more replies. Tap to show them' },
+    comments: { one: '1 comment', other: '%{count} comments' },
   },
   themes: {
     settings: 'Settings',

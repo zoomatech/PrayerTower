@@ -25,10 +25,15 @@ struct SparklerFeed<Row: View>: View {
     /// How far the feed has scrolled, and how tall it is.
     @State private var scrolled: Double = 0
     @State private var feedHeight: Double = 0
+    /// How far the sparkler has rushed ahead of its resting place in a swipe (Steve: the swipe
+    /// moves the sparkler down, then the screen catches up to where it went, with a bounce).
+    @State private var lead: Double = 0
+    @State private var settle: Task<Void, Never>?
 
     var body: some View {
         let words = Words(wording)
         let bg = Sparkler.background(chosen)
+        let moving = !(still || GrowingIn<EmptyView>.frozen)
         VStack(spacing: 0) {
         // Black room under the Home and Menu buttons, held still above the feed, so they never sit
         // on a post's words however far it scrolls.
@@ -47,9 +52,10 @@ struct SparklerFeed<Row: View>: View {
             .accessibilityHidden(true)
         GeometryReader { geo in
             let screen = Double(geo.size.height)
-            // The tip always rides at the same place on screen, sparkler and all, so it is never
-            // lost from sight and the line always runs on down toward the foot of the screen.
-            let tip = Sparkler.tip(scrolled: scrolled, screen: screen, reached: 0, feedHeight: feedHeight)
+            // The tip rests at the same place on screen near its foot, so it is never lost from
+            // sight and the line always runs on down; in a swipe it rushes ahead of that.
+            let rest = Sparkler.tip(scrolled: scrolled, screen: screen, reached: 0, feedHeight: feedHeight) - scrolled
+            let end = feedHeight - scrolled
             // Up and down only.
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
@@ -67,42 +73,67 @@ struct SparklerFeed<Row: View>: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: screen * (1 - Sparkler.tipAt) + 40, alignment: .top)
                 }
-                // The one line down the whole feed, over the posts, with the sparkler at its tip.
-                .overlay(alignment: .topLeading) {
-                    SparklerLine(from: max(0, scrolled - 60), tip: tip, atEnd: feedHeight > 0 && tip >= feedHeight - 1, stripe: Color(look.stripe), still: still || GrowingIn<EmptyView>.frozen)
-                }
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(sparklerSpace)) } action: { r in
-                    scrolled = Double(-r.minY)
+                    let now = Double(-r.minY)
+                    let delta = now - scrolled
+                    scrolled = now
                     feedHeight = Double(r.height)
+                    guard moving, abs(delta) > 0.5 else { return }
+                    // The swipe throws the sparkler on ahead, down (or up) the way it is going...
+                    withAnimation(.interactiveSpring(duration: 0.16)) {
+                        lead = Sparkler.lead(lead, delta: delta, screen: screen)
+                    }
+                    // ...and when the swipe ends, the screen catches up to where it went, with a bounce.
+                    settle?.cancel()
+                    settle = Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(90))
+                        guard !Task.isCancelled else { return }
+                        withAnimation(.spring(duration: 0.6, bounce: 0.45)) { lead = 0 }
+                    }
                 }
             }
             .coordinateSpace(name: sparklerSpace)
+            // The one line down the feed, over the posts, with the sparkler at its tip and a trail
+            // of sparkle behind it.
+            .overlay(alignment: .topLeading) {
+                SparklerLine(top: max(0, -scrolled), rest: rest, lead: lead, end: end, scrolled: scrolled, stripe: Color(look.stripe), still: !moving)
+            }
         }
         }
         .background(Color(look.backdrop))
     }
 }
 
-/// The line down the left of the feed, grown to `tip`, and the sparkler burning at its end.
+/// The line down the left of the screen, from the top of the feed to the tip, with a trail of
+/// sparkle along it that thins out toward the top of the screen, and the sparkler burning at its
+/// end. Drawn in the screen's own points.
 private struct SparklerLine: View {
-    /// Only the part from here (just above the screen's top) is drawn; above it is off screen.
-    let from: Double
-    let tip: Double
-    let atEnd: Bool
+    /// Where the feed's first post starts on screen (0 once scrolled past it).
+    let top: Double
+    /// Where the tip rests on screen, how far a swipe has thrown it ahead, and where the feed ends.
+    let rest: Double
+    let lead: Double
+    let end: Double
+    let scrolled: Double
     let stripe: Color
     let still: Bool
 
     var body: some View {
+        let tip = min(rest + lead, end)
+        let atEnd = tip >= end - 1
         ZStack(alignment: .topLeading) {
-            Canvas { ctx, _ in
+            Canvas { ctx, size in
                 var line = Path()
                 line.move(to: CGPoint(x: 30, y: 0))
-                line.addLine(to: CGPoint(x: 30, y: max(0, tip - from)))
+                line.addLine(to: CGPoint(x: 30, y: Double(size.height)))
                 // The shared glass look, in the stripe's light blue.
                 NeonGlassLook(color: stripe, white: 0.8).stroke(line, width: Sparkler.lineWidth, in: ctx)
             }
-            .frame(width: 60, height: max(1, tip - from))
-            .offset(x: Sparkler.lineX - 30, y: min(from, tip))
+            .frame(width: 60, height: max(1, tip - top))
+            .offset(x: Sparkler.lineX - 30, y: min(top, tip))
+            SparkleTrail(top: top, tip: tip, scrolled: scrolled, still: still)
+                .frame(width: 60, height: max(1, tip))
+                .offset(x: Sparkler.lineX - 30)
             if !atEnd {
                 SparklerTip(still: still)
                     .offset(x: Sparkler.lineX - SparklerTip.size / 2, y: tip - SparklerTip.size / 2)
@@ -111,6 +142,38 @@ private struct SparklerLine: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+/// Glitter left along the line behind the sparkler: bright near the tip, fading away toward the
+/// top of the screen, twinkling, and carried up with the posts as they scroll, so the line itself
+/// is plainly moving.
+private struct SparkleTrail: View {
+    let top: Double
+    let tip: Double
+    let scrolled: Double
+    let still: Bool
+
+    var body: some View {
+        if still {
+            Canvas { ctx, size in draw(ctx, size: size, time: 0) }
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { t in
+                Canvas { ctx, size in draw(ctx, size: size, time: t.date.timeIntervalSinceReferenceDate) }
+            }
+        }
+    }
+
+    private func draw(_ ctx: GraphicsContext, size: CGSize, time: Double) {
+        for g in Sparkler.glitter(scrolled: scrolled, top: top, tip: tip, time: time) {
+            let color = Color(Sparkler.sparkColors[g.color]).opacity(g.opacity)
+            let x = 30 + g.dx
+            var star = Path()
+            star.move(to: CGPoint(x: x - g.r, y: g.y)); star.addLine(to: CGPoint(x: x + g.r, y: g.y))
+            star.move(to: CGPoint(x: x, y: g.y - g.r)); star.addLine(to: CGPoint(x: x, y: g.y + g.r))
+            ctx.stroke(star, with: .color(color), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+            ctx.fill(Path(ellipseIn: CGRect(x: x - g.r * 0.35, y: g.y - g.r * 0.35, width: g.r * 0.7, height: g.r * 0.7)), with: .color(color))
+        }
     }
 }
 
@@ -143,7 +206,10 @@ private struct SparklerPost<Row: View>: View {
             // A black line with a light blue line through its middle.
             Color(look.backdrop)
                 .frame(height: Sparkler.separatorHeight)
-                .overlay { Color(look.stripe).frame(height: Sparkler.stripeHeight) }
+                .overlay {
+                    Color(look.stripe).frame(height: Sparkler.stripeHeight)
+                        .shadow(color: Color(look.stripe), radius: 4)
+                }
                 .accessibilityHidden(true)
         }
         .task(id: card.counts.comments) {
@@ -405,25 +471,33 @@ private struct SparklerComments: View {
             guard opens > 0 else { return }
             withAnimation(unfold) { openTo = opens }
         } label: {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                // Plainly comments: a speech-bubble and how many (Steve: the folded look alone didn't say so).
+                HStack(spacing: 6) {
+                    Image(systemName: "bubble.left.and.bubble.right.fill").font(.subheadline)
+                    Text(words("sparkler.comments", count: more + 1)).sparklerFont(.subheadline, weight: .bold)
+                    Image(systemName: "chevron.down").font(.caption.weight(.bold))
+                }
+                .foregroundStyle(Color(ink.text))
                 (Text("\(first.author): ").bold() + Text(first.body))
                     .sparklerFont(.body).foregroundStyle(Color(ink.text))
                     .lineLimit(1)
-                    .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
                 if more > 0 {
                     // The folded-up comments: creased paper edges, each a little narrower.
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         ForEach(0..<min(3, more), id: \.self) { i in
                             FoldedEdge(ink: Color(ink.muted), down: i % 2 == 0)
-                                .frame(height: 7)
+                                .frame(height: 8)
                                 .padding(.trailing, Double(i) * 18)
                         }
                     }
-                    .padding(.top, 4)
-                    Text(words("sparkler.more", ["n": "\(more)"])).sparklerFont(.footnote, weight: .bold).foregroundStyle(Color(ink.muted))
-                        .padding(.top, 4)
                 }
             }
+            .padding(.vertical, 10).padding(.leading, 12).padding(.trailing, 10)
+            // The indent made plain: a tinted panel set in from the post's words, with a strong rule down its left.
+            .background(Color(ink.text).opacity(0.07), in: .rect(cornerRadius: 6))
+            .overlay(alignment: .leading) { stripe.frame(width: 4).clipShape(.rect(cornerRadius: 2)) }
             .contentShape(.rect)
         }
         .buttonStyle(.plain)

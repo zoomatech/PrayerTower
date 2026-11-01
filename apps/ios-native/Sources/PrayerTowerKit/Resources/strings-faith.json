@@ -3335,6 +3335,8 @@
  "skins.treeHint": "Each comment is a leaf. A branch shows a few leaves and the rest fade into a blur until tapped. Replies stop at the number of levels below, so a back-and-forth chain can’t grow.",
  "skins.video": "Longest video, in seconds",
  "skins.videoHint": "Longer clips are left out in the composer and refused by the server. 7 seconds keeps the free plan’s storage and data in reach.",
+ "sparkler.comments.one": "1 comment",
+ "sparkler.comments.other": "%{count} comments",
  "sparkler.end": "You have reached the end. Pull down for new posts.",
  "sparkler.fold": "Folds the comments closed",
  "sparkler.more": "%{n} more comments",

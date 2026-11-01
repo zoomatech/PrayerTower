@@ -25,9 +25,10 @@ public enum Sparkler {
     /// How far down the screen the line's tip (and its sparkler) rides: near the bottom, just above
     /// the tab bar, so the line never seems to stop short of the screen's foot (Steve, 2026-11-01).
     public static let tipAt: Double = 0.84
-    /// The separator: 8 points of black with a 2-point light blue line through its middle.
-    public static let separatorHeight: Double = 8
-    public static let stripeHeight: Double = 2
+    /// The separator: 16 points of black with a 4-point glowing light blue line through its middle
+    /// (Steve: accentuate the divider between prayer requests).
+    public static let separatorHeight: Double = 16
+    public static let stripeHeight: Double = 4
     /// Comments shown when a post's comments open.
     public static let opened = 5
     /// The member's choice is kept on the device under this key.
@@ -84,6 +85,41 @@ public enum Sparkler {
     public static func tip(scrolled: Double, screen: Double, reached: Double, feedHeight: Double) -> Double {
         let now = max(0, scrolled) + screen * tipAt
         return min(max(reached, now), max(0, feedHeight))
+    }
+
+    /// How far ahead of its resting place a swipe throws the sparkler: on along the way the feed is
+    /// moving, at most a tenth of the screen down (or a twentieth up), so the screen then catches up
+    /// to where it went (Steve, 2026-11-01).
+    public static func lead(_ lead: Double, delta: Double, screen: Double) -> Double {
+        min(screen * 0.1, max(-screen * 0.05, lead + delta * 0.45))
+    }
+
+    /// One glint of the trail of sparkle the sparkler leaves on the line behind it.
+    public struct Glint: Sendable, Equatable { public let y, dx, r, opacity: Double; public let color: Int }
+
+    /// The glitter on the line between `top` and `tip` (screen points): set every 13 points along the
+    /// feed itself so it rides up with the posts, brightest just behind the tip and gone near the
+    /// top of the screen, each glint twinkling in its own time.
+    public static func glitter(scrolled: Double, top: Double, tip: Double, time: Double) -> [Glint] {
+        guard tip > top + 4 else { return [] }
+        let step = 13.0
+        var out: [Glint] = []
+        var k = Int(((scrolled + top) / step).rounded(.down))
+        while true {
+            var rnd = Seeded(k &* 7919 &+ 17)
+            let y = Double(k) * step + rnd.next() * step - scrolled
+            k += 1
+            if y > tip - 6 { break }
+            if y < top { continue }
+            // Fades to nothing near the top of the screen.
+            let along = (y - top) / max(1, tip - top)
+            let fade = pow(max(0, min(1, (along - 0.08) / 0.92)), 1.6)
+            let twinkle = 0.45 + 0.55 * (0.5 + 0.5 * sin(time * (4 + rnd.next() * 5) + rnd.next() * 6.28))
+            let o = fade * twinkle
+            guard o > 0.04 else { continue }
+            out.append(Glint(y: y, dx: (rnd.next() - 0.5) * 14, r: 1.5 + rnd.next() * 2.5 * (0.4 + along), opacity: o, color: Int(rnd.next() * Double(sparkColors.count)) % sparkColors.count))
+        }
+        return out
     }
 
     /// The same numbers every time for the same seed (the Expo app's generator).
