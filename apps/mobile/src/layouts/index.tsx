@@ -10,6 +10,7 @@ import { CircuitLayout } from './circuit';
 import { ClimbLayout } from './climb';
 import { ColumnLayout } from './column';
 import { FlipLayout } from './flip';
+import { SparklerLayout } from './sparkler';
 import { TowerLayout } from './tower';
 import { BeanstalkLayout } from './beanstalk';
 import { VineLayout, vineTokens } from './vine';
@@ -53,6 +54,7 @@ const layouts: Partial<Record<FeedLayoutKind, FeedLayout>> = {
   tower: TowerLayout,
   circuit: CircuitLayout,
   climb: ClimbLayout,
+  sparkler: SparklerLayout,
 };
 
 export function layoutFor(theme: FeedTheme | null): FeedLayout {
