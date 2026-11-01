@@ -961,15 +961,8 @@ private struct BeanReader: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollIndicatorsFlash(onAppear: true)
-            // The words fade out at the strip and at the foot instead of being sliced by an edge,
-            // which also shows there is more to scroll to.
-            .mask {
-                VStack(spacing: 0) {
-                    LinearGradient(colors: [.black.opacity(0), .black], startPoint: .top, endPoint: .bottom).frame(height: 12)
-                    Rectangle()
-                    LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom).frame(height: 28)
-                }
-            }
+            // The scroll bar flashes on opening, to show there is more below; no fade, as faded
+            // words can't be read.
         }
         // A square, as large as the screen allows; longer threads scroll inside it, and the words
         // never show past its edges (never up over the poster's name).
