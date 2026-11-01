@@ -105,7 +105,8 @@ final class AccessibilityAuditTests: XCTestCase {
             if now == last { break }
             last = now
         }
-        sleep(1)
+        // Then the time a post takes to grow in once it comes into view, so none is caught mid-fade.
+        sleep(3)
     }
 
     /// Runs the audit and fails once per issue, naming the element, so CI's annotations say what to fix.
