@@ -225,11 +225,14 @@ enum CardPart { case whole, post, icons(Color) }
 
 extension EnvironmentValues {
     @Entry var cardPart: CardPart = .whole
+    /// A skin's own font for people's names on the card (Ceramic Figurines' greeting-card script, Steve 2026-11-01).
+    @Entry var cardNameFont: Font? = nil
 }
 
 struct CardRow: View {
     @Environment(AppModel.self) private var model
     @Environment(\.cardPart) private var part
+    @Environment(\.cardNameFont) private var nameFont
     let card: Card
     let active: Set<CardAction>
     let onAction: (CardAction) -> Void
@@ -264,7 +267,7 @@ struct CardRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Answered: a gold mark, as the Expo card's banner and border.
                 if card.isAnswered { Text(model.words("card.answered")).font(.subheadline.bold()).foregroundStyle(Color.answeredText) }
-                Text(card.author.displayName).font(.subheadline.bold())
+                Text(card.author.displayName).font(nameFont ?? .subheadline.bold())
                 Text(card.preview)
                 if card.counts.prayers > 0 {
                     Text(model.wording == .neutral ? "\(card.counts.prayers) people thinking of this" : "\(card.counts.prayers) praying")

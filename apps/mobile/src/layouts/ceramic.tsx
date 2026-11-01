@@ -23,7 +23,10 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { Animated, Easing, FlatList, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 
-import { CardSurface } from '@/components/post-card';
+import { DancingScript_600SemiBold } from '@expo-google-fonts/dancing-script/600SemiBold';
+import { useFonts } from 'expo-font';
+
+import { CardNameFont, CardSurface } from '@/components/post-card';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { useCommentActions, useCommentCluster, usePostComments } from '@/skins/comments';
@@ -31,6 +34,9 @@ import { useFeedHooks } from '@/skins/feed-hooks';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
+
+/** People's names: a fancy, feminine, almost-cursive script, like on pastel greeting cards (Steve 2026-11-01). */
+export const NAME_FONT = 'DancingScript_600SemiBold';
 
 const DEFAULTS = {
   backdrop: '#EAE6F1',
@@ -553,7 +559,9 @@ const PostRow = memo(function PostRow({
           {/* The shadow box: a raised ceramic frame round a deep recess, the plaque inside it. */}
           <View style={[styles.frame, { backgroundColor: tokens.frame }]}>
             <View style={[styles.recess, { backgroundColor: tokens.recess }]}>
-              <CardSurface.Provider value={plaque}>{renderCard(card.counts.comments > 0 ? { ...card, topComment: null } : card)}</CardSurface.Provider>
+              <CardNameFont.Provider value={NAME_FONT}>
+                <CardSurface.Provider value={plaque}>{renderCard(card.counts.comments > 0 ? { ...card, topComment: null } : card)}</CardSurface.Provider>
+              </CardNameFont.Provider>
             </View>
           </View>
           {/* The platform it stands on. */}
@@ -665,6 +673,7 @@ function Picker({ visible, choice, onPick, onClose }: { visible: boolean; choice
 
 export function CeramicLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const { t } = useLocale();
+  useFonts({ DancingScript_600SemiBold });
   const tokens = useMemo(() => ceramicTokens(theme), [theme]);
   const reduced = useReducedMotion();
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -802,8 +811,8 @@ const styles = StyleSheet.create({
   placardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   smallOval: { width: 26, height: 30, borderRadius: 15, backgroundColor: '#E9C9C1', alignItems: 'center', justifyContent: 'center' },
   smallOvalText: { fontSize: 13, fontWeight: '600', color: '#4B3F47' },
-  placardName: { fontSize: 17, fontWeight: '600', color: '#4B3F47' },
-  placardNameInline: { fontWeight: '600', color: '#4B3F47' },
+  placardName: { fontSize: 19, color: '#4B3F47', fontFamily: NAME_FONT },
+  placardNameInline: { color: '#4B3F47', fontFamily: NAME_FONT },
   placardText: { fontSize: 16, lineHeight: 23, color: '#4B3F47', marginTop: 4 },
   oneLine: { flex: 1, minWidth: 0, fontSize: 15, color: '#4B3F47' },
   more: { fontSize: 13, color: MUTED },
@@ -811,10 +820,10 @@ const styles = StyleSheet.create({
   replyBehind: { position: 'absolute', left: 7, right: 7, top: 18, bottom: -6, borderRadius: 9 },
   replyCard: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, shadowColor: '#46323C', shadowOpacity: 0.2, shadowRadius: 5, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   replyOpen: { flexDirection: 'column', alignItems: 'stretch' },
-  replyName: { fontSize: 16, fontWeight: '600', color: '#4B3F47' },
+  replyName: { fontSize: 18, color: '#4B3F47', fontFamily: NAME_FONT },
   replyText: { fontSize: 15, lineHeight: 21, color: '#4B3F47' },
   subReply: { marginTop: 6, marginLeft: 10, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#B9A9CC' },
-  subName: { fontSize: 14, fontWeight: '600', color: '#4B3F47' },
+  subName: { fontSize: 16, color: '#4B3F47', fontFamily: NAME_FONT },
   subText: { fontSize: 14, lineHeight: 19, color: '#4B3F47' },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   pill: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22, backgroundColor: '#F1E4DF', borderWidth: 1, borderColor: 'rgba(95,70,85,0.3)' },
