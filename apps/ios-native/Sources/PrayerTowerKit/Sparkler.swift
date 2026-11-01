@@ -21,16 +21,24 @@ public struct SparklerLook: Sendable, Equatable {
 public enum Sparkler {
     /// Where the line runs down the left, over the posts, and where the posts' words start.
     public static let lineX: Double = 12
-    public static let textLeft: Double = 26
-    /// How far down the screen the line's tip (and its sparkler) rides.
-    public static let tipAt: Double = 0.7
-    /// The separator: 8 points of black with a 2-point light blue line through its middle.
-    public static let separatorHeight: Double = 8
-    public static let stripeHeight: Double = 2
+    public static let textLeft: Double = 34
+    /// How far down the screen the line's tip (and its sparkler) rides: near the bottom, just above
+    /// the tab bar, so the line never seems to stop short of the screen's foot (Steve, 2026-11-01).
+    public static let tipAt: Double = 0.84
+    /// The separator: 16 points of black with a 4-point glowing light blue line through its middle
+    /// (Steve: accentuate the divider between prayer requests).
+    public static let separatorHeight: Double = 16
+    public static let stripeHeight: Double = 4
     /// Comments shown when a post's comments open.
     public static let opened = 5
     /// The member's choice is kept on the device under this key.
     public static let storageKey = "sparkler.background"
+    /// The line's width, and the black room at the top of the feed under the Home and Menu buttons.
+    public static let lineWidth: Double = 5
+    public static let topRoom: Double = 58
+    /// How far the comments, and then their replies, sit in from the post's words.
+    public static let commentIndent: Double = 18
+    public static let replyIndent: Double = 36
 
     public enum Kind: String, Sendable, CaseIterable { case solid, stars, flowers, texture }
 
@@ -66,17 +74,117 @@ public enum Sparkler {
         backgrounds.first { $0.id == id } ?? backgrounds[0]
     }
 
+    /// The night block the default white becomes in dark mode (Steve, 2026-11-01: the sparkler
+    /// leaves stardust behind it in dark mode, which needs a dark feed to show).
+    public static let night = Background(id: "night", group: .solid, name: "Night", base: RGB(hex: "#10131C")!, dark: true)
+
+    /// The background a post shows: the member's choice, except that the default white turns to
+    /// night in dark mode. A color the member picked stays as picked.
+    public static func background(_ id: String?, dark: Bool) -> Background {
+        let b = background(id)
+        return dark && b.id == "white" ? night : b
+    }
+
     /// The words' colors on a background: light on the dark ones. Both keep 4.5:1.
     public static func ink(_ bg: Background) -> (text: RGB, muted: RGB) {
         bg.dark ? (RGB.white, RGB(hex: "#D3DAE8")!) : (RGB.commentText, RGB(hex: "#544B5C")!)
     }
 
-    /// How far down a row the line has grown, 0 to 1: as far as the tip (at `tipAt` of the
-    /// screen) has reached into it, never drawing back (`reached` is what it had before).
-    public static func grown(rowTop: Double, rowHeight: Double, screen: Double, reached: Double) -> Double {
-        guard rowHeight > 0 else { return reached }
-        let now = min(1, max(0, (screen * tipAt - rowTop) / rowHeight))
-        return max(reached, now)
+    /// Where the one line down the whole feed ends, in the feed's own points from its top: at
+    /// `tipAt` of the screen below how far it has scrolled, never drawing back (`reached` is
+    /// what it had before), and never past the feed's end.
+    public static func tip(scrolled: Double, screen: Double, reached: Double, feedHeight: Double) -> Double {
+        let now = max(0, scrolled) + screen * tipAt
+        return min(max(reached, now), max(0, feedHeight))
+    }
+
+    /// How far ahead of its resting place a swipe throws the sparkler: on along the way the feed is
+    /// moving, as far as it is moving fast (`delta` is this frame's scroll), at most a tenth of the
+    /// screen down (or a twentieth up), eased in from where it was. As a swipe slows the screen
+    /// catches up to where the sparkler went (Steve, 2026-11-01).
+    public static func lead(_ lead: Double, delta: Double, screen: Double) -> Double {
+        let goal = min(screen * 0.1, max(-screen * 0.05, delta * 2.2))
+        return lead + (goal - lead) * 0.35
+    }
+
+    /// One glint of the trail of sparkle the sparkler leaves on the line behind it.
+    public struct Glint: Sendable, Equatable { public let y, dx, r, opacity: Double; public let color: Int }
+
+    /// The glitter on the line between `top` and `tip` (screen points): set every 13 points along the
+    /// feed itself so it rides up with the posts, brightest just behind the tip and gone near the
+    /// top of the screen, each glint twinkling in its own time.
+    public static func glitter(scrolled: Double, top: Double, tip: Double, time: Double) -> [Glint] {
+        guard tip > top + 4 else { return [] }
+        let step = 13.0
+        var out: [Glint] = []
+        var k = Int(((scrolled + top) / step).rounded(.down))
+        while true {
+            var rnd = Seeded(k &* 7919 &+ 17)
+            let y = Double(k) * step + rnd.next() * step - scrolled
+            k += 1
+            if y > tip - 6 { break }
+            if y < top { continue }
+            // Fades to nothing near the top of the screen.
+            let along = (y - top) / max(1, tip - top)
+            let fade = pow(max(0, min(1, (along - 0.08) / 0.92)), 1.6)
+            let twinkle = 0.45 + 0.55 * (0.5 + 0.5 * sin(time * (4 + rnd.next() * 5) + rnd.next() * 6.28))
+            let o = fade * twinkle
+            guard o > 0.04 else { continue }
+            out.append(Glint(y: y, dx: (rnd.next() - 0.5) * 14, r: 1.5 + rnd.next() * 2.5 * (0.4 + along), opacity: o, color: Int(rnd.next() * Double(trailColors.count)) % trailColors.count))
+        }
+        return out
+    }
+
+    /// The trail's yellows (Steve, 2026-11-01): bright on the dark, deeper gold on light posts so it shows.
+    public static let trailColors = ["#FFE14D", "#FFD21F", "#FFC400", "#FFF08A"].map { RGB(hex: $0)! }
+    public static let trailColorsLight = ["#F2B800", "#E6A700", "#D99A00", "#F5C518"].map { RGB(hex: $0)! }
+
+    /// One mote of the stardust the sparkler leaves behind it in dark mode.
+    public struct Mote: Sendable, Equatable { public let y, dx, r, opacity: Double; public let warm: Bool }
+
+    /// Stardust (dark mode, Steve 2026-11-01): fine motes shed along the line behind the sparkler,
+    /// set along the feed so they ride up with the posts, drifting slowly out from the line the
+    /// older they are (the higher on screen), and fading away near the top.
+    public static func stardust(scrolled: Double, top: Double, tip: Double, time: Double) -> [Mote] {
+        guard tip > top + 4 else { return [] }
+        let step = 5.0
+        var out: [Mote] = []
+        var k = Int(((scrolled + top) / step).rounded(.down))
+        while true {
+            var rnd = Seeded(k &* 104_729 &+ 3)
+            let y0 = Double(k) * step + rnd.next() * step - scrolled
+            k += 1
+            if y0 > tip - 4 { break }
+            if y0 < top { continue }
+            let along = (y0 - top) / max(1, tip - top)
+            let age = 1 - along
+            let side = rnd.next() < 0.5 ? -1.0 : 1.0
+            let phase = rnd.next() * 6.28
+            let dx = side * (3 + age * 26 * rnd.next()) + sin(time * 0.8 + phase) * 2.5
+            let y = y0 - age * 10 * rnd.next() + cos(time * 0.6 + phase) * 1.5
+            let fade = pow(max(0, min(1, (along - 0.05) / 0.95)), 1.3)
+            let o = fade * (0.35 + 0.45 * (0.5 + 0.5 * sin(time * (2 + rnd.next() * 3) + phase)))
+            guard o > 0.05 else { continue }
+            out.append(Mote(y: y, dx: dx, r: 0.8 + rnd.next() * 1.2, opacity: min(1, o * 1.4), warm: rnd.next() < 0.6))
+        }
+        return out
+    }
+
+    /// Stardust left below the sparkler as a scroll up throws it upward (Steve, 2026-11-01): motes
+    /// in the `length` points under the tip, brightest just under it, sifting slowly down.
+    public static func dustBelow(tip: Double, length: Double, scrolled: Double, time: Double) -> [Mote] {
+        guard length > 2 else { return [] }
+        let n = Int(min(40, length / 2.5))
+        return (0..<n).compactMap { i in
+            var rnd = Seeded(i &* 7_727 &+ Int(scrolled / 9) &* 31 &+ 11)
+            let along = rnd.next()
+            let phase = rnd.next() * 6.28
+            let y = tip + 8 + along * length + (time * 6).truncatingRemainder(dividingBy: 8)
+            let dx = (rnd.next() - 0.5) * 22 + sin(time * 1.1 + phase) * 2
+            let o = (1 - along) * (0.4 + 0.5 * (0.5 + 0.5 * sin(time * 3 + phase)))
+            guard o > 0.05 else { return nil }
+            return Mote(y: y, dx: dx, r: 0.6 + rnd.next() * 1.0, opacity: o, warm: rnd.next() < 0.7)
+        }
     }
 
     /// The same numbers every time for the same seed (the Expo app's generator).
@@ -121,8 +229,9 @@ public enum Sparkler {
 
     /// One spray of sparks thrown out from the burning tip at (0, 0); `color` indexes `sparkColors`.
     public static func sparks(_ next: () -> Double, count: Int = 16) -> [Spark] {
-        (0..<count).map { _ in
-            let a = next() * .pi * 2
+        (0..<count).map { i in
+            // Most are thrown downward, the way the line is going (Steve: it leads the way down).
+            let a = i % 4 == 0 ? next() * .pi * 2 : .pi * (0.15 + next() * 0.7)
             let r0 = 3 + next() * 3
             let r1 = r0 + 6 + next() * 18
             return Spark(x1: cos(a) * r0, y1: sin(a) * r0, x2: cos(a) * r1, y2: sin(a) * r1, color: Int(next() * Double(sparkColors.count)) % sparkColors.count, dot: next() < 0.4)
