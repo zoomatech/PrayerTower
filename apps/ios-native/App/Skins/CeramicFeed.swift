@@ -1,3 +1,4 @@
+import CoreText
 import PrayerTowerKit
 import SwiftUI
 
@@ -12,6 +13,16 @@ import SwiftUI
 //   - The first reply hangs showing under every comment that has replies; a tap flops the rest down, a tap on a
 //     reply folds them. Replies get no Reply button (Steve: overnesting is hard to follow).
 //   - Members pick their own figurines. The feed scrolls only up and down. Reduce Motion stills everything.
+
+/// People's names: a fancy, feminine, almost-cursive script, like on pastel greeting cards (Steve 2026-11-01).
+/// It grows with the member's text size (relative to a text style), so large accessibility sizes stay readable.
+enum CeramicFont {
+    static let ready: Bool = {
+        if let url = Bundle.main.url(forResource: "DancingScript_600SemiBold", withExtension: "ttf") { CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil) }
+        return true
+    }()
+    static func name(_ size: CGFloat, _ style: Font.TextStyle = .body) -> Font { .custom("DancingScript-SemiBold", size: size, relativeTo: style) }
+}
 
 private enum CeramicDraw {
     static let figW: CGFloat = 46
@@ -55,6 +66,7 @@ struct CeramicFeed<Row: View>: View {
 
     var body: some View {
         let words = Words(wording)
+        let _ = CeramicFont.ready
         let choice = Ceramic.Figure(rawValue: choiceRaw)
         GeometryReader { geo in
             let lane: CGFloat = min(geo.size.width, 560)
@@ -150,6 +162,7 @@ private struct CeramicPost<Row: View>: View {
     private func shadowBox(_ g: CeramicDraw.Ropes) -> some View {
         let tint = Ceramic.tint(index)
         return row(card)
+            .environment(\.cardNameFont, CeramicFont.name(19, .subheadline))
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(tint), in: .rect(cornerRadius: 10))
@@ -479,7 +492,7 @@ private struct CeramicPlacards: View {
     private func closed(_ first: Beanstalk.Note, total: Int) -> some View {
         Button(action: toggle) {
             HStack(spacing: 8) {
-                (Text(first.author).bold() + Text(" · " + first.body))
+                (Text(first.author).font(CeramicFont.name(19)) + Text(" · " + first.body))
                     .font(.system(size: 16, design: .serif))
                     .foregroundStyle(Color(look.ink))
                     .lineLimit(1)
@@ -514,7 +527,7 @@ private struct CeramicPlacards: View {
         return VStack(alignment: .leading, spacing: 0) {
             Button(action: toggle) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(note.author).font(.system(size: 14, weight: .semibold, design: .serif)).foregroundStyle(Color(Ceramic.muted))
+                    Text(note.author).font(CeramicFont.name(19)).foregroundStyle(Color(Ceramic.muted))
                     Text(note.body).font(.system(size: 16, design: .serif)).foregroundStyle(Color(look.ink))
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -566,7 +579,7 @@ private struct CeramicPlacards: View {
     private func replyFace(_ r: Beanstalk.Note, extra: Int?, kids: [Beanstalk.Note]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                (Text(r.author).bold() + Text(" · " + r.body))
+                (Text(r.author).font(CeramicFont.name(18)) + Text(" · " + r.body))
                     .font(.system(size: 15, design: .serif))
                     .foregroundStyle(Color(look.ink))
                     .fixedSize(horizontal: false, vertical: true)
@@ -574,7 +587,7 @@ private struct CeramicPlacards: View {
                 if let extra { Text("+\(extra)").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color(Ceramic.muted)) }
             }
             ForEach(kids) { k in
-                (Text(k.author).bold() + Text(" · " + k.body))
+                (Text(k.author).font(CeramicFont.name(16)) + Text(" · " + k.body))
                     .font(.system(size: 14, design: .serif))
                     .foregroundStyle(Color(Ceramic.muted))
                     .padding(.leading, 10)

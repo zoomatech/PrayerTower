@@ -1,11 +1,12 @@
 // The Ceramic Figurines skin (Steve, 2026-10-31): angels hauling plaques on pulleys, ceramic placards for comments.
 import { contrastRatio } from '@prayer-tower/shared';
 import { fireEvent, screen, within } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { renderApp, sampleCard } from '@/__tests__/helpers';
+import { CardNameFont } from '@/components/post-card';
 import { api } from '@/lib/api';
-import { angelSide, CeramicLayout, ceramicTokens, initials, LOOKS, lookFor, MUTED, PLAQUE_TINTS, pointerAt, ropeGeometry, TOP } from '@/layouts/ceramic';
+import { angelSide, CeramicLayout, ceramicTokens, initials, LOOKS, lookFor, MUTED, NAME_FONT, PLAQUE_TINTS, pointerAt, ropeGeometry, TOP } from '@/layouts/ceramic';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -129,5 +130,34 @@ describe('Ceramic Figurines comments', () => {
     await fireEvent.press(await screen.findByTestId('ceramic-look-choir'));
     expect(screen.getByTestId('ceramic-look-choir')).toHaveProp('aria-pressed', true);
     expect(screen.getByText('Figurines: Choir Kids')).toBeTruthy();
+  });
+});
+
+describe('Ceramic Figurines names', () => {
+  it('sets people’s names in the greeting-card script, on the plaque and on every placard', async () => {
+    const comments = [
+      { id: 'n1', parentId: null, body: 'Holding you close in prayer.', isUpdate: false, createdAt: '2026-10-31T10:00:00Z', author: { displayName: 'Evelyn R' } },
+      { id: 'n2', parentId: 'n1', body: 'Thank you.', isUpdate: false, createdAt: '2026-10-31T10:05:00Z', author: { displayName: 'Margaret H' } },
+    ];
+    (api.comments as jest.Mock).mockResolvedValue({ comments });
+    const card = sampleCard({ counts: { ...sampleCard().counts, comments: 1 } });
+    await renderApp(
+      <CeramicLayout
+        cards={[card]}
+        theme={null}
+        pinnedId={null}
+        renderCard={() => <CardNameFont.Consumer>{(f) => <Text>{`font ${f}`}</Text>}</CardNameFont.Consumer>}
+        refreshing={false}
+        onRefresh={() => undefined}
+        onEndReached={() => undefined}
+        atEnd
+      />,
+    );
+    await layout();
+    expect(await screen.findByText(`font ${NAME_FONT}`)).toBeTruthy();
+    await fireEvent.press(await screen.findByTestId(`ceramic-stack-${card.id}`));
+    const flat = (el: { props: { style?: unknown } }) => StyleSheet.flatten(el.props.style as never) as { fontFamily?: string };
+    expect(flat(await screen.findByText('Evelyn R')).fontFamily).toBe(NAME_FONT);
+    expect(flat(screen.getByText('Margaret H')).fontFamily).toBe(NAME_FONT);
   });
 });
