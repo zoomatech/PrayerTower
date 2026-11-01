@@ -169,7 +169,14 @@ struct BeanstalkFeed<Row: View>: View {
     /// Stacked: the title on its own lines and the button under it, so words wrap whole, never mid-word.
     private func banner(_ words: Words, stacked: Bool = false, climb: @escaping () -> Void) -> some View {
         let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
-        return layout {
+        return bannerBody(words, stacked: stacked, layout: layout, climb: climb)
+            // Stacked, at the accessibility sizes: the title's decorative letters still grow large,
+            // but stop where their tall flourishes would run past their own line.
+            .dynamicTypeSize(...(stacked ? DynamicTypeSize.accessibility2 : DynamicTypeSize.accessibility5))
+    }
+
+    private func bannerBody(_ words: Words, stacked: Bool, layout: AnyLayout, climb: @escaping () -> Void) -> some View {
+        layout {
             Canvas { ctx, _ in
                 var s = Path()
                 s.move(to: CGPoint(x: 17, y: 32)); s.addCurve(to: CGPoint(x: 12, y: 8), control1: CGPoint(x: 17, y: 22), control2: CGPoint(x: 10, y: 18))
@@ -294,6 +301,9 @@ private struct BeanPost<Row: View>: View {
         .frame(maxWidth: .infinity)
         // The design's IntersectionObserver: grown once 8% is on screen, reset once wholly off, so it grows again.
         .onGeometryChange(for: Int.self) { g in
+            // The audit's samples (debug only) are grown once and stay grown: it changes the text
+            // size as it measures, and a post reset and regrown then reads as clipped.
+            if Bean.audit { return 0 }
             let f = g.frame(in: .named(Bean.space))
             let top: Double = Double(f.minY), end: Double = Double(f.maxY), tall: Double = Double(f.height)
             let bottom: Double = vp * 0.96
@@ -311,6 +321,7 @@ private struct BeanPost<Row: View>: View {
             }
             if state == -1 { grownAt = nil }
         }
+        .onAppear { if Bean.audit, grownAt == nil { grownAt = .now } }
         // Re-renders once each drawing has finished, so the frame clock stops.
         .task(id: [grownAt, pageAt, openAt]) {
             try? await Task.sleep(for: .seconds(2.2))
