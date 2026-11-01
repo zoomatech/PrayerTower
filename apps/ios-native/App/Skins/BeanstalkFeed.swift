@@ -280,6 +280,13 @@ private struct BeanPost<Row: View>: View {
     /// Where on screen the card's poster name ends, so a comment's close-up opens below it.
     @State private var nameBottom: Double = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The tapped comment and every later one on the post; a reply opened alone is read by itself.
+    private func reader(_ note: Beanstalk.Note) -> some View {
+        let tree = Beanstalk.tree(all ?? (card.leafComments ?? []).map(Beanstalk.Note.init))
+        let rest = Array(tree.top.drop { $0.id != note.id })
+        return BeanReader(thread: rest.isEmpty ? [note] : rest, kids: tree.kids, words: words, top: nameBottom) { reading = nil }
+    }
+
     private var still: Bool { reduceMotion || Bean.audit }
 
     var body: some View {
@@ -331,11 +338,7 @@ private struct BeanPost<Row: View>: View {
             guard grownAt != nil, all == nil, card.counts.comments > 0, let load else { return }
             all = await load(card).map(Beanstalk.Note.init)
         }
-        .fullScreenCover(item: $reading) { note in
-            // The tapped comment and every later one on the post; a reply opened alone is read by itself.
-            let rest = Array(tree.top.drop { $0.id != note.id })
-            BeanReader(thread: rest.isEmpty ? [note] : rest, kids: tree.kids, words: words, top: nameBottom) { reading = nil }
-        }
+        .fullScreenCover(item: $reading) { reader($0) }
     }
 
     private func isLive(_ now: Date) -> Bool {

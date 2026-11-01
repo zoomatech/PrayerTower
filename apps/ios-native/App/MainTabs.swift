@@ -86,9 +86,11 @@ struct MainTabs: View {
                     // .tabItem rather than Tab(…), which needs iOS 18; the app supports iOS 17.
                     ForEach(sections) { s in
                         screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
+                            #if os(iOS)
                             // The bar under the feed is 75% opaque (Steve, 2026-10-30).
                             .toolbarBackground(Color.barBackground.opacity(0.75), for: .tabBar)
                             .toolbarBackground(.visible, for: .tabBar)
+                            #endif
                     }
                 }
                 // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
