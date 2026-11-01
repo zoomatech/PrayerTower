@@ -65,8 +65,9 @@ struct ActionRowView: View {
         if let glow {
             NeonButtonGlyph(symbol: Self.standardSymbol(item.action), color: glow, size: size, action: item.action)
         } else if item.action == .share || item.action == .commit {
-            Image(systemName: Self.standardSymbol(item.action)).font(.system(size: size * 0.75, weight: .semibold)).foregroundStyle(Color.accessibleAccent)
-                .frame(width: size, height: size).accessibilityHidden(true)
+            // A picture at its button's size, not a font size that Apple's check expects to grow.
+            Image(systemName: Self.standardSymbol(item.action)).resizable().scaledToFit().fontWeight(.semibold).foregroundStyle(Color.accessibleAccent)
+                .frame(width: size * 0.6, height: size * 0.6).frame(width: size, height: size).accessibilityHidden(true)
         } else if !emojiOnly, let art = Self.art("action-\(item.action.rawValue)") {
             art.resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true)
         } else {
