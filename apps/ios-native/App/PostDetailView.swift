@@ -35,20 +35,10 @@ struct PostDetailView: View {
     private var w: Words { model.words }
     private var prayable: Bool { card.map { !Compose.discussionTypes.contains($0.postType) } ?? true }
 
-    /// Debug only: parts of the screen left out (-PTHide header,prayed,comments,composer), so the
-    /// screen walk can find which part Apple's audit flags without naming an element.
-    private static let hidden: Set<String> = {
-        #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "-PTHide"), i + 1 < args.count { return Set(args[i + 1].split(separator: ",").map(String.init)) }
-        #endif
-        return []
-    }()
-
     var body: some View {
         List {
             if let card {
-                if !Self.hidden.contains("header") { Section { header(card) } }
+                Section { header(card) }
                 if card.crisis || support { Section { CrisisBox() } }
                 if let harm { Section { HarmBox(note: harm) } }
                 if card.isMine && prayable { Section { ownerTools(card) } }
@@ -60,7 +50,7 @@ struct PostDetailView: View {
                     UrgentRadioButton(api: model.store.api, postId: card.id, words: model.words)
                 }
                 if card.isMine { Section { LiveFollowView(card: card) } }
-                if prayable, let prayers, !Self.hidden.contains("prayed") { Section { prayedList(prayers) } }
+                if prayable, let prayers { Section { prayedList(prayers) } }
                 if prayable { Section { PowerPrayerSection(card: card) } }
                 if prayable { GuestShareSection(card: card) }
                 ShareChoiceSection(card: card)
@@ -70,9 +60,9 @@ struct PostDetailView: View {
                         story = posted.post.id
                     }
                 }
-                if !Self.hidden.contains("comments") { if Self.hidden.contains("cheader") { Section { commentList } } else { Section { commentList } header: { Text(w("post.comments")).foregroundStyle(Color.primary) } } }
+                Section { commentList } header: { Text(w("post.comments")).foregroundStyle(Color.primary) }
                 if let rc = replyChoice, rc.enabled, rc.isMine { Section { replyChoicePicker(rc) } }
-                if ReplyChoiceState.showsComposer(replyChoice), !Self.hidden.contains("composer") {
+                if ReplyChoiceState.showsComposer(replyChoice) {
                     Section { composer(card) }
                 } else if let rc = replyChoice {
                     Section { Text(w(rc.noteKey)).font(.footnote) }
@@ -210,20 +200,17 @@ struct PostDetailView: View {
         ForEach(comments) { item in
             let c = item.comment
             VStack(alignment: .leading, spacing: 4) {
-                // The name and the words read as one; the buttons stay their own elements, as one
-                // combined element with buttons inside was what Apple's audit flagged (Dynamic
-                // Type unsupported, text clipped) on GitHub's Xcode.
-                if !Self.hidden.contains("ctext") {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
-                        Text(c.body)
-                    }
-                    .accessibilityElement(children: .combine)
+                // The name and the words read as one; Reply, Share and Report stay their own
+                // buttons, so VoiceOver reaches each one.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text((c.isUpdate ? w("card.update") : "") + c.author.displayName).font(.caption.bold())
+                    Text(c.body)
                 }
-                if !Self.hidden.contains("cbuttons") { AdaptiveStack(spacing: 16) {
+                .accessibilityElement(children: .combine)
+                AdaptiveStack(spacing: 16) {
                     Button { replyTo = c; asUpdate = false } label: { Text(w("post.reply")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     // With sharing by consent on, only the person who wrote a comment can share it.
-                    if !model.features["shareConsent"] || c.isMine == true, !Self.hidden.contains("cshare") {
+                    if !model.features["shareConsent"] || c.isMine == true {
                         ShareLink(item: commentShare(c)) { Text(w("post.share")).foregroundStyle(Color.accessibleAccent).tapTarget() }
                     }
                     if c.isMine == true {
@@ -234,7 +221,6 @@ struct PostDetailView: View {
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
-                }
             }
             .padding(.leading, CGFloat(item.depth) * 16)
         }
