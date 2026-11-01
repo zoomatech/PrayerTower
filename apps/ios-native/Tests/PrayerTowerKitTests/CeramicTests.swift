@@ -37,13 +37,13 @@ import Testing
     }
 
     @Test func readsTheDesignsOutlines() {
-        #expect(SVGPath.parse("M1 2L3 4H5V6Z") == [.move(1, 2), .line(3, 4), .line(5, 4), .line(5, 6), .close])
-        #expect(SVGPath.parse("m10 10l5 0h-2v3z") == [.move(10, 10), .line(15, 10), .line(13, 10), .line(13, 13), .close])
-        #expect(SVGPath.parse("M0 0Q5 5 10 0T20 0") == [.move(0, 0), .quad(5, 5, 10, 0), .quad(15, -5, 20, 0)])
-        #expect(SVGPath.parse("M0 0C1 1 2 1 3 0S5-1 6 0") == [.move(0, 0), .cubic(1, 1, 2, 1, 3, 0), .cubic(4, -1, 5, -1, 6, 0)])
+        #expect(CeramicPath.parse("M1 2L3 4H5V6Z") == [.move(1, 2), .line(3, 4), .line(5, 4), .line(5, 6), .close])
+        #expect(CeramicPath.parse("m10 10l5 0h-2v3z") == [.move(10, 10), .line(15, 10), .line(13, 10), .line(13, 13), .close])
+        #expect(CeramicPath.parse("M0 0Q5 5 10 0T20 0") == [.move(0, 0), .quad(5, 5, 10, 0), .quad(15, -5, 20, 0)])
+        #expect(CeramicPath.parse("M0 0C1 1 2 1 3 0S5-1 6 0") == [.move(0, 0), .cubic(1, 1, 2, 1, 3, 0), .cubic(4, -1, 5, -1, 6, 0)])
         // Packed numbers like the design writes them: "M23.5 58Q17.5 67 19 76", "a11 11 0 0 0-2-21.6".
-        #expect(SVGPath.parse("M.5.5l1-1").count == 2)
-        let arc = SVGPath.parse("M0 0a10 10 0 0 1 20 0")
+        #expect(CeramicPath.parse("M.5.5l1-1").count == 2)
+        let arc = CeramicPath.parse("M0 0a10 10 0 0 1 20 0")
         guard case let .cubic(_, _, _, _, x, y) = arc.last else { Issue.record("no arc"); return }
         #expect(abs(x - 20) < 1e-9 && abs(y) < 1e-9)
         #expect(arc.count >= 3)

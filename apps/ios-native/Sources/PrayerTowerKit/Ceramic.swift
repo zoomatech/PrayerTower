@@ -51,7 +51,7 @@ public enum Ceramic {
 
 /// An SVG path's `d` attribute read into absolute segments (M, L, H, V, C, S, Q, T, A, Z and
 /// their relative forms), so the design's drawings are drawn exactly, never redrawn by eye.
-public enum SVGPath {
+public enum CeramicPath {
     public enum Seg: Sendable, Equatable {
         case move(Double, Double)
         case line(Double, Double)

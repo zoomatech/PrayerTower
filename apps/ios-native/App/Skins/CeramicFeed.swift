@@ -110,7 +110,7 @@ enum CeramicArt {
 
     static func path(_ d: String) -> Path {
         var p = Path()
-        for s in SVGPath.parse(d) {
+        for s in CeramicPath.parse(d) {
             switch s {
             case let .move(x, y): p.move(to: CGPoint(x: x, y: y))
             case let .line(x, y): p.addLine(to: CGPoint(x: x, y: y))
