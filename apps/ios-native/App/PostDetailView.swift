@@ -70,7 +70,7 @@ struct PostDetailView: View {
                         story = posted.post.id
                     }
                 }
-                if !Self.hidden.contains("comments") { Section { commentList } header: { Text(w("post.comments")).foregroundStyle(Color.primary) } }
+                if !Self.hidden.contains("comments") { if Self.hidden.contains("cheader") { Section { commentList } } else { Section { commentList } header: { Text(w("post.comments")).foregroundStyle(Color.primary) } } }
                 if let rc = replyChoice, rc.enabled, rc.isMine { Section { replyChoicePicker(rc) } }
                 if ReplyChoiceState.showsComposer(replyChoice), !Self.hidden.contains("composer") {
                     Section { composer(card) }

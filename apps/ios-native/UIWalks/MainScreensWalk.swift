@@ -130,7 +130,7 @@ final class MainScreensWalk: XCTestCase {
     /// Diagnostic, never fails: audits a request with one part left out at a time and prints what
     /// Apple flags, so the CI log shows which part its Xcode flags with no element named.
     func testRequestAuditBisect() throws {
-        for hide in ["none", "comments", "ctext", "cbuttons", "cshare", "header,prayed,composer"] {
+        for hide in ["none", "cheader", "ctext,cbuttons", "ctext,cbuttons,cheader"] {
             let a = XCUIApplication()
             a.launchArguments = ["-PTSampleData", "-PTHide", hide]
             a.launch()
@@ -143,7 +143,7 @@ final class MainScreensWalk: XCTestCase {
                 if issue.element == nil { found.append(issue.compactDescription) }
                 return true
             }
-            print("BISECT \(hide): \(found.isEmpty ? "clean" : found.joined(separator: " | "))")
+            print("BISECT \(hide): \(found.count) \(Set(found).sorted().joined(separator: " | "))")
             a.terminate()
         }
     }
