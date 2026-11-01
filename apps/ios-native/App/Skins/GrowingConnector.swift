@@ -262,12 +262,13 @@ struct SkinHeaderBand: View {
     let draw: (inout GraphicsContext, CGSize, CGFloat) -> Void
 
     var body: some View {
+        // Laid out from the foot of the bar, so where that sits on screen is the bar's height.
         GeometryReader { g in
-            let bottom = g.safeAreaInsets.top
+            let bottom = g.frame(in: .global).minY
             Canvas { ctx, size in draw(&ctx, size, bottom) }
                 .frame(height: bottom + edge)
+                .offset(y: -bottom)
         }
-        .ignoresSafeArea(edges: .top)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
