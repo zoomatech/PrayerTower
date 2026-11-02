@@ -2,9 +2,6 @@ import {
   MAX_POST_WORDS,
   POST_BACKGROUNDS,
   POST_BACKGROUND_STYLES,
-  isPrayable,
-  POST_TYPES,
-  POST_TYPE_LABELS,
   PRAYER_KINDS,
   PRAYER_KIND_LABELS,
   PRAYER_REALMS,
@@ -38,13 +35,11 @@ const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
 export default function Compose() {
-  const { profile, community } = useAuth();
-  // Only the kinds of post the member's community has turned on (discussion, news and blog are off by default).
-  const types = POST_TYPES.filter((p) => (community ? community.enabledPostTypes.includes(p) : isPrayable(p)));
+  const { profile } = useAuth();
   const { t, label } = useLocale();
   // The thanksgiving card opens the composer as a praise post; the gratitude card also passes its words.
   const params = useLocalSearchParams<{ type?: string; body?: string }>();
-  const [postType, setPostType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
+  const [postType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
   const [body, setBody] = useState(typeof params.body === 'string' ? params.body.slice(0, 5000) : '');
   const [urgency, setUrgency] = useState(0);
   const [kind, setKind] = useState<PrayerKind | undefined>();
@@ -141,12 +136,6 @@ export default function Compose() {
           <Button small testID="compose-post" label={t('compose.post')} onPress={submit} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
         </View>
         <ErrorText error={error} />
-        <Text style={styles.greeting}>{t('compose.greeting', { name: profile?.display_name || t('common.friend') })}</Text>
-        <View style={styles.chips}>
-          {types.map((p) => (
-            <Chip radio key={p} label={label('postType', p, POST_TYPE_LABELS[p])} selected={postType === p} onPress={() => setPostType(p)} />
-          ))}
-        </View>
         <TextInput
           style={[styles.input, bg && !assets.length && { backgroundColor: bg.color, color: bg.text, borderColor: bg.color }]}
           testID="compose-body"
@@ -252,7 +241,6 @@ export default function Compose() {
 const styles = StyleSheet.create({
   content: { padding: space.xl, gap: space.lg, paddingBottom: 80 },
   top: { flexDirection: 'row', justifyContent: 'space-between' },
-  greeting: { ...type.heading, color: colors.primary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   media: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, alignItems: 'center' },
   thumb: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: colors.border },

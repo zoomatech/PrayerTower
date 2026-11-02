@@ -32,14 +32,8 @@ struct ComposeView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Text(w("compose.greeting", ["name": model.me?.profile.displayName ?? w("common.friend")]))
-                        .font(.headline)
-                        .foregroundStyle(.tint)
-                    ChoiceRow(options: Compose.types(for: model.me?.community), selected: draft.postType, label: { w("enums.postType.\($0)") }) {
-                        draft.postType = $0
-                    }
-                }
+                // No welcome line and no kind-of-post buttons: the send button says what can be posted
+                // (Steve, 2026-11-02).
                 Section {
                     TextField(w("compose.placeholder"), text: $draft.body, axis: .vertical)
                         .lineLimit(6...20)
