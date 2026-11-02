@@ -123,7 +123,11 @@ struct FacebookAvatar: View {
         let initials = name.split(separator: " ").prefix(2).compactMap { $0.first.map { String($0).uppercased() } }.joined()
         Circle().fill(ink.avatar)
             .frame(width: size, height: size)
-            .overlay { Text(initials).font(.system(size: size * 0.4, weight: .bold)).foregroundStyle(ink.text) }
+            .overlay {
+                // A text style, so it follows the reader's text size, shrunk to fit the circle.
+                Text(initials).font(.caption.bold()).foregroundStyle(ink.text)
+                    .lineLimit(1).minimumScaleFactor(0.3).padding(size * 0.15)
+            }
             .accessibilityHidden(true)
     }
 }
