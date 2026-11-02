@@ -93,6 +93,7 @@ public enum SampleServer {
             ("GET", "^/topic-groups/sample-g1$", #"{"group":\#(groups),"posts":[\#(groupPost)]}"#),
             ("GET", "^/radio/listen$", #"{"enabled":true,"receipts":true}"#),
             ("POST", "^/listen/heard$", #"{"matched":0}"#),
+            ("POST", "^/posts/[^/]+/radio$", #"{"radioPrayer":{"id":"sample-r1","status":"queued","repeats":1}}"#),
             ("GET", "^/me$", """
             {"profile":{"id":"\(memberId)","display_name":"Sample Member","bio":"","onboarded_at":"2026-10-01T00:00:00Z"},"roles":["member"],"community":null}
             """),
