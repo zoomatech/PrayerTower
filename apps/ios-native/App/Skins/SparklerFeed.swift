@@ -42,23 +42,12 @@ struct SparklerFeed<Row: View>: View {
         // on a post's words however far it scrolls.
         // (The line runs up through it to the header's light blue edge: drawn with the rest of the
         // line, in one piece, below.)
-        // The black room is where you write a post: a tap opens the composer, with light lead-in
-        // words standing in it (Steve, 2026-11-02).
-        Button { hooks.compose?() } label: {
-            Text(words("sparkler.prompt"))
-                .sparklerFont(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.62))
-                .lineLimit(2).minimumScaleFactor(0.65)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                // Just the words, light on the black, no box around them (Steve, 2026-11-02); clear
-                // of Home and Menu on the left and the logo on the right.
-                .padding(.leading, 66).padding(.trailing, 124).padding(.vertical, 4)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .frame(height: Sparkler.topRoom)
-        .background(Color(look.backdrop))
-        .accessibilityIdentifier("sparkler-compose")
+        // The black room is where you write a post: a plain text box with light lead-in words in it.
+        // Typing starts right there, and the first letters open the full writing screen with them
+        // already in it (Steve, 2026-11-02).
+        SparklerPostBox(prompt: words("sparkler.prompt"), compose: hooks.compose)
+            .frame(height: Sparkler.topRoom)
+            .background(Color(look.backdrop))
         GeometryReader { geo in
             let screen = Double(geo.size.height)
             // The tip rests at the same place on screen near its foot, so it is never lost from
@@ -114,6 +103,56 @@ struct SparklerFeed<Row: View>: View {
         }
         }
         .background(Color(look.backdrop))
+    }
+}
+
+/// The text box in the black room above the feed: obviously a place to type, with the lead-in
+/// words standing in it until you do. You type on its one short line; when the words reach the
+/// end of it (or you press return), it opens the full writing screen with them in it, and the box
+/// empties again behind it (Steve, 2026-11-02).
+private struct SparklerPostBox: View {
+    let prompt: String
+    let compose: ((String) -> Void)?
+    @State private var typed = ""
+    @State private var room: Double = .infinity
+    @State private var used: Double = 0
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField(text: $typed) {
+            Text(prompt).foregroundStyle(Color.white.opacity(0.6))
+        }
+        .font(.subheadline)
+        .foregroundStyle(.white)
+        .tint(.white)
+        .lineLimit(1)
+        .focused($focused)
+        .submitLabel(.next)
+        .onSubmit { open() }
+        .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { room = $0 }
+        // How wide the words typed so far are, to tell when they reach the end of the line.
+        .background(alignment: .leading) {
+            Text(typed).font(.subheadline).lineLimit(1).fixedSize().hidden()
+                .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { used = $0 }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.1), in: .rect(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.white.opacity(focused ? 0.7 : 0.4), lineWidth: 1))
+        // Clear of Home and Menu on the left and the logo on the right.
+        .padding(.leading, 64).padding(.trailing, 122).padding(.vertical, 9)
+        .accessibilityIdentifier("sparkler-compose")
+        .onChange(of: used) { _, width in
+            if !typed.isEmpty, width >= room - 8 { open() }
+        }
+    }
+
+    private func open() {
+        guard !typed.isEmpty, let compose else { return }
+        let text = typed
+        focused = false
+        typed = ""
+        compose(text)
     }
 }
 

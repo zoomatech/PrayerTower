@@ -11,6 +11,8 @@ struct FeedView: View {
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
     @State private var composing = false
+    /// What was typed in a skin's own post box before the writing screen opened.
+    @State private var startText = ""
     @State private var opened: String?
     @State private var committing: Card?
     @State private var gifting: Card?
@@ -103,7 +105,13 @@ struct FeedView: View {
                 model.composeNow = false
                 composing = true
             }
-            .sheet(isPresented: $composing) { ComposeView { _ in Task { await load() } } }
+            .sheet(isPresented: $composing, onDismiss: { startText = "" }) {
+                ComposeView(onPosted: { _ in Task { await load() } }, start: startText.isEmpty ? nil : {
+                    var post = NewPost()
+                    post.body = startText
+                    return post
+                }())
+            }
             .refreshable { await load() }
             .task(id: model.feedStyle) { await load() }
             .sheet(item: $encouraging) { card in EncourageSheet(card: card) { note in Task { await encourage(card, note) } } }
@@ -147,7 +155,10 @@ struct FeedView: View {
             loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] },
             loadMore: more,
             hasMore: nextPage != nil,
-            compose: { composing = true }
+            compose: { text in
+                startText = text
+                composing = true
+            }
         )
     }
 

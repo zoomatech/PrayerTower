@@ -16,7 +16,7 @@
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
 import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Image, Pressable, StyleSheet, Text, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, FlatList, Image, Pressable, StyleSheet, Text, TextInput, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { router } from 'expo-router';
@@ -561,6 +561,41 @@ function TheLine({ top, rest, end, lead, scrolled, stripe, still }: { top: numbe
   );
 }
 
+/**
+ * The text box in the black room above the feed (Steve, 2026-11-02): obviously a place to type, with
+ * the lead-in words in it until you do. You type on its one short line; when the words reach the end
+ * of it (or you press return), it opens the full writing screen with them in it, and the box empties
+ * again behind it.
+ */
+function PostBox({ prompt }: { prompt: string }) {
+  const [typed, setTyped] = useState('');
+  const [room, setRoom] = useState(Infinity);
+  const open = (text: string) => {
+    if (!text) return;
+    setTyped('');
+    router.push({ pathname: '/compose', params: { body: text } });
+  };
+  return (
+    <View style={styles.promptBox} onLayout={(e: LayoutChangeEvent) => setRoom(e.nativeEvent.layout.width - 20)}>
+      {/* How wide the words typed so far are, to tell when they reach the end of the line. */}
+      <Text style={[styles.promptText, styles.measure]} numberOfLines={1} onLayout={(e: LayoutChangeEvent) => e.nativeEvent.layout.width >= room - 8 && open(typed)} aria-hidden>
+        {typed}
+      </Text>
+      <TextInput
+        value={typed}
+        onChangeText={setTyped}
+        onSubmitEditing={() => open(typed)}
+        returnKeyType="next"
+        placeholder={prompt}
+        placeholderTextColor="rgba(255,255,255,0.6)"
+        style={styles.promptText}
+        accessibilityLabel={prompt}
+        testID="sparkler-compose"
+      />
+    </View>
+  );
+}
+
 export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const { t } = useLocale();
   const tokens = useMemo(() => sparklerTokens(theme), [theme]);
@@ -603,11 +638,7 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
       {/* Black room under the Home and Menu buttons, held still above the feed, so they never sit on a post's words. */}
       {/* The black room is where you write a post: a tap opens the composer, with light lead-in words standing in it (Steve, 2026-11-02). The line runs up through it, drawn in one piece with the rest. */}
       <View style={styles.promptRoom}>
-        <Pressable onPress={() => router.push('/compose')} accessibilityRole="button" style={styles.prompt} testID="sparkler-compose">
-          <Text style={styles.promptText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
-            {t('sparkler.prompt')}
-          </Text>
-        </Pressable>
+        <PostBox prompt={t('sparkler.prompt')} />
       </View>
       <View style={styles.fill} onLayout={(e: LayoutChangeEvent) => move({ screen: e.nativeEvent.layout.height })}>
       <FlatList
@@ -650,9 +681,10 @@ const styles = StyleSheet.create({
   closed: { gap: 6, borderLeftWidth: 4, borderRadius: 6, paddingVertical: 10, paddingLeft: 12, paddingRight: 10 },
   count: { fontSize: 16, fontWeight: '700' },
   comment: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.sm },
-  promptRoom: { height: TOP_ROOM, paddingLeft: 66, paddingRight: 124, paddingVertical: 4 },
-  prompt: { flex: 1, justifyContent: 'center' },
-  promptText: { color: 'rgba(255,255,255,0.62)', fontSize: 15 },
+  promptRoom: { height: TOP_ROOM, paddingLeft: 64, paddingRight: 122, paddingVertical: 9 },
+  promptBox: { flex: 1, justifyContent: 'center', paddingHorizontal: 10, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)' },
+  promptText: { color: '#FFFFFF', fontSize: 15, padding: 0 },
+  measure: { position: 'absolute', left: 10, opacity: 0, alignSelf: 'flex-start' },
   folds: { gap: 5, marginTop: 6, marginBottom: 2 },
   foldLine: { height: 1, alignSelf: 'stretch', backgroundColor: '#fff' },
   commentName: { fontWeight: '700', fontSize: 15 },
