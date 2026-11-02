@@ -220,7 +220,11 @@ private struct SparkleLightOnMetal: View {
                     let h = Double(size.height)
                     // The sparkler itself: a broad warm streak.
                     let near = exp(-pow((dust.tip - y0) / 110, 2))
-                    if near > 0.02 { streak(lit, x: Sparkler.lineX, width: 260, h: h, strength: near * 0.85) }
+                    if near > 0.02 {
+                        // Across the whole bar, constantly receding toward the right (Steve, 2026-11-02).
+                        wash(lit, x: Sparkler.lineX, w: Double(size.width), h: h, strength: near * 0.8)
+                        streak(lit, x: Sparkler.lineX, width: 120, h: h, strength: near * 0.7)
+                    }
                     // Each sparkle close by: a small one where it is.
                     for m in dust.shown where abs(m.y - y0) < 60 {
                         let k = exp(-pow((m.y - y0) / 24, 2)) * m.opacity * (m.glint ? 0.7 : 0.35)
@@ -230,6 +234,26 @@ private struct SparkleLightOnMetal: View {
             }
         }
         .allowsHitTesting(false)
+    }
+
+    /// The light spread along the bar from the sparkler's side, fading steadily to the far right.
+    private func wash(_ ctx: GraphicsContext, x: Double, w: Double, h: Double, strength: Double) {
+        let warm = Color(RGB(hex: "#FFD873")!)
+        let k = min(1, strength)
+        let stops: [Gradient.Stop] = (0...8).map { i in
+            let f = Double(i) / 8
+            return .init(color: warm.opacity(k * 0.75 * exp(-3 * f)), location: f)
+        }
+        let band = CGRect(x: 0, y: 1, width: w, height: h - 3)
+        ctx.fill(Path(band), with: .linearGradient(Gradient(stops: stops), startPoint: CGPoint(x: x, y: 0), endPoint: CGPoint(x: w, y: 0)))
+        // Brightest along the upper face, where the raised metal faces the light.
+        var sheen = Path()
+        sheen.move(to: CGPoint(x: 0, y: h * 0.3)); sheen.addLine(to: CGPoint(x: w, y: h * 0.3))
+        let line: [Gradient.Stop] = (0...8).map { i in
+            let f = Double(i) / 8
+            return .init(color: Color.white.opacity(k * 0.5 * exp(-3.5 * f)), location: f)
+        }
+        ctx.stroke(sheen, with: .linearGradient(Gradient(stops: line), startPoint: CGPoint(x: x, y: 0), endPoint: CGPoint(x: w, y: 0)), lineWidth: 1)
     }
 
     private func streak(_ ctx: GraphicsContext, x: Double, width: Double, h: Double, strength: Double) {
