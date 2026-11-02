@@ -604,7 +604,7 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
       {/* The black room is where you write a post: a tap opens the composer, with light lead-in words standing in it (Steve, 2026-11-02). The line runs up through it, drawn in one piece with the rest. */}
       <View style={styles.promptRoom}>
         <Pressable onPress={() => router.push('/compose')} accessibilityRole="button" style={styles.prompt} testID="sparkler-compose">
-          <Text style={styles.promptText} numberOfLines={2}>
+          <Text style={styles.promptText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
             {t('sparkler.prompt')}
           </Text>
         </Pressable>
@@ -650,9 +650,9 @@ const styles = StyleSheet.create({
   closed: { gap: 6, borderLeftWidth: 4, borderRadius: 6, paddingVertical: 10, paddingLeft: 12, paddingRight: 10 },
   count: { fontSize: 16, fontWeight: '700' },
   comment: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.sm },
-  promptRoom: { height: TOP_ROOM, paddingLeft: 62, paddingRight: 128, paddingVertical: 7 },
-  prompt: { flex: 1, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.06)' },
-  promptText: { color: 'rgba(255,255,255,0.62)', fontSize: 16 },
+  promptRoom: { height: TOP_ROOM, paddingLeft: 66, paddingRight: 124, paddingVertical: 4 },
+  prompt: { flex: 1, justifyContent: 'center' },
+  promptText: { color: 'rgba(255,255,255,0.62)', fontSize: 15 },
   folds: { gap: 5, marginTop: 6, marginBottom: 2 },
   foldLine: { height: 1, alignSelf: 'stretch', backgroundColor: '#fff' },
   commentName: { fontWeight: '700', fontSize: 15 },
