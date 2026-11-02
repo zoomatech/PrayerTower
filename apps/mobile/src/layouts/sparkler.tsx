@@ -53,8 +53,8 @@ const TOP_ROOM = 58;
 const COMMENT_INDENT = 18;
 const REPLY_INDENT = 18;
 /** The separator: a black line with a glowing light blue line through its middle, made bold (Steve: accentuate the divider). */
-/** The bar between posts: one pica of very dark brushed metal, not a glowing line (Steve, 2026-11-02); its metal top to bottom (Kit Sparkler.separatorMetal). */
-export const SEPARATOR = { height: 12, metal: ['#3A3E45', '#22252A', '#16181C', '#0E1013', '#050607'] };
+/** The bar between posts: three picas of very dark brushed metal, not a glowing line (Steve, 2026-11-02); its metal top to bottom (Kit Sparkler.separatorMetal). */
+export const SEPARATOR = { height: 36, metal: ['#3A3E45', '#22252A', '#16181C', '#0E1013', '#050607'] };
 /** The profile picture in the square's upper right corner. */
 const PIC = 48;
 /** Comments shown when a post's comments open. */
@@ -200,7 +200,7 @@ function ProfilePic({ card }: { card: Card }) {
   );
 }
 
-/** The bar between posts: one pica of very dark metal. */
+/** The bar between posts: three picas of very dark metal. */
 export function Separator() {
   return (
     <View style={styles.separator} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

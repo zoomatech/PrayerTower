@@ -274,7 +274,7 @@ private struct SparklerPost<Row: View>: View {
             // The card's words and icons in the background's own light or dark.
             .environment(\.colorScheme, bg.dark ? .dark : .light)
             // A black line with a light blue line through its middle.
-            // One pica of very dark brushed metal, set apart from the posts by a lit top edge and a
+            // Three picas of very dark brushed metal, set apart from the posts by a lit top edge and a
             // shadowed bottom one; no glow (Steve, 2026-11-02).
             LinearGradient(stops: [
                 .init(color: Color(Sparkler.separatorMetal[0]), location: 0),
