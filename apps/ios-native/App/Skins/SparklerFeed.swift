@@ -56,7 +56,7 @@ struct SparklerFeed<Row: View>: View {
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
-                        SparklerPost(card: card, index: i, look: look, bg: bg, words: words, hooks: hooks, row: row)
+                        SparklerPost(card: card, index: i, look: look, bg: bg, words: words, hooks: hooks, dust: dust, still: !moving, row: row)
                             .loadsMore(after: card, in: cards, hooks)
                     }
                     // Room under the last post, so the line can grow all the way down past it.
@@ -150,6 +150,10 @@ private struct SparklerLine: View {
 /// The stardust the sparkler has shed, kept across redraws (each frame adds to it as it moves).
 final class DustBox {
     var trail = Sparkler.DustTrail()
+    /// Where the sparkler and its trail are on screen this frame, so the metal bars between posts
+    /// can catch their light.
+    var tip: Double = -1000
+    var shown: [Sparkler.Mote] = []
 }
 
 /// The trail of sparkle and stardust the sparkler leaves (Kit Sparkler.DustTrail).
@@ -179,7 +183,10 @@ private struct SparkleTrail: View {
         if !still { dust.trail.follow(tip: tip, content: scrolled + tip, time: time) }
         let warm = Color(RGB(hex: dark ? "#FFF3B0" : "#E6A700")!), cool = Color(RGB(hex: dark ? "#FFFFFF" : "#F5C518")!)
         let yellows = dark ? Sparkler.trailColors : Sparkler.trailColorsLight
-        for m in dust.trail.motes(time: time) {
+        let motes = dust.trail.motes(time: time)
+        dust.tip = tip
+        dust.shown = motes
+        for m in motes {
             let x = 40 + m.dx
             if m.glint {
                 let color = Color(yellows[m.color % yellows.count]).opacity(m.opacity)
@@ -195,6 +202,49 @@ private struct SparkleTrail: View {
     }
 }
 
+/// The warm light the sparkler and its sparkles cast on a brushed metal bar between posts: brushed
+/// metal smears a light into a streak along the brushing, brightest right where the light is and
+/// strongest as the bar passes close by.
+private struct SparkleLightOnMetal: View {
+    let dust: DustBox
+    let still: Bool
+
+    var body: some View {
+        GeometryReader { geo in
+            let y0 = Double(geo.frame(in: .named(sparklerSpace)).midY)
+            // Only near the sparkler: the others wait, still.
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: still || abs(dust.tip - y0) > 400)) { _ in
+                Canvas { ctx, size in
+                    var lit = ctx
+                    lit.blendMode = .screen
+                    let h = Double(size.height)
+                    // The sparkler itself: a broad warm streak.
+                    let near = exp(-pow((dust.tip - y0) / 110, 2))
+                    if near > 0.02 { streak(lit, x: Sparkler.lineX, width: 260, h: h, strength: near * 0.85) }
+                    // Each sparkle close by: a small one where it is.
+                    for m in dust.shown where abs(m.y - y0) < 60 {
+                        let k = exp(-pow((m.y - y0) / 24, 2)) * m.opacity * (m.glint ? 0.7 : 0.35)
+                        if k > 0.02 { streak(lit, x: Sparkler.lineX + m.dx, width: m.glint ? 90 : 50, h: h, strength: k) }
+                    }
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func streak(_ ctx: GraphicsContext, x: Double, width: Double, h: Double, strength: Double) {
+        let warm = Color(RGB(hex: "#FFD873")!)
+        let rect = CGRect(x: x - width / 2, y: 1, width: width, height: h - 2)
+        ctx.fill(Path(ellipseIn: rect), with: .radialGradient(
+            Gradient(colors: [warm.opacity(min(1, strength)), warm.opacity(min(1, strength) * 0.35), .clear]),
+            center: CGPoint(x: x, y: h * 0.4), startRadius: 0, endRadius: width / 2))
+        // The hot core along the brushing.
+        var core = Path()
+        core.move(to: CGPoint(x: x - width * 0.22, y: h * 0.35)); core.addLine(to: CGPoint(x: x + width * 0.22, y: h * 0.35))
+        ctx.stroke(core, with: .color(Color.white.opacity(min(1, strength) * 0.6)), lineWidth: 1)
+    }
+}
+
 /// One post's square: its background, the poster's picture in the corner, the card and its
 /// comments, and the separator under it.
 private struct SparklerPost<Row: View>: View {
@@ -204,6 +254,8 @@ private struct SparklerPost<Row: View>: View {
     let bg: Sparkler.Background
     let words: Words
     let hooks: FeedHooks
+    let dust: DustBox
+    let still: Bool
     let row: (Card) -> Row
     @State private var all: [Beanstalk.Note]?
 
@@ -243,6 +295,9 @@ private struct SparklerPost<Row: View>: View {
                     }
                 }
             }
+            // The light the sparkler and its sparkles cast, caught on the metal as it passes them
+            // (Steve, 2026-11-02).
+            .overlay { SparkleLightOnMetal(dust: dust, still: still) }
             .frame(height: Sparkler.separatorHeight)
             .accessibilityHidden(true)
         }
