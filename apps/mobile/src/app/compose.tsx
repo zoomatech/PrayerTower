@@ -242,6 +242,8 @@ export default function Compose() {
               busy={busy}
               disabled={!castChoice || !body.trim() || words > MAX_POST_WORDS}
             />
+            {/* What "heaven*" means (Steve, 2026-11-02). */}
+            <Text style={type.small}>{t('compose.castNote')}</Text>
           </>
         ) : null}
         {posted ? null : (

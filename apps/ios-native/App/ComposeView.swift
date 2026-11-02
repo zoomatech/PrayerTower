@@ -126,6 +126,9 @@ struct ComposeView: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(castChoice == nil)
                         .accessibilityIdentifier("compose-cast")
+                        // What "heaven*" means (Steve, 2026-11-02).
+                        Text(w("compose.castNote")).font(.caption).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     Button { Task { await submit(cast: false) } } label: {
                         Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)

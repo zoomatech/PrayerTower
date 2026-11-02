@@ -701,6 +701,8 @@ const en = {
     post: 'Post',
     cast: 'PrayerCast your prayer directly to heaven*',
     castPublic: 'Post my PrayerCast publicly',
+    castNote:
+      '*The Bible tells us to “pray without ceasing” (1 Thessalonians 5:17) and to pray to the Lord, who hears in heaven, His dwelling place (1 Kings 8:30). A PrayerCast goes out by radio as a signal that keeps traveling through space, so your prayer never ends as it goes on toward the Lord, wherever He may hear.',
     castFailed: 'Your prayer is posted, but it could not be PrayerCast: %{reason}',
     castPrivate: 'PrayerCast privately',
     greeting: "Welcome, %{name}! Let's talk to the Lord.",
