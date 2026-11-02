@@ -22,6 +22,8 @@ struct ComposeView: View {
     @State private var media: [PickedMedia] = []
     @State private var busy = false
     @State private var error: String?
+    /// Posted, but the PrayerCast didn't go: only Done is left.
+    @State private var posted = false
     @FocusState private var focused: Bool
 
     private var w: Words { model.words }
@@ -104,18 +106,32 @@ struct ComposeView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(w("common.cancel")) { dismiss() } }
             }
-            // The send button says what can be posted, since some people address God directly
-            // (Steve, 2026-11-02); its words are too long for the bar, so it runs full width.
+            // Two ways to send (Steve, 2026-11-02): a post, or a prayer PrayerCast to heaven, which is
+            // also posted to the feed. Prayers and posts are kept apart so answered prayers can be counted.
             .safeAreaInset(edge: .bottom) {
-                Button { Task { await submit() } } label: {
-                    Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                VStack(spacing: 8) {
+                    if posted {
+                        Button { dismiss() } label: { Text(w("common.close")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6) }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        if casts {
+                            Button { Task { await submit(cast: true) } } label: {
+                                Text(w("compose.cast")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("compose-cast")
+                        }
+                        Button { Task { await submit(cast: false) } } label: {
+                            Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("compose-post")
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(busy || draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || words > Compose.maxWords)
+                .disabled(busy || (!posted && (draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || words > Compose.maxWords)))
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .background(.bar)
-                .accessibilityIdentifier("compose-post")
             }
             .onAppear {
                 if let start, draft == NewPost() { draft = start }
@@ -140,12 +156,16 @@ struct ComposeView: View {
         error = tooLong ? w("compose.videoTooLong", ["count": String(videoCap)]) : nil
     }
 
-    private func submit() async {
+    /// A prayer is PrayerCast; anything else is a post. Open Circle has no PrayerCast.
+    private var casts: Bool { model.wording != .neutral }
+
+    private func submit(cast: Bool) async {
         busy = true
         defer { busy = false }
         error = nil
         do {
             var p = draft
+            p.postType = cast || !casts ? "prayer_request" : "discussion"
             p.allSupportWelcome = model.features["supportLabel"] && draft.allSupportWelcome
             if !model.features["lament"] || draft.isLament != true { p.isLament = nil; p.lamentRadio = nil }
             if p.postType != "prayer_request" { p.urgency = 0 }
@@ -155,6 +175,14 @@ struct ComposeView: View {
             }
             let created = try await model.store.api.createPost(p)
             onPosted(created.post)
+            if cast {
+                do { _ = try await model.store.api.sendRadioPrayer(postId: created.post.id) } catch {
+                    // The prayer is posted either way; say why it wasn't PrayerCast and don't post it twice.
+                    posted = true
+                    self.error = w("compose.castFailed", ["reason": error.localizedDescription])
+                    return
+                }
+            }
             dismiss()
         } catch {
             self.error = error.localizedDescription

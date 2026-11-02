@@ -33,10 +33,13 @@ const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
 export default function Compose() {
   const { profile } = useAuth();
-  const { t, label } = useLocale();
+  const { t, label, wording } = useLocale();
+  // Two ways to send (Steve, 2026-11-02): a post, or a prayer PrayerCast to heaven (also posted to
+  // the feed). Prayers and posts are kept apart so answered prayers can be counted. Open Circle has no PrayerCast.
+  const casts = wording !== 'neutral';
   // The thanksgiving card opens the composer as a praise post; the gratitude card also passes its words.
   const params = useLocalSearchParams<{ type?: string; body?: string }>();
-  const [postType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
+  const [asked] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
   const [body, setBody] = useState(typeof params.body === 'string' ? params.body.slice(0, 5000) : '');
   const [urgency, setUrgency] = useState(0);
   const [realm, setRealm] = useState<PrayerRealm | undefined>();
@@ -50,10 +53,11 @@ export default function Compose() {
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [posted, setPosted] = useState(false);
   const words = wordCount(body);
   const bg = background ? POST_BACKGROUND_STYLES[background] : null;
 
-  const afterCreate = (post: Card, harm?: HarmNote | null) => {
+  const afterCreate = (post: Card, harm?: HarmNote | null, postType: PostType = asked) => {
     // A request that mentions suicide or self-harm opens with crisis support showing, and one
     // that describes abuse opens with the hotlines (harmful-prayer check). Neither is blocked.
     if (rememberSupport(post.id, harm) || post.crisis) router.replace(`/post/${post.id}`);
@@ -62,9 +66,24 @@ export default function Compose() {
     else leave();
   };
 
-  const submit = async () => {
+  const submit = async (cast: boolean) => {
     setBusy(true);
     setError(null);
+    const postType: PostType = cast || !casts ? asked : 'discussion';
+    // The prayer is posted either way; a PrayerCast that can't go says why and the screen closes on Back.
+    const castIt = async (post: Card, harm?: HarmNote | null) => {
+      if (cast) {
+        try {
+          await api.sendRadioPrayer(post.id);
+        } catch (e) {
+          setError(t('compose.castFailed', { reason: (e as Error).message }));
+          setPosted(true);
+          setBusy(false);
+          return;
+        }
+      }
+      afterCreate(post, harm, postType);
+    };
     try {
       const media = [];
       for (const a of assets) media.push(await uploadAsset(a));
@@ -82,7 +101,7 @@ export default function Compose() {
           ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
         });
         if ('queued' in result) return leave();
-        return afterCreate(result.post, result.harm);
+        return castIt(result.post, result.harm);
       }
       const created = await api.createPost({
         postType,
@@ -97,7 +116,7 @@ export default function Compose() {
         ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
         media,
       });
-      afterCreate(created.post, created.harm);
+      await castIt(created.post, created.harm);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -127,7 +146,6 @@ export default function Compose() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>
           <Button small variant="ghost" label={t('common.cancel')} onPress={leave} />
-          <Button small testID="compose-post" label={t('compose.post')} onPress={submit} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
         </View>
         <ErrorText error={error} />
         <TextInput
@@ -193,7 +211,7 @@ export default function Compose() {
             ))}
           </View>
         </View>
-        {postType === 'prayer_request' ? (
+        {asked === 'prayer_request' ? (
           <View style={{ gap: space.sm }}>
             <Text style={type.heading}>{t('compose.urgency')}</Text>
             <View style={styles.chips}>
@@ -220,6 +238,25 @@ export default function Compose() {
           </>
         ) : null}
       </ScrollView>
+      <View style={styles.send}>
+        {posted ? (
+          <Button label={t('common.close')} onPress={leave} />
+        ) : (
+          <>
+            {casts ? (
+              <Button testID="compose-cast" label={t('compose.cast')} onPress={() => submit(true)} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
+            ) : null}
+            <Button
+              testID="compose-post"
+              variant={casts ? 'secondary' : undefined}
+              label={t('compose.post')}
+              onPress={() => submit(false)}
+              busy={busy}
+              disabled={!body.trim() || words > MAX_POST_WORDS}
+            />
+          </>
+        )}
+      </View>
     </Screen>
   );
 }
@@ -228,6 +265,7 @@ const styles = StyleSheet.create({
   content: { padding: space.xl, gap: space.lg, paddingBottom: 80 },
   top: { flexDirection: 'row', justifyContent: 'space-between' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  send: { gap: space.sm, padding: space.md },
   media: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, alignItems: 'center' },
   thumb: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: colors.border },
   videoThumb: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.text },

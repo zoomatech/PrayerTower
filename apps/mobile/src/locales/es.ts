@@ -632,6 +632,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   compose: {
     videoTooLong: en.compose.videoTooLong,
     post: 'Publicar',
+    cast: en.compose.cast,
+    castFailed: en.compose.castFailed,
     greeting: '¡Bienvenido, %{name}! Hablemos con el Señor.',
     placeholder: 'Escribe tu oración aquí',
     bodyLabel: 'Tu oración',

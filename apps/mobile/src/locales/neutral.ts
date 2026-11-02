@@ -262,6 +262,7 @@ export const keys: Tree = named({
   },
   compose: {
     post: 'Post',
+    anonymous: 'Post anonymously',
     greeting: "Welcome, %{name}! Let's lift each other up.",
     placeholder: "What's on your mind?",
     bodyLabel: 'Your request',

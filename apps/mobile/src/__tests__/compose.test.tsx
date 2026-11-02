@@ -11,6 +11,7 @@ jest.mock('@/lib/api', () => ({
     features: jest.fn(async () => ({ features: { supportLabel: false } })),
     createPostOrQueue: jest.fn(),
     createPost: jest.fn(),
+    sendRadioPrayer: jest.fn(async () => ({ radioPrayer: { id: 'r1', status: 'queued', repeats: 1 } })),
   },
 }));
 jest.mock('@/lib/auth', () => ({ useAuth: () => ({ profile: { id: 'me', display_name: 'Ruth', anonymous_by_default: false } }) }));
@@ -27,12 +28,26 @@ describe('Compose', () => {
     expect(screen.queryByRole('radio', { name: 'Praise & Thanks' })).toBeNull();
   });
 
+  it('PrayerCasts a prayer (posted and sent by radio); Post saves a post that is not a prayer (Steve, 2026-11-02)', async () => {
+    await renderApp(<Compose />);
+    await fireEvent.changeText(screen.getByTestId('compose-body'), 'Thank you, Lord.');
+    await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ postType: 'prayer_request' }));
+    expect(api.sendRadioPrayer).toHaveBeenCalledWith(sampleCard().id);
+    (api.sendRadioPrayer as jest.Mock).mockClear();
+    await renderApp(<Compose />);
+    await fireEvent.changeText(screen.getByTestId('compose-body'), 'Lovely morning at the lake.');
+    await fireEvent.press(screen.getByRole('button', { name: 'Post' }));
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ postType: 'discussion' }));
+    expect(api.sendRadioPrayer).not.toHaveBeenCalled();
+  });
+
   it('posts a prayer request with the chosen urgency and goes back to the feed', async () => {
     await renderApp(<Compose />);
-    expect(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' })).toBeDisabled();
     await fireEvent.changeText(screen.getByLabelText('Your prayer'), '  Please pray for my job interview.  ');
     await fireEvent.press(screen.getByText('Today'));
-    await fireEvent.press(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ postType: 'prayer_request', body: 'Please pray for my job interview.', urgency: 2, isAnonymous: false, isSensitive: false, allSupportWelcome: false }),
     );
@@ -42,8 +57,8 @@ describe('Compose', () => {
   it('posts anonymously when asked', async () => {
     await renderApp(<Compose />);
     await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'Please pray for me.');
-    await fireEvent.press(screen.getByRole('switch', { name: /Post anonymously/ }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' }));
+    await fireEvent.press(screen.getByRole('switch', { name: /Keep my prayer between me and the Lord/ }));
+    await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ isAnonymous: true }));
   });
 
@@ -51,7 +66,7 @@ describe('Compose', () => {
     create.mockResolvedValueOnce({ post: sampleCard({ id: 'p-crisis', crisis: true }) });
     await renderApp(<Compose />);
     await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'I want to end it all.');
-    await fireEvent.press(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
     expect(router.replace).toHaveBeenCalledWith('/post/p-crisis');
   });
 
@@ -60,7 +75,7 @@ describe('Compose', () => {
     create.mockResolvedValueOnce({ post: sampleCard({ id: 'p-praise', postType: 'praise' }) });
     await renderApp(<Compose />);
     await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'Thank you, Lord, the surgery went well!');
-    await fireEvent.press(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ postType: 'praise' }));
     expect(router.replace).toHaveBeenCalledWith('/post/p-praise?celebrate=1');
   });
@@ -69,7 +84,7 @@ describe('Compose', () => {
     create.mockResolvedValueOnce({ queued: true });
     await renderApp(<Compose />);
     await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'Please pray for rain.');
-    await fireEvent.press(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
     expect(router.back).toHaveBeenCalled();
   });
 
@@ -77,7 +92,7 @@ describe('Compose', () => {
     create.mockRejectedValueOnce(new Error('New members can post 3 requests a day'));
     await renderApp(<Compose />);
     await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'Please pray.');
-    await fireEvent.press(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
     expect(await screen.findByText('New members can post 3 requests a day')).toBeTruthy();
     expect(router.back).not.toHaveBeenCalled();
   });
@@ -86,7 +101,7 @@ describe('Compose', () => {
     await renderApp(<Compose />);
     await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'amen '.repeat(1001));
     expect(screen.getByText('1001/1000 words')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' })).toBeDisabled();
   });
 });
 
@@ -95,7 +110,7 @@ it('goes to the feed after posting when there is nothing to go back to (opened f
   create.mockResolvedValueOnce({ post: sampleCard() });
   await renderApp(<Compose />);
   await fireEvent.changeText(screen.getByLabelText('Your prayer'), 'Please pray for my job interview.');
-  await fireEvent.press(screen.getByRole('button', { name: 'Post prayer, prayer request or other thoughts.' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }));
   expect(router.replace).toHaveBeenCalledWith('/');
   expect(router.back).not.toHaveBeenCalled();
 });
