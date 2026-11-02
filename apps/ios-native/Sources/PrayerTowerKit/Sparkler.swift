@@ -215,7 +215,7 @@ public enum Sparkler {
     }
 
     /// The same numbers every time for the same seed (the Expo app's generator).
-    public struct Seeded {
+    public struct Seeded: Sendable {
         var s: Int
         public init(_ seed: Int) { s = (abs(seed) % 2_147_483_646) + 1 }
         public mutating func next() -> Double {
