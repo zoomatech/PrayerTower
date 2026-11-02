@@ -28,7 +28,7 @@ const COLS = 'enabled, first_days, again_days, max_asks, free_tokens, free_token
 
 export async function settings(q: Queryable): Promise<ResolutionSettings> {
   const { rows } = await q.query<ResolutionSettings>(`select ${COLS} from public.resolution_settings`);
-  return rows[0] ?? { enabled: false, first_days: 14, again_days: 30, max_asks: 3, free_tokens: 1, free_token_every_days: 30 };
+  return rows[0] ?? { enabled: false, first_days: 1, again_days: 7, max_asks: 4, free_tokens: 1, free_token_every_days: 30 };
 }
 
 export const SettingsPatch = z.object({
@@ -154,6 +154,7 @@ export async function answer(q: Queryable, userId: string, postId: string, input
         where post_id = $1`,
       [postId, input.outcome, cast.count > 0, cast.count, cast.firstAt],
     );
+    await thankYou(q, userId, post);
   } else {
     if (post.state === 'answered') throw conflict('This request is already answered');
     const s = await settings(q);
@@ -165,6 +166,42 @@ export async function answer(q: Queryable, userId: string, postId: string, input
     );
   }
   return status(q, userId, postId);
+}
+
+/**
+ * The name the thank-you gives God, by the poster's community: its vocabulary's divineName if
+ * set (e.g. "Hashem"), else "the Lord" for Christian communities and "God" for the others.
+ * Null for a non-religious community, whose thank-you names no one but the people.
+ */
+export async function divineName(q: Queryable, communityId: string): Promise<string | null> {
+  const { rows } = await q.query<{ name: string | null; neutral: boolean; tradition: string }>(
+    `select vocabulary ->> 'divineName' as name, tradition,
+            coalesce(vocabulary ->> 'wording', case when tradition = 'secular' then 'neutral' else 'faith' end) = 'neutral' as neutral
+       from public.communities where id = $1`,
+    [communityId],
+  );
+  const c = rows[0];
+  if (!c || c.neutral) return null;
+  return c.name || (c.tradition === 'christian' ? 'the Lord' : 'God');
+}
+
+/** The words of the thank-you posted when a prayer is answered. */
+export function thankYouWords(divine: string | null): string {
+  return divine
+    ? `My prayer was answered! Thank you to everyone who prayed with me, and thanks be to ${divine}.`
+    : 'My request was answered! Thank you to everyone who kept me in mind.';
+}
+
+/**
+ * "Yes, answered" posts a thank-you to those who prayed and to the Lord (Steve, 2026-11-02), as
+ * praise, in the poster's community and as anonymous as the prayer was.
+ */
+async function thankYou(q: Queryable, userId: string, post: posts.PostRow) {
+  await posts.create(
+    q,
+    userId,
+    posts.NewPost.parse({ postType: 'praise', body: thankYouWords(await divineName(q, post.community_id)), isAnonymous: post.is_anonymous }),
+  );
 }
 
 export const Repost = z.object({ body: z.string().trim().min(1).max(10_000).optional() });
