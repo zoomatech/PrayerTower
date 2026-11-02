@@ -241,8 +241,11 @@ struct FeedStyleSection: View {
     @State private var error: String?
 
     var body: some View {
+        // Demo mode (no server) lists every built-in skin straight away, so all of them can be tried
+        // live. (Loaded in onAppear it never showed: an empty section never appears.)
+        let shown = SampleServer.isOn() ? Self.samples(current: model.feedStyle ?? SampleServer.skin()) : choices
         Group {
-            if let c = choices, c.themes.count > 1 {
+            if let c = shown, c.themes.count > 1 {
                 let current = c.current ?? c.themes.first(where: { $0.is_default })?.slug
                 Section("Feed style") {
                     ForEach(c.themes) { t in
@@ -263,8 +266,7 @@ struct FeedStyleSection: View {
         }
         // On every return to Me, so a skin just made in the theme maker is there to choose.
         .onAppear {
-            // Demo mode (no server): every built-in skin, so all of them can be tried live.
-            if SampleServer.isOn() { choices = Self.samples(current: model.feedStyle ?? SampleServer.skin()); return }
+            if SampleServer.isOn() { return }
             Task { choices = try? await model.store.api.feedThemes() }
         }
     }
@@ -282,7 +284,6 @@ struct FeedStyleSection: View {
     private func choose(_ slug: String) async {
         if SampleServer.isOn() {
             model.feedStyle = slug
-            choices = Self.samples(current: slug)
             return
         }
         do {

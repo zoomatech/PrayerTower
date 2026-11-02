@@ -27,7 +27,9 @@ public enum Sparkler {
     public static let tipAt: Double = 0.84
     /// The separator: 16 points of black with a 4-point glowing light blue line through its middle
     /// (Steve: accentuate the divider between prayer requests).
-    public static let separatorHeight: Double = 16
+    /// The black-to-blue fade each side of the stripe: about a pica.
+    public static let separatorFade: Double = 12
+    public static let separatorHeight: Double = 28
     public static let stripeHeight: Double = 4
     /// Comments shown when a post's comments open.
     public static let opened = 5

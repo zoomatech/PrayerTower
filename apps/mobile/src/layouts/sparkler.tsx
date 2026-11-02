@@ -17,7 +17,7 @@
 import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Image, Pressable, StyleSheet, Text, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { CardInk } from '@/components/post-card';
 import { GlassTube, GLOW_REACH } from '@/components/glass-tube';
@@ -53,7 +53,8 @@ const TOP_ROOM = 58;
 const COMMENT_INDENT = 18;
 const REPLY_INDENT = 18;
 /** The separator: a black line with a glowing light blue line through its middle, made bold (Steve: accentuate the divider). */
-export const SEPARATOR = { height: 16, stripe: 4 };
+/** The divider between posts: a light blue stripe, resolving to pure black over about a pica each side (Steve, 2026-11-02). */
+export const SEPARATOR = { height: 28, stripe: 4, fade: 12 };
 /** The profile picture in the square's upper right corner. */
 const PIC = 48;
 /** Comments shown when a post's comments open. */
@@ -202,8 +203,18 @@ function ProfilePic({ card }: { card: Card }) {
 /** A black line with a light blue line through its middle, between posts. */
 export function Separator({ tokens }: { tokens: SparklerTokens }) {
   return (
-    <View style={[styles.separator, { backgroundColor: tokens.backdrop }]} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={[styles.stripe, { backgroundColor: tokens.stripe, boxShadow: `0 0 6px ${tokens.stripe}` }]} />
+    <View style={[styles.separator, { backgroundColor: '#000' }]} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width="100%" height={SEPARATOR.height} preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id="sparkler-sep" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#000" />
+            <Stop offset={SEPARATOR.fade / SEPARATOR.height} stopColor={tokens.stripe} />
+            <Stop offset={(SEPARATOR.fade + SEPARATOR.stripe) / SEPARATOR.height} stopColor={tokens.stripe} />
+            <Stop offset="1" stopColor="#000" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height={SEPARATOR.height} fill="url(#sparkler-sep)" />
+      </Svg>
     </View>
   );
 }
@@ -247,15 +258,6 @@ function Unfold({ index, still, children }: { index: number; still: boolean; chi
       }}>
       {children}
     </Animated.View>
-  );
-}
-
-/** One folded-up comment's edge: a strip of paper creased across its middle. */
-function FoldedEdge({ ink, down, inset }: { ink: string; down: boolean; inset: number }) {
-  return (
-    <View style={[styles.edge, { marginRight: inset, borderColor: ink }]} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={[styles.edgeShade, { backgroundColor: ink }, down ? { top: 3 } : { top: 0 }]} />
-    </View>
   );
 }
 
@@ -330,7 +332,8 @@ function Comments({ card, ink, stripe, still }: { card: Card; ink: Ink; stripe: 
           <>
             <View style={styles.folds} testID={`sparkler-folds-${card.id}`}>
               {Array.from({ length: Math.min(3, more) }, (_, i) => (
-                <FoldedEdge key={i} ink={ink.muted} down={i % 2 === 0} inset={i * 18} />
+                // The rest of the comments under it: full-width white 1 pt lines (Steve, 2026-11-02).
+                <View key={i} style={styles.foldLine} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
               ))}
             </View>
           </>
@@ -547,7 +550,7 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   const move = (next: Partial<typeof view>) =>
     setView((v) => {
       const n = { ...v, ...next };
-      return { ...n, reached: lineTip(n.scrolled, n.screen, 0, n.feed, TIP_AT) };
+      return { ...n, reached: lineTip(n.scrolled, n.screen, 0, Infinity, TIP_AT) };
     });
   // How far a swipe has thrown the sparkler ahead (Steve: the swipe moves the sparkler down, then
   // the screen catches up to where it went, with a bounce).
@@ -603,7 +606,7 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
         onContentSizeChange={(_w, h) => move({ feed: h })}
       />
       {/* The line starts at the first post and is drawn on screen from there to the tip. */}
-      {view.screen ? <TheLine top={Math.max(0, -view.scrolled)} rest={view.reached - view.scrolled} end={view.feed > 0 ? view.feed - view.scrolled : Infinity} lead={lead} upward={upward} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
+      {view.screen ? <TheLine top={0} rest={view.reached - view.scrolled} end={Infinity} lead={lead} upward={upward} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
       </View>
     </View>
   );
@@ -619,16 +622,14 @@ const styles = StyleSheet.create({
   picText: { color: '#FFFFFF', fontWeight: '700', fontSize: 17 },
   pinned: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
   separator: { height: SEPARATOR.height, justifyContent: 'center' },
-  stripe: { height: SEPARATOR.stripe },
   tip: { position: 'absolute', left: LINE_X - SPARK_BOX / 2, width: SPARK_BOX, height: SPARK_BOX + TRAIL },
   comments: { marginTop: space.md, gap: space.md, marginLeft: COMMENT_INDENT },
   // The indent made plain: a tinted panel set in from the post's words, with a strong rule down its left.
   closed: { gap: 6, borderLeftWidth: 4, borderRadius: 6, paddingVertical: 10, paddingLeft: 12, paddingRight: 10 },
   count: { fontSize: 16, fontWeight: '700' },
   comment: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.sm },
-  folds: { gap: 2, marginTop: 4 },
-  edge: { height: 7, borderRadius: 1.5, borderWidth: StyleSheet.hairlineWidth, opacity: 0.45, overflow: 'hidden' },
-  edgeShade: { position: 'absolute', left: 0, right: 0, height: 3.5, opacity: 0.35 },
+  folds: { gap: 5, marginTop: 6, marginBottom: 2 },
+  foldLine: { height: 1, alignSelf: 'stretch', backgroundColor: '#fff' },
   commentName: { fontWeight: '700', fontSize: 15 },
   commentText: { fontSize: type.body.fontSize + 1, lineHeight: type.body.lineHeight + 1 },
   replies: { borderLeftWidth: 3, paddingLeft: space.sm, marginLeft: REPLY_INDENT, gap: space.xs, paddingVertical: 2 },

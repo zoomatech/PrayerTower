@@ -55,8 +55,10 @@ struct SparklerFeed<Row: View>: View {
             let screen = Double(geo.size.height)
             // The tip rests at the same place on screen near its foot, so it is never lost from
             // sight and the line always runs on down; in a swipe it rushes ahead of that.
-            let rest = Sparkler.tip(scrolled: scrolled, screen: screen, reached: 0, feedHeight: feedHeight) - scrolled
-            let end = feedHeight - scrolled
+            // Never stopped at the feed's end either: in the bounce past the last post the line
+            // runs on to the sparkler unbroken (Steve, 2026-11-02: the line must NEVER break).
+            let rest = Sparkler.tip(scrolled: scrolled, screen: screen, reached: 0, feedHeight: .infinity) - scrolled
+            let end = Double.infinity
             // Up and down only.
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
@@ -97,7 +99,9 @@ struct SparklerFeed<Row: View>: View {
             // The one line down the feed, over the posts, with the sparkler at its tip and a trail
             // of sparkle behind it.
             .overlay(alignment: .topLeading) {
-                SparklerLine(top: max(0, -scrolled), rest: rest, lead: lead, end: end, scrolled: scrolled, stripe: Color(look.stripe), still: !moving)
+                // From the very top of the feed, so pulling the feed down never opens a gap under the
+                // black band's line (Steve, 2026-11-02).
+                SparklerLine(top: 0, rest: rest, lead: lead, end: end, scrolled: scrolled, stripe: Color(look.stripe), still: !moving)
             }
         }
         }
@@ -225,13 +229,17 @@ private struct SparklerPost<Row: View>: View {
             // The card's words and icons in the background's own light or dark.
             .environment(\.colorScheme, bg.dark ? .dark : .light)
             // A black line with a light blue line through its middle.
-            Color(look.backdrop)
-                .frame(height: Sparkler.separatorHeight)
-                .overlay {
-                    Color(look.stripe).frame(height: Sparkler.stripeHeight)
-                        .shadow(color: Color(look.stripe), radius: 4)
-                }
-                .accessibilityHidden(true)
+            // Thicker, and resolving from pure black to the blue over about a pica each side of it
+            // (Steve, 2026-11-02).
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.black, Color(look.stripe)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Sparkler.separatorFade)
+                Color(look.stripe).frame(height: Sparkler.stripeHeight)
+                LinearGradient(colors: [Color(look.stripe), .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: Sparkler.separatorFade)
+            }
+            .frame(height: Sparkler.separatorHeight)
+            .accessibilityHidden(true)
         }
         .task(id: card.counts.comments) {
             guard card.counts.comments > 0, let load = hooks.loadComments else { return }
@@ -505,14 +513,15 @@ private struct SparklerComments: View {
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
                 if more > 0 {
-                    // The folded-up comments: creased paper edges, each a little narrower.
-                    VStack(alignment: .leading, spacing: 3) {
-                        ForEach(0..<min(3, more), id: \.self) { i in
-                            FoldedEdge(ink: Color(ink.muted), down: i % 2 == 0)
-                                .frame(height: 8)
-                                .padding(.trailing, Double(i) * 18)
+                    // The rest of the comments, folded up under it: full-width white 1 pt lines, so
+                    // they plainly read as more of the comments (Steve, 2026-11-02).
+                    VStack(spacing: 5) {
+                        ForEach(0..<min(3, more), id: \.self) { _ in
+                            Rectangle().fill(.white).frame(maxWidth: .infinity).frame(height: 1)
                         }
                     }
+                    .padding(.vertical, 2)
+                    .accessibilityHidden(true)
                 }
             }
             .padding(.vertical, 10).padding(.leading, 12).padding(.trailing, 10)
@@ -576,26 +585,6 @@ private struct SparklerComments: View {
         }
         .padding(.leading, 10)
         .overlay(alignment: .leading) { Rectangle().fill(stripe.opacity(0.6)).frame(width: 2) }
-    }
-}
-
-/// One folded-up comment's edge: a strip of paper creased across its middle.
-private struct FoldedEdge: View {
-    let ink: Color
-    let down: Bool
-
-    var body: some View {
-        Canvas { ctx, size in
-            let r = CGRect(origin: .zero, size: size)
-            ctx.fill(Path(roundedRect: r, cornerRadius: 1.5), with: .color(ink.opacity(0.14)))
-            let shade = CGRect(x: 0, y: down ? size.height / 2 : 0, width: size.width, height: size.height / 2)
-            ctx.fill(Path(shade), with: .color(ink.opacity(0.16)))
-            var crease = Path()
-            crease.move(to: CGPoint(x: 0, y: size.height / 2))
-            crease.addLine(to: CGPoint(x: size.width, y: size.height / 2))
-            ctx.stroke(crease, with: .color(ink.opacity(0.45)), lineWidth: 0.6)
-        }
-        .accessibilityHidden(true)
     }
 }
 
