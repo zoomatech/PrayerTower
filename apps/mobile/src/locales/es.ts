@@ -2021,6 +2021,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
   ceramic: en.ceramic,
   circuit: en.circuit,
   climb: en.climb,
+  fb: en.fb,
   sparkler: en.sparkler,
   themes: en.themes,
   growth: en.growth,

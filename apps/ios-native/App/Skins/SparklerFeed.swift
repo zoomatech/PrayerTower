@@ -431,12 +431,10 @@ struct SparklerBackdrop: View {
 
 // MARK: - Comments
 
-/// A post's comments, indented in from its words, with their replies indented further. Closed,
-/// only the first line of the first comment shows, with the rest folded up under it like
-/// accordion-folded paper. A tap unfolds the next 5 comments; "more" unfolds the next 5 after
-/// that; a tap on an open comment folds them all closed again (Steve, 2026-11-01). Each comment
-/// shows its first reply; a tap shows the rest, another tap folds them back. Only comments get
-/// Reply, never their replies.
+/// A post's comments, indented in from its words, laid out Facebook style (Steve, 2026-11-02;
+/// FacebookComments.swift): closed, the top comment's first line fades out before "(+ x more)";
+/// a tap opens them, replies indented under their comment; a tap on a comment folds them closed.
+/// Only comments get Reply, never their replies.
 private struct SparklerComments: View {
     let card: Card
     let notes: [Beanstalk.Note]
@@ -445,178 +443,24 @@ private struct SparklerComments: View {
     let stripe: Color
     let words: Words
     let hooks: FeedHooks
-    /// How many comments are unfolded: 0 is closed.
-    @State private var openTo = 0
-    @State private var allReplies: String?
-    @Environment(\.accessibilityReduceMotion) private var still
-
-    private var unfold: Animation { still ? .easeInOut(duration: 0.15) : .spring(duration: 0.45, bounce: 0.15) }
 
     var body: some View {
-        let tree = Beanstalk.tree(notes)
-        let tops = tree.top
-        if let first = tops.first {
-            let count = max(tops.count, total)
-            VStack(alignment: .leading, spacing: 12) {
-                if openTo == 0 {
-                    closed(first, more: count - 1, opens: min(1 + Sparkler.opened, tops.count))
-                } else {
-                    ForEach(Array(tops.prefix(openTo).enumerated()), id: \.element.id) { i, note in
-                        comment(note, replies: tree.kids[note.id] ?? [])
-                            .transition(still ? .opacity : .accordion(i))
-                    }
-                    let left = count - openTo
-                    if left > 0 {
-                        Button {
-                            if openTo < tops.count {
-                                withAnimation(unfold) { openTo = min(openTo + Sparkler.opened, tops.count) }
-                            } else {
-                                hooks.open?(card)
-                            }
-                        } label: {
-                            Text(words("sparkler.more", ["n": "\(left)"])).sparklerFont(.subheadline, weight: .bold).foregroundStyle(Color(ink.text))
-                                .frame(minHeight: 44)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .padding(.leading, Sparkler.commentIndent)
-            .clipped()
-        }
-    }
-
-    /// The first line of the first comment, with the others folded up under it.
-    private func closed(_ first: Beanstalk.Note, more: Int, opens: Int) -> some View {
-        Button {
-            guard opens > 0 else { return }
-            withAnimation(unfold) { openTo = opens }
-        } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                // Plainly comments: a speech-bubble and how many (Steve: the folded look alone didn't say so).
+        let count = FacebookThread.count(notes, total: total)
+        VStack(alignment: .leading, spacing: 6) {
+            // Plainly comments: a speech-bubble and how many (Steve: the folded look alone didn't say so).
+            if count > 1 {
                 HStack(spacing: 6) {
-                    Image(systemName: "bubble.left.and.bubble.right.fill").font(.subheadline)
-                    Text(words("sparkler.comments", count: more + 1)).sparklerFont(.subheadline, weight: .bold)
-                    Image(systemName: "chevron.down").font(.caption.weight(.bold))
+                    Image(systemName: "bubble.left.and.bubble.right.fill").font(.subheadline).accessibilityHidden(true)
+                    Text(words("sparkler.comments", count: count)).sparklerFont(.subheadline, weight: .bold)
                 }
                 .foregroundStyle(Color(ink.text))
-                (Text("\(first.author): ").bold() + Text(first.body))
-                    .sparklerFont(.body).foregroundStyle(Color(ink.text))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
-                if more > 0 {
-                    // The folded-up comments: creased paper edges, each a little narrower.
-                    VStack(alignment: .leading, spacing: 3) {
-                        ForEach(0..<min(3, more), id: \.self) { i in
-                            FoldedEdge(ink: Color(ink.muted), down: i % 2 == 0)
-                                .frame(height: 8)
-                                .padding(.trailing, Double(i) * 18)
-                        }
-                    }
-                }
             }
-            .padding(.vertical, 10).padding(.leading, 12).padding(.trailing, 10)
-            // The indent made plain: a tinted panel set in from the post's words, with a strong rule down its left.
-            .background(Color(ink.text).opacity(0.07), in: .rect(cornerRadius: 6))
-            .overlay(alignment: .leading) { stripe.frame(width: 4).clipShape(.rect(cornerRadius: 2)) }
-            .contentShape(.rect)
+            FacebookComments(
+                card: card, notes: notes, total: total,
+                ink: FacebookInk(text: Color(ink.text), muted: Color(ink.muted), link: Color(ink.text), thread: Color(ink.muted).opacity(0.6), avatar: Color(ink.text).opacity(0.14)),
+                words: words, open: hooks.open)
         }
-        .buttonStyle(.plain)
-        .accessibilityHint(words("sparkler.open"))
-    }
-
-    private func comment(_ note: Beanstalk.Note, replies: [Beanstalk.Note]) -> some View {
-        let all = allReplies == note.id
-        let shown = all ? replies : Array(replies.prefix(1))
-        return VStack(alignment: .leading, spacing: 6) {
-            Button {
-                withAnimation(unfold) { openTo = 0; allReplies = nil }
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(note.author).sparklerFont(.subheadline, weight: .bold)
-                    Text(note.body).sparklerFont(.body)
-                }
-                .foregroundStyle(Color(ink.text))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(words("sparkler.fold"))
-            // Only the comment gets Reply; its replies never do (Steve: overnesting is hard to follow).
-            if let open = hooks.open {
-                Button { open(card) } label: {
-                    Text(words("post.reply")).sparklerFont(.subheadline, weight: .bold).foregroundStyle(Color(ink.text))
-                        .padding(.horizontal, 14).frame(minHeight: 44)
-                        .overlay(Capsule().stroke(stripe, lineWidth: 1.5))
-                }
-                .buttonStyle(.plain)
-            }
-            if !shown.isEmpty {
-                Button {
-                    withAnimation(unfold) { allReplies = all ? nil : note.id }
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(shown) { r in
-                            (Text("\(r.author): ").bold() + Text(r.body)).sparklerFont(.subheadline).foregroundStyle(Color(ink.text))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        if !all, replies.count > 1 {
-                            Text(words("sparkler.moreReplies", count: replies.count - 1)).sparklerFont(.footnote, weight: .bold).foregroundStyle(Color(ink.muted))
-                        }
-                    }
-                    .padding(.leading, 10)
-                    .overlay(alignment: .leading) { Rectangle().fill(stripe).frame(width: 3) }
-                    // Replies sit further in than their comment.
-                    .padding(.leading, Sparkler.replyIndent - Sparkler.commentIndent)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .disabled(replies.count < 2)
-            }
-        }
-        .padding(.leading, 10)
-        .overlay(alignment: .leading) { Rectangle().fill(stripe.opacity(0.6)).frame(width: 2) }
-    }
-}
-
-/// One folded-up comment's edge: a strip of paper creased across its middle.
-private struct FoldedEdge: View {
-    let ink: Color
-    let down: Bool
-
-    var body: some View {
-        Canvas { ctx, size in
-            let r = CGRect(origin: .zero, size: size)
-            ctx.fill(Path(roundedRect: r, cornerRadius: 1.5), with: .color(ink.opacity(0.14)))
-            let shade = CGRect(x: 0, y: down ? size.height / 2 : 0, width: size.width, height: size.height / 2)
-            ctx.fill(Path(shade), with: .color(ink.opacity(0.16)))
-            var crease = Path()
-            crease.move(to: CGPoint(x: 0, y: size.height / 2))
-            crease.addLine(to: CGPoint(x: size.width, y: size.height / 2))
-            ctx.stroke(crease, with: .color(ink.opacity(0.45)), lineWidth: 0.6)
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-/// A comment unfolding like a panel of accordion-folded paper: turning out from flat, hinged at
-/// its top and bottom by turns, each a beat after the one before.
-private struct AccordionPanel: ViewModifier {
-    let angle: Double
-    let hingeTop: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .rotation3DEffect(.degrees(angle), axis: (x: 1, y: 0, z: 0), anchor: hingeTop ? .top : .bottom, perspective: 0.6)
-            .opacity(abs(angle) > 80 ? 0 : 1)
-    }
-}
-
-private extension AnyTransition {
-    static func accordion(_ i: Int) -> AnyTransition {
-        let top = i % 2 == 0
-        return AnyTransition.modifier(active: AccordionPanel(angle: top ? -90 : 90, hingeTop: top), identity: AccordionPanel(angle: 0, hingeTop: top))
-            .animation(.spring(duration: 0.45, bounce: 0.15).delay(Double(i % Sparkler.opened) * 0.07))
+        .padding(.leading, Sparkler.commentIndent)
     }
 }
 
