@@ -78,9 +78,6 @@ struct ComposeView: View {
                         .accessibilityLabel(w("compose.background"))
                     }
                 }
-                Section(w("compose.kind")) {
-                    ChoiceRow(options: Compose.kinds, selected: draft.kind, label: { w("enums.prayerKind.\($0)") }) { draft.kind = draft.kind == $0 ? nil : $0 }
-                }
                 Section(w("compose.realm")) {
                     ChoiceRow(options: Compose.realms, selected: draft.realm, label: { w("enums.prayerRealm.\($0)") }) { draft.realm = draft.realm == $0 ? nil : $0 }
                 }

@@ -2,14 +2,11 @@ import {
   MAX_POST_WORDS,
   POST_BACKGROUNDS,
   POST_BACKGROUND_STYLES,
-  PRAYER_KINDS,
-  PRAYER_KIND_LABELS,
   PRAYER_REALMS,
   PRAYER_REALM_LABELS,
   type Card,
   type PostBackground,
   type PostType,
-  type PrayerKind,
   type PrayerRealm,
 } from '@prayer-tower/shared';
 import * as ImagePicker from 'expo-image-picker';
@@ -42,7 +39,6 @@ export default function Compose() {
   const [postType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
   const [body, setBody] = useState(typeof params.body === 'string' ? params.body.slice(0, 5000) : '');
   const [urgency, setUrgency] = useState(0);
-  const [kind, setKind] = useState<PrayerKind | undefined>();
   const [realm, setRealm] = useState<PrayerRealm | undefined>();
   const [background, setBackground] = useState<PostBackground | undefined>();
   const [anonymous, setAnonymous] = useState(profile?.anonymous_by_default ?? false);
@@ -78,7 +74,6 @@ export default function Compose() {
           postType,
           body: body.trim(),
           urgency,
-          kind,
           realm,
           background,
           isAnonymous: anonymous,
@@ -93,7 +88,6 @@ export default function Compose() {
         postType,
         body: body.trim(),
         urgency,
-        kind,
         realm,
         // Backgrounds are for text-only posts.
         background: assets.length ? undefined : background,
@@ -191,14 +185,6 @@ export default function Compose() {
             ))}
           </View>
         ) : null}
-        <View style={{ gap: space.sm }}>
-          <Text style={type.heading}>{t('compose.kind')}</Text>
-          <View style={styles.chips}>
-            {PRAYER_KINDS.map((k) => (
-              <Chip key={k} label={label('prayerKind', k, PRAYER_KIND_LABELS[k])} selected={kind === k} onPress={() => setKind(kind === k ? undefined : k)} />
-            ))}
-          </View>
-        </View>
         <View style={{ gap: space.sm }}>
           <Text style={type.heading}>{t('compose.realm')}</Text>
           <View style={styles.chips}>
