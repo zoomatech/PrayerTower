@@ -127,6 +127,10 @@ export default function Profile() {
             <Text style={type.small}>{t('profile.prayers')}</Text>
           </View>
           <View style={styles.stat}>
+            <Text style={styles.statValue}>{tier?.requests ?? 0}</Text>
+            <Text style={type.small}>{t('profile.requests')}</Text>
+          </View>
+          <View style={styles.stat}>
             <Text style={styles.statValue}>{tokens?.balance ?? 0}</Text>
             <Text style={type.small}>{t('profile.tokens')}</Text>
           </View>

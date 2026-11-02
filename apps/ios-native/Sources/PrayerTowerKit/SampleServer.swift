@@ -118,7 +118,7 @@ public enum SampleServer {
               "next_reminder_at":"2026-10-30T09:00:00Z","committed_count":7,"completed_count":2,"ends_at":null,"post_excerpt":"\(l.excerpt)"}],"note":""}
             """),
             ("GET", "^/me/commitments/review$", #"{"prayers":9,"checkins":5,"people":3,"active":1,"kept":2,"message":"You kept your promises this week."}"#),
-            ("GET", "^/me/tier$", #"{"tier":{"tier":"faithful","label":"\#(l.tier)"},"prayers":42,"next":{"tier":"steadfast","label":"\#(l.nextTier)","prayersNeeded":8},"upkeep":null}"#),
+            ("GET", "^/me/tier$", #"{"tier":{"tier":"faithful","label":"\#(l.tier)"},"prayers":42,"requests":6,"next":{"tier":"steadfast","label":"\#(l.nextTier)","prayersNeeded":8},"upkeep":null}"#),
             ("GET", "^/me/tokens$", #"{"balance":12,"priestly":{"balance":1,"towardNext":4,"prayersPerToken":10}}"#),
             ("GET", "^/me/conversations$", """
             {"conversations":[{"id":"sample-m1","kind":"direct","postId":null,"title":"Sam","topic":null,"isPublic":false,"isRequest":false,"isOwner":false,

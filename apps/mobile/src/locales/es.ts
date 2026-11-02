@@ -34,6 +34,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     open: 'Menú',
     close: 'Cerrar menú',
     settings: en.menu.settings,
+    donateUpkeep: 'Donar para mantenernos en marcha',
+    donatePool: 'Donar al fondo de fichas',
   },
   widget: {
     heading: 'Ora ahora',
@@ -598,6 +600,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     tierUpkeep: 'Give or spend a token at least every %{days} days to keep your tier.',
     tierHeld: 'Give or spend a token to get back to %{tier}.',
     prayers: 'Oraciones',
+    requests: 'Peticiones',
     tokens: 'Fichas',
     priestly: 'Sacerdotales',
     nextTier: 'Te faltan %{count} oraciones para ser %{tier}.',

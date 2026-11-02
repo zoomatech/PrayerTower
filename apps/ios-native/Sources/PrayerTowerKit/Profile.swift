@@ -20,6 +20,8 @@ public struct TierStatus: Codable, Sendable, Equatable {
     }
     public let tier: Tier?
     public let prayers: Int
+    /// Prayer requests the member has posted (Steve, 2026-11-02); nil from an older server.
+    public var requests: Int? = nil
     public let next: Next?
     public let upkeep: Upkeep?
 }

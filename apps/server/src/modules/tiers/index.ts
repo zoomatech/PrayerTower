@@ -95,8 +95,18 @@ export async function tiersOf(q: Queryable, userIds: string[]): Promise<Map<stri
   return new Map(userIds.map((id) => [id, withUpkeep(tierFor(counts.get(id) ?? 0, all), all, !!kept && !kept.has(id))]));
 }
 
+/** How many prayer requests the member has posted, for Me. */
+async function requestCount(q: Queryable, userId: string): Promise<number> {
+  const { rows } = await q.query<{ n: number }>(
+    `select count(*)::int as n from public.posts
+      where user_id = $1 and post_type = 'prayer_request' and moderation_status <> 'removed'`,
+    [userId],
+  );
+  return rows[0]?.n ?? 0;
+}
+
 export async function status(q: Queryable, userId: string) {
-  const [all, counts, upkeep] = await Promise.all([settings(q), prayerCounts(q, [userId]), upkeepSettings(q)]);
+  const [all, counts, upkeep, requests] = await Promise.all([settings(q), prayerCounts(q, [userId]), upkeepSettings(q), requestCount(q, userId)]);
   const prayers = counts.get(userId) ?? 0;
   const earned = tierFor(prayers, all);
   const due = upkeep.enabled && (earned?.rank ?? 0) > 1 && !(await keptUp(q, [userId], upkeep.days)).has(userId);
@@ -106,6 +116,8 @@ export async function status(q: Queryable, userId: string) {
   return {
     tier: tier && { tier: tier.tier, label: tier.label, weeklyAllotment: tier.weekly_allotment },
     prayers,
+    /** Prayer requests the member has posted (Steve, 2026-11-02: Me shows prayers, requests, tokens, prayercast tokens). */
+    requests,
     next: next && { tier: next.tier, label: next.label, prayersNeeded: Math.max(0, next.min_prayer_events! - prayers) },
     /** While tier upkeep is on and the member is above the first tier: the days allowed between gifts or spends, and the earned tier held back until one. */
     upkeep: upkeep.enabled && (earned?.rank ?? 0) > 1 ? { days: upkeep.days, held: due && earned ? { tier: earned.tier, label: earned.label } : null } : null,
