@@ -2334,6 +2334,7 @@ const en = {
     more: '%{n} more comments',
     moreReplies: { one: '1 more reply. Tap to show it', other: '%{count} more replies. Tap to show them' },
     comments: { one: '1 comment', other: '%{count} comments' },
+    prompt: 'Say Something, Pray Something, or Ask for Prayer',
   },
   themes: {
     settings: 'Settings',

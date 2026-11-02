@@ -3343,6 +3343,7 @@
  "sparkler.moreReplies.one": "1 more reply. Tap to show it",
  "sparkler.moreReplies.other": "%{count} more replies. Tap to show them",
  "sparkler.open": "Opens the comments",
+ "sparkler.prompt": "Say Something, Pray Something, or Ask for Prayer",
  "spoken.again": "Record again",
  "spoken.askHint": "Let people who prayed for you record a short voice prayer. You can offer tokens to each person who sends one; they are paid when you first listen.",
  "spoken.free": "On, free",

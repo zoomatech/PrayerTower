@@ -42,8 +42,25 @@ struct SparklerFeed<Row: View>: View {
         // on a post's words however far it scrolls.
         // (The line runs up through it to the header's light blue edge: drawn with the rest of the
         // line, in one piece, below.)
-        Color(look.backdrop).frame(height: Sparkler.topRoom)
-            .accessibilityHidden(true)
+        // The black room is where you write a post: a tap opens the composer, with light lead-in
+        // words standing in it (Steve, 2026-11-02).
+        Button { hooks.compose?() } label: {
+            Text(words("sparkler.prompt"))
+                .sparklerFont(.body)
+                .foregroundStyle(Color.white.opacity(0.62))
+                .lineLimit(2).minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .background(Color.white.opacity(0.06), in: .rect(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.14), lineWidth: 1))
+                // Clear of Home and Menu on the left and the logo on the right.
+                .padding(.leading, 62).padding(.trailing, 128).padding(.vertical, 7)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .frame(height: Sparkler.topRoom)
+        .background(Color(look.backdrop))
+        .accessibilityIdentifier("sparkler-compose")
         GeometryReader { geo in
             let screen = Double(geo.size.height)
             // The tip rests at the same place on screen near its foot, so it is never lost from

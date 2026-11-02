@@ -146,7 +146,8 @@ struct FeedView: View {
             open: { opened = $0.id },
             loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] },
             loadMore: more,
-            hasMore: nextPage != nil
+            hasMore: nextPage != nil,
+            compose: { composing = true }
         )
     }
 

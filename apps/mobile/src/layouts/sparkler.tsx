@@ -19,6 +19,8 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, FlatList, Image, Pressable, StyleSheet, Text, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
+import { router } from 'expo-router';
+
 import { CardInk } from '@/components/post-card';
 import { GlassTube, GLOW_REACH } from '@/components/glass-tube';
 import { lineTip } from '@/lib/draw-in';
@@ -599,8 +601,14 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   return (
     <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="sparkler-layout">
       {/* Black room under the Home and Menu buttons, held still above the feed, so they never sit on a post's words. */}
-      {/* (The line runs up through it to the header's light blue edge, drawn in one piece with the rest of the line.) */}
-      <View style={{ height: TOP_ROOM }} />
+      {/* The black room is where you write a post: a tap opens the composer, with light lead-in words standing in it (Steve, 2026-11-02). The line runs up through it, drawn in one piece with the rest. */}
+      <View style={styles.promptRoom}>
+        <Pressable onPress={() => router.push('/compose')} accessibilityRole="button" style={styles.prompt} testID="sparkler-compose">
+          <Text style={styles.promptText} numberOfLines={2}>
+            {t('sparkler.prompt')}
+          </Text>
+        </Pressable>
+      </View>
       <View style={styles.fill} onLayout={(e: LayoutChangeEvent) => move({ screen: e.nativeEvent.layout.height })}>
       <FlatList
         data={cards}
@@ -642,6 +650,9 @@ const styles = StyleSheet.create({
   closed: { gap: 6, borderLeftWidth: 4, borderRadius: 6, paddingVertical: 10, paddingLeft: 12, paddingRight: 10 },
   count: { fontSize: 16, fontWeight: '700' },
   comment: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.sm },
+  promptRoom: { height: TOP_ROOM, paddingLeft: 62, paddingRight: 128, paddingVertical: 7 },
+  prompt: { flex: 1, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.06)' },
+  promptText: { color: 'rgba(255,255,255,0.62)', fontSize: 16 },
   folds: { gap: 5, marginTop: 6, marginBottom: 2 },
   foldLine: { height: 1, alignSelf: 'stretch', backgroundColor: '#fff' },
   commentName: { fontWeight: '700', fontSize: 15 },
