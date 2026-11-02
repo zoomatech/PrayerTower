@@ -74,8 +74,6 @@ const LEAF_FILLS = [BEANSTALK.leafA, BEANSTALK.leafB, BEANSTALK.leafC];
 export const PER_PAGE = 5;
 /** More comments than this wait as an uncountable cluster of leaves until tapped (Steve, 2026-10-30). */
 export const CLUMP_OVER = 3;
-/** Comment, reply, reply to a reply: the third level is the last. */
-export const MAX_LEVEL = 2;
 /** The frame's vine is drawn this far round the post on every side, so nothing is cut off. */
 const P = 26;
 
@@ -445,7 +443,6 @@ export function hanging(w: number, top: Comment[], kids: Map<string, Comment[]>,
 /** A leaf's height from its width: the leaf drawing is 200 by 100, so every leaf is half as tall as wide. */
 export const leafHeight = (width: number) => Math.round(width / 2);
 
-export const LEAF_PATH = 'M2 50 C 4 34, 22 10, 66 6 C 112 2, 160 20, 198 60 C 158 82, 110 98, 64 94 C 24 90, 4 66, 2 50 Z';
 
 /** Characters that fit on a leaf `W` wide at `fs` points, over `lines` lines. */
 export function leafChars(W: number, fs: number, lines: number) {
