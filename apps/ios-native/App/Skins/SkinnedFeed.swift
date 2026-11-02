@@ -323,7 +323,9 @@ struct VineLeaf<Content: View>: View {
                 Image(systemName: "sparkle").font(.caption).foregroundStyle(Color(look.tendril)).offset(y: -6)
             }
         case .floral:
-            Scallop().fill(Color(look.leaf).opacity(0.55))
+            // The petal tint over a solid backing of the page, so nothing drawn behind a box (the
+            // stalk, a twig, the leaves waiting behind) shows through under its words.
+            Scallop().fill(Color(look.leaf).opacity(0.55)).background(Scallop().fill(backdrop))
         default:
             ZStack {
                 LeafOutline(shape: look.leafShape).fill(Color(look.leaf))
@@ -1051,6 +1053,11 @@ struct NeonHeader: View {
 enum HomeAndMenu {
     /// How far the buttons reach below the top of the navigation bar's 44-point row.
     static let overhang: CGFloat = 2 + 44 + 6 + 44 - 44
+    /// Their top on screens other than the feed: below a navigation bar with a large title (52 points
+    /// over its 44-point row), so a large title, a back button or a name is never under them.
+    static let belowBar: CGFloat = 44 + 52 + 4
+    /// The width the content moves right to clear them there.
+    static let column: CGFloat = 8 + 44 + 4
 }
 
 /// The Ceramic Figurines header: the cream shelf up behind the clock, with an etched line along its foot.

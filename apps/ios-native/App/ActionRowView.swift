@@ -29,6 +29,9 @@ struct ActionRowView: View {
                 .buttonStyle(.plain)
                 .help(item.meaningWords(wording).map { "\(item.name)\n\($0)" } ?? item.name)
                 .accessibilityLabel(item.name)
+                // The icons keep their size as the text grows; held down at the larger text sizes,
+                // each shows enlarged with its name in the Large Content Viewer, as Apple asks.
+                .accessibilityShowsLargeContentViewer { glyph(item); Text(item.name) }
                 .accessibilityAddTraits(active.contains(item.action) ? .isSelected : [])
                 .contextMenu {
                     // The first entry is the name, so a long press always says what the icon does.
@@ -65,17 +68,17 @@ struct ActionRowView: View {
         if let glow {
             NeonButtonGlyph(symbol: Self.standardSymbol(item.action), color: glow, size: size, action: item.action)
         } else if item.action == .share || item.action == .commit {
-            Image(systemName: Self.standardSymbol(item.action)).font(.system(size: size * 0.75, weight: .semibold)).foregroundStyle(Color.accessibleAccent)
-                .frame(width: size, height: size).accessibilityHidden(true)
+            // A picture at its button's size, not a font size that Apple's check expects to grow.
+            Image(systemName: Self.standardSymbol(item.action)).resizable().scaledToFit().fontWeight(.semibold).foregroundStyle(Color.accessibleAccent)
+                .frame(width: size * 0.6, height: size * 0.6).frame(width: size, height: size).accessibilityHidden(true)
         } else if !emojiOnly, let art = Self.art("action-\(item.action.rawValue)") {
             art.resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true)
         } else {
-            // The emoji is an icon, not words: it grows with the text only up to the largest
-            // standard size, so at the accessibility sizes it never swells past its button.
-            Text(item.icon).font(size > 28 ? .title : .title3)
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .lineLimit(1).minimumScaleFactor(0.5)
-                .frame(maxWidth: max(44, size + 12)).accessibilityHidden(true)
+            // The emoji is an icon, not words: drawn as a picture at its button's size, so at the
+            // accessibility sizes it never swells past its button, and Apple's check doesn't read
+            // it as words that won't grow.
+            DecorativeGlyph(glyph: item.icon, size: size > 28 ? 28 : 20, maxScale: 1)
+                .frame(maxWidth: max(44, size + 12))
         }
     }
 
