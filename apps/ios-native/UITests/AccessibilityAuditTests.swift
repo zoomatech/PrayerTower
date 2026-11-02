@@ -133,7 +133,13 @@ final class AccessibilityAuditTests: XCTestCase {
     }
 
     @MainActor private func runAudit(_ app: XCUIApplication, _ place: String, in visible: CGRect) throws {
+        // The screen as it was before the audit, to say what colors a contrast failure sat on.
+        let shot = XCUIScreen.main.screenshot().image.cgImage
+        let width = app.windows.firstMatch.frame.width
         try app.performAccessibilityAudit { issue in
+            if issue.auditType == .contrast, let frame = issue.element?.frame, let shot {
+                print("PIXELS \(place) '\(issue.element?.label ?? "")': \(Self.colors(in: frame, of: shot, scale: CGFloat(shot.width) / width))")
+            }
             let element = issue.element
             // An element with no place on screen (an infinite or empty frame) can't be measured there.
             if let frame = element?.frame, !frame.origin.x.isFinite || !frame.origin.y.isFinite || frame.isEmpty || !visible.contains(frame) { return true }
@@ -144,5 +150,28 @@ final class AccessibilityAuditTests: XCTestCase {
             XCTFail("\(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
             return true
         }
+    }
+
+    /// Diagnostic: the darkest and lightest pixels in a frame, and the most common colors.
+    static func colors(in frame: CGRect, of image: CGImage, scale: CGFloat) -> String {
+        let r = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale).integral
+            .intersection(CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard !r.isEmpty, let crop = image.cropping(to: r) else { return "off screen" }
+        let w = crop.width, h = crop.height
+        var data = [UInt8](repeating: 0, count: w * h * 4)
+        guard let ctx = CGContext(data: &data, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return "no context" }
+        ctx.draw(crop, in: CGRect(x: 0, y: 0, width: w, height: h))
+        var counts: [String: Int] = [:]
+        var dark = (lum: 2.0, hex: ""), light = (lum: -1.0, hex: "")
+        for i in stride(from: 0, to: data.count, by: 4) {
+            let (rr, gg, bb) = (data[i], data[i + 1], data[i + 2])
+            let hex = String(format: "%02X%02X%02X", rr, gg, bb)
+            counts[hex, default: 0] += 1
+            let lum = 0.2126 * Double(rr) / 255 + 0.7152 * Double(gg) / 255 + 0.0722 * Double(bb) / 255
+            if lum < dark.lum { dark = (lum, hex) }
+            if lum > light.lum { light = (lum, hex) }
+        }
+        let top = counts.sorted { $0.value > $1.value }.prefix(4).map { "#\($0.key)×\($0.value)" }.joined(separator: " ")
+        return "darkest #\(dark.hex), lightest #\(light.hex), most \(top)"
     }
 }

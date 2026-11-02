@@ -125,6 +125,7 @@ jobs:
           grep -h -A20 "Accessibility audit:" "$d"/ui-walks.txt 2>/dev/null | grep -E "^(Feed|My Promises|Messages|Notices|Me|Request)" | sort -u | head -30 | while IFS= read -r l; do echo "::warning title=walk audit::${l//%/%25}"; done
           # What was on screen when Apple flagged something without naming it (plain log lines).
           grep -h "WALKDIAG" "$d"/ui-walks.txt 2>/dev/null | head -400
+          grep -h "PIXELS" "$d"/*.txt 2>/dev/null | grep -v grep | sort -u | head -40
           exit 0
       - name: Performance numbers
         if: ${{ !cancelled() }}
