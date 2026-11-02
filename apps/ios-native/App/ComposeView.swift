@@ -124,7 +124,8 @@ struct ComposeView: View {
                         Button { Task { await submit(cast: false) } } label: {
                             Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
                         }
-                        .buttonStyle(.bordered)
+                        // Equal options: both solid blue (Steve, 2026-11-02).
+                        .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("compose-post")
                     }
                 }

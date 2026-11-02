@@ -248,7 +248,6 @@ export default function Compose() {
             ) : null}
             <Button
               testID="compose-post"
-              variant={casts ? 'secondary' : undefined}
               label={t('compose.post')}
               onPress={() => submit(false)}
               busy={busy}
