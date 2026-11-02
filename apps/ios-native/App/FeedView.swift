@@ -107,7 +107,12 @@ struct FeedView: View {
                 composing = Composing(text: "")
             }
             .sheet(item: $composing) { c in
-                ComposeView(onPosted: { _ in Task { await load() } }, start: c.text.isEmpty ? nil : {
+                ComposeView(onPosted: { card in
+                    // The post just made is the top post at once, before the feed reloads (Steve, 2026-11-02).
+                    posts.removeAll { $0.id == card.id }
+                    posts.insert(card, at: 0)
+                    Task { await load() }
+                }, start: c.text.isEmpty ? nil : {
                     var post = NewPost()
                     post.body = c.text
                     return post

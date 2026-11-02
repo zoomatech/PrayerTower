@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pickPinned, rankFeed, type Candidate } from '../src/modules/feed/index.js';
+import { orderFeed, pickPinned, rankFeed, type Candidate } from '../src/modules/feed/index.js';
 
 const now = new Date('2026-10-25T12:00:00Z');
 const base = (id: string, over: Partial<Candidate> = {}): Candidate => ({
@@ -56,5 +56,23 @@ describe('FeedRanker', () => {
   it("never pins the viewer's own request as \"Pray for this first\"", () => {
     const list = [base('mine', { createdAt: now, mine: true }), base('theirs', { createdAt: new Date(now.getTime() - 60_000) })];
     expect(pickPinned(list)!.id).toBe('theirs');
+  });
+
+  it('puts the post the viewer just made at the top of their own feed, above the pin', () => {
+    const list = [
+      base('popular', { commitments: 50, createdAt: now }),
+      base('theirs', { createdAt: new Date(now.getTime() - 30_000) }),
+      base('mine-older', { mine: true, createdAt: new Date(now.getTime() - 5 * 60_000) }),
+      base('mine-new', { mine: true, createdAt: new Date(now.getTime() - 10_000) }),
+    ];
+    const { ordered, pinned } = orderFeed(list, now);
+    expect(ordered.map((c) => c.id).slice(0, 2)).toEqual(['mine-new', 'mine-older']);
+    expect(pinned!.id).toBe('popular');
+    expect(ordered).toHaveLength(4);
+  });
+
+  it('lets an own post rejoin the ranking once it is no longer new', () => {
+    const list = [base('mine', { mine: true, createdAt: new Date(now.getTime() - 60 * 60_000) }), base('theirs', { createdAt: now })];
+    expect(orderFeed(list, now).ordered[0]!.id).toBe('theirs');
   });
 });

@@ -868,14 +868,16 @@ export async function promptSubject(q: Queryable, postId: string, viewerId: stri
   return r.display_name;
 }
 
-/** A person's recent visible posts made under their name (never their anonymous ones). */
-/** The author's named posts the viewer may see: only in the viewer's communities, unless it's their own page. */
+/**
+ * The author's named posts the viewer may see (never their anonymous ones), newest first: only in
+ * the viewer's communities, unless it's their own page.
+ */
 export async function namedPostIds(q: Queryable, authorId: string, viewerId: string, limit = 20): Promise<string[]> {
   const { rows } = await q.query<{ id: string }>(
     `select id from public.posts
       where user_id = $1 and not is_anonymous and moderation_status = 'visible'
         and ($1 = $3 or community_id in (select community_id from public.community_memberships where user_id = $3))
-      order by id desc limit $2`,
+      order by created_at desc, id desc limit $2`,
     [authorId, limit, viewerId],
   );
   return rows.map((r) => r.id);

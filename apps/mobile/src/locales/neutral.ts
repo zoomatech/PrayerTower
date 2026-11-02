@@ -261,6 +261,7 @@ export const keys: Tree = named({
     tour: 'How Open Circle works',
   },
   compose: {
+    post: 'Post',
     greeting: "Welcome, %{name}! Let's lift each other up.",
     placeholder: "What's on your mind?",
     bodyLabel: 'Your request',

@@ -698,7 +698,7 @@ const en = {
   },
   compose: {
     videoTooLong: 'Videos can be up to %{count} seconds long for now. Longer clips were left out.',
-    post: 'Post',
+    post: 'Post prayer, prayer request or other thoughts.',
     greeting: "Welcome, %{name}! Let's talk to the Lord.",
     placeholder: 'Type your prayer here',
     bodyLabel: 'Your prayer',

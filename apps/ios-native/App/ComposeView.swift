@@ -112,10 +112,19 @@ struct ComposeView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(w("common.cancel")) { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(w("compose.post")) { Task { await submit() } }
-                        .disabled(busy || draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || words > Compose.maxWords)
+            }
+            // The send button says what can be posted, since some people address God directly
+            // (Steve, 2026-11-02); its words are too long for the bar, so it runs full width.
+            .safeAreaInset(edge: .bottom) {
+                Button { Task { await submit() } } label: {
+                    Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
+                .buttonStyle(.borderedProminent)
+                .disabled(busy || draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || words > Compose.maxWords)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(.bar)
+                .accessibilityIdentifier("compose-post")
             }
             .onAppear {
                 if let start, draft == NewPost() { draft = start }

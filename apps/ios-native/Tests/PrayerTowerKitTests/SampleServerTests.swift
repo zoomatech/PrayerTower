@@ -54,6 +54,19 @@ import Testing
         #expect(SampleServer.posts(["app", "-PTSampleData"]) == nil)
     }
 
+    /// A new post is the top post on the member's own feed and own page (Steve, 2026-11-02).
+    @Test func aNewPostIsTheTopPostOnTheFeedAndTheMembersPage() throws {
+        let sent = try JSONSerialization.data(withJSONObject: ["body": "Thank you, Lord, for this morning.", "postType": "praise"])
+        let made = try JSONDecoder().decode(CreatedPost.self, from: SampleServer.answer(method: "POST", path: "/posts", body: sent).body).post
+        #expect(made.body == "Thank you, Lord, for this morning." && made.isMine)
+        let feed = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed").body)
+        #expect(feed.posts.first?.id == made.id)
+        let long = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed", query: ["page": "0"], posts: 100).body)
+        #expect(long.posts.first?.id == made.id)
+        let page = try JSONDecoder().decode(PersonPage.self, from: SampleServer.answer(method: "GET", path: "/people/\(SampleServer.memberId)").body)
+        #expect(page.posts.first?.id == made.id)
+    }
+
     @Test func unknownReadsAreNotFoundAndWritesSucceed() {
         #expect(SampleServer.answer(method: "GET", path: "/nowhere").status == 404)
         #expect(SampleServer.answer(method: "POST", path: "/posts/sample-p1/praying-now").status == 200)
