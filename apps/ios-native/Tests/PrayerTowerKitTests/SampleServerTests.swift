@@ -57,13 +57,15 @@ import Testing
     /// A new post is the top post on the member's own feed and own page (Steve, 2026-11-02).
     @Test func aNewPostIsTheTopPostOnTheFeedAndTheMembersPage() throws {
         let sent = try JSONSerialization.data(withJSONObject: ["body": "Thank you, Lord, for this morning.", "postType": "praise"])
-        let made = try JSONDecoder().decode(CreatedPost.self, from: SampleServer.answer(method: "POST", path: "/posts", body: sent).body).post
+        // Its own store, so the other tests running beside it still see the plain sample feed.
+        let kept = Locked<[String]>([])
+        let made = try JSONDecoder().decode(CreatedPost.self, from: SampleServer.answer(method: "POST", path: "/posts", body: sent, kept: kept).body).post
         #expect(made.body == "Thank you, Lord, for this morning." && made.isMine)
-        let feed = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed").body)
+        let feed = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed", kept: kept).body)
         #expect(feed.posts.first?.id == made.id)
-        let long = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed", query: ["page": "0"], posts: 100).body)
+        let long = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed", query: ["page": "0"], posts: 100, kept: kept).body)
         #expect(long.posts.first?.id == made.id)
-        let page = try JSONDecoder().decode(PersonPage.self, from: SampleServer.answer(method: "GET", path: "/people/\(SampleServer.memberId)").body)
+        let page = try JSONDecoder().decode(PersonPage.self, from: SampleServer.answer(method: "GET", path: "/people/\(SampleServer.memberId)", kept: kept).body)
         #expect(page.posts.first?.id == made.id)
     }
 

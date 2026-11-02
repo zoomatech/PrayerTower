@@ -137,10 +137,15 @@ public enum SampleServer {
     /// The status and body for one request. Unknown reads are "not found" (screens show their
     /// error state); writes succeed with an empty answer.
     public static func answer(method: String, path: String, query: [String: String] = [:], posts: Int? = nil, body: Data? = nil) -> (status: Int, body: Data) {
+        answer(method: method, path: path, query: query, posts: posts, body: body, kept: Self.posted)
+    }
+
+    /// As above, keeping new posts in `kept` (the tests give each their own).
+    static func answer(method: String, path: String, query: [String: String] = [:], posts: Int? = nil, body: Data? = nil, kept posted: Locked<[String]>) -> (status: Int, body: Data) {
         // A post the member writes is kept for the session and is the top post on their own feed and
         // their own page, newest first (Steve, 2026-11-02).
         if method == "POST", path == "/posts" {
-            return (200, Data(#"{"post":\#(post(body)),"harm":null}"#.utf8))
+            return (200, Data(#"{"post":\#(post(body, into: posted)),"harm":null}"#.utf8))
         }
         let own = posted.withLock { $0 }.reversed().joined(separator: ",")
         let first = own.isEmpty ? "" : own + ","
@@ -177,7 +182,7 @@ extension SampleServer {
     static let posted = Locked<[String]>([])
 
     /// Keeps a new post the member wrote and returns its card, stamped with the time it was made.
-    static func post(_ body: Data?) -> String {
+    static func post(_ body: Data?, into posted: Locked<[String]>) -> String {
         let sent = body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
         let text = sent["body"] as? String ?? ""
         let type = sent["postType"] as? String ?? "prayer_request"
