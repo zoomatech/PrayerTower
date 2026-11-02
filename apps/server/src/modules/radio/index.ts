@@ -104,7 +104,7 @@ export async function mine(q: Queryable, userId: string): Promise<RadioPrayer[]>
 
 /** Why a queued prayer must not go out now: 'wait' while a moderator is still reviewing it. */
 function holdReason(r: { moderation_status: string; is_sensitive: boolean; pending_review: boolean; harm_category: string | null }): string | 'wait' | null {
-  if (r.moderation_status !== 'visible') return 'request removed or hidden';
+  if (r.moderation_status !== 'visible' && r.moderation_status !== 'private_cast') return 'request removed or hidden';
   if (r.is_sensitive) return 'sensitive request';
   // Flagged by the harmful-prayer check: never sent until a moderator clears it (modules/harm).
   return r.pending_review || r.harm_category ? 'wait' : null;
@@ -118,6 +118,29 @@ const QUEUED_PRAYER = `select r.id, r.post_id, ${SEND_TEXT} as body, p.user_id a
                      where m.target_type = 'post' and m.target_id = p.id and m.status = 'pending') as pending_review
        from public.radio_prayers r join public.posts p on p.id = r.post_id`;
 type QueuedPrayer = { id: string; post_id: string; body: string; poster_id: string; sender_id: string; repeats: number; moderation_status: string; is_sensitive: boolean; pending_review: boolean; harm_category: string | null };
+
+/**
+ * A prayer PrayerCast privately is directed to God: once its radio prayers are done (sent and,
+ * at a station, heard or out of retries; or failed) its words are forgotten, on the request and
+ * in what was sent (Steve, 2026-11-02).
+ */
+export async function forgetPrivateCasts(q: Queryable) {
+  const { maxRetries } = await acks.settings(q);
+  await q.query(
+    `with done as (
+       select p.id from public.posts p
+        where p.moderation_status = 'private_cast' and p.body <> $1
+          and exists (select 1 from public.radio_prayers r where r.post_id = p.id)
+          and not exists (select 1 from public.radio_prayers r where r.post_id = p.id
+                           and (r.status in ('queued', 'sending')
+                                or (r.status = 'transmitted' and r.transmitter = 'station' and r.heard_at is null and r.heard_retries < $2)))
+     ), sent as (
+       update public.radio_prayers r set sent_text = null from done where r.post_id = done.id
+     )
+     update public.posts p set body = $1 from done where p.id = done.id`,
+    [posts.FORGOTTEN_CAST, maxRetries],
+  );
+}
 
 /** A prayer that will never go out gives back the Priestly tokens spent on it. */
 async function failAndRefund(q: Queryable, id: string, error: string) {
@@ -174,6 +197,7 @@ export function transmitTask(q: Queryable, transmit: Transmitter = logTransmitte
     await markAmplified(q, r);
     await tellPoster(q, r);
     await receipts.onAir(q, r.id);
+    await forgetPrivateCasts(q);
   };
 }
 
@@ -293,6 +317,7 @@ export async function claimNext(q: Queryable, nodeId: string | null = null, opts
   );
   // Listener acknowledgements: sent prayers nobody heard go back in the queue (acks.ts).
   await acks.requeueUnheard(q);
+  await forgetPrivateCasts(q);
   // Urgent prayers no listener confirmed go out again (urgent.ts).
   await urgent.requeueUnconfirmed(q);
   // Transmission windows and quiet hours (schedule.ts), and the operator console's hold and
@@ -418,6 +443,7 @@ export async function reportResult(q: Queryable, id: string, result: z.infer<typ
     await tellPoster(q, r);
     await receipts.onAir(q, r.id);
   }
+  await forgetPrivateCasts(q);
 }
 
 /**

@@ -255,7 +255,7 @@ export function dueTask(q: Queryable): Task {
     await q.query(
       `insert into public.prayer_resolutions (post_id, user_id)
        select p.id, p.user_id from public.posts p
-        where p.post_type = 'prayer_request' and p.state <> 'answered' and p.moderation_status = 'visible'
+        where p.post_type = 'prayer_request' and p.state <> 'answered' and p.moderation_status in ('visible', 'private_cast')
           and p.created_at < now() - make_interval(days => $1)
           and p.created_at > now() - make_interval(days => $1 + 30)
           and not exists (select 1 from public.prayer_resolutions r where r.post_id = p.id)
@@ -268,7 +268,7 @@ export function dueTask(q: Queryable): Task {
       `update public.prayer_resolutions r
           set asks = r.asks + 1, pending = true, asked_at = now(), next_ask_at = now() + make_interval(days => $1)
          from public.posts p
-        where p.id = r.post_id and p.state <> 'answered' and p.moderation_status = 'visible'
+        where p.id = r.post_id and p.state <> 'answered' and p.moderation_status in ('visible', 'private_cast')
           and r.answered is not true and r.reposted_post_id is null and r.asks < $2
           and (r.next_ask_at is null or r.next_ask_at <= now())
         returning r.post_id, r.user_id, r.asks`,
