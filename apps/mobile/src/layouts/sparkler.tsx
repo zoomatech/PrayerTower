@@ -440,9 +440,14 @@ export function stardust(scrolled: number, top: number, tip: number, time: numbe
     const age = 1 - along;
     const side = rnd() < 0.5 ? -1 : 1;
     const phase = rnd() * 6.28;
-    const dx = side * (3 + age * 26 * rnd()) + Math.sin(time * 0.8 + phase) * 2.5;
-    const y = y0 - age * 10 * rnd() + Math.cos(time * 0.6 + phase) * 1.5;
-    const fade = Math.pow(Math.max(0, Math.min(1, (along - 0.05) / 0.95)), 1.3);
+    // Always drifting, ever so slowly, even with the feed still (Steve, 2026-11-02): each mote floats
+    // out from the line and a little upward over its own long life (9 to 15 s), fading in as it
+    // starts and out as it ends, so its return to the start never shows.
+    const life = (((time / (9 + rnd() * 6) + phase / 6.28) % 1) + 1) % 1;
+    const drift = life * (10 + rnd() * 8);
+    const dx = side * (3 + age * 26 * rnd() + drift) + Math.sin(time * 0.35 + phase) * 1.5;
+    const y = y0 - age * 10 * rnd() - drift * 0.6 + Math.cos(time * 0.3 + phase) * 1.0;
+    const fade = Math.pow(Math.max(0, Math.min(1, (along - 0.05) / 0.95)), 1.3) * Math.sqrt(Math.sin(Math.PI * life));
     const opacity = fade * (0.35 + 0.45 * (0.5 + 0.5 * Math.sin(time * (2 + rnd() * 3) + phase)));
     const r = 0.8 + rnd() * 1.2;
     const warm = rnd() < 0.6;

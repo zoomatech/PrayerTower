@@ -162,9 +162,15 @@ public enum Sparkler {
             let age = 1 - along
             let side = rnd.next() < 0.5 ? -1.0 : 1.0
             let phase = rnd.next() * 6.28
-            let dx = side * (3 + age * 26 * rnd.next()) + sin(time * 0.8 + phase) * 2.5
-            let y = y0 - age * 10 * rnd.next() + cos(time * 0.6 + phase) * 1.5
-            let fade = pow(max(0, min(1, (along - 0.05) / 0.95)), 1.3)
+            // Always drifting, ever so slowly, even with the feed still (Steve, 2026-11-02): each mote
+            // floats out from the line and a little upward over its own long life (9 to 15 s, about
+            // a point a second), fading in as it starts and out as it ends, so its return to the
+            // start never shows.
+            let life = (time / (9 + rnd.next() * 6) + phase / 6.28).truncatingRemainder(dividingBy: 1)
+            let drift = life * (10 + rnd.next() * 8)
+            let dx = side * (3 + age * 26 * rnd.next() + drift) + sin(time * 0.35 + phase) * 1.5
+            let y = y0 - age * 10 * rnd.next() - drift * 0.6 + cos(time * 0.3 + phase) * 1.0
+            let fade = pow(max(0, min(1, (along - 0.05) / 0.95)), 1.3) * sin(.pi * life).squareRoot()
             let o = fade * (0.35 + 0.45 * (0.5 + 0.5 * sin(time * (2 + rnd.next() * 3) + phase)))
             guard o > 0.05 else { continue }
             out.append(Mote(y: y, dx: dx, r: 0.8 + rnd.next() * 1.2, opacity: min(1, o * 1.4), warm: rnd.next() < 0.6))
