@@ -69,6 +69,20 @@ import Testing
         #expect(page.posts.first?.id == made.id)
     }
 
+    /// PrayerCast (Steve, 2026-11-02): public joins the feed; private is kept nowhere.
+    @Test func aPublicPrayerCastJoinsTheFeedAndAPrivateOneIsKeptNowhere() throws {
+        let kept = Locked<[String]>([])
+        let enc = JSONEncoder()
+        var p = NewPost(); p.body = "Lord, carry my friend through tonight."
+        let pub = try JSONDecoder().decode(PrayerCastSent.self, from: SampleServer.answer(method: "POST", path: "/prayercast", body: try enc.encode(CastBody(post: p, visibility: .public, idempotencyKey: "a")), kept: kept).body)
+        #expect(pub.post?.body == p.body)
+        let priv = try JSONDecoder().decode(PrayerCastSent.self, from: SampleServer.answer(method: "POST", path: "/prayercast", body: try enc.encode(CastBody(post: p, visibility: .private, idempotencyKey: "b")), kept: kept).body)
+        #expect(priv.post == nil)
+        #expect(kept.withLock { $0.count } == 1)
+        let json = try JSONSerialization.jsonObject(with: try enc.encode(CastBody(post: p, visibility: .private, idempotencyKey: "c"))) as? [String: Any]
+        #expect(json?["visibility"] as? String == "private" && json?["body"] as? String == p.body)
+    }
+
     @Test func unknownReadsAreNotFoundAndWritesSucceed() {
         #expect(SampleServer.answer(method: "GET", path: "/nowhere").status == 404)
         #expect(SampleServer.answer(method: "POST", path: "/posts/sample-p1/praying-now").status == 200)

@@ -148,6 +148,16 @@ public enum SampleServer {
         if method == "POST", path == "/posts" {
             return (200, Data(#"{"post":\#(post(body, into: posted)),"harm":null}"#.utf8))
         }
+        // A PrayerCast: public ones join the member's posts; private ones are kept nowhere.
+        if method == "POST", path == "/prayercast" {
+            let sent = body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
+            if sent["visibility"] as? String == "public" {
+                let card = post(body, into: posted)
+                let id = (try? JSONSerialization.jsonObject(with: Data(card.utf8)) as? [String: Any])?["id"] as? String ?? ""
+                return (201, Data(#"{"post":\#(card),"postId":"\#(id)","harm":null}"#.utf8))
+            }
+            return (201, Data(#"{"post":null,"postId":"sample-private-cast","harm":null}"#.utf8))
+        }
         let own = posted.withLock { $0 }.reversed().joined(separator: ",")
         let first = own.isEmpty ? "" : own + ","
         if method == "GET", path.hasPrefix("/posts/sample-new-"), let i = Int(path.dropFirst("/posts/sample-new-".count)),

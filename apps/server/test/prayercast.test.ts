@@ -39,14 +39,18 @@ describe('PrayerCast', () => {
     }
   });
 
-  it('needs a choice, public or private, and saves nothing when it cannot be sent', async () => {
+  it('needs a choice; public posts even when it cannot be sent now, private keeps nothing then', async () => {
     const caster = await createUser('Cast Chooser');
     const body = 'Please pray with me for my daughter starting school.';
     expect((await as(caster).post('/prayercast', { body, idempotencyKey: 'k1' })).statusCode).toBe(400);
-    // Radio prayers cost Priestly tokens by default and a new member has none: nothing is posted.
-    const r = await as(caster).post('/prayercast', { body, visibility: 'public', idempotencyKey: 'k2' });
-    expect(r.statusCode).toBeGreaterThanOrEqual(400);
-    const { rowCount } = await db.query('select 1 from public.posts where user_id = $1 and body = $2', [caster, body]);
+    // Radio prayers cost Priestly tokens by default and a new member has none.
+    const pub = await as(caster).post('/prayercast', { body, visibility: 'public', idempotencyKey: 'k2' });
+    expect(pub.statusCode).toBe(201);
+    expect(pub.json()).toMatchObject({ post: { body }, radioPrayer: null });
+    expect(pub.json().castError).toBeTruthy();
+    const quiet = 'Lord, I am afraid of tomorrow.';
+    expect((await as(caster).post('/prayercast', { body: quiet, visibility: 'private', idempotencyKey: 'k3' })).statusCode).toBeGreaterThanOrEqual(400);
+    const { rowCount } = await db.query('select 1 from public.posts where user_id = $1 and body = $2', [caster, quiet]);
     expect(rowCount).toBe(0);
   });
 });

@@ -53,6 +53,8 @@ export default function Compose() {
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Post my PrayerCast publicly, or PrayerCast privately: none until the member picks (Steve, 2026-11-02).
+  const [castChoice, setCastChoice] = useState<'public' | 'private' | null>(null);
   const [posted, setPosted] = useState(false);
   const words = wordCount(body);
   const bg = background ? POST_BACKGROUND_STYLES[background] : null;
@@ -69,54 +71,43 @@ export default function Compose() {
   const submit = async (cast: boolean) => {
     setBusy(true);
     setError(null);
-    const postType: PostType = cast || !casts ? asked : 'discussion';
-    // The prayer is posted either way; a PrayerCast that can't go says why and the screen closes on Back.
-    const castIt = async (post: Card, harm?: HarmNote | null) => {
-      if (cast) {
-        try {
-          await api.sendRadioPrayer(post.id);
-        } catch (e) {
-          setError(t('compose.castFailed', { reason: (e as Error).message }));
-          setPosted(true);
-          setBusy(false);
-          return;
-        }
-      }
-      afterCreate(post, harm, postType);
+    // Post: a post that isn't a prayer (thanks from the thanksgiving card stays praise).
+    const postType: PostType = cast || !casts || asked === 'praise' ? asked : 'discussion';
+    const fields = {
+      postType,
+      body: body.trim(),
+      urgency: postType === 'prayer_request' ? urgency : 0,
+      realm,
+      isAnonymous: anonymous,
+      isSensitive: sensitive,
+      allSupportWelcome: features.supportLabel && allSupport,
+      ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
     };
     try {
       const media = [];
       for (const a of assets) media.push(await uploadAsset(a));
+      // Backgrounds are for text-only posts.
+      const input = { ...fields, background: assets.length ? undefined : background, media };
+      if (cast && castChoice) {
+        // Posted and sent by radio together; if it can't be sent, nothing is saved.
+        const sent = await api.sendPrayerCast(input, castChoice);
+        if (sent.castError) {
+          // Posted, but not sent by radio: say so, and leave only Close.
+          setError(t('compose.castFailed', { reason: sent.castError }));
+          setPosted(true);
+          setBusy(false);
+          return;
+        }
+        return sent.post ? afterCreate(sent.post, sent.harm, postType) : leave();
+      }
       if (!assets.length) {
         // Text-only posts can wait in the offline queue; photos need a connection to upload.
-        const result = await api.createPostOrQueue({
-          postType,
-          body: body.trim(),
-          urgency,
-          realm,
-          background,
-          isAnonymous: anonymous,
-          isSensitive: sensitive,
-          allSupportWelcome: features.supportLabel && allSupport,
-          ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
-        });
+        const result = await api.createPostOrQueue({ ...fields, background });
         if ('queued' in result) return leave();
-        return castIt(result.post, result.harm);
+        return afterCreate(result.post, result.harm, postType);
       }
-      const created = await api.createPost({
-        postType,
-        body: body.trim(),
-        urgency,
-        realm,
-        // Backgrounds are for text-only posts.
-        background: assets.length ? undefined : background,
-        isAnonymous: anonymous,
-        isSensitive: sensitive,
-        allSupportWelcome: features.supportLabel && allSupport,
-        ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
-        media,
-      });
-      await castIt(created.post, created.harm);
+      const created = await api.createPost(input);
+      afterCreate(created.post, created.harm, postType);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -239,21 +230,22 @@ export default function Compose() {
         ) : null}
       </ScrollView>
       <View style={styles.send}>
-        {posted ? (
-          <Button label={t('common.close')} onPress={leave} />
-        ) : (
+        {posted ? <Button label={t('common.close')} onPress={leave} /> : null}
+        {!posted && casts ? (
           <>
-            {casts ? (
-              <Button testID="compose-cast" label={t('compose.cast')} onPress={() => submit(true)} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
-            ) : null}
+            <Toggle label={t('compose.castPublic')} value={castChoice === 'public'} onChange={(on) => setCastChoice(on ? 'public' : null)} />
+            <Toggle label={t('compose.castPrivate')} value={castChoice === 'private'} onChange={(on) => setCastChoice(on ? 'private' : null)} />
             <Button
-              testID="compose-post"
-              label={t('compose.post')}
-              onPress={() => submit(false)}
+              testID="compose-cast"
+              label={t('compose.cast')}
+              onPress={() => submit(true)}
               busy={busy}
-              disabled={!body.trim() || words > MAX_POST_WORDS}
+              disabled={!castChoice || !body.trim() || words > MAX_POST_WORDS}
             />
           </>
+        ) : null}
+        {posted ? null : (
+          <Button testID="compose-post" label={t('compose.post')} onPress={() => submit(false)} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
         )}
       </View>
     </Screen>

@@ -992,6 +992,8 @@
  "compose.bodyLabel": "Your request",
  "compose.cast": "PrayerCast your message directly to heaven*",
  "compose.castFailed": "Your message is posted, but it could not be PrayerCast: %{reason}",
+ "compose.castPrivate": "PrayerCast privately",
+ "compose.castPublic": "Post my PrayerCast publicly",
  "compose.greeting": "Welcome, %{name}! Let's lift each other up.",
  "compose.kind": "What kind of support?",
  "compose.noBackground": "No background",

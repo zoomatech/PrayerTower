@@ -22,7 +22,9 @@ struct ComposeView: View {
     @State private var media: [PickedMedia] = []
     @State private var busy = false
     @State private var error: String?
-    /// Posted, but the PrayerCast didn't go: only Done is left.
+    /// Post my PrayerCast publicly, or PrayerCast privately: none until the member picks.
+    @State private var castChoice: CastVisibility?
+    /// Posted publicly, but the radio couldn't take it: only Close is left.
     @State private var posted = false
     @FocusState private var focused: Bool
 
@@ -114,19 +116,23 @@ struct ComposeView: View {
                         Button { dismiss() } label: { Text(w("common.close")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6) }
                             .buttonStyle(.borderedProminent)
                     } else {
-                        if casts {
-                            Button { Task { await submit(cast: true) } } label: {
-                                Text(w("compose.cast")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .accessibilityIdentifier("compose-cast")
+                    if casts {
+                        // A required choice before a PrayerCast: neither is picked to start with (Steve, 2026-11-02).
+                        CastChoice(label: w("compose.castPublic"), on: castChoice == .public) { castChoice = .public }
+                        CastChoice(label: w("compose.castPrivate"), on: castChoice == .private) { castChoice = .private }
+                        Button { Task { await submit(cast: true) } } label: {
+                            Text(w("compose.cast")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
                         }
-                        Button { Task { await submit(cast: false) } } label: {
-                            Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
-                        }
-                        // Equal options: both solid blue (Steve, 2026-11-02).
                         .buttonStyle(.borderedProminent)
-                        .accessibilityIdentifier("compose-post")
+                        .disabled(castChoice == nil)
+                        .accessibilityIdentifier("compose-cast")
+                    }
+                    Button { Task { await submit(cast: false) } } label: {
+                        Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                    }
+                    // Equal options: both solid blue (Steve, 2026-11-02).
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("compose-post")
                     }
                 }
                 .disabled(busy || (!posted && (draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || words > Compose.maxWords)))
@@ -166,7 +172,8 @@ struct ComposeView: View {
         error = nil
         do {
             var p = draft
-            p.postType = cast || !casts ? "prayer_request" : "discussion"
+            // Post: a post that isn't a prayer (shared thanks stay praise).
+            p.postType = cast || !casts ? (draft.postType == "praise" && !cast ? "praise" : "prayer_request") : (draft.postType == "praise" ? "praise" : "discussion")
             p.allSupportWelcome = model.features["supportLabel"] && draft.allSupportWelcome
             if !model.features["lament"] || draft.isLament != true { p.isLament = nil; p.lamentRadio = nil }
             if p.postType != "prayer_request" { p.urgency = 0 }
@@ -174,15 +181,18 @@ struct ComposeView: View {
             for m in media {
                 p.media.append(try await model.store.api.uploadMedia(m.data, contentType: m.contentType, video: m.video, durationMs: m.seconds.map { Int($0 * 1000) }))
             }
-            let created = try await model.store.api.createPost(p)
-            onPosted(created.post)
-            if cast {
-                do { _ = try await model.store.api.sendRadioPrayer(postId: created.post.id) } catch {
-                    // The prayer is posted either way; say why it wasn't PrayerCast and don't post it twice.
+            if cast, let choice = castChoice {
+                // Posted and sent by radio together; if it can't be sent, nothing is saved.
+                let sent = try await model.store.api.prayerCast(p, visibility: choice)
+                if let card = sent.post { onPosted(card) }
+                if let why = sent.castError {
+                    // Posted, but not sent by radio: say so, and leave only Close.
                     posted = true
-                    self.error = w("compose.castFailed", ["reason": error.localizedDescription])
+                    error = w("compose.castFailed", ["reason": why])
                     return
                 }
+            } else {
+                onPosted(try await model.store.api.createPost(p).post)
             }
             dismiss()
         } catch {
@@ -317,5 +327,22 @@ extension Color {
     init(hex: String) {
         let v = UInt64(hex.dropFirst(), radix: 16) ?? 0
         self.init(red: Double((v >> 16) & 0xFF) / 255, green: Double((v >> 8) & 0xFF) / 255, blue: Double(v & 0xFF) / 255)
+    }
+}
+
+/// One of the two PrayerCast choices: a check box that reads as a choice between the two.
+private struct CastChoice: View {
+    let label: String
+    let on: Bool
+    let pick: () -> Void
+
+    var body: some View {
+        Button(action: pick) {
+            Label(label, systemImage: on ? "checkmark.square.fill" : "square")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 44)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 }
