@@ -128,8 +128,9 @@ describe('Full Screen Sparkler motion', () => {
   });
 
   it('makes the divider between prayer requests bold', () => {
-    expect(SEPARATOR.height).toBeGreaterThanOrEqual(16);
-    expect(SEPARATOR.stripe).toBeGreaterThanOrEqual(4);
+    // One pica of very dark metal.
+    expect(SEPARATOR.height).toBe(12);
+    expect(SEPARATOR.metal.every((c) => parseInt(c.slice(1, 3), 16) < 0x40)).toBe(true);
   });
 });
 

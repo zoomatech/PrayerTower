@@ -53,8 +53,8 @@ const TOP_ROOM = 58;
 const COMMENT_INDENT = 18;
 const REPLY_INDENT = 18;
 /** The separator: a black line with a glowing light blue line through its middle, made bold (Steve: accentuate the divider). */
-/** The divider between posts: a light blue stripe, resolving to pure black over about a pica each side (Steve, 2026-11-02). */
-export const SEPARATOR = { height: 28, stripe: 4, fade: 12 };
+/** The bar between posts: one pica of very dark brushed metal, not a glowing line (Steve, 2026-11-02); its metal top to bottom (Kit Sparkler.separatorMetal). */
+export const SEPARATOR = { height: 12, metal: ['#3A3E45', '#22252A', '#16181C', '#0E1013', '#050607'] };
 /** The profile picture in the square's upper right corner. */
 const PIC = 48;
 /** Comments shown when a post's comments open. */
@@ -200,17 +200,16 @@ function ProfilePic({ card }: { card: Card }) {
   );
 }
 
-/** A black line with a light blue line through its middle, between posts. */
-export function Separator({ tokens }: { tokens: SparklerTokens }) {
+/** The bar between posts: one pica of very dark metal. */
+export function Separator() {
   return (
-    <View style={[styles.separator, { backgroundColor: '#000' }]} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View style={styles.separator} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width="100%" height={SEPARATOR.height} preserveAspectRatio="none">
         <Defs>
           <LinearGradient id="sparkler-sep" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#000" />
-            <Stop offset={SEPARATOR.fade / SEPARATOR.height} stopColor={tokens.stripe} />
-            <Stop offset={(SEPARATOR.fade + SEPARATOR.stripe) / SEPARATOR.height} stopColor={tokens.stripe} />
-            <Stop offset="1" stopColor="#000" />
+            {[0, 0.1, 0.45, 0.85, 1].map((at, i) => (
+              <Stop key={at} offset={at} stopColor={SEPARATOR.metal[i]} />
+            ))}
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height={SEPARATOR.height} fill="url(#sparkler-sep)" />
@@ -388,7 +387,7 @@ const PostSquare = memo(function PostSquare({ card, index, tokens, bg, pinned, s
         <CardInk.Provider value={ink}>{renderCard(card.counts.comments > 0 ? { ...card, topComment: null } : card)}</CardInk.Provider>
         <Comments card={card} ink={ink} stripe={tokens.stripe} still={still} />
       </View>
-      <Separator tokens={tokens} />
+      <Separator />
     </View>
   );
 });

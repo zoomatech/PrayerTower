@@ -222,14 +222,26 @@ private struct SparklerPost<Row: View>: View {
             // The card's words and icons in the background's own light or dark.
             .environment(\.colorScheme, bg.dark ? .dark : .light)
             // A black line with a light blue line through its middle.
-            // Thicker, and resolving from pure black to the blue over about a pica each side of it
-            // (Steve, 2026-11-02).
-            VStack(spacing: 0) {
-                LinearGradient(colors: [.black, Color(look.stripe)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: Sparkler.separatorFade)
-                Color(look.stripe).frame(height: Sparkler.stripeHeight)
-                LinearGradient(colors: [Color(look.stripe), .black], startPoint: .top, endPoint: .bottom)
-                    .frame(height: Sparkler.separatorFade)
+            // One pica of very dark brushed metal, set apart from the posts by a lit top edge and a
+            // shadowed bottom one; no glow (Steve, 2026-11-02).
+            LinearGradient(stops: [
+                .init(color: Color(Sparkler.separatorMetal[0]), location: 0),
+                .init(color: Color(Sparkler.separatorMetal[1]), location: 0.1),
+                .init(color: Color(Sparkler.separatorMetal[2]), location: 0.45),
+                .init(color: Color(Sparkler.separatorMetal[3]), location: 0.85),
+                .init(color: Color(Sparkler.separatorMetal[4]), location: 1),
+            ], startPoint: .top, endPoint: .bottom)
+            .overlay {
+                // The brushing: fine streaks along the bar.
+                Canvas { ctx, size in
+                    var rnd = Sparkler.Seeded(index &* 131 &+ 5)
+                    for _ in 0..<Int(size.width / 6) {
+                        let y = 2 + rnd.next() * (size.height - 4)
+                        let x = rnd.next() * size.width, w = 20 + rnd.next() * 80
+                        var p = Path(); p.move(to: CGPoint(x: x, y: y)); p.addLine(to: CGPoint(x: x + w, y: y))
+                        ctx.stroke(p, with: .color(.white.opacity(0.025 + rnd.next() * 0.03)), lineWidth: 0.5)
+                    }
+                }
             }
             .frame(height: Sparkler.separatorHeight)
             .accessibilityHidden(true)

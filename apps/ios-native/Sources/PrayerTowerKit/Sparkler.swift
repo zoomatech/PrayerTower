@@ -27,10 +27,11 @@ public enum Sparkler {
     public static let tipAt: Double = 0.84
     /// The separator: 16 points of black with a 4-point glowing light blue line through its middle
     /// (Steve: accentuate the divider between prayer requests).
-    /// The black-to-blue fade each side of the stripe: about a pica.
-    public static let separatorFade: Double = 12
-    public static let separatorHeight: Double = 28
-    public static let stripeHeight: Double = 4
+    /// The bar between posts: one pica of very dark brushed metal, not a glowing line (Steve,
+    /// 2026-11-02).
+    public static let separatorHeight: Double = 12
+    /// Its metal, top to bottom: a faint lit edge, the dark face, a shadowed lower edge.
+    public static let separatorMetal = ["#3A3E45", "#22252A", "#16181C", "#0E1013", "#050607"].map { RGB(hex: $0)! }
     /// Comments shown when a post's comments open.
     public static let opened = 5
     /// The member's choice is kept on the device under this key.
