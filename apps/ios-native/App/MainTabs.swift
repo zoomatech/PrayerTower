@@ -39,6 +39,12 @@ struct AppSection: Identifiable, Hashable {
     }
 }
 
+/// The two donate items on the menu.
+enum Donate: String, Identifiable {
+    case upkeep, pool
+    var id: String { rawValue }
+}
+
 /// The signed-in app. Circles and Me show only what the admin switches turn on. On iPhone, tabs;
 /// on iPad (regular width) and Mac, a sidebar with the section beside it. Messages and Notices are
 /// in the sidebar but not in the iPhone tab bar under the feed: there they open from Me (Steve, 2026-10-30).
@@ -49,6 +55,8 @@ struct MainTabs: View {
     @State private var home = UUID()
     /// Menu → Settings, open.
     @State private var settings = false
+    /// Menu → Donate to keep us up and running (Give) or Donate to the token pool (Token pools), open.
+    @State private var donate: Donate?
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var width
     private var sidebar: Bool { width == .regular }
@@ -102,6 +110,12 @@ struct MainTabs: View {
         .task { await model.loadSettings() }
         .fullScreenCover(isPresented: Binding(get: { model.showTour }, set: { model.showTour = $0 })) { TourView() }
         .sheet(isPresented: $settings) { SettingsView() }
+        .sheet(item: $donate) { d in
+            NavigationStack {
+                Group { if d == .upkeep { GiveView() } else { PoolsView() } }
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button(model.words("common.close")) { donate = nil } } }
+            }
+        }
         .onChange(of: model.openPost) { _, id in if id != nil { tab = 0 } }
         // Store screenshots (scripts/mac-screenshots-native.sh): open the asked-for screen.
         .onAppear {
@@ -134,6 +148,12 @@ struct MainTabs: View {
                 }
                 // Settings → Themes → Full Screen Sparkler Theme → Background choices (Steve, 2026-11-01).
                 Button { settings = true } label: { Label(model.words("menu.settings"), systemImage: "gearshape") }
+                // Steve (2026-11-02): a donation to keep us up and running (Give → everyone, the
+                // shared fund that pays for the servers), and a donation of tokens to a token pool.
+                Button { donate = .upkeep } label: { Label(model.words("menu.donateUpkeep"), systemImage: "heart.circle") }
+                if model.me?.community?.shows("pools") ?? true {
+                    Button { donate = .pool } label: { Label(model.words("menu.donatePool"), systemImage: "tray.and.arrow.down") }
+                }
             } label: {
                 Image(systemName: "line.3.horizontal").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
             }

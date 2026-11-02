@@ -32,6 +32,9 @@ const en = {
     open: 'Menu',
     close: 'Close menu',
     settings: 'Settings',
+    // Steve (2026-11-02): both on the hamburger menu.
+    donateUpkeep: 'Donate to keep us up and running',
+    donatePool: 'Donate to the token pool',
   },
   widget: {
     heading: 'Pray now',
@@ -665,8 +668,10 @@ const en = {
     tierUpkeep: 'Give or spend a token at least every %{days} days to keep your tier.',
     tierHeld: 'Give or spend a token to get back to %{tier}.',
     prayers: 'Prayers',
+    requests: 'Requests',
     tokens: 'Tokens',
-    priestly: 'Priestly',
+    // Steve (2026-11-02): "prayercast tokens available (for prayers using the radio)".
+    priestly: 'Prayercast tokens',
     nextTier: '%{count} more prayers to become a %{tier}.',
     priestlyProgress:
       '%{done} of %{per} prayers toward your next Priestly token. Priestly tokens keep the prayer infrastructure running; you can give them to others or donate them.',
