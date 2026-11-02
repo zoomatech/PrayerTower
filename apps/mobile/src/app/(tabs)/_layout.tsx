@@ -32,23 +32,27 @@ export default function TabsLayout() {
   const dark = skin ? isDark(skin.backdrop) : false;
   return (
     <Tabs style={styles.root}>
-      <View style={styles.main}>
-        <CornerNav />
-        <View style={styles.root}>
-          {/* The final logo, top right, with the menu on the left (Steve, 2026-10-31). Hidden for Open Circle (neutral wording, either edition): it has its own brand. */}
+      <View style={styles.root}>
+        {/* Home and the menu on the left, the logo on the right, all standing on one line (Steve,
+            2026-11-02). The logo is hidden for Open Circle (neutral wording, either edition): it has
+            its own brand. On a dark skin the logo is the reversed one: "prayer tower" and the cross
+            stay red and the rest of the logo is light blue. */}
+        <View
+          style={[styles.topBar, { paddingTop: insets.top + space.xs }, skin ? { backgroundColor: skin.backdrop, borderBottomColor: skin.accent, borderBottomWidth: 3 } : null]}
+          testID={skin ? 'skin-header' : undefined}
+        >
+          <CornerNav color={dark ? '#FFFFFF' : colors.text} />
           {wording !== 'neutral' ? (
-            <View
-              style={[styles.logoBar, { paddingTop: insets.top + space.xs }, skin ? { backgroundColor: skin.backdrop, borderBottomColor: skin.accent, borderBottomWidth: 3 } : null]}
-              testID={skin ? 'skin-header' : undefined}
-            >
-              {/* On a dark skin the logo's black and red sit on a light plate edged in the skin's own color; the logo is never recolored. */}
-              <View style={dark && skin ? [styles.plate, { borderColor: skin.accent }] : null}>
-                <Image source={require('../../../assets/images/prayer-tower-logo.png')} style={dark ? styles.logoOnPlate : styles.logo} accessibilityRole="image" aria-label="The Prayer Tower" testID="app-logo" />
-              </View>
-            </View>
+            <Image
+              source={dark ? require('../../../assets/images/prayer-tower-logo-dark.png') : require('../../../assets/images/prayer-tower-logo.png')}
+              style={styles.logo}
+              accessibilityRole="image"
+              aria-label="The Prayer Tower"
+              testID="app-logo"
+            />
           ) : null}
-          <TabSlot style={styles.root} />
         </View>
+        <TabSlot style={styles.root} />
       </View>
       <TabList asChild>
         <View role="tablist" aria-label={t('tabs.label')} style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }])}>
@@ -70,11 +74,9 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  main: { flex: 1, flexDirection: 'row' },
-  logoBar: { alignItems: 'flex-end', paddingRight: space.md, paddingBottom: space.xs, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  // Bottom-aligned, so the buttons and the logo share one baseline.
+  topBar: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingLeft: space.sm, paddingRight: space.md, paddingBottom: space.xs, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   logo: { width: 67, height: 44 },
-  logoOnPlate: { width: 58, height: 38 },
-  plate: { backgroundColor: '#FFFFFF', borderWidth: 2, borderRadius: 7, padding: 3 },
   // 75% opaque, over the screen so it shows faintly through (Steve, 2026-10-30).
   bar: {
     position: 'absolute',

@@ -53,9 +53,21 @@ struct FeedView: View {
             .overlay {
                 if let error { ContentUnavailableView("Couldn’t load the feed", systemImage: "wifi.exclamationmark", description: Text(error)) }
             }
+            // Steve (2026-11-02): the box to start a post stays on screen under Home and the menu,
+            // the full width of the screen, with a shadow under it to show it stays put, in every skin.
+            #if os(iOS)
+            .safeAreaInset(edge: .top, spacing: 0) { if !wide { PostBox { composing = true } } }
+            #endif
+            // The title stays for VoiceOver and the Back button. On iPhone it isn't shown: the logo
+            // is the app's identity, and Apple's guidelines let the title area be left empty when a
+            // title would be redundant (Steve, 2026-11-02).
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(wide ? .automatic : .inline)
+            .toolbar { if !wide { ToolbarItem(placement: .principal) { Color.clear.frame(width: 1, height: 1).accessibilityHidden(true) } } }
+            #endif
             .appLogo()
-            .environment(\.logoPlate, theme.flatMap(SkinHeader.logoPlate))
+            .environment(\.logoOnDark, theme.flatMap(SkinHeader.logoOnDark))
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
@@ -370,3 +382,35 @@ struct OfflineBanner: View {
         }
     }
 }
+
+
+#if os(iOS)
+/// The box to start a post, pinned at the top of the feed under Home and the menu: the full width
+/// of the screen, with a shadow under it so it reads as staying put while the feed scrolls under it.
+struct PostBox: View {
+    @Environment(AppModel.self) private var model
+    var open: () -> Void
+
+    var body: some View {
+        Button(action: open) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.words("compose.greeting", ["name": model.me?.profile.displayName ?? model.words("common.friend")]))
+                    .font(.headline)
+                    .foregroundStyle(Color.accessibleAccent)
+                Text(model.words("feed.composer"))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .overlay(alignment: .bottom) { Divider() }
+        .compositingGroup()
+        .shadow(color: .black.opacity(0.18), radius: 6, y: 4)
+        .accessibilityIdentifier("post-box")
+    }
+}
+#endif

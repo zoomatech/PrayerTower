@@ -276,10 +276,12 @@ struct SkinHeaderBand: View {
 
 enum SkinHeader {
     /// Skins that draw their own header band, so the bar's own background is hidden over them.
-    /// On a skin with a dark header, the color of the plate's edge under the logo.
-    static func logoPlate(_ theme: FeedTheme) -> Color? {
-        guard drawsOwn(theme), let dark = Skin.backdrop(theme), BackdropText(on: dark).light else { return nil }
-        return Color(accent(theme))
+    /// Whether the skin's header is dark, so the bar shows the reversed logo; nil when the
+    /// skin keeps the system bar.
+    static func logoOnDark(_ theme: FeedTheme) -> Bool? {
+        guard drawsOwn(theme) else { return nil }
+        guard let backdrop = Skin.backdrop(theme) else { return false }
+        return BackdropText(on: backdrop).light
     }
 
     /// Every skin draws its own header behind the clock (Steve, 2026-11-01); the plain column

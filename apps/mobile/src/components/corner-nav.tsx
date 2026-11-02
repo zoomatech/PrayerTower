@@ -1,5 +1,5 @@
-// The Home icon in the top-left corner with the hamburger menu right under it
-// (Steve, 2026-10-30). Home goes to the Prayers feed; the menu lists the main
+// The Home icon in the top-left corner (Steve, 2026-10-30) with the hamburger menu to its right
+// (Steve, 2026-11-02), in the bar with the logo. Home goes to the Prayers feed; the menu lists the main
 // sections, the same ones as the Mac menu bar's Go menu (lib/menu-commands.ts).
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -12,26 +12,27 @@ import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space } from '@/lib/theme';
 
-const SIZE = 40;
-export const CORNER_NAV_WIDTH = SIZE + space.sm;
+// Each button is as tall as the logo beside them (44), so their glyphs can sit on the logo's foot.
+const SIZE = 44;
 
-function HomeGlyph() {
+function HomeGlyph({ color }: { color: string }) {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" aria-hidden>
-      <Path d="M 3 11 L 12 3 L 21 11 M 6 9 L 6 21 L 10 21 L 10 15 L 14 15 L 14 21 L 18 21 L 18 9" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M 3 11 L 12 3 L 21 11 M 6 9 L 6 21 L 10 21 L 10 15 L 14 15 L 14 21 L 18 21 L 18 9" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
-function MenuGlyph() {
+function MenuGlyph({ color }: { color: string }) {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" aria-hidden>
-      <Path d="M 4 6 L 20 6 M 4 12 L 20 12 M 4 18 L 20 18" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M 4 6 L 20 6 M 4 12 L 20 12 M 4 18 L 20 18" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
   );
 }
 
-export function CornerNav() {
+/** `color`: the glyphs' color, light over a dark skin's header. */
+export function CornerNav({ color = colors.text }: { color?: string }) {
   const t = useT();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
@@ -59,16 +60,16 @@ export function CornerNav() {
     router.navigate(href);
   };
   return (
-    <View style={[styles.rail, { paddingTop: insets.top + space.sm }]}>
+    <View style={styles.row}>
       <Pressable style={styles.button} onPress={() => router.navigate('/')} accessibilityRole="button" aria-label={t('menu.home')} testID="corner-home">
-        <HomeGlyph />
+        <HomeGlyph color={color} />
       </Pressable>
       <Pressable style={styles.button} onPress={() => setOpen(true)} accessibilityRole="button" aria-label={t('menu.open')} aria-expanded={open} testID="corner-menu">
-        <MenuGlyph />
+        <MenuGlyph color={color} />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.scrim} onPress={() => setOpen(false)} aria-label={t('menu.close')}>
-          <View style={[styles.sheet, { top: insets.top + space.sm + SIZE * 2 + space.xs }]} role="menu">
+          <View style={[styles.sheet, { top: insets.top + space.xs + SIZE + space.xs }]} role="menu">
             {items.map((item) => (
               <Pressable key={item.label} style={styles.item} onPress={() => go(item.href)} role="menuitem">
                 <Text style={styles.itemText}>{item.label}</Text>
@@ -82,8 +83,9 @@ export function CornerNav() {
 }
 
 const styles = StyleSheet.create({
-  rail: { width: CORNER_NAV_WIDTH, alignItems: 'center', gap: space.xs, backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border },
-  button: { width: SIZE, height: SIZE, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.xs },
+  // The glyph sits at the foot of its 44-point button, level with the foot of the logo.
+  button: { width: SIZE, height: SIZE, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 2 },
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
   sheet: { position: 'absolute', left: space.sm, minWidth: 200, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingVertical: space.xs },
   item: { paddingVertical: space.md, paddingHorizontal: space.lg },

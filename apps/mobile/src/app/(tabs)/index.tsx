@@ -164,6 +164,22 @@ export default function Feed() {
     if (response === "prayed") load();
   };
 
+  // Steve (2026-11-02): the box to start a post stays on screen under Home and the menu, the full
+  // width of the screen, with a shadow under it to show it stays put, in every skin.
+  const composer = (
+    <Pressable
+      style={styles.composer}
+      onPress={() => router.push("/compose")}
+      accessibilityRole="button"
+      testID="post-box"
+    >
+      <Text style={styles.greeting}>
+        {t("compose.greeting", { name: profile?.display_name || t("common.friend") })}
+      </Text>
+      <Text style={styles.placeholder}>{t("feed.composer")}</Text>
+    </Pressable>
+  );
+
   const header = (
     <View style={{ gap: space.lg, marginBottom: space.lg }}>
       <OfflineBanner savedAt={savedAt} />
@@ -173,16 +189,6 @@ export default function Feed() {
       <SurveyPrompts />
       <TellFounder small />
       <KindnessPromise />
-      <Pressable
-        style={styles.composer}
-        onPress={() => router.push("/compose")}
-        accessibilityRole="button"
-      >
-        <Text style={styles.greeting}>
-          {t("compose.greeting", { name: profile?.display_name || t("common.friend") })}
-        </Text>
-        <Text style={styles.placeholder}>{t("feed.composer")}</Text>
-      </Pressable>
       <View style={styles.filters}>
         <Chip radio label={t("feed.filterAll")} selected={filter === "all"} onPress={() => setFilter("all")} />
         <Chip radio label={t("feed.filterTestimonies")} selected={filter === "testimonies"} onPress={() => setFilter("testimonies")} />
@@ -242,6 +248,7 @@ export default function Feed() {
   return (
     <Screen style={wide ? [styles.wideScreen, { maxWidth: feedWidth + SIDE_WIDTH + space.lg }] : undefined}>
       <View style={wide ? [styles.feedColumn, { maxWidth: feedWidth }] : styles.fill}>
+        {composer}
         <FeedHooksProvider value={hooks}>
         <Layout
           cards={cards}
@@ -273,13 +280,20 @@ export default function Feed() {
 
 const styles = StyleSheet.create({
   filters: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  // Edge to edge, square, above the feed (zIndex), with its shadow falling on the feed below it.
   composer: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: space.lg,
-    gap: space.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    gap: space.xs,
+    zIndex: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 6,
   },
   greeting: { ...type.heading, color: colors.primary },
   placeholder: { ...type.body, color: colors.textMuted },

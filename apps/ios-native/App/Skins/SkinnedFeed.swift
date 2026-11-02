@@ -113,8 +113,7 @@ struct VineFeed<Row: View>: View {
                     .padding(.bottom, 160)
             }
             .padding(.bottom, 20)
-            // Neon: the first box starts below the Home and Menu buttons, which hang down from the
-            // top-left corner of every screen, so they never cover its corner.
+            // Neon: a little extra room at the top for the first box's glow.
             .padding(.top, look.vineStyle == .neon ? HomeAndMenu.overhang + 12 : 20)
             // Neon's stalk gets room for its glow, which would otherwise stop at a hard edge.
             .background(alignment: .topLeading) { Stalk(look: look).frame(width: look.vineStyle == .neon ? 80 : 40).accessibilityHidden(true) }
@@ -1047,10 +1046,18 @@ struct NeonHeader: View {
     }
 }
 
-/// The Home and Menu buttons' size, so a skin can start its first post clear of them.
+/// The Home and Menu buttons' size and place. They sit side by side in the navigation bar's
+/// 44-point row, as tall as the logo on the right and centered in the row as it is, so the feet of
+/// both buttons line up with the foot of the logo (Steve, 2026-11-02).
 enum HomeAndMenu {
-    /// How far the buttons reach below the top of the navigation bar's 44-point row.
-    static let overhang: CGFloat = 2 + 44 + 6 + 44 - 44
+    /// Each button fills the row, so it keeps Apple's 44-point tap target.
+    static let row: CGFloat = 44
+    static let width: CGFloat = 44
+    static let gap: CGFloat = 4
+    /// The plate behind the buttons is as tall as the logo: this much short of the row, top and bottom.
+    static let inset: CGFloat = (row - AppLogo.height) / 2
+    /// How far the buttons reach below the bar's row: nowhere, now they sit in it.
+    static let overhang: CGFloat = 0
 }
 
 /// The Ceramic Figurines header: the cream shelf up behind the clock, with an etched line along its foot.
