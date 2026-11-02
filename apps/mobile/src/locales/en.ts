@@ -2332,6 +2332,13 @@ const en = {
     replies: { one: '1 reply', other: '%{count} replies' },
     fold: 'Folds it closed again',
   },
+  fb: {
+    more: '(+ %{n} more)',
+    open: 'Opens the comments',
+    fold: 'Folds the comments closed',
+    viewAll: { one: 'View 1 reply', other: 'View all %{count} replies' },
+    viewMore: 'View more comments',
+  },
   sparkler: {
     end: 'You have reached the end. Pull down for new posts.',
     open: 'Opens the comments',
