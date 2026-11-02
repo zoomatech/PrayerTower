@@ -263,6 +263,7 @@ export const keys: Tree = named({
   compose: {
     post: 'Post',
     anonymous: 'Post anonymously',
+    castNote: '*A PrayerCast goes out by radio as a signal that keeps traveling through space.',
     greeting: "Welcome, %{name}! Let's lift each other up.",
     placeholder: "What's on your mind?",
     bodyLabel: 'Your request',

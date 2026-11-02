@@ -992,7 +992,7 @@
  "compose.bodyLabel": "Your request",
  "compose.cast": "PrayerCast your message directly to heaven*",
  "compose.castFailed": "Your message is posted, but it could not be PrayerCast: %{reason}",
- "compose.castNote": "*The Bible tells us to “support without ceasing” (1 Thessalonians 5:17) and to support to the Lord, who hears in heaven, His dwelling place (1 Kings 8:30). A PrayerCast goes out by radio as a signal that keeps traveling through space, so your message never ends as it goes on toward the Lord, wherever He may hear.",
+ "compose.castNote": "*A PrayerCast goes out by radio as a signal that keeps traveling through space.",
  "compose.castPrivate": "PrayerCast privately",
  "compose.castPublic": "Post my PrayerCast publicly",
  "compose.greeting": "Welcome, %{name}! Let's lift each other up.",
