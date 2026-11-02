@@ -128,6 +128,8 @@ struct MeView: View {
                 }
             }
             .navigationTitle(w("tabs.me"))
+            // Centered, so the Home and Menu buttons at the top left never cover it (Steve, 2026-11-02).
+            .navigationBarTitleDisplayMode(.inline)
             .appLogo()
             .navigationDestination(item: Binding(get: { model.meOpens }, set: { model.meOpens = $0 })) { page in
                 if page == 5 { NotificationsView(standalone: false) } else { MessagesView(standalone: false) }
