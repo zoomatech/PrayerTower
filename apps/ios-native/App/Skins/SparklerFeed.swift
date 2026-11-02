@@ -30,6 +30,8 @@ struct SparklerFeed<Row: View>: View {
     /// moves the sparkler down, then the screen catches up to where it went, with a bounce).
     @State private var lead: Double = 0
     @State private var settle: Task<Void, Never>?
+    /// The stardust the sparkler has shed along its way.
+    @State private var dust = DustBox()
 
     var body: some View {
         let words = Words(wording)
@@ -38,18 +40,9 @@ struct SparklerFeed<Row: View>: View {
         VStack(spacing: 0) {
         // Black room under the Home and Menu buttons, held still above the feed, so they never sit
         // on a post's words however far it scrolls.
+        // (The line runs up through it to the header's light blue edge: drawn with the rest of the
+        // line, in one piece, below.)
         Color(look.backdrop).frame(height: Sparkler.topRoom)
-            // The line runs on up through it to the header's light blue edge.
-            .overlay(alignment: .topLeading) {
-                Canvas { ctx, size in
-                    var line = Path()
-                    line.move(to: CGPoint(x: 30, y: 0))
-                    line.addLine(to: CGPoint(x: 30, y: Double(size.height)))
-                    NeonGlassLook(color: Color(look.stripe), white: 0.8).stroke(line, width: Sparkler.lineWidth, in: ctx)
-                }
-                .frame(width: 60).offset(x: Sparkler.lineX - 30)
-            }
-            .clipped()
             .accessibilityHidden(true)
         GeometryReader { geo in
             let screen = Double(geo.size.height)
@@ -101,7 +94,7 @@ struct SparklerFeed<Row: View>: View {
             .overlay(alignment: .topLeading) {
                 // From the very top of the feed, so pulling the feed down never opens a gap under the
                 // black band's line (Steve, 2026-11-02).
-                SparklerLine(top: 0, rest: rest, lead: lead, end: end, scrolled: scrolled, stripe: Color(look.stripe), still: !moving)
+                SparklerLine(top: 0, rest: rest, lead: lead, end: end, scrolled: scrolled, stripe: Color(look.stripe), still: !moving, dust: dust)
             }
         }
         }
@@ -122,6 +115,7 @@ private struct SparklerLine: View {
     let scrolled: Double
     let stripe: Color
     let still: Bool
+    let dust: DustBox
 
     var body: some View {
         let tip = min(rest + lead, end)
@@ -134,11 +128,14 @@ private struct SparklerLine: View {
                 // The shared glass look, in the stripe's light blue.
                 NeonGlassLook(color: stripe, white: 0.8).stroke(line, width: Sparkler.lineWidth, in: ctx)
             }
-            .frame(width: 60, height: max(1, tip - top))
-            .offset(x: Sparkler.lineX - 30, y: min(top, tip))
-            SparkleTrail(top: top, tip: tip, below: atEnd ? 0 : max(0, -lead) * 1.6, scrolled: scrolled, still: still)
-                .frame(width: 60, height: max(1, tip + max(0, -lead) * 1.6 + 30))
-                .offset(x: Sparkler.lineX - 30)
+            // One piece, from the header's light blue edge (up through the black band above the
+            // feed) to the tip, so it never breaks or thins anywhere, pulled down or not (Steve,
+            // 2026-11-02).
+            .frame(width: 60, height: max(1, tip - top + Sparkler.topRoom))
+            .offset(x: Sparkler.lineX - 30, y: min(top, tip) - Sparkler.topRoom)
+            SparkleTrail(top: top, tip: tip, scrolled: scrolled, still: still, dust: dust)
+                .frame(width: 80, height: max(1, tip + 180))
+                .offset(x: Sparkler.lineX - 40)
             if !atEnd {
                 SparklerTip(still: still)
                     .offset(x: Sparkler.lineX - SparklerTip.size / 2, y: tip - SparklerTip.size / 2)
@@ -150,16 +147,20 @@ private struct SparklerLine: View {
     }
 }
 
+/// The stardust the sparkler has shed, kept across redraws (each frame adds to it as it moves).
+final class DustBox {
+    var trail = Sparkler.DustTrail()
+}
+
 /// Glitter left along the line behind the sparkler: bright near the tip, fading away toward the
 /// top of the screen, twinkling, and carried up with the posts as they scroll, so the line itself
 /// is plainly moving.
 private struct SparkleTrail: View {
     let top: Double
     let tip: Double
-    /// How far below the tip a scroll up leaves stardust (0 when it isn't moving up).
-    let below: Double
     let scrolled: Double
     let still: Bool
+    let dust: DustBox
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -174,25 +175,19 @@ private struct SparkleTrail: View {
 
     private func draw(_ ctx: GraphicsContext, size: CGSize, time: Double) {
         let dark = scheme == .dark
-        // In dark mode the sparkler leaves stardust behind it too (Steve).
-        if dark {
-            let warm = Color(RGB(hex: "#FFF3B0")!), cool = Color.white
-            for m in Sparkler.stardust(scrolled: scrolled, top: top, tip: tip, time: time) {
-                let x = 30 + m.dx
-                ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warm : cool).opacity(m.opacity)))
-            }
-        }
-        // Scrolling up, it leaves a little stardust below it as it bounces upward (Steve).
-        let warmDust = Color(RGB(hex: dark ? "#FFF3B0" : "#E6A700")!), coolDust = Color(RGB(hex: dark ? "#FFFFFF" : "#F5C518")!)
-        for m in Sparkler.dustBelow(tip: tip, length: below, scrolled: scrolled, time: time) {
-            let x = 30 + m.dx
-            ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warmDust : coolDust).opacity(m.opacity)))
+        // The stardust: a trail of where the sparkler has been, shed as it goes, each mote drifting
+        // on with a little of its motion (Steve, 2026-11-02). Bright on the dark; gold on light.
+        if !still { dust.trail.follow(scrolled + tip, time: time) }
+        let warm = Color(RGB(hex: dark ? "#FFF3B0" : "#E6A700")!), cool = Color(RGB(hex: dark ? "#FFFFFF" : "#F5C518")!)
+        for m in dust.trail.motes(scrolled: scrolled, time: time) {
+            let x = 40 + m.dx
+            ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warm : cool).opacity(m.opacity)))
         }
         // The trail is yellow: bright on the dark, deeper gold on light posts.
         let yellows = dark ? Sparkler.trailColors : Sparkler.trailColorsLight
         for g in Sparkler.glitter(scrolled: scrolled, top: top, tip: tip, time: time) {
             let color = Color(yellows[g.color % yellows.count]).opacity(g.opacity)
-            let x = 30 + g.dx
+            let x = 40 + g.dx
             var star = Path()
             star.move(to: CGPoint(x: x - g.r, y: g.y)); star.addLine(to: CGPoint(x: x + g.r, y: g.y))
             star.move(to: CGPoint(x: x, y: g.y - g.r)); star.addLine(to: CGPoint(x: x, y: g.y + g.r))

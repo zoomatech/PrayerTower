@@ -403,57 +403,79 @@ export function swipeLead(lead: number, delta: number, screen: number) {
 export const TRAIL_YELLOWS = ['#FFE14D', '#FFD21F', '#FFC400', '#FFF08A'];
 export const TRAIL_YELLOWS_LIGHT = ['#F2B800', '#E6A700', '#D99A00', '#F5C518'];
 
-/** Stardust left below the sparkler as a scroll up throws it upward (Steve, 2026-11-01): motes in the `length` points under the tip, brightest just under it, sifting slowly down (Kit Sparkler.dustBelow). */
-export function dustBelow(tip: number, length: number, scrolled: number, time: number) {
-  const out: { y: number; dx: number; r: number; opacity: number; warm: boolean }[] = [];
-  if (length <= 2) return out;
-  const n = Math.floor(Math.min(40, length / 2.5));
-  for (let i = 0; i < n; i++) {
-    const rnd = seeded(i * 7727 + Math.trunc(scrolled / 9) * 31 + 11);
-    const along = rnd();
-    const phase = rnd() * 6.28;
-    const y = tip + 8 + along * length + ((time * 6) % 8);
-    const dx = (rnd() - 0.5) * 22 + Math.sin(time * 1.1 + phase) * 2;
-    const opacity = (1 - along) * (0.4 + 0.5 * (0.5 + 0.5 * Math.sin(time * 3 + phase)));
-    const r = 0.6 + rnd() * 1.0;
-    const warm = rnd() < 0.7;
-    if (opacity > 0.05) out.push({ y, dx, r, opacity, warm });
-  }
-  return out;
-}
+type Mote = { y: number; dx: number; r: number; opacity: number; warm: boolean };
+type Grain = { y: number; x: number; vy: number; vx: number; born: number; life: number; r: number; phase: number; warm: boolean };
 
 /**
- * Stardust (dark mode, Steve 2026-11-01): fine motes shed along the line behind the sparkler, set
- * along the feed so they ride up with the posts, drifting slowly out from the line the older (higher)
- * they are, fading away near the top (Kit Sparkler.stardust).
+ * Stardust (Kit Sparkler.DustTrail): a real trail of where the sparkler has been (Steve, 2026-11-02).
+ * Motes are shed along its path through the feed only as it moves, so a scroll down lays a trail down
+ * and they ride up with the posts. Each keeps a little of the sparkler's motion and slows to a stop
+ * (slow inertia), drifting gently on; when the scroll turns back the sparkler doubles back over its
+ * own dust, and the new dust drifts off the other way.
  */
-export function stardust(scrolled: number, top: number, tip: number, time: number) {
-  const out: { y: number; dx: number; r: number; opacity: number; warm: boolean }[] = [];
-  if (tip <= top + 4) return out;
-  const step = 5;
-  for (let k = Math.floor((scrolled + top) / step); ; k++) {
-    const rnd = seeded(k * 104729 + 3);
-    const y0 = k * step + rnd() * step - scrolled;
-    if (y0 > tip - 4) break;
-    if (y0 < top) continue;
-    const along = (y0 - top) / Math.max(1, tip - top);
-    const age = 1 - along;
-    const side = rnd() < 0.5 ? -1 : 1;
-    const phase = rnd() * 6.28;
-    // Always drifting, ever so slowly, even with the feed still (Steve, 2026-11-02): each mote floats
-    // out from the line and a little upward over its own long life (9 to 15 s), fading in as it
-    // starts and out as it ends, so its return to the start never shows.
-    const life = (((time / (9 + rnd() * 6) + phase / 6.28) % 1) + 1) % 1;
-    const drift = life * (10 + rnd() * 8);
-    const dx = side * (3 + age * 26 * rnd() + drift) + Math.sin(time * 0.35 + phase) * 1.5;
-    const y = y0 - age * 10 * rnd() - drift * 0.6 + Math.cos(time * 0.3 + phase) * 1.0;
-    const fade = Math.pow(Math.max(0, Math.min(1, (along - 0.05) / 0.95)), 1.3) * Math.sqrt(Math.sin(Math.PI * life));
-    const opacity = fade * (0.35 + 0.45 * (0.5 + 0.5 * Math.sin(time * (2 + rnd() * 3) + phase)));
-    const r = 0.8 + rnd() * 1.2;
-    const warm = rnd() < 0.6;
-    if (opacity > 0.05) out.push({ y, dx, r, opacity: Math.min(1, opacity * 1.4), warm });
+export class DustTrail {
+  static readonly most = 700;
+  static readonly inertia = 1.6;
+  private grains: Grain[] = [];
+  private last: { y: number; t: number } | null = null;
+  private rnd: () => number;
+  constructor(seed = 7) {
+    this.rnd = seeded(seed);
   }
-  return out;
+  get count() {
+    return this.grains.length;
+  }
+  /** Follows the sparkler to `y` in the feed's own points at `time` (seconds), shedding a mote about every 3 points it travels. */
+  follow(y: number, time: number) {
+    this.grains = this.grains.filter((g) => time - g.born <= g.life);
+    const l = this.last;
+    if (!l || time <= l.t) {
+      this.last = { y, t: time };
+      return;
+    }
+    const dy = y - l.y;
+    const dt = time - l.t;
+    this.last = { y, t: time };
+    // A jump (a new page, the feed reloading) leaves no trail.
+    if (Math.abs(dy) <= 0.3 || Math.abs(dy) >= 400) return;
+    const speed = dy / dt;
+    const n = Math.min(16, Math.floor(Math.abs(dy) / 3) + 1);
+    const rnd = this.rnd;
+    for (let i = 1; i <= n; i++) {
+      const f = i / n;
+      const side = rnd() < 0.5 ? -1 : 1;
+      this.grains.push({
+        y: l.y + dy * f,
+        x: side * (1 + rnd() * 3),
+        vy: Math.max(-70, Math.min(70, speed * (0.07 + rnd() * 0.06))),
+        vx: side * (3 + rnd() * 9),
+        born: l.t + dt * f,
+        life: 5 + rnd() * 4,
+        r: 0.7 + rnd() * 1.3,
+        phase: rnd() * 6.28,
+        warm: rnd() < 0.6,
+      });
+    }
+    if (this.grains.length > DustTrail.most) this.grains.splice(0, this.grains.length - DustTrail.most);
+  }
+  /** Where each mote is on screen now, fading in as it is shed, out at the end of its life, and away near the top. */
+  motes(scrolled: number, time: number): Mote[] {
+    const out: Mote[] = [];
+    for (const g of this.grains) {
+      const age = time - g.born;
+      if (age < 0 || age >= g.life) continue;
+      const carried = DustTrail.inertia * (1 - Math.exp(-age / DustTrail.inertia));
+      const y = g.y + g.vy * carried - age * 1.2 + Math.sin(time * 0.45 + g.phase) * 1.2 - scrolled;
+      const dx = g.x + g.vx * carried + (g.vx > 0 ? 1 : -1) * age * 0.8 + Math.cos(time * 0.4 + g.phase) * 1.2;
+      const life = age / g.life;
+      const fade = Math.min(1, age / 0.2) * (life < 0.55 ? 1 : Math.max(0, 1 - (life - 0.55) / 0.45));
+      const top = Math.max(0, Math.min(1, (y - 20) / 110));
+      const twinkle = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(time * (2 + g.phase / 2) + g.phase));
+      const o = fade * top * twinkle;
+      if (o > 0.04) out.push({ y, dx, r: g.r, opacity: Math.min(1, o * 1.3), warm: g.warm });
+    }
+    return out;
+  }
 }
 
 /**
@@ -484,7 +506,8 @@ export function glitter(scrolled: number, top: number, tip: number, time: number
 }
 
 /** The glitter along the line, twinkling (still under Reduce Motion). */
-function SparkleTrail({ top, tip, below, scrolled, still }: { top: number; tip: number; below: number; scrolled: number; still: boolean }) {
+function SparkleTrail({ top, tip, scrolled, still }: { top: number; tip: number; scrolled: number; still: boolean }) {
+  const [trail] = useState(() => new DustTrail());
   const [time, setTime] = useState(0);
   useEffect(() => {
     if (still) return;
@@ -493,19 +516,16 @@ function SparkleTrail({ top, tip, below, scrolled, still }: { top: number; tip: 
   }, [still]);
   const dark = useColorScheme() === 'dark';
   const glints = glitter(scrolled, top, tip, time);
-  // In dark mode the sparkler leaves stardust behind it too (Steve).
-  const dust = dark ? stardust(scrolled, top, tip, time) : [];
+  // The stardust: a trail of where the sparkler has been, shed as it goes, each mote drifting on with
+  // a little of its motion (Steve, 2026-11-02). Bright on the dark; gold on light.
+  if (!still) trail.follow(scrolled + tip, time);
+  const dust = trail.motes(scrolled, time);
   const yellows = dark ? TRAIL_YELLOWS : TRAIL_YELLOWS_LIGHT;
-  // Scrolling up, it leaves a little stardust below it as it bounces upward (Steve).
-  const under = dustBelow(tip, below, scrolled, time);
-  if (!glints.length && !under.length) return null;
+  if (!glints.length && !dust.length) return null;
   return (
-    <Svg aria-hidden width={LINE_X + 44} height={Math.max(1, tip + below + 30)} style={{ position: 'absolute', left: 0, top: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="sparkler-trail">
+    <Svg aria-hidden width={LINE_X + 54} height={Math.max(1, tip + 180)} style={{ position: 'absolute', left: 0, top: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="sparkler-trail">
       {dust.map((m, i) => (
-        <Circle key={`d${i}`} cx={LINE_X + m.dx} cy={m.y} r={m.r} fill={m.warm ? '#FFF3B0' : '#FFFFFF'} opacity={m.opacity} />
-      ))}
-      {under.map((m, i) => (
-        <Circle key={`u${i}`} cx={LINE_X + m.dx} cy={m.y} r={m.r} fill={dark ? (m.warm ? '#FFF3B0' : '#FFFFFF') : m.warm ? '#E6A700' : '#F5C518'} opacity={m.opacity} />
+        <Circle key={`d${i}`} cx={LINE_X + m.dx} cy={m.y} r={m.r} fill={dark ? (m.warm ? '#FFF3B0' : '#FFFFFF') : m.warm ? '#E6A700' : '#F5C518'} opacity={m.opacity} />
       ))}
       {glints.map((g, i) => (
         <G key={i} opacity={g.opacity}>
@@ -518,21 +538,24 @@ function SparkleTrail({ top, tip, below, scrolled, still }: { top: number; tip: 
 }
 
 /** The one line down the feed, over the posts, as far as it has grown on screen, and the sparkler at its tip. */
-function TheLine({ top, rest, end, lead, upward, scrolled, stripe, still }: { top: number; rest: number; end: number; lead: Animated.Value; upward: number; scrolled: number; stripe: string; still: boolean }) {
+function TheLine({ top, rest, end, lead, scrolled, stripe, still }: { top: number; rest: number; end: number; lead: Animated.Value; scrolled: number; stripe: string; still: boolean }) {
   const room = GLOW_REACH + 4;
   const tip = Math.min(rest, end);
   const atEnd = rest >= end - 1;
   // The swipe throws the tip on ahead of where it rests; it springs back as the screen catches up.
   const ahead = atEnd ? 0 : lead;
-  const tall = Math.max(0, tip - top) + 120;
+  // One piece, from the header's light blue edge (up through the black band above the feed) to the
+  // tip, so it never breaks or thins anywhere, pulled down or not (Steve, 2026-11-02).
+  const from = top - TOP_ROOM;
+  const tall = Math.max(0, tip - from) + 120;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="sparkler-line">
-      <Animated.View style={{ position: 'absolute', left: 0, top, width: LINE_X + room, overflow: 'hidden', height: Animated.add(Math.max(0, tip - top), ahead) }}>
+      <Animated.View style={{ position: 'absolute', left: 0, top: from, width: LINE_X + room, overflow: 'hidden', height: Animated.add(Math.max(0, tip - from), ahead) }}>
         <Svg aria-hidden width={LINE_X + room} height={tall} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${tall}`} color={stripe} width={5} />
         </Svg>
       </Animated.View>
-      <SparkleTrail top={top} tip={tip} below={atEnd ? 0 : upward * 1.6} scrolled={scrolled} still={still} />
+      <SparkleTrail top={top} tip={tip} scrolled={scrolled} still={still} />
       {!atEnd ? (
         <Animated.View style={[styles.tip, { top: tip - SPARK_BOX / 2, transform: [{ translateY: ahead }] }]} testID="sparkler-tip">
           <Sparkler still={still} />
@@ -560,8 +583,6 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   // How far a swipe has thrown the sparkler ahead (Steve: the swipe moves the sparkler down, then
   // the screen catches up to where it went, with a bounce).
   const [lead] = useState(() => new Animated.Value(0));
-  // How far a scroll up has thrown it upward, for the stardust it leaves below it.
-  const [upward, setUpward] = useState(0);
   const ahead = useRef(0);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -572,11 +593,9 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
     ahead.current = swipeLead(ahead.current, delta, layoutMeasurement.height);
     lead.stopAnimation();
     lead.setValue(ahead.current);
-    setUpward(Math.max(0, -ahead.current));
     if (settle.current) clearTimeout(settle.current);
     settle.current = setTimeout(() => {
       ahead.current = 0;
-      setUpward(0);
       Animated.spring(lead, { toValue: 0, bounciness: 12, speed: 10, useNativeDriver: false }).start();
     }, 90);
   };
@@ -586,12 +605,8 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
   return (
     <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="sparkler-layout">
       {/* Black room under the Home and Menu buttons, held still above the feed, so they never sit on a post's words. */}
-      <View style={{ height: TOP_ROOM, overflow: 'hidden' }}>
-        {/* The line runs on up through it to the header's light blue edge. */}
-        <Svg aria-hidden width={LINE_X + GLOW_REACH + 4} height={TOP_ROOM} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${TOP_ROOM}`} color={tokens.stripe} width={5} />
-        </Svg>
-      </View>
+      {/* (The line runs up through it to the header's light blue edge, drawn in one piece with the rest of the line.) */}
+      <View style={{ height: TOP_ROOM }} />
       <View style={styles.fill} onLayout={(e: LayoutChangeEvent) => move({ screen: e.nativeEvent.layout.height })}>
       <FlatList
         data={cards}
@@ -611,7 +626,7 @@ export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, ref
         onContentSizeChange={(_w, h) => move({ feed: h })}
       />
       {/* The line starts at the first post and is drawn on screen from there to the tip. */}
-      {view.screen ? <TheLine top={0} rest={view.reached - view.scrolled} end={Infinity} lead={lead} upward={upward} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
+      {view.screen ? <TheLine top={0} rest={view.reached - view.scrolled} end={Infinity} lead={lead} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
       </View>
     </View>
   );

@@ -72,17 +72,36 @@ final class SparklerTests: XCTestCase {
             // Yellow: strong red and green, little blue.
             XCTAssertGreaterThan(c.r, 0.8); XCTAssertGreaterThan(c.g, 0.6); XCTAssertLessThan(c.b, 0.6)
         }
-        let dust = Sparkler.stardust(scrolled: 300, top: 0, tip: 700, time: 2)
-        XCTAssertGreaterThan(dust.count, 40)
-        XCTAssertTrue(dust.filter { $0.y < 30 }.isEmpty)
-        XCTAssertEqual(dust, Sparkler.stardust(scrolled: 300, top: 0, tip: 700, time: 2))
     }
 
-    func testScrollingUpLeavesStardustBelowTheSparkler() {
-        XCTAssertTrue(Sparkler.dustBelow(tip: 600, length: 0, scrolled: 0, time: 1).isEmpty)
-        let dust = Sparkler.dustBelow(tip: 600, length: 60, scrolled: 0, time: 1)
-        XCTAssertFalse(dust.isEmpty)
-        XCTAssertTrue(dust.allSatisfy { $0.y > 600 && $0.y < 600 + 60 + 20 })
+    func testStardustIsATrailOfWhereTheSparklerHasBeenWithSlowInertia() {
+        var trail = Sparkler.DustTrail()
+        // At rest it sheds nothing.
+        trail.follow(500, time: 0)
+        trail.follow(500, time: 0.5)
+        XCTAssertEqual(trail.count, 0)
+        // Moving down, it sheds dust along the way it went, carried on down a little.
+        trail.follow(560, time: 1.0)
+        XCTAssertGreaterThan(trail.count, 10)
+        let down = trail.motes(scrolled: 0, time: 1.3)
+        XCTAssertFalse(down.isEmpty)
+        XCTAssertTrue(down.allSatisfy { $0.y > 480 && $0.y < 600 })
+        // Turning back up, it doubles back over that dust, and the new dust drifts the other way.
+        var back = Sparkler.DustTrail()
+        back.follow(560, time: 0)
+        back.follow(500, time: 0.5)
+        let early = back.motes(scrolled: 0, time: 0.6), later = back.motes(scrolled: 0, time: 2.0)
+        XCTAssertLessThan(later.map(\.y).reduce(0, +) / Double(later.count), early.map(\.y).reduce(0, +) / Double(early.count))
+        // It rides up with the feed, and is gone at the end of its life.
+        XCTAssertTrue(trail.motes(scrolled: 0, time: 30).isEmpty)
+        trail.follow(560, time: 30)
+        XCTAssertEqual(trail.count, 0)
+    }
+
+    func testStardustNeverPilesUpPastItsLimit() {
+        var trail = Sparkler.DustTrail()
+        for i in 0..<400 { trail.follow(Double(i) * 30, time: Double(i) * 0.05) }
+        XCTAssertLessThanOrEqual(trail.count, Sparkler.DustTrail.most)
     }
 
     func testDefaultWhiteTurnsToNightInDarkModeButAPickedColorStays() {

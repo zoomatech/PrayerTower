@@ -8,7 +8,7 @@ import SparklerBackgrounds from '@/app/sparkler-backgrounds';
 import { api } from '@/lib/api';
 import { flowerPoints, NIGHT, petalPath, shownBackground, SPARKLER_BACKGROUNDS, SPARKLER_GROUPS, sparklerBackground, starPoints } from '@/lib/sparkler-backgrounds';
 import { lineTip } from '@/lib/draw-in';
-import { dustBelow, glitter, inkFor, stardust, TRAIL_YELLOWS, TRAIL_YELLOWS_LIGHT, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
+import { DustTrail, glitter, inkFor, TRAIL_YELLOWS, TRAIL_YELLOWS_LIGHT, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -96,16 +96,27 @@ describe('Full Screen Sparkler motion', () => {
       const [r, g, b] = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
       expect(r! > 200 && g! > 150 && b! < 150).toBe(true);
     }
-    const dust = stardust(300, 0, 700, 2);
-    expect(dust.length).toBeGreaterThan(40);
-    expect(dust.filter((m) => m.y < 30)).toHaveLength(0);
   });
 
-  it('leaves a little stardust below the sparkler as a scroll up throws it upward', () => {
-    expect(dustBelow(600, 0, 0, 1)).toHaveLength(0);
-    const dust = dustBelow(600, 60, 0, 1);
-    expect(dust.length).toBeGreaterThan(0);
-    expect(dust.every((m) => m.y > 600 && m.y < 680)).toBe(true);
+  it('sheds stardust as a trail of where the sparkler has been, drifting on with slow inertia', () => {
+    const trail = new DustTrail();
+    trail.follow(500, 0);
+    trail.follow(500, 0.5);
+    expect(trail.count).toBe(0);
+    trail.follow(560, 1);
+    expect(trail.count).toBeGreaterThan(10);
+    const down = trail.motes(0, 1.3);
+    expect(down.length).toBeGreaterThan(0);
+    expect(down.every((m) => m.y > 480 && m.y < 600)).toBe(true);
+    // Turning back up, the new dust drifts the other way.
+    const back = new DustTrail();
+    back.follow(560, 0);
+    back.follow(500, 0.5);
+    const mean = (ms: { y: number }[]) => ms.reduce((a, m) => a + m.y, 0) / ms.length;
+    expect(mean(back.motes(0, 2))).toBeLessThan(mean(back.motes(0, 0.6)));
+    expect(trail.motes(0, 30)).toHaveLength(0);
+    for (let i = 0; i < 400; i++) trail.follow(i * 30, 31 + i * 0.05);
+    expect(trail.count).toBeLessThanOrEqual(DustTrail.most);
   });
 
   it('turns the default white to night in dark mode, but keeps a color the member picked', () => {
