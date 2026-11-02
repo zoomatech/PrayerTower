@@ -5,31 +5,30 @@
 //     so the direction shows; its tip rides near the foot of the screen so the line never seems to
 //     stop while there is more below (lib/draw-in.ts lineTip; the line is the shared glass tube,
 //     components/glass-tube.tsx).
-//   * Comments are indented, replies further. Closed, only the first line of the first comment
-//     shows, the rest folded under it like accordion-folded paper; a tap unfolds the next 5; a tap
-//     on an open comment folds them closed.
+//   * Comments are laid out Facebook style (Steve, 2026-11-02): closed, the top comment's first
+//     line fades out before "(+ x more)"; a tap opens them, replies indented under their comment;
+//     a tap on an open comment folds them closed (components/fb-comments.tsx).
 //   * Each post is separated by a black line with a light blue line through its middle.
 //   * The post backgrounds are chosen like Facebook post backgrounds: solid color blocks,
 //     starfields, flowers and textures, under Menu → Settings → Themes → Full Screen Sparkler
 //     Theme → Background choices (lib/sparkler-backgrounds.ts). All drawn, no pictures.
 //   * The poster's profile picture sits in the upper right corner of the post's square.
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
-import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
+import type { Card, FeedTheme } from '@prayer-tower/shared';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Image, Pressable, StyleSheet, Text, TextInput, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, FlatList, Image, StyleSheet, Text, TextInput, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { router } from 'expo-router';
 
+import { FbComments, type FbInk } from '@/components/fb-comments';
 import { CardInk } from '@/components/post-card';
 import { GlassTube, GLOW_REACH } from '@/components/glass-tube';
 import { lineTip } from '@/lib/draw-in';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
 import { flowerPoints, petalPath, seeded, shownBackground, sparklerBackground, starPoints, useSparklerBackground, type SparklerBackground } from '@/lib/sparkler-backgrounds';
-import { colors, radius, space, type } from '@/lib/theme';
-import { useCommentActions, usePostComments } from '@/skins/comments';
-import { useFeedHooks } from '@/skins/feed-hooks';
+import { colors, radius, space } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
@@ -51,16 +50,13 @@ const TEXT_LEFT = 34;
 export const TIP_AT = 0.84;
 /** Black room at the top of the feed under the Home and Menu buttons, so they never cover a post. */
 const TOP_ROOM = 58;
-/** How far comments, and then their replies, sit in from the post's words. */
+/** How far the comments sit in from the post's words. */
 const COMMENT_INDENT = 18;
-const REPLY_INDENT = 18;
 /** The separator: a black line with a glowing light blue line through its middle, made bold (Steve: accentuate the divider). */
 /** The bar between posts: three picas of very dark brushed metal, not a glowing line (Steve, 2026-11-02); its metal top to bottom (Kit Sparkler.separatorMetal). */
 export const SEPARATOR = { height: 36, metal: ['#6A707A', '#3A3F47', '#2A2E34', '#1E2126', '#08090B'] };
 /** The profile picture in the square's upper right corner. */
 const PIC = 48;
-/** Comments shown when a post's comments open. */
-const OPENED = 5;
 
 /** The card's words on a background: light on the dark ones, the skin's words 1 pt bigger (Steve). */
 export function inkFor(bg: SparklerBackground) {
@@ -240,146 +236,20 @@ export function Separator() {
 
 type Ink = ReturnType<typeof inkFor>;
 
-function CommentButtons({ postId, comment, canReply, ink, stripe }: { postId: string; comment: Comment; canReply: boolean; ink: Ink; stripe: string }) {
-  const { reply, helped, share } = useCommentActions(postId, comment);
-  const button = (key: string, b: { name: string; press: () => void; on?: boolean }) => (
-    <Pressable key={key} onPress={b.press} accessibilityRole="button" aria-pressed={key === 'helped' ? !!b.on : undefined} style={[styles.pill, { borderColor: stripe }, b.on && { backgroundColor: stripe }]} hitSlop={4}>
-      <Text style={[styles.pillText, { color: b.on ? '#0B1330' : ink.text }]}>{b.name}</Text>
-    </Pressable>
-  );
-  return (
-    <View style={styles.pills}>
-      {/* Steve: sub-comments get no Reply button (overnesting is hard to follow). */}
-      {canReply ? button('reply', reply) : null}
-      {helped ? button('helped', helped) : null}
-      {share ? button('share', share) : null}
-    </View>
-  );
-}
-
-/** A comment unfolding like a panel of accordion-folded paper: turning out from flat, hinged top and bottom by turns, each a beat after the last. */
-function Unfold({ index, still, children }: { index: number; still: boolean; children: React.ReactNode }) {
-  const [turn] = useState(() => new Animated.Value(still ? 1 : 0));
-  useEffect(() => {
-    if (still) return;
-    Animated.spring(turn, { toValue: 1, delay: (index % OPENED) * 70, useNativeDriver: false, bounciness: 4 }).start();
-  }, [turn, index, still]);
-  const from = index % 2 === 0 ? '-90deg' : '90deg';
-  return (
-    <Animated.View
-      style={{
-        opacity: turn.interpolate({ inputRange: [0, 0.1, 1], outputRange: [0, 1, 1] }),
-        transform: [{ perspective: 600 }, { rotateX: turn.interpolate({ inputRange: [0, 1], outputRange: [from, '0deg'] }) }],
-        transformOrigin: index % 2 === 0 ? 'top' : 'bottom',
-      }}>
-      {children}
-    </Animated.View>
-  );
-}
-
-function OneComment({ postId, comment, replies, showAll, onFold, onReplies, ink, stripe }: { postId: string; comment: Comment; replies: Comment[]; showAll: boolean; onFold: () => void; onReplies: () => void; ink: Ink; stripe: string }) {
+/** The post's comments, Facebook style (Steve, 2026-11-02): closed, the top comment's first line fades out before "(+ x more)"; a tap opens them indented (components/fb-comments.tsx). */
+function Comments({ card, ink }: { card: Card; ink: Ink }) {
   const { t } = useLocale();
-  // Steve: the first reply shows under every comment that has replies; a tap shows the rest, and another folds them away.
-  const shown = showAll ? replies : replies.slice(0, 1);
+  const fb = useMemo<FbInk>(() => ({ text: ink.text, muted: ink.muted, link: ink.text, thread: `${ink.muted}99`, avatar: `${ink.text}22`, avatarText: ink.text }), [ink]);
+  const count = card.counts.comments ?? 0;
   return (
-    <View style={[styles.comment, { borderLeftColor: stripe }]} testID={`sparkler-comment-${comment.id}`}>
-      <Pressable onPress={onFold} accessibilityRole="button" aria-expanded accessibilityHint={t('sparkler.fold')}>
-        <Text style={[styles.commentName, { color: ink.text }]}>{comment.author.displayName}</Text>
-        <Text style={[styles.commentText, { color: ink.text }]}>{comment.body}</Text>
-      </Pressable>
-      <CommentButtons postId={postId} comment={comment} canReply ink={ink} stripe={stripe} />
-      {shown.length ? (
-        <Pressable
-          onPress={replies.length > 1 ? onReplies : undefined}
-          disabled={replies.length < 2}
-          accessibilityRole={replies.length > 1 ? 'button' : undefined}
-          aria-expanded={replies.length > 1 ? showAll : undefined}
-          style={[styles.replies, { borderLeftColor: stripe }]}
-          testID={`sparkler-replies-${comment.id}`}>
-          {shown.map((r) => (
-            <View key={r.id} style={styles.reply} testID={`sparkler-reply-${r.id}`}>
-              <Text style={[styles.replyText, { color: ink.text }]}>
-                <Text style={styles.replyName}>{r.author.displayName}: </Text>
-                {r.body}
-              </Text>
-              {showAll ? <CommentButtons postId={postId} comment={r} canReply={false} ink={ink} stripe={stripe} /> : null}
-            </View>
-          ))}
-          {!showAll && replies.length > 1 ? <Text style={[styles.moreReplies, { color: ink.muted }]}>{t('sparkler.moreReplies', { count: replies.length - 1 })}</Text> : null}
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-function Comments({ card, ink, stripe, still }: { card: Card; ink: Ink; stripe: string; still: boolean }) {
-  const { t } = useLocale();
-  const { openPost } = useFeedHooks();
-  const { top, kids, total } = usePostComments(card);
-  // How many comments are unfolded (0 is closed), and whose replies all show.
-  const [openTo, setOpenTo] = useState(0);
-  const [allReplies, setAllReplies] = useState<string | null>(null);
-  const first = top[0];
-  if (!first) return null;
-  const count = Math.max(total, top.length);
-  const fold = () => {
-    setOpenTo(0);
-    setAllReplies(null);
-  };
-  if (openTo === 0) {
-    const more = count - 1;
-    return (
-      <Pressable
-        onPress={() => setOpenTo(Math.min(1 + OPENED, top.length))}
-        accessibilityRole="button"
-        aria-expanded={false}
-        accessibilityHint={t('sparkler.open')}
-        style={[styles.comments, styles.closed, { backgroundColor: `${ink.text}12`, borderLeftColor: stripe }]}
-        testID={`sparkler-comments-${card.id}`}>
-        {/* Plainly comments: a speech bubble and how many (Steve: the folded look alone didn't say so). */}
+    <View style={styles.comments}>
+      {/* Plainly comments: a speech bubble and how many (Steve: the folded look alone didn't say so). */}
+      {count > 1 ? (
         <Text style={[styles.count, { color: ink.text }]} testID={`sparkler-count-${card.id}`}>
-          💬 {t('sparkler.comments', { count })} ▾
+          💬 {t('sparkler.comments', { count })}
         </Text>
-        <Text style={[styles.commentText, { color: ink.text }]} numberOfLines={1} testID={`sparkler-first-line-${card.id}`}>
-          <Text style={styles.replyName}>{first.author.displayName}: </Text>
-          {first.body}
-        </Text>
-        {more > 0 ? (
-          <>
-            <View style={styles.folds} testID={`sparkler-folds-${card.id}`}>
-              {Array.from({ length: Math.min(3, more) }, (_, i) => (
-                // The rest of the comments under it: full-width white 1 pt lines (Steve, 2026-11-02).
-                <View key={i} style={styles.foldLine} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-              ))}
-            </View>
-          </>
-        ) : null}
-      </Pressable>
-    );
-  }
-  const shown = top.slice(0, openTo);
-  const left = count - shown.length;
-  return (
-    <View style={styles.comments} testID={`sparkler-comments-${card.id}`}>
-      {shown.map((c, i) => (
-        <Unfold key={c.id} index={i} still={still}>
-          <OneComment
-            postId={card.id}
-            comment={c}
-            replies={kids.get(c.id) ?? []}
-            showAll={allReplies === c.id}
-            onFold={fold}
-            onReplies={() => setAllReplies(allReplies === c.id ? null : c.id)}
-            ink={ink}
-            stripe={stripe}
-          />
-        </Unfold>
-      ))}
-      {left > 0 ? (
-        <Pressable onPress={openTo < top.length ? () => setOpenTo(Math.min(openTo + OPENED, top.length)) : () => openPost(card.id)} accessibilityRole="button" style={styles.moreRow}>
-          <Text style={[styles.more, { color: ink.text }]}>{t('sparkler.more', { n: left })}</Text>
-        </Pressable>
       ) : null}
+      <FbComments card={card} ink={fb} testID={`sparkler-comments-${card.id}`} />
     </View>
   );
 }
@@ -402,7 +272,7 @@ const PostSquare = memo(function PostSquare({ card, index, tokens, bg, pinned, s
         <ProfilePic card={card} />
         {pinned ? <Text style={[styles.pinned, { color: ink.text }]}>{t('feed.pinned')}</Text> : null}
         <CardInk.Provider value={ink}>{renderCard(card.counts.comments > 0 ? { ...card, topComment: null } : card)}</CardInk.Provider>
-        <Comments card={card} ink={ink} stripe={tokens.stripe} still={still} />
+        <Comments card={card} ink={ink} />
       </View>
       <Separator />
     </View>
@@ -682,27 +552,11 @@ const styles = StyleSheet.create({
   tip: { position: 'absolute', left: LINE_X - SPARK_BOX / 2, width: SPARK_BOX, height: SPARK_BOX + TRAIL },
   comments: { marginTop: space.md, gap: space.md, marginLeft: COMMENT_INDENT },
   // The indent made plain: a tinted panel set in from the post's words, with a strong rule down its left.
-  closed: { gap: 6, borderLeftWidth: 4, borderRadius: 6, paddingVertical: 10, paddingLeft: 12, paddingRight: 10 },
   count: { fontSize: 16, fontWeight: '700' },
-  comment: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.sm },
   promptRoom: { height: TOP_ROOM, paddingLeft: 64, paddingRight: 122, paddingVertical: 9 },
   promptBox: { flex: 1, justifyContent: 'center', paddingHorizontal: 10, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)' },
   promptText: { color: '#FFFFFF', fontSize: 15, padding: 0 },
   promptLead: { position: 'absolute', left: 10, right: 10, color: 'rgba(255,255,255,0.65)', fontSize: 13 },
   measure: { position: 'absolute', left: 10, opacity: 0, alignSelf: 'flex-start' },
-  folds: { gap: 5, marginTop: 6, marginBottom: 2 },
-  foldLine: { height: 1, alignSelf: 'stretch', backgroundColor: '#fff' },
-  commentName: { fontWeight: '700', fontSize: 15 },
-  commentText: { fontSize: type.body.fontSize + 1, lineHeight: type.body.lineHeight + 1 },
-  replies: { borderLeftWidth: 3, paddingLeft: space.sm, marginLeft: REPLY_INDENT, gap: space.xs, paddingVertical: 2 },
-  reply: { gap: space.xs },
-  replyName: { fontWeight: '700' },
-  replyText: { fontSize: 15, lineHeight: 21 },
-  moreReplies: { fontSize: 14, fontWeight: '700' },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: 2 },
-  pill: { minHeight: 36, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1.5, justifyContent: 'center' },
-  pillText: { fontSize: 15, fontWeight: '700' },
-  moreRow: { minHeight: 44, justifyContent: 'center' },
-  more: { fontSize: 15, fontWeight: '700' },
   end: { color: '#FFFFFF', fontSize: 16, textAlign: 'center', padding: space.lg },
 });

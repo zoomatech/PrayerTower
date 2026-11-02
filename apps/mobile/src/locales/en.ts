@@ -32,6 +32,9 @@ const en = {
     open: 'Menu',
     close: 'Close menu',
     settings: 'Settings',
+    // Steve (2026-11-02): both on the hamburger menu.
+    donateUpkeep: 'Donate to keep us up and running',
+    donatePool: 'Donate to the token pool',
   },
   widget: {
     heading: 'Pray now',
@@ -665,8 +668,10 @@ const en = {
     tierUpkeep: 'Give or spend a token at least every %{days} days to keep your tier.',
     tierHeld: 'Give or spend a token to get back to %{tier}.',
     prayers: 'Prayers',
+    requests: 'Requests',
     tokens: 'Tokens',
-    priestly: 'Priestly',
+    // Steve (2026-11-02): "prayercast tokens available (for prayers using the radio)".
+    priestly: 'Prayercast tokens',
     nextTier: '%{count} more prayers to become a %{tier}.',
     priestlyProgress:
       '%{done} of %{per} prayers toward your next Priestly token. Priestly tokens keep the prayer infrastructure running; you can give them to others or donate them.',
@@ -2332,6 +2337,13 @@ const en = {
     more: '%{n} more',
     replies: { one: '1 reply', other: '%{count} replies' },
     fold: 'Folds it closed again',
+  },
+  fb: {
+    more: '(+ %{n} more)',
+    open: 'Opens the comments',
+    fold: 'Folds the comments closed',
+    viewAll: { one: 'View 1 reply', other: 'View all %{count} replies' },
+    viewMore: 'View more comments',
   },
   sparkler: {
     end: 'You have reached the end. Pull down for new posts.',

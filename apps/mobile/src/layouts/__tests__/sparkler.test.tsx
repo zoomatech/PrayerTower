@@ -144,42 +144,30 @@ describe('Full Screen Sparkler feed', () => {
     expect(screen.getAllByTestId('sparkler-separator', { includeHiddenElements: true })).toHaveLength(1);
   });
 
-  it('shows only the first line of the first comment closed, unfolds the next 5 on a tap, then 5 more, and folds closed on a tap', async () => {
+  it('closed, fades the top comment into "(+ x more)"; a tap opens them Facebook style; a tap on a comment folds them', async () => {
     (api.comments as jest.Mock).mockResolvedValue({ comments: thread(12) });
-    const card = sampleCard({ counts: { ...sampleCard().counts, comments: 12 } });
+    const card = sampleCard({ counts: { ...sampleCard().counts, comments: 14 } });
     await renderApp(layout([card]));
-    const first = await screen.findByTestId(`sparkler-first-line-${card.id}`);
     // Plainly comments, and how many.
-    expect(screen.getByText(/12 comments/)).toBeTruthy();
-    expect(first.props.numberOfLines).toBe(1);
-    expect(screen.getByTestId(`sparkler-folds-${card.id}`, { includeHiddenElements: true })).toBeTruthy();
-    expect(screen.queryByTestId('sparkler-comment-c2')).toBeNull();
+    expect(await screen.findByText(/14 comments/)).toBeTruthy();
+    // No folded lines: just how many more, replies counted.
+    expect(await screen.findByText('(+ 13 more)')).toBeTruthy();
+    expect(screen.queryByTestId('fb-comment-c1')).toBeNull();
     await fireEvent.press(screen.getByTestId(`sparkler-comments-${card.id}`));
-    // The first comment and the next 5.
-    for (let i = 1; i <= 6; i++) expect(screen.getByTestId(`sparkler-comment-c${i}`)).toBeTruthy();
-    expect(screen.queryByTestId('sparkler-comment-c7')).toBeNull();
-    await fireEvent.press(screen.getByText('6 more comments'));
-    expect(screen.getByTestId('sparkler-comment-c11')).toBeTruthy();
-    // A tap on an open comment folds them all closed again.
+    for (let i = 1; i <= 10; i++) expect(screen.getByTestId(`fb-comment-c${i}`)).toBeTruthy();
+    expect(screen.queryByTestId('fb-comment-c11')).toBeNull();
+    await fireEvent.press(screen.getByText('View more comments'));
+    expect(screen.getByTestId('fb-comment-c12')).toBeTruthy();
+    // The first reply shows under its comment, the rest on "View all".
+    expect(screen.getByTestId('fb-comment-r1')).toBeTruthy();
+    expect(screen.queryByTestId('fb-comment-r2')).toBeNull();
+    await fireEvent.press(screen.getByText('View all 2 replies'));
+    expect(screen.getByTestId('fb-comment-r2')).toBeTruthy();
+    // Every comment gets Reply; replies never do.
+    expect(screen.getAllByText('Reply')).toHaveLength(12);
     await fireEvent.press(screen.getByText(thread(12)[0]!.body));
-    expect(screen.queryByTestId('sparkler-comment-c2')).toBeNull();
-    expect(screen.getByTestId(`sparkler-first-line-${card.id}`)).toBeTruthy();
-  });
-
-  it('shows the first reply under a comment, the rest on a tap, and gives Reply to comments but never replies', async () => {
-    (api.comments as jest.Mock).mockResolvedValue({ comments: thread(2) });
-    const card = sampleCard({ counts: { ...sampleCard().counts, comments: 2 } });
-    await renderApp(layout([card]));
-    await fireEvent.press(await screen.findByTestId(`sparkler-comments-${card.id}`));
-    expect(screen.getByTestId('sparkler-reply-r1')).toBeTruthy();
-    expect(screen.queryByTestId('sparkler-reply-r2')).toBeNull();
-    expect(screen.getAllByText('Reply')).toHaveLength(2);
-    await fireEvent.press(screen.getByTestId('sparkler-replies-c1'));
-    expect(screen.getByTestId('sparkler-reply-r2')).toBeTruthy();
-    // The replies' own buttons have no Reply.
-    expect(screen.getAllByText('Reply')).toHaveLength(2);
-    await fireEvent.press(screen.getByTestId('sparkler-replies-c1'));
-    expect(screen.queryByTestId('sparkler-reply-r2')).toBeNull();
+    expect(screen.queryByTestId('fb-comment-c2')).toBeNull();
+    expect(screen.getByText('(+ 13 more)')).toBeTruthy();
   });
 });
 

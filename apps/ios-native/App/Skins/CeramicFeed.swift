@@ -8,10 +8,9 @@ import SwiftUI
 //   - When a post is centred, its angel stops hauling, turns and presents it like a game-show host.
 //   - A still statue points at every third post; now and then an angel flies to the centred post;
 //     a ceramic turtle walks slowly across behind the posts; clouds drift in the sky above some posts.
-//   - Comments hang under the platform on ceramic placards tied together. Closed, only the first comment's first
-//     line shows, the rest stacked behind it. A tap flops them all down; a tap on one folds them back up.
-//   - The first reply hangs showing under every comment that has replies; a tap flops the rest down, a tap on a
-//     reply folds them. Replies get no Reply button (Steve: overnesting is hard to follow).
+//   - Comments hang under the platform on a ceramic placard, laid out Facebook style (Steve, 2026-11-02):
+//     closed, the top comment's first line fades out before "(+ x more)"; a tap opens them indented, the
+//     first reply under each comment showing. Replies get no Reply button (Steve: overnesting is hard to follow).
 //   - Members pick their own figurines. The feed scrolls only up and down. Reduce Motion stills everything.
 
 /// People's names: a fancy, feminine, almost-cursive script, like on pastel greeting cards (Steve 2026-11-01).
@@ -407,58 +406,30 @@ struct CeramicFigurine: View {
 
 // MARK: - Comments on ceramic placards
 
-private struct Flop: ViewModifier {
-    let angle: Double
-    func body(content: Content) -> some View {
-        content.rotation3DEffect(.degrees(angle), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.6).opacity(angle < -80 ? 0 : 1)
-    }
-}
-
-extension AnyTransition {
-    /// A placard swinging down on its ties from flat, and back up when it folds.
-    fileprivate static var flop: AnyTransition { .modifier(active: Flop(angle: -100), identity: Flop(angle: 0)) }
-}
-
+/// The post's comments on one ceramic placard tied under the platform, laid out Facebook style
+/// (Steve, 2026-11-02; FacebookComments.swift): closed, the top comment's first line fades out
+/// before "(+ x more)"; a tap opens them indented, replies under their comment.
 private struct CeramicPlacards: View {
     let card: Card
     let look: CeramicLook
     let words: Words
     let hooks: FeedHooks
     @State private var all: [Beanstalk.Note]?
-    @State private var open = false
-    @State private var openReplies: Set<String> = []
-    @Environment(\.accessibilityReduceMotion) private var still
 
     var body: some View {
         let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
-        let tree = Beanstalk.tree(notes)
-        let total: Int = all != nil ? tree.top.count : max(tree.top.count, card.counts.comments)
         VStack(spacing: 0) {
-            if let first = tree.top.first {
-                if open {
-                    ForEach(Array(tree.top.prefix(Ceramic.placardsShown).enumerated()), id: \.element.id) { _, note in
-                        VStack(spacing: 0) {
-                            ties(6)
-                            comment(note, kids: tree.kids)
-                        }
-                        .transition(.flop)
-                    }
-                    if total > Ceramic.placardsShown, let openPost = hooks.open {
-                        ties(6)
-                        Button { openPost(card) } label: {
-                            Text(words("ceramic.more", ["n": String(total - Ceramic.placardsShown)]))
-                                .font(.system(size: 14, weight: .semibold, design: .serif))
-                                .foregroundStyle(Color(look.ink))
-                                .padding(.horizontal, 16).padding(.vertical, 8)
-                                .background(Color(look.platform), in: .capsule)
-                        }
-                        .buttonStyle(.plain)
-                        .transition(.flop)
-                    }
-                } else {
-                    ties(10)
-                    closed(first, total: total)
-                }
+            if !notes.isEmpty {
+                ties(10)
+                FacebookComments(
+                    card: card, notes: notes, total: card.counts.comments,
+                    ink: FacebookInk(text: Color(look.ink), muted: Color(Ceramic.muted), link: Color(look.ink), thread: Color(Ceramic.muted).opacity(0.4), avatar: Color(look.platform), nameFont: CeramicFont.name(18)),
+                    words: words, open: hooks.open)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Color(look.placard), in: .rect(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 7).inset(by: 4).stroke(Color(look.ink).opacity(0.18), lineWidth: 1).allowsHitTesting(false))
+                    .shadow(color: Color(RGB(hex: "#46323C")!).opacity(0.2), radius: 5, x: 0, y: 3)
+                    .accessibilityIdentifier("ceramic-stack-\(card.id)")
             }
         }
         .task(id: card.id) {
@@ -467,17 +438,7 @@ private struct CeramicPlacards: View {
         }
     }
 
-    private func toggle() {
-        if still { open.toggle() } else { withAnimation(.spring(duration: 0.55, bounce: 0.25)) { open.toggle() } }
-        if !open { openReplies = [] }
-    }
-
-    private func toggleReplies(_ id: String) {
-        let change = { if openReplies.contains(id) { openReplies.remove(id) } else { openReplies.insert(id) } }
-        if still { change() } else { withAnimation(.spring(duration: 0.5, bounce: 0.25)) { change() } }
-    }
-
-    /// The two short ropes that tie a placard to the one above it.
+    /// The two short ropes that tie the placard under the platform.
     private func ties(_ h: CGFloat) -> some View {
         HStack {
             Rectangle().fill(CeramicDraw.rope).frame(width: 3, height: h)
@@ -486,124 +447,6 @@ private struct CeramicPlacards: View {
         }
         .padding(.horizontal, 26)
         .accessibilityHidden(true)
-    }
-
-    /// Closed: one placard showing the first comment's first line, the others stacked behind it.
-    private func closed(_ first: Beanstalk.Note, total: Int) -> some View {
-        Button(action: toggle) {
-            HStack(spacing: 8) {
-                (Text(first.author).font(CeramicFont.name(19)) + Text(" · " + first.body))
-                    .font(.system(size: 16, design: .serif))
-                    .foregroundStyle(Color(look.ink))
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                if total > 1 {
-                    Text("+\(total - 1)").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color(Ceramic.muted))
-                }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 11)
-            .background(Color(look.placard), in: .rect(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 7).inset(by: 4).stroke(Color(look.ink).opacity(0.18), lineWidth: 1))
-            .background(alignment: .bottom) {
-                if total > 1 {
-                    ZStack(alignment: .bottom) {
-                        if total > 2 { RoundedRectangle(cornerRadius: 10).fill(Color(look.recess)).padding(.horizontal, 16).offset(y: 12) }
-                        RoundedRectangle(cornerRadius: 10).fill(Color(look.platform)).padding(.horizontal, 8).offset(y: 6)
-                    }
-                    .accessibilityHidden(true)
-                }
-            }
-            .shadow(color: Color(RGB(hex: "#46323C")!).opacity(0.2), radius: 5, x: 0, y: 3)
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint(words("ceramic.showComments", count: total))
-        .accessibilityIdentifier("ceramic-stack-\(card.id)")
-        .padding(.bottom, total > 1 ? 14 : 0)
-    }
-
-    /// One open comment: its placard (a tap folds them all), Reply, then its first reply or all its replies.
-    private func comment(_ note: Beanstalk.Note, kids: [String: [Beanstalk.Note]]) -> some View {
-        let replies = kids[note.id] ?? []
-        return VStack(alignment: .leading, spacing: 0) {
-            Button(action: toggle) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(note.author).font(CeramicFont.name(19)).foregroundStyle(Color(Ceramic.muted))
-                    Text(note.body).font(.system(size: 16, design: .serif)).foregroundStyle(Color(look.ink))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .combine)
-            .accessibilityHint(words("ceramic.foldComments", ["name": note.author]))
-            .accessibilityIdentifier("ceramic-comment-\(note.id)")
-            if let openPost = hooks.open {
-                // Only a top-level comment gets Reply; replies never do.
-                Button(words("post.reply")) { openPost(card) }
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(look.ink))
-                    .padding(.horizontal, 12).padding(.vertical, 5)
-                    .background(Color(look.platform), in: .capsule)
-                    .buttonStyle(.plain)
-                    .padding(.top, 8)
-            }
-            if !replies.isEmpty { replyStack(note, replies, kids: kids).padding(.top, 10) }
-        }
-        .padding(.horizontal, 14).padding(.vertical, 11)
-        .background(Color(look.placard), in: .rect(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 7).inset(by: 4).stroke(Color(look.ink).opacity(0.18), lineWidth: 1).allowsHitTesting(false))
-        .shadow(color: Color(RGB(hex: "#46323C")!).opacity(0.2), radius: 5, x: 0, y: 3)
-    }
-
-    private func replyStack(_ parent: Beanstalk.Note, _ replies: [Beanstalk.Note], kids: [String: [Beanstalk.Note]]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if openReplies.contains(parent.id) {
-                ForEach(replies) { r in
-                    Button { toggleReplies(parent.id) } label: { replyFace(r, extra: nil, kids: kids[r.id] ?? []) }
-                        .buttonStyle(.plain)
-                        .accessibilityHint(words("ceramic.foldReplies", ["name": r.author]))
-                        .accessibilityIdentifier("ceramic-reply-\(r.id)")
-                        .transition(.flop)
-                }
-            } else if let first = replies.first {
-                // The first reply always hangs showing; a tap flops the rest down.
-                Button { toggleReplies(parent.id) } label: { replyFace(first, extra: replies.count > 1 ? replies.count - 1 : nil, kids: []) }
-                    .buttonStyle(.plain)
-                    .accessibilityHint(words("ceramic.showReplies", count: replies.count))
-                    .accessibilityIdentifier("ceramic-first-\(parent.id)")
-            }
-        }
-    }
-
-    /// A reply's lilac placard; its own replies show inline under it. No Reply button.
-    private func replyFace(_ r: Beanstalk.Note, extra: Int?, kids: [Beanstalk.Note]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline) {
-                (Text(r.author).font(CeramicFont.name(18)) + Text(" · " + r.body))
-                    .font(.system(size: 15, design: .serif))
-                    .foregroundStyle(Color(look.ink))
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 4)
-                if let extra { Text("+\(extra)").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color(Ceramic.muted)) }
-            }
-            ForEach(kids) { k in
-                (Text(k.author).font(CeramicFont.name(16)) + Text(" · " + k.body))
-                    .font(.system(size: 14, design: .serif))
-                    .foregroundStyle(Color(Ceramic.muted))
-                    .padding(.leading, 10)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12).padding(.vertical, 9)
-        .background(Color(look.reply), in: .rect(cornerRadius: 9))
-        .background(alignment: .bottom) {
-            if extra != nil {
-                RoundedRectangle(cornerRadius: 9).fill(Color(RGB(hex: "#D9CFE6")!)).padding(.horizontal, 8).offset(y: 5).accessibilityHidden(true)
-            }
-        }
-        .padding(.leading, 12)
-        .padding(.bottom, extra != nil ? 6 : 0)
     }
 }
 

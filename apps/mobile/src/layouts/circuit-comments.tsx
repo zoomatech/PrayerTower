@@ -4,12 +4,14 @@
 // its tube draws all the way round, and it pushes the neon below it down. An open
 // comment's replies branch from it, and each reply's replies from the reply, every one on
 // its own card with its own row of icons. The tubes draw themselves in as they scroll
-// into view (lib/draw-in.ts).
+// into view (lib/draw-in.ts). Closed (Steve, 2026-11-02): the face-down card's first line
+// fades out, and "(+ x more)" under it says how many comments wait; no receding lines.
 import type { Card, Comment } from '@prayer-tower/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
+import { FadingLine, type FbInk } from '@/components/fb-comments';
 import { GlassTube, GLOW_REACH, roundedBox, tubeShades } from '@/components/glass-tube';
 import { boxRuns, Sparkles } from '@/components/sparkles';
 import { useDrawIn, type Row } from '@/lib/draw-in';
@@ -30,9 +32,10 @@ const INDENT = 30;
 const SPINE = 22;
 /** Room round a frame for the tube's glow. */
 const ROOM = GLOW_REACH + 4;
-/** Comments shown when a cluster opens, and lines receding behind a closed one. */
+/** Comments shown when a cluster opens. */
 const OPENED = 5;
-const RECESSION = 4;
+/** A face-down card's words: dark on its white glass. */
+const CARD_INK: FbInk = { text: colors.text, muted: colors.textMuted, link: colors.primary, thread: colors.border, avatar: colors.primarySoft, avatarText: colors.text };
 /** A face-down card's height, and its tilt. */
 const SHUT = 50;
 const TILT = '42deg';
@@ -115,10 +118,8 @@ function NeonComment({
   const frameH = box.h + ROOM * 2;
   const words = (
     <>
-      <Text style={styles.author} numberOfLines={open ? undefined : 1}>
-        {comment.author.displayName}
-        {open ? null : <Text style={styles.firstLine}>{`  ${comment.body}`}</Text>}
-      </Text>
+      {/* Face down, its first line fades out (Steve, 2026-11-02). */}
+      {open ? <Text style={styles.author}>{comment.author.displayName}</Text> : <FadingLine name={comment.author.displayName} body={comment.body} ink={CARD_INK} size={13} />}
       {open ? (
         <>
           <Text style={type.body}>{comment.body}</Text>
@@ -229,14 +230,16 @@ export function CommentStack({ card, tokens, start }: { card: Card; tokens: Toke
 
 /**
  * A cluster of comments, or of one comment's replies. Closed: only the first, face down
- * with its first line showing, and the rest as a fading recession of neon lines behind it.
+ * with its first line fading out, and "(+ x more)" for the rest.
  * Open: the first five, whole, each with its own replies as a closed cluster of their own.
  */
 function Cluster({ postId, list, kids, tokens, color, at }: { postId: string; list: Comment[]; kids: Map<string, Comment[]>; tokens: Tokens; color: string; at: string }) {
   const { t } = useLocale();
   const { state, toggle } = useCommentCluster();
   const open = state.spread;
-  const { shown, behind, more } = clusterSlice(list, open, OPENED, RECESSION);
+  const { shown, more } = clusterSlice(list, open, OPENED, 0);
+  // Every comment waiting in a closed cluster, replies counted.
+  const hidden = open ? 0 : list.length - 1 + list.slice(1).reduce((n, c) => n + descendants(kids, c.id), 0);
   return (
     <View style={styles.cluster}>
       {shown.map((c, i) => (
@@ -244,38 +247,20 @@ function Cluster({ postId, list, kids, tokens, color, at }: { postId: string; li
           <Replies postId={postId} parent={c} kids={kids} tokens={tokens} />
         </NeonComment>
       ))}
-      {behind ? (
-        <Pressable onPress={toggle} accessibilityRole="button" aria-label={t('circuit.cluster', { n: list.length })}>
-          <Recession n={behind} color={color} />
+      {/* Steve (2026-11-02): no lines for the comments waiting, just how many. */}
+      {hidden ? (
+        <Pressable onPress={toggle} accessibilityRole="button" aria-expanded={false} aria-label={t('circuit.cluster', { n: list.length })} style={styles.moreRow} testID={`circuit-more-${at || postId}`}>
+          <Text style={[styles.more, styles.moreTight, { color: tubeShades(color).inner }]}>{t('fb.more', { n: hidden })}</Text>
         </Pressable>
       ) : null}
-      {more > 0 ? <MoreLink postId={postId} at={at} n={more} color={color} label={t('circuit.more', { n: more })} /> : null}
+      {more > 0 ? <MoreLink postId={postId} at={at} n={more} color={color} label={t('fb.viewMore')} /> : null}
     </View>
   );
 }
 
-/** The comments waiting in a closed cluster: neon lines receding behind the top one, each shorter and fainter. */
-function Recession({ n, color }: { n: number; color: string }) {
-  const [w, setW] = useState(0);
-  const gap = 9;
-  const h = n * gap + ROOM;
-  return (
-    <View style={{ height: h, marginTop: -4 }} onLayout={(e) => setW(e.nativeEvent.layout.width)} pointerEvents="none">
-      {w ? (
-        <Svg aria-hidden width={w} height={h} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {Array.from({ length: n }, (_, i) => {
-            const inset = 16 + i * 14;
-            const y = (i + 1) * gap;
-            return (
-              <G key={i} opacity={0.75 - i * 0.16}>
-                <GlassTube d={`M ${inset} ${y} L ${w - inset} ${y}`} color={color} width={3} />
-              </G>
-            );
-          })}
-        </Svg>
-      ) : null}
-    </View>
-  );
+/** How many replies sit under a comment, at every depth. */
+function descendants(kids: Map<string, Comment[]>, id: string): number {
+  return (kids.get(id) ?? []).reduce((n, r) => n + 1 + descendants(kids, r.id), 0);
 }
 
 const styles = StyleSheet.create({
@@ -287,10 +272,11 @@ const styles = StyleSheet.create({
   glassClip: { flex: 1, borderRadius: radius.sm, overflow: 'hidden' },
   glass: { borderRadius: radius.sm, backgroundColor: colors.surface, paddingVertical: space.sm, paddingHorizontal: space.md, gap: space.xs },
   author: { ...type.small, fontWeight: '700', color: colors.text },
-  firstLine: { fontWeight: '400', color: colors.textMuted },
   icons: { flexDirection: 'row', gap: space.xl, marginTop: space.sm, alignItems: 'center' },
   icon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   iconOn: { backgroundColor: colors.primarySoft },
   iconArt: { width: 28, height: 28 },
   more: { ...type.small, fontWeight: '700', marginTop: space.md },
+  moreRow: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  moreTight: { marginTop: 0, fontSize: 14 },
 });

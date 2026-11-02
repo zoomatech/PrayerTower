@@ -1,7 +1,20 @@
 // The Beanstalk, ported from Steve's Claude Design file: the frame vine, the stalk and leaves below each post, the sway.
 import { COMMENT_TEXT, contrastRatio, type Comment } from '@prayer-tower/shared';
 
-import { BEANSTALK, commentTree, fitText, frameVine, frameWidth, hanging, leafChars, leafHeight, maxShift, postShift } from '@/layouts/beanstalk';
+import { fireEvent, screen } from '@testing-library/react-native';
+import { Text } from 'react-native';
+
+import { renderApp, sampleCard } from '@/__tests__/helpers';
+import { api } from '@/lib/api';
+import { BeanstalkLayout, BEANSTALK, commentTree, fitText, frameVine, frameWidth, hanging, leafChars, leafHeight, maxShift, postShift } from '@/layouts/beanstalk';
+
+jest.mock('@/lib/api', () => ({
+  api: {
+    features: jest.fn(async () => ({ features: {} })),
+    comments: jest.fn(async () => ({ comments: [] })),
+    scriptureLeaves: jest.fn(async () => ({ leaves: [] })),
+  },
+}));
 
 const c = (id: string, mins: number, parentId: string | null = null, body = id) =>
   ({ id, parentId, body, isUpdate: false, createdAt: new Date(Date.UTC(2026, 9, 30, 0, mins)).toISOString(), author: { displayName: id } }) as unknown as Comment;
@@ -106,5 +119,18 @@ describe('Beanstalk leaves', () => {
 describe('leaf shape', () => {
   it('every leaf is exactly half as tall as it is wide, whatever its words (never puffy)', () => {
     for (const w of [78, 109, 170, 221, 300]) expect(leafHeight(w)).toBe(Math.round(w / 2));
+  });
+});
+
+describe('Beanstalk comments (Steve, 2026-11-02)', () => {
+  it('shows the top comment fading into "(+ x more)", opens them Facebook style on a tap, and has no "The Beanstalk" title', async () => {
+    (api.comments as jest.Mock).mockResolvedValue({ comments: [c('Ann', 2), c('Bea', 1), c('Cy', 3, 'Ann')] });
+    const card = sampleCard({ counts: { ...sampleCard().counts, comments: 3 } });
+    await renderApp(<BeanstalkLayout cards={[card]} theme={null} pinnedId={null} renderCard={(k) => <Text>{`card ${k.id}`}</Text>} refreshing={false} onRefresh={() => undefined} onEndReached={() => undefined} atEnd />);
+    expect(await screen.findByText('(+ 2 more)')).toBeTruthy();
+    expect(screen.queryByText('The Beanstalk')).toBeNull();
+    await fireEvent.press(screen.getByTestId(`beanstalk-comments-${card.id}`));
+    expect(screen.getByTestId('fb-comment-Ann')).toBeTruthy();
+    expect(screen.getByTestId('fb-comment-Cy')).toBeTruthy();
   });
 });
