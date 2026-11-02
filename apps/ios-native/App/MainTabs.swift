@@ -94,7 +94,18 @@ struct MainTabs: View {
                 }
                 // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
                 // menu right below it, so there's always a way back to the feed.
-                .overlay(alignment: .topLeading) { homeAndMenu.padding(.leading, 8).padding(.top, 2) }
+                .overlay(alignment: .topLeading) {
+                    HStack(alignment: .top, spacing: 8) {
+                        homeAndMenu
+                        // Write a post: its own button beside Home and Menu, not part of them (Steve,
+                        // 2026-11-02).
+                        if tab == 0 { writeButton }
+                    }
+                    .padding(.leading, 8).padding(.top, 2)
+                }
+                // The logo, twice the size it was in the bar (Steve, 2026-11-02).
+                .overlay(alignment: .topTrailing) { CornerLogo().padding(.trailing, 8).padding(.top, 2) }
+                .environment(\.logoInCorner, true)
             }
         }
         // ⌘1–⌘7 jump between sections with a hardware keyboard (iPad, Mac).
@@ -139,6 +150,16 @@ struct MainTabs: View {
             }
             .accessibilityLabel("Menu")
         }
+        .foregroundStyle(Color.accessibleAccent)
+        .background(.regularMaterial, in: .rect(cornerRadius: 14))
+    }
+
+    private var writeButton: some View {
+        Button { model.composeNow = true } label: {
+            Image(systemName: "square.and.pencil").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+        }
+        .accessibilityLabel(model.words("compose.post"))
+        .keyboardShortcut("n", modifiers: .command)
         .foregroundStyle(Color.accessibleAccent)
         .background(.regularMaterial, in: .rect(cornerRadius: 14))
     }

@@ -57,9 +57,13 @@ struct FeedView: View {
             .appLogo()
             .environment(\.logoPlate, theme.flatMap(SkinHeader.logoPlate))
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
-                        .keyboardShortcut("n", modifiers: .command)
+                // On iPhone the write-a-post button stands on its own beside Home and Menu (Steve,
+                // 2026-11-02); with the sidebar it stays in the bar.
+                if wide {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
+                            .keyboardShortcut("n", modifiers: .command)
+                    }
                 }
                 if wide {
                     // No pull-to-refresh with a pointer: a button, and ⌘R.
@@ -93,6 +97,11 @@ struct FeedView: View {
                     done[card.id, default: []].insert(.share)
                     notice = message
                 }
+            }
+            .onChange(of: model.composeNow) { _, now in
+                guard now else { return }
+                model.composeNow = false
+                composing = true
             }
             .sheet(isPresented: $composing) { ComposeView { _ in Task { await load() } } }
             .refreshable { await load() }

@@ -11,8 +11,9 @@ import AppKit
 struct AppLogo: ViewModifier {
     @Environment(AppModel.self) private var model
     @Environment(\.logoPlate) private var plate
+    @Environment(\.logoInCorner) private var inCorner
 
-    private static let image: Image? = {
+    static let image: Image? = {
         #if os(iOS)
         UIImage(named: "PrayerTowerLogo").map { Image(uiImage: $0) }
         #else
@@ -30,7 +31,7 @@ struct AppLogo: ViewModifier {
 
     func body(content: Content) -> some View {
         content.toolbar {
-            if model.wording != .neutral, let logo = Self.image {
+            if model.wording != .neutral, !inCorner, let logo = Self.image {
                 ToolbarItem(placement: placement) {
                     logo
                         .resizable()
@@ -55,6 +56,27 @@ struct AppLogo: ViewModifier {
     }
 }
 
+/// The logo in the top-right corner of the iPhone screens, twice the size it was in the bar
+/// (Steve, 2026-11-02), on a light plate so its black and red read on every skin.
+struct CornerLogo: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        if model.wording != .neutral, let logo = AppLogo.image {
+            logo
+                .resizable()
+                .scaledToFit()
+                .frame(height: 68)
+                .padding(4)
+                .background(Color.white, in: .rect(cornerRadius: 12))
+                .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
+                .accessibilityLabel("The Prayer Tower")
+                .accessibilityAddTraits(.isImage)
+                .accessibilityIdentifier("app-logo")
+        }
+    }
+}
+
 extension View {
     /// Adds the logo to the top-right of the navigation bar this view is in.
     func appLogo() -> some View { modifier(AppLogo()) }
@@ -63,4 +85,6 @@ extension View {
 extension EnvironmentValues {
     /// A dark skin's line color: the logo then sits on a light plate edged in it.
     @Entry var logoPlate: Color? = nil
+    /// True where the logo stands in the screen's corner instead of in the bar (iPhone).
+    @Entry var logoInCorner: Bool = false
 }
