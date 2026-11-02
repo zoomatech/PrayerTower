@@ -273,28 +273,37 @@ private struct SparklerPost<Row: View>: View {
             .overlay(alignment: .topTrailing) { ProfilePic(card: card).padding(8) }
             // The card's words and icons in the background's own light or dark.
             .environment(\.colorScheme, bg.dark ? .dark : .light)
-            // A black line with a light blue line through its middle.
-            // Three picas of very dark brushed metal, set apart from the posts by a lit top edge and a
-            // shadowed bottom one; no glow (Steve, 2026-11-02).
+            // Three picas of very dark brushed metal, raised like an embossed bar: a lit bevel along
+            // the top, a shadowed one along the bottom, brushing plain across the whole width; no
+            // glow (Steve, 2026-11-02).
             LinearGradient(stops: [
                 .init(color: Color(Sparkler.separatorMetal[0]), location: 0),
-                .init(color: Color(Sparkler.separatorMetal[1]), location: 0.1),
-                .init(color: Color(Sparkler.separatorMetal[2]), location: 0.45),
-                .init(color: Color(Sparkler.separatorMetal[3]), location: 0.85),
+                .init(color: Color(Sparkler.separatorMetal[1]), location: 0.09),
+                .init(color: Color(Sparkler.separatorMetal[2]), location: 0.4),
+                .init(color: Color(Sparkler.separatorMetal[3]), location: 0.88),
                 .init(color: Color(Sparkler.separatorMetal[4]), location: 1),
             ], startPoint: .top, endPoint: .bottom)
             .overlay {
-                // The brushing: fine streaks along the bar.
                 Canvas { ctx, size in
+                    let w = Double(size.width), h = Double(size.height)
+                    // The brushing: fine streaks running the width of the bar.
                     var rnd = Sparkler.Seeded(index &* 131 &+ 5)
-                    for _ in 0..<Int(size.width / 6) {
-                        let y = 2 + rnd.next() * (size.height - 4)
-                        let x = rnd.next() * size.width, w = 20 + rnd.next() * 80
-                        var p = Path(); p.move(to: CGPoint(x: x, y: y)); p.addLine(to: CGPoint(x: x + w, y: y))
-                        ctx.stroke(p, with: .color(.white.opacity(0.025 + rnd.next() * 0.03)), lineWidth: 0.5)
+                    for _ in 0..<Int(w / 2.5) {
+                        let y = 3 + rnd.next() * (h - 6)
+                        let x = rnd.next() * w - 40, len = 50 + rnd.next() * 170
+                        var p = Path(); p.move(to: CGPoint(x: x, y: y)); p.addLine(to: CGPoint(x: x + len, y: y))
+                        let light = rnd.next() < 0.7
+                        ctx.stroke(p, with: .color((light ? Color.white : Color.black).opacity(light ? 0.05 + rnd.next() * 0.07 : 0.12 + rnd.next() * 0.1)), lineWidth: 0.6)
                     }
+                    // The raised edges: a bright bevel on top, a dark one beneath.
+                    ctx.fill(Path(CGRect(x: 0, y: 0, width: w, height: 1)), with: .color(.white.opacity(0.35)))
+                    ctx.fill(Path(CGRect(x: 0, y: 1, width: w, height: 1.5)), with: .color(.white.opacity(0.12)))
+                    ctx.fill(Path(CGRect(x: 0, y: h - 2.5, width: w, height: 2.5)), with: .color(.black.opacity(0.7)))
                 }
             }
+            // It stands a little proud of the post below it.
+            .shadow(color: .black.opacity(0.6), radius: 2, y: 2)
+            .zIndex(1)
             // The light the sparkler and its sparkles cast, caught on the metal as it passes them
             // (Steve, 2026-11-02).
             .overlay { SparkleLightOnMetal(dust: dust, still: still) }

@@ -130,7 +130,8 @@ describe('Full Screen Sparkler motion', () => {
   it('makes the divider between prayer requests bold', () => {
     // Three picas of very dark metal.
     expect(SEPARATOR.height).toBe(36);
-    expect(SEPARATOR.metal.every((c) => parseInt(c.slice(1, 3), 16) < 0x40)).toBe(true);
+    // Dark below its lit top bevel.
+    expect(SEPARATOR.metal.slice(1).every((c) => parseInt(c.slice(1, 3), 16) < 0x40)).toBe(true);
   });
 });
 

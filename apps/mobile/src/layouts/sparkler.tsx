@@ -54,7 +54,7 @@ const COMMENT_INDENT = 18;
 const REPLY_INDENT = 18;
 /** The separator: a black line with a glowing light blue line through its middle, made bold (Steve: accentuate the divider). */
 /** The bar between posts: three picas of very dark brushed metal, not a glowing line (Steve, 2026-11-02); its metal top to bottom (Kit Sparkler.separatorMetal). */
-export const SEPARATOR = { height: 36, metal: ['#3A3E45', '#22252A', '#16181C', '#0E1013', '#050607'] };
+export const SEPARATOR = { height: 36, metal: ['#6A707A', '#3A3F47', '#2A2E34', '#1E2126', '#08090B'] };
 /** The profile picture in the square's upper right corner. */
 const PIC = 48;
 /** Comments shown when a post's comments open. */
@@ -200,19 +200,34 @@ function ProfilePic({ card }: { card: Card }) {
   );
 }
 
-/** The bar between posts: three picas of very dark metal. */
+/** Fine brushing streaks across the bar (the same on every bar). */
+const BRUSHING = (() => {
+  const rnd = seeded(131);
+  return Array.from({ length: 140 }, () => {
+    const light = rnd() < 0.7;
+    return { x: rnd() * 100 - 10, y: 3 + rnd() * (SEPARATOR.height - 6), w: 12 + rnd() * 40, light, o: light ? 0.05 + rnd() * 0.07 : 0.12 + rnd() * 0.1 };
+  });
+})();
+
+/** The bar between posts: three picas of very dark brushed metal, raised. */
 export function Separator() {
   return (
     <View style={styles.separator} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width="100%" height={SEPARATOR.height} preserveAspectRatio="none">
         <Defs>
           <LinearGradient id="sparkler-sep" x1="0" y1="0" x2="0" y2="1">
-            {[0, 0.1, 0.45, 0.85, 1].map((at, i) => (
+            {[0, 0.09, 0.4, 0.88, 1].map((at, i) => (
               <Stop key={at} offset={at} stopColor={SEPARATOR.metal[i]} />
             ))}
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height={SEPARATOR.height} fill="url(#sparkler-sep)" />
+        {/* Raised like an embossed bar: a bright bevel on top, a dark one beneath, and fine brushing across the width. */}
+        <Rect x="0" y="0" width="100%" height={1} fill="#FFFFFF" opacity={0.35} />
+        <Rect x="0" y={SEPARATOR.height - 2.5} width="100%" height={2.5} fill="#000000" opacity={0.7} />
+        {BRUSHING.map((b, i) => (
+          <Rect key={i} x={`${b.x}%`} y={b.y} width={`${b.w}%`} height={0.6} fill={b.light ? '#FFFFFF' : '#000000'} opacity={b.o} />
+        ))}
       </Svg>
     </View>
   );

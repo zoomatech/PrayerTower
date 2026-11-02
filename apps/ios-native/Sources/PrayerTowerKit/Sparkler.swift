@@ -30,8 +30,9 @@ public enum Sparkler {
     /// The bar between posts: three picas of very dark brushed metal, not a glowing line (Steve,
     /// 2026-11-02).
     public static let separatorHeight: Double = 36
-    /// Its metal, top to bottom: a faint lit edge, the dark face, a shadowed lower edge.
-    public static let separatorMetal = ["#3A3E45", "#22252A", "#16181C", "#0E1013", "#050607"].map { RGB(hex: $0)! }
+    /// Its metal, top to bottom, raised like an embossed bar (Steve, 2026-11-02): a lit bevel along
+    /// the top, the dark face, a shadowed bevel along the bottom.
+    public static let separatorMetal = ["#6A707A", "#3A3F47", "#2A2E34", "#1E2126", "#08090B"].map { RGB(hex: $0)! }
     /// Comments shown when a post's comments open.
     public static let opened = 5
     /// The member's choice is kept on the device under this key.
