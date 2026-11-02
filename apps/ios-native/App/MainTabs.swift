@@ -262,10 +262,29 @@ struct FeedStyleSection: View {
             }
         }
         // On every return to Me, so a skin just made in the theme maker is there to choose.
-        .onAppear { Task { choices = try? await model.store.api.feedThemes() } }
+        .onAppear {
+            // Demo mode (no server): every built-in skin, so all of them can be tried live.
+            if SampleServer.isOn() { choices = Self.samples(current: model.feedStyle ?? SampleServer.skin()); return }
+            Task { choices = try? await model.store.api.feedThemes() }
+        }
+    }
+
+    /// Every built-in skin, as the server would list them, for demo mode.
+    static func samples(current: String?) -> FeedThemeChoices? {
+        let rows = AuditSamplesView.skins.map { t in
+            ["slug": t.slug, "name": t.name, "layout": t.layout, "status": "live", "is_default": false] as [String: Any]
+        }
+        let all: [String: Any] = ["themes": rows, "current": current ?? NSNull()]
+        guard let data = try? JSONSerialization.data(withJSONObject: all) else { return nil }
+        return try? JSONDecoder().decode(FeedThemeChoices.self, from: data)
     }
 
     private func choose(_ slug: String) async {
+        if SampleServer.isOn() {
+            model.feedStyle = slug
+            choices = Self.samples(current: slug)
+            return
+        }
         do {
             choices = try await model.store.api.chooseFeedTheme(slug)
             model.feedStyle = slug
