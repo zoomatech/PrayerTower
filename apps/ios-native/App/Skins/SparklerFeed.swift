@@ -152,9 +152,7 @@ final class DustBox {
     var trail = Sparkler.DustTrail()
 }
 
-/// Glitter left along the line behind the sparkler: bright near the tip, fading away toward the
-/// top of the screen, twinkling, and carried up with the posts as they scroll, so the line itself
-/// is plainly moving.
+/// The trail of sparkle and stardust the sparkler leaves (Kit Sparkler.DustTrail).
 private struct SparkleTrail: View {
     let top: Double
     let tip: Double
@@ -175,24 +173,24 @@ private struct SparkleTrail: View {
 
     private func draw(_ ctx: GraphicsContext, size: CGSize, time: Double) {
         let dark = scheme == .dark
-        // The stardust: a trail of where the sparkler has been, shed as it goes, each mote drifting
-        // on with a little of its motion (Steve, 2026-11-02). Bright on the dark; gold on light.
-        if !still { dust.trail.follow(scrolled + tip, time: time) }
+        // The trail: where the sparkler has been, held on the screen (never carried by the scroll),
+        // each mote drifting on the way it was laid and slowing, and none of it permanent (Steve,
+        // 2026-11-02). Stardust is bright on the dark, gold on light posts; glints are yellow.
+        if !still { dust.trail.follow(tip: tip, content: scrolled + tip, time: time) }
         let warm = Color(RGB(hex: dark ? "#FFF3B0" : "#E6A700")!), cool = Color(RGB(hex: dark ? "#FFFFFF" : "#F5C518")!)
-        for m in dust.trail.motes(scrolled: scrolled, time: time) {
-            let x = 40 + m.dx
-            ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warm : cool).opacity(m.opacity)))
-        }
-        // The trail is yellow: bright on the dark, deeper gold on light posts.
         let yellows = dark ? Sparkler.trailColors : Sparkler.trailColorsLight
-        for g in Sparkler.glitter(scrolled: scrolled, top: top, tip: tip, time: time) {
-            let color = Color(yellows[g.color % yellows.count]).opacity(g.opacity)
-            let x = 40 + g.dx
-            var star = Path()
-            star.move(to: CGPoint(x: x - g.r, y: g.y)); star.addLine(to: CGPoint(x: x + g.r, y: g.y))
-            star.move(to: CGPoint(x: x, y: g.y - g.r)); star.addLine(to: CGPoint(x: x, y: g.y + g.r))
-            ctx.stroke(star, with: .color(color), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
-            ctx.fill(Path(ellipseIn: CGRect(x: x - g.r * 0.4, y: g.y - g.r * 0.4, width: g.r * 0.8, height: g.r * 0.8)), with: .color(color))
+        for m in dust.trail.motes(time: time) {
+            let x = 40 + m.dx
+            if m.glint {
+                let color = Color(yellows[m.color % yellows.count]).opacity(m.opacity)
+                var star = Path()
+                star.move(to: CGPoint(x: x - m.r, y: m.y)); star.addLine(to: CGPoint(x: x + m.r, y: m.y))
+                star.move(to: CGPoint(x: x, y: m.y - m.r)); star.addLine(to: CGPoint(x: x, y: m.y + m.r))
+                ctx.stroke(star, with: .color(color), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+                ctx.fill(Path(ellipseIn: CGRect(x: x - m.r * 0.4, y: m.y - m.r * 0.4, width: m.r * 0.8, height: m.r * 0.8)), with: .color(color))
+            } else {
+                ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warm : cool).opacity(m.opacity)))
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ import SparklerBackgrounds from '@/app/sparkler-backgrounds';
 import { api } from '@/lib/api';
 import { flowerPoints, NIGHT, petalPath, shownBackground, SPARKLER_BACKGROUNDS, SPARKLER_GROUPS, sparklerBackground, starPoints } from '@/lib/sparkler-backgrounds';
 import { lineTip } from '@/lib/draw-in';
-import { DustTrail, glitter, inkFor, TRAIL_YELLOWS, TRAIL_YELLOWS_LIGHT, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
+import { DustTrail, inkFor, TRAIL_YELLOWS, TRAIL_YELLOWS_LIGHT, SEPARATOR, sparklerTokens, SparklerLayout, sparks, swipeLead, TIP_AT } from '@/layouts/sparkler';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -82,15 +82,6 @@ describe('Full Screen Sparkler motion', () => {
     expect(swipeLead(0, -400, 800)).toBeCloseTo(-14);
   });
 
-  it('leaves a trail of sparkle behind the sparkler that dies away near the top of the screen', () => {
-    const all = glitter(500, 0, 700, 1);
-    expect(all.length).toBeGreaterThan(10);
-    expect(all.every((g) => g.y >= 50 && g.y < 700)).toBe(true);
-    const near = Math.max(...all.filter((g) => g.y > 560).map((g) => g.opacity));
-    const mid = Math.max(...all.filter((g) => g.y > 250 && g.y < 350).map((g) => g.opacity));
-    expect(near).toBeGreaterThan(mid);
-  });
-
   it('leaves a yellow trail, and stardust behind it in dark mode, fading toward the top', () => {
     for (const c of [...TRAIL_YELLOWS, ...TRAIL_YELLOWS_LIGHT]) {
       const [r, g, b] = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
@@ -98,27 +89,35 @@ describe('Full Screen Sparkler motion', () => {
     }
   });
 
-  it('sheds stardust as a trail of where the sparkler has been, drifting on with slow inertia', () => {
+  it('lays the trail where the sparkler has been, held on screen, drifting on with slow inertia', () => {
     const trail = new DustTrail();
-    trail.follow(500, 0);
-    trail.follow(500, 0.5);
+    trail.follow(650, 500, 0);
+    trail.follow(650, 500, 0.95);
     expect(trail.count).toBe(0);
-    trail.follow(560, 1);
+    trail.follow(650, 560, 1);
     expect(trail.count).toBeGreaterThan(10);
-    const down = trail.motes(0, 1.3);
-    expect(down.length).toBeGreaterThan(0);
-    expect(down.every((m) => m.y > 480 && m.y < 600)).toBe(true);
-    // Turning back up, the new dust drifts the other way.
+    const laid = trail.motes(1.2);
+    expect(laid.length).toBeGreaterThan(0);
+    expect(laid.every((m) => m.y > 580 && m.y < 700)).toBe(true);
+    // Stardust only: the glints come and go sooner.
+    const mean = (ms: { y: number; glint: boolean }[]) => {
+      const dust = ms.filter((m) => !m.glint);
+      return dust.reduce((a, m) => a + m.y, 0) / dust.length;
+    };
+    const [a, b, c] = [1.5, 2.5, 3.5].map((t) => mean(trail.motes(t)));
+    expect(b!).toBeGreaterThan(a!);
+    expect(c! - b!).toBeLessThan(b! - a!);
+    // Turning back, the new trail is laid below it and drifts up.
     const back = new DustTrail();
-    back.follow(560, 0);
-    back.follow(500, 0.5);
-    const mean = (ms: { y: number }[]) => ms.reduce((a, m) => a + m.y, 0) / ms.length;
-    expect(mean(back.motes(0, 2))).toBeLessThan(mean(back.motes(0, 0.6)));
-    expect(trail.motes(0, 30)).toHaveLength(0);
-    for (let i = 0; i < 400; i++) trail.follow(i * 30, 31 + i * 0.05);
+    back.follow(650, 560, 0);
+    back.follow(650, 500, 0.5);
+    expect(mean(back.motes(2))).toBeLessThan(mean(back.motes(0.6)));
+    expect(back.motes(0.6).every((m) => m.y > 620)).toBe(true);
+    // Nothing is permanent.
+    expect(trail.motes(30)).toHaveLength(0);
+    for (let i = 0; i < 400; i++) trail.follow(650, i * 30, 31 + i * 0.05);
     expect(trail.count).toBeLessThanOrEqual(DustTrail.most);
   });
-
   it('turns the default white to night in dark mode, but keeps a color the member picked', () => {
     expect(shownBackground(sparklerBackground('white'), true).id).toBe('night');
     expect(shownBackground(sparklerBackground('white'), false).id).toBe('white');
