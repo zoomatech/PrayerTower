@@ -63,6 +63,16 @@ final class MainScreensWalk: XCTestCase {
         var issues: [String] = []
         var described: Set<String> = []
         func audit(_ screen: String) throws {
+            // Until the screen comes to rest (a tab's cross-fade, a large title settling): the same
+            // words in the same place twice running, then a moment more.
+            var last = CGRect.null
+            for _ in 0..<10 {
+                let now = app.staticTexts.allElementsBoundByIndex.prefix(8).reduce(CGRect.null) { $0.union($1.frame) }
+                if now == last { break }
+                last = now
+                sleep(1)
+            }
+            sleep(1)
             // Only what is wholly on screen between the bars, as in AccessibilityAuditTests: words
             // passing under the see-through tab bar are read once scrolled clear of it, not through it.
             let window = app.windows.firstMatch.frame
