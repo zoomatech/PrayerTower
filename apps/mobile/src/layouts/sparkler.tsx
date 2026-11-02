@@ -581,13 +581,17 @@ function PostBox({ prompt }: { prompt: string }) {
       <Text style={[styles.promptText, styles.measure]} numberOfLines={1} onLayout={(e: LayoutChangeEvent) => e.nativeEvent.layout.width >= room - 8 && open(typed)} aria-hidden>
         {typed}
       </Text>
+      {/* The lead-in words, all of them, on up to two lines until you type. */}
+      {typed ? null : (
+        <Text style={styles.promptLead} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7} pointerEvents="none" aria-hidden>
+          {prompt}
+        </Text>
+      )}
       <TextInput
         value={typed}
         onChangeText={setTyped}
         onSubmitEditing={() => open(typed)}
         returnKeyType="next"
-        placeholder={prompt}
-        placeholderTextColor="rgba(255,255,255,0.6)"
         style={styles.promptText}
         accessibilityLabel={prompt}
         testID="sparkler-compose"
@@ -684,6 +688,7 @@ const styles = StyleSheet.create({
   promptRoom: { height: TOP_ROOM, paddingLeft: 64, paddingRight: 122, paddingVertical: 9 },
   promptBox: { flex: 1, justifyContent: 'center', paddingHorizontal: 10, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)' },
   promptText: { color: '#FFFFFF', fontSize: 15, padding: 0 },
+  promptLead: { position: 'absolute', left: 10, right: 10, color: 'rgba(255,255,255,0.65)', fontSize: 13 },
   measure: { position: 'absolute', left: 10, opacity: 0, alignSelf: 'flex-start' },
   folds: { gap: 5, marginTop: 6, marginBottom: 2 },
   foldLine: { height: 1, alignSelf: 'stretch', backgroundColor: '#fff' },

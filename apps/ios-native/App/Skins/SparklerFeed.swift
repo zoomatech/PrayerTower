@@ -119,9 +119,7 @@ private struct SparklerPostBox: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        TextField(text: $typed) {
-            Text(prompt).foregroundStyle(Color.white.opacity(0.6))
-        }
+        TextField("", text: $typed)
         .font(.subheadline)
         .foregroundStyle(.white)
         .tint(.white)
@@ -137,6 +135,17 @@ private struct SparklerPostBox: View {
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        // The lead-in words, all of them, on up to two lines until you type.
+        .overlay(alignment: .leading) {
+            if typed.isEmpty {
+                Text(prompt).font(.footnote).foregroundStyle(Color.white.opacity(0.65))
+                    .lineLimit(2).minimumScaleFactor(0.7)
+                    .padding(.horizontal, 10)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .accessibilityLabel(prompt)
         .background(Color.white.opacity(0.1), in: .rect(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.white.opacity(focused ? 0.7 : 0.4), lineWidth: 1))
         // Clear of Home and Menu on the left and the logo on the right.
