@@ -172,7 +172,7 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
       {view?.messages.map((m) => (
         <View key={m.id} style={[styles.bubble, m.mine ? styles.mine : styles.theirs]}>
           {!m.mine && c?.kind === 'group' ? <Text style={styles.author}>{m.author}</Text> : null}
-          <Text style={[type.body, m.mine && { color: '#fff' }]}>{m.body}</Text>
+          <Text style={[type.body, styles.balloonText, m.mine && { color: '#fff' }]}>{m.body}</Text>
           <View style={styles.meta}>
             <Text style={[type.small, m.mine && { color: '#E9E2F5' }]}>
               {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -281,7 +281,9 @@ const styles = StyleSheet.create({
   post: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: space.md, gap: 2 },
   request: { backgroundColor: colors.goldSoft, borderRadius: radius.lg, padding: space.lg, gap: space.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, alignItems: 'center' },
-  bubble: { maxWidth: '85%', borderRadius: radius.lg, padding: space.md, gap: 2 },
+  // Word balloons (Steve, 2026-11-02): a 3 pt margin, leading the font size + 1.
+  bubble: { maxWidth: '85%', borderRadius: radius.lg, padding: 3, gap: 2 },
+  balloonText: { lineHeight: type.body.fontSize + 1 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.primary },
   theirs: { alignSelf: 'flex-start', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   author: { fontWeight: '700', color: colors.primary, fontSize: 13 },

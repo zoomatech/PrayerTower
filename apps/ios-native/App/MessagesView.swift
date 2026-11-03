@@ -191,7 +191,7 @@ struct ConversationScreen: View {
             if m.mine { Spacer(minLength: 40) }
             VStack(alignment: .leading, spacing: 2) {
                 if !m.mine && view?.conversation.isGroup == true { Text(m.author).font(.caption.bold()).foregroundStyle(.tint) }
-                Text(m.body).foregroundStyle(m.mine ? .white : .primary)
+                Text(m.body).balloonLeading().foregroundStyle(m.mine ? .white : .primary)
                 HStack(spacing: 12) {
                     if let d = try? Date(m.createdAt, strategy: .iso8601) {
                         Text(d.formatted(date: .omitted, time: .shortened)).font(.caption2)
@@ -206,7 +206,8 @@ struct ConversationScreen: View {
                 }
                 .foregroundStyle(m.mine ? .white.opacity(0.8) : .secondary)
             }
-            .padding(10)
+            // Word balloons (Steve, 2026-11-02): a 3 pt margin, leading the font size + 1.
+            .padding(3)
             .background(m.mine ? AnyShapeStyle(.tint) : AnyShapeStyle(.thinMaterial), in: .rect(cornerRadius: 16))
             .accessibilityElement(children: .combine)
             if !m.mine { Spacer(minLength: 40) }
@@ -450,4 +451,21 @@ struct GroupsView: View {
             self.error = error.localizedDescription
         }
     }
+}
+
+/// A word balloon's lines set the body font's size + 1 apart (Steve, 2026-11-02), growing with the reader's text size.
+private struct BalloonLeading: ViewModifier {
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 17
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            content.lineHeight(.exact(points: size + 1))
+        } else {
+            content
+        }
+    }
+}
+
+private extension View {
+    func balloonLeading() -> some View { modifier(BalloonLeading()) }
 }
