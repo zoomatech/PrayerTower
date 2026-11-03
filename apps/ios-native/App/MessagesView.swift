@@ -458,11 +458,16 @@ private struct BalloonLeading: ViewModifier {
     @ScaledMetric(relativeTo: .body) private var size: CGFloat = 17
 
     func body(content: Content) -> some View {
+        // lineHeight comes with the iOS 26 SDK (Xcode 26, Swift 6.2); CI's default Xcode 16 builds without it.
+        #if compiler(>=6.2)
         if #available(iOS 26.0, macOS 26.0, *) {
             content.lineHeight(.exact(points: size + 1))
         } else {
             content
         }
+        #else
+        content
+        #endif
     }
 }
 
