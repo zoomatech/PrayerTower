@@ -15,6 +15,9 @@ struct FeedHooks {
     /// Infinite scroll: the next page, and whether there is one.
     var loadMore: () async -> Void = {}
     var hasMore = false
+    /// Opens the composer to write a post, starting from the words given; nil where nothing opens
+    /// (a preview).
+    var compose: ((String) -> Void)?
 }
 
 extension View {

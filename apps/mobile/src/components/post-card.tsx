@@ -5,7 +5,6 @@ import {
   isPrayable,
   POST_BACKGROUND_STYLES,
   POST_TYPE_LABELS,
-  PRAYER_KIND_LABELS,
   PRAYER_REALM_LABELS,
   type Card,
   type CardAction,
@@ -115,7 +114,6 @@ export const PostCard = memo(function PostCard({
   const bg = card.media.length === 0 && card.background && card.body.length <= 280 ? POST_BACKGROUND_STYLES[card.background as keyof typeof POST_BACKGROUND_STYLES] : undefined;
   const tags = [
     label('prayerRealm', card.realm, PRAYER_REALM_LABELS[card.realm as keyof typeof PRAYER_REALM_LABELS]),
-    label('prayerKind', card.kind, PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS]),
   ].filter(Boolean);
 
   const typeLabel = noType ? null : <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;

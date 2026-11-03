@@ -93,6 +93,7 @@ public enum SampleServer {
             ("GET", "^/topic-groups/sample-g1$", #"{"group":\#(groups),"posts":[\#(groupPost)]}"#),
             ("GET", "^/radio/listen$", #"{"enabled":true,"receipts":true}"#),
             ("POST", "^/listen/heard$", #"{"matched":0}"#),
+            ("POST", "^/posts/[^/]+/radio$", #"{"radioPrayer":{"id":"sample-r1","status":"queued","repeats":1}}"#),
             ("GET", "^/me$", """
             {"profile":{"id":"\(memberId)","display_name":"Sample Member","bio":"","onboarded_at":"2026-10-01T00:00:00Z"},"roles":["member"],"community":null}
             """),
@@ -136,12 +137,42 @@ public enum SampleServer {
 
     /// The status and body for one request. Unknown reads are "not found" (screens show their
     /// error state); writes succeed with an empty answer.
-    public static func answer(method: String, path: String, query: [String: String] = [:], posts: Int? = nil) -> (status: Int, body: Data) {
+    public static func answer(method: String, path: String, query: [String: String] = [:], posts: Int? = nil, body: Data? = nil) -> (status: Int, body: Data) {
+        answer(method: method, path: path, query: query, posts: posts, body: body, kept: Self.posted)
+    }
+
+    /// As above, keeping new posts in `kept` (the tests give each their own).
+    static func answer(method: String, path: String, query: [String: String] = [:], posts: Int? = nil, body: Data? = nil, kept posted: Locked<[String]>) -> (status: Int, body: Data) {
+        // A post the member writes is kept for the session and is the top post on their own feed and
+        // their own page, newest first (Steve, 2026-11-02).
+        if method == "POST", path == "/posts" {
+            return (200, Data(#"{"post":\#(post(body, into: posted)),"harm":null}"#.utf8))
+        }
+        // A PrayerCast: public ones join the member's posts; private ones are kept nowhere.
+        if method == "POST", path == "/prayercast" {
+            let sent = body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
+            if sent["visibility"] as? String == "public" {
+                let card = post(body, into: posted)
+                let id = (try? JSONSerialization.jsonObject(with: Data(card.utf8)) as? [String: Any])?["id"] as? String ?? ""
+                return (201, Data(#"{"post":\#(card),"postId":"\#(id)","harm":null}"#.utf8))
+            }
+            return (201, Data(#"{"post":null,"postId":"sample-private-cast","harm":null}"#.utf8))
+        }
+        let own = posted.withLock { $0 }.reversed().joined(separator: ",")
+        let first = own.isEmpty ? "" : own + ","
+        if method == "GET", path.hasPrefix("/posts/sample-new-"), let i = Int(path.dropFirst("/posts/sample-new-".count)),
+           let card = posted.withLock({ $0.indices.contains(i) ? $0[i] : nil }) {
+            return (200, Data(#"{"post":\#(card)}"#.utf8))
+        }
+        if method == "GET", path == "/people/\(memberId)" {
+            let me = card("sample-p2", "Sample Member", mine: true, "Asking for strength for my new job.")
+            return (200, Data(#"{"person":{"id":"\#(memberId)","displayName":"Sample Member","handle":null,"bio":null,"whyHere":[],"following":false,"followers":0,"pastor":null,"supportUrl":null,"squire":null},"posts":[\#(first)\#(me)]}"#.utf8))
+        }
         // The long feed for the performance tests, and each of its posts.
         if let posts, method == "GET", path == "/feed" {
             let page = Int(query["page"] ?? "0") ?? 0
             let start = page * pageSize, end = min(start + pageSize, posts)
-            let cards = start < end ? (start..<end).map(generated) : []
+            let cards = (page == 0 && !own.isEmpty ? [own] : []) + (start < end ? (start..<end).map(generated) : [])
             let next = end < posts ? String(page + 1) : "null"
             return (200, Data(#"{"theme":null,"posts":["# .utf8) + Data(cards.joined(separator: ",").utf8) + Data(#"],"pinnedId":null,"nextPage":\#(next)}"#.utf8))
         }
@@ -149,6 +180,7 @@ public enum SampleServer {
             return (200, Data(#"{"post":\#(generated(Int(path.dropFirst("/posts/sample-g".count)) ?? 0))}"#.utf8))
         }
         if let r = routes.first(where: { $0.method == method && path.range(of: $0.pattern, options: .regularExpression) != nil }) {
+            if method == "GET", path == "/feed", !own.isEmpty { return (200, Data(r.body.replacingOccurrences(of: #""posts":["#, with: #""posts":["# + first).utf8)) }
             return (200, Data(r.body.utf8))
         }
         if method == "GET" { return (404, Data(#"{"error":"not_found","message":"Not in the sample data."}"#.utf8)) }
@@ -157,6 +189,31 @@ public enum SampleServer {
 }
 
 extension SampleServer {
+    /// The posts the member wrote this session, oldest first.
+    static let posted = Locked<[String]>([])
+
+    /// Keeps a new post the member wrote and returns its card, stamped with the time it was made.
+    static func post(_ body: Data?, into posted: Locked<[String]>) -> String {
+        let sent = body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
+        let text = sent["body"] as? String ?? ""
+        let type = sent["postType"] as? String ?? "prayer_request"
+        let anonymous = sent["isAnonymous"] as? Bool ?? false
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        return posted.withLock { list in
+            let card: [String: Any] = [
+                "id": "sample-new-\(list.count)",
+                "author": ["id": memberId, "displayName": anonymous ? "Someone" : "Sample Member", "handle": NSNull(), "anonymous": anonymous],
+                "isMine": true, "postType": type, "urgency": 0, "preview": text, "body": text, "crisis": false,
+                "counts": ["prayingNow": 0, "prayers": 0, "commitments": 0, "comments": 0],
+                "createdAt": stamp, "state": "open",
+                "actions": ["praying_now", "thumbs_up", "well_wishes", "encouragement", "share", "commit", "gift_tokens"],
+            ]
+            let json = (try? JSONSerialization.data(withJSONObject: card)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+            list.append(json)
+            return json
+        }
+    }
+
     static let names = ["Grace", "Daniel", "Maria", "Samuel", "Esther", "Joseph", "Hannah", "David", "Lydia", "Peter", "Naomi", "Caleb"]
 
     /// Short and long requests, so the feed shows both one-line and many-line cards.
@@ -207,13 +264,29 @@ public final class SampleProtocol: URLProtocol, @unchecked Sendable {
         let url = request.url ?? SampleServer.baseURL
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let query = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { a, _ in a })
-        let (status, body) = SampleServer.answer(method: request.httpMethod ?? "GET", path: url.path, query: query, posts: Self.posts.withLock { $0 })
+        let (status, body) = SampleServer.answer(method: request.httpMethod ?? "GET", path: url.path, query: query, posts: Self.posts.withLock { $0 }, body: Self.body(of: request))
         let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: body)
         client?.urlProtocolDidFinishLoading(self)
     }
     override public func stopLoading() {}
+
+    /// A request's body: URLSession hands it to a URLProtocol as a stream.
+    static func body(of request: URLRequest) -> Data? {
+        if let data = request.httpBody { return data }
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while stream.hasBytesAvailable {
+            let n = stream.read(&buffer, maxLength: buffer.count)
+            if n <= 0 { break }
+            data.append(buffer, count: n)
+        }
+        return data
+    }
 }
 
 /// A value behind a lock, for the sample feed's length.

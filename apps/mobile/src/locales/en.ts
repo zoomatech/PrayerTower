@@ -704,6 +704,12 @@ const en = {
   compose: {
     videoTooLong: 'Videos can be up to %{count} seconds long for now. Longer clips were left out.',
     post: 'Post',
+    cast: 'PrayerCast your prayer directly to heaven*',
+    castPublic: 'Post my PrayerCast publicly',
+    castNote:
+      '*The Bible tells us to “pray without ceasing” (1 Thessalonians 5:17) and to pray to the Lord, who hears in heaven, His dwelling place (1 Kings 8:30). A PrayerCast goes out by radio as a signal that keeps traveling through space, so your prayer never ends as it goes on toward the Lord, wherever He may hear.',
+    castFailed: 'Your prayer is posted, but it could not be PrayerCast: %{reason}',
+    castPrivate: 'PrayerCast privately',
     greeting: "Welcome, %{name}! Let's talk to the Lord.",
     placeholder: 'Type your prayer here',
     bodyLabel: 'Your prayer',
@@ -719,7 +725,7 @@ const en = {
     realm: 'Who is it for?',
     urgency: 'How urgent is it?',
     urgencies: { '0': 'Whenever you can', '1': 'Soon', '2': 'Today', '3': 'Right now' },
-    anonymous: 'Post anonymously',
+    anonymous: 'Keep my prayer between me and the Lord',
     anonymousHint: 'Others will see “Anonymous.”',
     sensitive: 'Contains graphic or trauma-related details',
     sensitiveHint: 'Hidden from people who asked not to see such posts.',
@@ -2346,6 +2352,7 @@ const en = {
     more: '%{n} more comments',
     moreReplies: { one: '1 more reply. Tap to show it', other: '%{count} more replies. Tap to show them' },
     comments: { one: '1 comment', other: '%{count} comments' },
+    prompt: 'Say Something, Pray Something, or Ask for Prayer',
   },
   themes: {
     settings: 'Settings',

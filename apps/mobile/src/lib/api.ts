@@ -2141,6 +2141,14 @@ export const api = {
     }
   },
   createPost: (input: NewPost) => post<{ post: Card; harm?: HarmNote | null }>('/posts', input),
+  /** PrayerCast (Steve, 2026-11-02): posted and sent by radio together; a private one has no card and is kept only until sent. */
+  sendPrayerCast: (input: NewPost, visibility: 'public' | 'private') =>
+    post<{ post: Card | null; postId: string; castError?: string | null; harm?: HarmNote | null }>('/prayercast', {
+      ...input,
+      postType: 'prayer_request',
+      visibility,
+      idempotencyKey: `cast-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    }),
   /** Text-only posts made offline wait in the queue. */
   createPostOrQueue: (input: NewPost) => postOrQueue<{ post: Card; harm?: HarmNote | null }>('/posts', input, 'Your post'),
   deletePost: (id: string) => request<{ deleted: true }>('DELETE', `/posts/${id}`),

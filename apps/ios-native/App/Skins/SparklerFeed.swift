@@ -30,6 +30,8 @@ struct SparklerFeed<Row: View>: View {
     /// moves the sparkler down, then the screen catches up to where it went, with a bounce).
     @State private var lead: Double = 0
     @State private var settle: Task<Void, Never>?
+    /// The stardust the sparkler has shed along its way.
+    @State private var dust = DustBox()
 
     var body: some View {
         let words = Words(wording)
@@ -38,30 +40,27 @@ struct SparklerFeed<Row: View>: View {
         VStack(spacing: 0) {
         // Black room under the Home and Menu buttons, held still above the feed, so they never sit
         // on a post's words however far it scrolls.
-        Color(look.backdrop).frame(height: Sparkler.topRoom)
-            // The line runs on up through it to the header's light blue edge.
-            .overlay(alignment: .topLeading) {
-                Canvas { ctx, size in
-                    var line = Path()
-                    line.move(to: CGPoint(x: 30, y: 0))
-                    line.addLine(to: CGPoint(x: 30, y: Double(size.height)))
-                    NeonGlassLook(color: Color(look.stripe), white: 0.8).stroke(line, width: Sparkler.lineWidth, in: ctx)
-                }
-                .frame(width: 60).offset(x: Sparkler.lineX - 30)
-            }
-            .clipped()
-            .accessibilityHidden(true)
+        // (The line runs up through it to the header's light blue edge: drawn with the rest of the
+        // line, in one piece, below.)
+        // The black room is where you write a post: a plain text box with light lead-in words in it.
+        // Typing starts right there, and the first letters open the full writing screen with them
+        // already in it (Steve, 2026-11-02).
+        SparklerPostBox(prompt: words("sparkler.prompt"), compose: hooks.compose)
+            .frame(height: Sparkler.topRoom)
+            .background(Color(look.backdrop))
         GeometryReader { geo in
             let screen = Double(geo.size.height)
             // The tip rests at the same place on screen near its foot, so it is never lost from
             // sight and the line always runs on down; in a swipe it rushes ahead of that.
-            let rest = Sparkler.tip(scrolled: scrolled, screen: screen, reached: 0, feedHeight: feedHeight) - scrolled
-            let end = feedHeight - scrolled
+            // Never stopped at the feed's end either: in the bounce past the last post the line
+            // runs on to the sparkler unbroken (Steve, 2026-11-02: the line must NEVER break).
+            let rest = Sparkler.tip(scrolled: scrolled, screen: screen, reached: 0, feedHeight: .infinity) - scrolled
+            let end = Double.infinity
             // Up and down only.
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
-                        SparklerPost(card: card, index: i, look: look, bg: bg, words: words, hooks: hooks, row: row)
+                        SparklerPost(card: card, index: i, look: look, bg: bg, words: words, hooks: hooks, dust: dust, still: !moving, row: row)
                             .loadsMore(after: card, in: cards, hooks)
                     }
                     // Room under the last post, so the line can grow all the way down past it.
@@ -97,11 +96,72 @@ struct SparklerFeed<Row: View>: View {
             // The one line down the feed, over the posts, with the sparkler at its tip and a trail
             // of sparkle behind it.
             .overlay(alignment: .topLeading) {
-                SparklerLine(top: max(0, -scrolled), rest: rest, lead: lead, end: end, scrolled: scrolled, stripe: Color(look.stripe), still: !moving)
+                // From the very top of the feed, so pulling the feed down never opens a gap under the
+                // black band's line (Steve, 2026-11-02).
+                SparklerLine(top: 0, rest: rest, lead: lead, end: end, scrolled: scrolled, stripe: Color(look.stripe), still: !moving, dust: dust)
             }
         }
         }
         .background(Color(look.backdrop))
+    }
+}
+
+/// The text box in the black room above the feed: obviously a place to type, with the lead-in
+/// words standing in it until you do. You type on its one short line; when the words reach the
+/// end of it (or you press return), it opens the full writing screen with them in it, and the box
+/// empties again behind it (Steve, 2026-11-02).
+private struct SparklerPostBox: View {
+    let prompt: String
+    let compose: ((String) -> Void)?
+    @State private var typed = ""
+    @State private var room: Double = .infinity
+    @State private var used: Double = 0
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField("", text: $typed)
+        .font(.subheadline)
+        .foregroundStyle(.white)
+        .tint(.white)
+        .lineLimit(1)
+        .focused($focused)
+        .submitLabel(.next)
+        .onSubmit { open() }
+        .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { room = $0 }
+        // How wide the words typed so far are, to tell when they reach the end of the line.
+        .background(alignment: .leading) {
+            Text(typed).font(.subheadline).lineLimit(1).fixedSize().hidden()
+                .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { used = $0 }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        // The lead-in words, all of them, on up to two lines until you type.
+        .overlay(alignment: .leading) {
+            if typed.isEmpty {
+                Text(prompt).font(.footnote).foregroundStyle(Color.white.opacity(0.65))
+                    .lineLimit(2).minimumScaleFactor(0.7)
+                    .padding(.horizontal, 10)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .accessibilityLabel(prompt)
+        .background(Color.white.opacity(0.1), in: .rect(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.white.opacity(focused ? 0.7 : 0.4), lineWidth: 1))
+        // Clear of Home and Menu on the left and the logo on the right.
+        .padding(.leading, 64).padding(.trailing, 122).padding(.vertical, 9)
+        .accessibilityIdentifier("sparkler-compose")
+        .onChange(of: used) { _, width in
+            if !typed.isEmpty, width >= room - 8 { open() }
+        }
+    }
+
+    private func open() {
+        guard !typed.isEmpty, let compose else { return }
+        let text = typed
+        focused = false
+        typed = ""
+        compose(text)
     }
 }
 
@@ -118,6 +178,7 @@ private struct SparklerLine: View {
     let scrolled: Double
     let stripe: Color
     let still: Bool
+    let dust: DustBox
 
     var body: some View {
         let tip = min(rest + lead, end)
@@ -130,11 +191,14 @@ private struct SparklerLine: View {
                 // The shared glass look, in the stripe's light blue.
                 NeonGlassLook(color: stripe, white: 0.8).stroke(line, width: Sparkler.lineWidth, in: ctx)
             }
-            .frame(width: 60, height: max(1, tip - top))
-            .offset(x: Sparkler.lineX - 30, y: min(top, tip))
-            SparkleTrail(top: top, tip: tip, below: atEnd ? 0 : max(0, -lead) * 1.6, scrolled: scrolled, still: still)
-                .frame(width: 60, height: max(1, tip + max(0, -lead) * 1.6 + 30))
-                .offset(x: Sparkler.lineX - 30)
+            // One piece, from the header's light blue edge (up through the black band above the
+            // feed) to the tip, so it never breaks or thins anywhere, pulled down or not (Steve,
+            // 2026-11-02).
+            .frame(width: 60, height: max(1, tip - top + Sparkler.topRoom))
+            .offset(x: Sparkler.lineX - 30, y: min(top, tip) - Sparkler.topRoom)
+            SparkleTrail(top: top, tip: tip, scrolled: scrolled, still: still, dust: dust)
+                .frame(width: 80, height: max(1, tip + 180))
+                .offset(x: Sparkler.lineX - 40)
             if !atEnd {
                 SparklerTip(still: still)
                     .offset(x: Sparkler.lineX - SparklerTip.size / 2, y: tip - SparklerTip.size / 2)
@@ -146,16 +210,22 @@ private struct SparklerLine: View {
     }
 }
 
-/// Glitter left along the line behind the sparkler: bright near the tip, fading away toward the
-/// top of the screen, twinkling, and carried up with the posts as they scroll, so the line itself
-/// is plainly moving.
+/// The stardust the sparkler has shed, kept across redraws (each frame adds to it as it moves).
+final class DustBox {
+    var trail = Sparkler.DustTrail()
+    /// Where the sparkler and its trail are on screen this frame, so the metal bars between posts
+    /// can catch their light.
+    var tip: Double = -1000
+    var shown: [Sparkler.Mote] = []
+}
+
+/// The trail of sparkle and stardust the sparkler leaves (Kit Sparkler.DustTrail).
 private struct SparkleTrail: View {
     let top: Double
     let tip: Double
-    /// How far below the tip a scroll up leaves stardust (0 when it isn't moving up).
-    let below: Double
     let scrolled: Double
     let still: Bool
+    let dust: DustBox
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -170,31 +240,95 @@ private struct SparkleTrail: View {
 
     private func draw(_ ctx: GraphicsContext, size: CGSize, time: Double) {
         let dark = scheme == .dark
-        // In dark mode the sparkler leaves stardust behind it too (Steve).
-        if dark {
-            let warm = Color(RGB(hex: "#FFF3B0")!), cool = Color.white
-            for m in Sparkler.stardust(scrolled: scrolled, top: top, tip: tip, time: time) {
-                let x = 30 + m.dx
+        // The trail: where the sparkler has been, held on the screen (never carried by the scroll),
+        // each mote drifting on the way it was laid and slowing, and none of it permanent (Steve,
+        // 2026-11-02). Stardust is bright on the dark, gold on light posts; glints are yellow.
+        if !still { dust.trail.follow(tip: tip, content: scrolled + tip, time: time) }
+        let warm = Color(RGB(hex: dark ? "#FFF3B0" : "#E6A700")!), cool = Color(RGB(hex: dark ? "#FFFFFF" : "#F5C518")!)
+        let yellows = dark ? Sparkler.trailColors : Sparkler.trailColorsLight
+        let motes = dust.trail.motes(time: time)
+        dust.tip = tip
+        dust.shown = motes
+        for m in motes {
+            let x = 40 + m.dx
+            if m.glint {
+                let color = Color(yellows[m.color % yellows.count]).opacity(m.opacity)
+                var star = Path()
+                star.move(to: CGPoint(x: x - m.r, y: m.y)); star.addLine(to: CGPoint(x: x + m.r, y: m.y))
+                star.move(to: CGPoint(x: x, y: m.y - m.r)); star.addLine(to: CGPoint(x: x, y: m.y + m.r))
+                ctx.stroke(star, with: .color(color), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+                ctx.fill(Path(ellipseIn: CGRect(x: x - m.r * 0.4, y: m.y - m.r * 0.4, width: m.r * 0.8, height: m.r * 0.8)), with: .color(color))
+            } else {
                 ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warm : cool).opacity(m.opacity)))
             }
         }
-        // Scrolling up, it leaves a little stardust below it as it bounces upward (Steve).
-        let warmDust = Color(RGB(hex: dark ? "#FFF3B0" : "#E6A700")!), coolDust = Color(RGB(hex: dark ? "#FFFFFF" : "#F5C518")!)
-        for m in Sparkler.dustBelow(tip: tip, length: below, scrolled: scrolled, time: time) {
-            let x = 30 + m.dx
-            ctx.fill(Path(ellipseIn: CGRect(x: x - m.r, y: m.y - m.r, width: m.r * 2, height: m.r * 2)), with: .color((m.warm ? warmDust : coolDust).opacity(m.opacity)))
+    }
+}
+
+/// The warm light the sparkler and its sparkles cast on a brushed metal bar between posts: brushed
+/// metal smears a light into a streak along the brushing, brightest right where the light is and
+/// strongest as the bar passes close by.
+private struct SparkleLightOnMetal: View {
+    let dust: DustBox
+    let still: Bool
+
+    var body: some View {
+        GeometryReader { geo in
+            let y0 = Double(geo.frame(in: .named(sparklerSpace)).midY)
+            // Only near the sparkler: the others wait, still.
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: still || abs(dust.tip - y0) > 400)) { _ in
+                Canvas { ctx, size in
+                    var lit = ctx
+                    lit.blendMode = .screen
+                    let h = Double(size.height)
+                    // The sparkler itself: a broad warm streak.
+                    let near = exp(-pow((dust.tip - y0) / 110, 2))
+                    if near > 0.02 {
+                        // Across the whole bar, constantly receding toward the right (Steve, 2026-11-02).
+                        wash(lit, x: Sparkler.lineX, w: Double(size.width), h: h, strength: near * 0.8)
+                        streak(lit, x: Sparkler.lineX, width: 120, h: h, strength: near * 0.7)
+                    }
+                    // Each sparkle close by: a small one where it is.
+                    for m in dust.shown where abs(m.y - y0) < 60 {
+                        let k = exp(-pow((m.y - y0) / 24, 2)) * m.opacity * (m.glint ? 0.7 : 0.35)
+                        if k > 0.02 { streak(lit, x: Sparkler.lineX + m.dx, width: m.glint ? 90 : 50, h: h, strength: k) }
+                    }
+                }
+            }
         }
-        // The trail is yellow: bright on the dark, deeper gold on light posts.
-        let yellows = dark ? Sparkler.trailColors : Sparkler.trailColorsLight
-        for g in Sparkler.glitter(scrolled: scrolled, top: top, tip: tip, time: time) {
-            let color = Color(yellows[g.color % yellows.count]).opacity(g.opacity)
-            let x = 30 + g.dx
-            var star = Path()
-            star.move(to: CGPoint(x: x - g.r, y: g.y)); star.addLine(to: CGPoint(x: x + g.r, y: g.y))
-            star.move(to: CGPoint(x: x, y: g.y - g.r)); star.addLine(to: CGPoint(x: x, y: g.y + g.r))
-            ctx.stroke(star, with: .color(color), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
-            ctx.fill(Path(ellipseIn: CGRect(x: x - g.r * 0.4, y: g.y - g.r * 0.4, width: g.r * 0.8, height: g.r * 0.8)), with: .color(color))
+        .allowsHitTesting(false)
+    }
+
+    /// The light spread along the bar from the sparkler's side, fading steadily to the far right.
+    private func wash(_ ctx: GraphicsContext, x: Double, w: Double, h: Double, strength: Double) {
+        let warm = Color(RGB(hex: "#FFD873")!)
+        let k = min(1, strength)
+        let stops: [Gradient.Stop] = (0...8).map { i in
+            let f = Double(i) / 8
+            return .init(color: warm.opacity(k * 0.75 * exp(-3 * f)), location: f)
         }
+        let band = CGRect(x: 0, y: 1, width: w, height: h - 3)
+        ctx.fill(Path(band), with: .linearGradient(Gradient(stops: stops), startPoint: CGPoint(x: x, y: 0), endPoint: CGPoint(x: w, y: 0)))
+        // Brightest along the upper face, where the raised metal faces the light.
+        var sheen = Path()
+        sheen.move(to: CGPoint(x: 0, y: h * 0.3)); sheen.addLine(to: CGPoint(x: w, y: h * 0.3))
+        let line: [Gradient.Stop] = (0...8).map { i in
+            let f = Double(i) / 8
+            return .init(color: Color.white.opacity(k * 0.5 * exp(-3.5 * f)), location: f)
+        }
+        ctx.stroke(sheen, with: .linearGradient(Gradient(stops: line), startPoint: CGPoint(x: x, y: 0), endPoint: CGPoint(x: w, y: 0)), lineWidth: 1)
+    }
+
+    private func streak(_ ctx: GraphicsContext, x: Double, width: Double, h: Double, strength: Double) {
+        let warm = Color(RGB(hex: "#FFD873")!)
+        let rect = CGRect(x: x - width / 2, y: 1, width: width, height: h - 2)
+        ctx.fill(Path(ellipseIn: rect), with: .radialGradient(
+            Gradient(colors: [warm.opacity(min(1, strength)), warm.opacity(min(1, strength) * 0.35), .clear]),
+            center: CGPoint(x: x, y: h * 0.4), startRadius: 0, endRadius: width / 2))
+        // The hot core along the brushing.
+        var core = Path()
+        core.move(to: CGPoint(x: x - width * 0.22, y: h * 0.35)); core.addLine(to: CGPoint(x: x + width * 0.22, y: h * 0.35))
+        ctx.stroke(core, with: .color(Color.white.opacity(min(1, strength) * 0.6)), lineWidth: 1)
     }
 }
 
@@ -207,6 +341,8 @@ private struct SparklerPost<Row: View>: View {
     let bg: Sparkler.Background
     let words: Words
     let hooks: FeedHooks
+    let dust: DustBox
+    let still: Bool
     let row: (Card) -> Row
     @State private var all: [Beanstalk.Note]?
 
@@ -224,14 +360,42 @@ private struct SparklerPost<Row: View>: View {
             .overlay(alignment: .topTrailing) { ProfilePic(card: card).padding(8) }
             // The card's words and icons in the background's own light or dark.
             .environment(\.colorScheme, bg.dark ? .dark : .light)
-            // A black line with a light blue line through its middle.
-            Color(look.backdrop)
-                .frame(height: Sparkler.separatorHeight)
-                .overlay {
-                    Color(look.stripe).frame(height: Sparkler.stripeHeight)
-                        .shadow(color: Color(look.stripe), radius: 4)
+            // Three picas of very dark brushed metal, raised like an embossed bar: a lit bevel along
+            // the top, a shadowed one along the bottom, brushing plain across the whole width; no
+            // glow (Steve, 2026-11-02).
+            LinearGradient(stops: [
+                .init(color: Color(Sparkler.separatorMetal[0]), location: 0),
+                .init(color: Color(Sparkler.separatorMetal[1]), location: 0.09),
+                .init(color: Color(Sparkler.separatorMetal[2]), location: 0.4),
+                .init(color: Color(Sparkler.separatorMetal[3]), location: 0.88),
+                .init(color: Color(Sparkler.separatorMetal[4]), location: 1),
+            ], startPoint: .top, endPoint: .bottom)
+            .overlay {
+                Canvas { ctx, size in
+                    let w = Double(size.width), h = Double(size.height)
+                    // The brushing: fine streaks running the width of the bar.
+                    var rnd = Sparkler.Seeded(index &* 131 &+ 5)
+                    for _ in 0..<Int(w / 2.5) {
+                        let y = 3 + rnd.next() * (h - 6)
+                        let x = rnd.next() * w - 40, len = 50 + rnd.next() * 170
+                        var p = Path(); p.move(to: CGPoint(x: x, y: y)); p.addLine(to: CGPoint(x: x + len, y: y))
+                        let light = rnd.next() < 0.7
+                        ctx.stroke(p, with: .color((light ? Color.white : Color.black).opacity(light ? 0.05 + rnd.next() * 0.07 : 0.12 + rnd.next() * 0.1)), lineWidth: 0.6)
+                    }
+                    // The raised edges: a bright bevel on top, a dark one beneath.
+                    ctx.fill(Path(CGRect(x: 0, y: 0, width: w, height: 1)), with: .color(.white.opacity(0.35)))
+                    ctx.fill(Path(CGRect(x: 0, y: 1, width: w, height: 1.5)), with: .color(.white.opacity(0.12)))
+                    ctx.fill(Path(CGRect(x: 0, y: h - 2.5, width: w, height: 2.5)), with: .color(.black.opacity(0.7)))
                 }
-                .accessibilityHidden(true)
+            }
+            // It stands a little proud of the post below it.
+            .shadow(color: .black.opacity(0.6), radius: 2, y: 2)
+            .zIndex(1)
+            // The light the sparkler and its sparkles cast, caught on the metal as it passes them
+            // (Steve, 2026-11-02).
+            .overlay { SparkleLightOnMetal(dust: dust, still: still) }
+            .frame(height: Sparkler.separatorHeight)
+            .accessibilityHidden(true)
         }
         .task(id: card.counts.comments) {
             guard card.counts.comments > 0, let load = hooks.loadComments else { return }

@@ -2,17 +2,11 @@ import {
   MAX_POST_WORDS,
   POST_BACKGROUNDS,
   POST_BACKGROUND_STYLES,
-  isPrayable,
-  POST_TYPES,
-  POST_TYPE_LABELS,
-  PRAYER_KINDS,
-  PRAYER_KIND_LABELS,
   PRAYER_REALMS,
   PRAYER_REALM_LABELS,
   type Card,
   type PostBackground,
   type PostType,
-  type PrayerKind,
   type PrayerRealm,
 } from '@prayer-tower/shared';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,16 +32,16 @@ const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
 export default function Compose() {
-  const { profile, community } = useAuth();
-  // Only the kinds of post the member's community has turned on (discussion, news and blog are off by default).
-  const types = POST_TYPES.filter((p) => (community ? community.enabledPostTypes.includes(p) : isPrayable(p)));
-  const { t, label } = useLocale();
+  const { profile } = useAuth();
+  const { t, label, wording } = useLocale();
+  // Two ways to send (Steve, 2026-11-02): a post, or a prayer PrayerCast to heaven (also posted to
+  // the feed). Prayers and posts are kept apart so answered prayers can be counted. Open Circle has no PrayerCast.
+  const casts = wording !== 'neutral';
   // The thanksgiving card opens the composer as a praise post; the gratitude card also passes its words.
   const params = useLocalSearchParams<{ type?: string; body?: string }>();
-  const [postType, setPostType] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
+  const [asked] = useState<PostType>(params.type === 'praise' ? 'praise' : 'prayer_request');
   const [body, setBody] = useState(typeof params.body === 'string' ? params.body.slice(0, 5000) : '');
   const [urgency, setUrgency] = useState(0);
-  const [kind, setKind] = useState<PrayerKind | undefined>();
   const [realm, setRealm] = useState<PrayerRealm | undefined>();
   const [background, setBackground] = useState<PostBackground | undefined>();
   const [anonymous, setAnonymous] = useState(profile?.anonymous_by_default ?? false);
@@ -59,10 +53,13 @@ export default function Compose() {
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Post my PrayerCast publicly, or PrayerCast privately: none until the member picks (Steve, 2026-11-02).
+  const [castChoice, setCastChoice] = useState<'public' | 'private' | null>(null);
+  const [posted, setPosted] = useState(false);
   const words = wordCount(body);
   const bg = background ? POST_BACKGROUND_STYLES[background] : null;
 
-  const afterCreate = (post: Card, harm?: HarmNote | null) => {
+  const afterCreate = (post: Card, harm?: HarmNote | null, postType: PostType = asked) => {
     // A request that mentions suicide or self-harm opens with crisis support showing, and one
     // that describes abuse opens with the hotlines (harmful-prayer check). Neither is blocked.
     if (rememberSupport(post.id, harm) || post.crisis) router.replace(`/post/${post.id}`);
@@ -71,44 +68,46 @@ export default function Compose() {
     else leave();
   };
 
-  const submit = async () => {
+  const submit = async (cast: boolean) => {
     setBusy(true);
     setError(null);
+    // Post: a post that isn't a prayer (thanks from the thanksgiving card stays praise).
+    const postType: PostType = cast || !casts || asked === 'praise' ? asked : 'discussion';
+    const fields = {
+      postType,
+      body: body.trim(),
+      urgency: postType === 'prayer_request' ? urgency : 0,
+      realm,
+      isAnonymous: anonymous,
+      isSensitive: sensitive,
+      allSupportWelcome: features.supportLabel && allSupport,
+      ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
+    };
     try {
       const media = [];
       for (const a of assets) media.push(await uploadAsset(a));
+      // Backgrounds are for text-only posts.
+      const input = { ...fields, background: assets.length ? undefined : background, media };
+      if (cast && castChoice) {
+        // Posted and sent by radio together; if it can't be sent, nothing is saved.
+        const sent = await api.sendPrayerCast(input, castChoice);
+        if (sent.castError) {
+          // Posted, but not sent by radio: say so, and leave only Close.
+          setError(t('compose.castFailed', { reason: sent.castError }));
+          setPosted(true);
+          setBusy(false);
+          return;
+        }
+        return sent.post ? afterCreate(sent.post, sent.harm, postType) : leave();
+      }
       if (!assets.length) {
         // Text-only posts can wait in the offline queue; photos need a connection to upload.
-        const result = await api.createPostOrQueue({
-          postType,
-          body: body.trim(),
-          urgency,
-          kind,
-          realm,
-          background,
-          isAnonymous: anonymous,
-          isSensitive: sensitive,
-          allSupportWelcome: features.supportLabel && allSupport,
-          ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
-        });
+        const result = await api.createPostOrQueue({ ...fields, background });
         if ('queued' in result) return leave();
-        return afterCreate(result.post, result.harm);
+        return afterCreate(result.post, result.harm, postType);
       }
-      const created = await api.createPost({
-        postType,
-        body: body.trim(),
-        urgency,
-        kind,
-        realm,
-        // Backgrounds are for text-only posts.
-        background: assets.length ? undefined : background,
-        isAnonymous: anonymous,
-        isSensitive: sensitive,
-        allSupportWelcome: features.supportLabel && allSupport,
-        ...(features.lament && lament ? { isLament: true, lamentRadio } : {}),
-        media,
-      });
-      afterCreate(created.post, created.harm);
+      const created = await api.createPost(input);
+      afterCreate(created.post, created.harm, postType);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -138,15 +137,8 @@ export default function Compose() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>
           <Button small variant="ghost" label={t('common.cancel')} onPress={leave} />
-          <Button small testID="compose-post" label={t('compose.post')} onPress={submit} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
         </View>
         <ErrorText error={error} />
-        <Text style={styles.greeting}>{t('compose.greeting', { name: profile?.display_name || t('common.friend') })}</Text>
-        <View style={styles.chips}>
-          {types.map((p) => (
-            <Chip radio key={p} label={label('postType', p, POST_TYPE_LABELS[p])} selected={postType === p} onPress={() => setPostType(p)} />
-          ))}
-        </View>
         <TextInput
           style={[styles.input, bg && !assets.length && { backgroundColor: bg.color, color: bg.text, borderColor: bg.color }]}
           testID="compose-body"
@@ -203,14 +195,6 @@ export default function Compose() {
           </View>
         ) : null}
         <View style={{ gap: space.sm }}>
-          <Text style={type.heading}>{t('compose.kind')}</Text>
-          <View style={styles.chips}>
-            {PRAYER_KINDS.map((k) => (
-              <Chip key={k} label={label('prayerKind', k, PRAYER_KIND_LABELS[k])} selected={kind === k} onPress={() => setKind(kind === k ? undefined : k)} />
-            ))}
-          </View>
-        </View>
-        <View style={{ gap: space.sm }}>
           <Text style={type.heading}>{t('compose.realm')}</Text>
           <View style={styles.chips}>
             {PRAYER_REALMS.map((r) => (
@@ -218,7 +202,7 @@ export default function Compose() {
             ))}
           </View>
         </View>
-        {postType === 'prayer_request' ? (
+        {asked === 'prayer_request' ? (
           <View style={{ gap: space.sm }}>
             <Text style={type.heading}>{t('compose.urgency')}</Text>
             <View style={styles.chips}>
@@ -245,6 +229,27 @@ export default function Compose() {
           </>
         ) : null}
       </ScrollView>
+      <View style={styles.send}>
+        {posted ? <Button label={t('common.close')} onPress={leave} /> : null}
+        {!posted && casts ? (
+          <>
+            <Toggle label={t('compose.castPublic')} value={castChoice === 'public'} onChange={(on) => setCastChoice(on ? 'public' : null)} />
+            <Toggle label={t('compose.castPrivate')} value={castChoice === 'private'} onChange={(on) => setCastChoice(on ? 'private' : null)} />
+            <Button
+              testID="compose-cast"
+              label={t('compose.cast')}
+              onPress={() => submit(true)}
+              busy={busy}
+              disabled={!castChoice || !body.trim() || words > MAX_POST_WORDS}
+            />
+            {/* What "heaven*" means (Steve, 2026-11-02). */}
+            <Text style={type.small}>{t('compose.castNote')}</Text>
+          </>
+        ) : null}
+        {posted ? null : (
+          <Button testID="compose-post" label={t('compose.post')} onPress={() => submit(false)} busy={busy} disabled={!body.trim() || words > MAX_POST_WORDS} />
+        )}
+      </View>
     </Screen>
   );
 }
@@ -252,8 +257,8 @@ export default function Compose() {
 const styles = StyleSheet.create({
   content: { padding: space.xl, gap: space.lg, paddingBottom: 80 },
   top: { flexDirection: 'row', justifyContent: 'space-between' },
-  greeting: { ...type.heading, color: colors.primary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  send: { gap: space.sm, padding: space.md },
   media: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, alignItems: 'center' },
   thumb: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: colors.border },
   videoThumb: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.text },

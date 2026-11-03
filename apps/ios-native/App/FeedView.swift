@@ -10,7 +10,10 @@ struct FeedView: View {
     @State private var nextPage: Int?
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
-    @State private var composing = false
+    /// The writing screen, open, with whatever was already typed in a skin's own post box. (An
+    /// item, not a flag and a separate text: a sheet shown by a flag can open with the text as it
+    /// was before, and the words typed so far were lost; Steve, 2026-11-02.)
+    @State private var composing: Composing?
     @State private var opened: String?
     @State private var committing: Card?
     @State private var gifting: Card?
@@ -57,9 +60,13 @@ struct FeedView: View {
             .appLogo()
             .environment(\.logoPlate, theme.flatMap(SkinHeader.logoPlate))
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
-                        .keyboardShortcut("n", modifiers: .command)
+                // On iPhone the write-a-post button stands on its own beside Home and Menu (Steve,
+                // 2026-11-02); with the sidebar it stays in the bar.
+                if wide {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { composing = Composing(text: "") } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
+                            .keyboardShortcut("n", modifiers: .command)
+                    }
                 }
                 if wide {
                     // No pull-to-refresh with a pointer: a button, and ⌘R.
@@ -94,7 +101,23 @@ struct FeedView: View {
                     notice = message
                 }
             }
-            .sheet(isPresented: $composing) { ComposeView { _ in Task { await load() } } }
+            .onChange(of: model.composeNow) { _, now in
+                guard now else { return }
+                model.composeNow = false
+                composing = Composing(text: "")
+            }
+            .sheet(item: $composing) { c in
+                ComposeView(onPosted: { card in
+                    // The post just made is the top post at once, before the feed reloads (Steve, 2026-11-02).
+                    posts.removeAll { $0.id == card.id }
+                    posts.insert(card, at: 0)
+                    Task { await load() }
+                }, start: c.text.isEmpty ? nil : {
+                    var post = NewPost()
+                    post.body = c.text
+                    return post
+                }())
+            }
             .refreshable { await load() }
             .task(id: model.feedStyle) { await load() }
             .sheet(item: $encouraging) { card in EncourageSheet(card: card) { note in Task { await encourage(card, note) } } }
@@ -137,7 +160,8 @@ struct FeedView: View {
             open: { opened = $0.id },
             loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] },
             loadMore: more,
-            hasMore: nextPage != nil
+            hasMore: nextPage != nil,
+            compose: { composing = Composing(text: $0) }
         )
     }
 
@@ -156,7 +180,9 @@ struct FeedView: View {
             dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
             posts = page.posts
             // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
-            theme = SampleServer.skin().flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
+            // In demo mode, the skin chosen under Me → Feed style wins over the launch one.
+            let sample = SampleServer.isOn() ? (model.feedStyle ?? SampleServer.skin()) : nil
+            theme = sample.flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
             nextPage = page.nextPage
             error = nil
             await WidgetBridge.update(page, model: model)
@@ -369,4 +395,10 @@ struct OfflineBanner: View {
             .accessibilityElement(children: .contain)
         }
     }
+}
+
+/// The writing screen to open, and the words to start it from.
+private struct Composing: Identifiable {
+    let id = UUID()
+    let text: String
 }

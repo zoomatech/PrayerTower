@@ -102,7 +102,18 @@ struct MainTabs: View {
                 }
                 // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
                 // menu right below it, so there's always a way back to the feed.
-                .overlay(alignment: .topLeading) { homeAndMenu.padding(.leading, 8).padding(.top, 2) }
+                .overlay(alignment: .topLeading) {
+                    HStack(alignment: .top, spacing: 8) {
+                        homeAndMenu
+                        // Write a post: its own button beside Home and Menu, not part of them (Steve,
+                        // 2026-11-02).
+                        if tab == 0 { writeButton }
+                    }
+                    .padding(.leading, 8).padding(.top, 2)
+                }
+                // The logo, twice the size it was in the bar (Steve, 2026-11-02).
+                .overlay(alignment: .topTrailing) { CornerLogo().padding(.trailing, 8).padding(.top, 2) }
+                .environment(\.logoInCorner, true)
             }
         }
         // ⌘1–⌘7 jump between sections with a hardware keyboard (iPad, Mac).
@@ -159,6 +170,16 @@ struct MainTabs: View {
             }
             .accessibilityLabel("Menu")
         }
+        .foregroundStyle(Color.accessibleAccent)
+        .background(.regularMaterial, in: .rect(cornerRadius: 14))
+    }
+
+    private var writeButton: some View {
+        Button { model.composeNow = true } label: {
+            Image(systemName: "square.and.pencil").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+        }
+        .accessibilityLabel(model.words("compose.post"))
+        .keyboardShortcut("n", modifiers: .command)
         .foregroundStyle(Color.accessibleAccent)
         .background(.regularMaterial, in: .rect(cornerRadius: 14))
     }
@@ -261,8 +282,11 @@ struct FeedStyleSection: View {
     @State private var error: String?
 
     var body: some View {
+        // Demo mode (no server) lists every built-in skin straight away, so all of them can be tried
+        // live. (Loaded in onAppear it never showed: an empty section never appears.)
+        let shown = SampleServer.isOn() ? Self.samples(current: model.feedStyle ?? SampleServer.skin()) : choices
         Group {
-            if let c = choices, c.themes.count > 1 {
+            if let c = shown, c.themes.count > 1 {
                 let current = c.current ?? c.themes.first(where: { $0.is_default })?.slug
                 Section("Feed style") {
                     ForEach(c.themes) { t in
@@ -282,10 +306,27 @@ struct FeedStyleSection: View {
             }
         }
         // On every return to Me, so a skin just made in the theme maker is there to choose.
-        .onAppear { Task { choices = try? await model.store.api.feedThemes() } }
+        .onAppear {
+            if SampleServer.isOn() { return }
+            Task { choices = try? await model.store.api.feedThemes() }
+        }
+    }
+
+    /// Every built-in skin, as the server would list them, for demo mode.
+    static func samples(current: String?) -> FeedThemeChoices? {
+        let rows = AuditSamplesView.skins.map { t in
+            ["slug": t.slug, "name": t.name, "layout": t.layout, "status": "live", "is_default": false] as [String: Any]
+        }
+        let all: [String: Any] = ["themes": rows, "current": current ?? NSNull()]
+        guard let data = try? JSONSerialization.data(withJSONObject: all) else { return nil }
+        return try? JSONDecoder().decode(FeedThemeChoices.self, from: data)
     }
 
     private func choose(_ slug: String) async {
+        if SampleServer.isOn() {
+            model.feedStyle = slug
+            return
+        }
         do {
             choices = try await model.store.api.chooseFeedTheme(slug)
             model.feedStyle = slug

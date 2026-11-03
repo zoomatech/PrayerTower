@@ -27,8 +27,12 @@ public enum Sparkler {
     public static let tipAt: Double = 0.84
     /// The separator: 16 points of black with a 4-point glowing light blue line through its middle
     /// (Steve: accentuate the divider between prayer requests).
-    public static let separatorHeight: Double = 16
-    public static let stripeHeight: Double = 4
+    /// The bar between posts: three picas of very dark brushed metal, not a glowing line (Steve,
+    /// 2026-11-02).
+    public static let separatorHeight: Double = 36
+    /// Its metal, top to bottom, raised like an embossed bar (Steve, 2026-11-02): a lit bevel along
+    /// the top, the dark face, a shadowed bevel along the bottom.
+    public static let separatorMetal = ["#6A707A", "#3A3F47", "#2A2E34", "#1E2126", "#08090B"].map { RGB(hex: $0)! }
     /// Comments shown when a post's comments open.
     public static let opened = 5
     /// The member's choice is kept on the device under this key.
@@ -107,88 +111,100 @@ public enum Sparkler {
         return lead + (goal - lead) * 0.35
     }
 
-    /// One glint of the trail of sparkle the sparkler leaves on the line behind it.
-    public struct Glint: Sendable, Equatable { public let y, dx, r, opacity: Double; public let color: Int }
-
-    /// The glitter on the line between `top` and `tip` (screen points): set every 13 points along the
-    /// feed itself so it rides up with the posts, brightest just behind the tip and gone near the
-    /// top of the screen, each glint twinkling in its own time.
-    public static func glitter(scrolled: Double, top: Double, tip: Double, time: Double) -> [Glint] {
-        guard tip > top + 4 else { return [] }
-        let step = 13.0
-        var out: [Glint] = []
-        var k = Int(((scrolled + top) / step).rounded(.down))
-        while true {
-            var rnd = Seeded(k &* 7919 &+ 17)
-            let y = Double(k) * step + rnd.next() * step - scrolled
-            k += 1
-            if y > tip - 6 { break }
-            if y < top { continue }
-            // Fades to nothing near the top of the screen.
-            let along = (y - top) / max(1, tip - top)
-            let fade = pow(max(0, min(1, (along - 0.08) / 0.92)), 1.6)
-            let twinkle = 0.45 + 0.55 * (0.5 + 0.5 * sin(time * (4 + rnd.next() * 5) + rnd.next() * 6.28))
-            let o = fade * twinkle
-            guard o > 0.04 else { continue }
-            out.append(Glint(y: y, dx: (rnd.next() - 0.5) * 14, r: 1.5 + rnd.next() * 2.5 * (0.4 + along), opacity: o, color: Int(rnd.next() * Double(trailColors.count)) % trailColors.count))
-        }
-        return out
-    }
-
     /// The trail's yellows (Steve, 2026-11-01): bright on the dark, deeper gold on light posts so it shows.
     public static let trailColors = ["#FFE14D", "#FFD21F", "#FFC400", "#FFF08A"].map { RGB(hex: $0)! }
     public static let trailColorsLight = ["#F2B800", "#E6A700", "#D99A00", "#F5C518"].map { RGB(hex: $0)! }
 
-    /// One mote of the stardust the sparkler leaves behind it in dark mode.
-    public struct Mote: Sendable, Equatable { public let y, dx, r, opacity: Double; public let warm: Bool }
-
-    /// Stardust (dark mode, Steve 2026-11-01): fine motes shed along the line behind the sparkler,
-    /// set along the feed so they ride up with the posts, drifting slowly out from the line the
-    /// older they are (the higher on screen), and fading away near the top.
-    public static func stardust(scrolled: Double, top: Double, tip: Double, time: Double) -> [Mote] {
-        guard tip > top + 4 else { return [] }
-        let step = 5.0
-        var out: [Mote] = []
-        var k = Int(((scrolled + top) / step).rounded(.down))
-        while true {
-            var rnd = Seeded(k &* 104_729 &+ 3)
-            let y0 = Double(k) * step + rnd.next() * step - scrolled
-            k += 1
-            if y0 > tip - 4 { break }
-            if y0 < top { continue }
-            let along = (y0 - top) / max(1, tip - top)
-            let age = 1 - along
-            let side = rnd.next() < 0.5 ? -1.0 : 1.0
-            let phase = rnd.next() * 6.28
-            let dx = side * (3 + age * 26 * rnd.next()) + sin(time * 0.8 + phase) * 2.5
-            let y = y0 - age * 10 * rnd.next() + cos(time * 0.6 + phase) * 1.5
-            let fade = pow(max(0, min(1, (along - 0.05) / 0.95)), 1.3)
-            let o = fade * (0.35 + 0.45 * (0.5 + 0.5 * sin(time * (2 + rnd.next() * 3) + phase)))
-            guard o > 0.05 else { continue }
-            out.append(Mote(y: y, dx: dx, r: 0.8 + rnd.next() * 1.2, opacity: min(1, o * 1.4), warm: rnd.next() < 0.6))
-        }
-        return out
+    /// One mote of the trail the sparkler leaves: a yellow glint of sparkle, or a fine grain of
+    /// stardust. `y` is on screen, from the top of the feed's view; `dx` is from the line.
+    public struct Mote: Sendable, Equatable {
+        public let y, dx, r, opacity: Double
+        public let warm: Bool
+        public let glint: Bool
+        public let color: Int
     }
 
-    /// Stardust left below the sparkler as a scroll up throws it upward (Steve, 2026-11-01): motes
-    /// in the `length` points under the tip, brightest just under it, sifting slowly down.
-    public static func dustBelow(tip: Double, length: Double, scrolled: Double, time: Double) -> [Mote] {
-        guard length > 2 else { return [] }
-        let n = Int(min(40, length / 2.5))
-        return (0..<n).compactMap { i in
-            var rnd = Seeded(i &* 7_727 &+ Int(scrolled / 9) &* 31 &+ 11)
-            let along = rnd.next()
-            let phase = rnd.next() * 6.28
-            let y = tip + 8 + along * length + (time * 6).truncatingRemainder(dividingBy: 8)
-            let dx = (rnd.next() - 0.5) * 22 + sin(time * 1.1 + phase) * 2
-            let o = (1 - along) * (0.4 + 0.5 * (0.5 + 0.5 * sin(time * 3 + phase)))
-            guard o > 0.05 else { return nil }
-            return Mote(y: y, dx: dx, r: 0.6 + rnd.next() * 1.0, opacity: o, warm: rnd.next() < 0.7)
+    /// The trail of sparkle and stardust (Steve, 2026-11-02): where the sparkler has been, held on
+    /// the SCREEN, never carried by the scroll. As it travels through the feed it lays its trail
+    /// along the stretch of line it just passed. Each mote keeps a little of the way it was going
+    /// (down while the feed scrolls on, up when it turns back) and slows as that inertia decays, so
+    /// when the scroll reverses the new trail overlaps the old one, drifting the other way. None of
+    /// it is permanent: every mote fades out in a few seconds, and away near the top.
+    public struct DustTrail: Sendable {
+        struct Grain: Sendable {
+            let y, x, vy, vx, born, life, r, phase: Double
+            let warm, glint: Bool
+            let color: Int
+        }
+        var grains: [Grain] = []
+        var last: (content: Double, t: Double)?
+        var rnd: Seeded
+        /// At most this many motes at once; the oldest go first.
+        public static let most = 700
+        /// How long a mote takes to lose most of the motion it was laid with, in seconds.
+        public static let inertia = 1.8
+
+        public init(seed: Int = 7) { rnd = Seeded(seed) }
+
+        public var count: Int { grains.count }
+
+        /// Follows the sparkler: `tip` is where it is on screen and `content` where it is in the
+        /// feed, at `time` (seconds). Lays about one mote for every 3 points it travels, along the
+        /// stretch of line it just passed.
+        public mutating func follow(tip: Double, content: Double, time: Double) {
+            grains.removeAll { time - $0.born > $0.life }
+            guard let l = last, time > l.t else { last = (content, time); return }
+            let d = content - l.content, dt = time - l.t
+            last = (content, time)
+            // A jump (a new page, the feed reloading) leaves no trail.
+            guard abs(d) > 0.3, abs(d) < 400 else { return }
+            let speed = d / dt
+            let way = d > 0 ? 1.0 : -1.0
+            let n = min(18, Int(abs(d) / 3) + 1)
+            for i in 1...n {
+                let f = Double(i) / Double(n)
+                let side = rnd.next() < 0.5 ? -1.0 : 1.0
+                let glint = rnd.next() < 0.3
+                grains.append(Grain(
+                    // The stretch it just passed: behind it on screen, the way it came.
+                    y: tip - d * (1 - f) + (rnd.next() - 0.5) * 3,
+                    x: side * (1 + rnd.next() * (glint ? 6 : 3)),
+                    vy: way * min(45, abs(speed) * (0.015 + rnd.next() * 0.03)) + way * 3,
+                    vx: side * (2 + rnd.next() * 7),
+                    born: l.t + dt * f,
+                    life: glint ? 2 + rnd.next() * 2 : 4 + rnd.next() * 3.5,
+                    r: glint ? 1.5 + rnd.next() * 2.5 : 0.7 + rnd.next() * 1.3,
+                    phase: rnd.next() * 6.28,
+                    warm: rnd.next() < 0.6,
+                    glint: glint,
+                    color: Int(rnd.next() * 4) % 4))
+            }
+            if grains.count > Self.most { grains.removeFirst(grains.count - Self.most) }
+        }
+
+        /// Where each mote is on screen now: carried on the way it was laid, slowing, wandering a
+        /// little; fading in, out at the end of its life, and away near the top of the screen.
+        public func motes(time: Double) -> [Mote] {
+            grains.compactMap { g in
+                let age = time - g.born
+                guard age >= 0, age < g.life else { return nil }
+                let carried = Self.inertia * (1 - exp(-age / Self.inertia))
+                let y = g.y + g.vy * carried + sin(time * 0.45 + g.phase) * 1.0
+                let dx = g.x + g.vx * carried + cos(time * 0.4 + g.phase) * 1.0
+                let life = age / g.life
+                let fade = min(1, age / 0.15) * (life < 0.5 ? 1 : max(0, 1 - (life - 0.5) / 0.5))
+                let top = max(0, min(1, (y - 20) / 110))
+                let twinkle = g.glint
+                    ? 0.45 + 0.55 * (0.5 + 0.5 * sin(time * (4 + g.phase) + g.phase))
+                    : 0.55 + 0.45 * (0.5 + 0.5 * sin(time * (2 + g.phase / 2) + g.phase))
+                let o = fade * top * twinkle
+                return o > 0.04 ? Mote(y: y, dx: dx, r: g.r, opacity: min(1, o * 1.3), warm: g.warm, glint: g.glint, color: g.color) : nil
+            }
         }
     }
 
     /// The same numbers every time for the same seed (the Expo app's generator).
-    public struct Seeded {
+    public struct Seeded: Sendable {
         var s: Int
         public init(_ seed: Int) { s = (abs(seed) % 2_147_483_646) + 1 }
         public mutating func next() -> Double {
