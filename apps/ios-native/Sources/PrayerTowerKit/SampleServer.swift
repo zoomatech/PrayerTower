@@ -128,8 +128,8 @@ public enum SampleServer {
             ("GET", "^/conversations/sample-m1$", """
             {"conversation":{"id":"sample-m1","kind":"direct","title":"Sam","topic":null,"isPublic":false,"isRequest":false,"isOwner":false,
               "awaitingReply":false,"post":null,"members":[{"id":"sample-sam","name":"Sam","invited":false,"isOwner":false}]},
-             "messages":[{"id":"sample-mm1","mine":true,"author":"You","body":"I'm glad I could be there. I'll keep checking in with you this week, and you can write to me any time.","crisis":false,"createdAt":"2026-10-29T09:40:00Z"},
-              {"id":"sample-mm2","mine":false,"author":"Sam","body":"\(l.thanks)","crisis":false,"createdAt":"2026-10-29T10:00:00Z"}]}
+             "messages":[{"id":"sample-mm2","mine":false,"author":"Sam","body":"\(l.thanks)","crisis":false,"createdAt":"2026-10-29T10:00:00Z"},
+              {"id":"sample-mm1","mine":true,"author":"You","body":"I'm glad I could be there. I'll keep checking in with you this week, and you can write to me any time.","crisis":false,"createdAt":"2026-10-29T10:20:00Z"}]}
             """),
             ("POST", "^/conversations/[^/]+/read$", "{}"),
             ("GET", "^/me/prayer-stats$", stats),
