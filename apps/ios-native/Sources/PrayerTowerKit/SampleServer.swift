@@ -125,6 +125,13 @@ public enum SampleServer {
             {"conversations":[{"id":"sample-m1","kind":"direct","postId":null,"title":"Sam","topic":null,"isPublic":false,"isRequest":false,"isOwner":false,
               "memberCount":2,"lastMessage":"\(l.thanks)","lastMessageAt":"2026-10-29T10:00:00Z","unread":1}]}
             """),
+            ("GET", "^/conversations/sample-m1$", """
+            {"conversation":{"id":"sample-m1","kind":"direct","title":"Sam","topic":null,"isPublic":false,"isRequest":false,"isOwner":false,
+              "awaitingReply":false,"post":null,"members":[{"id":"sample-sam","name":"Sam","invited":false,"isOwner":false}]},
+             "messages":[{"id":"sample-mm1","mine":true,"author":"You","body":"I'm glad I could be there. I'll keep checking in with you this week, and you can write to me any time.","crisis":false,"createdAt":"2026-10-29T09:40:00Z"},
+              {"id":"sample-mm2","mine":false,"author":"Sam","body":"\(l.thanks)","crisis":false,"createdAt":"2026-10-29T10:00:00Z"}]}
+            """),
+            ("POST", "^/conversations/[^/]+/read$", "{}"),
             ("GET", "^/me/prayer-stats$", stats),
             ("GET", "^/me/circles$", #"{"enabled":true,"circles":[{"id":"sample-c1","name":"Tuesday small group","about":"\#(l.circleAbout)","isOwner":true,"members":8,"lastPostAt":"2026-10-28T18:00:00Z"},{"id":"sample-c2","name":"Family","about":null,"isOwner":false,"members":5,"lastPostAt":null}]}"#),
             ("GET", "^/me/feed-themes$", #"{"themes":[],"current":null,"theme":null}"#),

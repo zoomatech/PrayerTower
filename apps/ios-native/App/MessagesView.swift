@@ -50,14 +50,14 @@ struct MessagesView: View {
             .overlay { if !loaded && error == nil { ProgressView() } }
             .navigationTitle(w("tabs.messages"))
             .appLogo()
-            .navigationDestination(for: String.self) { ConversationScreen(id: $0) }
             .refreshable { await load() }
             .task { await load() }
         }
     }
 
     private func row(_ c: ConversationSummary) -> some View {
-        NavigationLink(value: c.id) {
+        // Opens directly: a value link here stayed shut when Messages was pushed from Me (iPhone 18 Pro, 2026-11-03).
+        NavigationLink { ConversationScreen(id: c.id) } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(c.title).font(.headline).lineLimit(1)
