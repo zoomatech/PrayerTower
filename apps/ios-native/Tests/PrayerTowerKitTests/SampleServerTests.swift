@@ -20,6 +20,7 @@ import Testing
         #expect(try await api.prayers(postId: "sample-p1").count == 4)
         #expect(try await api.commitments().commitments.count == 1)
         #expect(try await api.conversations().count == 1)
+        #expect(try await api.conversation("sample-m1").messages.count == 2)
         #expect(try await api.notifications().count == 1)
         #expect(try await api.topicGroups().first?.name == "Cancer survivors")
         #expect(try await api.topicGroup("sample-g1").posts.first?.comments.count == 1)
