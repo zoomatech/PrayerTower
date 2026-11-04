@@ -128,6 +128,8 @@ struct MeView: View {
                 }
             }
             .navigationTitle(w("tabs.me"))
+            // Centered, so the Home and Menu buttons at the top left never cover it (Steve, 2026-11-02).
+            .navigationBarTitleDisplayMode(.inline)
             .appLogo()
             .navigationDestination(item: Binding(get: { model.meOpens }, set: { model.meOpens = $0 })) { page in
                 if page == 5 { NotificationsView(standalone: false) } else { MessagesView(standalone: false) }
@@ -203,11 +205,12 @@ struct MeView: View {
             Text(countsError).foregroundStyle(Color.danger)
             Button(w("common.tryAgain")) { Task { await loadCounts() } }
         }
-        // Four across, or one under another at the accessibility text sizes so nothing shrinks.
+        // Five across (tier, prayers, requests, tokens, prayercast tokens), or one under another at the accessibility text sizes so nothing shrinks.
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(alignment: .top))
         layout {
             stat(tier?.tier.map { w.server($0.label) } ?? "—", w(p.anonymousByDefault == true ? "profile.tierPrivate" : "profile.tier"))
             stat("\(tier?.prayers ?? 0)", w("profile.prayers"))
+            stat("\(tier?.requests ?? 0)", w("profile.requests"))
             stat("\(tokens?.balance ?? 0)", w("profile.tokens"))
             stat("\(tokens?.priestly.balance ?? 0)", w("profile.priestly"))
         }

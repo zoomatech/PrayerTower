@@ -8,29 +8,33 @@
 //     a game-show host showing the prizes.
 //   * Little childlike statuettes with angel wings (original drawings, five styles; members
 //     pick their own, or all five mixed). A still statue points at every third post.
-//   * Comments hang under the platform on ceramic placards tied together. Closed, only the
-//     first comment's first line shows, the others stacked behind it; a tap flops them all
-//     down, a tap on a comment folds them back up. Under every comment with replies its
-//     first reply hangs showing; a tap flops the rest down, a tap on a reply folds them.
-//     Replies get no Reply button (Steve: overnesting is hard to follow).
+//   * Comments hang under the platform on a ceramic placard, laid out Facebook style (Steve,
+//     2026-11-02): closed, the top comment's first line fades out before "(+ x more)"; a tap
+//     opens them indented, the first reply under each comment showing and "View all N
+//     replies" for the rest. Replies get no Reply button (Steve: overnesting is hard to follow).
 //   * Occasional clouds; now and then an angel flies from a post leaving the screen to the
 //     centred one, and a ceramic turtle walks slowly across behind the cards.
 // Plaques and placards grow with their text. Reduced motion keeps everything still.
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { Card, FeedTheme } from '@prayer-tower/shared';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 
-import { CardSurface } from '@/components/post-card';
+import { DancingScript_600SemiBold } from '@expo-google-fonts/dancing-script/600SemiBold';
+import { useFonts } from 'expo-font';
+
+import { FbComments, type FbInk } from '@/components/fb-comments';
+import { CardNameFont, CardSurface } from '@/components/post-card';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
-import { useCommentActions, useCommentCluster, usePostComments } from '@/skins/comments';
-import { useFeedHooks } from '@/skins/feed-hooks';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
+
+/** People's names: a fancy, feminine, almost-cursive script, like on pastel greeting cards (Steve 2026-11-01). */
+export const NAME_FONT = 'DancingScript_600SemiBold';
 
 const DEFAULTS = {
   backdrop: '#EAE6F1',
@@ -291,27 +295,6 @@ function useLoop(ms: number, run: boolean, reduced: boolean, ease: 'linear' | 's
   return v;
 }
 
-/** Folds a placard down from its tie, like a plaque on a string flopping open. */
-function Flop({ delay, children, testID }: { delay: number; children: ReactNode; testID?: string }) {
-  const reduced = useReducedMotion();
-  const v = useRef(new Animated.Value(reduced ? 1 : 0)).current;
-  useEffect(() => {
-    if (reduced) return;
-    Animated.timing(v, { toValue: 1, duration: 760, delay, easing: Easing.bezier(0.3, 1.25, 0.5, 1), useNativeDriver: Platform.OS !== 'web' }).start();
-  }, [reduced, delay, v]);
-  return (
-    <Animated.View
-      testID={testID}
-      style={{
-        transformOrigin: 'top',
-        opacity: v.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }),
-        transform: [{ perspective: 700 }, { rotateX: v.interpolate({ inputRange: [0, 1], outputRange: ['-100deg', '0deg'] }) }],
-      }}>
-      {children}
-    </Animated.View>
-  );
-}
-
 /** Two short ropes tying a placard to the one above it. */
 function Ties({ inset = 34, height = 12 }: { inset?: number; height?: number }) {
   return (
@@ -325,143 +308,28 @@ function Ties({ inset = 34, height = 12 }: { inset?: number; height?: number }) 
 // ---------------------------------------------------------------------------
 // Comments on ceramic placards.
 
-function CommentButtons({ postId, comment, canReply }: { postId: string; comment: Comment; canReply: boolean }) {
-  const { reply, helped, share } = useCommentActions(postId, comment);
-  const pill = (key: string, b: { name: string; press: () => void; on?: boolean }) => (
-    <Pressable key={key} onPress={b.press} accessibilityRole="button" aria-pressed={key === 'helped' ? !!b.on : undefined} style={[styles.pill, b.on && styles.pillOn]}>
-      <Text style={styles.pillText}>{b.name}</Text>
-    </Pressable>
-  );
-  return (
-    <View style={styles.pills}>
-      {canReply ? pill('reply', reply) : null}
-      {helped ? pill('helped', helped) : null}
-      {share ? pill('share', share) : null}
-    </View>
-  );
-}
-
 /** The etched line just inside a ceramic edge. */
 function Etch({ inset = 4, radius = 7 }: { inset?: number; radius?: number }) {
   return <View pointerEvents="none" aria-hidden style={[styles.etch, { top: inset, left: inset, right: inset, bottom: inset, borderRadius: radius }]} />;
 }
 
-/** A comment's replies: the first one hangs showing; a tap flops the rest down, a tap on one folds them. */
-function Replies({ postId, list, kids, open, onToggle, tokens }: { postId: string; list: Comment[]; kids: Map<string, Comment[]>; open: boolean; onToggle: () => void; tokens: CeramicTokens }) {
-  const { t } = useLocale();
-  if (!list.length) return null;
-  const first = list[0]!;
-  if (!open)
-    return (
-      <View style={styles.replyStack}>
-        <Ties inset={26} height={10} />
-        {list.length > 1 ? <View pointerEvents="none" aria-hidden style={[styles.replyBehind, { backgroundColor: '#D9CFE6' }]} /> : null}
-        <Pressable
-          testID={`ceramic-first-${first.parentId}`}
-          accessibilityRole="button"
-          aria-expanded={false}
-          accessibilityLabel={t('ceramic.showReplies', { count: list.length })}
-          onPress={onToggle}
-          style={[styles.replyCard, { backgroundColor: tokens.reply }]}>
-          <Etch inset={4} radius={6} />
-          <Text style={styles.oneLine} numberOfLines={1}>
-            <Text style={styles.replyName}>{first.author.displayName}</Text> · {first.body}
-          </Text>
-          {list.length > 1 ? <Text style={styles.more}>+{list.length - 1}</Text> : null}
-        </Pressable>
-      </View>
-    );
-  return (
-    <View style={styles.replyStack}>
-      {list.map((r, i) => (
-        <Flop key={r.id} delay={i * 140} testID={`ceramic-reply-${r.id}`}>
-          <Ties inset={26} height={10} />
-          <View style={[styles.replyCard, styles.replyOpen, { backgroundColor: tokens.reply }]}>
-            <Etch inset={4} radius={6} />
-            <Pressable accessibilityRole="button" accessibilityLabel={t('ceramic.foldReplies', { name: r.author.displayName })} onPress={onToggle}>
-              <Text style={styles.replyName}>{r.author.displayName}</Text>
-              <Text style={styles.replyText}>{r.body}</Text>
-              {/* A reply's own replies, smaller, under it. */}
-              {(kids.get(r.id) ?? []).map((rr) => (
-                <View key={rr.id} style={styles.subReply}>
-                  <Text style={styles.subName}>{rr.author.displayName}</Text>
-                  <Text style={styles.subText}>{rr.body}</Text>
-                </View>
-              ))}
-            </Pressable>
-            {/* Steve: sub-comments get no Reply button. */}
-            <CommentButtons postId={postId} comment={r} canReply={false} />
-          </View>
-        </Flop>
-      ))}
-    </View>
-  );
-}
+/** Ceramic's colors for the Facebook-style comments: dusky plum words, names in the greeting-card script. */
+const FB_INK: FbInk = { text: '#4B3F47', muted: MUTED, link: '#4B3F47', thread: 'rgba(95,70,85,0.35)', avatar: '#E9C9C1', avatarText: '#4B3F47', nameFont: NAME_FONT };
 
-/** How many comments flop down from a post; the rest open on the post's own page. */
-export const PLACARDS_SHOWN = 5;
-
+/**
+ * The post's comments on one ceramic placard tied under the platform, laid out Facebook style
+ * (Steve, 2026-11-02): closed, the top comment's first line fades out before "(+ x more)"; a tap
+ * opens them indented, replies under their comment (components/fb-comments.tsx).
+ */
 const Placards = memo(function Placards({ card, tokens }: { card: Card; tokens: CeramicTokens }) {
-  const { t } = useLocale();
-  const { openPost } = useFeedHooks();
-  const { top, kids, total } = usePostComments(card);
-  const { state, toggle, toggleReplies } = useCommentCluster();
-  if (!top.length) return null;
-  const first = top[0]!;
-  if (!state.spread)
-    return (
-      <View style={styles.placards}>
-        <Ties />
-        {total > 1 ? <View pointerEvents="none" aria-hidden style={[styles.behind, styles.behindBack]} /> : null}
-        {total > 1 ? <View pointerEvents="none" aria-hidden style={[styles.behind, styles.behindMid]} /> : null}
-        <Pressable
-          testID={`ceramic-stack-${card.id}`}
-          accessibilityRole="button"
-          aria-expanded={false}
-          accessibilityLabel={t('ceramic.showComments', { count: total })}
-          onPress={toggle}
-          style={[styles.placard, styles.placardClosed, { backgroundColor: tokens.placard }, total > 1 && { marginBottom: 12 }]}>
-          <Etch />
-          <View style={styles.smallOval}>
-            <Text style={styles.smallOvalText}>{initials(first.author.displayName)}</Text>
-          </View>
-          <Text style={styles.oneLine} numberOfLines={1}>
-            <Text style={styles.placardNameInline}>{first.author.displayName}</Text> · {first.body}
-          </Text>
-          {total > 1 ? <Text style={styles.more}>+{total - 1}</Text> : null}
-        </Pressable>
-      </View>
-    );
-  const shown = top.slice(0, PLACARDS_SHOWN);
-  const more = total - shown.length;
+  if (!(card.counts.comments > 0) && !card.leafComments?.length) return null;
   return (
-    <View style={styles.placards}>
-      {shown.map((c, i) => (
-        <Flop key={c.id} delay={i * 140} testID={`ceramic-comment-${c.id}`}>
-          <Ties />
-          <View style={[styles.placard, { backgroundColor: tokens.placard }]}>
-            <Etch />
-            <Pressable accessibilityRole="button" accessibilityLabel={t('ceramic.foldComments', { name: c.author.displayName })} onPress={toggle}>
-              <View style={styles.placardHead}>
-                <View style={styles.smallOval}>
-                  <Text style={styles.smallOvalText}>{initials(c.author.displayName)}</Text>
-                </View>
-                <Text style={styles.placardName}>{c.author.displayName}</Text>
-              </View>
-              <Text style={styles.placardText}>{c.body}</Text>
-            </Pressable>
-            <CommentButtons postId={card.id} comment={c} canReply />
-          </View>
-          <Replies postId={card.id} list={kids.get(c.id) ?? []} kids={kids} open={state.open === i} onToggle={() => toggleReplies(1, i)} tokens={tokens} />
-        </Flop>
-      ))}
-      {more > 0 ? (
-        <Flop delay={shown.length * 140}>
-          <Pressable accessibilityRole="button" onPress={() => openPost(card.id)} style={styles.pebble}>
-            <Text style={styles.pebbleText}>{t('ceramic.more', { n: more })}</Text>
-          </Pressable>
-        </Flop>
-      ) : null}
+    <View style={styles.placards} testID={`ceramic-comments-${card.id}`}>
+      <Ties />
+      <View style={[styles.placard, { backgroundColor: tokens.placard }]}>
+        <Etch />
+        <FbComments card={card} ink={FB_INK} testID={`ceramic-stack-${card.id}`} />
+      </View>
     </View>
   );
 });
@@ -553,7 +421,9 @@ const PostRow = memo(function PostRow({
           {/* The shadow box: a raised ceramic frame round a deep recess, the plaque inside it. */}
           <View style={[styles.frame, { backgroundColor: tokens.frame }]}>
             <View style={[styles.recess, { backgroundColor: tokens.recess }]}>
-              <CardSurface.Provider value={plaque}>{renderCard(card.counts.comments > 0 ? { ...card, topComment: null } : card)}</CardSurface.Provider>
+              <CardNameFont.Provider value={NAME_FONT}>
+                <CardSurface.Provider value={plaque}>{renderCard(card.counts.comments > 0 ? { ...card, topComment: null } : card)}</CardSurface.Provider>
+              </CardNameFont.Provider>
             </View>
           </View>
           {/* The platform it stands on. */}
@@ -665,6 +535,7 @@ function Picker({ visible, choice, onPick, onClose }: { visible: boolean; choice
 
 export function CeramicLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const { t } = useLocale();
+  useFonts({ DancingScript_600SemiBold });
   const tokens = useMemo(() => ceramicTokens(theme), [theme]);
   const reduced = useReducedMotion();
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -795,33 +666,6 @@ const styles = StyleSheet.create({
   tie: { position: 'absolute', top: 0, width: 3, borderRadius: 2, backgroundColor: ROPE, borderLeftWidth: 1, borderLeftColor: ROPE_LIGHT },
   placards: { marginHorizontal: BOX_IN + 2, paddingBottom: 4 },
   placard: { borderRadius: 10, paddingVertical: 11, paddingHorizontal: 13, shadowColor: '#46323C', shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  placardClosed: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48 },
-  behind: { position: 'absolute', borderRadius: 10, shadowColor: '#46323C', shadowOpacity: 0.2, shadowRadius: 5, shadowOffset: { width: 0, height: 3 } },
-  behindMid: { left: 6, right: 6, top: 18, bottom: 6, backgroundColor: '#EDE3E0' },
-  behindBack: { left: 12, right: 12, top: 24, bottom: 0, backgroundColor: '#E3D7D4' },
-  placardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  smallOval: { width: 26, height: 30, borderRadius: 15, backgroundColor: '#E9C9C1', alignItems: 'center', justifyContent: 'center' },
-  smallOvalText: { fontSize: 13, fontWeight: '600', color: '#4B3F47' },
-  placardName: { fontSize: 17, fontWeight: '600', color: '#4B3F47' },
-  placardNameInline: { fontWeight: '600', color: '#4B3F47' },
-  placardText: { fontSize: 16, lineHeight: 23, color: '#4B3F47', marginTop: 4 },
-  oneLine: { flex: 1, minWidth: 0, fontSize: 15, color: '#4B3F47' },
-  more: { fontSize: 13, color: MUTED },
-  replyStack: { marginLeft: 22 },
-  replyBehind: { position: 'absolute', left: 7, right: 7, top: 18, bottom: -6, borderRadius: 9 },
-  replyCard: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11, shadowColor: '#46323C', shadowOpacity: 0.2, shadowRadius: 5, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
-  replyOpen: { flexDirection: 'column', alignItems: 'stretch' },
-  replyName: { fontSize: 16, fontWeight: '600', color: '#4B3F47' },
-  replyText: { fontSize: 15, lineHeight: 21, color: '#4B3F47' },
-  subReply: { marginTop: 6, marginLeft: 10, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: '#B9A9CC' },
-  subName: { fontSize: 14, fontWeight: '600', color: '#4B3F47' },
-  subText: { fontSize: 14, lineHeight: 19, color: '#4B3F47' },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
-  pill: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22, backgroundColor: '#F1E4DF', borderWidth: 1, borderColor: 'rgba(95,70,85,0.3)' },
-  pillOn: { backgroundColor: '#E3D2D6' },
-  pillText: { fontSize: 15, color: '#4B3F47' },
-  pebble: { alignSelf: 'center', marginTop: 10, minHeight: 44, paddingHorizontal: 18, justifyContent: 'center', borderRadius: 22, backgroundColor: '#F1E4DF', borderWidth: 1, borderColor: 'rgba(95,70,85,0.3)' },
-  pebbleText: { fontSize: 15, color: '#4B3F47' },
   end: { marginHorizontal: BOX_IN, marginTop: 12, padding: 12, borderRadius: 14, backgroundColor: '#F7F1EE', color: '#4B3F47', fontSize: 16, textAlign: 'center', overflow: 'hidden' },
   turtle: { position: 'absolute', left: 0, bottom: 8, width: 64, height: 36 },
   flyer: { position: 'absolute', left: 0, top: 0, width: 40, height: 67, zIndex: 6 },

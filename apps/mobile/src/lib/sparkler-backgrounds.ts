@@ -35,6 +35,14 @@ export const SPARKLER_BACKGROUNDS: SparklerBackground[] = [
   { id: 'wood', group: 'texture', name: 'Wood grain', base: '#E7D4B4', dark: false },
 ];
 
+/** The night block the default white becomes in dark mode (Steve, 2026-11-01: the stardust needs a dark feed to show). */
+export const NIGHT: SparklerBackground = { id: 'night', group: 'solid', name: 'Night', base: '#10131C', dark: true };
+
+/** The background a post shows: the member's choice, except that the default white turns to night in dark mode. */
+export function shownBackground(bg: SparklerBackground, dark: boolean): SparklerBackground {
+  return dark && bg.id === 'white' ? NIGHT : bg;
+}
+
 export const SPARKLER_GROUPS: SparklerGroup[] = ['solid', 'stars', 'flowers', 'texture'];
 export const DEFAULT_SPARKLER_BACKGROUND = 'white';
 

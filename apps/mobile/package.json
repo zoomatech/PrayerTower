@@ -4,6 +4,7 @@
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/alegreya": "^0.4.2",
+    "@expo-google-fonts/dancing-script": "^0.4.2",
     "@expo-google-fonts/henny-penny": "^0.4.1",
     "@expo/ui": "~58.0.24",
     "@prayer-tower/shared": "*",

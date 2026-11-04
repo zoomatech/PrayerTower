@@ -1,28 +1,34 @@
 // Full Screen Sparkler (beta, behind Admin → Feed skins), Steve 2026-11-01:
 //   * A simple full-screen scroll with no border: each post fills the width of the screen.
-//   * A vertical line on the left overlaps the posts. It goes downward and grows as you scroll,
-//     with a sparkler at its bottom leading the way down (lib/draw-in.ts useGrowWithScroll, the
-//     shared growing-line routine; the line is the shared glass tube, components/glass-tube.tsx).
+//   * ONE vertical line on the left overlaps the posts. It goes downward and grows as you scroll,
+//     with a sparkler at its bottom leading the way down, throwing its sparks and embers downward
+//     so the direction shows; its tip rides near the foot of the screen so the line never seems to
+//     stop while there is more below (lib/draw-in.ts lineTip; the line is the shared glass tube,
+//     components/glass-tube.tsx).
+//   * Comments are laid out Facebook style (Steve, 2026-11-02): closed, the top comment's first
+//     line fades out before "(+ x more)"; a tap opens them, replies indented under their comment;
+//     a tap on an open comment folds them closed (components/fb-comments.tsx).
 //   * Each post is separated by a black line with a light blue line through its middle.
 //   * The post backgrounds are chosen like Facebook post backgrounds: solid color blocks,
 //     starfields, flowers and textures, under Menu → Settings → Themes → Full Screen Sparkler
 //     Theme → Background choices (lib/sparkler-backgrounds.ts). All drawn, no pictures.
 //   * The poster's profile picture sits in the upper right corner of the post's square.
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
-import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
+import type { Card, FeedTheme } from '@prayer-tower/shared';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { Animated, FlatList, Image, StyleSheet, Text, TextInput, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
+import { router } from 'expo-router';
+
+import { FbComments, type FbInk } from '@/components/fb-comments';
 import { CardInk } from '@/components/post-card';
 import { GlassTube, GLOW_REACH } from '@/components/glass-tube';
-import { DrawBusContext, makeDrawBus, useGrowWithScroll, type Row } from '@/lib/draw-in';
+import { lineTip } from '@/lib/draw-in';
 import { useLocale } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/motion';
-import { flowerPoints, petalPath, seeded, sparklerBackground, starPoints, useSparklerBackground, type SparklerBackground } from '@/lib/sparkler-backgrounds';
-import { colors, radius, space, type } from '@/lib/theme';
-import { clusterSlice, useCommentActions, useCommentCluster, usePostComments } from '@/skins/comments';
-import { useFeedHooks } from '@/skins/feed-hooks';
+import { flowerPoints, petalPath, seeded, shownBackground, sparklerBackground, starPoints, useSparklerBackground, type SparklerBackground } from '@/lib/sparkler-backgrounds';
+import { colors, radius, space } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
@@ -39,15 +45,18 @@ export function sparklerTokens(theme: FeedTheme | null): SparklerTokens {
 
 /** Where the line runs down the left, over the posts, and how far in the posts' words start. */
 export const LINE_X = 12;
-const TEXT_LEFT = 26;
-/** How far down the window the line's tip (and its sparkler) rides. */
-export const TIP_AT = 0.7;
-/** The separator: a black line with a light blue line through its middle. */
-export const SEPARATOR = { height: 8, stripe: 2 };
+const TEXT_LEFT = 34;
+/** How far down the screen the line's tip (and its sparkler) rides: near the foot, so the line never seems to stop short. */
+export const TIP_AT = 0.84;
+/** Black room at the top of the feed under the Home and Menu buttons, so they never cover a post. */
+const TOP_ROOM = 58;
+/** How far the comments sit in from the post's words. */
+const COMMENT_INDENT = 18;
+/** The separator: a black line with a glowing light blue line through its middle, made bold (Steve: accentuate the divider). */
+/** The bar between posts: three picas of very dark brushed metal, not a glowing line (Steve, 2026-11-02); its metal top to bottom (Kit Sparkler.separatorMetal). */
+export const SEPARATOR = { height: 36, metal: ['#6A707A', '#3A3F47', '#2A2E34', '#1E2126', '#08090B'] };
 /** The profile picture in the square's upper right corner. */
 const PIC = 48;
-/** Comments shown when a post's comments open. */
-const OPENED = 5;
 
 /** The card's words on a background: light on the dark ones, the skin's words 1 pt bigger (Steve). */
 export function inkFor(bg: SparklerBackground) {
@@ -115,42 +124,56 @@ export function BackgroundSwatch({ id, size = 64 }: { id: string; size?: number 
 // The sparkler at the line's tip.
 
 const SPARK_COLORS = ['#FFFFFF', '#FFF2B0', '#FFD45C', '#FFB23D', '#FF8A2A'];
-const SPARK_BOX = 64;
+const SPARK_BOX = 84;
+/** How far below the tip the falling embers reach. */
+const TRAIL = 110;
 
-/** Sparks thrown out from the burning tip: a fresh spray each time, or one still spray. */
+/** Sparks thrown out from the burning tip, most of them downward, the way the line is going. */
 export function sparks(rnd: () => number, n = 16) {
   const c = SPARK_BOX / 2;
-  return Array.from({ length: n }, () => {
-    const a = rnd() * Math.PI * 2;
+  return Array.from({ length: n }, (_, i) => {
+    const a = i % 4 === 0 ? rnd() * Math.PI * 2 : Math.PI * (0.15 + rnd() * 0.7);
     const r0 = 3 + rnd() * 3;
-    const r1 = r0 + 6 + rnd() * 18;
+    const r1 = (r0 + 6 + rnd() * 18) * 1.3;
     return { x1: c + Math.cos(a) * r0, y1: c + Math.sin(a) * r0, x2: c + Math.cos(a) * r1, y2: c + Math.sin(a) * r1, color: SPARK_COLORS[Math.floor(rnd() * SPARK_COLORS.length)]!, dot: rnd() < 0.4 };
   });
 }
 
 const STILL_SPRAY = sparks(seeded(5));
 
+/** The burning tip with embers streaming down below it: the leading animation (Steve). Still under Reduce Motion. */
 function Sparkler({ still }: { still: boolean }) {
-  // Each tick redraws a fresh spray.
-  const [, setTick] = useState(0);
+  // Each tick redraws a fresh spray and moves the embers down.
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (still) return;
-    const id = setInterval(() => setTick((n) => n + 1), 70);
+    const id = setInterval(() => setTick((n) => n + 1), 50);
     return () => clearInterval(id);
   }, [still]);
   const spray = still ? STILL_SPRAY : sparks(Math.random);
+  const phase = still ? 0.35 : (tick % 24) / 24;
   const c = SPARK_BOX / 2;
   return (
-    <Svg width={SPARK_BOX} height={SPARK_BOX} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Circle cx={c} cy={c} r={11} fill="#FFD45C" opacity={0.25} />
-      <Circle cx={c} cy={c} r={6} fill="#FFE680" opacity={0.7} />
+    <Svg width={SPARK_BOX} height={SPARK_BOX + TRAIL} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {[0, 1, 2].map((i) => {
+        const f = (phase + i / 3) % 1;
+        const y = c + 14 + f * (TRAIL + c - 20);
+        return (
+          <G key={`e${i}`}>
+            <Line x1={c} y1={y - 12 * (1 - f)} x2={c} y2={y} stroke="#FFFFFF" strokeOpacity={0.7 * (1 - f)} strokeWidth={1.5} strokeLinecap="round" />
+            <Circle cx={c} cy={y} r={4 - f * 2.5} fill="#FFD45C" opacity={0.9 * (1 - f)} />
+          </G>
+        );
+      })}
+      <Circle cx={c} cy={c} r={16} fill="#FFD45C" opacity={0.22} />
+      <Circle cx={c} cy={c} r={8} fill="#FFE680" opacity={0.75} />
       {spray.map((s, i) => (
         <G key={i}>
-          <Line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.color} strokeWidth={1.3} strokeLinecap="round" />
-          {s.dot ? <Circle cx={s.x2} cy={s.y2} r={1.3} fill={s.color} /> : null}
+          <Line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.color} strokeWidth={1.6} strokeLinecap="round" />
+          {s.dot ? <Circle cx={s.x2} cy={s.y2} r={1.6} fill={s.color} /> : null}
         </G>
       ))}
-      <Circle cx={c} cy={c} r={3} fill="#FFFFFF" />
+      <Circle cx={c} cy={c} r={4} fill="#FFFFFF" />
     </Svg>
   );
 }
@@ -175,11 +198,35 @@ function ProfilePic({ card }: { card: Card }) {
   );
 }
 
-/** A black line with a light blue line through its middle, between posts. */
-export function Separator({ tokens }: { tokens: SparklerTokens }) {
+/** Fine brushing streaks across the bar (the same on every bar). */
+const BRUSHING = (() => {
+  const rnd = seeded(131);
+  return Array.from({ length: 140 }, () => {
+    const light = rnd() < 0.7;
+    return { x: rnd() * 100 - 10, y: 3 + rnd() * (SEPARATOR.height - 6), w: 12 + rnd() * 40, light, o: light ? 0.05 + rnd() * 0.07 : 0.12 + rnd() * 0.1 };
+  });
+})();
+
+/** The bar between posts: three picas of very dark brushed metal, raised. */
+export function Separator() {
   return (
-    <View style={[styles.separator, { backgroundColor: tokens.backdrop }]} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={[styles.stripe, { backgroundColor: tokens.stripe }]} />
+    <View style={styles.separator} testID="sparkler-separator" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width="100%" height={SEPARATOR.height} preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id="sparkler-sep" x1="0" y1="0" x2="0" y2="1">
+            {[0, 0.09, 0.4, 0.88, 1].map((at, i) => (
+              <Stop key={at} offset={at} stopColor={SEPARATOR.metal[i]} />
+            ))}
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height={SEPARATOR.height} fill="url(#sparkler-sep)" />
+        {/* Raised like an embossed bar: a bright bevel on top, a dark one beneath, and fine brushing across the width. */}
+        <Rect x="0" y="0" width="100%" height={1} fill="#FFFFFF" opacity={0.35} />
+        <Rect x="0" y={SEPARATOR.height - 2.5} width="100%" height={2.5} fill="#000000" opacity={0.7} />
+        {BRUSHING.map((b, i) => (
+          <Rect key={i} x={`${b.x}%`} y={b.y} width={`${b.w}%`} height={0.6} fill={b.light ? '#FFFFFF' : '#000000'} opacity={b.o} />
+        ))}
+      </Svg>
     </View>
   );
 }
@@ -189,88 +236,20 @@ export function Separator({ tokens }: { tokens: SparklerTokens }) {
 
 type Ink = ReturnType<typeof inkFor>;
 
-function CommentButtons({ postId, comment, canReply, ink, stripe }: { postId: string; comment: Comment; canReply: boolean; ink: Ink; stripe: string }) {
-  const { reply, helped, share } = useCommentActions(postId, comment);
-  const button = (key: string, b: { name: string; press: () => void; on?: boolean }) => (
-    <Pressable key={key} onPress={b.press} accessibilityRole="button" aria-pressed={key === 'helped' ? !!b.on : undefined} style={[styles.pill, { borderColor: stripe }, b.on && { backgroundColor: stripe }]} hitSlop={4}>
-      <Text style={[styles.pillText, { color: b.on ? '#0B1330' : ink.text }]}>{b.name}</Text>
-    </Pressable>
-  );
-  return (
-    <View style={styles.pills}>
-      {/* Steve: sub-comments get no Reply button (overnesting is hard to follow). */}
-      {canReply ? button('reply', reply) : null}
-      {helped ? button('helped', helped) : null}
-      {share ? button('share', share) : null}
-    </View>
-  );
-}
-
-function OneComment({ postId, comment, replies, open, showAll, onToggle, onReplies, ink, stripe }: { postId: string; comment: Comment; replies: Comment[]; open: boolean; showAll: boolean; onToggle: () => void; onReplies: () => void; ink: Ink; stripe: string }) {
+/** The post's comments, Facebook style (Steve, 2026-11-02): closed, the top comment's first line fades out before "(+ x more)"; a tap opens them indented (components/fb-comments.tsx). */
+function Comments({ card, ink }: { card: Card; ink: Ink }) {
   const { t } = useLocale();
-  // Steve: the first reply shows under every comment that has replies; a tap shows the rest, and another folds them away.
-  const shown = showAll ? replies : replies.slice(0, 1);
+  const fb = useMemo<FbInk>(() => ({ text: ink.text, muted: ink.muted, link: ink.text, thread: `${ink.muted}99`, avatar: `${ink.text}22`, avatarText: ink.text }), [ink]);
+  const count = card.counts.comments ?? 0;
   return (
-    <View style={styles.comment} testID={`sparkler-comment-${comment.id}`}>
-      <Pressable onPress={onToggle} accessibilityRole="button" aria-expanded={open} accessibilityHint={open ? t('sparkler.fold') : t('sparkler.open')}>
-        <Text style={[styles.commentName, { color: ink.text }]}>{comment.author.displayName}</Text>
-        <Text style={[styles.commentText, { color: ink.text }]}>{comment.body}</Text>
-      </Pressable>
-      {open ? <CommentButtons postId={postId} comment={comment} canReply ink={ink} stripe={stripe} /> : null}
-      {shown.length ? (
-        <Pressable
-          onPress={replies.length > 1 ? onReplies : undefined}
-          disabled={replies.length < 2}
-          accessibilityRole={replies.length > 1 ? 'button' : undefined}
-          aria-expanded={replies.length > 1 ? showAll : undefined}
-          style={[styles.replies, { borderLeftColor: stripe }]}
-          testID={`sparkler-replies-${comment.id}`}>
-          {shown.map((r) => (
-            <View key={r.id} style={styles.reply} testID={`sparkler-reply-${r.id}`}>
-              <Text style={[styles.replyText, { color: ink.text }]}>
-                <Text style={styles.replyName}>{r.author.displayName}: </Text>
-                {r.body}
-              </Text>
-              {showAll ? <CommentButtons postId={postId} comment={r} canReply={false} ink={ink} stripe={stripe} /> : null}
-            </View>
-          ))}
-          {!showAll && replies.length > 1 ? <Text style={[styles.moreReplies, { color: ink.muted }]}>{t('sparkler.moreReplies', { count: replies.length - 1 })}</Text> : null}
-        </Pressable>
+    <View style={styles.comments}>
+      {/* Plainly comments: a speech bubble and how many (Steve: the folded look alone didn't say so). */}
+      {count > 1 ? (
+        <Text style={[styles.count, { color: ink.text }]} testID={`sparkler-count-${card.id}`}>
+          💬 {t('sparkler.comments', { count })}
+        </Text>
       ) : null}
-    </View>
-  );
-}
-
-function Comments({ card, ink, stripe }: { card: Card; ink: Ink; stripe: string }) {
-  const { t } = useLocale();
-  const { openPost } = useFeedHooks();
-  const { top, kids, total } = usePostComments(card);
-  const { state, toggle, toggleReplies } = useCommentCluster();
-  if (!top.length) return null;
-  // Closed: the newest comment with its first reply. A tap opens the newest five; another folds them closed.
-  const { shown } = clusterSlice(top, state.spread, OPENED, 0);
-  const left = total - shown.length;
-  return (
-    <View style={styles.comments} testID={`sparkler-comments-${card.id}`}>
-      {shown.map((c, i) => (
-        <OneComment
-          key={c.id}
-          postId={card.id}
-          comment={c}
-          replies={kids.get(c.id) ?? []}
-          open={state.spread}
-          showAll={state.open === i}
-          onToggle={toggle}
-          onReplies={() => toggleReplies(1, i)}
-          ink={ink}
-          stripe={stripe}
-        />
-      ))}
-      {left > 0 ? (
-        <Pressable onPress={state.spread ? () => openPost(card.id) : toggle} accessibilityRole="button" style={styles.moreRow}>
-          <Text style={[styles.more, { color: ink.text }]}>{t('sparkler.more', { n: left })}</Text>
-        </Pressable>
-      ) : null}
+      <FbComments card={card} ink={fb} testID={`sparkler-comments-${card.id}`} />
     </View>
   );
 }
@@ -279,85 +258,284 @@ function Comments({ card, ink, stripe }: { card: Card; ink: Ink; stripe: string 
 
 const PostSquare = memo(function PostSquare({ card, index, tokens, bg, pinned, still, renderCard }: { card: Card; index: number; tokens: SparklerTokens; bg: SparklerBackground; pinned: boolean; still: boolean; renderCard: FeedLayoutProps['renderCard'] }) {
   const { t } = useLocale();
-  const ref = useRef<Row>(null);
-  const { grown, onLayout: growOnLayout } = useGrowWithScroll(ref, TIP_AT);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const ink = useMemo(() => inkFor(bg), [bg]);
-  const room = GLOW_REACH + 4;
   return (
     <View
-      ref={ref}
       testID={`sparkler-${card.id}`}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         if (Math.abs(width - size.w) > 1 || Math.abs(height - size.h) > 1) setSize({ w: width, h: height });
-        growOnLayout();
       }}>
       <View style={[styles.square, { backgroundColor: bg.base }]}>
         <BackgroundArt bg={bg} w={size.w} h={size.h} seed={index * 31 + 7} />
         <ProfilePic card={card} />
         {pinned ? <Text style={[styles.pinned, { color: ink.text }]}>{t('feed.pinned')}</Text> : null}
         <CardInk.Provider value={ink}>{renderCard(card.counts.comments > 0 ? { ...card, topComment: null } : card)}</CardInk.Provider>
-        <Comments card={card} ink={ink} stripe={tokens.stripe} />
+        <Comments card={card} ink={ink} />
       </View>
-      <Separator tokens={tokens} />
-      {/* The line over the posts, grown as far as the member has scrolled, and the sparkler at its tip. */}
-      {size.h ? (
-        <>
-          <Animated.View pointerEvents="none" style={[styles.lineClip, { width: LINE_X + room, height: grown.interpolate({ inputRange: [0, 1], outputRange: [0, size.h] }) }]}>
-            <Svg aria-hidden width={LINE_X + room} height={size.h} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${size.h}`} color={tokens.stripe} width={4} />
-            </Svg>
-          </Animated.View>
-          <Animated.View
-            pointerEvents="none"
-            testID={`sparkler-tip-${card.id}`}
-            style={[
-              styles.tip,
-              {
-                opacity: grown.interpolate({ inputRange: [0, 0.001, 0.999, 1], outputRange: [0, 1, 1, 0] }),
-                transform: [{ translateY: grown.interpolate({ inputRange: [0, 1], outputRange: [-SPARK_BOX / 2, size.h - SPARK_BOX / 2] }) }],
-              },
-            ]}>
-            <Sparkler still={still} />
-          </Animated.View>
-        </>
-      ) : null}
+      <Separator />
     </View>
   );
 });
 
+/** How far ahead of its resting place a swipe throws the sparkler: as far as the feed is moving fast (`delta` is this scroll step), at most a tenth of the screen down, a twentieth up, eased in; as the swipe slows the screen catches up (Kit Sparkler.lead). */
+export function swipeLead(lead: number, delta: number, screen: number) {
+  const goal = Math.min(screen * 0.1, Math.max(-screen * 0.05, delta * 2.2));
+  return lead + (goal - lead) * 0.35;
+}
+
+/** The trail's yellows (Steve, 2026-11-01): bright on the dark, deeper gold on light posts so it shows. */
+export const TRAIL_YELLOWS = ['#FFE14D', '#FFD21F', '#FFC400', '#FFF08A'];
+export const TRAIL_YELLOWS_LIGHT = ['#F2B800', '#E6A700', '#D99A00', '#F5C518'];
+
+type Mote = { y: number; dx: number; r: number; opacity: number; warm: boolean; glint: boolean; color: number };
+type Grain = { y: number; x: number; vy: number; vx: number; born: number; life: number; r: number; phase: number; warm: boolean; glint: boolean; color: number };
+
+/**
+ * The trail of sparkle and stardust (Kit Sparkler.DustTrail; Steve, 2026-11-02): where the sparkler
+ * has been, held on the SCREEN, never carried by the scroll. As it travels through the feed it lays
+ * its trail along the stretch of line it just passed. Each mote keeps a little of the way it was going
+ * (down while the feed scrolls on, up when it turns back) and slows as that inertia decays, so when
+ * the scroll reverses the new trail overlaps the old one, drifting the other way. None of it is
+ * permanent: every mote fades out in a few seconds, and away near the top.
+ */
+export class DustTrail {
+  static readonly most = 700;
+  static readonly inertia = 1.8;
+  private grains: Grain[] = [];
+  private last: { content: number; t: number } | null = null;
+  private rnd: () => number;
+  constructor(seed = 7) {
+    this.rnd = seeded(seed);
+  }
+  get count() {
+    return this.grains.length;
+  }
+  /** Follows the sparkler: `tip` on screen, `content` in the feed, at `time` (seconds); lays about one mote per 3 points it travels, along the stretch it just passed. */
+  follow(tip: number, content: number, time: number) {
+    this.grains = this.grains.filter((g) => time - g.born <= g.life);
+    const l = this.last;
+    if (!l || time <= l.t) {
+      this.last = { content, t: time };
+      return;
+    }
+    const d = content - l.content;
+    const dt = time - l.t;
+    this.last = { content, t: time };
+    // A jump (a new page, the feed reloading) leaves no trail.
+    if (Math.abs(d) <= 0.3 || Math.abs(d) >= 400) return;
+    const speed = d / dt;
+    const way = d > 0 ? 1 : -1;
+    const n = Math.min(18, Math.floor(Math.abs(d) / 3) + 1);
+    const rnd = this.rnd;
+    for (let i = 1; i <= n; i++) {
+      const f = i / n;
+      const side = rnd() < 0.5 ? -1 : 1;
+      const glint = rnd() < 0.3;
+      this.grains.push({
+        // The stretch it just passed: behind it on screen, the way it came.
+        y: tip - d * (1 - f) + (rnd() - 0.5) * 3,
+        x: side * (1 + rnd() * (glint ? 6 : 3)),
+        vy: way * Math.min(45, Math.abs(speed) * (0.015 + rnd() * 0.03)) + way * 3,
+        vx: side * (2 + rnd() * 7),
+        born: l.t + dt * f,
+        life: glint ? 2 + rnd() * 2 : 4 + rnd() * 3.5,
+        r: glint ? 1.5 + rnd() * 2.5 : 0.7 + rnd() * 1.3,
+        phase: rnd() * 6.28,
+        warm: rnd() < 0.6,
+        glint,
+        color: Math.floor(rnd() * 4) % 4,
+      });
+    }
+    if (this.grains.length > DustTrail.most) this.grains.splice(0, this.grains.length - DustTrail.most);
+  }
+  /** Where each mote is on screen now: carried on the way it was laid, slowing; fading in, out at the end of its life, and away near the top. */
+  motes(time: number): Mote[] {
+    const out: Mote[] = [];
+    for (const g of this.grains) {
+      const age = time - g.born;
+      if (age < 0 || age >= g.life) continue;
+      const carried = DustTrail.inertia * (1 - Math.exp(-age / DustTrail.inertia));
+      const y = g.y + g.vy * carried + Math.sin(time * 0.45 + g.phase) * 1.0;
+      const dx = g.x + g.vx * carried + Math.cos(time * 0.4 + g.phase) * 1.0;
+      const life = age / g.life;
+      const fade = Math.min(1, age / 0.15) * (life < 0.5 ? 1 : Math.max(0, 1 - (life - 0.5) / 0.5));
+      const top = Math.max(0, Math.min(1, (y - 20) / 110));
+      const twinkle = g.glint ? 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(time * (4 + g.phase) + g.phase)) : 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(time * (2 + g.phase / 2) + g.phase));
+      const o = fade * top * twinkle;
+      if (o > 0.04) out.push({ y, dx, r: g.r, opacity: Math.min(1, o * 1.3), warm: g.warm, glint: g.glint, color: g.color });
+    }
+    return out;
+  }
+}
+
+/** The trail of sparkle and stardust the sparkler leaves (still under Reduce Motion). */
+function SparkleTrail({ tip, scrolled, still }: { tip: number; scrolled: number; still: boolean }) {
+  const [trail] = useState(() => new DustTrail());
+  const [time, setTime] = useState(0);
+  useEffect(() => {
+    if (still) return;
+    const id = setInterval(() => setTime(Date.now() / 1000), 50);
+    return () => clearInterval(id);
+  }, [still]);
+  const dark = useColorScheme() === 'dark';
+  // Where the sparkler has been, held on the screen (never carried by the scroll), each mote drifting
+  // on the way it was laid and slowing, none of it permanent (Steve, 2026-11-02).
+  if (!still) trail.follow(tip, scrolled + tip, time);
+  const motes = trail.motes(time);
+  const dust = motes.filter((m) => !m.glint);
+  const glints = motes.filter((m) => m.glint);
+  const yellows = dark ? TRAIL_YELLOWS : TRAIL_YELLOWS_LIGHT;
+  if (!motes.length) return null;
+  return (
+    <Svg aria-hidden width={LINE_X + 54} height={Math.max(1, tip + 180)} style={{ position: 'absolute', left: 0, top: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="sparkler-trail">
+      {dust.map((m, i) => (
+        <Circle key={`d${i}`} cx={LINE_X + m.dx} cy={m.y} r={m.r} fill={dark ? (m.warm ? '#FFF3B0' : '#FFFFFF') : m.warm ? '#E6A700' : '#F5C518'} opacity={m.opacity} />
+      ))}
+      {glints.map((g, i) => (
+        <G key={i} opacity={g.opacity}>
+          <Line x1={LINE_X + g.dx - g.r} y1={g.y} x2={LINE_X + g.dx + g.r} y2={g.y} stroke={yellows[g.color]} strokeWidth={1.4} strokeLinecap="round" />
+          <Line x1={LINE_X + g.dx} y1={g.y - g.r} x2={LINE_X + g.dx} y2={g.y + g.r} stroke={yellows[g.color]} strokeWidth={1.4} strokeLinecap="round" />
+        </G>
+      ))}
+    </Svg>
+  );
+}
+
+/** The one line down the feed, over the posts, as far as it has grown on screen, and the sparkler at its tip. */
+function TheLine({ top, rest, end, lead, scrolled, stripe, still }: { top: number; rest: number; end: number; lead: Animated.Value; scrolled: number; stripe: string; still: boolean }) {
+  const room = GLOW_REACH + 4;
+  const tip = Math.min(rest, end);
+  const atEnd = rest >= end - 1;
+  // The swipe throws the tip on ahead of where it rests; it springs back as the screen catches up.
+  const ahead = atEnd ? 0 : lead;
+  // One piece, from the header's light blue edge (up through the black band above the feed) to the
+  // tip, so it never breaks or thins anywhere, pulled down or not (Steve, 2026-11-02).
+  const from = top - TOP_ROOM;
+  const tall = Math.max(0, tip - from) + 120;
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="sparkler-line">
+      <Animated.View style={{ position: 'absolute', left: 0, top: from, width: LINE_X + room, overflow: 'hidden', height: Animated.add(Math.max(0, tip - from), ahead) }}>
+        <Svg aria-hidden width={LINE_X + room} height={tall} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <GlassTube d={`M ${LINE_X} 0 L ${LINE_X} ${tall}`} color={stripe} width={5} />
+        </Svg>
+      </Animated.View>
+      <SparkleTrail tip={tip} scrolled={scrolled} still={still} />
+      {!atEnd ? (
+        <Animated.View style={[styles.tip, { top: tip - SPARK_BOX / 2, transform: [{ translateY: ahead }] }]} testID="sparkler-tip">
+          <Sparkler still={still} />
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The text box in the black room above the feed (Steve, 2026-11-02): obviously a place to type, with
+ * the lead-in words in it until you do. You type on its one short line; when the words reach the end
+ * of it (or you press return), it opens the full writing screen with them in it, and the box empties
+ * again behind it.
+ */
+function PostBox({ prompt }: { prompt: string }) {
+  const [typed, setTyped] = useState('');
+  const [room, setRoom] = useState(Infinity);
+  const open = (text: string) => {
+    if (!text) return;
+    setTyped('');
+    router.push({ pathname: '/compose', params: { body: text } });
+  };
+  return (
+    <View style={styles.promptBox} onLayout={(e: LayoutChangeEvent) => setRoom(e.nativeEvent.layout.width - 20)}>
+      {/* How wide the words typed so far are, to tell when they reach the end of the line. */}
+      <Text style={[styles.promptText, styles.measure]} numberOfLines={1} onLayout={(e: LayoutChangeEvent) => e.nativeEvent.layout.width >= room - 8 && open(typed)} aria-hidden>
+        {typed}
+      </Text>
+      {/* The lead-in words, all of them, on up to two lines until you type. */}
+      {typed ? null : (
+        <Text style={styles.promptLead} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7} pointerEvents="none" aria-hidden>
+          {prompt}
+        </Text>
+      )}
+      <TextInput
+        value={typed}
+        onChangeText={setTyped}
+        onSubmitEditing={() => open(typed)}
+        returnKeyType="next"
+        style={styles.promptText}
+        accessibilityLabel={prompt}
+        testID="sparkler-compose"
+      />
+    </View>
+  );
+}
+
 export function SparklerLayout({ cards, theme, pinnedId, renderCard, header, refreshing, onRefresh, onEndReached, atEnd }: FeedLayoutProps) {
   const { t } = useLocale();
   const tokens = useMemo(() => sparklerTokens(theme), [theme]);
-  const bg = useSparklerBackground();
+  const dark = useColorScheme() === 'dark';
+  const bg = shownBackground(useSparklerBackground(), dark);
   const still = useReducedMotion();
-  const drawBus = useMemo(() => makeDrawBus(), []);
-  // Room under the last post, so its line can grow all the way down to the tip.
-  const tail = Math.round(Dimensions.get('window').height * (1 - TIP_AT)) + 40;
+  // How far the feed has scrolled, how tall the screen and the feed are, and where the tip is in
+  // the feed's own points: always at the same place on screen, so the sparkler is never lost from
+  // sight and the line always runs on toward the foot of the screen.
+  const [view, setView] = useState({ scrolled: 0, screen: 0, feed: 0, reached: 0 });
+  const move = (next: Partial<typeof view>) =>
+    setView((v) => {
+      const n = { ...v, ...next };
+      return { ...n, reached: lineTip(n.scrolled, n.screen, 0, Infinity, TIP_AT) };
+    });
+  // How far a swipe has thrown the sparkler ahead (Steve: the swipe moves the sparkler down, then
+  // the screen catches up to where it went, with a bounce).
+  const [lead] = useState(() => new Animated.Value(0));
+  const ahead = useRef(0);
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+    const delta = contentOffset.y - view.scrolled;
+    move({ scrolled: contentOffset.y, screen: layoutMeasurement.height, feed: contentSize.height });
+    if (still || Math.abs(delta) < 0.5) return;
+    ahead.current = swipeLead(ahead.current, delta, layoutMeasurement.height);
+    lead.stopAnimation();
+    lead.setValue(ahead.current);
+    if (settle.current) clearTimeout(settle.current);
+    settle.current = setTimeout(() => {
+      ahead.current = 0;
+      Animated.spring(lead, { toValue: 0, bounciness: 12, speed: 10, useNativeDriver: false }).start();
+    }, 90);
+  };
+  useEffect(() => () => void (settle.current && clearTimeout(settle.current)), []);
+  // Room under the last post, so the line can grow all the way down past it.
+  const tail = Math.round((view.screen || 800) * (1 - TIP_AT)) + 40;
   return (
-    <DrawBusContext.Provider value={drawBus}>
-      <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="sparkler-layout">
-        <FlatList
-          data={cards}
-          keyExtractor={(c) => c.id}
-          renderItem={({ item, index }) => <PostSquare card={item} index={index} tokens={tokens} bg={bg} pinned={item.id === pinnedId} still={still} renderCard={renderCard} />}
-          ListHeaderComponent={header ? <View style={styles.headerPanel}>{header}</View> : undefined}
-          ListFooterComponent={<View style={{ minHeight: tail }}>{atEnd && cards.length > 0 ? <Text style={styles.end}>{t('sparkler.end')}</Text> : null}</View>}
-          // Up and down only.
-          horizontal={false}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.5}
-          {...feedListTuning}
-          onScroll={drawBus.emit}
-          scrollEventThrottle={16}
-          onLayout={drawBus.emit}
-          onContentSizeChange={drawBus.emit}
-        />
+    <View style={[styles.fill, { backgroundColor: tokens.backdrop }]} testID="sparkler-layout">
+      {/* Black room under the Home and Menu buttons, held still above the feed, so they never sit on a post's words. */}
+      {/* The black room is where you write a post: a tap opens the composer, with light lead-in words standing in it (Steve, 2026-11-02). The line runs up through it, drawn in one piece with the rest. */}
+      <View style={styles.promptRoom}>
+        <PostBox prompt={t('sparkler.prompt')} />
       </View>
-    </DrawBusContext.Provider>
+      <View style={styles.fill} onLayout={(e: LayoutChangeEvent) => move({ screen: e.nativeEvent.layout.height })}>
+      <FlatList
+        data={cards}
+        keyExtractor={(c) => c.id}
+        renderItem={({ item, index }) => <PostSquare card={item} index={index} tokens={tokens} bg={bg} pinned={item.id === pinnedId} still={still} renderCard={renderCard} />}
+        ListHeaderComponent={header ? <View style={styles.headerPanel}>{header}</View> : undefined}
+        ListFooterComponent={<View style={{ minHeight: tail }}>{atEnd && cards.length > 0 ? <Text style={styles.end}>{t('sparkler.end')}</Text> : null}</View>}
+        // Up and down only.
+        horizontal={false}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        {...feedListTuning}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        onContentSizeChange={(_w, h) => move({ feed: h })}
+      />
+      {/* The line starts at the first post and is drawn on screen from there to the tip. */}
+      {view.screen ? <TheLine top={0} rest={view.reached - view.scrolled} end={Infinity} lead={lead} scrolled={view.scrolled} stripe={tokens.stripe} still={still} /> : null}
+      </View>
+    </View>
   );
 }
 
@@ -371,22 +549,14 @@ const styles = StyleSheet.create({
   picText: { color: '#FFFFFF', fontWeight: '700', fontSize: 17 },
   pinned: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
   separator: { height: SEPARATOR.height, justifyContent: 'center' },
-  stripe: { height: SEPARATOR.stripe },
-  lineClip: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
-  tip: { position: 'absolute', left: LINE_X - SPARK_BOX / 2, top: 0, width: SPARK_BOX, height: SPARK_BOX },
-  comments: { marginTop: space.md, gap: space.md },
-  comment: { gap: space.xs },
-  commentName: { fontWeight: '700', fontSize: 15 },
-  commentText: { fontSize: type.body.fontSize + 1, lineHeight: type.body.lineHeight + 1 },
-  replies: { borderLeftWidth: 3, paddingLeft: space.sm, marginLeft: space.sm, gap: space.xs, paddingVertical: 2 },
-  reply: { gap: space.xs },
-  replyName: { fontWeight: '700' },
-  replyText: { fontSize: 15, lineHeight: 21 },
-  moreReplies: { fontSize: 14, fontWeight: '700' },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: 2 },
-  pill: { minHeight: 36, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1.5, justifyContent: 'center' },
-  pillText: { fontSize: 15, fontWeight: '700' },
-  moreRow: { minHeight: 44, justifyContent: 'center' },
-  more: { fontSize: 15, fontWeight: '700' },
+  tip: { position: 'absolute', left: LINE_X - SPARK_BOX / 2, width: SPARK_BOX, height: SPARK_BOX + TRAIL },
+  comments: { marginTop: space.md, gap: space.md, marginLeft: COMMENT_INDENT },
+  // The indent made plain: a tinted panel set in from the post's words, with a strong rule down its left.
+  count: { fontSize: 16, fontWeight: '700' },
+  promptRoom: { height: TOP_ROOM, paddingLeft: 64, paddingRight: 122, paddingVertical: 9 },
+  promptBox: { flex: 1, justifyContent: 'center', paddingHorizontal: 10, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)' },
+  promptText: { color: '#FFFFFF', fontSize: 15, padding: 0 },
+  promptLead: { position: 'absolute', left: 10, right: 10, color: 'rgba(255,255,255,0.65)', fontSize: 13 },
+  measure: { position: 'absolute', left: 10, opacity: 0, alignSelf: 'flex-start' },
   end: { color: '#FFFFFF', fontSize: 16, textAlign: 'center', padding: space.lg },
 });

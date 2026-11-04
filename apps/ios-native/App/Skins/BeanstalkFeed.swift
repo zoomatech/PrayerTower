@@ -155,24 +155,18 @@ struct BeanstalkFeed<Row: View>: View {
         // Enlarged text (Steve, 2026-10-31): the posts take the lane's whole width, less room for
         // the locket and the frame's vine, and stop swaying aside, so the words get the space.
         let big: Bool = type > .large
-        ScrollViewReader { proxy in
+        ScrollViewReader { _ in
             VStack(spacing: 0) {
-                // At the accessibility text sizes the banner would fill the screen, so it scrolls away
-                // with the feed instead of staying fixed above it.
-                if !type.isAccessibilitySize {
-                    banner(words) { withAnimation { proxy.scrollTo("beanstalk-top", anchor: .top) } }
-                }
                 GeometryReader { geo in
                     let lane: Double = min(Double(geo.size.width), 760)
                     let width: Double = big ? max(BeanDraw.frameWidth(lane), lane - 72) : BeanDraw.frameWidth(lane)
                     let shifts: [Double] = cards.enumerated().map { big ? 0 : BeanDraw.postShift(id: $1.id, index: $0, lane: lane) }
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            if type.isAccessibilitySize { banner(words, stacked: true) {}.id("beanstalk-banner") }
                             Color.clear.frame(height: 76).id("beanstalk-top")
                             ForEach(Array(cards.enumerated()), id: \.element.id) { i, card in
                                 BeanPost(card: card, index: i, width: width, shift: shifts[i], next: i + 1 < shifts.count ? shifts[i + 1] : shifts[i], margin: (lane - width) / 2,
-                                         viewport: Double(geo.size.height), words: words, row: row, load: hooks.loadComments)
+                                         viewport: Double(geo.size.height), words: words, row: row, load: hooks.loadComments, onOpen: hooks.open)
                                     .loadsMore(after: card, in: cards, hooks)
                             }
                             ground(words)
@@ -186,64 +180,6 @@ struct BeanstalkFeed<Row: View>: View {
         }
         .background(Bean.page)
         .environment(\.colorScheme, .light)
-    }
-
-    /// Stacked: the title on its own lines and the button under it, so words wrap whole, never mid-word.
-    private func banner(_ words: Words, stacked: Bool = false, climb: @escaping () -> Void) -> some View {
-        let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
-        return bannerBody(words, stacked: stacked, layout: layout, climb: climb)
-            // Stacked, at the accessibility sizes: the title's decorative letters still grow large,
-            // but stop where their tall flourishes would run past their own line.
-            .dynamicTypeSize(...(stacked ? DynamicTypeSize.accessibility2 : DynamicTypeSize.accessibility5))
-    }
-
-    private func bannerBody(_ words: Words, stacked: Bool, layout: AnyLayout, climb: @escaping () -> Void) -> some View {
-        layout {
-            Canvas { ctx, _ in
-                var s = Path()
-                s.move(to: CGPoint(x: 17, y: 32)); s.addCurve(to: CGPoint(x: 12, y: 8), control1: CGPoint(x: 17, y: 22), control2: CGPoint(x: 10, y: 18))
-                s.addCurve(to: CGPoint(x: 20, y: 9), control1: CGPoint(x: 13, y: 3), control2: CGPoint(x: 20, y: 3))
-                s.addCurve(to: CGPoint(x: 16, y: 9), control1: CGPoint(x: 20, y: 13), control2: CGPoint(x: 15, y: 13))
-                ctx.stroke(s, with: .color(Bean.tendril), style: .init(lineWidth: 3, lineCap: .round))
-                var l = Path()
-                l.move(to: CGPoint(x: 17, y: 22)); l.addCurve(to: CGPoint(x: 31, y: 20), control1: CGPoint(x: 22, y: 16), control2: CGPoint(x: 30, y: 16))
-                l.addCurve(to: CGPoint(x: 17, y: 22), control1: CGPoint(x: 26, y: 24), control2: CGPoint(x: 21, y: 24)); l.closeSubpath()
-                ctx.fill(l, with: .color(Color(RGB(hex: "#8DBA5C")!)))
-                ctx.stroke(l, with: .color(Bean.ink), lineWidth: 2)
-            }
-            .frame(width: 34, height: 34)
-            .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                // Wraps instead of clipping at the largest text sizes.
-                Text(words("beanstalk.title")).font(BeanFont.title(23)).foregroundStyle(Bean.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                Text(words("beanstalk.subtitle")).font(BeanFont.body(13)).foregroundStyle(Bean.sub)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            // Stacked, the banner scrolls with the feed, so it has no climb-back button.
-            if !stacked {
-                Spacer()
-                Button(action: climb) {
-                    Text(words("beanstalk.climb")).font(BeanFont.semi(14)).foregroundStyle(Bean.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(Bean.button, in: .capsule)
-                        .overlay(Capsule().stroke(Bean.ink, lineWidth: 2))
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint(words("beanstalk.climbHint"))
-            }
-        }
-        // Clear of the Home button at the top left: beside it, or stacked, below it with the whole width.
-        .padding(.leading, stacked ? 16 : 60)
-        .padding(.trailing, 16)
-        .padding(.top, stacked ? 64 : 10)
-        .padding(.bottom, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Bean.cream)
-        .overlay(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 3) }
-        .background(alignment: .bottom) { Rectangle().fill(Bean.ink).frame(height: 4).offset(y: 4) }
-        .zIndex(1)
     }
 
     private func ground(_ words: Words) -> some View {
@@ -291,6 +227,8 @@ private struct BeanPost<Row: View>: View {
     let words: Words
     let row: (Card) -> Row
     let load: ((Card) async -> [Comment])?
+    /// Opens the post, to reply or to read comments not loaded yet.
+    var onOpen: ((Card) -> Void)?
     /// In view by the design's rule; the shared `GrowingIn` grows the post on it.
     @State private var grown = false
     @State private var pageAt: Date?
@@ -309,7 +247,9 @@ private struct BeanPost<Row: View>: View {
         let notes: [Beanstalk.Note] = all ?? (card.leafComments ?? []).map(Beanstalk.Note.init)
         let tree = Beanstalk.tree(notes)
         let total: Int = all != nil ? tree.top.count : max(tree.top.count, card.counts.comments)
-        let hang = BeanDraw.hanging(w: width, top: tree.top, kids: tree.kids, cv: cv, seed: index, bend: next - shift, room: (margin + shift, margin - shift))
+        // Comments sit Facebook style on a cream card the stalk runs behind (Steve, 2026-11-02), so
+        // the stalk below hangs no leaves of its own.
+        let hang = BeanDraw.hanging(w: width, top: [], kids: [:], cv: BeanDraw.LeafState(), seed: index, bend: next - shift, room: (margin + shift, margin - shift))
         let live: Bool = !still && isLive(Date())
         let vp: Double = viewport
         // The shared growing-connector routine in Beanstalk's style: the design's linear clock in
@@ -319,6 +259,7 @@ private struct BeanPost<Row: View>: View {
             TimelineView(.animation(paused: !live)) { tl in
                 VStack(spacing: 0) {
                     framed(c)
+                    if !notes.isEmpty { comments(notes, c: c) }
                     hanging(hang, tree: (tree.top, tree.kids), total: total, c: c, page: clock(pageAt, tl.date, full: 700), open: clock(openAt, tl.date, full: 450))
                 }
             }
@@ -429,6 +370,22 @@ private struct BeanPost<Row: View>: View {
             .overlay(alignment: .topTrailing) {
                 if card.gifted == true { VineFruit(label: words("vine.fruit"), size: 44).scaleEffect(fruit).offset(x: 20, y: -24) }
             }
+    }
+
+    /// The post's comments, Facebook style (FacebookComments.swift): closed, the top comment's first
+    /// line fades out before "(+ x more)"; a tap opens them indented. The stalk runs on behind them, unbroken.
+    private func comments(_ notes: [Beanstalk.Note], c: Clock) -> some View {
+        FacebookComments(
+            card: card, notes: notes, total: card.counts.comments,
+            ink: FacebookInk(text: Bean.ink, muted: Bean.sub, link: Bean.ink, thread: Bean.ink.opacity(0.35), avatar: Color(RGB(hex: "#D8E9B8")!), nameFont: BeanFont.bold(15)),
+            words: words, open: onOpen)
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Bean.cream, in: .rect(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Bean.ink, lineWidth: 3))
+            .padding(.vertical, 14)
+            .background { StraightStalk(c: c).accessibilityHidden(true) }
+            .accessibilityIdentifier("beanstalk-comments-\(card.id)")
     }
 
     private func measured(_ s: CGSize) {
@@ -553,6 +510,31 @@ private struct StalkCanvas: View {
             let d = path(h.deco)
             deco.fill(d, with: .color(Bean.vineLeaf))
             deco.stroke(d, with: .color(Bean.vineInk), lineWidth: 1.7)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// The stalk running straight down behind a post's comments, in its two strands, so it never breaks.
+private struct StraightStalk: View {
+    let c: Clock
+
+    var body: some View {
+        Canvas { ctx, size in
+            let cx = Double(size.width) / 2, h = Double(size.height)
+            func strand(_ amp: Double, _ ph: Double) -> Path {
+                var p = Path()
+                var y = 0.0
+                while y <= h {
+                    let x = cx + amp * max(0, min(1, y / 26, (h - y) / 26)) * sin(y / 30 + ph)
+                    if y == 0 { p.move(to: CGPoint(x: x, y: y)) } else { p.addLine(to: CGPoint(x: x, y: y)) }
+                    y += 4
+                }
+                return p
+            }
+            let grow: Double = c.span(500, 750, 0, 1, .easeIn)
+            VineStrandLook.second.stroke(strand(5.5, .pi).trimmedPath(from: 0, to: grow), width: 6.5, in: ctx)
+            VineStrandLook.main.stroke(strand(7, 0).trimmedPath(from: 0, to: grow), width: 9.5, in: ctx)
         }
         .allowsHitTesting(false)
     }

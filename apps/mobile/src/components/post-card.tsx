@@ -5,7 +5,6 @@ import {
   isPrayable,
   POST_BACKGROUND_STYLES,
   POST_TYPE_LABELS,
-  PRAYER_KIND_LABELS,
   PRAYER_REALM_LABELS,
   type Card,
   type CardAction,
@@ -76,6 +75,8 @@ export const CardFrame = createContext<{ frame: (box: ReactNode) => ReactNode; n
  * The card's text colors where a skin puts it on its own background (Full Screen Sparkler's
  * starfields and dark color blocks, Steve 2026-11-01), and a light plate under the action icons there.
  */
+/** A skin's own font for people's names on the card (Ceramic Figurines' greeting-card script, Steve 2026-11-01). */
+export const CardNameFont = createContext<string | null>(null);
 export const CardInk = createContext<{ text: string; muted: string; plate?: string; /** Points added to the body text (the skin's words 1 pt bigger, Steve). */ bump?: number } | null>(null);
 
 export const PostCard = memo(function PostCard({
@@ -98,6 +99,8 @@ export const PostCard = memo(function PostCard({
   const noType = useContext(CardNoType);
   const frame = useContext(CardFrame);
   const ink = useContext(CardInk);
+  const nameFont = useContext(CardNameFont);
+  const nameStyle = nameFont ? { fontFamily: nameFont, fontWeight: 'normal' as const } : null;
   const inkText = ink ? { color: ink.text } : null;
   const inkMuted = ink ? { color: ink.muted } : null;
   const inkBody = ink ? { color: ink.text, ...(ink.bump ? { fontSize: type.body.fontSize + ink.bump, lineHeight: type.body.lineHeight + ink.bump } : null) } : null;
@@ -111,7 +114,6 @@ export const PostCard = memo(function PostCard({
   const bg = card.media.length === 0 && card.background && card.body.length <= 280 ? POST_BACKGROUND_STYLES[card.background as keyof typeof POST_BACKGROUND_STYLES] : undefined;
   const tags = [
     label('prayerRealm', card.realm, PRAYER_REALM_LABELS[card.realm as keyof typeof PRAYER_REALM_LABELS]),
-    label('prayerKind', card.kind, PRAYER_KIND_LABELS[card.kind as keyof typeof PRAYER_KIND_LABELS]),
   ].filter(Boolean);
 
   const typeLabel = noType ? null : <Text style={type.script}>{label('postType', card.postType, POST_TYPE_LABELS[card.postType])}</Text>;
@@ -122,7 +124,7 @@ export const PostCard = memo(function PostCard({
       <View style={styles.header}>
         <UrgencyLight urgency={card.urgency} />
         <Text
-          style={lines ? [styles.author, styles.authorShort, inkText] : [styles.author, inkText]}
+          style={lines ? [styles.author, styles.authorShort, inkText, nameStyle] : [styles.author, inkText, nameStyle]}
           numberOfLines={2}
           accessibilityLabel={card.author.tier && TIER_NAMES[card.author.tier] ? `${card.author.displayName}, ${n(TIER_NAMES[card.author.tier]!)}` : card.author.displayName}
           onPress={!card.author.anonymous && card.author.id && !card.isMine ? () => router.push(`/people/${card.author.id}`) : undefined}>
@@ -224,7 +226,7 @@ export const PostCard = memo(function PostCard({
 
         {card.topComment ? (
           <Pressable onPress={open} style={styles.comment} accessibilityRole="link" accessibilityHint={t('card.openHint')}>
-            <Text style={[styles.commentAuthor, inkText]}>
+            <Text style={[styles.commentAuthor, inkText, nameStyle]}>
               {card.topComment.isUpdate ? t('card.update') : ''}
               {card.topComment.author.displayName}
             </Text>

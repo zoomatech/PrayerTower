@@ -50,14 +50,14 @@ struct MessagesView: View {
             .overlay { if !loaded && error == nil { ProgressView() } }
             .navigationTitle(w("tabs.messages"))
             .appLogo()
-            .navigationDestination(for: String.self) { ConversationScreen(id: $0) }
             .refreshable { await load() }
             .task { await load() }
         }
     }
 
     private func row(_ c: ConversationSummary) -> some View {
-        NavigationLink(value: c.id) {
+        // Opens directly: a value link here stayed shut when Messages was pushed from Me (iPhone 18 Pro, 2026-11-03).
+        NavigationLink { ConversationScreen(id: c.id) } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(c.title).font(.headline).lineLimit(1)
@@ -191,7 +191,7 @@ struct ConversationScreen: View {
             if m.mine { Spacer(minLength: 40) }
             VStack(alignment: .leading, spacing: 2) {
                 if !m.mine && view?.conversation.isGroup == true { Text(m.author).font(.caption.bold()).foregroundStyle(.tint) }
-                Text(m.body).foregroundStyle(m.mine ? .white : .primary)
+                Text(m.body).balloonLeading().foregroundStyle(m.mine ? .white : .primary)
                 HStack(spacing: 12) {
                     if let d = try? Date(m.createdAt, strategy: .iso8601) {
                         Text(d.formatted(date: .omitted, time: .shortened)).font(.caption2)
@@ -206,7 +206,8 @@ struct ConversationScreen: View {
                 }
                 .foregroundStyle(m.mine ? .white.opacity(0.8) : .secondary)
             }
-            .padding(10)
+            // Word balloons (Steve, 2026-11-02): a 3 pt margin, leading the font size + 1.
+            .padding(3)
             .background(m.mine ? AnyShapeStyle(.tint) : AnyShapeStyle(.thinMaterial), in: .rect(cornerRadius: 16))
             .accessibilityElement(children: .combine)
             if !m.mine { Spacer(minLength: 40) }
@@ -450,4 +451,26 @@ struct GroupsView: View {
             self.error = error.localizedDescription
         }
     }
+}
+
+/// A word balloon's lines set the body font's size + 1 apart (Steve, 2026-11-02), growing with the reader's text size.
+private struct BalloonLeading: ViewModifier {
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 17
+
+    func body(content: Content) -> some View {
+        // lineHeight comes with the iOS 26 SDK (Xcode 26, Swift 6.2); CI's default Xcode 16 builds without it.
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            content.lineHeight(.exact(points: size + 1))
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+private extension View {
+    func balloonLeading() -> some View { modifier(BalloonLeading()) }
 }

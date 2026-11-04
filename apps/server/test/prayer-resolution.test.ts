@@ -91,6 +91,12 @@ describe('Prayer resolution', () => {
       [repost.id],
     );
     expect(rows[0]).toEqual({ state: 'answered', prayercast: true, prayercast_count: 1 });
+    // "Yes" posts a thank-you to those who prayed and to the Lord (Steve, 2026-11-02).
+    const thanks = await db.query<{ post_type: string; body: string }>(
+      `select post_type, body from public.posts where user_id = $1 and post_type = 'praise' order by created_at desc limit 1`,
+      [poster],
+    );
+    expect(thanks.rows[0]).toEqual({ post_type: 'praise', body: resolution.thankYouWords('the Lord') });
     expect((await as(poster).post(`/posts/${repost.id}/resolution`, { answered: true, outcome: 'hoped' })).statusCode).toBe(409);
 
     const report = (await as(admin).get('/admin/resolution')).json();
@@ -112,5 +118,18 @@ describe('Prayer resolution', () => {
     expect(await notices(poster)).toEqual([]);
     expect((await as(poster).get('/features')).json().features.prayerResolution).toBe(false);
     await as(admin).patch('/admin/resolution-settings', { enabled: true, firstDays: 14, againDays: 30 });
+  });
+
+  it('names God as each community does in the thank-you, and no one in a non-religious one', () => {
+    expect(resolution.thankYouWords('the Lord')).toBe('My prayer was answered! Thank you to everyone who prayed with me, and thanks be to the Lord.');
+    expect(resolution.thankYouWords('Hashem')).toContain('thanks be to Hashem.');
+    expect(resolution.thankYouWords(null)).toBe('My request was answered! Thank you to everyone who kept me in mind.');
+  });
+
+  it('defaults to asking the next day, then each week', async () => {
+    const { rows } = await db.query<Record<string, string>>(
+      `select column_name, column_default from information_schema.columns where table_name = 'resolution_settings' and column_name in ('first_days', 'again_days', 'max_asks')`,
+    );
+    expect(Object.fromEntries(rows.map((r) => [r.column_name, r.column_default]))).toEqual({ first_days: '1', again_days: '7', max_asks: '4' });
   });
 });

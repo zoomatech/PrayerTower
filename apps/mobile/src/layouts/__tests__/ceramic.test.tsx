@@ -1,11 +1,12 @@
 // The Ceramic Figurines skin (Steve, 2026-10-31): angels hauling plaques on pulleys, ceramic placards for comments.
 import { contrastRatio } from '@prayer-tower/shared';
 import { fireEvent, screen, within } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { renderApp, sampleCard } from '@/__tests__/helpers';
+import { CardNameFont } from '@/components/post-card';
 import { api } from '@/lib/api';
-import { angelSide, CeramicLayout, ceramicTokens, initials, LOOKS, lookFor, MUTED, PLAQUE_TINTS, pointerAt, ropeGeometry, TOP } from '@/layouts/ceramic';
+import { angelSide, CeramicLayout, ceramicTokens, initials, LOOKS, lookFor, MUTED, NAME_FONT, PLAQUE_TINTS, pointerAt, ropeGeometry, TOP } from '@/layouts/ceramic';
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -68,7 +69,7 @@ describe('Ceramic Figurines drawing', () => {
 });
 
 describe('Ceramic Figurines comments', () => {
-  it('stacks the placards with the first comment showing, flops them down on a tap, and folds them on a tap', async () => {
+  it('fades the first comment into "(+ x more)", opens them Facebook style on a tap, and folds them on a tap', async () => {
     const comments = [
       { id: 'c1', parentId: null, body: 'Praying for steady hands tonight.', isUpdate: false, createdAt: '2026-10-31T10:00:00Z', author: { displayName: 'Evelyn R' } },
       { id: 'c2', parentId: 'c1', body: 'Thank you, Evelyn.', isUpdate: false, createdAt: '2026-10-31T10:05:00Z', author: { displayName: 'Margaret H' } },
@@ -90,34 +91,28 @@ describe('Ceramic Figurines comments', () => {
       />,
     );
     await layout();
-    // Closed: one placard with the newest comment's first line, the rest stacked behind it.
+    // Closed: the newest comment's first line fades into how many more, replies counted.
     const stack = await screen.findByTestId(`ceramic-stack-${card.id}`);
-    expect(within(stack).getByText(/Praying for steady hands tonight\./)).toBeTruthy();
-    expect(within(stack).getByText('+1')).toBeTruthy();
+    expect(stack.props.accessibilityLabel).toMatch(/Praying for steady hands tonight\./);
+    expect(within(stack).getByText('(+ 3 more)')).toBeTruthy();
     expect(screen.queryByText('Lifting you both up.')).toBeNull();
 
     await fireEvent.press(stack);
-    expect(await screen.findByTestId('ceramic-comment-c1')).toBeTruthy();
+    expect(await screen.findByTestId('fb-comment-c1')).toBeTruthy();
     expect(screen.getByText('Lifting you both up.')).toBeTruthy();
-    // The first reply hangs under the comment that has replies.
-    const first = screen.getByTestId('ceramic-first-c1');
-    expect(within(first).getByText(/Thank you, Evelyn\./)).toBeTruthy();
-    expect(within(first).getByText('+1')).toBeTruthy();
-
-    await fireEvent.press(first);
-    const reply = await screen.findByTestId('ceramic-reply-c3');
+    // The first reply shows under the comment that has replies; "View all" brings the rest.
+    expect(screen.getByText('Thank you, Evelyn.')).toBeTruthy();
+    expect(screen.queryByText('He is in good hands.')).toBeNull();
+    await fireEvent.press(screen.getByText('View all 2 replies'));
+    const reply = await screen.findByTestId('fb-comment-c3');
     expect(within(reply).getByText('He is in good hands.')).toBeTruthy();
     // Replies never get a Reply button; each top-level comment does.
     expect(within(reply).queryByText('Reply')).toBeNull();
     expect(screen.getAllByText('Reply').length).toBe(2);
 
-    // A tap on a reply folds the replies back to the first one.
-    await fireEvent.press(within(reply).getByLabelText(/Folds the replies back up/));
-    expect(await screen.findByTestId('ceramic-first-c1')).toBeTruthy();
-
-    // A tap on a comment folds the placards back into the stack.
-    await fireEvent.press(screen.getAllByLabelText(/Folds the comments back up/)[0]!);
-    expect(await screen.findByTestId(`ceramic-stack-${card.id}`)).toBeTruthy();
+    // A tap on a comment folds them closed again.
+    await fireEvent.press(screen.getByText('Praying for steady hands tonight.'));
+    expect(await screen.findByText('(+ 3 more)')).toBeTruthy();
   });
 
   it('lets a member pick their own figurines', async () => {
@@ -129,5 +124,34 @@ describe('Ceramic Figurines comments', () => {
     await fireEvent.press(await screen.findByTestId('ceramic-look-choir'));
     expect(screen.getByTestId('ceramic-look-choir')).toHaveProp('aria-pressed', true);
     expect(screen.getByText('Figurines: Choir Kids')).toBeTruthy();
+  });
+});
+
+describe('Ceramic Figurines names', () => {
+  it('sets people’s names in the greeting-card script, on the plaque and on every placard', async () => {
+    const comments = [
+      { id: 'n1', parentId: null, body: 'Holding you close in prayer.', isUpdate: false, createdAt: '2026-10-31T10:00:00Z', author: { displayName: 'Evelyn R' } },
+      { id: 'n2', parentId: 'n1', body: 'Thank you.', isUpdate: false, createdAt: '2026-10-31T10:05:00Z', author: { displayName: 'Margaret H' } },
+    ];
+    (api.comments as jest.Mock).mockResolvedValue({ comments });
+    const card = sampleCard({ counts: { ...sampleCard().counts, comments: 1 } });
+    await renderApp(
+      <CeramicLayout
+        cards={[card]}
+        theme={null}
+        pinnedId={null}
+        renderCard={() => <CardNameFont.Consumer>{(f) => <Text>{`font ${f}`}</Text>}</CardNameFont.Consumer>}
+        refreshing={false}
+        onRefresh={() => undefined}
+        onEndReached={() => undefined}
+        atEnd
+      />,
+    );
+    await layout();
+    expect(await screen.findByText(`font ${NAME_FONT}`)).toBeTruthy();
+    await fireEvent.press(await screen.findByTestId(`ceramic-stack-${card.id}`));
+    const flat = (el: { props: { style?: unknown } }) => StyleSheet.flatten(el.props.style as never) as { fontFamily?: string };
+    expect(flat(await screen.findByText('Evelyn R')).fontFamily).toBe(NAME_FONT);
+    expect(flat(screen.getByText('Margaret H')).fontFamily).toBe(NAME_FONT);
   });
 });

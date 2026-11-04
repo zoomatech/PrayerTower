@@ -1,7 +1,7 @@
 // The heart of the app: someone asks, someone else prays, promises to keep
 // praying, and writes to them privately; the requester accepts and replies.
 import { expect, test } from '@playwright/test';
-import { as, card, postIdByText, signIn, unique } from './helpers';
+import { as, card, postIdByText, prayerCast, signIn, unique } from './helpers';
 
 test.describe.serial('ask, pray, commit and message', () => {
   const text = unique('[Demo] Please pray for my brother, his surgery is Friday.');
@@ -11,7 +11,7 @@ test.describe.serial('ask, pray, commit and message', () => {
     await signIn(page, 'carol');
     await page.getByText('Type your prayer here').first().click();
     await page.getByPlaceholder('Type your prayer here').fill(text);
-    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    await prayerCast(page);
     await expect(page.getByText(text).first()).toBeVisible();
     postId = await postIdByText(text);
   });

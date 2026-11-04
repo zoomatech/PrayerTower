@@ -20,6 +20,7 @@ import Testing
         #expect(try await api.prayers(postId: "sample-p1").count == 4)
         #expect(try await api.commitments().commitments.count == 1)
         #expect(try await api.conversations().count == 1)
+        #expect(try await api.conversation("sample-m1").messages.count == 2)
         #expect(try await api.notifications().count == 1)
         #expect(try await api.topicGroups().first?.name == "Cancer survivors")
         #expect(try await api.topicGroup("sample-g1").posts.first?.comments.count == 1)
@@ -52,6 +53,35 @@ import Testing
         #expect((one["post"]?.body.count ?? 0) > 100)
         #expect(SampleServer.posts(["app", "-PTSampleData", "-PTSamplePosts", "1000"]) == 1000)
         #expect(SampleServer.posts(["app", "-PTSampleData"]) == nil)
+    }
+
+    /// A new post is the top post on the member's own feed and own page (Steve, 2026-11-02).
+    @Test func aNewPostIsTheTopPostOnTheFeedAndTheMembersPage() throws {
+        let sent = try JSONSerialization.data(withJSONObject: ["body": "Thank you, Lord, for this morning.", "postType": "praise"])
+        // Its own store, so the other tests running beside it still see the plain sample feed.
+        let kept = Locked<[String]>([])
+        let made = try JSONDecoder().decode(CreatedPost.self, from: SampleServer.answer(method: "POST", path: "/posts", body: sent, kept: kept).body).post
+        #expect(made.body == "Thank you, Lord, for this morning." && made.isMine)
+        let feed = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed", kept: kept).body)
+        #expect(feed.posts.first?.id == made.id)
+        let long = try JSONDecoder().decode(FeedPage.self, from: SampleServer.answer(method: "GET", path: "/feed", query: ["page": "0"], posts: 100, kept: kept).body)
+        #expect(long.posts.first?.id == made.id)
+        let page = try JSONDecoder().decode(PersonPage.self, from: SampleServer.answer(method: "GET", path: "/people/\(SampleServer.memberId)", kept: kept).body)
+        #expect(page.posts.first?.id == made.id)
+    }
+
+    /// PrayerCast (Steve, 2026-11-02): public joins the feed; private is kept nowhere.
+    @Test func aPublicPrayerCastJoinsTheFeedAndAPrivateOneIsKeptNowhere() throws {
+        let kept = Locked<[String]>([])
+        let enc = JSONEncoder()
+        var p = NewPost(); p.body = "Lord, carry my friend through tonight."
+        let pub = try JSONDecoder().decode(PrayerCastSent.self, from: SampleServer.answer(method: "POST", path: "/prayercast", body: try enc.encode(CastBody(post: p, visibility: .public, idempotencyKey: "a")), kept: kept).body)
+        #expect(pub.post?.body == p.body)
+        let priv = try JSONDecoder().decode(PrayerCastSent.self, from: SampleServer.answer(method: "POST", path: "/prayercast", body: try enc.encode(CastBody(post: p, visibility: .private, idempotencyKey: "b")), kept: kept).body)
+        #expect(priv.post == nil)
+        #expect(kept.withLock { $0.count } == 1)
+        let json = try JSONSerialization.jsonObject(with: try enc.encode(CastBody(post: p, visibility: .private, idempotencyKey: "c"))) as? [String: Any]
+        #expect(json?["visibility"] as? String == "private" && json?["body"] as? String == p.body)
     }
 
     @Test func unknownReadsAreNotFoundAndWritesSucceed() {

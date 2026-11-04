@@ -495,46 +495,43 @@ private struct NeonRun: View {
     }
 }
 
-/// A closed comment cluster (Steve, 2026-10-30): the top comment's first line on a neon card laid
-/// forward on its face, the others a fading recession of neon lines under it.
+/// A closed comment cluster: the top comment's first line on a neon card laid forward on its face,
+/// fading out (Steve, 2026-11-02), and under it "(+ x more)" for the comments waiting; no lines.
 private struct FaceDownCard: View {
+    let name: String
     let line: String
-    let behind: Int
+    /// "(+ x more)", or nil when the card is the only one.
+    let more: String?
     let look: VineLook
     let depth: Int
 
     var body: some View {
         let color = look.neon(depth)
         let backdrop = look.backdrop.map { Color($0) } ?? Color.pageBackground
-        ZStack(alignment: .leading) {
-            ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.5), width: 5)
-                .background(backdrop, in: .rect(cornerRadius: 10))
-            Text(line).font(.callout.bold()).lineLimit(1).foregroundStyle(.white)
-                .shadow(color: color, radius: 3)
-                .padding(.horizontal, 16)
-        }
-        .frame(height: 50)
-        .rotation3DEffect(.degrees(40), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.45)
-        // The other comments: a recession of neon lines under it, each further back, narrower and fainter.
-        .background(alignment: .bottom) {
-            ZStack(alignment: .top) {
-                ForEach(0..<min(behind, 4), id: \.self) { k in
-                    let step = CGFloat(k + 1)
-                    Capsule().fill(color).frame(height: 3).shadow(color: color, radius: 4)
-                        .padding(.horizontal, 8 * step)
-                        .opacity(0.75 - Double(k) * 0.18)
-                        .offset(y: 9 * step)
-                }
+        VStack(alignment: .leading, spacing: 4) {
+            ZStack(alignment: .leading) {
+                ConnectorOutline(shape: NeonFrame(radius: 10), look: NeonGlassLook(color: color, white: 0.5), width: 5)
+                    .background(backdrop, in: .rect(cornerRadius: 10))
+                FadingLine(name: name, body: line, color: .white)
+                    .shadow(color: color, radius: 3)
+                    .padding(.horizontal, 16)
             }
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .accessibilityHidden(true)
+            .frame(height: 50)
+            .rotation3DEffect(.degrees(40), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.45)
+            if let more {
+                Text(more).font(.subheadline.bold()).foregroundStyle(.white).shadow(color: color, radius: 3)
+                    .frame(minHeight: 32)
+                    .padding(.leading, 6)
+            }
         }
         .padding(.top, 14)
-        .padding(.bottom, 14 + CGFloat(min(behind, 4)) * 9)
+        .padding(.bottom, 14)
         .padding(.leading, NeonDrop.indent(depth))
         .padding(.trailing, 16)
         .overlay(alignment: .leading) { NeonDrop(look: look, depth: depth, y: 39).padding(.top, -NeonDrop.gap).accessibilityHidden(true) }
         .contentShape(.rect)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(name): \(line)" + (more.map { ". \($0)" } ?? ""))
     }
 }
 
@@ -569,8 +566,8 @@ private struct CommentLevel: View {
     let wording: Wording
     var onOpen: ((Card) -> Void)?
     @State private var hearted: Set<String> = []
-    /// Open: the top 5 comments laid out in full. Closed: only the top comment's first line, the
-    /// rest a fading recession of neon lines behind it (Steve, 2026-10-30).
+    /// Open: the top 5 comments laid out in full. Closed: only the top comment's first line, fading
+    /// out, and "(+ x more)" for the rest (Steve, 2026-11-02).
     @State private var open: Bool
     @Environment(AppModel.self) private var model
 
@@ -594,6 +591,14 @@ private struct CommentLevel: View {
         func walk(_ p: String) { for c in all where c.parentId == p { out.append(c); walk(c.id) } }
         walk(parent)
         return out
+    }
+
+    /// Every comment waiting in the closed cluster, replies counted.
+    private var hidden: Int {
+        let rest = here.dropFirst()
+        guard depth < 3 else { return rest.count }
+        func under(_ id: String) -> Int { all.filter { $0.parentId == id }.reduce(0) { $0 + 1 + under($1.id) } }
+        return rest.reduce(0) { $0 + 1 + under($1.id) }
     }
 
     var body: some View {
@@ -621,7 +626,7 @@ private struct CommentLevel: View {
                     }
                     .transition(.opacity)
                 } else {
-                    FaceDownCard(line: "\(top.author.displayName): \(top.body)", behind: here.count - 1, look: look, depth: depth)
+                    FaceDownCard(name: top.author.displayName, line: top.body, more: hidden > 0 ? model.words("fb.more", ["n": "\(hidden)"]) : nil, look: look, depth: depth)
                         .transition(.opacity)
                 }
             }

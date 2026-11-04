@@ -2,7 +2,7 @@
 // tells what God did; it then shows under the Testimonies filter. (Demo Pastor posts here:
 // Ruth already reaches the new-member limit of 3 requests a day in 08-offline.)
 import { expect, test } from '@playwright/test';
-import { postIdByText, signIn, unique } from './helpers';
+import { postIdByText, prayerCast, signIn, unique } from './helpers';
 
 test('a member shares a testimony and it shows under Testimonies', async ({ page }) => {
   const text = unique('[Demo] Pray that my sister finds a job.');
@@ -10,7 +10,7 @@ test('a member shares a testimony and it shows under Testimonies', async ({ page
   await signIn(page, 'pastor');
   await page.getByText('Type your prayer here').first().click();
   await page.getByPlaceholder('Type your prayer here').fill(text);
-  await page.getByRole('button', { name: 'Post', exact: true }).click();
+  await prayerCast(page);
   await expect(page.getByText(text).first()).toBeVisible();
   await postIdByText(text); // saved before we open it
 
