@@ -63,6 +63,7 @@ import { libraryRoutes } from './modules/library/routes.js';
 import { isSecular } from './modules/communities/index.js';
 import { neutralText, RELIGIOUS_WORDS } from './modules/communities/neutral-text.js';
 import { liveRoutes, practiceRoomRoutes } from './modules/live/routes.js';
+import { videoCircleRoutes } from './modules/video-circles/routes.js';
 import type { JaasKeys } from './modules/live/jaas.js';
 import { practiceModeRoutes } from './modules/practice-mode/routes.js';
 import type { Converse } from './modules/ai/provider.js';
@@ -380,6 +381,7 @@ export function buildApp({ db, verifyToken, storage = null, logger = false, cors
     readingPlanRoutes(authed, db);
     libraryRoutes(authed, db);
     liveRoutes(authed, db, jaas);
+    videoCircleRoutes(authed, db, jaas);
     practiceModeRoutes(authed, db, { converse, jaas: !!jaas, appStore: !!appleVerifier, practicePurchases });
     communityRoutes(authed, db);
     surveyRoutes(authed, db);
