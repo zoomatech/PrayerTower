@@ -76,6 +76,11 @@ public class MacMenuModule: Module {
       }
     }
     let file = items("file")
+    // Command-N is the system's New Window; a second Command-N is a clash UIKit warns about
+    // ("duplicate modifierFlags: command, input: N"), so ours replaces it.
+    if commands.contains(where: { $0.key.lowercased() == "n" && !$0.shift }) {
+      builder.remove(menu: .newScene)
+    }
     if !file.isEmpty {
       builder.insertChild(UIMenu(title: "", options: .displayInline, children: file), atStartOfMenu: .file)
     }
