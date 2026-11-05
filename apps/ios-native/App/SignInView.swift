@@ -41,15 +41,15 @@ struct SignInView: View {
     var body: some View {
         Form {
             Section {
-                Text("🕊").font(.largeTitle).accessibilityHidden(true)
+                DecorativeGlyph(glyph: "🕊", size: 44)
                 Text(w.server("Prayer Tower")).font(.largeTitle.bold())
-                Text(w("signIn.tagline")).foregroundStyle(.secondary)
+                Text(w("signIn.tagline")).foregroundStyle(Color.subtle)
             }
             switch mode {
             case .forgot: forgot
             default: account
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let notice { Text(notice) }
         }
         .task { config = (try? await model.store.api.signupConfig()) ?? SignupConfig(inviteOnly: true) }
@@ -80,8 +80,15 @@ struct SignInView: View {
                 .textContentType(mode == .signUp ? .newPassword : .password)
         }
         Section {
-            Button(w(mode == .signIn ? "signIn.signIn" : "signIn.createAccount")) { Task { await submit() } }
-                .disabled(!ready)
+            // Never grayed out (a disabled button's gray text fails contrast); a tap with something
+            // missing says what to fill in.
+            Button(w(mode == .signIn ? "signIn.signIn" : "signIn.createAccount")) {
+                guard ready else {
+                    if !busy { error = w.server("Enter your email and a password of at least 6 characters.") }
+                    return
+                }
+                Task { await submit() }
+            }
             if mode == .signUp && config.inviteOnly { Text(w("signIn.inviteHint")).font(.footnote) }
             if mode == .signUp { LegalLinksView(prefix: w("signIn.legalPrefix")) }
             if mode == .signIn && config.passkeys {
@@ -92,7 +99,10 @@ struct SignInView: View {
                 }
                 .disabled(busy)
             }
-            if mode == .signIn { Button(w("signIn.forgot")) { switchMode(.forgot) } }
+            if mode == .signIn {
+                // The same plain row button as the switch below it, which grows with the text.
+                Button(w("signIn.forgot")) { switchMode(.forgot) }
+            }
             Button(w(mode == .signIn ? "signIn.toSignUp" : "signIn.toSignIn")) { switchMode(mode == .signIn ? .signUp : .signIn) }
         }
     }
@@ -214,7 +224,7 @@ struct CodeView: View {
                         .textContentType(.oneTimeCode)
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if useBackup {
                 Button("Use this code") { Task { await run { try await model.store.useBackupCode(backup) } } }
                     .disabled(busy || !BackupCode.looksComplete(backup))

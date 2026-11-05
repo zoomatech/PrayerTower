@@ -75,21 +75,13 @@ enum PenCurl {
     }
 }
 
-/// A frame with cut corners, like a bent neon tube (Neon Cinderella).
-struct CutCorners: Shape {
-    var cut: Double = 12
+/// A neon box bent from one glass tube: straight Tron-style runs meeting in small, elegant curved
+/// corners, with no cut corners or ornaments (Steve, 2026-10-30).
+struct NeonFrame: Shape {
+    /// A box's corner: a small, smooth bend, never so big the box turns into an oval or a pill.
+    var radius: Double = 12
     func path(in r: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: r.minX + cut, y: r.minY))
-        p.addLine(to: CGPoint(x: r.maxX - cut, y: r.minY))
-        p.addLine(to: CGPoint(x: r.maxX, y: r.minY + cut))
-        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - cut))
-        p.addLine(to: CGPoint(x: r.maxX - cut, y: r.maxY))
-        p.addLine(to: CGPoint(x: r.minX + cut, y: r.maxY))
-        p.addLine(to: CGPoint(x: r.minX, y: r.maxY - cut))
-        p.addLine(to: CGPoint(x: r.minX, y: r.minY + cut))
-        p.closeSubpath()
-        return p
+        RoundedRectangle(cornerRadius: min(radius, min(r.width, r.height) / 4), style: .continuous).path(in: r)
     }
 }
 
@@ -125,11 +117,31 @@ struct Scallop: Shape {
 
 /// A small flower or star mark, drawn before comment words on Blossom Garden and Neon Cinderella
 /// (`LeafMark` in layouts/motifs.tsx): five petals round a center, or a glowing four-point star.
+/// Four points meeting in a narrow waist: Christmas Star's comment mark.
+struct FourPointStar: Shape {
+    func path(in r: CGRect) -> Path {
+        let c = CGPoint(x: r.midX, y: r.midY), w = r.width * 0.14
+        var p = Path()
+        p.move(to: CGPoint(x: c.x, y: r.minY))
+        p.addLine(to: CGPoint(x: c.x + w, y: c.y - w))
+        p.addLine(to: CGPoint(x: r.maxX, y: c.y))
+        p.addLine(to: CGPoint(x: c.x + w, y: c.y + w))
+        p.addLine(to: CGPoint(x: c.x, y: r.maxY))
+        p.addLine(to: CGPoint(x: c.x - w, y: c.y + w))
+        p.addLine(to: CGPoint(x: r.minX, y: c.y))
+        p.addLine(to: CGPoint(x: c.x - w, y: c.y - w))
+        p.closeSubpath()
+        return p
+    }
+}
+
 struct Mark: View {
     let shape: LeafShape
     let color: Color
     let center: Color
     var size: Double = 18
+    @ScaledMetric private var scale: CGFloat = 1
+    private var side: CGFloat { CGFloat(size) * min(scale, 1.5) }
 
     var body: some View {
         Group {
@@ -152,7 +164,9 @@ struct Mark: View {
                 }
                 .frame(width: size, height: size)
             case .star:
-                Text("✦").font(.system(size: size)).foregroundStyle(color).neonTube(color)
+                // A drawn four-point star (no text glyph or symbol, which the audit reads as text),
+                // growing with the words beside it.
+                FourPointStar().fill(color).frame(width: side, height: side).shadow(color: color.opacity(0.8), radius: 3)
             default:
                 EmptyView()
             }
@@ -162,18 +176,31 @@ struct Mark: View {
 }
 
 extension View {
-    /// The tube look shared by the neon styles: a faint wide bloom, a brighter halo and a thin white core.
+    /// A soft radiant glow around something already drawn as neon glass.
     func neonTube(_ color: Color) -> some View {
-        self.shadow(color: color.opacity(0.9), radius: 3).shadow(color: color.opacity(0.5), radius: 10).shadow(color: color.opacity(0.25), radius: 22)
+        self.shadow(color: color.opacity(0.7), radius: 6).shadow(color: color.opacity(0.35), radius: 18)
     }
 }
+
 
 extension View {
     /// The title and tab bar over a skin take its backdrop, with light text on a dark one, so
     /// "Prayers" and the tabs stay readable on a night sky (Moonlit Gate, neon, the wall).
-    @ViewBuilder func skinBars(_ backdrop: RGB?) -> some View {
+    /// With `ownHeader`, the skin draws its own header band under the title bar (Steve,
+    /// 2026-11-01), so the title bar's background is hidden and only the tab bar takes the backdrop.
+    @ViewBuilder func skinBars(_ backdrop: RGB?, ownHeader: Bool = false) -> some View {
         #if os(iOS)
-        if let backdrop {
+        if ownHeader {
+            if let backdrop {
+                let scheme: ColorScheme = BackdropText(on: backdrop).light ? .dark : .light
+                self.toolbarBackground(.hidden, for: .navigationBar)
+                    .toolbarColorScheme(scheme, for: .navigationBar, .tabBar)
+                    .toolbarBackground(Color(backdrop), for: .tabBar)
+                    .toolbarBackground(.visible, for: .tabBar)
+            } else {
+                self.toolbarBackground(.hidden, for: .navigationBar).toolbarColorScheme(.light, for: .navigationBar)
+            }
+        } else if let backdrop {
             let scheme: ColorScheme = BackdropText(on: backdrop).light ? .dark : .light
             self.toolbarBackground(Color(backdrop), for: .navigationBar, .tabBar)
                 .toolbarBackground(.visible, for: .navigationBar, .tabBar)

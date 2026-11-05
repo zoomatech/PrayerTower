@@ -1,0 +1,27 @@
+// Menu → Settings → Themes (Steve, 2026-11-01): each theme's own settings.
+import { router } from 'expo-router';
+import { ScrollView, StyleSheet, Text } from 'react-native';
+
+import { MenuRow } from '@/components/menu-row';
+import { Button, Screen } from '@/components/ui';
+import { useT } from '@/lib/i18n';
+import { space, type } from '@/lib/theme';
+
+export default function Themes() {
+  const t = useT();
+  return (
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Button small variant="ghost" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))} />
+        <Text style={type.title} role="heading">
+          {t('themes.title')}
+        </Text>
+        <MenuRow label={t('themes.sparkler')} onPress={() => router.push('/sparkler-theme')} testID="themes-sparkler" />
+      </ScrollView>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { padding: space.lg, gap: space.md },
+});

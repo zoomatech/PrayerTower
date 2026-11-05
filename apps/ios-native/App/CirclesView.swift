@@ -18,11 +18,11 @@ struct CirclesView: View {
                         NavigationLink(value: c.id) {
                             VStack(alignment: .leading) {
                                 Text(c.name).font(.headline)
-                                Text("\(c.members) of 12").font(.caption).foregroundStyle(.secondary)
+                                Text("\(c.members) of 12").font(.caption).foregroundStyle(Color.subtle)
                             }
                         }
                     }
-                    if circles.isEmpty { Text("Start a circle for a few people you trust, or join one with a code.").foregroundStyle(.secondary) }
+                    if circles.isEmpty { Text("Start a circle for a few people you trust, or join one with a code.").foregroundStyle(Color.subtle) }
                 }
                 Section("Start a circle") {
                     TextField("Circle name", text: $name)
@@ -32,7 +32,7 @@ struct CirclesView: View {
                     TextField("Invite code", text: $code).textInputAutocapitalization(.characters).autocorrectionDisabled()
                     Button("Join") { Task { await join() } }.disabled(code.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .navigationTitle("Circles")
             .appLogo()
@@ -109,7 +109,7 @@ struct CircleDetailView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(view?.circle.name ?? "Circle")
         .refreshable { await load() }
@@ -156,11 +156,11 @@ struct CirclePostView: View {
                 .accessibilityElement(children: .combine)
             }
             ForEach(post.replies) { r in
-                Text("\(r.author.displayName ?? "A member"): \(r.body)").font(.callout).foregroundStyle(.secondary)
+                Text("\(r.author.displayName ?? "A member"): \(r.body)").font(.callout).foregroundStyle(Color.subtle)
             }
             HStack {
                 if post.isMine {
-                    Text("\(post.prayed ?? 0) prayed").font(.caption).foregroundStyle(.secondary)
+                    Text("\(post.prayed ?? 0) prayed").font(.caption).foregroundStyle(Color.subtle)
                 } else {
                     Button(post.prayedByMe ? "Prayed" : (model.wording == .neutral ? "I'm thinking of you" : "I prayed")) {
                         Task { await call { _ = try await model.store.api.circlePray(postId: post.id) } }
@@ -198,7 +198,7 @@ struct CirclePostView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red).font(.footnote) }
+            if let error { Text(error).foregroundStyle(Color.danger).font(.footnote) }
         }
     }
 

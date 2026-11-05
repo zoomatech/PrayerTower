@@ -6,8 +6,10 @@ struct AppSection: Identifiable, Hashable {
     let tag: Int
     let title: String
     let icon: String
-    /// Drawn instead of the SF Symbol, to match the Expo app's tab bar (🕊️ Prayers, 🙏 My Promises, 👤 Me).
+    /// Drawn instead of the SF Symbol, to match the Expo app's tab bar (🙏 My Promises, 👤 Me).
     var emoji: String? = nil
+    /// Prayers' drawn dove (Steve, 2026-10-30: "make it look like a dove"), in place of the emoji.
+    var dove = false
     var id: Int { tag }
 
     /// The icon for the sidebar.
@@ -15,7 +17,7 @@ struct AppSection: Identifiable, Hashable {
         Label {
             Text(title)
         } icon: {
-            if let emoji { Text(emoji).accessibilityHidden(true) } else { Image(systemName: icon) }
+            if dove { DoveShape().frame(width: 22, height: 22).accessibilityHidden(true) } else if let emoji { Text(emoji).accessibilityHidden(true) } else { Image(systemName: icon) }
         }
     }
 
@@ -23,6 +25,7 @@ struct AppSection: Identifiable, Hashable {
     /// an image, kept in its own colours.
     var tabImage: Image {
         #if os(iOS)
+        if dove { return Image(uiImage: DoveShape.tabImage) }
         if let emoji {
             let font = UIFont.systemFont(ofSize: 22)
             let text = emoji as NSString
@@ -36,12 +39,24 @@ struct AppSection: Identifiable, Hashable {
     }
 }
 
+/// The two donate items on the menu.
+enum Donate: String, Identifiable {
+    case upkeep, pool
+    var id: String { rawValue }
+}
+
 /// The signed-in app. Circles and Me show only what the admin switches turn on. On iPhone, tabs;
 /// on iPad (regular width) and Mac, a sidebar with the section beside it. Messages and Notices are
 /// in the sidebar but not in the iPhone tab bar under the feed: there they open from Me (Steve, 2026-10-30).
 struct MainTabs: View {
     @Environment(AppModel.self) private var model
     @State private var tab = 0
+    /// Changed by Home, so the feed starts again from its top screen.
+    @State private var home = UUID()
+    /// Menu → Settings, open.
+    @State private var settings = false
+    /// Menu → Donate to keep us up and running (Give) or Donate to the token pool (Token pools), open.
+    @State private var donate: Donate?
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var width
     private var sidebar: Bool { width == .regular }
@@ -50,9 +65,8 @@ struct MainTabs: View {
     #endif
 
     private var sections: [AppSection] {
-        // U+FE0F asks for the colour dove; without it 🕊 can draw as a black outline bird.
         var all = [
-            AppSection(tag: 0, title: model.words("tabs.prayers"), icon: "list.bullet", emoji: "🕊️"),
+            AppSection(tag: 0, title: model.words("tabs.prayers"), icon: "list.bullet", dove: true),
             // Open Circle: praying hands are a religious sign there.
             AppSection(tag: 1, title: model.words("tabs.promises"), icon: "checkmark.circle", emoji: model.wording == .neutral ? "🤝" : "🙏"),
         ]
@@ -81,15 +95,45 @@ struct MainTabs: View {
                 TabView(selection: $tab) {
                     // .tabItem rather than Tab(…), which needs iOS 18; the app supports iOS 17.
                     ForEach(sections) { s in
-                        screen(s.tag).tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
+                        screen(s.tag)
+                            // Clear of Home and Menu where they sit below the title bar.
+                            .contentMargins(.leading, s.tag == 0 && !model.feedOpen ? 0 : HomeAndMenu.column, for: .scrollContent)
+                            .tabItem { s.tabImage; Text(s.title) }.tag(s.tag)
+                            // The bar under the feed is 75% opaque (Steve, 2026-10-30).
+                            .seeThroughTabBar()
                     }
                 }
+                // Steve (2026-10-30): a Home icon in the top left corner of every screen, with the
+                // menu right below it, so there's always a way back to the feed.
+                // Over the feed they sit in its header's corner; on every other screen (Me, a request,
+                // anything with a back button) just below the title bar, with the content moved
+                // right to clear them, so they never cover a title, a back button or a name
+                // (Steve, 2026-11-01).
+                .overlay(alignment: .topLeading) {
+                    HStack(alignment: .top, spacing: 8) {
+                        homeAndMenu
+                        // Write a post: its own button beside Home and Menu, not part of them (Steve,
+                        // 2026-11-02).
+                        if tab == 0 && !model.feedOpen { writeButton }
+                    }
+                    .padding(.leading, 8).padding(.top, tab == 0 && !model.feedOpen ? 2 : HomeAndMenu.belowBar)
+                }
+                // The logo, twice the size it was in the bar (Steve, 2026-11-02).
+                .overlay(alignment: .topTrailing) { CornerLogo().padding(.trailing, 8).padding(.top, 2) }
+                .environment(\.logoInCorner, true)
             }
         }
         // ⌘1–⌘7 jump between sections with a hardware keyboard (iPad, Mac).
         .background { shortcuts }
         .task { await model.loadSettings() }
         .fullScreenCover(isPresented: Binding(get: { model.showTour }, set: { model.showTour = $0 })) { TourView() }
+        .sheet(isPresented: $settings) { SettingsView() }
+        .sheet(item: $donate) { d in
+            NavigationStack {
+                Group { if d == .upkeep { GiveView() } else { PoolsView() } }
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button(model.words("common.close")) { donate = nil } } }
+            }
+        }
         .onChange(of: model.openPost) { _, id in if id != nil { tab = 0 } }
         // Store screenshots (scripts/mac-screenshots-native.sh): open the asked-for screen.
         .onAppear {
@@ -105,6 +149,72 @@ struct MainTabs: View {
         }
     }
 
+    /// Home (back to the top of the feed) and, right below it, the menu of every section.
+    /// Laid out as `HomeAndMenu`: two 44-point buttons, 6 apart, 2 below the top.
+    private var homeAndMenu: some View {
+        VStack(spacing: 6) {
+            Button {
+                tab = 0
+                home = UUID()
+            } label: {
+                Image(systemName: "house.fill").resizable().scaledToFit().fontWeight(.semibold).frame(width: 20, height: 20).frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Home")
+            // Drawn as pictures at a fixed size, like a bar's buttons: held down at the larger text
+            // sizes, each shows enlarged in the Large Content Viewer, as Apple asks for bar items.
+            .accessibilityShowsLargeContentViewer { Image(systemName: "house.fill"); Text("Home") }
+            Menu {
+                ForEach(menuSections) { s in
+                    Button { go(s.tag) } label: { s.label }
+                }
+                // Settings → Themes → Full Screen Sparkler Theme → Background choices (Steve, 2026-11-01).
+                Button { settings = true } label: { Label(model.words("menu.settings"), systemImage: "gearshape") }
+                // Steve (2026-11-02): a donation to keep us up and running (Give → everyone, the
+                // shared fund that pays for the servers), and a donation of tokens to a token pool.
+                Button { donate = .upkeep } label: { Label(model.words("menu.donateUpkeep"), systemImage: "heart.circle") }
+                if model.me?.community?.shows("pools") ?? true {
+                    Button { donate = .pool } label: { Label(model.words("menu.donatePool"), systemImage: "tray.and.arrow.down") }
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal").resizable().scaledToFit().fontWeight(.semibold).frame(width: 20, height: 20).frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Menu")
+            .accessibilityShowsLargeContentViewer { Image(systemName: "line.3.horizontal"); Text("Menu") }
+        }
+        .foregroundStyle(Color.accessibleAccent)
+        .background(.regularMaterial, in: .rect(cornerRadius: 14))
+    }
+
+    private var writeButton: some View {
+        Button { model.composeNow = true } label: {
+            Image(systemName: "square.and.pencil").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+        }
+        .accessibilityLabel(model.words("compose.post"))
+        .keyboardShortcut("n", modifiers: .command)
+        .foregroundStyle(Color.accessibleAccent)
+        .background(.regularMaterial, in: .rect(cornerRadius: 14))
+    }
+
+    /// Every section, Messages and Notices included (on iPhone they open from Me).
+    private var menuSections: [AppSection] {
+        var all = sections
+        if !sidebar {
+            all.insert(AppSection(tag: 2, title: model.words("tabs.messages"), icon: "bubble.left.and.bubble.right"), at: min(2, all.count))
+            all.insert(AppSection(tag: 5, title: model.words("tabs.notices"), icon: "bell"), at: min(3, all.count))
+        }
+        return all
+    }
+
+    private func go(_ tag: Int) {
+        if tag == 0 { home = UUID() }
+        if !sidebar, tag == 2 || tag == 5 {
+            tab = 4
+            model.meOpens = tag
+        } else {
+            tab = tag
+        }
+    }
+
     @ViewBuilder private func screen(_ tag: Int) -> some View {
         switch tag {
         case 1: CommitmentsView()
@@ -113,7 +223,7 @@ struct MainTabs: View {
         case 4: MeView()
         case 5: NotificationsView()
         case 6: NavigationStack { TopicGroupsView() }
-        default: FeedView()
+        default: FeedView().id(home)
         }
     }
 
@@ -128,6 +238,53 @@ struct MainTabs: View {
     }
 }
 
+/// A peace dove in flight with an olive sprig in its beak: the Prayers icon, drawn on a 24-point grid.
+struct DoveShape: Shape {
+    func path(in r: CGRect) -> Path {
+        let s = min(r.width, r.height) / 24
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: r.minX + x * s, y: r.minY + y * s) }
+        var p = Path()
+        // Body, raised wings and fanned tail.
+        p.move(to: pt(3.6, 9.6))
+        p.addLine(to: pt(5.2, 9.1))
+        p.addQuadCurve(to: pt(7.4, 7.1), control: pt(5.7, 7.1))
+        p.addQuadCurve(to: pt(9.6, 8.8), control: pt(9, 7.2))
+        p.addQuadCurve(to: pt(13, 1.8), control: pt(10, 4.6))
+        for (x, y) in [(13.4, 3.4), (14.4, 2.6), (14.6, 4.4), (15.6, 4)] as [(CGFloat, CGFloat)] { p.addLine(to: pt(x, y)) }
+        p.addQuadCurve(to: pt(14.4, 9.4), control: pt(15.6, 7))
+        p.addQuadCurve(to: pt(21.2, 4), control: pt(16.8, 5.4))
+        p.addLine(to: pt(20.6, 5.6))
+        p.addLine(to: pt(21.8, 5.4))
+        p.addQuadCurve(to: pt(17, 11.2), control: pt(20.6, 9.2))
+        for (x, y) in [(19.4, 10.6), (22.8, 12.2), (20.6, 12.8), (22.6, 14.6), (19.6, 14), (20.4, 16), (16.8, 14.2)] as [(CGFloat, CGFloat)] { p.addLine(to: pt(x, y)) }
+        p.addQuadCurve(to: pt(8.4, 14), control: pt(12.4, 16.4))
+        p.addQuadCurve(to: pt(5.4, 10.4), control: pt(6, 12.4))
+        p.closeSubpath()
+        // The eye, left open.
+        p.addEllipse(in: CGRect(origin: pt(6.7, 8.1), size: CGSize(width: s, height: s)))
+        // The olive sprig: its stem and two leaves.
+        var stem = Path()
+        stem.move(to: pt(4, 9.8))
+        stem.addQuadCurve(to: pt(1.6, 13.4), control: pt(2.6, 11.2))
+        p.addPath(stem.strokedPath(StrokeStyle(lineWidth: 0.7 * s, lineCap: .round)))
+        for (x, y, turn) in [(2.4, 11.4, -30.0), (3.6, 12.4, 40.0)] as [(CGFloat, CGFloat, Double)] {
+            let leaf = Path(ellipseIn: CGRect(x: -1.1 * s, y: -0.45 * s, width: 2.2 * s, height: 0.9 * s))
+            p.addPath(leaf.applying(CGAffineTransform(rotationAngle: turn * .pi / 180).concatenating(CGAffineTransform(translationX: pt(x, y).x, y: pt(x, y).y))))
+        }
+        return p
+    }
+
+    #if os(iOS)
+    /// The dove for the iPhone tab bar, as a template image so it takes the bar's selected and unselected tints.
+    static let tabImage: UIImage = UIGraphicsImageRenderer(size: CGSize(width: 26, height: 26)).image { ctx in
+        UIColor.black.setFill()
+        let path = DoveShape().path(in: CGRect(x: 0, y: 0, width: 26, height: 26)).cgPath
+        ctx.cgContext.addPath(path)
+        ctx.cgContext.fillPath(using: .evenOdd)
+    }.withRenderingMode(.alwaysTemplate)
+    #endif
+}
+
 /// Me → Feed style: the skins this community offers (the server lists only what the skins
 /// switch allows). Hidden while there is nothing to choose between.
 struct FeedStyleSection: View {
@@ -136,8 +293,11 @@ struct FeedStyleSection: View {
     @State private var error: String?
 
     var body: some View {
+        // Demo mode (no server) lists every built-in skin straight away, so all of them can be tried
+        // live. (Loaded in onAppear it never showed: an empty section never appears.)
+        let shown = SampleServer.isOn() ? Self.samples(current: model.feedStyle ?? SampleServer.skin()) : choices
         Group {
-            if let c = choices, c.themes.count > 1 {
+            if let c = shown, c.themes.count > 1 {
                 let current = c.current ?? c.themes.first(where: { $0.is_default })?.slug
                 Section("Feed style") {
                     ForEach(c.themes) { t in
@@ -152,19 +312,48 @@ struct FeedStyleSection: View {
                         }
                         .accessibilityAddTraits(current == t.slug ? .isSelected : [])
                     }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if let error { Text(error).foregroundStyle(Color.danger) }
                 }
             }
         }
         // On every return to Me, so a skin just made in the theme maker is there to choose.
-        .onAppear { Task { choices = try? await model.store.api.feedThemes() } }
+        .onAppear {
+            if SampleServer.isOn() { return }
+            Task { choices = try? await model.store.api.feedThemes() }
+        }
+    }
+
+    /// Every built-in skin, as the server would list them, for demo mode.
+    static func samples(current: String?) -> FeedThemeChoices? {
+        let rows = AuditSamplesView.skins.map { t in
+            ["slug": t.slug, "name": t.name, "layout": t.layout, "status": "live", "is_default": false] as [String: Any]
+        }
+        let all: [String: Any] = ["themes": rows, "current": current ?? NSNull()]
+        guard let data = try? JSONSerialization.data(withJSONObject: all) else { return nil }
+        return try? JSONDecoder().decode(FeedThemeChoices.self, from: data)
     }
 
     private func choose(_ slug: String) async {
+        if SampleServer.isOn() {
+            model.feedStyle = slug
+            return
+        }
         do {
             choices = try await model.store.api.chooseFeedTheme(slug)
             model.feedStyle = slug
             error = nil
         } catch { self.error = error.localizedDescription }
+    }
+}
+
+private extension View {
+    /// The tab bar at 75% opacity. The Mac app has no tab bar to style.
+    @ViewBuilder func seeThroughTabBar() -> some View {
+        #if os(iOS)
+        self.toolbarBackground(Color.barBackground.opacity(0.75), for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+        #else
+        self
+        #endif
     }
 }

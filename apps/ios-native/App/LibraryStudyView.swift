@@ -12,7 +12,7 @@ struct WordStudyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
                 if let verse {
                     Text(w("library.study.tap"))
                     FlowLayout(spacing: 6) {
@@ -34,7 +34,7 @@ struct WordStudyView: View {
                             }
                         }
                     }
-                    Text(w("library.study.source")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("library.study.source")).font(.caption).foregroundStyle(Color.subtle)
                 } else if error == nil {
                     ProgressView()
                 }
@@ -66,14 +66,14 @@ struct WordEntryView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let entry {
                 Section {
                     Text(w("library.study.number", ["language": w(entry.language == "Hebrew" ? "library.study.hebrew" : "library.study.greek"), "id": entry.id, "pron": entry.pron]))
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.subtle)
                     Text(entry.definition).textSelection(.enabled)
-                    if !entry.derivation.isEmpty { Text(entry.derivation).font(.caption).foregroundStyle(.secondary) }
-                    if !entry.kjv.isEmpty { Text(w("library.study.kjv", ["words": entry.kjv])).font(.caption).foregroundStyle(.secondary) }
+                    if !entry.derivation.isEmpty { Text(entry.derivation).font(.caption).foregroundStyle(Color.subtle) }
+                    if !entry.kjv.isEmpty { Text(w("library.study.kjv", ["words": entry.kjv])).font(.caption).foregroundStyle(Color.subtle) }
                 } header: {
                     Text(w("library.study.meaning"))
                 }
@@ -84,7 +84,7 @@ struct WordEntryView: View {
                             Text(v.text).textSelection(.enabled)
                             if !v.as.isEmpty {
                                 Text(w("library.study.as", ["words": Array(NSOrderedSet(array: v.as)).compactMap { $0 as? String }.joined(separator: ", ")]))
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .font(.caption).foregroundStyle(Color.subtle)
                             }
                         }
                         NavigationLink(w("library.study.study")) { WordStudyView(ref: v.ref) }
@@ -213,7 +213,7 @@ struct PassageMarkRow: View {
         let mark = marks.marks[key]
         if let note = mark?.note {
             VStack(alignment: .leading, spacing: 2) {
-                Text(mark?.circle.map { w("library.noteSharedWith", ["circle": $0.name]) } ?? w("library.notePrivate")).font(.caption).foregroundStyle(.secondary)
+                Text(mark?.circle.map { w("library.noteSharedWith", ["circle": $0.name]) } ?? w("library.notePrivate")).font(.caption).foregroundStyle(Color.subtle)
                 Text(note)
             }
             .padding(8)
@@ -261,7 +261,7 @@ struct PassageMarkEditor: View {
                     ForEach(marks.circles, id: \.id) { Text($0.name).tag(String?.some($0.id)) }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if marks.marks[key] != nil {
                 Button(w("library.noteRemove"), role: .destructive) { save(clear: true) }.disabled(busy)
             }
@@ -307,7 +307,7 @@ struct MyNotesView: View {
     var body: some View {
         let notes = marks.marks.values.sorted { $0.updatedAt > $1.updatedAt }
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section { Text(w("library.notesIntro")) }
             if !marks.circles.isEmpty {
                 Section {
@@ -359,15 +359,15 @@ struct CircleNotesView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if let notes {
                 if notes.isEmpty { Text(w("library.notesCircleNone")) }
                 ForEach(notes) { n in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(n.mine == true ? w("library.notesYou") : (n.author ?? "")).font(.caption).foregroundStyle(.secondary)
+                        Text(n.mine == true ? w("library.notesYou") : (n.author ?? "")).font(.caption).foregroundStyle(Color.subtle)
                         Text(n.note ?? "")
                         Text("“\(n.quote)”").italic()
-                        Text(n.citation).font(.caption).foregroundStyle(.secondary)
+                        Text(n.citation).font(.caption).foregroundStyle(Color.subtle)
                     }
                     .listRowBackground(noteFill(n.color))
                 }
@@ -399,7 +399,7 @@ struct OfflineTextsView: View {
 
     var body: some View {
         List {
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section { Text(w("library.offlineIntro")) }
             if let list {
                 if !list.enabled {
@@ -410,7 +410,7 @@ struct OfflineTextsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(c.title).font(.headline)
                             Text(w("library.offlineSize", ["size": ByteCountFormatter.string(fromByteCount: Int64(c.bytes), countStyle: .file), "passages": String(c.passages)]))
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.caption).foregroundStyle(Color.subtle)
                             if have != nil { Text(have?.version == c.version ? w("library.offlineKept") : w("library.offlineOld")).font(.caption) }
                         }
                         if working == c.id {

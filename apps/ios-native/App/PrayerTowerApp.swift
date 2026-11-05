@@ -10,6 +10,7 @@ struct PrayerTowerApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(Color.accessibleAccent)
                 .environment(model)
                 .task { await model.start() }
                 // Back in the foreground: send anything done while offline.
@@ -48,8 +49,12 @@ final class AppModel {
     var tree: [MeaningEmoji] = []
     /// A request to open from a widget or Live Activity tap.
     var openPost: String?
+    /// A request is open over the feed, so Home and Menu step down below its title bar (Steve, 2026-11-01).
+    var feedOpen = false
     /// On iPhone, the Me menu page to open: Messages (2) or Notices (5), which are not tabs there.
     var meOpens: Int?
+    /// Set by the write-a-post button beside Home and Menu; the feed opens the composer.
+    var composeNow = false
     /// The code from an invite link (prayertower://sign-in?invite=CODE), for sign-up.
     var invite: String?
     /// The tour shows once after the welcome questions.

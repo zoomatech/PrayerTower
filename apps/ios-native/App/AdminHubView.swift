@@ -29,7 +29,7 @@ struct AdminHubView: View {
     var body: some View {
         Form {
             if let saved { Text(saved).foregroundStyle(.tint) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             // Circles and Groups switches at the top, so they're easy to find (Steve, 2026-10-31).
             if let board = AdminBoard.all.first(where: { $0.title == "topicGroups.adminSection" }) {
                 Section { NavigationLink(w(board.title)) { AdminBoardView(board: board) } }
@@ -326,7 +326,7 @@ struct AdminBoardView: View {
         Form {
             if let intro = board.intro { Section { Text(w(intro)) } }
             if let note { Text(note).foregroundStyle(.tint) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let settings {
                 Section {
                     ForEach(board.toggles, id: \.patch) { t in

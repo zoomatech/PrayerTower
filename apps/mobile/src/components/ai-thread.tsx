@@ -11,7 +11,7 @@ export function AiThread({ turns, you, ai }: { turns: AiTurn[]; you: string; ai:
       {turns.map((m, i) => (
         <View key={i} style={[styles.bubble, m.role === 'user' ? styles.mine : styles.theirs]}>
           <Text style={styles.who}>{m.role === 'user' ? you : ai}</Text>
-          <Text style={type.body}>{m.content}</Text>
+          <Text style={[type.body, styles.balloonText]}>{m.content}</Text>
         </View>
       ))}
     </View>
@@ -20,7 +20,9 @@ export function AiThread({ turns, you, ai }: { turns: AiTurn[]; you: string; ai:
 
 const styles = StyleSheet.create({
   list: { gap: space.sm },
-  bubble: { borderRadius: radius.lg, padding: space.md, gap: space.xs, maxWidth: '90%' },
+  // Word balloons (Steve, 2026-11-02): a 3 pt margin, leading the font size + 1.
+  bubble: { borderRadius: radius.lg, padding: 3, gap: space.xs, maxWidth: '90%' },
+  balloonText: { lineHeight: type.body.fontSize + 1 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.primarySoft },
   theirs: { alignSelf: 'flex-start', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   who: { ...type.small, fontWeight: '600' },

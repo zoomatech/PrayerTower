@@ -79,7 +79,7 @@ private struct IntentionPicker: View {
                 Dots(days: intention.week.map(\.prayed))
                 if let line = intention.line(w) { Text(line).font(.footnote) }
             }
-            Text(w("intention.rest")).font(.footnote).foregroundStyle(.secondary)
+            Text(w("intention.rest")).font(.footnote).foregroundStyle(Color.subtle)
         }
     }
 

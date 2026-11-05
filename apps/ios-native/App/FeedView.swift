@@ -10,7 +10,10 @@ struct FeedView: View {
     @State private var nextPage: Int?
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
-    @State private var composing = false
+    /// The writing screen, open, with whatever was already typed in a skin's own post box. (An
+    /// item, not a flag and a separate text: a sheet shown by a flag can open with the text as it
+    /// was before, and the words typed so far were lost; Steve, 2026-11-02.)
+    @State private var composing: Composing?
     @State private var opened: String?
     @State private var committing: Card?
     @State private var gifting: Card?
@@ -34,7 +37,9 @@ struct FeedView: View {
             Group {
                 if let theme, theme.kind != .column {
                     SkinnedFeed(theme: theme, cards: posts, wording: model.wording, hooks: hooks, row: row)
-                        .skinBars(Skin.backdrop(theme))
+                        .skinBars(Skin.backdrop(theme), ownHeader: SkinHeader.drawsOwn(theme))
+                        // A small title in the middle, clear of the Home icon in the top left corner.
+                        .navigationBarTitleDisplayMode(.inline)
                 } else if wide {
                     grid
                 } else {
@@ -53,10 +58,15 @@ struct FeedView: View {
             }
             .navigationTitle(model.wording == .neutral ? "Requests" : "Prayers")
             .appLogo()
+            .environment(\.logoPlate, theme.flatMap(SkinHeader.logoPlate))
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { composing = true } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
-                        .keyboardShortcut("n", modifiers: .command)
+                // On iPhone the write-a-post button stands on its own beside Home and Menu (Steve,
+                // 2026-11-02); with the sidebar it stays in the bar.
+                if wide {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { composing = Composing(text: "") } label: { Label(model.words("compose.post"), systemImage: "square.and.pencil") }
+                            .keyboardShortcut("n", modifiers: .command)
+                    }
                 }
                 if wide {
                     // No pull-to-refresh with a pointer: a button, and ⌘R.
@@ -67,6 +77,7 @@ struct FeedView: View {
                 }
             }
             .navigationDestination(item: $opened) { PostDetailView(postId: $0) }
+            .onChange(of: opened, initial: true) { _, id in model.feedOpen = id != nil }
             // A tap on the Pray now widget or the Live Activity opens its request.
             .onChange(of: model.openPost, initial: true) { _, id in
                 guard let id else { return }
@@ -91,7 +102,23 @@ struct FeedView: View {
                     notice = message
                 }
             }
-            .sheet(isPresented: $composing) { ComposeView { _ in Task { await load() } } }
+            .onChange(of: model.composeNow) { _, now in
+                guard now else { return }
+                model.composeNow = false
+                composing = Composing(text: "")
+            }
+            .sheet(item: $composing) { c in
+                ComposeView(onPosted: { card in
+                    // The post just made is the top post at once, before the feed reloads (Steve, 2026-11-02).
+                    posts.removeAll { $0.id == card.id }
+                    posts.insert(card, at: 0)
+                    Task { await load() }
+                }, start: c.text.isEmpty ? nil : {
+                    var post = NewPost()
+                    post.body = c.text
+                    return post
+                }())
+            }
             .refreshable { await load() }
             .task(id: model.feedStyle) { await load() }
             .sheet(item: $encouraging) { card in EncourageSheet(card: card) { note in Task { await encourage(card, note) } } }
@@ -134,7 +161,8 @@ struct FeedView: View {
             open: { opened = $0.id },
             loadComments: { card in (try? await model.store.api.comments(postId: card.id)) ?? [] },
             loadMore: more,
-            hasMore: nextPage != nil
+            hasMore: nextPage != nil,
+            compose: { composing = Composing(text: $0) }
         )
     }
 
@@ -153,7 +181,9 @@ struct FeedView: View {
             dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
             posts = page.posts
             // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
-            theme = SampleServer.skin().flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
+            // In demo mode, the skin chosen under Me → Feed style wins over the launch one.
+            let sample = SampleServer.isOn() ? (model.feedStyle ?? SampleServer.skin()) : nil
+            theme = sample.flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
             nextPage = page.nextPage
             error = nil
             await WidgetBridge.update(page, model: model)
@@ -216,8 +246,20 @@ struct FeedView: View {
     }
 }
 
+/// Which part of a card a skin asks for: all of it, or the post and its icons apart, so the icons
+/// can sit on the skin's backdrop outside the post (Steve, 2026-10-30, neon).
+enum CardPart { case whole, post, icons(Color) }
+
+extension EnvironmentValues {
+    @Entry var cardPart: CardPart = .whole
+    /// A skin's own font for people's names on the card (Ceramic Figurines' greeting-card script, Steve 2026-11-01).
+    @Entry var cardNameFont: Font? = nil
+}
+
 struct CardRow: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.cardPart) private var part
+    @Environment(\.cardNameFont) private var nameFont
     let card: Card
     let active: Set<CardAction>
     let onAction: (CardAction) -> Void
@@ -228,15 +270,35 @@ struct CardRow: View {
     var onOpenPost: ((String) -> Void)?
 
     var body: some View {
+        if case .icons(let glow) = part {
+            icons(size: 40, glow: glow)
+        } else {
+            whole
+        }
+    }
+
+    private func icons(size: CGFloat = 28, glow: Color? = nil) -> some View {
+        ActionRowView(
+            items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
+            wording: model.wording,
+            active: active,
+            onAction: onAction,
+            onMeaning: onMeaning,
+            size: size,
+            glow: glow
+        )
+    }
+
+    private var whole: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
                 // Answered: a gold mark, as the Expo card's banner and border.
                 if card.isAnswered { Text(model.words("card.answered")).font(.subheadline.bold()).foregroundStyle(Color.answeredText) }
-                Text(card.author.displayName).font(.subheadline.bold())
+                Text(card.author.displayName).font(nameFont ?? .subheadline.bold())
                 Text(card.preview)
                 if card.counts.prayers > 0 {
                     Text(model.wording == .neutral ? "\(card.counts.prayers) people thinking of this" : "\(card.counts.prayers) praying")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Color.subtle)
                 }
             }
             .contentShape(.rect)
@@ -252,13 +314,7 @@ struct CardRow: View {
                     Button("🌅 " + model.words("answeredStory.read")) { onOpenPost?(id) }.font(.footnote).buttonStyle(.borderless)
                 }
             }
-            ActionRowView(
-                items: ActionRow.items(actions: card.actions ?? CardAction.allCases.map(\.rawValue), features: model.features, tree: model.tree, wording: model.wording),
-                wording: model.wording,
-                active: active,
-                onAction: onAction,
-                onMeaning: onMeaning
-            )
+            if case .whole = part { icons() }
         }
         .padding(.vertical, 4)
         .overlay {
@@ -277,7 +333,7 @@ struct EncourageSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section { Text(card.preview).foregroundStyle(.secondary) }
+                Section { Text(card.preview).foregroundStyle(Color.subtle) }
                 Section { KindComposer(title: "A few kind words", text: $text, limit: 77) }
             }
             .navigationTitle("Encourage")
@@ -330,7 +386,7 @@ struct OfflineBanner: View {
                     Text("\(w("offline.notice")) \(w("offline.saved", ["when": savedAt.formatted(date: .abbreviated, time: .shortened)]))").bold()
                 }
                 if pending > 0 { Text(pending == 1 ? w("offline.waitingOne") : w("offline.waitingMany", count: pending)) }
-                ForEach(dropped, id: \.self) { Text(w("offline.notSent", ["what": $0])).foregroundStyle(.red) }
+                ForEach(dropped, id: \.self) { Text(w("offline.notSent", ["what": $0])).foregroundStyle(Color.danger) }
                 HStack {
                     if savedAt != nil { Button(w("offline.retry"), action: onRetry) }
                     if !dropped.isEmpty { Button(w("offline.ok"), action: onDismiss) }
@@ -340,4 +396,10 @@ struct OfflineBanner: View {
             .accessibilityElement(children: .contain)
         }
     }
+}
+
+/// The writing screen to open, and the words to start it from.
+private struct Composing: Identifiable {
+    let id = UUID()
+    let text: String
 }

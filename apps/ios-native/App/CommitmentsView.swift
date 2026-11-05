@@ -30,13 +30,13 @@ struct CommitmentsView: View {
                 }
                 if let error {
                     Section {
-                        Text(error).foregroundStyle(.red)
+                        Text(error).foregroundStyle(Color.danger)
                         Button(w("common.tryAgain")) { Task { await load() } }
                     }
                 }
                 let active = items.filter(\.isActive)
                 if loaded && active.isEmpty {
-                    Section { Text(w("promises.empty")).foregroundStyle(.secondary) }
+                    Section { Text(w("promises.empty")).foregroundStyle(Color.subtle) }
                 }
                 if model.features["checkinAffirmation"] && !active.isEmpty {
                     Section { Text(w("promises.affirmation")).font(.footnote) }
@@ -49,7 +49,7 @@ struct CommitmentsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(c.postExcerpt ?? "")
                                 Text("\(w(c.status == "completed" ? "promises.completed" : "promises.ended")) · \(w("promises.prayedTimes", count: c.completedCount))")
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .font(.caption).foregroundStyle(Color.subtle)
                             }
                             .opacity(0.7)
                             .accessibilityElement(children: .combine)
@@ -57,7 +57,7 @@ struct CommitmentsView: View {
                     }
                 }
                 if !note.isEmpty {
-                    Section { Text(note).font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity) }
+                    Section { Text(note).font(.footnote).foregroundStyle(Color.subtle).frame(maxWidth: .infinity) }
                 }
             }
             .overlay { if !loaded && error == nil { ProgressView() } }
@@ -71,10 +71,10 @@ struct CommitmentsView: View {
 
     @ViewBuilder private func row(_ c: Commitment) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(w("enums.frequency.\(c.frequency)")).font(.caption).foregroundStyle(.secondary)
+            Text(w("enums.frequency.\(c.frequency)")).font(.caption).foregroundStyle(Color.subtle)
             Button(c.postExcerpt ?? "") { opened = c.postId }.buttonStyle(.plain)
             Text("“\(c.vowText)”").italic().foregroundStyle(.tint)
-            Text(progress(c)).font(.caption).foregroundStyle(.secondary)
+            Text(progress(c)).font(.caption).foregroundStyle(Color.subtle)
         }
         if let draft = editing, draft.id == c.id {
             editor(c, Binding(get: { editing ?? draft }, set: { editing = $0 }))
@@ -100,7 +100,7 @@ struct CommitmentsView: View {
             ForEach(Commitments.frequencies, id: \.self) { Text(w("enums.frequency.\($0)")).tag($0) }
         }
         Stepper(w("promises.times", count: d.wrappedValue.completedCount), value: d.completedCount, in: 0...10_000)
-        Text(w("promises.recordNote")).font(.footnote).foregroundStyle(.secondary)
+        Text(w("promises.recordNote")).font(.footnote).foregroundStyle(Color.subtle)
         Button(w("promises.save")) {
             let e = d.wrappedValue
             Task { await act { _ = try await model.store.api.editCommitment(c.id, CommitmentEdit(frequency: e.frequency, vowText: e.vowText, completedCount: e.completedCount)) }; editing = nil }
@@ -164,7 +164,7 @@ struct CommitSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section { Text(card.preview).foregroundStyle(.secondary) }
+                Section { Text(card.preview).foregroundStyle(Color.subtle) }
                 Section(w("actions.promise")) {
                     TextField(w("actions.promise"), text: $text, axis: .vertical)
                         .lineLimit(2...6)
@@ -181,7 +181,7 @@ struct CommitSheet: View {
                         .keyboardType(.numberPad)
                         .onChange(of: days) { _, new in days = String(new.filter(\.isNumber).prefix(3)) }
                 }
-                if let error { Section { Text(error).foregroundStyle(.red) } }
+                if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             }
             .navigationTitle(w("actions.commitTitle"))
             .navigationBarTitleDisplayMode(.inline)

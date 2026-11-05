@@ -293,7 +293,7 @@ export interface TokenSummary {
   priestly: PriestlyStatus;
 }
 
-export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit';
+export type FeedLayoutKind = 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit' | 'climb' | 'sparkler' | 'ceramic';
 
 export interface FeedTheme {
   slug: string;
@@ -475,6 +475,8 @@ export interface Prompt {
 export interface TierStatus {
   tier: { tier: string; label: string; weeklyAllotment: number | null } | null;
   prayers: number;
+  /** Prayer requests the member has posted. */
+  requests?: number;
   next: { tier: string; label: string; prayersNeeded: number } | null;
   /** While tier upkeep is on: days allowed between giving or spending a token, and the earned tier held back until one. */
   upkeep?: { days: number; held: { tier: string; label: string } | null } | null;

@@ -153,3 +153,28 @@ extension APIClientTests {
         #expect(Skin.backdrop(nil) == nil)
     }
 }
+
+@Suite struct CeramicTests {
+    @Test func readsCeramicTokensAndKeepsTextReadable() throws {
+        let look = CeramicLook(try theme("ceramic", ##"{"backdrop":"#EAE6F1","ink":"#4B3F47","frame":"oops"}"##))
+        #expect(look.backdrop.hex == "#EAE6F1")
+        #expect(look.frame.hex == "#F1E4DF")  // a wrong value falls back
+        #expect(try theme("ceramic", "{}").kind == .ceramic)
+        #expect(Skin.backdrop(try theme("ceramic", "{}"))?.hex == "#EAE6F1")
+        #expect(Skin.ceramicReadable(CeramicLook(nil)))
+    }
+
+    @Test func mixesTheFiguresOrKeepsTheMembersPick() {
+        let seen = Set((0..<5).map { Ceramic.figure(nil, index: $0, slot: 0) })
+        #expect(seen.count == Ceramic.Figure.allCases.count)
+        #expect(Ceramic.figure(nil, index: 0, slot: 0) != Ceramic.figure(nil, index: 0, slot: 1))
+        #expect(Ceramic.figure(.choir, index: 7, slot: 1) == .choir)
+    }
+
+    @Test func pointsAtEveryThirdPostAndAlternatesTheAngel() {
+        #expect((0..<6).filter { Ceramic.pointer(at: $0) } == [1, 4])
+        #expect((0..<3).map(Ceramic.angelOnLeft) == [true, false, true])
+        #expect(Ceramic.initials("Margaret Hale") == "MH" && Ceramic.initials("June") == "J")
+        #expect(Ceramic.tint(6) == Ceramic.tints[1])
+    }
+}

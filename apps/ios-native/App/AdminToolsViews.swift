@@ -68,7 +68,7 @@ struct SurveyView: View {
                         if q.required { Text(w("surveys.required")) }
                     }
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
                 Button(w("surveys.send")) { Task { await send() } }
                     .disabled(busy || !SurveyAnswer.ready(survey, drafts))
             }
@@ -133,9 +133,9 @@ struct SurveysAdminView: View {
         Form {
             Section { Text(w("surveysAdmin.intro")) }
             if let notice { Text(notice) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             Section(w("surveysAdmin.list")) {
-                if items.isEmpty { Text(w("surveysAdmin.empty")).foregroundStyle(.secondary) }
+                if items.isEmpty { Text(w("surveysAdmin.empty")).foregroundStyle(Color.subtle) }
                 ForEach(items) { s in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(listLine(s)).font(.caption)
@@ -264,7 +264,7 @@ struct LegalCasesView: View {
         Form {
             Section { Text(w("legalCases.intro")) }
             if let notice { Text(notice) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let enabled {
                 Toggle(isOn: Binding(get: { enabled }, set: { on in act(nil) { _ = try await model.store.api.setLegalEnabled(on); await model.loadSettings() } })) {
                     LabelHint(w("legalCases.enabled"), w("legalCases.enabledHint"))
@@ -287,7 +287,7 @@ struct LegalCasesView: View {
                 }
             }
             Section(w("legalCases.cases")) {
-                if cases.isEmpty { Text(w("legalCases.empty")).foregroundStyle(.secondary) }
+                if cases.isEmpty { Text(w("legalCases.empty")).foregroundStyle(Color.subtle) }
                 ForEach(cases) { c in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(caseLine(c)).font(.caption)
@@ -421,7 +421,7 @@ struct ImportView: View {
                     Toggle(isOn: $sendEmails) { LabelHint(w("import.sendEmails"), w("import.sendEmailsHint")) }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             Section {
                 Button(w("import.preview")) { Task { await go(dryRun: true) } }.disabled(busy || csv.trimmingCharacters(in: .whitespaces).isEmpty)
                 Button(w("import.run", count: ready)) { Task { await go(dryRun: false) } }.disabled(busy || !previewed || ready == 0)
@@ -485,8 +485,8 @@ struct PodcastsAdminView: View {
         Form {
             Section { Text(w("podcastsAdmin.intro")) }
             if !enabled { Text(w("podcastsAdmin.off")).foregroundStyle(.orange) }
-            if let error { Text(error).foregroundStyle(.red) }
-            if shows.isEmpty { Text(w("podcastsAdmin.empty")).foregroundStyle(.secondary) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
+            if shows.isEmpty { Text(w("podcastsAdmin.empty")).foregroundStyle(Color.subtle) }
             ForEach(shows) { s in
                 ShowAdminSection(show: s, busy: busy) { call in act(call) }
             }

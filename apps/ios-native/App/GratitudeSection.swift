@@ -51,7 +51,7 @@ struct GratitudeSection: View {
                         Text(w("practices.gratitudeDayOff")).tag(-1)
                         ForEach(0..<7, id: \.self) { d in Text(w("practices.days.d\(d)")).tag(d) }
                     }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if let error { Text(error).foregroundStyle(Color.danger) }
                 } header: {
                     Text(w("practices.gratitudeTitle"))
                 }

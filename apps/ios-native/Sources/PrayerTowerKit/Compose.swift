@@ -93,6 +93,33 @@ public struct CreatedPost: Decodable, Sendable {
     public let harm: HarmNote?
 }
 
+/// PrayerCast (Steve, 2026-11-02): posted publicly to the feed, or PrayerCast privately (shown to
+/// no one, its words deleted once it has gone out by radio).
+public enum CastVisibility: String, Sendable, Equatable { case `public`, `private` }
+
+/// What /prayercast answers: the card for a public PrayerCast, none for a private one.
+public struct PrayerCastSent: Decodable, Sendable {
+    public let post: Card?
+    public let postId: String
+    /// A public PrayerCast is posted even when the radio can't take it now; this says why.
+    public let castError: String?
+    public let harm: HarmNote?
+}
+
+/// The new post's fields with the PrayerCast choice beside them.
+struct CastBody: Encodable {
+    let post: NewPost
+    let visibility: CastVisibility
+    let idempotencyKey: String
+    private enum K: String, CodingKey { case visibility, idempotencyKey }
+    func encode(to encoder: Encoder) throws {
+        try post.encode(to: encoder)
+        var c = encoder.container(keyedBy: K.self)
+        try c.encode(visibility.rawValue, forKey: .visibility)
+        try c.encode(idempotencyKey, forKey: .idempotencyKey)
+    }
+}
+
 public struct UploadTicket: Decodable, Sendable, Equatable {
     public let path: String
     public let token: String
@@ -105,6 +132,15 @@ extension APIClient {
         p.body = p.body.trimmingCharacters(in: .whitespacesAndNewlines)
         if !p.media.isEmpty { p.background = nil }
         return try await post("/posts", body: p)
+    }
+
+    /// Posts a prayer and sends it by radio in one step; if it can't be sent, nothing is saved.
+    public func prayerCast(_ p: NewPost, visibility: CastVisibility) async throws -> PrayerCastSent {
+        var p = p
+        p.body = p.body.trimmingCharacters(in: .whitespacesAndNewlines)
+        p.postType = "prayer_request"
+        if !p.media.isEmpty { p.background = nil }
+        return try await post("/prayercast", body: CastBody(post: p, visibility: visibility, idempotencyKey: "cast-\(UUID().uuidString)"))
     }
 
     public func mediaUploadURL(contentType: String) async throws -> UploadTicket {

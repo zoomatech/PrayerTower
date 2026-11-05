@@ -28,7 +28,8 @@ export function requirePrayable(post: { post_type: PostType }) {
   if (DISCUSSION_TYPES.includes(post.post_type)) throw badRequest('This is a discussion post, not a prayer request');
 }
 export type PostState = 'open' | 'actively_prayed' | 'amplified' | 'answered';
-export type ModerationStatus = 'visible' | 'hidden_pending_review' | 'removed';
+/** private_cast: a prayer PrayerCast privately (Steve, 2026-11-02). Never shown; its words are forgotten once sent. */
+export type ModerationStatus = 'visible' | 'hidden_pending_review' | 'removed' | 'private_cast';
 
 const wordCount = (s: string) => (s.trim() === '' ? 0 : s.trim().split(/\s+/).length);
 
@@ -155,6 +156,14 @@ export async function getVisible(q: Queryable, postId: string): Promise<PostRow 
   return post && post.moderation_status === 'visible' ? post : null;
 }
 
+/** What a prayer PrayerCast privately reads once it has been sent: its words are not kept. */
+export const FORGOTTEN_CAST = '(PrayerCast privately)';
+
+/** Makes a new post a private PrayerCast: hidden from everyone, anonymous, its words kept only until sent. */
+export async function makePrivateCast(q: Queryable, postId: string) {
+  await q.query(`update public.posts set moderation_status = 'private_cast', is_anonymous = true where id = $1`, [postId]);
+}
+
 /** True when either member has blocked the other. */
 export async function blockedBetween(q: Queryable, a: string, b: string): Promise<boolean> {
   if (a === b) return false;
@@ -197,6 +206,9 @@ export async function getViewable(q: Queryable, userId: string, postId: string):
 
 /** A visible post the member may act on: only in their own communities, never one between people where either blocked the other. */
 export async function getActionable(q: Queryable, userId: string, postId: string): Promise<PostRow | null> {
+  // The member's own private PrayerCast can be acted on (sent by radio) by them alone.
+  const own = await get(q, postId);
+  if (own?.moderation_status === 'private_cast') return own.user_id === userId ? own : null;
   const post = await getVisible(q, postId);
   if (!post || (await blockedBetween(q, userId, post.user_id))) return null;
   return post.user_id === userId || (await inCommunity(q, userId, post.community_id)) || (await acrossAllowed(q, userId, post)) ? post : null;
@@ -868,14 +880,16 @@ export async function promptSubject(q: Queryable, postId: string, viewerId: stri
   return r.display_name;
 }
 
-/** A person's recent visible posts made under their name (never their anonymous ones). */
-/** The author's named posts the viewer may see: only in the viewer's communities, unless it's their own page. */
+/**
+ * The author's named posts the viewer may see (never their anonymous ones), newest first: only in
+ * the viewer's communities, unless it's their own page.
+ */
 export async function namedPostIds(q: Queryable, authorId: string, viewerId: string, limit = 20): Promise<string[]> {
   const { rows } = await q.query<{ id: string }>(
     `select id from public.posts
       where user_id = $1 and not is_anonymous and moderation_status = 'visible'
         and ($1 = $3 or community_id in (select community_id from public.community_memberships where user_id = $3))
-      order by id desc limit $2`,
+      order by created_at desc, id desc limit $2`,
     [authorId, limit, viewerId],
   );
   return rows.map((r) => r.id);

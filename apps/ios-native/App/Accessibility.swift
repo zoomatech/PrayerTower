@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 
 /// Side by side, or one under another at the accessibility text sizes, so labels never shrink
 /// or cut off at the largest Dynamic Type.
@@ -19,6 +24,78 @@ struct AdaptiveStack<Content: View>: View {
 }
 
 extension View {
+    /// The navigation bar always shows its background (iPhone and iPad), so the title keeps the
+    /// system's contrast over a dark or busy skin.
+    @ViewBuilder func solidNavigationBar() -> some View {
+        #if os(iOS)
+        toolbarBackground(.visible, for: .navigationBar)
+        #else
+        self
+        #endif
+    }
+
     /// At least 44 by 44 points to tap (Apple's minimum), however small the label.
     func tapTarget() -> some View { frame(minWidth: 44, minHeight: 44).contentShape(.rect) }
+}
+
+/// An emoji or symbol drawn purely as decoration (the sign-in dove, the tower's climber, a star
+/// mark). It is drawn on a canvas, so it is no text at all to VoiceOver or the accessibility
+/// audit: hidden text was still checked for contrast and Dynamic Type.
+struct DecorativeGlyph: View {
+    let glyph: String
+    var size: CGFloat = 28
+    var color: Color = .primary
+    /// How far it may grow with the text.
+    var maxScale: CGFloat = 1.5
+    /// Grows with Dynamic Type like the words around it.
+    @ScaledMetric private var scale: CGFloat = 1
+
+    var body: some View {
+        // Grows with the text, up to half again its size, so a big glyph never crowds the words.
+        let side = size * min(scale, maxScale)
+        Canvas { ctx, box in
+            ctx.draw(Text(glyph).font(.system(size: side)).foregroundStyle(color), at: CGPoint(x: box.width / 2, y: box.height / 2))
+        }
+        .frame(width: side * 1.3, height: side * 1.3)
+        .accessibilityHidden(true)
+    }
+}
+
+extension Color {
+    /// One color for light mode and one for dark.
+    static func adaptive(light: String, dark: String) -> Color {
+        let l = RGBA(light), d = RGBA(dark)
+        #if os(iOS)
+        return Color(UIColor { $0.userInterfaceStyle == .dark ? d.ui : l.ui })
+        #else
+        return Color(NSColor(name: nil) { $0.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? d.ns : l.ns })
+        #endif
+    }
+
+    /// Quieter text that still reads at 6:1 or more on the page and grouped backgrounds, in place
+    /// of the system's secondary gray (about 3.5:1, which the accessibility audit flags).
+    static let subtle = adaptive(light: "#545458", dark: "#AEAEB2")
+    /// Links and buttons: system blue is about 4:1 on white; these keep 4.5:1 or more on the page
+    /// and grouped backgrounds in both modes.
+    static let accessibleAccent = adaptive(light: "#0061CC", dark: "#409CFF")
+    /// Errors and destructive buttons: system red is about 3.6:1 on white; these keep 4.5:1 or more
+    /// on the page and grouped backgrounds in both modes.
+    static let danger = adaptive(light: "#B3261E", dark: "#FF6B63")
+    /// The tab bar's background, shown 75% opaque (Steve, 2026-10-30).
+    static let barBackground = adaptive(light: "#FFFFFF", dark: "#1C1C1E")
+}
+
+private struct RGBA {
+    let r, g, b: CGFloat
+    init(_ hex: String) {
+        let v = Int(hex.dropFirst(), radix: 16) ?? 0
+        r = CGFloat((v >> 16) & 0xFF) / 255
+        g = CGFloat((v >> 8) & 0xFF) / 255
+        b = CGFloat(v & 0xFF) / 255
+    }
+    #if os(iOS)
+    var ui: UIColor { UIColor(red: r, green: g, blue: b, alpha: 1) }
+    #else
+    var ns: NSColor { NSColor(srgbRed: r, green: g, blue: b, alpha: 1) }
+    #endif
 }

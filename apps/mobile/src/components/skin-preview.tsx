@@ -1,11 +1,14 @@
 // A small drawing of a feed skin: its backdrop and the drawn vine with a request and a comment in their leaves (vine), stone pillars and
-// climber (tower), glowing screen on a wire (circuit), or one full card (wall). Used by
+// climber (tower), glowing screen on a wire (circuit), a plaque in a shadow box with an angel statuette (ceramic), or one full card (wall). Used by
 // the theme maker and the skin gallery. Colors that aren't #RRGGBB yet (half typed in
 // the maker) fall back to the layout's own.
 import type { FeedTheme } from '@prayer-tower/shared';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { ceramicTokens, Figurine } from '@/layouts/ceramic';
 import { circuitTokens } from '@/layouts/circuit';
+import { climbTokens, EDGE_X } from '@/layouts/climb';
+import { sparklerTokens } from '@/layouts/sparkler';
 import { LeafFrame, VineRow } from '@/components/vine-flow';
 import { glow, LeafMark } from '@/layouts/motifs';
 import { towerTokens } from '@/layouts/tower';
@@ -47,6 +50,54 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
       </>,
     );
   }
+  if (layout === 'climb') {
+    const t = climbTokens(theme);
+    // The rock face, the sky past its edge, and the rope down the edge.
+    return frame(
+      t.backdrop,
+      <>
+        <View style={[styles.sky, { width: EDGE_X / 2 }]} />
+        <View style={[styles.rope, { left: EDGE_X / 2 - 6 }]} />
+        <View style={[styles.cardBox, { alignSelf: 'center', width: '70%' }]}>
+          <View style={[styles.card, { backgroundColor: t.slab }]} />
+        </View>
+      </>,
+    );
+  }
+  if (layout === 'sparkler') {
+    const t = sparklerTokens(theme);
+    // Full-width white posts split by the black line with its light blue middle, and the line down the left with its spark.
+    const square = <View style={[styles.square]} />;
+    const split = (
+      <View style={[styles.split, { backgroundColor: t.backdrop }]}>
+        <View style={{ height: 2, backgroundColor: t.stripe }} />
+      </View>
+    );
+    return frame(
+      t.backdrop,
+      <>
+        {square}
+        {split}
+        {square}
+        <View style={[styles.sparkLine, { backgroundColor: t.stripe }]} />
+        <View style={styles.spark} />
+      </>,
+    );
+  }
+  if (layout === 'ceramic') {
+    // A plaque in its shadow box on a platform, with an angel statuette beside it.
+    const t = ceramicTokens(theme);
+    return frame(
+      t.backdrop,
+      <>
+        <View style={styles.statue}>
+          <Figurine look="angel" pose="present" width={36} height={60} />
+        </View>
+        <View style={[styles.cardBox, { alignSelf: 'center', width: '66%', padding: 6, borderRadius: 12, backgroundColor: t.frame, borderWidth: 2, borderColor: t.recess }]}>{card}</View>
+        <View style={{ alignSelf: 'center', width: '72%', height: 8, borderRadius: 4, backgroundColor: t.platform }} />
+      </>,
+    );
+  }
   if (layout === 'wall') return frame(wallBackdrop(theme), <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   if (layout !== 'vine') return frame(colors.background, <View style={[styles.cardBox, { alignSelf: 'center', width: '80%' }]}>{card}</View>);
   const v = vineTokens(theme);
@@ -71,6 +122,7 @@ export function SkinPreview({ layout, tokens, height = 170, testID }: { layout: 
 const styles = StyleSheet.create({
   preview: { borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', justifyContent: 'center', padding: space.md },
   cardBox: { width: '42%' },
+  statue: { position: 'absolute', left: 6, bottom: 10 },
   vinePreview: { justifyContent: 'flex-start', paddingTop: 0 },
   miniCard: { height: 46, borderRadius: radius.md, backgroundColor: colors.surface },
   miniLine: { height: 14 },
@@ -78,5 +130,11 @@ const styles = StyleSheet.create({
   pillar: { position: 'absolute', top: 0, bottom: 0, width: 16, borderWidth: 1 },
   climber: { position: 'absolute', right: 0, top: '40%', fontSize: 24 },
   wire: { position: 'absolute', left: 14, top: 0, bottom: 0, width: 2 },
+  sky: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#D9E3E8', borderRightWidth: 2, borderRightColor: '#4F4436' },
+  rope: { position: 'absolute', top: 0, bottom: 0, width: 3, backgroundColor: '#C4441F' },
+  square: { height: 60, backgroundColor: '#FFFFFF', marginHorizontal: -space.md },
+  split: { height: 8, justifyContent: 'center', marginHorizontal: -space.md },
+  sparkLine: { position: 'absolute', left: 10, top: 0, height: '62%', width: 3 },
+  spark: { position: 'absolute', left: 5, top: '58%', width: 13, height: 13, borderRadius: 7, backgroundColor: '#FFE680', borderWidth: 2, borderColor: '#FFFFFF' },
   screen: { marginLeft: 40, width: '60%', borderWidth: 2, borderRadius: radius.md, padding: 4, backgroundColor: '#0E1220' },
 });

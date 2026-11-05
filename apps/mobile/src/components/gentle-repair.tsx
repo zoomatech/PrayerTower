@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, ErrorText, Field } from '@/components/ui';
+import { VideoCircleCard } from '@/components/video-circle';
 import { api, type KindAskReason, type Mend } from '@/lib/api';
 import { useFeatures } from '@/lib/features';
 import { useT } from '@/lib/i18n';
@@ -126,6 +127,7 @@ export function MendQueue() {
             <Button small label={t('repair.deliver')} onPress={() => review(m, true)} />
             <Button small variant="secondary" label={t('repair.returnIt')} onPress={() => review(m, false)} />
           </View>
+          <VideoCircleCard mendId={m.id} staff />
         </View>
       ))}
       <ErrorText error={error} />

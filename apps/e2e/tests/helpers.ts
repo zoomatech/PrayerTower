@@ -50,3 +50,18 @@ export async function postIdByText(text: string): Promise<string> {
 }
 
 export const unique = (label: string) => `${label} ${Date.now().toString(36)}`;
+
+/**
+ * Sends the prayer on the writing screen with "PrayerCast your prayer directly to heaven*",
+ * posted publicly (a prayer, not a plain post). Without Priestly tokens it is posted but not
+ * sent by radio, and the screen says so with a Close button.
+ */
+export async function prayerCast(page: Page) {
+  await page.getByRole('switch', { name: /Post my PrayerCast publicly/ }).click();
+  await page.getByRole('button', { name: 'PrayerCast your prayer directly to heaven*' }).click();
+  const close = page.getByRole('button', { name: 'Close', exact: true });
+  await close.waitFor({ timeout: 5000 }).then(
+    () => close.click(),
+    () => undefined,
+  );
+}

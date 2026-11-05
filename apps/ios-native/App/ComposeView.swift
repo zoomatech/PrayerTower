@@ -22,6 +22,10 @@ struct ComposeView: View {
     @State private var media: [PickedMedia] = []
     @State private var busy = false
     @State private var error: String?
+    /// Post my PrayerCast publicly, or PrayerCast privately: none until the member picks.
+    @State private var castChoice: CastVisibility?
+    /// Posted publicly, but the radio couldn't take it: only Close is left.
+    @State private var posted = false
     @FocusState private var focused: Bool
 
     private var w: Words { model.words }
@@ -32,14 +36,8 @@ struct ComposeView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Text(w("compose.greeting", ["name": model.me?.profile.displayName ?? w("common.friend")]))
-                        .font(.headline)
-                        .foregroundStyle(.tint)
-                    ChoiceRow(options: Compose.types(for: model.me?.community), selected: draft.postType, label: { w("enums.postType.\($0)") }) {
-                        draft.postType = $0
-                    }
-                }
+                // No welcome line and no kind-of-post buttons: the send button says what can be posted
+                // (Steve, 2026-11-02).
                 Section {
                     TextField(w("compose.placeholder"), text: $draft.body, axis: .vertical)
                         .lineLimit(6...20)
@@ -84,9 +82,6 @@ struct ComposeView: View {
                         .accessibilityLabel(w("compose.background"))
                     }
                 }
-                Section(w("compose.kind")) {
-                    ChoiceRow(options: Compose.kinds, selected: draft.kind, label: { w("enums.prayerKind.\($0)") }) { draft.kind = draft.kind == $0 ? nil : $0 }
-                }
                 Section(w("compose.realm")) {
                     ChoiceRow(options: Compose.realms, selected: draft.realm, label: { w("enums.prayerRealm.\($0)") }) { draft.realm = draft.realm == $0 ? nil : $0 }
                 }
@@ -108,14 +103,45 @@ struct ComposeView: View {
                         }
                     }
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(w("common.cancel")) { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(w("compose.post")) { Task { await submit() } }
-                        .disabled(busy || draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || words > Compose.maxWords)
+            }
+            // Two ways to send (Steve, 2026-11-02): a post, or a prayer PrayerCast to heaven, which is
+            // also posted to the feed. Prayers and posts are kept apart so answered prayers can be counted.
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 8) {
+                    if posted {
+                        Button { dismiss() } label: { Text(w("common.close")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6) }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                    if casts {
+                        // A required choice before a PrayerCast: neither is picked to start with (Steve, 2026-11-02).
+                        CastChoice(label: w("compose.castPublic"), on: castChoice == .public) { castChoice = .public }
+                        CastChoice(label: w("compose.castPrivate"), on: castChoice == .private) { castChoice = .private }
+                        Button { Task { await submit(cast: true) } } label: {
+                            Text(w("compose.cast")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(castChoice == nil)
+                        .accessibilityIdentifier("compose-cast")
+                        // What "heaven*" means (Steve, 2026-11-02).
+                        Text(w("compose.castNote")).font(.caption).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    Button { Task { await submit(cast: false) } } label: {
+                        Text(w("compose.post")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                    }
+                    // Equal options: both solid blue (Steve, 2026-11-02).
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("compose-post")
+                    }
                 }
+                .disabled(busy || (!posted && (draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || words > Compose.maxWords)))
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(.bar)
             }
             .onAppear {
                 if let start, draft == NewPost() { draft = start }
@@ -140,12 +166,17 @@ struct ComposeView: View {
         error = tooLong ? w("compose.videoTooLong", ["count": String(videoCap)]) : nil
     }
 
-    private func submit() async {
+    /// A prayer is PrayerCast; anything else is a post. Open Circle has no PrayerCast.
+    private var casts: Bool { model.wording != .neutral }
+
+    private func submit(cast: Bool) async {
         busy = true
         defer { busy = false }
         error = nil
         do {
             var p = draft
+            // Post: a post that isn't a prayer (shared thanks stay praise).
+            p.postType = cast || !casts ? (draft.postType == "praise" && !cast ? "praise" : "prayer_request") : (draft.postType == "praise" ? "praise" : "discussion")
             p.allSupportWelcome = model.features["supportLabel"] && draft.allSupportWelcome
             if !model.features["lament"] || draft.isLament != true { p.isLament = nil; p.lamentRadio = nil }
             if p.postType != "prayer_request" { p.urgency = 0 }
@@ -153,8 +184,19 @@ struct ComposeView: View {
             for m in media {
                 p.media.append(try await model.store.api.uploadMedia(m.data, contentType: m.contentType, video: m.video, durationMs: m.seconds.map { Int($0 * 1000) }))
             }
-            let created = try await model.store.api.createPost(p)
-            onPosted(created.post)
+            if cast, let choice = castChoice {
+                // Posted and sent by radio together; if it can't be sent, nothing is saved.
+                let sent = try await model.store.api.prayerCast(p, visibility: choice)
+                if let card = sent.post { onPosted(card) }
+                if let why = sent.castError {
+                    // Posted, but not sent by radio: say so, and leave only Close.
+                    posted = true
+                    error = w("compose.castFailed", ["reason": why])
+                    return
+                }
+            } else {
+                onPosted(try await model.store.api.createPost(p).post)
+            }
             dismiss()
         } catch {
             self.error = error.localizedDescription
@@ -212,17 +254,38 @@ struct ChoiceRow: View {
     let label: (String) -> String
     let choose: (String) -> Void
 
+    @Environment(\.dynamicTypeSize) private var size
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                ForEach(options, id: \.self) { o in
-                    Button(label(o)) { choose(o) }
-                        .buttonStyle(.bordered)
-                        .tint(o == selected ? .accentColor : .secondary)
-                        .accessibilityAddTraits(o == selected ? .isSelected : [])
-                }
-            }
+        // At the accessibility text sizes the chips stack, so no choice runs off the edge.
+        if size.isAccessibilitySize {
+            VStack(alignment: .leading) { chips }
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) { HStack { chips } }
         }
+    }
+
+    private var chips: some View {
+        ForEach(options, id: \.self) { o in
+            let on = o == selected
+            Button { choose(o) } label: { Text(label(o)).multilineTextAlignment(.leading) }
+                // The chosen chip is filled (white on the accent), the rest plain, so both read clearly in dark mode.
+                .buttonStyle(ChipStyle(on: on))
+                .accessibilityAddTraits(on ? .isSelected : [])
+        }
+    }
+}
+
+private struct ChipStyle: ButtonStyle {
+    let on: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .frame(minHeight: 44)
+            .foregroundStyle(on ? Color.white : Color.primary)
+            // #0061CC: white text on it reads at 5.8:1, where white on system blue is only about 4:1.
+            .background(on ? Color(red: 0, green: 0.38, blue: 0.8) : Color.secondary.opacity(0.15), in: .rect(cornerRadius: 12))
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
@@ -257,7 +320,7 @@ struct LabelHint: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text(title)
-            Text(hint).font(.footnote).foregroundStyle(.secondary)
+            Text(hint).font(.footnote).foregroundStyle(Color.subtle)
         }
     }
 }
@@ -267,5 +330,22 @@ extension Color {
     init(hex: String) {
         let v = UInt64(hex.dropFirst(), radix: 16) ?? 0
         self.init(red: Double((v >> 16) & 0xFF) / 255, green: Double((v >> 8) & 0xFF) / 255, blue: Double(v & 0xFF) / 255)
+    }
+}
+
+/// One of the two PrayerCast choices: a check box that reads as a choice between the two.
+private struct CastChoice: View {
+    let label: String
+    let on: Bool
+    let pick: () -> Void
+
+    var body: some View {
+        Button(action: pick) {
+            Label(label, systemImage: on ? "checkmark.square.fill" : "square")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 44)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 }

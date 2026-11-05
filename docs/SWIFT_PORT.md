@@ -70,6 +70,14 @@ The native feed reads the member's skin from `GET /feed` (`theme`) and draws it 
 - **Reduce Motion:** the spark, bursts, climber, swipe tilt and page fold stop.
 - **Audit tests:** `UITests/AccessibilityAuditTests.swift` runs Xcode's accessibility audit (`performAccessibilityAudit`, iOS 17) on the sign-in screen and on every feed layout (from the debug-only `AuditSamplesView`), at the default size and at the largest accessibility size. `scripts/mac-build-native.sh` runs them when the Mac has an iPhone simulator, and only compiles them otherwise.
 
+## Sample data, snapshots and performance
+
+- **Sample data** (`SampleServer`, from the UI walks): launched with `-PTSampleData` the app runs signed in on made-up data with no server; it now also answers Me's counts, prayer life and circles, and `-PTSamplePosts 1000` makes the feed 1,000 varied posts long, 50 a page. A Linux test decodes every answer with the real models.
+- **Snapshots** (`SnapshotTests/`, swift-snapshot-testing): every main screen in light and dark mode at the largest accessibility text size. A new image is recorded on its first run.
+- **Performance** (`UITests/PerformanceTests.swift`): launch time, and scrolling hitches, CPU and memory while scrolling the 1,000-post feed, with XCTest metrics.
+- **Photos** are cached in memory and on disk by storage path (`ImageCache`), because their signed URLs change on every load.
+- **Where they run:** CI's `ios` job on a GitHub-hosted Mac runs them headless, along with the audit tests. `scripts/mac-build-native.sh` runs the same steps on any Mac with an iPhone simulator.
+
 ## Port order
 
 Each phase ships to TestFlight under the separate bundle id. The Expo app stays the one members use until the last phase.

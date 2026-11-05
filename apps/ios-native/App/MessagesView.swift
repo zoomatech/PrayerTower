@@ -25,14 +25,14 @@ struct MessagesView: View {
         Group {
             List {
                 Section {
-                    Text(w("messages.privacy")).font(.footnote).foregroundStyle(.secondary)
+                    Text(w("messages.privacy")).font(.footnote).foregroundStyle(Color.subtle)
                     if groupsOn { NavigationLink(w("messages.groups")) { GroupsView() } }
                     if eventsOn { NavigationLink(w("messages.events")) { EventsView() } }
                     if careOn { NavigationLink(w("messages.care")) { CareView() } }
                 }
                 if let error {
                     Section {
-                        Text(error).foregroundStyle(.red)
+                        Text(error).foregroundStyle(Color.danger)
                         Button(w("common.tryAgain")) { Task { await load() } }
                     }
                 }
@@ -44,28 +44,28 @@ struct MessagesView: View {
                     Section(parts.requests.isEmpty ? "" : w("messages.conversations")) { ForEach(parts.rest) { row($0) } }
                 }
                 if loaded && items.isEmpty {
-                    Section { Text(w("messages.empty")).foregroundStyle(.secondary) }
+                    Section { Text(w("messages.empty")).foregroundStyle(Color.subtle) }
                 }
             }
             .overlay { if !loaded && error == nil { ProgressView() } }
             .navigationTitle(w("tabs.messages"))
             .appLogo()
-            .navigationDestination(for: String.self) { ConversationScreen(id: $0) }
             .refreshable { await load() }
             .task { await load() }
         }
     }
 
     private func row(_ c: ConversationSummary) -> some View {
-        NavigationLink(value: c.id) {
+        // Opens directly: a value link here stayed shut when Messages was pushed from Me (iPhone 18 Pro, 2026-11-03).
+        NavigationLink { ConversationScreen(id: c.id) } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(c.title).font(.headline).lineLimit(1)
                     Spacer()
-                    Text(w("messages.kinds.\(c.kind)")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("messages.kinds.\(c.kind)")).font(.caption).foregroundStyle(Color.subtle)
                 }
                 if c.kind == "group" {
-                    Text(w("groups.members", count: c.memberCount)).font(.caption).foregroundStyle(.secondary)
+                    Text(w("groups.members", count: c.memberCount)).font(.caption).foregroundStyle(Color.subtle)
                 }
                 if let last = c.lastMessage { Text(last).lineLimit(2) }
                 if c.unread > 0 {
@@ -122,7 +122,7 @@ struct ConversationScreen: View {
                     ForEach(view?.messages ?? []) { m in bubble(m).id(m.id).listRowSeparator(.hidden) }
                 }
                 if let c = view?.conversation {
-                    if let error { Section { Text(error).foregroundStyle(.red) } }
+                    if let error { Section { Text(error).foregroundStyle(Color.danger) } }
                     if c.awaitingReply { Section { Text(w("conversation.waiting")).font(.footnote) } }
                     if c.canWrite { Section { composer(c) } }
                     if !c.isRequest { Section { tools(c) } }
@@ -153,12 +153,12 @@ struct ConversationScreen: View {
     @ViewBuilder private func header(_ c: ConversationView.Info) -> some View {
         if let topic = c.topic { Text(topic) }
         if c.isGroup {
-            Text(w("groups.members", count: c.members.count + 1)).font(.caption).foregroundStyle(.secondary)
+            Text(w("groups.members", count: c.members.count + 1)).font(.caption).foregroundStyle(Color.subtle)
         }
         if let post = c.post {
             Button { openedPost = post.id } label: {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(w("conversation.about")).font(.caption).foregroundStyle(.secondary)
+                    Text(w("conversation.about")).font(.caption).foregroundStyle(Color.subtle)
                     Text(post.excerpt)
                 }
             }
@@ -191,7 +191,7 @@ struct ConversationScreen: View {
             if m.mine { Spacer(minLength: 40) }
             VStack(alignment: .leading, spacing: 2) {
                 if !m.mine && view?.conversation.isGroup == true { Text(m.author).font(.caption.bold()).foregroundStyle(.tint) }
-                Text(m.body).foregroundStyle(m.mine ? .white : .primary)
+                Text(m.body).balloonLeading().foregroundStyle(m.mine ? .white : .primary)
                 HStack(spacing: 12) {
                     if let d = try? Date(m.createdAt, strategy: .iso8601) {
                         Text(d.formatted(date: .omitted, time: .shortened)).font(.caption2)
@@ -206,7 +206,8 @@ struct ConversationScreen: View {
                 }
                 .foregroundStyle(m.mine ? .white.opacity(0.8) : .secondary)
             }
-            .padding(10)
+            // Word balloons (Steve, 2026-11-02): a 3 pt margin, leading the font size + 1.
+            .padding(3)
             .background(m.mine ? AnyShapeStyle(.tint) : AnyShapeStyle(.thinMaterial), in: .rect(cornerRadius: 16))
             .accessibilityElement(children: .combine)
             if !m.mine { Spacer(minLength: 40) }
@@ -237,7 +238,7 @@ struct ConversationScreen: View {
     private func reportSheet(_ m: ChatMessage) -> some View {
         NavigationStack {
             Form {
-                Section { Text(m.body).foregroundStyle(.secondary) }
+                Section { Text(m.body).foregroundStyle(Color.subtle) }
                 Section {
                     TextField(w("conversation.whatsWrong"), text: $reason, axis: .vertical).lineLimit(2...6)
                 } footer: { Text(w("conversation.reportNote")) }
@@ -320,7 +321,7 @@ struct InviteSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                if people?.isEmpty == true { Text(w("conversation.followToInvite")).foregroundStyle(.secondary) }
+                if people?.isEmpty == true { Text(w("conversation.followToInvite")).foregroundStyle(Color.subtle) }
                 ForEach(people ?? []) { p in
                     Button {
                         if picked.contains(p.id) { picked.remove(p.id) } else { picked.insert(p.id) }
@@ -333,7 +334,7 @@ struct InviteSheet: View {
                     }
                     .accessibilityAddTraits(picked.contains(p.id) ? .isSelected : [])
                 }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
             }
             .overlay { if people == nil && error == nil { ProgressView() } }
             .navigationTitle(w("conversation.inviteTitle"))
@@ -379,7 +380,7 @@ struct GroupsView: View {
     var body: some View {
         List {
             Section { Text(w("groups.intro")) }
-            if let error { Section { Text(error).foregroundStyle(.red) } }
+            if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             Section {
                 if creating {
                     TextField(w("groups.namePlaceholder"), text: $title)
@@ -399,14 +400,14 @@ struct GroupsView: View {
                     Button(w("groups.start")) { creating = true }
                 }
             }
-            if loaded && groups.isEmpty { Section { Text(w("groups.empty")).foregroundStyle(.secondary) } }
+            if loaded && groups.isEmpty { Section { Text(w("groups.empty")).foregroundStyle(Color.subtle) } }
             ForEach(groups) { g in
                 Button { Task { await open(g) } } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(g.title).font(.headline)
                         if let topic = g.topic { Text(topic) }
                         Text("\(w("groups.members", count: g.memberCount)) · \(w(g.joined ? "groups.joined" : "groups.tapToJoin"))")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(Color.subtle)
                     }
                 }
                 .buttonStyle(.plain)
@@ -450,4 +451,26 @@ struct GroupsView: View {
             self.error = error.localizedDescription
         }
     }
+}
+
+/// A word balloon's lines set the body font's size + 1 apart (Steve, 2026-11-02), growing with the reader's text size.
+private struct BalloonLeading: ViewModifier {
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 17
+
+    func body(content: Content) -> some View {
+        // lineHeight comes with the iOS 26 SDK (Xcode 26, Swift 6.2); CI's default Xcode 16 builds without it.
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            content.lineHeight(.exact(points: size + 1))
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+private extension View {
+    func balloonLeading() -> some View { modifier(BalloonLeading()) }
 }

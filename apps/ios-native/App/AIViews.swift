@@ -81,7 +81,7 @@ struct AiChatView: View {
                 if crisis { Section { CrisisBox() } }
                 if !turns.isEmpty { Section { AiTurnsView(turns: turns, you: w("ai.you"), ai: w("ai.ai")) } }
                 if busy { Text(w("ai.writing")).font(.caption) }
-                if let error { Text(error).foregroundStyle(.red) }
+                if let error { Text(error).foregroundStyle(Color.danger) }
                 if enabled == true {
                     Section {
                         TextField(w("ai.placeholder"), text: $draft, axis: .vertical).lineLimit(2...8)
@@ -146,7 +146,7 @@ struct CirclePrepView: View {
             if crisis { Section { CrisisBox() } }
             if !turns.isEmpty { Section { AiTurnsView(turns: turns, you: w("ai.you"), ai: "AI") } }
             if busy { Text(w("ai.writing")).font(.caption) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if role != nil && !sent {
                 Section {
                     TextField(w("ai.answer"), text: $draft, axis: .vertical).lineLimit(2...8)
@@ -207,7 +207,7 @@ struct CrosspostView: View {
     var body: some View {
         Form {
             Section { Text(w("crosspost.intro")) }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let s = status, !s.enabled { Text(w("crosspost.off")) }
             if let s = status, s.enabled {
                 Section(w("crosspost.extensionTitle")) {
@@ -307,7 +307,7 @@ struct TokenStoreView: View {
 
     var body: some View {
         Form {
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
             if let listing, !listing.enabled { Text(w("tokenStore.off")) }
             if practice { Text(w("tokenStore.practice")).foregroundStyle(.orange) }
             if let listing, listing.enabled {

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, ErrorText, Field, Loading, Screen } from '@/components/ui';
+import { VideoCircleCard } from '@/components/video-circle';
 import { api, type Mend } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space, type } from '@/lib/theme';
@@ -116,6 +117,7 @@ export default function MendScreen() {
             )}
           </>
         ) : null}
+        {m ? <VideoCircleCard mendId={m.id} staff={m.role === 'moderator'} /> : null}
       </ScrollView>
     </Screen>
   );

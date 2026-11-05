@@ -75,14 +75,20 @@ import Testing
     @Test func hangsThreeLeavesBelowThePostAndSproutsRepliesThreeLevelsDeep() {
         let all = [n("a", 1), n("b", 2), n("c", 3), n("d", 4), n("r1", 5, "d"), n("r2", 6, "d"), n("r3", 7, "d"), n("r4", 8, "d"), n("rr", 9, "r1"), n("rrr", 10, "rr")]
         let (top, kids) = Beanstalk.tree(all)
+        // More than three: an uncountable cluster until tapped, then up to five spread out.
         let closed = BeanDraw.hanging(w: 360, top: top, kids: kids, cv: .init(), seed: 0)
-        #expect(closed.leaves.map(\.id) == ["d", "c", "b"])
-        #expect(closed.leaves.map(\.side) == [-1, 1, -1])
-        #expect(closed.pager && closed.pages == 2)
-        #expect(BeanDraw.hanging(w: 360, top: top, kids: kids, cv: .init(page: 1), seed: 0).leaves.map(\.id) == ["a"])
-        let open = BeanDraw.hanging(w: 360, top: top, kids: kids, cv: .init(open: 0, open2: 0), seed: 0)
-        #expect(open.leaves.map { "\($0.id):\($0.level)" } == ["d:1", "c:1", "b:1", "r1:2", "rr:3", "r2:2", "r3:2"])
-        #expect(open.H > closed.H)
+        #expect(closed.cluster && closed.leaves.isEmpty && !closed.more)
+        let spread = BeanDraw.hanging(w: 360, top: top, kids: kids, cv: .init(spread: true), seed: 0)
+        #expect(spread.leaves.map(\.id) == ["d", "c", "b", "a"])
+        #expect(spread.leaves.map(\.side) == [-1, 1, -1, 1])
+        #expect(!spread.cluster && !spread.more)
+        #expect(BeanDraw.hanging(w: 360, top: top, kids: kids, cv: .init(spread: true, shown: 2), seed: 0).more)
+        let open = BeanDraw.hanging(w: 360, top: top, kids: kids, cv: .init(open: 0, open2: 0, spread: true), seed: 0)
+        #expect(open.leaves.map { "\($0.id):\($0.level)" } == ["d:1", "c:1", "b:1", "a:1", "r1:2", "rr:3", "r2:2", "r3:2"])
+        #expect(open.H > spread.H)
+        // Three or fewer hang as they are.
+        let (few, fewKids) = Beanstalk.tree([n("a", 1), n("b", 2)])
+        #expect(BeanDraw.hanging(w: 360, top: few, kids: fewKids, cv: .init(), seed: 0).leaves.map(\.id) == ["b", "a"])
     }
 
     @Test func bendsTheStalkOverToTheNextPost() {
@@ -105,4 +111,17 @@ import Testing
         cv.toggleReplies(level: 1, index: 3)
         #expect(cv.open == nil)
     }
+}
+
+@Test func closeUpShowsEveryReplyHoweverDeep() {
+    func note(_ id: String, _ parent: String?) -> Beanstalk.Note {
+        Beanstalk.Note(id: id, parentId: parent, body: id, author: id, createdAt: "2026-10-31T00:00:00Z")
+    }
+    let (_, kids) = Beanstalk.tree([note("a", nil), note("b", "a"), note("c", "b"), note("d", "c"), note("e", "d")])
+    #expect(Beanstalk.replies(to: "a", level: 1, in: kids).map(\.id) == ["b"])
+    #expect(Beanstalk.replies(to: "b", level: Beanstalk.maxLevel, in: kids).map(\.id) == ["c", "d", "e"])
+}
+
+@Test func everyLeafIsTheDrawingsTwoByOne() {
+    for w in [78.0, 109, 187, 221, 300] { #expect(BeanDraw.leafHeight(width: w) == (w / 2).rounded()) }
 }

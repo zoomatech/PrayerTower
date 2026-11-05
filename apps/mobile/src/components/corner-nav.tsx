@@ -38,6 +38,7 @@ export function CornerNav() {
   const groupsFeature = useFeature('groups');
   const { topicGroups } = useFeatures();
   const groupsOn = groupsFeature && topicGroups;
+  const poolsOn = useFeature('pools');
   const items: { label: string; href: Href }[] = [
     { label: t('tabs.prayers'), href: '/' },
     { label: t('tabs.promises'), href: '/commitments' },
@@ -46,6 +47,12 @@ export function CornerNav() {
     ...(groupsOn ? [{ label: t('topicGroups.title'), href: '/topic-groups' as Href }] : []),
     { label: t('tabs.notices'), href: '/notifications' },
     { label: t('tabs.me'), href: '/profile' },
+    // Settings → Themes → Full Screen Sparkler Theme → Background choices (Steve, 2026-11-01).
+    { label: t('menu.settings'), href: '/settings' },
+    // Steve (2026-11-02): a donation to keep us up and running (Give → everyone, the shared
+    // fund that pays for the servers), and a donation of tokens to a token pool.
+    { label: t('menu.donateUpkeep'), href: '/give' },
+    ...(poolsOn ? [{ label: t('menu.donatePool'), href: '/pools' as Href }] : []),
   ];
   const go = (href: Href) => {
     setOpen(false);

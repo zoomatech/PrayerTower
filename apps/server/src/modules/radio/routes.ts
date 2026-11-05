@@ -9,8 +9,40 @@ import * as panel from './panel.js';
 import * as prayingToo from './praying-too.js';
 import * as signalQueue from './signal-queue.js';
 import * as receipts from './receipts.js';
+import * as posts from '../posts/index.js';
 
 export function radioRoutes(app: FastifyInstance, db: Db) {
+  // PrayerCast (Steve, 2026-11-02): a prayer sent by radio, with a required choice: posted
+  // publicly to the feed, or PrayerCast privately (never shown, its words forgotten once sent).
+  app.post('/prayercast', async (req, reply) => {
+    const userId = requireUser(req);
+    const { visibility, idempotencyKey, ...rest } = req.body as Record<string, unknown> & { visibility?: unknown; idempotencyKey?: unknown };
+    const choice = z.object({ visibility: z.enum(['public', 'private']), idempotencyKey: z.string().min(1).max(100) }).parse({ visibility, idempotencyKey });
+    const input = posts.NewPost.parse({ ...rest, postType: 'prayer_request' });
+    const out = await withTx(db, async (tx) => {
+      if (choice.visibility === 'private') {
+        // Private: if it can't be sent, nothing is kept.
+        const post = await posts.create(tx, userId, { ...input, isAnonymous: true });
+        await posts.makePrivateCast(tx, post.id);
+        return { post, radioPrayer: await radio.queue(tx, userId, post.id, choice.idempotencyKey), castError: null };
+      }
+      // Public: the prayer is posted even when the radio can't take it now (e.g. no Priestly
+      // tokens), and the member is told why it wasn't sent.
+      const post = await posts.create(tx, userId, input);
+      await tx.query('savepoint prayercast');
+      try {
+        return { post, radioPrayer: await radio.queue(tx, userId, post.id, choice.idempotencyKey), castError: null };
+      } catch (e) {
+        await tx.query('rollback to savepoint prayercast');
+        return { post, radioPrayer: null, castError: (e as Error).message };
+      }
+    });
+    reply.code(201);
+    // A private PrayerCast has no card: it is shown to no one, its author included.
+    const card = choice.visibility === 'public' ? (await posts.cards(db, [out.post.id], userId))[0] : null;
+    return { post: card, postId: out.post.id, radioPrayer: out.radioPrayer, castError: out.castError, harm: out.post.harm };
+  });
+
   // Spend Priestly tokens (token_settings.radio_prayer_cost) to send this request out by radio.
   app.post<{ Params: { id: string } }>('/posts/:id/radio', async (req, reply) => {
     const userId = requireUser(req);

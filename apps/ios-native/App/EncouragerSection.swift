@@ -32,7 +32,7 @@ struct EncouragerSection: View {
                         Button(w("practices.encVolunteer")) { Task { await run { try await model.store.api.setVolunteer(true) } } }.disabled(!agree || busy)
                     }
                     if let note { Text(note).font(.footnote) }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if let error { Text(error).foregroundStyle(Color.danger) }
                 } header: {
                     Text(w("practices.encTitle"))
                 }
@@ -48,7 +48,7 @@ struct EncouragerSection: View {
         let l = m.lines(w, endDate: monthDay(m.endsAt))
         VStack(alignment: .leading, spacing: 4) {
             Text(l.title)
-            Text(l.hint).font(.footnote).foregroundStyle(.secondary)
+            Text(l.hint).font(.footnote).foregroundStyle(Color.subtle)
         }
         .accessibilityElement(children: .combine)
         if m.checkInDue == true {

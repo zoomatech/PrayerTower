@@ -75,6 +75,13 @@ public struct LeafComment: Codable, Sendable, Equatable, Identifiable {
     public let body: String
     public let author: Identity
     public let createdAt: String
+
+    public init(id: String, body: String, author: Identity, createdAt: String) {
+        self.id = id
+        self.body = body
+        self.author = author
+        self.createdAt = createdAt
+    }
 }
 
 public struct FeedPage: Codable, Sendable, Equatable {

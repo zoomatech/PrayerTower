@@ -24,7 +24,7 @@ export function feedRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.get('/me/branch', async (req) => {
     const userId = requireUser(req);
     const { rows } = await db.query<{ id: string }>(
-      `select id from public.posts where user_id = $1 and moderation_status <> 'removed' order by created_at desc limit 100`,
+      `select id from public.posts where user_id = $1 and moderation_status not in ('removed', 'private_cast') order by created_at desc limit 100`,
       [userId],
     );
     return { posts: await signMedia(storage, await posts.cards(db, rows.map((r) => r.id), userId)) };

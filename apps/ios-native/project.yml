@@ -14,6 +14,10 @@ options:
 packages:
   PrayerTowerKit:
     path: .
+  # Snapshot tests only (SnapshotTests/); the app itself doesn't link it.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: 1.17.0
   # EmbeddingGemma for the fuzzy Bible search (App/GemmaEmbedder.swift), as Winstons Syndicate's ZoomaBibleSearch.
   # Here, not in Package.swift, so that the shared package still builds and tests on Linux.
   onnxruntime:
@@ -29,7 +33,7 @@ targets:
     sources: [App, Shared]
     # A shared scheme, so scripts/mac-build-native.sh can build and test with xcodebuild -scheme.
     scheme:
-      testTargets: [PrayerTowerUIWalks, PrayerTowerNativeUITests]
+      testTargets: [PrayerTowerUIWalks, PrayerTowerNativeUITests, PrayerTowerNativeSnapshotTests]
     dependencies:
       - package: PrayerTowerKit
         products:
@@ -403,7 +407,27 @@ targets:
       Debug: Config.xcconfig
       Release: Config.xcconfig
 
-  # Xcode's accessibility audit on the sign-in screen and every feed skin (UITests/).
+  # Every main screen in light and dark at the largest text size, on the sample data (SnapshotTests/).
+  PrayerTowerNativeSnapshotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [SnapshotTests]
+    dependencies:
+      - target: PrayerTowerNative
+      - package: SnapshotTesting
+        products: [SnapshotTesting]
+      - package: PrayerTowerKit
+        products: [PrayerTowerKit, PrayerTowerSession]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zoomatech.prayertower.native.snapshots
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/PrayerTowerNative.app/PrayerTowerNative"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+  # Xcode's accessibility audit on the sign-in screen and every feed skin, and launch time and
+  # scrolling a 1,000-post feed (UITests/).
   PrayerTowerNativeUITests:
     type: bundle.ui-testing
     platform: iOS

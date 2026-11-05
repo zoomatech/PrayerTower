@@ -59,7 +59,7 @@ struct AwardHallView: View {
     var body: some View {
         List {
             Section { Text(w("award.hallIntro")) }
-            if hall?.years.isEmpty ?? true { Text(w("award.none")).foregroundStyle(.secondary) }
+            if hall?.years.isEmpty ?? true { Text(w("award.none")).foregroundStyle(Color.subtle) }
             ForEach(hall?.years ?? []) { y in
                 Section(String(y.year)) {
                     ForEach(y.winners, id: \.rank) { p in
@@ -89,16 +89,16 @@ struct BranchView: View {
     var body: some View {
         List {
             Section { Text(w("vine.branchIntro")) }
-            if let cards, cards.isEmpty { Text(w("vine.branchEmpty")).foregroundStyle(.secondary) }
+            if let cards, cards.isEmpty { Text(w("vine.branchEmpty")).foregroundStyle(Color.subtle) }
             ForEach(cards ?? []) { c in
                 NavigationLink { PostDetailView(postId: c.id) } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(c.preview.isEmpty ? c.body : c.preview).lineLimit(4)
-                        if c.counts.prayers > 0 { Text(w("card.praying", count: c.counts.prayers)).font(.caption).foregroundStyle(.secondary) }
+                        if c.counts.prayers > 0 { Text(w("card.praying", count: c.counts.prayers)).font(.caption).foregroundStyle(Color.subtle) }
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("vine.branchTitle"))
         .task { await load() }
@@ -130,7 +130,7 @@ struct SquireBoardView: View {
                 }
                 Section {
                     let entries = board.entries ?? []
-                    if entries.isEmpty { Text(w("squire.empty")).foregroundStyle(.secondary) }
+                    if entries.isEmpty { Text(w("squire.empty")).foregroundStyle(Color.subtle) }
                     ForEach(entries) { e in
                         NavigationLink { PersonView(id: e.personId) } label: {
                             HStack(spacing: 12) {
@@ -145,7 +145,7 @@ struct SquireBoardView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("squire.title"))
         .task { await run($error) { board = try await model.store.api.squireBoard() } }
@@ -184,7 +184,7 @@ struct PodcastsView: View {
                     .buttonStyle(.borderless)
                 }
             }
-            if let shows, shows.isEmpty { Text(w("podcasts.empty")).foregroundStyle(.secondary) }
+            if let shows, shows.isEmpty { Text(w("podcasts.empty")).foregroundStyle(Color.subtle) }
             ForEach(shows ?? []) { s in
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
@@ -197,13 +197,13 @@ struct PodcastsView: View {
                             Text(e.title).bold()
                             if !e.description.isEmpty { Text(e.description).lineLimit(4) }
                             Text([day(e.publishedAt), e.minutes.map { w("podcasts.minutes", count: $0) } ?? ""].filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.caption).foregroundStyle(Color.subtle)
                             Button(w("podcasts.play", ["title": e.title])) { play(e) }.buttonStyle(.borderless)
                         }
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("podcasts.title"))
         .task { await run($error) { shows = try await model.store.api.podcasts() } }
@@ -268,7 +268,7 @@ struct LiveView: View {
                     .buttonStyle(.borderless)
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("live.title"))
         .task { await load() }
@@ -320,7 +320,7 @@ struct ReadingPlanView: View {
                             } else {
                                 Button(w("readingPlan.markRead")) { Task { await run($error) { self.now = try await model.store.api.markReadingRead(plan.id) } } }
                             }
-                            Text(w("readingPlan.readers", count: r.readers)).font(.caption).foregroundStyle(.secondary)
+                            Text(w("readingPlan.readers", count: r.readers)).font(.caption).foregroundStyle(Color.subtle)
                         }
                         if let c = plan.conversationId {
                             NavigationLink(w("readingPlan.discuss")) { ConversationScreen(id: c) }
@@ -348,7 +348,7 @@ struct ReadingPlanView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("readingPlan.title"))
         .task { await load() }
@@ -422,7 +422,7 @@ struct ChurchView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("church.title"))
         .task { await load() }
@@ -465,7 +465,7 @@ struct ChurchReviewView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            if churches.isEmpty { Text(w("churchReview.empty")).foregroundStyle(.secondary) }
+            if churches.isEmpty { Text(w("churchReview.empty")).foregroundStyle(Color.subtle) }
             ForEach(churches) { c in
                 Section {
                     Text(c.name).font(.headline)
@@ -491,7 +491,7 @@ struct ChurchReviewView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("churchReview.title"))
         .task(id: status) { await load() }
@@ -531,7 +531,7 @@ struct WitnessView: View {
                     filter = $0 == "open" ? nil : $0
                 }
             }
-            if cases.isEmpty { Text(w("witness.empty")).foregroundStyle(.secondary) }
+            if cases.isEmpty { Text(w("witness.empty")).foregroundStyle(Color.subtle) }
             ForEach(cases) { c in
                 Section {
                     Text(summary(c)).font(.caption)
@@ -575,7 +575,7 @@ struct WitnessView: View {
                     }
                 }
             }
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("profile.witness"))
         .task(id: filter) { await load() }

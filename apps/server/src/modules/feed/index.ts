@@ -74,6 +74,23 @@ export function pickPinned(candidates: Candidate[]): Candidate | null {
   );
 }
 
+/** How long the viewer's own new post stays at the top of their own feed (Steve, 2026-11-02). */
+export const OWN_POST_ON_TOP_MINUTES = 15;
+
+/**
+ * The feed's order: the viewer's own posts from the last few minutes first, newest first, so a
+ * post they just made is the top post they see; then the pinned post; then the ranked rest.
+ */
+export function orderFeed(all: Candidate[], now = new Date(), mix: FeedMix = {}): { ordered: Candidate[]; pinned: Candidate | null } {
+  const since = now.getTime() - OWN_POST_ON_TOP_MINUTES * 60_000;
+  const fresh = all.filter((c) => c.mine && c.createdAt.getTime() >= since).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const top = new Set(fresh.map((c) => c.id));
+  const rest = all.filter((c) => !top.has(c.id));
+  const pinned = pickPinned(rest);
+  const ranked = rankFeed(rest.filter((c) => c.id !== pinned?.id), now, mix);
+  return { ordered: [...fresh, ...(pinned ? [pinned] : []), ...ranked], pinned };
+}
+
 const CANDIDATE_WINDOW_DAYS = 30;
 const CANDIDATE_LIMIT = 500;
 
@@ -127,7 +144,7 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
 export interface FeedTheme {
   slug: string;
   name: string;
-  layout: 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit';
+  layout: 'column' | 'vine' | 'carousel' | 'flip' | 'wall' | 'tower' | 'circuit' | 'climb' | 'sparkler' | 'ceramic';
   cardTemplates: Record<string, unknown>;
   animations: Record<string, unknown>;
   tokens: Record<string, unknown>;
@@ -243,10 +260,8 @@ export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize
   // Featured Macro Needs show above the feed, so they aren't repeated in it.
   const featured = new Set(await macroNeeds.featuredPostIds(q, viewerId));
   const all = (await candidates(q, viewerId)).filter((c) => !featured.has(c.id));
-  const pinned = pickPinned(all);
   const mix = (await getProfile(q, viewerId))?.feed_mix ?? {};
-  const ranked = rankFeed(all.filter((c) => c.id !== pinned?.id), new Date(), mix);
-  const ordered = pinned ? [pinned, ...ranked] : ranked;
+  const { ordered, pinned } = orderFeed(all, new Date(), mix);
   const slice = ordered.slice(page * pageSize, (page + 1) * pageSize);
   return {
     // Cards carry no layout; the client renders them with the theme's layout.

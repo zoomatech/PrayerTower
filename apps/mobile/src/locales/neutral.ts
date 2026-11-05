@@ -20,6 +20,9 @@ const named = (tree: Tree): Tree =>
   Object.fromEntries(Object.entries(tree).map(([k, v]) => [k, typeof v === 'string' ? v.replaceAll('Open Circle', env.openCircleName) : named(v)]));
 
 export const keys: Tree = named({
+  sparkler: {
+    prompt: 'Say Something, Share Something, or Ask for Support',
+  },
   library: {
     adminTitle: "Text search",
     adminAsk: "Ask however you want to ask, even if you're fuzzy on the details",
@@ -258,6 +261,9 @@ export const keys: Tree = named({
     tour: 'How Open Circle works',
   },
   compose: {
+    post: 'Post',
+    anonymous: 'Post anonymously',
+    castNote: '*A PrayerCast goes out by radio as a signal that keeps traveling through space.',
     greeting: "Welcome, %{name}! Let's lift each other up.",
     placeholder: "What's on your mind?",
     bodyLabel: 'Your request',

@@ -39,7 +39,7 @@ struct LiveFollowView: View {
                     Button(w("growth.liveStart")) { Task { await start() } }
                     Text(w("growth.liveHint")).font(.footnote)
                 }
-                if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+                if let error { Text(error).font(.footnote).foregroundStyle(Color.danger) }
             }
             .task(id: card.id) { running = activity != nil }
         }

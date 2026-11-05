@@ -16,6 +16,12 @@ Everything here is **off** until an admin turns it on in **Admin → Feed skins*
 | Skin gallery | off | Me → Skin gallery: every skin the member can use, with a small preview, who made it, likes, and "Use this skin". Needs the skins switch on too. |
 | Longest video, in seconds | 7 | The composer leaves out longer clips. The server refuses a clip longer than the cap. |
 
+### Why replies stop at the third level
+
+Steve, 2026-10-29: comments are for prayer and encouragement, not debate, so a back-and-forth chain can't go on.
+
+Steve, 2026-11-02: it also gives respect to the poster to have the last word on home turf. Post, Comment, Owner's Response is a frequent cycle, and just closing it there allows enough expression while limiting unlimited dissent. Groups will be different, since they're about discussion, but on regular posts people shouldn't have to worry about being trolled.
+
 ## The skins
 
 A skin is a row in `feed_themes`. Its look is in `tokens` (JSON), so a new vine skin needs a migration or an admin edit, never an app release. Skins with `gated = true` show only while the switch is on.

@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><meta name="theme-color" content="#F6F0EE"><title>Ceramic Figurine Skin</title><style>html,body{margin:0;background:#EAE6F1;overflow:hidden;position:fixed;inset:0;overscroll-behavior:none;touch-action:pan-y}#app{transform-origin:0 0;width:390px}</style></head><body><div id="probe" style="position:fixed;top:0;height:0;padding-top:env(safe-area-inset-top)"></div><style id="fitcss"></style><div id="app"></div>
+<script>
+const SVGNS='http://www.w3.org/2000/svg';
+class DCLogic{constructor(p){this.props=p;this.state={}}setState(p){Object.assign(this.state,p);schedule()}forceUpdate(){schedule()}}
+const comps={};
+async function load(name){
+  const txt=(await (await fetch(name+'.dc.html')).text()).replace(/\/_blob\/df2d3e761304863cc6a14b9325fd3e1d/g,'prayer-tower-logo.png');
+  const doc=new DOMParser().parseFromString(txt,'text/html');
+  const xdc=doc.querySelector('x-dc');
+  const helmet=xdc.querySelector('helmet');
+  if(helmet){for(const n of [...helmet.children]) document.head.appendChild(document.importNode(n,true)); helmet.remove();}
+  const sc=doc.querySelector('script[data-dc-script]');
+  const C=new Function('DCLogic',sc.textContent+'\n;return Component;')(DCLogic);
+  comps[name]={tpl:xdc,C};
+}
+function lookup(ctx,p){p=p.trim();if(p==='true')return true;if(p==='false')return false;if(/^-?\d+(\.\d+)?$/.test(p))return Number(p);
+  let v=ctx;for(const k of p.split('.')){if(v==null)return undefined;v=v[k]}return v}
+const HOLE=/\{\{([^}]+)\}\}/g;
+function interp(s,ctx){return s.replace(HOLE,(m,p)=>{const v=lookup(ctx,p);return v==null?'':String(v)})}
+function raw(s,ctx){const m=s.match(/^\s*\{\{([^}]+)\}\}\s*$/);return m?lookup(ctx,m[1]):interp(s,ctx)}
+function render(node,ctx,out){
+  for(const n of node.childNodes){
+    if(n.nodeType===3){const t=interp(n.textContent,ctx);if(t.trim()||t===' ')out.push(t);continue}
+    if(n.nodeType!==1)continue;
+    const tag=n.localName;
+    if(tag==='sc-for'){const list=raw(n.getAttribute('list'),ctx)||[];const as=n.getAttribute('as');list.forEach((it,i)=>render(n,Object.assign(Object.create(ctx),{[as]:it,$index:i}),out));continue}
+    if(tag==='sc-if'){if(raw(n.getAttribute('value'),ctx))render(n,ctx,out);continue}
+    if(tag==='dc-import'){const nm=n.getAttribute('name');const props={};for(const a of n.attributes){if(a.name==='name'||a.name.startsWith('hint-'))continue;props[a.name.replace(/-(\w)/g,(m,c)=>c.toUpperCase())]=raw(a.value,ctx)}
+      const c=comps[nm];const inst=new c.C(props);const vals=inst.renderVals();render(c.tpl,vals,out);continue}
+    const v={tag,attrs:{},ev:{},ref:null,children:[]};
+    for(const a of n.attributes){
+      if(a.name==='ref'){v.ref=raw(a.value,ctx);continue}
+      if(a.name.startsWith('on')){v.ev[a.name.slice(2).toLowerCase()]=raw(a.value,ctx);continue}
+      v.attrs[a.name]=interp(a.value,ctx)}
+    render(n,ctx,v.children);out.push(v)}
+  return out}
+function create(v,svg){if(typeof v==='string')return document.createTextNode(v);
+  svg=svg||v.tag==='svg';const el=svg?document.createElementNS(SVGNS,v.tag):document.createElement(v.tag);update(el,v,svg);return el}
+function update(el,v,svg){
+  for(const a of [...el.attributes]) if(!(a.name in v.attrs)) el.removeAttribute(a.name);
+  for(const k in v.attrs) if(el.getAttribute(k)!==v.attrs[k]) el.setAttribute(k,v.attrs[k]);
+  el._ev=el._ev||{};for(const k in v.ev){if(!(k in el._ev))el.addEventListener(k,e=>{const f=el._ev[k];f&&f(e)});el._ev[k]=v.ev[k]}
+  if(v.ref&&!el._reffed){el._reffed=1;v.ref(el)}
+  patch(el,v.children,svg&&v.tag!=='foreignObject')}
+function patch(parent,vs,svg){
+  const kids=parent.childNodes;
+  vs.forEach((v,i)=>{const cur=kids[i];
+    if(!cur){parent.appendChild(create(v,svg));return}
+    if(typeof v==='string'){if(cur.nodeType===3){if(cur.textContent!==v)cur.textContent=v}else parent.replaceChild(create(v,svg),cur);return}
+    if(cur.nodeType===1&&cur.localName===v.tag)update(cur,v,svg||v.tag==='svg');else parent.replaceChild(create(v,svg),cur)});
+  while(kids.length>vs.length)parent.removeChild(parent.lastChild)}
+let root,pending=false;
+function schedule(){if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;draw()})}
+function fit(){const a=document.getElementById('app');const top=document.getElementById('probe').offsetHeight||0;const k=innerWidth/390;a.style.transform='scale('+k+')';a.style.marginTop=top+'px';document.getElementById('fitcss').textContent='#app>div{height:'+((innerHeight-top)/k)+'px !important}html,body{background:#F6F0EE !important}'}addEventListener('resize',fit);
+function draw(){fit();patch(document.getElementById('app'),render(comps.Main.tpl,root.renderVals(),[]),false)}
+(async()=>{await load('Figurine');await load('Main');root=new comps.Main.C({});draw();root.componentDidMount&&root.componentDidMount();window.ready=true})();
+</script></body></html>

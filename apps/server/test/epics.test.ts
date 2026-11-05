@@ -64,6 +64,14 @@ describe('tiers', () => {
     expect((await as(secret).get(`/posts/${theirs.id}`)).json().post.author.tier).toBe('prayerful_helper');
   });
 
+  it("counts the member's own prayer requests on /me/tier for Me", async () => {
+    const u = await createUser('Counted');
+    expect((await as(u).get('/me/tier')).json().requests).toBe(0);
+    await newRequest(u, 'Pray for my mother.');
+    await newRequest(u, 'Pray for my job search.');
+    expect((await as(u).get('/me/tier')).json().requests).toBe(2);
+  });
+
   it('resupplies tokens weekly by tier, once per week', async () => {
     const u = await createUser('Resupplied');
     await db.query('update public.tier_settings set weekly_allotment = 3 where tier = $1', ['prayer_scout']);
