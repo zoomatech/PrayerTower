@@ -139,6 +139,10 @@ final class AccessibilityAuditTests: XCTestCase {
     @MainActor private func runAudit(_ app: XCUIApplication, _ place: String, in visible: CGRect) throws {
         // The screen as it was before the audit, to say what colors a contrast failure sat on.
         let shot = XCUIScreen.main.screenshot().image.cgImage
+        // Diagnostic: where the screen reader thinks each word is, to set beside the picture's colors.
+        for t in app.staticTexts.allElementsBoundByIndex.prefix(14) {
+            print("FRAMES \(place) '\(t.label.prefix(30))' at \(t.frame) hittable \(t.isHittable)")
+        }
         let width = app.windows.firstMatch.frame.width
         try app.performAccessibilityAudit { issue in
             if issue.auditType == .contrast, let frame = issue.element?.frame, let shot {
