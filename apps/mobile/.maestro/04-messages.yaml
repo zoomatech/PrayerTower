@@ -21,7 +21,7 @@ env:
 - tapOn:
     id: message-input
 - inputText: ${output.message}
-- hideKeyboard
+# No hideKeyboard: on iOS it fails here, and the send button sits above the keyboard.
 - tapOn:
     id: message-send
 - assertVisible: ${output.message}
