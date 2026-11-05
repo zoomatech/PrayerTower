@@ -106,12 +106,12 @@ export async function markHelped(q: Queryable, userId: string, id: string) {
 }
 
 /** Post ids of featured needs, so the feed doesn't show them twice. */
-export async function featuredPostIds(q: Queryable, viewerId: string): Promise<string[]> {
+export async function featuredPostIds(q: Queryable, viewerId: string, communities?: string[]): Promise<string[]> {
   const { rows } = await q.query<{ post_id: string }>(
     `select n.post_id from public.macro_needs n join public.posts p on p.id = n.post_id
       where n.ended_at is null and (n.ends_at is null or n.ends_at > now()) and p.community_id = any($2::uuid[])
       order by n.created_at desc limit $1`,
-    [MAX_FEATURED, await accounts.communityIds(q, viewerId)],
+    [MAX_FEATURED, communities ?? (await accounts.communityIds(q, viewerId))],
   );
   return rows.map((r) => r.post_id);
 }

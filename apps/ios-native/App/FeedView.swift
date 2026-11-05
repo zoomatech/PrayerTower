@@ -173,18 +173,20 @@ struct FeedView: View {
     }
 
     private func load() async {
+        // Opening with nothing on screen: show the feed saved on the device right away, then replace
+        // it with the fresh one. Before this, a slow connection showed nothing for up to 15 seconds.
+        if posts.isEmpty, let saved = await model.store.api.savedFeed() {
+            show(saved.value)
+            // Later pages wait for the fresh first page, so they follow the server's current order.
+            nextPage = nil
+        }
         do {
             let saved = try await model.store.api.cachedFeed()
             let page = saved.value
             savedAt = saved.savedAt
             pending = await OfflineStore.shared.pending().count
             dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
-            posts = page.posts
-            // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
-            // In demo mode, the skin chosen under Me → Feed style wins over the launch one.
-            let sample = SampleServer.isOn() ? (model.feedStyle ?? SampleServer.skin()) : nil
-            theme = sample.flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
-            nextPage = page.nextPage
+            show(page)
             error = nil
             await WidgetBridge.update(page, model: model)
         } catch let e as APIError where e.needsCode {
@@ -194,6 +196,15 @@ struct FeedView: View {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    private func show(_ page: FeedPage) {
+        posts = page.posts
+        // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
+        // In demo mode, the skin chosen under Me → Feed style wins over the launch one.
+        let sample = SampleServer.isOn() ? (model.feedStyle ?? SampleServer.skin()) : nil
+        theme = sample.flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
+        nextPage = page.nextPage
     }
 
     private func more() async {
