@@ -21,5 +21,6 @@ env:
     text: Praying Now
     index: 0
 - tapOn: I'm praying now
-- assertVisible: They will know someone is praying for them
+# The confirmation is one sentence with more words around these, so match part of it.
+- assertVisible: ".*They will know someone is praying for them.*"
 - tapOn: Close

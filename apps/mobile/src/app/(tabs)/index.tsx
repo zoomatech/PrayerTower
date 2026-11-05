@@ -174,6 +174,7 @@ export default function Feed() {
       <TellFounder small />
       <KindnessPromise />
       <Pressable
+        testID="feed-composer"
         style={styles.composer}
         onPress={() => router.push("/compose")}
         accessibilityRole="button"
