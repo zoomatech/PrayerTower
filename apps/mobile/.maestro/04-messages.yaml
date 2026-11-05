@@ -13,6 +13,9 @@ env:
       APP_ID: ${APP_ID}
       EMAIL: ${EMAIL}
       PASSWORD: ${PASSWORD}
+# Messages is in the menu under the Home button now (Steve, 2026-10-30).
+- tapOn:
+    id: corner-menu
 - tapOn: Messages
 - tapOn:
     text: Demo Ethel
